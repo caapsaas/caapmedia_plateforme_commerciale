@@ -111,7 +111,7 @@ CREATE TYPE "public"."document_type" AS ENUM ('CONTRACT', 'ID_CARD', 'WORK_PERMI
 
 -- CreateTable
 CREATE TABLE "public"."subsidiaries" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "subsidiary_name" VARCHAR(255) NOT NULL,
     "logo_svg" TEXT NOT NULL,
     "address" TEXT NOT NULL,
@@ -129,12 +129,12 @@ CREATE TABLE "public"."subsidiaries" (
 
 -- CreateTable
 CREATE TABLE "public"."users" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "user_name" VARCHAR(255) NOT NULL,
     "email" VARCHAR(255) NOT NULL,
     "password_hash" TEXT NOT NULL,
     "user_role" "public"."user_role" NOT NULL,
-    "subsidiary_id" TEXT NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -150,7 +150,7 @@ CREATE TABLE "public"."configurable_option_item" (
 
 -- CreateTable
 CREATE TABLE "public"."products" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "product_name" VARCHAR(255) NOT NULL,
     "main_category" VARCHAR(255) NOT NULL,
     "category" VARCHAR(255) NOT NULL,
@@ -160,7 +160,7 @@ CREATE TABLE "public"."products" (
     "selling_price" DECIMAL(15,2) NOT NULL,
     "warehouse" VARCHAR(255) NOT NULL,
     "product_range" VARCHAR(255),
-    "subsidiary_id" TEXT NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
 
     CONSTRAINT "products_pkey" PRIMARY KEY ("id")
 );
@@ -169,7 +169,7 @@ CREATE TABLE "public"."products" (
 CREATE TABLE "public"."configurable_options" (
     "id" SERIAL NOT NULL,
     "option_type" "public"."option_type" NOT NULL,
-    "product_id" TEXT,
+    "product_id" UUID,
     "item_id" INTEGER,
 
     CONSTRAINT "configurable_options_pkey" PRIMARY KEY ("id")
@@ -178,15 +178,16 @@ CREATE TABLE "public"."configurable_options" (
 -- CreateTable
 CREATE TABLE "public"."product_image" (
     "id" SERIAL NOT NULL,
+    "image_name" VARCHAR(255) NOT NULL,
     "image_url" TEXT NOT NULL,
-    "product_id" TEXT,
+    "product_id" UUID,
 
     CONSTRAINT "product_image_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."employees" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "last_name" VARCHAR(100) NOT NULL,
     "first_name" VARCHAR(100) NOT NULL,
     "birth_date" TIMESTAMP(3) NOT NULL,
@@ -208,8 +209,8 @@ CREATE TABLE "public"."employees" (
     "last_salary_adjustment_date" TIMESTAMP(3),
     "payment_method" "public"."payment_method" NOT NULL,
     "leave_balance" DECIMAL(5,2) DEFAULT 0,
-    "subsidiary_id" TEXT NOT NULL,
-    "managerId" TEXT,
+    "subsidiary_id" UUID NOT NULL,
+    "manager_id" UUID,
 
     CONSTRAINT "employees_pkey" PRIMARY KEY ("id")
 );
@@ -220,7 +221,7 @@ CREATE TABLE "public"."employee_documents" (
     "doc_type" "public"."document_type" NOT NULL,
     "document_name" VARCHAR(255) NOT NULL,
     "url" TEXT NOT NULL,
-    "employee_id" TEXT NOT NULL,
+    "employee_id" UUID NOT NULL,
 
     CONSTRAINT "employee_documents_pkey" PRIMARY KEY ("id")
 );
@@ -232,7 +233,7 @@ CREATE TABLE "public"."employee_position_history" (
     "department" VARCHAR(100),
     "start_date" TIMESTAMP(3) NOT NULL,
     "end_date" TIMESTAMP(3),
-    "employee_id" TEXT NOT NULL,
+    "employee_id" UUID NOT NULL,
 
     CONSTRAINT "employee_position_history_pkey" PRIMARY KEY ("id")
 );
@@ -243,7 +244,7 @@ CREATE TABLE "public"."employee_trainings" (
     "training_name" VARCHAR(255) NOT NULL,
     "training_date" TIMESTAMP(3) NOT NULL,
     "provider" VARCHAR(255),
-    "employee_id" TEXT NOT NULL,
+    "employee_id" UUID NOT NULL,
 
     CONSTRAINT "employee_trainings_pkey" PRIMARY KEY ("id")
 );
@@ -255,7 +256,7 @@ CREATE TABLE "public"."employee_performance_reviews" (
     "reviewer" VARCHAR(255),
     "rating" INTEGER,
     "review_comments" TEXT,
-    "employee_id" TEXT NOT NULL,
+    "employee_id" UUID NOT NULL,
 
     CONSTRAINT "employee_performance_reviews_pkey" PRIMARY KEY ("id")
 );
@@ -267,27 +268,27 @@ CREATE TABLE "public"."employee_leave_records" (
     "start_date" TIMESTAMP(3) NOT NULL,
     "end_date" TIMESTAMP(3) NOT NULL,
     "days" INTEGER NOT NULL,
-    "employee_id" TEXT NOT NULL,
+    "employee_id" UUID NOT NULL,
 
     CONSTRAINT "employee_leave_records_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."accounts" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "account_name" VARCHAR(255) NOT NULL,
     "industry" VARCHAR(255) NOT NULL,
     "phone" VARCHAR(255) NOT NULL,
     "address" TEXT NOT NULL,
-    "subsidiary_id" TEXT NOT NULL,
-    "sales_rep_id" TEXT,
+    "subsidiary_id" UUID NOT NULL,
+    "sales_rep_id" UUID,
 
     CONSTRAINT "accounts_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."contacts" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "contact_name" VARCHAR(255) NOT NULL,
     "company" VARCHAR(255) NOT NULL,
     "email" VARCHAR(255) NOT NULL,
@@ -297,16 +298,16 @@ CREATE TABLE "public"."contacts" (
     "password_hash" TEXT NOT NULL,
     "status" "public"."contact_status",
     "is_verified" BOOLEAN NOT NULL DEFAULT false,
-    "account_id" TEXT,
-    "sales_rep_id" TEXT,
-    "subsidiary_id" TEXT NOT NULL,
+    "account_id" UUID,
+    "sales_rep_id" UUID,
+    "subsidiary_id" UUID NOT NULL,
 
     CONSTRAINT "contacts_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."sale" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "product_name" VARCHAR(255) NOT NULL,
     "quantity" INTEGER NOT NULL,
     "total_price" DECIMAL(15,2) NOT NULL,
@@ -314,16 +315,16 @@ CREATE TABLE "public"."sale" (
     "customer_name" VARCHAR(255) NOT NULL,
     "status" "public"."sale_status" NOT NULL,
     "tax_rate" DECIMAL(5,2) NOT NULL,
-    "customer_id" TEXT NOT NULL,
-    "subsidiary_id" TEXT NOT NULL,
-    "sales_rep_id" TEXT,
+    "customer_id" UUID NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
+    "sales_rep_id" UUID,
 
     CONSTRAINT "sale_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."tax_rates" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "tax_rates_name" VARCHAR(255) NOT NULL,
     "rate" DECIMAL(5,4) NOT NULL,
     "is_default" BOOLEAN NOT NULL DEFAULT false,
@@ -334,32 +335,32 @@ CREATE TABLE "public"."tax_rates" (
 
 -- CreateTable
 CREATE TABLE "public"."opportunities" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "opportunity_name" VARCHAR(255) NOT NULL,
     "opportunity_value" DECIMAL(15,2) NOT NULL,
     "stage" "public"."opportunity_stage" NOT NULL,
     "close_date" TIMESTAMP(3) NOT NULL,
     "source_opportunity" "public"."opportunity_source",
-    "contact_id" TEXT NOT NULL,
-    "account_id" TEXT NOT NULL,
-    "user_id" TEXT NOT NULL,
-    "subsidiary_id" TEXT NOT NULL,
+    "contact_id" UUID NOT NULL,
+    "account_id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
 
     CONSTRAINT "opportunities_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."opportunity_products" (
-    "id" TEXT NOT NULL,
-    "opportunity_id" TEXT NOT NULL,
-    "product_id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
+    "opportunity_id" UUID NOT NULL,
+    "product_id" UUID NOT NULL,
 
     CONSTRAINT "opportunity_products_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."orders" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "order_date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "customer_name" VARCHAR(255) NOT NULL,
     "subtotal" DECIMAL(15,2) NOT NULL DEFAULT 0,
@@ -372,11 +373,11 @@ CREATE TABLE "public"."orders" (
     "amount_paid" DECIMAL(15,2) NOT NULL DEFAULT 0,
     "payment_due_date" TIMESTAMP(3) NOT NULL,
     "source" "public"."order_source" NOT NULL,
-    "customer_id" TEXT NOT NULL,
-    "subsidiary_id" TEXT NOT NULL,
-    "tax_rate_id" TEXT NOT NULL,
-    "sales_rep_id" TEXT,
-    "opportunity_id" TEXT,
+    "customer_id" UUID NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
+    "tax_rate_id" UUID NOT NULL,
+    "sales_rep_id" UUID,
+    "opportunity_id" UUID,
 
     CONSTRAINT "orders_pkey" PRIMARY KEY ("id")
 );
@@ -386,20 +387,20 @@ CREATE TABLE "public"."order_production_history" (
     "id" SERIAL NOT NULL,
     "status" "public"."production_status" NOT NULL,
     "change_date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "order_id" TEXT NOT NULL,
+    "order_id" UUID NOT NULL,
 
     CONSTRAINT "order_production_history_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."order_item" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "quantity" INTEGER NOT NULL,
     "unit_price" DECIMAL(15,2) NOT NULL,
     "design_file_name" VARCHAR(255),
     "design_file_url" TEXT NOT NULL,
-    "product_id" TEXT,
-    "order_id" TEXT,
+    "product_id" UUID,
+    "order_id" UUID,
 
     CONSTRAINT "order_item_pkey" PRIMARY KEY ("id")
 );
@@ -409,14 +410,14 @@ CREATE TABLE "public"."product_option" (
     "id" SERIAL NOT NULL,
     "option_type" TEXT NOT NULL,
     "option_value" VARCHAR(150) NOT NULL,
-    "order_item_id" TEXT,
+    "order_item_id" UUID,
 
     CONSTRAINT "product_option_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."kpi" (
-    "id" SERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "title_key" VARCHAR(100) NOT NULL,
     "kpi_value" VARCHAR(50) NOT NULL,
     "change" VARCHAR(50) NOT NULL,
@@ -427,20 +428,20 @@ CREATE TABLE "public"."kpi" (
 
 -- CreateTable
 CREATE TABLE "public"."suppliers" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "supplier_name" VARCHAR(255) NOT NULL,
     "company" VARCHAR(255) NOT NULL,
     "email" VARCHAR(255) NOT NULL,
     "phone" VARCHAR(255) NOT NULL,
     "address" TEXT NOT NULL,
-    "subsidiary_id" TEXT NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
 
     CONSTRAINT "suppliers_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."purchase_orders" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "supplier_name" VARCHAR(255) NOT NULL,
     "order_date" TIMESTAMP(3) NOT NULL,
     "expected_delivery_date" TIMESTAMP(3) NOT NULL,
@@ -449,8 +450,8 @@ CREATE TABLE "public"."purchase_orders" (
     "payment_terms" "public"."payment_terms" NOT NULL,
     "payment_status" "public"."payment_status" NOT NULL,
     "amount_paid" DECIMAL(15,2) NOT NULL,
-    "supplier_id" TEXT NOT NULL,
-    "subsidiary_id" TEXT NOT NULL,
+    "supplier_id" UUID NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
 
     CONSTRAINT "purchase_orders_pkey" PRIMARY KEY ("id")
 );
@@ -462,8 +463,8 @@ CREATE TABLE "public"."purchase_order_items" (
     "quantity" INTEGER NOT NULL,
     "quantity_received" INTEGER NOT NULL,
     "purchase_price" DECIMAL(15,2) NOT NULL,
-    "purchase_order_id" TEXT NOT NULL,
-    "product_id" TEXT NOT NULL,
+    "purchase_order_id" UUID NOT NULL,
+    "product_id" UUID NOT NULL,
 
     CONSTRAINT "purchase_order_items_pkey" PRIMARY KEY ("id")
 );
@@ -473,37 +474,37 @@ CREATE TABLE "public"."purchase_order_history" (
     "id" SERIAL NOT NULL,
     "event_name" VARCHAR(255) NOT NULL,
     "event_date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "purchase_order_id" TEXT NOT NULL,
+    "purchase_order_id" UUID NOT NULL,
 
     CONSTRAINT "purchase_order_history_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."credit_account" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "client_name" VARCHAR(255) NOT NULL,
     "company_name" VARCHAR(255) NOT NULL,
     "balance" DECIMAL(15,2) NOT NULL,
     "last_payment_date" TIMESTAMP(3) NOT NULL,
-    "subsidiary_id" TEXT NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
 
     CONSTRAINT "credit_account_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."treasury_accounts" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "account_name" VARCHAR(255) NOT NULL,
     "balance" DECIMAL(15,2) NOT NULL,
     "currency" VARCHAR(10) NOT NULL,
-    "subsidiary_id" TEXT NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
 
     CONSTRAINT "treasury_accounts_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."financial_transactions" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "transaction_date" TIMESTAMP(3) NOT NULL,
     "description" TEXT,
     "financial_transaction_type" "public"."transaction_type" NOT NULL,
@@ -511,34 +512,34 @@ CREATE TABLE "public"."financial_transactions" (
     "account" VARCHAR(255) NOT NULL,
     "status" "public"."transaction_status" NOT NULL,
     "related_document_id" VARCHAR(50),
-    "subsidiary_id" TEXT NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
 
     CONSTRAINT "financial_transactions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."company_documents" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "document_name" VARCHAR(255) NOT NULL,
     "category" "public"."document_category" NOT NULL,
     "upload_date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "status" "public"."document_status" NOT NULL,
     "file_url" TEXT NOT NULL,
-    "subsidiary_id" TEXT NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
 
     CONSTRAINT "company_documents_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."meetings" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "title" VARCHAR(255) NOT NULL,
     "meeting_date" TIMESTAMP(3) NOT NULL,
     "meeting_time" TIMESTAMP(3) NOT NULL,
     "meeting_location" VARCHAR(255),
     "agenda" TEXT,
     "minutes" TEXT,
-    "subsidiary_id" TEXT NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
 
     CONSTRAINT "meetings_pkey" PRIMARY KEY ("id")
 );
@@ -546,130 +547,207 @@ CREATE TABLE "public"."meetings" (
 -- CreateTable
 CREATE TABLE "public"."meeting_participants" (
     "id" SERIAL NOT NULL,
-    "meeting_id" TEXT NOT NULL,
-    "employee_id" TEXT NOT NULL,
+    "meeting_id" UUID NOT NULL,
+    "employee_id" UUID NOT NULL,
 
     CONSTRAINT "meeting_participants_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."secretariat_tasks" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "title" VARCHAR(255) NOT NULL,
     "description" TEXT NOT NULL,
     "due_date" TIMESTAMP(3) NOT NULL,
     "status" "public"."secretariat_task_status" NOT NULL,
-    "assigned_to_id" TEXT,
-    "subsidiary_id" TEXT NOT NULL,
+    "assigned_to_id" UUID,
+    "subsidiary_id" UUID NOT NULL,
 
     CONSTRAINT "secretariat_tasks_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."interactions" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "interaction_date" TIMESTAMP(3) NOT NULL,
     "type_interactions" "public"."interaction_type" NOT NULL,
     "notes" TEXT NOT NULL,
-    "contactId" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
+    "contact_id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
 
     CONSTRAINT "interactions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."crm_tasks" (
-    "id" VARCHAR(255) NOT NULL,
-    "title" TEXT NOT NULL,
+    "id" UUID NOT NULL,
+    "title" VARCHAR(255) NOT NULL,
     "description" TEXT NOT NULL,
-    "dueDate" TIMESTAMP(3) NOT NULL,
+    "due_date" TIMESTAMP(3) NOT NULL,
     "status" "public"."crm_task_status" NOT NULL,
     "priority" "public"."crm_task_priority" NOT NULL,
-    "contactId" TEXT NOT NULL,
-    "opportunityId" TEXT,
-    "userId" TEXT NOT NULL,
+    "contact_id" UUID NOT NULL,
+    "opportunity_id" UUID,
+    "user_id" UUID NOT NULL,
 
     CONSTRAINT "crm_tasks_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."leads" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "lead_name" VARCHAR(255) NOT NULL,
     "company" VARCHAR(255) NOT NULL,
     "email" VARCHAR(255) NOT NULL,
     "phone" VARCHAR(255) NOT NULL,
     "status" "public"."lead_status" NOT NULL,
     "description" TEXT,
-    "salesRepId" TEXT,
-    "subsidiaryId" TEXT NOT NULL,
+    "sales_rep_id" UUID,
+    "subsidiary_id" UUID NOT NULL,
 
     CONSTRAINT "leads_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."contracts" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "title" TEXT NOT NULL,
     "start_date" TIMESTAMP(3) NOT NULL,
     "end_date" TIMESTAMP(3) NOT NULL,
     "amount" DECIMAL(12,2) NOT NULL,
     "status" "public"."contract_status" NOT NULL,
-    "client_id" TEXT NOT NULL,
-    "subsidiaryId" TEXT NOT NULL,
+    "client_id" UUID NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
 
     CONSTRAINT "contracts_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."fixed_assets" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "fixed_assets_name" VARCHAR(255) NOT NULL,
     "acquisition_date" TIMESTAMP(3) NOT NULL,
     "acquisition_cost" DECIMAL(15,2) NOT NULL,
     "depreciation_rate" DECIMAL(5,2) NOT NULL,
-    "subsidiaryId" TEXT NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
 
     CONSTRAINT "fixed_assets_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."long_term_debts" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "debts_name" VARCHAR(255) NOT NULL,
     "initial_amount" DECIMAL(15,2) NOT NULL,
     "current_balance" DECIMAL(15,2) NOT NULL,
     "interest_rate" DECIMAL(5,2) NOT NULL,
     "maturity_date" TIMESTAMP(3) NOT NULL,
-    "subsidiaryId" TEXT NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
 
     CONSTRAINT "long_term_debts_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."equipment" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "equipment_name" VARCHAR(255) NOT NULL,
     "status" "public"."equipment_status" NOT NULL,
     "last_maintenance_date" TIMESTAMP(3) NOT NULL,
     "next_maintenance_date" TIMESTAMP(3) NOT NULL,
     "acquisition_date" TIMESTAMP(3) NOT NULL,
     "acquisition_value" DECIMAL(15,2) NOT NULL,
-    "subsidiaryId" TEXT NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
 
     CONSTRAINT "equipment_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."maintenance_records" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "maintenance_date" TIMESTAMP(3) NOT NULL,
     "technician" VARCHAR(255) NOT NULL,
     "description" TEXT NOT NULL,
     "maintenance_cost" DECIMAL(10,2) NOT NULL,
-    "equipmentId" TEXT NOT NULL,
+    "equipment_id" UUID NOT NULL,
 
     CONSTRAINT "maintenance_records_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."absence_records" (
+    "id" UUID NOT NULL,
+    "employee_name" VARCHAR(255) NOT NULL,
+    "type_absence" "public"."absence_type" NOT NULL,
+    "start_date" TIMESTAMP(3) NOT NULL,
+    "end_date" TIMESTAMP(3) NOT NULL,
+    "reason" TEXT NOT NULL,
+    "document_url" TEXT,
+    "employee_id" UUID NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
+
+    CONSTRAINT "absence_records_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."attendance_records" (
+    "id" UUID NOT NULL,
+    "employee_name" VARCHAR(255) NOT NULL,
+    "attendance_date" TIMESTAMP(3) NOT NULL,
+    "status" "public"."attendance_status" NOT NULL,
+    "arrival_time" TIMESTAMP(3),
+    "departure_time" TIMESTAMP(3),
+    "break_start_time" TIMESTAMP(3),
+    "break_end_time" TIMESTAMP(3),
+    "signature" TEXT,
+    "employee_id" UUID NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
+
+    CONSTRAINT "attendance_records_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."payroll_records" (
+    "id" UUID NOT NULL,
+    "employee_name" VARCHAR(255) NOT NULL,
+    "payroll_period" VARCHAR(7) NOT NULL,
+    "gross_salary" DECIMAL(12,2) NOT NULL,
+    "deductions" DECIMAL(12,2) NOT NULL,
+    "net_salary" DECIMAL(12,2) NOT NULL,
+    "payment_date" TIMESTAMP(3),
+    "status" "public"."payroll_status" NOT NULL,
+    "signature" TEXT,
+    "employee_id" UUID NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
+
+    CONSTRAINT "payroll_records_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."supplier_debts" (
+    "id" UUID NOT NULL,
+    "supplier_name" VARCHAR(255) NOT NULL,
+    "invoice_id" VARCHAR(50) NOT NULL,
+    "due_date" TIMESTAMP(3) NOT NULL,
+    "amount" DECIMAL(15,2) NOT NULL,
+    "status" "public"."debt_status" NOT NULL,
+    "invoice_url" TEXT,
+    "subsidiary_id" UUID NOT NULL,
+    "purchase_order_id" UUID NOT NULL,
+
+    CONSTRAINT "supplier_debts_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."expense_records" (
+    "id" UUID NOT NULL,
+    "expense_date" TIMESTAMP(3) NOT NULL,
+    "description" TEXT NOT NULL,
+    "category" "public"."expense_category" NOT NULL,
+    "expense_record_type" "public"."expense_type" NOT NULL,
+    "amount" DECIMAL(12,2) NOT NULL,
+    "subsidiary_id" UUID NOT NULL,
+
+    CONSTRAINT "expense_records_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -709,7 +787,7 @@ ALTER TABLE "public"."product_image" ADD CONSTRAINT "product_image_product_id_fk
 ALTER TABLE "public"."employees" ADD CONSTRAINT "employees_subsidiary_id_fkey" FOREIGN KEY ("subsidiary_id") REFERENCES "public"."subsidiaries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."employees" ADD CONSTRAINT "employees_managerId_fkey" FOREIGN KEY ("managerId") REFERENCES "public"."employees"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "public"."employees" ADD CONSTRAINT "employees_manager_id_fkey" FOREIGN KEY ("manager_id") REFERENCES "public"."employees"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."employee_documents" ADD CONSTRAINT "employee_documents_employee_id_fkey" FOREIGN KEY ("employee_id") REFERENCES "public"."employees"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -841,40 +919,67 @@ ALTER TABLE "public"."secretariat_tasks" ADD CONSTRAINT "secretariat_tasks_assig
 ALTER TABLE "public"."secretariat_tasks" ADD CONSTRAINT "secretariat_tasks_subsidiary_id_fkey" FOREIGN KEY ("subsidiary_id") REFERENCES "public"."subsidiaries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."interactions" ADD CONSTRAINT "interactions_contactId_fkey" FOREIGN KEY ("contactId") REFERENCES "public"."contacts"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."interactions" ADD CONSTRAINT "interactions_contact_id_fkey" FOREIGN KEY ("contact_id") REFERENCES "public"."contacts"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."interactions" ADD CONSTRAINT "interactions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."interactions" ADD CONSTRAINT "interactions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."crm_tasks" ADD CONSTRAINT "crm_tasks_contactId_fkey" FOREIGN KEY ("contactId") REFERENCES "public"."contacts"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."crm_tasks" ADD CONSTRAINT "crm_tasks_contact_id_fkey" FOREIGN KEY ("contact_id") REFERENCES "public"."contacts"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."crm_tasks" ADD CONSTRAINT "crm_tasks_opportunityId_fkey" FOREIGN KEY ("opportunityId") REFERENCES "public"."opportunities"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "public"."crm_tasks" ADD CONSTRAINT "crm_tasks_opportunity_id_fkey" FOREIGN KEY ("opportunity_id") REFERENCES "public"."opportunities"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."crm_tasks" ADD CONSTRAINT "crm_tasks_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."crm_tasks" ADD CONSTRAINT "crm_tasks_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."leads" ADD CONSTRAINT "leads_salesRepId_fkey" FOREIGN KEY ("salesRepId") REFERENCES "public"."employees"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "public"."leads" ADD CONSTRAINT "leads_sales_rep_id_fkey" FOREIGN KEY ("sales_rep_id") REFERENCES "public"."employees"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."leads" ADD CONSTRAINT "leads_subsidiaryId_fkey" FOREIGN KEY ("subsidiaryId") REFERENCES "public"."subsidiaries"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."leads" ADD CONSTRAINT "leads_subsidiary_id_fkey" FOREIGN KEY ("subsidiary_id") REFERENCES "public"."subsidiaries"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."contracts" ADD CONSTRAINT "contracts_client_id_fkey" FOREIGN KEY ("client_id") REFERENCES "public"."contacts"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."contracts" ADD CONSTRAINT "contracts_subsidiaryId_fkey" FOREIGN KEY ("subsidiaryId") REFERENCES "public"."subsidiaries"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."contracts" ADD CONSTRAINT "contracts_subsidiary_id_fkey" FOREIGN KEY ("subsidiary_id") REFERENCES "public"."subsidiaries"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."fixed_assets" ADD CONSTRAINT "fixed_assets_subsidiaryId_fkey" FOREIGN KEY ("subsidiaryId") REFERENCES "public"."subsidiaries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."fixed_assets" ADD CONSTRAINT "fixed_assets_subsidiary_id_fkey" FOREIGN KEY ("subsidiary_id") REFERENCES "public"."subsidiaries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."long_term_debts" ADD CONSTRAINT "long_term_debts_subsidiaryId_fkey" FOREIGN KEY ("subsidiaryId") REFERENCES "public"."subsidiaries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."long_term_debts" ADD CONSTRAINT "long_term_debts_subsidiary_id_fkey" FOREIGN KEY ("subsidiary_id") REFERENCES "public"."subsidiaries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."equipment" ADD CONSTRAINT "equipment_subsidiaryId_fkey" FOREIGN KEY ("subsidiaryId") REFERENCES "public"."subsidiaries"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."equipment" ADD CONSTRAINT "equipment_subsidiary_id_fkey" FOREIGN KEY ("subsidiary_id") REFERENCES "public"."subsidiaries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."maintenance_records" ADD CONSTRAINT "maintenance_records_equipmentId_fkey" FOREIGN KEY ("equipmentId") REFERENCES "public"."equipment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."maintenance_records" ADD CONSTRAINT "maintenance_records_equipment_id_fkey" FOREIGN KEY ("equipment_id") REFERENCES "public"."equipment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."absence_records" ADD CONSTRAINT "absence_records_employee_id_fkey" FOREIGN KEY ("employee_id") REFERENCES "public"."employees"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."absence_records" ADD CONSTRAINT "absence_records_subsidiary_id_fkey" FOREIGN KEY ("subsidiary_id") REFERENCES "public"."subsidiaries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."attendance_records" ADD CONSTRAINT "attendance_records_employee_id_fkey" FOREIGN KEY ("employee_id") REFERENCES "public"."employees"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."attendance_records" ADD CONSTRAINT "attendance_records_subsidiary_id_fkey" FOREIGN KEY ("subsidiary_id") REFERENCES "public"."subsidiaries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."payroll_records" ADD CONSTRAINT "payroll_records_employee_id_fkey" FOREIGN KEY ("employee_id") REFERENCES "public"."employees"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."payroll_records" ADD CONSTRAINT "payroll_records_subsidiary_id_fkey" FOREIGN KEY ("subsidiary_id") REFERENCES "public"."subsidiaries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."supplier_debts" ADD CONSTRAINT "supplier_debts_subsidiary_id_fkey" FOREIGN KEY ("subsidiary_id") REFERENCES "public"."subsidiaries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."supplier_debts" ADD CONSTRAINT "supplier_debts_purchase_order_id_fkey" FOREIGN KEY ("purchase_order_id") REFERENCES "public"."purchase_orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."expense_records" ADD CONSTRAINT "expense_records_subsidiary_id_fkey" FOREIGN KEY ("subsidiary_id") REFERENCES "public"."subsidiaries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
