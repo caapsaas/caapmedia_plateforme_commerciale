@@ -4,7 +4,7 @@ import { PrismaService } from '../../utils/prisma/prisma.service';
 import { LoggerService } from '../../utils/logger/logger.service';
 import * as bcrypt from 'bcryptjs'; // Assurez-vous que bcryptjs est bien utilisé
 import { UserRole } from 'generated/prisma'; 
-
+import * as nodemailer from 'nodemailer';
 
 
 @Injectable()
@@ -81,5 +81,31 @@ export class AuthService {
       access_token: token,
       user: { id: user.id, email: user.email, role: user.userRole, subsidiaryId: user.subsidiaryId },
     };
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      this.logger.error(`User with email ${email} not found`, 'AuthService');
+      throw new NotFoundException('User not found');
+    }
+  
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.ethereal.email',
+      port: 587,
+      auth: {
+        user: 'your-ethereal-user',
+        pass: 'your-ethereal-pass',
+      },
+    });
+    await transporter.sendMail({
+      from: '"Your App" <no-reply@yourapp.com>',
+      to: email,
+      subject: 'Password Reset Request',
+      text: 'Click the link to reset your password: http://localhost:3000/reset-password?token=some-token',
+    });
+  
+    this.logger.log(`Password reset email sent to ${email}`, 'AuthService');
+    return { message: 'Password reset link sent' };
   }
 }

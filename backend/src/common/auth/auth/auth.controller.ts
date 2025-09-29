@@ -4,7 +4,7 @@ import { JwtAuthGuard } from '../jwt/jwt.guard';
 import { RoleGuard } from '../role/role.guard';
 import { SubsidiaryGuard } from '../subsidiary/subsidiary.guard';
 import { IsEmail, IsString, IsEnum, IsUUID } from 'class-validator';
-import { UserRole } from '@prisma/client';
+import { UserRole } from 'generated/prisma';
 
 class RegisterDto {
   @IsString()
@@ -31,6 +31,11 @@ class LoginDto {
   password: string;
 }
 
+export class ForgotPasswordDto {
+  @IsEmail()
+  email: string;
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -49,6 +54,11 @@ export class AuthController {
   @Post('login')
   async login(@Body() dto: LoginDto) {
     return this.authService.login(dto.email, dto.password);
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email);
   }
 
   @Get('protected')
