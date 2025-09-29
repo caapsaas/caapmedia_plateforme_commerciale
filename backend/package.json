@@ -24,6 +24,7 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
     "@prisma/client": "^6.16.2",
+    "bcrypt": "^6.0.0",
     "prisma": "^6.16.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
@@ -71,6 +72,6 @@
     "testEnvironment": "node"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "ts-node prisma/seeds.ts"
   }
 }

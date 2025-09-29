@@ -1,0 +1,75 @@
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcrypt';
+
+type SeedUser = {
+    userName: string;
+    email: string;
+    password: string; // clair -> sera hashé
+    userRole: string; // doit correspondre à ton enum UserRole
+    subsidiaryEmail: string; // lien via email unique de Subsidiary
+};
+
+export async function runUserSeeder(prisma: PrismaClient) {
+    const users: SeedUser[] = [
+        {
+            userName: 'Nalobert',
+            email: 'nalobert@gmail.com',
+            password: 'a1234578o',
+            userRole: 'ADMIN',
+            subsidiaryEmail: 'contact.douala@caap.cm',
+        },
+        {
+            userName: 'Jean Commercial',
+            email: 'jean.commercial@caap.cm',
+            password: 'password',
+            userRole: 'COMMERCIAL',
+            subsidiaryEmail: 'contact.douala@caap.cm',
+        },
+        {
+            userName: 'Marie Caissiere',
+            email: 'marie.caissiere@caap.cm',
+            password: 'password',
+            userRole: 'CAISSIER',
+            subsidiaryEmail: 'contact.yaounde@caap.cm',
+        },
+        {
+            userName: 'Serge Production',
+            email: 'serge.production@caap.cm',
+            password: 'password',
+            userRole: 'PRODUCTION_DIRECTOR',
+            subsidiaryEmail: 'contact.douala@caap.cm',
+        },
+    ];
+
+    for (const u of users) {
+        const subsidiary = await prisma.subsidiary.findUnique({
+            where: { email: u.subsidiaryEmail },
+        });
+
+        if (!subsidiary) {
+            console.warn(`Subsidiary ${u.subsidiaryEmail} not found for user ${u.email}`);
+            continue;
+        }
+
+        const passwordHash = bcrypt.hashSync(u.password, 10);
+
+        await prisma.user.upsert({
+            where: { email: u.email },
+            update: {
+                userName: u.userName,
+                passwordHash,
+                userRole: u.userRole as any,
+                subsidiaryId: subsidiary.id,
+            },
+            create: {
+                userName: u.userName,
+                email: u.email,
+                passwordHash,
+                userRole: u.userRole as any,
+                subsidiaryId: subsidiary.id,
+            },
+        });
+    }
+
+    console.log('Users seeded');
+}

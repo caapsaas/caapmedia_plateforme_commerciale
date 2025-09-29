@@ -733,7 +733,7 @@ model Order {
   paymentStatus    PaymentStatus    @map("payment_status")
   amountPaid       Decimal          @default(0) @map("amount_paid") @db.Decimal(15, 2)
   paymentDueDate   DateTime         @map("payment_due_date")
-  source           OrderSource      @map("source")
+  source           OrderSource?      @map("source")
 
   customerId String   @db.Uuid @map("customer_id")
   customer   Contact @relation(fields: [customerId], references: [id])
@@ -772,7 +772,7 @@ model OrderItem {
   quantity       Int     @map("quantity")
   unitPrice      Decimal @map("unit_price") @db.Decimal(15, 2)
   designFileName String? @map("design_file_name") @db.VarChar(255)
-  designFileUrl  String  @map("design_file_url") @db.Text
+  designFileUrl  String?  @map("design_file_url") @db.Text
 
   productId String?  @db.Uuid @map("product_id")
   product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
