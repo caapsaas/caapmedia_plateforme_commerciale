@@ -6,7 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  //output   = "../generated/prisma"
 }
 
 datasource db {
@@ -26,7 +26,6 @@ enum UserRole {
   HR_MANAGER
   PRODUCTION_DIRECTOR
 
-  @@map("user_role")
 }
 
 enum OrderStatus {
@@ -38,7 +37,6 @@ enum OrderStatus {
   COMPLETED
   CANCELLED
 
-  @@map("order_status")
 }
 
 enum PaymentStatus {
@@ -46,7 +44,6 @@ enum PaymentStatus {
   PARTIALLY_PAID
   PAID
 
-  @@map("payment_status")
 }
 
 enum ProductionStatus {
@@ -55,7 +52,6 @@ enum ProductionStatus {
   FINISHING
   READY_FOR_DELIVERY
 
-  @@map("production_status")
 }
 
 enum ContactStatus {
@@ -63,7 +59,6 @@ enum ContactStatus {
   ACTIVE
   INACTIVE
 
-  @@map("contact_status")
 }
 
 enum PurchaseOrderStatus {
@@ -73,7 +68,6 @@ enum PurchaseOrderStatus {
   RECEIVED
   CANCELLED
 
-  @@map("purchase_order_status")
 }
 
 enum PaymentTerms {
@@ -81,7 +75,6 @@ enum PaymentTerms {
   CREDIT
   DRAFT_PAYMENT
 
-  @@map("payment_terms")
 }
 
 enum ExpenseCategory {
@@ -97,14 +90,12 @@ enum ExpenseCategory {
   TRANSACTION_FEES
   OTHER
 
-  @@map("expense_category")
 }
 
 enum ExpenseType {
   FIXED
   VARIABLE
 
-  @@map("expense_type")
 }
 
 enum Gender {
@@ -112,7 +103,6 @@ enum Gender {
   FEMALE
   OTHER
 
-  @@map("gender")
 }
 
 enum ContractType {
@@ -121,7 +111,6 @@ enum ContractType {
   FREELANCE
   INTERNSHIP
 
-  @@map("contract_type")
 }
 
 enum EmployeeStatus {
@@ -130,7 +119,6 @@ enum EmployeeStatus {
   RESIGNED
   TERMINATED
 
-  @@map("employee_status")
 }
 
 enum PaymentMethod {
@@ -138,7 +126,6 @@ enum PaymentMethod {
   CHECK
   CASH
 
-  @@map("payment_method")
 }
 
 enum AttendanceStatus {
@@ -147,21 +134,18 @@ enum AttendanceStatus {
   ABSENT_UNJUSTIFIED
   HOLIDAY
 
-  @@map("attendance_status")
 }
 
 enum PayrollStatus {
   PENDING
   PAID
 
-  @@map("payroll_status")
 }
 
 enum AbsenceType {
   JUSTIFIED
   UNJUSTIFIED
 
-  @@map("absence_type")
 }
 
 enum DocumentCategory {
@@ -171,7 +155,6 @@ enum DocumentCategory {
   CONTRACT
   OTHER
 
-  @@map("document_category")
 }
 
 enum DocumentStatus {
@@ -179,7 +162,6 @@ enum DocumentStatus {
   FINAL
   ARCHIVED
 
-  @@map("document_status")
 }
 
 enum SecretariatTaskStatus {
@@ -187,7 +169,6 @@ enum SecretariatTaskStatus {
   IN_PROGRESS
   DONE
 
-  @@map("secretariat_task_status")
 }
 
 enum OpportunityStage {
@@ -197,7 +178,6 @@ enum OpportunityStage {
   WON
   LOST
 
-  @@map("opportunity_stage")
 }
 
 enum InteractionType {
@@ -206,7 +186,6 @@ enum InteractionType {
   MEETING
   OTHER
 
-  @@map("interaction_type")
 }
 
 enum CrmTaskStatus {
@@ -214,7 +193,6 @@ enum CrmTaskStatus {
   IN_PROGRESS
   DONE
 
-  @@map("crm_task_status")
 }
 
 enum CrmTaskPriority {
@@ -222,7 +200,6 @@ enum CrmTaskPriority {
   MEDIUM
   HIGH
 
-  @@map("crm_task_priority")
 }
 
 enum LeadStatus {
@@ -231,7 +208,6 @@ enum LeadStatus {
   QUALIFIED
   LOST
 
-  @@map("lead_status")
 }
 
 enum ContractStatus {
@@ -240,7 +216,6 @@ enum ContractStatus {
   EXPIRED
   CANCELLED
 
-  @@map("contract_status")
 }
 
 enum EquipmentStatus {
@@ -248,7 +223,6 @@ enum EquipmentStatus {
   NEEDS_MAINTENANCE
   OUT_OF_SERVICE
 
-  @@map("equipment_status")
 }
 
 enum OptionType {
@@ -269,7 +243,6 @@ enum OptionType {
   STUD
   NUMBERING
 
-  @@map("option_type")
 }
 
 enum SaleStatus {
@@ -277,7 +250,6 @@ enum SaleStatus {
   PENDING
   CANCELLED
 
-  @@map("sale_status")
 }
 
 enum OptionKey {
@@ -298,7 +270,6 @@ enum OptionKey {
   STUD
   NUMBERING
 
-  @@map("option_key")
 }
 
 enum OrderSource {
@@ -306,7 +277,6 @@ enum OrderSource {
   WEB_ORDER
   QUOTE_REQUEST
 
-  @@map("order_source")
 }
 
 enum OpportunitySource {
@@ -314,14 +284,12 @@ enum OpportunitySource {
   WEB_ORDER
   QUOTE_REQUEST
 
-  @@map("opportunity_source")
 }
 
 enum ChangeType {
   INCREASE
   DECREASE
 
-  @@map("change_type")
 }
 
 enum LeaveType {
@@ -329,21 +297,18 @@ enum LeaveType {
   SICK
   UNPAID
 
-  @@map("leave_type")
 }
 
 enum TransactionType {
   RECETTE
   DEPENSE
 
-  @@map("transaction_type")
 }
 
 enum TransactionStatus {
   VALIDE
   EN_ATTENTE
 
-  @@map("transaction_status")
 }
 
 enum DebtStatus {
@@ -351,7 +316,6 @@ enum DebtStatus {
   PAYER
   EN_ATTENTE
 
-  @@map("debt_status")
 }
 
 enum DocumentType {
@@ -360,7 +324,6 @@ enum DocumentType {
   WORK_PERMIT
   DIPLOMA
 
-  @@map("document_type")
 }
 
 // Creation des tables
