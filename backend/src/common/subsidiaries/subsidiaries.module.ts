@@ -1,9 +1,11 @@
-import { Module } from '@nestjs/common';
-import { SubsidiariesService } from './subsidiaries/subsidiaries.service';
-import { SubsidiariesController } from './subsidiaries/subsidiaries.controller';
-
-@Module({
+ import { Module } from '@nestjs/common';
+ import { SubsidiariesService } from '../subsidiaries/subsidiaries/subsidiaries.service';
+ import { SubsidiariesController } from '../subsidiaries/subsidiaries/subsidiaries.controller';
+ import { UtilsModule } from '../utils/utils.module';
+ 
+ @Module({
+  imports: [UtilsModule], // <-- Ajout de UtilsModule ici
+  controllers: [SubsidiariesController],
   providers: [SubsidiariesService],
-  controllers: [SubsidiariesController]
-})
-export class SubsidiariesModule {}
+ })
+ export class SubsidiariesModule {}
