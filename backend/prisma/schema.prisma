@@ -1,12 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  //output   = "../generated/prisma"
 }
 
 datasource db {
@@ -14,7 +7,744 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Creation des enumération
+model Subsidiary {
+  id                    String                 @id @default(uuid()) @map("id") @db.Uuid
+  subsidiaryName        String                 @map("subsidiary_name") @db.VarChar(255)
+  logoSvg               String                 @map("logo_svg")
+  address               String                 @map("address")
+  phone                 String                 @map("phone") @db.VarChar(255)
+  email                 String                 @unique @map("email") @db.VarChar(255)
+  ifu                   String                 @map("ifu") @db.VarChar(255)
+  rccm                  String                 @map("rccm") @db.VarChar(255)
+  bankName              String                 @map("bank_name") @db.VarChar(255)
+  accountNumber         String                 @map("account_number") @db.VarChar(255)
+  swiftCode             String                 @map("swift_code") @db.VarChar(255)
+  shareCapital          Decimal                @map("share_capital") @db.Decimal(15, 2)
+  absenceRecords        AbsenceRecord[]
+  accounts              Account[]
+  attendanceRecords     AttendanceRecord[]
+  companyDocuments      CompanyDocument[]
+  contacts              Contact[]
+  contracts             Contract[]
+  creditAccounts        CreditAccount[]
+  employees             Employee[]
+  equipments            Equipment[]
+  expenseRecords        ExpenseRecord[]
+  financialTransactions FinancialTransaction[]
+  fixedAssets           FixedAsset[]
+  leads                 Lead[]
+  longTermDepts         LongTermDebt[]
+  meetings              Meeting[]
+  opportunities         Opportunity[]
+  orders                Order[]
+  payrollRecords        PayrollRecord[]
+  products              Product[]
+  purchaseOrders        PurchaseOrder[]
+  sales                 Sale[]
+  secretariatTasks      SecretariatTask[]
+  supplierDebts         SupplierDebt[]
+  suppliers             Supplier[]
+  treasuryAccounts      TreasuryAccount[]
+  users                 User[]
+
+  @@map("subsidiaries")
+}
+
+model User {
+  id            String        @id @default(uuid()) @map("id") @db.Uuid
+  userName      String        @map("user_name") @db.VarChar(255)
+  email         String        @unique @map("email") @db.VarChar(255)
+  passwordHash  String        @map("password_hash")
+  subsidiaryId  String        @map("subsidiary_id") @db.Uuid
+  userRole      UserRole      @map("user_role")
+  accounts      Account[]
+  contacts      Contact[]
+  crmTasks      CrmTask[]
+  interactions  Interaction[]
+  opportunities Opportunity[]
+  orders        Order[]
+  sales         Sale[]
+  subsidiary    Subsidiary    @relation(fields: [subsidiaryId], references: [id])
+
+  @@map("users")
+}
+
+model ConfigurableOptionItem {
+  id                  Int                  @id @default(autoincrement()) @map("id")
+  optionName          String               @unique @map("option_name") @db.VarChar(150)
+  multiplier          Decimal              @map("multiplier") @db.Decimal(15, 2)
+  configurableOptions ConfigurableOption[]
+
+  @@map("configurable_option_item")
+}
+
+model Product {
+  id                   String               @id @default(uuid()) @map("id") @db.Uuid
+  productName          String               @map("product_name") @db.VarChar(255)
+  mainCategory         String               @map("main_category") @db.VarChar(255)
+  category             String               @map("category") @db.VarChar(255)
+  description          String               @map("description")
+  stock                Decimal              @map("stock")
+  price                Decimal              @map("price") @db.Decimal(15, 2)
+  sellingPrice         Decimal              @map("selling_price") @db.Decimal(15, 2)
+  warehouse            String               @map("warehouse") @db.VarChar(255)
+  productRange         String?              @map("product_range") @db.VarChar(255)
+  subsidiaryId         String               @map("subsidiary_id") @db.Uuid
+  configurableOptions  ConfigurableOption[]
+  opportunitieProducts OpportunityProduct[]
+  orderItems           OrderItem[]
+  productImages        ProductImage[]
+  subsidiary           Subsidiary           @relation(fields: [subsidiaryId], references: [id])
+  purchaseOrderItems   PurchaseOrderItem[]
+
+  @@map("products")
+}
+
+model ConfigurableOption {
+  id         Int                     @id @default(autoincrement()) @map("id")
+  productId  String?                 @map("product_id") @db.Uuid
+  itemId     Int?                    @map("item_id")
+  optionType OptionType              @map("option_type")
+  item       ConfigurableOptionItem? @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  product    Product?                @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("configurable_options")
+}
+
+model ProductImage {
+  id        Int      @id @default(autoincrement()) @map("id")
+  imageName String   @map("image_name") @db.VarChar(255)
+  imageUrl  String   @map("image_url")
+  productId String?  @map("product_id") @db.Uuid
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_image")
+}
+
+model Employee {
+  id                       String                      @id @default(uuid()) @map("id") @db.Uuid
+  lastName                 String                      @map("last_name") @db.VarChar(100)
+  firstName                String                      @map("first_name") @db.VarChar(100)
+  birthDate                DateTime                    @map("birth_date")
+  address                  String                      @map("address")
+  phone                    String                      @map("phone") @db.VarChar(20)
+  email                    String                      @unique @map("email") @db.VarChar(150)
+  nationality              String                      @map("nationality") @db.VarChar(50)
+  socialSecurityNumber     String                      @map("social_security_number") @db.VarChar(50)
+  positions                String                      @map("positions") @db.VarChar(100)
+  department               String                      @map("department") @db.VarChar(100)
+  hireDate                 DateTime                    @map("hire_date")
+  workLocation             String                      @map("work_location") @db.VarChar(100)
+  baseSalary               Decimal                     @default(0) @map("base_salary") @db.Decimal(15, 2)
+  bonus                    Decimal                     @default(0) @map("bonus") @db.Decimal(15, 2)
+  benefits                 String[]                    @map("benefits")
+  lastSalaryAdjustmentDate DateTime?                   @map("last_salary_adjustment_date")
+  leaveBalance             Decimal?                    @default(0) @map("leave_balance") @db.Decimal(5, 2)
+  subsidiaryId             String                      @map("subsidiary_id") @db.Uuid
+  managerId                String?                     @map("manager_id") @db.Uuid
+  gender                   Gender                      @map("gender")
+  contractType             ContractType                @map("contract_type")
+  status                   EmployeeStatus              @map("status")
+  paymentMethod            PaymentMethod               @map("payment_method")
+  absenceRecords           AbsenceRecord[]
+  attendanceRecords        AttendanceRecord[]
+  documents                EmployeeDocument[]
+  leaveRecords             EmployeeLeaveRecord[]
+  performanceReviews       EmployeePerformanceReview[]
+  positionHistory          EmployeePositionHistory[]
+  trainings                EmployeeTraining[]
+  manager                  Employee?                   @relation("EmployeeManager", fields: [managerId], references: [id])
+  subordinates             Employee[]                  @relation("EmployeeManager")
+  subsidiary               Subsidiary                  @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  leads                    Lead[]
+  meetingParticipants      MeetingParticipant[]
+  payrollRecords           PayrollRecord[]
+  secretariatTasks         SecretariatTask[]
+
+  @@map("employees")
+}
+
+model EmployeeDocument {
+  id           Int          @id @default(autoincrement()) @map("id")
+  documentName String       @map("document_name") @db.VarChar(255)
+  url          String       @map("url")
+  employeeId   String       @map("employee_id") @db.Uuid
+  docType      DocumentType @map("doc_type")
+  employee     Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("employee_documents")
+}
+
+model EmployeePositionHistory {
+  id               Int       @id @default(autoincrement()) @map("id")
+  employeePosition String    @map("employee_position") @db.VarChar(100)
+  department       String?   @map("department") @db.VarChar(100)
+  startDate        DateTime  @map("start_date")
+  endDate          DateTime? @map("end_date")
+  employeeId       String    @map("employee_id") @db.Uuid
+  employee         Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("employee_position_history")
+}
+
+model EmployeeTraining {
+  id           Int      @id @default(autoincrement()) @map("id")
+  trainingName String   @map("training_name") @db.VarChar(255)
+  trainingDate DateTime @map("training_date")
+  provider     String?  @map("provider") @db.VarChar(255)
+  employeeId   String   @map("employee_id") @db.Uuid
+  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("employee_trainings")
+}
+
+model EmployeePerformanceReview {
+  id             Int      @id @default(autoincrement()) @map("id")
+  reviewDate     DateTime @map("review_date")
+  reviewer       String?  @map("reviewer") @db.VarChar(255)
+  rating         Int?     @map("rating")
+  reviewComments String?  @map("review_comments")
+  employeeId     String   @map("employee_id") @db.Uuid
+  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("employee_performance_reviews")
+}
+
+model EmployeeLeaveRecord {
+  id              Int       @id @default(autoincrement()) @map("id")
+  startDate       DateTime  @map("start_date")
+  endDate         DateTime  @map("end_date")
+  days            Int       @map("days")
+  employeeId      String    @map("employee_id") @db.Uuid
+  leaveRecordType LeaveType @map("leave_record_type")
+  employee        Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("employee_leave_records")
+}
+
+model Account {
+  id            String        @id @default(uuid()) @map("id") @db.Uuid
+  accountName   String        @map("account_name") @db.VarChar(255)
+  industry      String        @map("industry") @db.VarChar(255)
+  phone         String        @map("phone") @db.VarChar(255)
+  address       String        @map("address")
+  subsidiaryId  String        @map("subsidiary_id") @db.Uuid
+  salesRepId    String?       @map("sales_rep_id") @db.Uuid
+  salesRep      User?         @relation(fields: [salesRepId], references: [id])
+  subsidiary    Subsidiary    @relation(fields: [subsidiaryId], references: [id])
+  contacts      Contact[]
+  opportunities Opportunity[]
+
+  @@map("accounts")
+}
+
+model Contact {
+  id            String         @id @default(uuid()) @map("id") @db.Uuid
+  contactName   String         @map("contact_name") @db.VarChar(255)
+  company       String         @map("company") @db.VarChar(255)
+  email         String         @unique @map("email") @db.VarChar(255)
+  phone         String         @map("phone") @db.VarChar(255)
+  since         DateTime       @map("since")
+  address       String         @map("address")
+  passwordHash  String         @map("password_hash")
+  isVerified    Boolean        @default(false) @map("is_verified")
+  accountId     String?        @map("account_id") @db.Uuid
+  salesRepId    String?        @map("sales_rep_id") @db.Uuid
+  subsidiaryId  String         @map("subsidiary_id") @db.Uuid
+  status        ContactStatus? @map("status")
+  account       Account?       @relation(fields: [accountId], references: [id])
+  salesRep      User?          @relation(fields: [salesRepId], references: [id])
+  subsidiary    Subsidiary     @relation(fields: [subsidiaryId], references: [id])
+  contracts     Contract[]
+  crmTasks      CrmTask[]
+  interactions  Interaction[]
+  opportunities Opportunity[]
+  orders        Order[]
+  sales         Sale[]
+
+  @@map("contacts")
+}
+
+model Sale {
+  id           String     @id @default(uuid()) @map("id") @db.Uuid
+  productName  String     @map("product_name") @db.VarChar(255)
+  quantity     Int        @map("quantity")
+  totalPrice   Decimal    @map("total_price") @db.Decimal(15, 2)
+  saleDate     DateTime   @default(now()) @map("sale_date")
+  customerName String     @map("customer_name") @db.VarChar(255)
+  taxRate      Decimal    @map("tax_rate") @db.Decimal(5, 2)
+  customerId   String     @map("customer_id") @db.Uuid
+  subsidiaryId String     @map("subsidiary_id") @db.Uuid
+  salesRepId   String?    @map("sales_rep_id") @db.Uuid
+  status       SaleStatus @map("status")
+  customer     Contact    @relation(fields: [customerId], references: [id])
+  salesRep     User?      @relation(fields: [salesRepId], references: [id])
+  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@map("sale")
+}
+
+model TaxRate {
+  id           String  @id @default(uuid()) @map("id") @db.Uuid
+  taxRatesName String  @map("tax_rates_name") @db.VarChar(255)
+  rate         Decimal @map("rate") @db.Decimal(5, 4)
+  isDefault    Boolean @default(false) @map("is_default")
+  description  String? @map("description")
+  orders       Order[]
+
+  @@map("tax_rates")
+}
+
+model Opportunity {
+  id                String               @id @default(uuid()) @map("id") @db.Uuid
+  opportunityName   String               @map("opportunity_name") @db.VarChar(255)
+  opportunityValue  Decimal              @map("opportunity_value") @db.Decimal(15, 2)
+  closeDate         DateTime             @map("close_date")
+  contactId         String               @map("contact_id") @db.Uuid
+  accountId         String               @map("account_id") @db.Uuid
+  userId            String               @map("user_id") @db.Uuid
+  subsidiaryId      String               @map("subsidiary_id") @db.Uuid
+  stage             OpportunityStage     @map("stage")
+  sourceOpportunity OpportunitySource?   @map("source_opportunity")
+  crmTasks          CrmTask[]
+  account           Account              @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  contact           Contact              @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  subsidiary        Subsidiary           @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products          OpportunityProduct[]
+  orders            Order[]
+
+  @@map("opportunities")
+}
+
+model OpportunityProduct {
+  id            String      @id @default(uuid()) @map("id") @db.Uuid
+  opportunityId String      @map("opportunity_id") @db.Uuid
+  productId     String      @map("product_id") @db.Uuid
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("opportunity_products")
+}
+
+model Order {
+  id                String                   @id @default(uuid()) @map("id") @db.Uuid
+  orderDate         DateTime                 @default(now()) @map("order_date")
+  customerName      String                   @map("customer_name") @db.VarChar(255)
+  subtotal          Decimal                  @default(0) @map("subtotal") @db.Decimal(15, 2)
+  taxAmount         Decimal                  @default(0) @map("tax_amount") @db.Decimal(15, 2)
+  totalAmount       Decimal                  @default(0) @map("total_amount") @db.Decimal(15, 2)
+  taxRateValue      Decimal                  @map("tax_rate_value") @db.Decimal(5, 2)
+  amountPaid        Decimal                  @default(0) @map("amount_paid") @db.Decimal(15, 2)
+  paymentDueDate    DateTime                 @map("payment_due_date")
+  customerId        String                   @map("customer_id") @db.Uuid
+  subsidiaryId      String                   @map("subsidiary_id") @db.Uuid
+  taxRateId         String                   @map("tax_rate_id") @db.Uuid
+  salesRepId        String?                  @map("sales_rep_id") @db.Uuid
+  opportunityId     String?                  @map("opportunity_id") @db.Uuid
+  status            OrderStatus              @map("status")
+  productionStatus  ProductionStatus         @map("production_status")
+  paymentStatus     PaymentStatus            @map("payment_status")
+  source            OrderSource              @map("source")
+  orderItems        OrderItem[]
+  productionHistory OrderProductionHistory[]
+  customer          Contact                  @relation(fields: [customerId], references: [id])
+  opportunity       Opportunity?             @relation(fields: [opportunityId], references: [id])
+  salesRep          User?                    @relation(fields: [salesRepId], references: [id])
+  subsidiary        Subsidiary               @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  taxRate           TaxRate                  @relation(fields: [taxRateId], references: [id])
+
+  @@map("orders")
+}
+
+model OrderProductionHistory {
+  id         Int              @id @default(autoincrement()) @map("id")
+  changeDate DateTime         @default(now()) @map("change_date")
+  orderId    String           @map("order_id") @db.Uuid
+  status     ProductionStatus @map("status")
+  order      Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_production_history")
+}
+
+model OrderItem {
+  id             String          @id @default(uuid()) @map("id") @db.Uuid
+  quantity       Int             @map("quantity")
+  unitPrice      Decimal         @map("unit_price") @db.Decimal(15, 2)
+  designFileName String?         @map("design_file_name") @db.VarChar(255)
+  designFileUrl  String?         @map("design_file_url")
+  productId      String?         @map("product_id") @db.Uuid
+  orderId        String?         @map("order_id") @db.Uuid
+  order          Order?          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product        Product?        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productOptions ProductOption[]
+
+  @@map("order_item")
+}
+
+model ProductOption {
+  id          Int        @id @default(autoincrement()) @map("id")
+  optionType  String     @map("option_type")
+  optionValue String     @map("option_value") @db.VarChar(150)
+  orderItemId String?    @map("order_item_id") @db.Uuid
+  orderItem   OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@map("product_option")
+}
+
+model Kpi {
+  id         String     @id @default(uuid()) @map("id") @db.Uuid
+  titleKey   String     @map("title_key") @db.VarChar(100)
+  kpiValue   String     @map("kpi_value") @db.VarChar(50)
+  change     String     @map("change") @db.VarChar(50)
+  changeType ChangeType @map("change_type")
+
+  @@map("kpi")
+}
+
+model Supplier {
+  id             String          @id @default(uuid()) @map("id") @db.Uuid
+  supplierName   String          @map("supplier_name") @db.VarChar(255)
+  company        String          @map("company") @db.VarChar(255)
+  email          String          @map("email") @db.VarChar(255)
+  phone          String          @map("phone") @db.VarChar(255)
+  address        String          @map("address")
+  subsidiaryId   String          @map("subsidiary_id") @db.Uuid
+  purchaseOrders PurchaseOrder[]
+  subsidiary     Subsidiary      @relation(fields: [subsidiaryId], references: [id])
+
+  @@map("suppliers")
+}
+
+model PurchaseOrder {
+  id                   String                 @id @default(uuid()) @map("id") @db.Uuid
+  supplierName         String                 @map("supplier_name") @db.VarChar(255)
+  orderDate            DateTime               @map("order_date")
+  expectedDeliveryDate DateTime               @map("expected_delivery_date")
+  totalAmount          Decimal                @map("total_amount") @db.Decimal(15, 2)
+  amountPaid           Decimal                @map("amount_paid") @db.Decimal(15, 2)
+  supplierId           String                 @map("supplier_id") @db.Uuid
+  subsidiaryId         String                 @map("subsidiary_id") @db.Uuid
+  status               PurchaseOrderStatus    @map("status")
+  paymentTerms         PaymentTerms           @map("payment_terms")
+  paymentStatus        PaymentStatus          @map("payment_status")
+  purchaseOrderHistory PurchaseOrderHistory[]
+  purchaseOrderItems   PurchaseOrderItem[]
+  subsidiary           Subsidiary             @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  supplier             Supplier               @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplierDebts        SupplierDebt[]
+
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id               Int           @id @default(autoincrement()) @map("id")
+  productName      String        @map("product_name") @db.VarChar(255)
+  quantity         Int           @map("quantity")
+  quantityReceived Int           @map("quantity_received")
+  purchasePrice    Decimal       @map("purchase_price") @db.Decimal(15, 2)
+  purchaseOrderId  String        @map("purchase_order_id") @db.Uuid
+  productId        String        @map("product_id") @db.Uuid
+  product          Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@map("purchase_order_items")
+}
+
+model PurchaseOrderHistory {
+  id              Int           @id @default(autoincrement()) @map("id")
+  eventName       String        @map("event_name") @db.VarChar(255)
+  eventDate       DateTime      @default(now()) @map("event_date")
+  purchaseOrderId String        @map("purchase_order_id") @db.Uuid
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@map("purchase_order_history")
+}
+
+model CreditAccount {
+  id              String     @id @default(uuid()) @map("id") @db.Uuid
+  clientName      String     @map("client_name") @db.VarChar(255)
+  companyName     String     @map("company_name") @db.VarChar(255)
+  balance         Decimal    @map("balance") @db.Decimal(15, 2)
+  lastPaymentDate DateTime   @map("last_payment_date")
+  subsidiaryId    String     @map("subsidiary_id") @db.Uuid
+  subsidiary      Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@map("credit_account")
+}
+
+model TreasuryAccount {
+  id           String     @id @default(uuid()) @map("id") @db.Uuid
+  accountName  String     @map("account_name") @db.VarChar(255)
+  balance      Decimal    @map("balance") @db.Decimal(15, 2)
+  currency     String     @map("currency") @db.VarChar(10)
+  subsidiaryId String     @map("subsidiary_id") @db.Uuid
+  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@map("treasury_accounts")
+}
+
+model FinancialTransaction {
+  id                       String            @id @default(uuid()) @map("id") @db.Uuid
+  transactionDate          DateTime          @map("transaction_date")
+  description              String?           @map("description")
+  amount                   Decimal           @map("amount") @db.Decimal(15, 2)
+  account                  String            @map("account") @db.VarChar(255)
+  relatedDocumentId        String?           @map("related_document_id") @db.VarChar(50)
+  subsidiaryId             String            @map("subsidiary_id") @db.Uuid
+  financialTransactionType TransactionType   @map("financial_transaction_type")
+  status                   TransactionStatus @map("status")
+  subsidiary               Subsidiary        @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@map("financial_transactions")
+}
+
+model CompanyDocument {
+  id           String           @id @default(uuid()) @map("id") @db.Uuid
+  documentName String           @map("document_name") @db.VarChar(255)
+  uploadDate   DateTime         @default(now()) @map("upload_date")
+  fileUrl      String           @map("file_url")
+  subsidiaryId String           @map("subsidiary_id") @db.Uuid
+  category     DocumentCategory @map("category")
+  status       DocumentStatus   @map("status")
+  subsidiary   Subsidiary       @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@map("company_documents")
+}
+
+model Meeting {
+  id              String               @id @default(uuid()) @map("id") @db.Uuid
+  title           String               @db.VarChar(255)
+  meetingDate     DateTime             @map("meeting_date")
+  meetingTime     DateTime             @map("meeting_time")
+  meetingLocation String?              @map("meeting_location") @db.VarChar(255)
+  agenda          String?
+  minutes         String?
+  subsidiaryId    String               @map("subsidiary_id") @db.Uuid
+  participants    MeetingParticipant[]
+  subsidiary      Subsidiary           @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@map("meetings")
+}
+
+model MeetingParticipant {
+  id         Int      @id @default(autoincrement()) @map("id")
+  meetingId  String   @map("meeting_id") @db.Uuid
+  employeeId String   @map("employee_id") @db.Uuid
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  meeting    Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, employeeId])
+  @@map("meeting_participants")
+}
+
+model SecretariatTask {
+  id           String                @id @default(uuid()) @map("id") @db.Uuid
+  title        String                @db.VarChar(255)
+  description  String
+  dueDate      DateTime              @map("due_date")
+  assignedToId String?               @map("assigned_to_id") @db.Uuid
+  subsidiaryId String                @map("subsidiary_id") @db.Uuid
+  status       SecretariatTaskStatus @map("status")
+  assignedTo   Employee?             @relation(fields: [assignedToId], references: [id])
+  subsidiary   Subsidiary            @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@map("secretariat_tasks")
+}
+
+model Interaction {
+  id               String          @id @default(uuid()) @map("id") @db.Uuid
+  interactionDate  DateTime        @map("interaction_date")
+  notes            String
+  contactId        String          @map("contact_id") @db.Uuid
+  userId           String          @map("user_id") @db.Uuid
+  typeInteractions InteractionType @map("type_interactions")
+  contact          Contact         @relation(fields: [contactId], references: [id])
+  user             User            @relation(fields: [userId], references: [id])
+
+  @@map("interactions")
+}
+
+model CrmTask {
+  id            String          @id @default(uuid()) @map("id") @db.Uuid
+  title         String          @db.VarChar(255)
+  description   String
+  dueDate       DateTime        @map("due_date")
+  contactId     String          @map("contact_id") @db.Uuid
+  opportunityId String?         @map("opportunity_id") @db.Uuid
+  userId        String          @map("user_id") @db.Uuid
+  status        CrmTaskStatus
+  priority      CrmTaskPriority
+  contact       Contact         @relation(fields: [contactId], references: [id])
+  opportunity   Opportunity?    @relation(fields: [opportunityId], references: [id])
+  user          User            @relation(fields: [userId], references: [id])
+
+  @@map("crm_tasks")
+}
+
+model Lead {
+  id           String     @id @default(uuid()) @map("id") @db.Uuid
+  leadName     String     @map("lead_name") @db.VarChar(255)
+  company      String     @db.VarChar(255)
+  email        String     @unique @db.VarChar(255)
+  phone        String     @db.VarChar(255)
+  description  String?
+  salesRepId   String?    @map("sales_rep_id") @db.Uuid
+  subsidiaryId String     @map("subsidiary_id") @db.Uuid
+  status       LeadStatus
+  salesRep     Employee?  @relation(fields: [salesRepId], references: [id])
+  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id])
+
+  @@map("leads")
+}
+
+model Contract {
+  id           String         @id @default(uuid()) @map("id") @db.Uuid
+  title        String
+  startDate    DateTime       @map("start_date")
+  endDate      DateTime       @map("end_date")
+  amount       Decimal        @db.Decimal(12, 2)
+  clientId     String         @map("client_id") @db.Uuid
+  subsidiaryId String         @map("subsidiary_id") @db.Uuid
+  status       ContractStatus
+  client       Contact        @relation(fields: [clientId], references: [id])
+  subsidiary   Subsidiary     @relation(fields: [subsidiaryId], references: [id])
+
+  @@map("contracts")
+}
+
+model FixedAsset {
+  id               String     @id @default(uuid()) @map("id") @db.Uuid
+  fixedAssetsName  String     @map("fixed_assets_name") @db.VarChar(255)
+  acquisitionDate  DateTime   @map("acquisition_date")
+  acquisitionCost  Decimal    @map("acquisition_cost") @db.Decimal(15, 2)
+  depreciationRate Decimal    @map("depreciation_rate") @db.Decimal(5, 2)
+  subsidiaryId     String     @map("subsidiary_id") @db.Uuid
+  subsidiary       Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@map("fixed_assets")
+}
+
+model LongTermDebt {
+  id             String     @id @default(uuid()) @map("id") @db.Uuid
+  debtsName      String     @map("debts_name") @db.VarChar(255)
+  initialAmount  Decimal    @map("initial_amount") @db.Decimal(15, 2)
+  currentBalance Decimal    @map("current_balance") @db.Decimal(15, 2)
+  interestRate   Decimal    @map("interest_rate") @db.Decimal(5, 2)
+  maturityDate   DateTime   @map("maturity_date")
+  subsidiaryId   String     @map("subsidiary_id") @db.Uuid
+  subsidiary     Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@map("long_term_debts")
+}
+
+model Equipment {
+  id                  String              @id @default(uuid()) @map("id") @db.Uuid
+  equipmentName       String              @map("equipment_name") @db.VarChar(255)
+  lastMaintenanceDate DateTime            @map("last_maintenance_date")
+  nextMaintenanceDate DateTime            @map("next_maintenance_date")
+  acquisitionDate     DateTime            @map("acquisition_date")
+  acquisitionValue    Decimal             @map("acquisition_value") @db.Decimal(15, 2)
+  subsidiaryId        String              @map("subsidiary_id") @db.Uuid
+  status              EquipmentStatus
+  subsidiary          Subsidiary          @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  maintenanceRecords  MaintenanceRecord[]
+
+  @@map("equipment")
+}
+
+model MaintenanceRecord {
+  id              String    @id @default(uuid()) @map("id") @db.Uuid
+  maintenanceDate DateTime  @map("maintenance_date")
+  technician      String    @db.VarChar(255)
+  description     String
+  maintenanceCost Decimal   @map("maintenance_cost") @db.Decimal(10, 2)
+  equipmentId     String    @map("equipment_id") @db.Uuid
+  equipment       Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@map("maintenance_records")
+}
+
+model AbsenceRecord {
+  id           String      @id @default(uuid()) @map("id") @db.Uuid
+  employeeName String      @map("employee_name") @db.VarChar(255)
+  startDate    DateTime    @map("start_date")
+  endDate      DateTime    @map("end_date")
+  reason       String
+  documentUrl  String?     @map("document_url")
+  employeeId   String      @map("employee_id") @db.Uuid
+  subsidiaryId String      @map("subsidiary_id") @db.Uuid
+  typeAbsence  AbsenceType @map("type_absence")
+  employee     Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  subsidiary   Subsidiary  @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@map("absence_records")
+}
+
+model AttendanceRecord {
+  id             String           @id @default(uuid()) @map("id") @db.Uuid
+  employeeName   String           @map("employee_name") @db.VarChar(255)
+  attendanceDate DateTime         @map("attendance_date")
+  arrivalTime    DateTime?        @map("arrival_time")
+  departureTime  DateTime?        @map("departure_time")
+  breakStartTime DateTime?        @map("break_start_time")
+  breakEndTime   DateTime?        @map("break_end_time")
+  signature      String?
+  employeeId     String           @map("employee_id") @db.Uuid
+  subsidiaryId   String           @map("subsidiary_id") @db.Uuid
+  status         AttendanceStatus @map("status")
+  employee       Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  subsidiary     Subsidiary       @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@map("attendance_records")
+}
+
+model PayrollRecord {
+  id            String        @id @default(uuid()) @map("id") @db.Uuid
+  employeeName  String        @map("employee_name") @db.VarChar(255)
+  payrollPeriod String        @map("payroll_period") @db.VarChar(7)
+  grossSalary   Decimal       @map("gross_salary") @db.Decimal(12, 2)
+  deductions    Decimal       @db.Decimal(12, 2)
+  netSalary     Decimal       @map("net_salary") @db.Decimal(12, 2)
+  paymentDate   DateTime?     @map("payment_date")
+  signature     String?
+  employeeId    String        @map("employee_id") @db.Uuid
+  subsidiaryId  String        @map("subsidiary_id") @db.Uuid
+  status        PayrollStatus @map("status")
+  employee      Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  subsidiary    Subsidiary    @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@map("payroll_records")
+}
+
+model SupplierDebt {
+  id              String        @id @default(uuid()) @map("id") @db.Uuid
+  supplierName    String        @map("supplier_name") @db.VarChar(255)
+  invoiceId       String        @map("invoice_id") @db.VarChar(50)
+  dueDate         DateTime      @map("due_date")
+  amount          Decimal       @db.Decimal(15, 2)
+  invoiceUrl      String?       @map("invoice_url")
+  subsidiaryId    String        @map("subsidiary_id") @db.Uuid
+  purchaseOrderId String        @map("purchase_order_id") @db.Uuid
+  status          DebtStatus    @map("status")
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  subsidiary      Subsidiary    @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@map("supplier_debts")
+}
+
+model ExpenseRecord {
+  id                String          @id @default(uuid()) @map("id") @db.Uuid
+  expenseDate       DateTime        @map("expense_date")
+  description       String
+  amount            Decimal         @db.Decimal(12, 2)
+  subsidiaryId      String          @map("subsidiary_id") @db.Uuid
+  category          ExpenseCategory @map("category")
+  expenseRecordType ExpenseType     @map("expense_record_type")
+  subsidiary        Subsidiary      @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@map("expense_records")
+}
 
 enum UserRole {
   ADMIN
@@ -25,7 +755,6 @@ enum UserRole {
   SECRETARY
   HR_MANAGER
   PRODUCTION_DIRECTOR
-
 }
 
 enum OrderStatus {
@@ -36,14 +765,12 @@ enum OrderStatus {
   DELIVERED
   COMPLETED
   CANCELLED
-
 }
 
 enum PaymentStatus {
   UNPAID
   PARTIALLY_PAID
   PAID
-
 }
 
 enum ProductionStatus {
@@ -51,14 +778,12 @@ enum ProductionStatus {
   PRINTING
   FINISHING
   READY_FOR_DELIVERY
-
 }
 
 enum ContactStatus {
   PROSPECT
   ACTIVE
   INACTIVE
-
 }
 
 enum PurchaseOrderStatus {
@@ -67,14 +792,12 @@ enum PurchaseOrderStatus {
   PARTIALLY_RECEIVED
   RECEIVED
   CANCELLED
-
 }
 
 enum PaymentTerms {
   IMMEDIATE
   CREDIT
   DRAFT_PAYMENT
-
 }
 
 enum ExpenseCategory {
@@ -89,20 +812,17 @@ enum ExpenseCategory {
   PACKAGING
   TRANSACTION_FEES
   OTHER
-
 }
 
 enum ExpenseType {
   FIXED
   VARIABLE
-
 }
 
 enum Gender {
   MALE
   FEMALE
   OTHER
-
 }
 
 enum ContractType {
@@ -110,7 +830,6 @@ enum ContractType {
   CDD
   FREELANCE
   INTERNSHIP
-
 }
 
 enum EmployeeStatus {
@@ -118,14 +837,12 @@ enum EmployeeStatus {
   ON_LEAVE
   RESIGNED
   TERMINATED
-
 }
 
 enum PaymentMethod {
   BANK_TRANSFER
   CHECK
   CASH
-
 }
 
 enum AttendanceStatus {
@@ -133,19 +850,16 @@ enum AttendanceStatus {
   ABSENT_JUSTIFIED
   ABSENT_UNJUSTIFIED
   HOLIDAY
-
 }
 
 enum PayrollStatus {
   PENDING
   PAID
-
 }
 
 enum AbsenceType {
   JUSTIFIED
   UNJUSTIFIED
-
 }
 
 enum DocumentCategory {
@@ -154,21 +868,18 @@ enum DocumentCategory {
   HR
   CONTRACT
   OTHER
-
 }
 
 enum DocumentStatus {
   DRAFT
   FINAL
   ARCHIVED
-
 }
 
 enum SecretariatTaskStatus {
   TODO
   IN_PROGRESS
   DONE
-
 }
 
 enum OpportunityStage {
@@ -177,7 +888,6 @@ enum OpportunityStage {
   NEGOTIATION
   WON
   LOST
-
 }
 
 enum InteractionType {
@@ -185,21 +895,18 @@ enum InteractionType {
   EMAIL
   MEETING
   OTHER
-
 }
 
 enum CrmTaskStatus {
   TODO
   IN_PROGRESS
   DONE
-
 }
 
 enum CrmTaskPriority {
   LOW
   MEDIUM
   HIGH
-
 }
 
 enum LeadStatus {
@@ -207,7 +914,6 @@ enum LeadStatus {
   CONTACTED
   QUALIFIED
   LOST
-
 }
 
 enum ContractStatus {
@@ -215,14 +921,12 @@ enum ContractStatus {
   ACTIVE
   EXPIRED
   CANCELLED
-
 }
 
 enum EquipmentStatus {
   OPERATIONAL
   NEEDS_MAINTENANCE
   OUT_OF_SERVICE
-
 }
 
 enum OptionType {
@@ -242,14 +946,12 @@ enum OptionType {
   HANDLES
   STUD
   NUMBERING
-
 }
 
 enum SaleStatus {
   PAID
   PENDING
   CANCELLED
-
 }
 
 enum OptionKey {
@@ -269,53 +971,45 @@ enum OptionKey {
   HANDLE
   STUD
   NUMBERING
-
 }
 
 enum OrderSource {
   MANUAL
   WEB_ORDER
   QUOTE_REQUEST
-
 }
 
 enum OpportunitySource {
   MANUAL
   WEB_ORDER
   QUOTE_REQUEST
-
 }
 
 enum ChangeType {
   INCREASE
   DECREASE
-
 }
 
 enum LeaveType {
   ANNUAL
   SICK
   UNPAID
-
 }
 
 enum TransactionType {
   RECETTE
   DEPENSE
-
 }
 
 enum TransactionStatus {
   VALIDE
   EN_ATTENTE
-
 }
 
 enum DebtStatus {
   A_PAYER
   PAYER
   EN_ATTENTE
-
 }
 
 enum DocumentType {
@@ -323,833 +1017,4 @@ enum DocumentType {
   ID_CARD
   WORK_PERMIT
   DIPLOMA
-
-}
-
-// Creation des tables
-
-model Subsidiary {
-  id             String  @id @default(uuid()) @db.Uuid @map("id")
-  subsidiaryName String  @map("subsidiary_name") @db.VarChar(255)
-  logoSvg        String  @map("logo_svg") @db.Text
-  address        String  @map("address") @db.Text
-  phone          String  @map("phone") @db.VarChar(255)
-  email          String  @unique @map("email") @db.VarChar(255)
-  ifu            String  @map("ifu") @db.VarChar(255)
-  rccm           String  @map("rccm") @db.VarChar(255)
-  bankName       String  @map("bank_name") @db.VarChar(255)
-  accountNumber  String  @map("account_number") @db.VarChar(255)
-  swiftCode      String  @map("swift_code") @db.VarChar(255)
-  shareCapital   Decimal @map("share_capital") @db.Decimal(15, 2)
-
-  users                 User[]
-  products              Product[]
-  employees             Employee[]
-  accounts              Account[]
-  contacts              Contact[]
-  sales                 Sale[]
-  opportunities         Opportunity[]
-  orders                Order[]
-  suppliers             Supplier[]
-  purchaseOrders        PurchaseOrder[]
-  creditAccounts        CreditAccount[]
-  treasuryAccounts      TreasuryAccount[]
-  financialTransactions FinancialTransaction[]
-  equipments            Equipment[]
-  longTermDepts         LongTermDebt[]
-  fixedAssets           FixedAsset[]
-  contracts             Contract[]
-  leads                 Lead[]
-  secretariatTasks      SecretariatTask[]
-  meetings              Meeting[]
-  companyDocuments      CompanyDocument[]
-  expenseRecords        ExpenseRecord[]
-  supplierDebts         SupplierDebt[]
-  payrollRecords        PayrollRecord[]
-  attendanceRecords     AttendanceRecord[]
-  absenceRecords        AbsenceRecord[]
-
-  @@map("subsidiaries")
-}
-
-model User {
-  id           String   @id @default(uuid()) @db.Uuid @map("id")
-  userName     String   @map("user_name") @db.VarChar(255)
-  email        String   @unique @map("email") @db.VarChar(255)
-  passwordHash String   @map("password_hash") @db.Text
-  userRole     UserRole @map("user_role")
-
-  subsidiaryId String   @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id])
-
-  accounts      Account[]
-  contacts      Contact[]
-  sales         Sale[]
-  opportunities Opportunity[]
-  orders        Order[]
-  crmTasks      CrmTask[]
-  interactions  Interaction[]
-
-  @@map("users")
-}
-
-model ConfigurableOptionItem {
-  id         Int     @id @default(autoincrement()) @map("id")
-  optionName String  @map("option_name") @db.VarChar(150)
-  multiplier Decimal @map("multiplier") @db.Decimal(15, 2)
-
-  configurableOptions ConfigurableOption[]
-
-  @@map("configurable_option_item")
-}
-
-model Product {
-  id           String  @id @default(uuid()) @db.Uuid @map("id")
-  productName  String  @map("product_name") @db.VarChar(255)
-  mainCategory String  @map("main_category") @db.VarChar(255)
-  category     String  @map("category") @db.VarChar(255)
-  description  String  @map("description") @db.Text
-  stock        Decimal @map("stock")
-  price        Decimal @map("price") @db.Decimal(15, 2)
-  sellingPrice Decimal @map("selling_price") @db.Decimal(15, 2)
-  warehouse    String  @map("warehouse") @db.VarChar(255)
-  productRange String? @map("product_range") @db.VarChar(255)
-
-  subsidiaryId String   @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id])
-
-  configurableOptions  ConfigurableOption[]
-  productImages        ProductImage[]
-  opportunitieProducts OpportunityProduct[]
-  orderItems           OrderItem[]
-  purchaseOrderItems   PurchaseOrderItem[]
-
-  @@map("products")
-}
-
-model ConfigurableOption {
-  id         Int        @id @default(autoincrement()) @map("id")
-  optionType OptionType @map("option_type")
-
-  productId String?  @db.Uuid @map("product_id")
-  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  itemId Int?                    @map("item_id")
-  item   ConfigurableOptionItem? @relation(fields: [itemId], references: [id], onDelete: Cascade)
-
-  @@map("configurable_options")
-}
-
-model ProductImage {
-  id        Int      @id @default(autoincrement()) @map("id")
-  imageName String   @map("image_name") @db.VarChar(255)
-  imageUrl  String   @map("image_url") @db.Text
-
-  productId String?  @db.Uuid @map("product_id")
-  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@map("product_image")
-}
-
-model Employee {
-  id                       String         @id @default(uuid()) @db.Uuid @map("id")
-  lastName                 String         @map("last_name") @db.VarChar(100)
-  firstName                String         @map("first_name") @db.VarChar(100)
-  birthDate                DateTime       @map("birth_date")
-  gender                   Gender         @map("gender")
-  address                  String         @map("address") @db.Text
-  phone                    String         @map("phone") @db.VarChar(20)
-  email                    String         @unique @map("email") @db.VarChar(150)
-  nationality              String         @map("nationality") @db.VarChar(50)
-  socialSecurityNumber     String         @map("social_security_number") @db.VarChar(50)
-  positions                String         @map("positions") @db.VarChar(100)
-  department               String         @map("department") @db.VarChar(100)
-  hireDate                 DateTime       @map("hire_date")
-  contractType             ContractType   @map("contract_type")
-  status                   EmployeeStatus @map("status")
-  workLocation             String         @map("work_location") @db.VarChar(100)
-  baseSalary               Decimal        @default(0) @map("base_salary") @db.Decimal(15, 2)
-  bonus                    Decimal        @default(0) @map("bonus") @db.Decimal(15, 2)
-  benefits                 String[]       @map("benefits") @db.Text
-  lastSalaryAdjustmentDate DateTime?      @map("last_salary_adjustment_date")
-  paymentMethod            PaymentMethod  @map("payment_method")
-  leaveBalance             Decimal?       @default(0) @map("leave_balance") @db.Decimal(5, 2)
-
-  subsidiaryId String   @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-
-  manager      Employee?  @relation("EmployeeManager", fields: [managerId], references: [id])
-  managerId    String?    @db.Uuid @map("manager_id")
-  subordinates Employee[] @relation("EmployeeManager")
-
-  documents           EmployeeDocument[]
-  positionHistory     EmployeePositionHistory[]
-  trainings           EmployeeTraining[]
-  performanceReviews  EmployeePerformanceReview[]
-  leaveRecords        EmployeeLeaveRecord[]
-  meetingParticipants MeetingParticipant[]
-  secretariatTasks    SecretariatTask[]
-  leads               Lead[]
-  absenceRecords      AbsenceRecord[]
-  payrollRecords      PayrollRecord[]
-  attendanceRecords   AttendanceRecord[]
-
-  @@map("employees")
-}
-
-model EmployeeDocument {
-  id           Int          @id @default(autoincrement()) @map("id")
-  docType      DocumentType @map("doc_type")
-  documentName String       @map("document_name") @db.VarChar(255)
-  url          String       @map("url") @db.Text
-
-  employeeId String   @db.Uuid @map("employee_id")
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  @@map("employee_documents")
-}
-
-model EmployeePositionHistory {
-  id               Int       @id @default(autoincrement()) @map("id")
-  employeePosition String    @map("employee_position") @db.VarChar(100)
-  department       String?   @map("department") @db.VarChar(100)
-  startDate        DateTime  @map("start_date")
-  endDate          DateTime? @map("end_date")
-
-  employeeId String   @db.Uuid @map("employee_id")
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  @@map("employee_position_history")
-}
-
-model EmployeeTraining {
-  id           Int      @id @default(autoincrement()) @map("id")
-  trainingName String   @map("training_name") @db.VarChar(255)
-  trainingDate DateTime @map("training_date")
-  provider     String?  @map("provider") @db.VarChar(255)
-
-  employeeId String   @db.Uuid @map("employee_id")
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  @@map("employee_trainings")
-}
-
-model EmployeePerformanceReview {
-  id             Int      @id @default(autoincrement()) @map("id")
-  reviewDate     DateTime @map("review_date")
-  reviewer       String?  @map("reviewer") @db.VarChar(255)
-  rating         Int?     @map("rating")
-  reviewComments String?  @map("review_comments") @db.Text
-
-  employeeId String   @db.Uuid @map("employee_id")
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  @@map("employee_performance_reviews")
-}
-
-model EmployeeLeaveRecord {
-  id              Int       @id @default(autoincrement()) @map("id")
-  leaveRecordType LeaveType @map("leave_record_type")
-  startDate       DateTime  @map("start_date")
-  endDate         DateTime  @map("end_date")
-  days            Int       @map("days")
-
-  employeeId String   @db.Uuid @map("employee_id")
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  @@map("employee_leave_records")
-}
-
-model Account {
-  id          String @id @default(uuid()) @db.Uuid @map("id")
-  accountName String @map("account_name") @db.VarChar(255)
-  industry    String @map("industry") @db.VarChar(255)
-  phone       String @map("phone") @db.VarChar(255)
-  address     String @map("address") @db.Text
-
-  subsidiaryId String   @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id])
-
-  salesRepId String? @db.Uuid @map("sales_rep_id")
-  salesRep   User?   @relation(fields: [salesRepId], references: [id])
-
-  contacts      Contact[]
-  opportunities Opportunity[]
-
-  @@map("accounts")
-}
-
-model Contact {
-  id           String         @id @default(uuid()) @db.Uuid @map("id")
-  contactName  String         @map("contact_name") @db.VarChar(255)
-  company      String         @map("company") @db.VarChar(255)
-  email        String         @unique @map("email") @db.VarChar(255)
-  phone        String         @map("phone") @db.VarChar(255)
-  since        DateTime       @map("since")
-  address      String         @map("address") @db.Text
-  passwordHash String         @map("password_hash") @db.Text
-  status       ContactStatus? @map("status")
-  isVerified   Boolean        @default(false) @map("is_verified")
-
-  accountId    String?        @db.Uuid @map("account_id")
-  account      Account?       @relation(fields: [accountId], references: [id])
-
-  salesRepId String? @db.Uuid @map("sales_rep_id")
-  salesRep   User?   @relation(fields: [salesRepId], references: [id])
-
-  subsidiaryId String   @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id])
-
-  sales         Sale[]
-  opportunities Opportunity[]
-  orders        Order[]
-  contracts     Contract[]
-  crmTasks      CrmTask[]
-  interactions  Interaction[]
-
-  @@map("contacts")
-}
-
-model Sale {
-  id           String     @id @default(uuid()) @db.Uuid @map("id")
-  productName  String     @map("product_name") @db.VarChar(255)
-  quantity     Int        @map("quantity")
-  totalPrice   Decimal    @map("total_price") @db.Decimal(15, 2)
-  saleDate     DateTime   @default(now()) @map("sale_date")
-  customerName String     @map("customer_name") @db.VarChar(255)
-  status       SaleStatus @map("status")
-  taxRate      Decimal    @map("tax_rate") @db.Decimal(5, 2)
-
-  customerId   String     @db.Uuid @map("customer_id")
-  customer     Contact    @relation(fields: [customerId], references: [id])
-
-  subsidiaryId String   @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-
-  salesRepId String? @db.Uuid @map("sales_rep_id")
-  salesRep   User?   @relation(fields: [salesRepId], references: [id])
-
-  @@map("sale")
-}
-
-model TaxRate {
-  id           String  @id @default(uuid()) @db.Uuid @map("id")
-  taxRatesName String  @map("tax_rates_name") @db.VarChar(255)
-  rate         Decimal @map("rate") @db.Decimal(5, 4)
-  isDefault    Boolean @default(false) @map("is_default")
-  description  String? @map("description") @db.Text
-
-  orders Order[]
-
-  @@map("tax_rates")
-}
-
-model Opportunity {
-  id                String             @id @default(uuid()) @db.Uuid @map("id")
-  opportunityName   String             @map("opportunity_name") @db.VarChar(255)
-  opportunityValue  Decimal            @map("opportunity_value") @db.Decimal(15, 2)
-  stage             OpportunityStage   @map("stage")
-  closeDate         DateTime           @map("close_date")
-  sourceOpportunity OpportunitySource? @map("source_opportunity")
-
-  contactId String   @db.Uuid @map("contact_id")
-  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
-
-  accountId String   @db.Uuid @map("account_id")
-  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
-
-  userId String   @db.Uuid @map("user_id")
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  subsidiaryId String   @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-
-  products OpportunityProduct[]
-  orders   Order[]
-  crmTasks CrmTask[]
-
-  @@map("opportunities")
-}
-
-model OpportunityProduct {
-  id String @id @default(uuid()) @db.Uuid @map("id")
-
-  opportunityId String      @db.Uuid @map("opportunity_id")
-  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-
-  productId String  @db.Uuid @map("product_id")
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@map("opportunity_products")
-}
-
-model Order {
-  id               String           @id @default(uuid()) @db.Uuid @map("id")
-  orderDate        DateTime         @default(now()) @map("order_date")
-  customerName     String           @map("customer_name") @db.VarChar(255)
-  subtotal         Decimal          @default(0) @map("subtotal") @db.Decimal(15, 2)
-  taxAmount        Decimal          @default(0) @map("tax_amount") @db.Decimal(15, 2)
-  totalAmount      Decimal          @default(0) @map("total_amount") @db.Decimal(15, 2)
-  taxRateValue     Decimal          @map("tax_rate_value") @db.Decimal(5, 2)
-  status           OrderStatus      @map("status")
-  productionStatus ProductionStatus @map("production_status")
-  paymentStatus    PaymentStatus    @map("payment_status")
-  amountPaid       Decimal          @default(0) @map("amount_paid") @db.Decimal(15, 2)
-  paymentDueDate   DateTime         @map("payment_due_date")
-  source           OrderSource?      @map("source")
-
-  customerId String   @db.Uuid @map("customer_id")
-  customer   Contact @relation(fields: [customerId], references: [id])
-
-  subsidiaryId String   @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-
-  taxRateId String   @db.Uuid @map("tax_rate_id")
-  taxRate   TaxRate @relation(fields: [taxRateId], references: [id])
-
-  salesRepId String? @db.Uuid @map("sales_rep_id")
-  salesRep   User?   @relation(fields: [salesRepId], references: [id])
-
-  opportunityId String?      @db.Uuid @map("opportunity_id")
-  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id])
-
-  productionHistory OrderProductionHistory[]
-  orderItems        OrderItem[]
-
-  @@map("orders")
-}
-
-model OrderProductionHistory {
-  id         Int              @id @default(autoincrement()) @map("id")
-  status     ProductionStatus @map("status")
-  changeDate DateTime         @default(now()) @map("change_date")
-
-  orderId    String           @db.Uuid @map("order_id")
-  order      Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  @@map("order_production_history")
-}
-
-model OrderItem {
-  id             String  @id @default(uuid()) @db.Uuid @map("id")
-  quantity       Int     @map("quantity")
-  unitPrice      Decimal @map("unit_price") @db.Decimal(15, 2)
-  designFileName String? @map("design_file_name") @db.VarChar(255)
-  designFileUrl  String?  @map("design_file_url") @db.Text
-
-  productId String?  @db.Uuid @map("product_id")
-  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  orderId String? @db.Uuid @map("order_id")
-  order   Order?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  productOptions ProductOption[]
-
-  @@map("order_item")
-}
-
-model ProductOption {
-  id          Int    @id @default(autoincrement()) @map("id")
-  optionType  String @map("option_type")
-  optionValue String @map("option_value") @db.VarChar(150)
-
-  orderItemId String?    @db.Uuid @map("order_item_id")
-  orderItem   OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
-
-  @@map("product_option")
-}
-
-model Kpi {
-  id         String     @id @default(uuid()) @db.Uuid @map("id")
-  titleKey   String     @map("title_key") @db.VarChar(100)
-  kpiValue   String     @map("kpi_value") @db.VarChar(50)
-  change     String     @map("change") @db.VarChar(50)
-  changeType ChangeType @map("change_type")
-
-  @@map("kpi")
-}
-
-model Supplier {
-  id           String @id @default(uuid()) @db.Uuid @map("id")
-  supplierName String @map("supplier_name") @db.VarChar(255)
-  company      String @map("company") @db.VarChar(255)
-  email        String @map("email") @db.VarChar(255)
-  phone        String @map("phone") @db.VarChar(255)
-  address      String @map("address") @db.Text
-
-  subsidiaryId String     @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id])
-
-  purchaseOrders PurchaseOrder[]
-
-  @@map("suppliers")
-}
-
-model PurchaseOrder {
-  id                   String              @id @default(uuid()) @db.Uuid @map("id")
-  supplierName         String              @map("supplier_name") @db.VarChar(255)
-  orderDate            DateTime            @map("order_date")
-  expectedDeliveryDate DateTime            @map("expected_delivery_date")
-  totalAmount          Decimal             @map("total_amount") @db.Decimal(15, 2)
-  status               PurchaseOrderStatus @map("status")
-  paymentTerms         PaymentTerms        @map("payment_terms")
-  paymentStatus        PaymentStatus       @map("payment_status")
-  amountPaid           Decimal             @map("amount_paid") @db.Decimal(15, 2)
-
-  supplierId String   @db.Uuid @map("supplier_id")
-  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-
-  subsidiaryId String     @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-
-  purchaseOrderItems   PurchaseOrderItem[]
-  purchaseOrderHistory PurchaseOrderHistory[]
-  supplierDebts        SupplierDebt[]
-
-  @@map("purchase_orders")
-}
-
-model PurchaseOrderItem {
-  id               Int     @id @default(autoincrement()) @map("id")
-  productName      String  @map("product_name") @db.VarChar(255)
-  quantity         Int     @map("quantity")
-  quantityReceived Int     @map("quantity_received")
-  purchasePrice    Decimal @map("purchase_price") @db.Decimal(15, 2)
-
-  purchaseOrderId String        @db.Uuid @map("purchase_order_id")
-  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-
-  productId String  @db.Uuid @map("product_id")
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@map("purchase_order_items")
-}
-
-model PurchaseOrderHistory {
-  id        Int      @id @default(autoincrement()) @map("id")
-  eventName String   @map("event_name") @db.VarChar(255)
-  eventDate DateTime @default(now()) @map("event_date")
-
-  purchaseOrderId String        @db.Uuid @map("purchase_order_id")
-  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-
-  @@map("purchase_order_history")
-}
-
-model CreditAccount {
-  id              String   @id @default(uuid()) @db.Uuid @map("id")
-  clientName      String   @map("client_name") @db.VarChar(255)
-  companyName     String   @map("company_name") @db.VarChar(255)
-  balance         Decimal  @map("balance") @db.Decimal(15, 2)
-  lastPaymentDate DateTime @map("last_payment_date")
-
-  subsidiaryId String     @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-
-  @@map("credit_account")
-}
-
-model TreasuryAccount {
-  id          String  @id @default(uuid()) @db.Uuid @map("id")
-  accountName String  @map("account_name") @db.VarChar(255)
-  balance     Decimal @map("balance") @db.Decimal(15, 2)
-  currency    String  @map("currency") @db.VarChar(10)
-
-  subsidiaryId String     @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-
-  @@map("treasury_accounts")
-}
-
-model FinancialTransaction {
-  id                       String            @id @default(uuid()) @db.Uuid @map("id")
-  transactionDate          DateTime          @map("transaction_date")
-  description              String?           @map("description") @db.Text
-  financialTransactionType TransactionType   @map("financial_transaction_type")
-  amount                   Decimal           @map("amount") @db.Decimal(15, 2)
-  account                  String            @map("account") @db.VarChar(255)
-  status                   TransactionStatus @map("status")
-  relatedDocumentId        String?           @map("related_document_id") @db.VarChar(50)
-
-  subsidiaryId String     @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-
-  @@map("financial_transactions")
-}
-
-model CompanyDocument {
-  id           String           @id @default(uuid()) @db.Uuid @map("id")
-  documentName String           @map("document_name") @db.VarChar(255)
-  category     DocumentCategory @map("category")
-  uploadDate   DateTime         @default(now()) @map("upload_date")
-  status       DocumentStatus   @map("status")
-  fileUrl      String           @map("file_url") @db.Text
-
-  subsidiaryId String     @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-
-  @@map("company_documents")
-}
-
-model Meeting {
-  id              String   @id @default(uuid()) @db.Uuid @map("id")
-  title           String   @db.VarChar(255)
-  meetingDate     DateTime @map("meeting_date")
-  meetingTime     DateTime @map("meeting_time")
-  meetingLocation String?  @map("meeting_location") @db.VarChar(255)
-  agenda          String?  @db.Text
-  minutes         String?  @db.Text
-
-  subsidiaryId String     @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-
-  participants MeetingParticipant[]
-
-  @@map("meetings")
-}
-
-model MeetingParticipant {
-  id Int @id @default(autoincrement()) @map("id")
-
-  meetingId String  @db.Uuid @map("meeting_id")
-  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-
-  employeeId String   @db.Uuid @map("employee_id")
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  @@unique([meetingId, employeeId])
-  @@map("meeting_participants")
-}
-
-model SecretariatTask {
-  id          String                @id @default(uuid()) @db.Uuid @map("id")
-  title       String                @db.VarChar(255)
-  description String                @db.Text
-  dueDate     DateTime              @map("due_date")
-  status      SecretariatTaskStatus @map("status")
-
-  assignedToId String?   @db.Uuid @map("assigned_to_id")
-  assignedTo   Employee? @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
-
-  subsidiaryId String     @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-
-  @@map("secretariat_tasks")
-}
-
-model Interaction {
-  id               String          @id @default(uuid()) @db.Uuid @map("id")
-  interactionDate  DateTime        @map("interaction_date")
-  typeInteractions InteractionType @map("type_interactions")
-  notes            String          @db.Text
-
-  contactId String @db.Uuid @map("contact_id")
-  contact   Contact @relation(fields: [contactId], references: [id])
-
-  userId String @db.Uuid @map("user_id")
-  user   User   @relation(fields: [userId], references: [id])
-
-  @@map("interactions")
-}
-
-model CrmTask {
-  id          String          @id @default(uuid()) @db.Uuid @map("id")
-  title       String          @db.VarChar(255)
-  description String          @db.Text
-  dueDate     DateTime        @map("due_date")
-  status      CrmTaskStatus   
-  priority    CrmTaskPriority 
-
-  contactId String @db.Uuid @map("contact_id")
-  contact   Contact @relation(fields: [contactId], references: [id])
-
-  opportunityId String?      @db.Uuid @map("opportunity_id")
-  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id])
-
-  userId String @db.Uuid @map("user_id")
-  user   User   @relation(fields: [userId], references: [id])
-
-  @@map("crm_tasks")
-}
-
-model Lead {
-  id          String     @id @default(uuid()) @db.Uuid @map("id")
-  leadName    String     @map("lead_name") @db.VarChar(255)
-  company     String     @db.VarChar(255)
-  email       String     @unique @db.VarChar(255)
-  phone       String     @db.VarChar(255)
-  status      LeadStatus
-  description String?    @db.Text
-
-  salesRepId String? @db.Uuid @map("sales_rep_id")
-  salesRep   Employee? @relation(fields: [salesRepId], references: [id])
-
-  subsidiaryId String @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id])
-
-  @@map("leads")
-}
-
-model Contract {
-  id        String         @id @default(uuid()) @db.Uuid @map("id")
-  title     String
-  startDate DateTime       @map("start_date")
-  endDate   DateTime       @map("end_date")
-  amount    Decimal        @db.Decimal(12, 2)
-  status    ContractStatus
-
-  clientId String  @db.Uuid @map("client_id")
-  client   Contact @relation(fields: [clientId], references: [id])
-
-  subsidiaryId String @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id])
-
-  @@map("contracts")
-}
-
-model FixedAsset {
-  id               String   @id @default(uuid()) @db.Uuid @map("id")
-  fixedAssetsName  String   @map("fixed_assets_name") @db.VarChar(255)
-  acquisitionDate  DateTime @map("acquisition_date")
-  acquisitionCost  Decimal  @map("acquisition_cost") @db.Decimal(15, 2)
-  depreciationRate Decimal  @map("depreciation_rate") @db.Decimal(5, 2)
-
-  subsidiaryId String @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-
-  @@map("fixed_assets")
-}
-
-model LongTermDebt {
-  id             String   @id @default(uuid()) @db.Uuid @map("id")
-  debtsName      String   @map("debts_name") @db.VarChar(255)
-  initialAmount  Decimal  @map("initial_amount") @db.Decimal(15, 2)
-  currentBalance Decimal  @map("current_balance") @db.Decimal(15, 2)
-  interestRate   Decimal  @map("interest_rate") @db.Decimal(5, 2)
-  maturityDate   DateTime @map("maturity_date")
-
-  subsidiaryId String @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-
-  @@map("long_term_debts")
-}
-
-model Equipment {
-  id                  String          @id @default(uuid()) @db.Uuid @map("id")
-  equipmentName       String          @map("equipment_name") @db.VarChar(255)
-  status              EquipmentStatus
-  lastMaintenanceDate DateTime        @map("last_maintenance_date")
-  nextMaintenanceDate DateTime        @map("next_maintenance_date")
-  acquisitionDate     DateTime        @map("acquisition_date")
-  acquisitionValue    Decimal         @map("acquisition_value") @db.Decimal(15, 2)
-
-  subsidiaryId String @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-
-  maintenanceRecords MaintenanceRecord[]
-
-  @@map("equipment")
-}
-
-model MaintenanceRecord {
-  id              String   @id @default(uuid()) @db.Uuid @map("id")
-  maintenanceDate DateTime @map("maintenance_date")
-  technician      String   @db.VarChar(255)
-  description     String   @db.Text
-  maintenanceCost Decimal  @map("maintenance_cost") @db.Decimal(10, 2)
-
-  equipmentId String @db.Uuid @map("equipment_id")
-  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-
-  @@map("maintenance_records")
-}
-
-model AbsenceRecord {
-  id           String      @id @default(uuid()) @db.Uuid @map("id")
-  employeeName String      @map("employee_name") @db.VarChar(255)
-  typeAbsence  AbsenceType @map("type_absence")
-  startDate    DateTime    @map("start_date")
-  endDate      DateTime    @map("end_date")
-  reason       String      @db.Text
-  documentUrl  String?     @map("document_url") @db.Text
-
-  employeeId String   @db.Uuid @map("employee_id")
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  subsidiaryId String     @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-
-  @@map("absence_records")
-}
-
-model AttendanceRecord {
-  id             String           @id @default(uuid()) @db.Uuid @map("id")
-  employeeName   String           @map("employee_name") @db.VarChar(255)
-  attendanceDate DateTime         @map("attendance_date")
-  status         AttendanceStatus @map("status")
-  arrivalTime    DateTime?        @map("arrival_time")
-  departureTime  DateTime?        @map("departure_time")
-  breakStartTime DateTime?        @map("break_start_time")
-  breakEndTime   DateTime?        @map("break_end_time")
-  signature      String?          @db.Text
-
-  employeeId String   @db.Uuid @map("employee_id")
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  subsidiaryId String     @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-
-  @@map("attendance_records")
-}
-
-model PayrollRecord {
-  id            String        @id @default(uuid()) @db.Uuid @map("id")
-  employeeName  String        @map("employee_name") @db.VarChar(255)
-  payrollPeriod String        @map("payroll_period") @db.VarChar(7)
-  grossSalary   Decimal       @map("gross_salary") @db.Decimal(12, 2)
-  deductions    Decimal       @db.Decimal(12, 2)
-  netSalary     Decimal       @map("net_salary") @db.Decimal(12, 2)
-  paymentDate   DateTime?     @map("payment_date")
-  status        PayrollStatus @map("status")
-  signature     String?       @db.Text
-
-  employeeId String   @db.Uuid @map("employee_id")
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  subsidiaryId String     @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-
-  @@map("payroll_records")
-}
-
-model SupplierDebt {
-  id           String     @id @default(uuid()) @db.Uuid @map("id")
-  supplierName String     @map("supplier_name") @db.VarChar(255)
-  invoiceId    String     @map("invoice_id") @db.VarChar(50)
-  dueDate      DateTime   @map("due_date")
-  amount       Decimal    @db.Decimal(15, 2)
-  status       DebtStatus @map("status")
-  invoiceUrl   String?    @map("invoice_url") @db.Text
-
-  subsidiaryId String     @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-
-  purchaseOrderId String        @db.Uuid @map("purchase_order_id")
-  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-
-  @@map("supplier_debts")
-}
-
-model ExpenseRecord {
-  id                String          @id @default(uuid()) @db.Uuid @map("id")
-  expenseDate       DateTime        @map("expense_date")
-  description       String          @db.Text
-  category          ExpenseCategory @map("category")
-  expenseRecordType ExpenseType     @map("expense_record_type")
-  amount            Decimal         @db.Decimal(12, 2)
-
-  subsidiaryId String     @db.Uuid @map("subsidiary_id")
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-
-  @@map("expense_records")
 }
