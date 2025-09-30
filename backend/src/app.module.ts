@@ -6,6 +6,7 @@ import { CommonModule } from './common/common.module';
 import { AuthModule } from './common/auth/auth.module';
 import { SubsidiariesModule } from './common/subsidiaries/subsidiaries.module';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { SecretariatModule } from './secretariat/secretariat.module';
 
 @Module({
   imports: [
@@ -18,7 +19,8 @@ import { ThrottlerModule } from '@nestjs/throttler';
     ConfigModule.forRoot({ isGlobal: true }), // Charge .env globalement
     CommonModule,
     AuthModule,
-    SubsidiariesModule, // Importer AuthModule ici pour rendre les gardes disponibles globalement
+    SubsidiariesModule,
+    SecretariatModule, // Importer AuthModule ici pour rendre les gardes disponibles globalement
   ],
   controllers: [AppController],
   providers: [AppService],
