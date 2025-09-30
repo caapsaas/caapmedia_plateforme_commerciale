@@ -7,6 +7,7 @@ import { AuthModule } from './common/auth/auth.module';
 import { SubsidiariesModule } from './common/subsidiaries/subsidiaries.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ProductsModule } from './products/products.module';
+import { SecretariatModule } from './secretariat/secretariat.module';
 
 @Module({
   imports: [
@@ -21,6 +22,9 @@ import { ProductsModule } from './products/products.module';
     AuthModule, // Importer AuthModule ici pour rendre les gardes disponibles globalement
     SubsidiariesModule,
     ProductsModule, 
+    AuthModule,
+    SubsidiariesModule,
+    SecretariatModule, // Importer AuthModule ici pour rendre les gardes disponibles globalement
   ],
   controllers: [AppController],
   providers: [AppService],
