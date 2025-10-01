@@ -3,8 +3,11 @@ import { SecretariatService } from './secretariat.service';
 import { JwtAuthGuard } from '../../src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from '../common/auth/role/role.guard';
 import { SetMetadata } from '@nestjs/common';
-import { IsString, IsEnum, IsOptional, IsUUID, IsDateString } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsUUID, IsDateString,IsArray } from 'class-validator';
 import { UserRole, DocumentCategory, DocumentStatus, SecretariatTaskStatus } from '@prisma/client';
+import { Type } from 'class-transformer';
+import { IsDate } from 'class-validator';
+
 
 class CreateCompanyDocumentDto {
   @IsString()
@@ -54,66 +57,97 @@ class SearchCompanyDocumentsDto {
   @IsEnum(DocumentStatus)
   status?: DocumentStatus;
 }
-
-class CreateMeetingDto {
+export class CreateMeetingDto {
   @IsString()
+  // @ApiProperty({ description: 'Titre de la réunion' })
   title: string;
 
-  @IsDateString()
+  @Type(() => Date)  // Convertit string ISO en Date
+  @IsDate({ message: 'meetingDate must be a valid date' })
+  // @ApiProperty({ description: 'Date de la réunion' })
   meetingDate: Date;
 
-  @IsDateString()
+  @Type(() => Date)  // Convertit string ISO en Date
+  @IsDate({ message: 'meetingTime must be a valid date' })
+  // @ApiProperty({ description: 'Heure de la réunion' })
   meetingTime: Date;
 
   @IsOptional()
   @IsString()
+  // @ApiPropertyOptional({ description: 'Lieu de la réunion' })
   meetingLocation?: string;
 
   @IsOptional()
   @IsString()
+  // @ApiPropertyOptional({ description: 'Ordre du jour' })
   agenda?: string;
 
   @IsOptional()
   @IsString()
+  // @ApiPropertyOptional({ description: 'Compte-rendu' })
   minutes?: string;
 
-  @IsUUID()
+  @IsUUID('all')  // Plus précis : valide tous les types UUID
+  // @ApiProperty({ description: 'ID de la filiale' })
   subsidiaryId: string;
+
+  @IsOptional()  // Rendu optionnel : tableau vide OK
+  @IsArray()
+  @IsUUID('all', { each: true })
+  // @ApiPropertyOptional({ description: 'IDs des participants (employés)', type: [String] })
+  participantIds?: string[];
 }
 
-class UpdateMeetingDto {
+export class UpdateMeetingDto {
   @IsOptional()
   @IsString()
+  // @ApiPropertyOptional({ description: 'Nouveau titre' })
   title?: string;
 
   @IsOptional()
-  @IsDateString()
+  @Type(() => Date)
+  @IsDate()
+  // @ApiPropertyOptional({ description: 'Nouvelle date' })
   meetingDate?: Date;
 
   @IsOptional()
-  @IsDateString()
+  @Type(() => Date)
+  @IsDate()
+  // @ApiPropertyOptional({ description: 'Nouvelle heure' })
   meetingTime?: Date;
 
   @IsOptional()
   @IsString()
+  // @ApiPropertyOptional({ description: 'Nouveau lieu' })
   meetingLocation?: string;
 
   @IsOptional()
   @IsString()
+  // @ApiPropertyOptional({ description: 'Nouveau ordre du jour' })
   agenda?: string;
 
   @IsOptional()
   @IsString()
+  // @ApiPropertyOptional({ description: 'Nouveau compte-rendu' })
   minutes?: string;
+
+  @IsOptional()  // Rendu optionnel : ne force pas l'update des participants
+  @IsArray()
+  @IsUUID('all', { each: true })
+  // @ApiPropertyOptional({ description: 'Nouveaux IDs des participants', type: [String] })
+  participantIds?: string[];
 }
 
-class SearchMeetingsDto {
+export class SearchMeetingsDto {
   @IsOptional()
   @IsString()
+  // @ApiPropertyOptional({ description: 'Titre à rechercher' })
   title?: string;
 
   @IsOptional()
-  @IsDateString()
+  @Type(() => Date)
+  @IsDate()
+  // @ApiPropertyOptional({ description: 'Date à rechercher' })
   meetingDate?: Date;
 }
 
@@ -214,42 +248,64 @@ export class SecretariatController {
     return this.secretariatService.searchCompanyDocuments(query, req.user);
   }
 
-  // Endpoints for Meeting
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
-  @Post('meetings')
-  async createMeeting(@Body() dto: CreateMeetingDto, @Request() req) {
-    return this.secretariatService.createMeeting(dto, req.user);
-  }
+ // Endpoints for Meeting
+@UseGuards(JwtAuthGuard, RoleGuard)
+@SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+@Post('meetings')
+async createMeeting(@Body() dto: CreateMeetingDto, @Request() req) {
+  return this.secretariatService.createMeeting(dto, req.user);
+}
 
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
-  @Patch('meetings/:id')
-  async updateMeeting(@Param('id') id: string, @Body() dto: UpdateMeetingDto, @Request() req) {
-    return this.secretariatService.updateMeeting(id, dto, req.user);
-  }
+@UseGuards(JwtAuthGuard, RoleGuard)
+@SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+@Patch('meetings/:id')
+async updateMeeting(@Param('id') id: string, @Body() dto: UpdateMeetingDto, @Request() req) {
+  return this.secretariatService.updateMeeting(id, dto, req.user);
+}
 
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
-  @Delete('meetings/:id')
-  async deleteMeeting(@Param('id') id: string, @Request() req) {
-    return this.secretariatService.deleteMeeting(id, req.user);
-  }
+@UseGuards(JwtAuthGuard, RoleGuard)
+@SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+@Delete('meetings/:id')
+async deleteMeeting(@Param('id') id: string, @Request() req) {
+  return this.secretariatService.deleteMeeting(id, req.user);
+}
 
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
-  @Get('meetings')
-  async getAllMeetings(@Request() req) {
-    return this.secretariatService.getAllMeetings(req.user);
-  }
+@UseGuards(JwtAuthGuard, RoleGuard)
+@SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+@Get('meetings')
+async getAllMeetings(@Request() req) {
+  return this.secretariatService.getAllMeetings(req.user);
+}
 
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
-  @Get('meetings/search')
-  async searchMeetings(@Query() query: SearchMeetingsDto, @Request() req) {
-    return this.secretariatService.searchMeetings(query, req.user);
-  }
+@UseGuards(JwtAuthGuard, RoleGuard)
+@SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+@Get('meetings/search')
+async searchMeetings(@Query() query: SearchMeetingsDto, @Request() req) {
+  return this.secretariatService.searchMeetings(query, req.user);
+}
 
+// Nouveaux endpoints pour gérer les participants individuellement
+@UseGuards(JwtAuthGuard, RoleGuard)
+@SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+@Post('meetings/:id/participants/:employeeId')
+async addParticipantToMeeting(
+  @Param('id') id: string,
+  @Param('employeeId') employeeId: string,
+  @Request() req,
+) {
+  return this.secretariatService.addParticipantToMeeting(id, employeeId, req.user);
+}
+
+@UseGuards(JwtAuthGuard, RoleGuard)
+@SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+@Delete('meetings/:id/participants/:employeeId')
+async removeParticipantFromMeeting(
+  @Param('id') id: string,
+  @Param('employeeId') employeeId: string,
+  @Request() req,
+) {
+  return this.secretariatService.removeParticipantFromMeeting(id, employeeId, req.user);
+}
   // Endpoints for SecretariatTask
   @UseGuards(JwtAuthGuard, RoleGuard)
   @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
