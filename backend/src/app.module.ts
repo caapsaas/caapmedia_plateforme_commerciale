@@ -9,7 +9,9 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { ProductsModule } from './products/products.module';
 import { SecretariatModule } from './secretariat/secretariat.module';
 import { HrModule } from './hr/hr.module';
-
+import { MaintenanceModule } from './maintenance/maintenance.module';
+import { EquipementModule } from './maintenance/equipement/equipement.module';
+import { MaintenanceRecordModule } from './maintenance/maintenance_record/maintenance_record.module';
 
 @Module({
   imports: [
@@ -25,7 +27,15 @@ import { HrModule } from './hr/hr.module';
     AuthModule, // Importer AuthModule ici pour rendre les gardes disponibles globalement
     SubsidiariesModule,
     ProductsModule, 
+
     HrModule, // Importer AuthModule ici pour rendre les gardes disponibles globalement
+    AuthModule,
+    SubsidiariesModule,
+    SecretariatModule,
+    MaintenanceModule, 
+    EquipementModule,
+    MaintenanceRecordModule
+
   ],
   controllers: [AppController],
   providers: [AppService],

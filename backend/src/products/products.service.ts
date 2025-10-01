@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
+import { CreateProductDto, UpdateProductDto } from './dto/create-product.dto';
 
 @Injectable()
 export class ProductsService {
@@ -36,13 +35,14 @@ export class ProductsService {
    * @param createProductDto // DTO contenant les données du produit à créer
    * @returns // Produit créé
    */
-  async create(createProductDto: CreateProductDto) {
+  async create(createProductDto: CreateProductDto, user: any) {
     const { configurableOptions, productImages, ...productData } = createProductDto;
 
     // On crée le produit avec ses options configurables et images dans la base de données avec Prisma.
     const product = await this.prisma.product.create({
       data: {
         ...productData,
+        subsidiaryId: user.subsidiaryId,
         configurableOptions: configurableOptions
           ? {
             create: configurableOptions.map((opt) => ({
@@ -76,9 +76,9 @@ export class ProductsService {
    * @param subsidiaryId // ID de la filiale
    * @returns // Liste des produits de la filiale
    */
-  async findAll(subsidiaryId: string) {
+  async findAll(user: any) {
     const products = await this.prisma.product.findMany({
-      where: { subsidiaryId },
+      where: { subsidiaryId: user.subsidiaryId },
       include: this.includeAll,
     });
     return products.map((p) => this.mapDecimals(p));
@@ -89,9 +89,9 @@ export class ProductsService {
    * @param id // ID du produit
    * @returns // Produit trouvé
    */
-  async findOne(id: string) {
+  async findOne(id: string, user: any) {
     const product = await this.prisma.product.findUnique({
-      where: { id },
+      where: { id, subsidiaryId: user.subsidiaryId },
       include: this.includeAll,
     });
 
@@ -107,18 +107,18 @@ export class ProductsService {
    * @param updateProductDto // DTO contenant les données du produit à mettre à jour
    * @returns // Produit mis à jour
    */
-  async update(id: string, updateProductDto: UpdateProductDto) {
+  async update(id: string, updateProductDto: UpdateProductDto, user: any) {
     const { configurableOptions, productImages, ...productData } =
       updateProductDto;
 
     // Vérifie que le produit existe
-    await this.findOne(id);
+    await this.findOne(id, user);
 
     const product = await this.prisma.$transaction(async (tx) => {
       // Mise à jour des infos de base
       await tx.product.update({
-        where: { id },
-        data: { ...productData },
+        where: { id, subsidiaryId: user.subsidiaryId },
+        data: { ...productData, subsidiaryId: user.subsidiaryId },
       });
 
       // 🔹 Mise à jour des options configurables
@@ -163,7 +163,7 @@ export class ProductsService {
 
       // Retourne le produit mis à jour
       return tx.product.findUnique({
-        where: { id },
+        where: { id, subsidiaryId: user.subsidiaryId },
         include: this.includeAll,
       });
     });
@@ -176,10 +176,11 @@ export class ProductsService {
    * @param id // ID du produit
    * @returns // Produit supprimé
    */
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, user: any) {
+    // Vérifie que le produit existe
+    await this.findOne(id, user);
     const deleted = await this.prisma.product.delete({
-      where: { id },
+      where: { id, subsidiaryId: user.subsidiaryId },
     });
     return { id: deleted.id };
   }
