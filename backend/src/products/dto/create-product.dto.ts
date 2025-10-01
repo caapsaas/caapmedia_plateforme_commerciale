@@ -13,6 +13,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { OptionType } from '@prisma/client'; // Assurez-vous que Prisma Client est généré
+import { PartialType } from '@nestjs/mapped-types';
 
 
 export class ProductImageDto {
@@ -85,10 +86,6 @@ export class CreateProductDto {
     @IsOptional()
     productRange?: string;
 
-    @IsUUID()
-    @IsNotEmpty()
-    subsidiaryId: string;
-
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => ConfigurableOptionDto)
@@ -101,3 +98,5 @@ export class CreateProductDto {
     @IsOptional()
     productImages?: ProductImageDto[];
 }
+
+export class UpdateProductDto extends PartialType(CreateProductDto) {}

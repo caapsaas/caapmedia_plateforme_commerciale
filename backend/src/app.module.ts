@@ -8,6 +8,10 @@ import { SubsidiariesModule } from './common/subsidiaries/subsidiaries.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ProductsModule } from './products/products.module';
 import { SecretariatModule } from './secretariat/secretariat.module';
+import { MaintenanceModule } from './maintenance/maintenance.module';
+import { EquipementModule } from './maintenance/equipement/equipement.module';
+import { MaintenanceRecordModule } from './maintenance/maintenance_record/maintenance_record.module';
+
 
 @Module({
   imports: [
@@ -24,7 +28,10 @@ import { SecretariatModule } from './secretariat/secretariat.module';
     ProductsModule, 
     AuthModule,
     SubsidiariesModule,
-    SecretariatModule, // Importer AuthModule ici pour rendre les gardes disponibles globalement
+    SecretariatModule,
+    MaintenanceModule, 
+    EquipementModule,
+    MaintenanceRecordModule,
   ],
   controllers: [AppController],
   providers: [AppService],
