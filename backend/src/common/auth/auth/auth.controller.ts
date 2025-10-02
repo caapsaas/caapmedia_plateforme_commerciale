@@ -119,4 +119,10 @@ export class AuthController {
   async searchUsers(@Query() query: SearchUsersDto, @Request() req) {
     return this.authService.searchUsers(query, req.user);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  async logout(@Request() req) {
+    return this.authService.logout(req.user);
+  }
 }

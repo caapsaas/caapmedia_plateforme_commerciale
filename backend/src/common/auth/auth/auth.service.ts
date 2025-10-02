@@ -277,4 +277,14 @@ export class AuthService {
       subsidiary: user.subsidiary ? { id: user.subsidiary.id, subsidiaryName: user.subsidiary.subsidiaryName } : null,
     }));
   }
+
+//****8- Fonction de déconnexion d'un utilisateur****
+
+  async logout(user: { email: string }) {
+    // Dans une configuration JWT sans état, la déconnexion est principalement une opération côté client.
+    // Le serveur ne peut pas "invalider" un JWT sans une liste de blocage.
+    // Ce point de terminaison est utile pour la journalisation ou si une liste de blocage est implémentée à l'avenir.
+    this.logger.log(`User ${user.email} logged out successfully`, 'AuthService');
+    return { message: 'Logged out successfully' };
+  }
 }
