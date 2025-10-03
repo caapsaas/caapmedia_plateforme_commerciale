@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useI18n } from '../../i18n';
-import { Contact } from '../../types';
+import { SignupData } from '../../services/apiCustomerAuth';
 
 interface AuthModalProps {
     isOpen: boolean;
     onClose: () => void;
     onLogin: (email: string, password: string) => Promise<'SUCCESS' | 'NOT_VERIFIED' | 'FAILED'>;
-    onRegister: (data: Omit<Contact, 'id' | 'subsidiaryId' | 'since' | 'isVerified' | 'salesRepId' | 'accountId'>) => void;
+    onRegister: (data: SignupData) => void;
     onAuthSuccess: () => void;
     onVerifyAccount?: (email: string) => void; // Rendu optionnel
 }

@@ -15,7 +15,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
 
   const login = async (email: string, password: string, subsidiaryId: string) => {
-    const response = await fetch('http://localhost:3000/auth/login', {  // Endpoint backend auth
+    const response = await fetch('https://www.caapmedia.com/api-caapsaas/auth/login', {  // Endpoint backend auth
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, subsidiaryId }), // subsidiaryId est maintenant envoyé
