@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import IconGmoLogo from './icons/IconGmoLogo';
 import IconAtSymbol from './icons/IconAtSymbol';
 import IconLock from './icons/IconLock';
-import { MOCK_SUBSIDIARIES } from '../constants';
 import IconBuilding from './icons/IconBuilding';
 import { useI18n } from '../i18n';
 import { useAppContext } from '../context/AppContext';
+import { loginUser as apiLogin, forgotpassword as apiForgotPassword } from '../services/apiUserAuth';
+import { getSubsidiaries } from '../services/apiSubsidiaries'; // Importation depuis le nouveau fichier
+import { Subsidiary } from '../types';
 
 const LoginPage: React.FC = () => {
   const { t } = useI18n();
-  const { state, dispatch } = useAppContext();
+  const { dispatch } = useAppContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [selectedSubsidiary, setSelectedSubsidiary] = useState('');
@@ -20,8 +22,19 @@ const LoginPage: React.FC = () => {
   const [resetEmail, setResetEmail] = useState('');
   const [resetSent, setResetSent] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [forgotPasswordError, setForgotPasswordError] = useState<string | null>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const [subsidiaries, setSubsidiaries] = useState<Subsidiary[]>([]);
+
+  useEffect(() => {
+    const fetchSubsidiaries = async () => {
+      const subs = await getSubsidiaries();
+      setSubsidiaries(subs);
+    };
+    fetchSubsidiaries();
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -37,25 +50,15 @@ const LoginPage: React.FC = () => {
 
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
+      const { user, subsidiary } = await apiLogin({ email, password, subsidiaryId: selectedSubsidiary });
+      dispatch({ type: 'LOGIN_SUCCESS', payload: { user, subsidiary }});
+    } catch (err: any) {
+      // Gérer les erreurs spécifiques de l'API (ex: 401, 403)
+      setError(err.message || t('login.errorIncorrectCredentials'));
+    } finally {
       setIsLoading(false);
-      const user = state.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
-
-      if (!user) {
-        setError(t('login.errorIncorrectCredentials'));
-        return;
-      }
-
-      if (user.email.toLowerCase() !== 'nalobert@gmail.com' && user.subsidiaryId !== selectedSubsidiary) {
-        setError(t('login.errorUserNotOnSubsidiary'));
-        return;
-      }
-      
-      const subsidiary = MOCK_SUBSIDIARIES.find(s => s.id === selectedSubsidiary);
-      if (subsidiary) {
-        dispatch({ type: 'LOGIN_SUCCESS', payload: { user, subsidiary }});
-      }
-    }, 1000);
+    }
   };
   
   const handleForgotPassword = () => {
@@ -64,13 +67,18 @@ const LoginPage: React.FC = () => {
     setResetEmail('');
   };
   
-  const handleForgotPasswordSubmit = (e: React.FormEvent) => {
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setForgotPasswordError(null);
     setIsResetting(true);
-    setTimeout(() => {
-        setIsResetting(false);
+    try {
+        await apiForgotPassword(resetEmail);
         setResetSent(true);
-    }, 1000);
+    } catch (err: any) {
+        setForgotPasswordError(err.message || t('forgotPassword.errorMessage'));
+    } finally {
+        setIsResetting(false);
+    }
   };
   
   const ForgotPasswordModal = () => (
@@ -96,6 +104,9 @@ const LoginPage: React.FC = () => {
                                         <input type="email" id="reset-email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} required className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#c6e911] focus:border-transparent transition" />
                                     </div>
                                 </div>
+                                {forgotPasswordError && (
+                                    <p className="text-red-500 text-sm">{forgotPasswordError}</p>
+                                )}
                             </>
                         )}
                     </div>
@@ -149,7 +160,7 @@ const LoginPage: React.FC = () => {
                   aria-label={t('login.subsidiary')}
                 >
                   <option value="" disabled>{t('login.selectSubsidiary')}</option>
-                  {MOCK_SUBSIDIARIES.map(sub => (
+                  {subsidiaries.map(sub => (
                     <option key={sub.id} value={sub.id}>{sub.name}</option>
                   ))}
                 </select>

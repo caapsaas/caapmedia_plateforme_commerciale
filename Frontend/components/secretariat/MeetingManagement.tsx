@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { MOCK_MEETINGS, MOCK_EMPLOYEES } from '../../constants';
-import { Subsidiary, Meeting } from '../../types';
+import { Subsidiary, Meeting, Employee } from '../../types';
 import { useI18n } from '../../i18n';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
@@ -14,14 +13,18 @@ import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
+import { SaveMeetingDto } from '../../services/apisecretariat/apiMeetings';
 
 interface MeetingManagementProps {
     subsidiary: Subsidiary;
+    meetings: Meeting[];
+    employees: Employee[];
+    onSave: (data: SaveMeetingDto) => void;
+    onDelete: (id: string) => void;
 }
 
-const MeetingManagement: React.FC<MeetingManagementProps> = ({ subsidiary }) => {
+const MeetingManagement: React.FC<MeetingManagementProps> = ({ subsidiary, meetings, employees, onSave, onDelete }) => {
     const { t } = useI18n();
-    const [meetings, setMeetings] = useState(MOCK_MEETINGS.filter(m => m.subsidiaryId === subsidiary.id));
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
     const [viewingMeeting, setViewingMeeting] = useState<Meeting | null>(null);
@@ -51,31 +54,25 @@ const MeetingManagement: React.FC<MeetingManagementProps> = ({ subsidiary }) => 
         setDeletingMeeting(null);
     };
 
-    const handleSaveMeeting = (data: Omit<Meeting, 'id' | 'subsidiaryId'>) => {
-        if (editingMeeting) {
-            setMeetings(prev => prev.map(m => m.id === editingMeeting.id ? { ...editingMeeting, ...data } : m));
-        } else {
-            const newMeeting: Meeting = { ...data, id: `MEET${Date.now()}`, subsidiaryId: subsidiary.id };
-            setMeetings(prev => [newMeeting, ...prev]);
-        }
+    const handleSaveMeeting = (data: SaveMeetingDto) => {
+        onSave(data);
         handleCloseModals();
     };
     
     const handleSaveMinutes = (meetingId: string, minutes: string) => {
-        setMeetings(prev => prev.map(m => m.id === meetingId ? { ...m, minutes } : m));
-        setViewingMeeting(prev => prev ? { ...prev, minutes } : null);
+        onSave({ id: meetingId, minutes });
     };
 
     const handleDeleteMeeting = () => {
         if (deletingMeeting) {
-            setMeetings(prev => prev.filter(m => m.id !== deletingMeeting.id));
+            onDelete(deletingMeeting.id);
             handleCloseModals();
         }
     };
     
     const getParticipantNames = (participantIds: string[]) => {
         return participantIds.map(id => {
-            const employee = MOCK_EMPLOYEES.find(e => e.id === id);
+            const employee = employees.find(e => e.id === id);
             return employee ? `${employee.firstName} ${employee.lastName}`: id;
         }).join(', ');
     };
@@ -175,6 +172,7 @@ const MeetingManagement: React.FC<MeetingManagementProps> = ({ subsidiary }) => 
                     onSave={handleSaveMeeting}
                     meeting={editingMeeting}
                     subsidiary={subsidiary}
+                    employees={employees}
                 />
             )}
             
@@ -183,6 +181,7 @@ const MeetingManagement: React.FC<MeetingManagementProps> = ({ subsidiary }) => 
                     isOpen={!!viewingMeeting}
                     onClose={handleCloseModals}
                     onSaveMinutes={handleSaveMinutes}
+                    employees={employees}
                     meeting={viewingMeeting}
                 />
             )}

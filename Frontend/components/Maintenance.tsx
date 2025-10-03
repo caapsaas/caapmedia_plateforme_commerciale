@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { useAppContext } from '../context/AppContext';
 import { useI18n } from '../i18n';
-import { Equipment, EquipmentStatus, MaintenanceRecord } from '../types';
+import { Equipment, EquipmentStatus, MaintenanceRecord, Subsidiary } from '../types';
 import IconPlus from './icons/IconPlus';
 import IconEdit from './icons/IconEdit';
 import IconDelete from './icons/IconDelete';
@@ -9,11 +8,22 @@ import IconClipboardList from './icons/IconClipboardList';
 import EquipmentFormModal from './maintenance/EquipmentFormModal';
 import ConfirmationModal from './common/ConfirmationModal';
 import MaintenanceLogModal from './maintenance/MaintenanceLogModal';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getEquipments, saveEquipment, deleteEquipment, addMaintenanceLog, SaveEquipmentDto, SaveLogDto } from '../services/apiMaintenance';
 
-const Maintenance: React.FC = () => {
+interface MaintenanceProps {
+    subsidiary: Subsidiary;
+}
+
+const Maintenance: React.FC<MaintenanceProps> = ({ subsidiary }) => {
     const { t } = useI18n();
-    const { state, dispatch } = useAppContext();
-    const { equipment, currentSubsidiary } = state;
+    const queryClient = useQueryClient();
+
+    // --- Data Fetching & Mutations ---
+    const { data: equipment = [], isLoading } = useQuery({ queryKey: ['equipment', subsidiary.id], queryFn: () => getEquipments(subsidiary.id) });
+    const { mutate: saveMutation } = useMutation({ mutationFn: saveEquipment, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] }) });
+    const { mutate: deleteMutation } = useMutation({ mutationFn: deleteEquipment, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] }) });
+    const { mutate: addLogMutation } = useMutation({ mutationFn: addMaintenanceLog, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] }) });
 
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isLogModalOpen, setIsLogModalOpen] = useState(false);
@@ -21,9 +31,7 @@ const Maintenance: React.FC = () => {
     const [deletingEquipment, setDeletingEquipment] = useState<Equipment | null>(null);
     const [viewingLogFor, setViewingLogFor] = useState<Equipment | null>(null);
     
-    if (!currentSubsidiary) return null;
-
-    const subsidiaryEquipment = equipment.filter(e => e.subsidiaryId === currentSubsidiary.id);
+    if (isLoading) return <div className="p-6 text-center">{t('common.loading')}</div>;
 
     const handleOpenAddModal = () => {
         setEditingEquipment(null);
@@ -50,20 +58,20 @@ const Maintenance: React.FC = () => {
         setDeletingEquipment(null);
     };
 
-    const handleSave = (data: Omit<Equipment, 'id' | 'subsidiaryId' | 'maintenanceHistory'> & { id?: string }) => {
-        dispatch({ type: 'SAVE_EQUIPMENT', payload: data });
+    const handleSave = (data: SaveEquipmentDto) => {
+        saveMutation(data);
         handleCloseModals();
     };
 
     const handleDelete = () => {
         if (deletingEquipment) {
-            dispatch({ type: 'DELETE_EQUIPMENT', payload: deletingEquipment.id });
+            deleteMutation(deletingEquipment.id);
             handleCloseModals();
         }
     };
     
-    const handleAddLog = (equipmentId: string, record: Omit<MaintenanceRecord, 'id'>) => {
-        dispatch({ type: 'ADD_MAINTENANCE_RECORD', payload: { equipmentId, record }});
+    const handleAddLog = (equipmentId: string, record: SaveLogDto) => {
+        addLogMutation({ equipmentId, record });
     };
     
     const getStatusClass = (status: EquipmentStatus) => {
@@ -98,7 +106,7 @@ const Maintenance: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {subsidiaryEquipment.map((item) => (
+                            {equipment.map((item) => (
                                 <tr key={item.id} className="bg-white border-b hover:bg-slate-50">
                                     <td className="px-6 py-4 font-semibold">{item.name}</td>
                                     <td className="px-6 py-4">

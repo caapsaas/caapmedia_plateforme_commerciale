@@ -100,4 +100,9 @@ export const searchUsers = async (query: UserSearchQuery): Promise<User[]> => {
   return data;
 };
 
+export const forgotpassword = async (email: string): Promise<void> => {
+  await api.post('/auth/forgot-password', { email });
+};
+
+
 // La fonction de déconnexion est gérée globalement dans AuthContext.

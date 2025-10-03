@@ -11,6 +11,7 @@ import IconPaycaap from '../icons/IconPaycaap';
 import IconCheckCircle from '../icons/IconCheckCircle';
 import IconTruckCoins from '../icons/IconTruckCoins';
 import IconUserClock from '../icons/IconUserClock';
+import { processPayment } from '../../services/apiPayments';
 
 type PaymentMethod = 'Card' | 'OrangeMoney' | 'Wave' | 'MtnMoney' | 'Paycaap' | 'delivery' | 'credit';
 
@@ -28,6 +29,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, onConfir
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (customer) {
@@ -37,7 +39,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, onConfir
                 address: customer.address || '',
             });
         }
-    }, [customer]);
+        // Reset state on open
+        if (isOpen) {
+            setIsProcessing(false);
+            setIsSuccess(false);
+            setError(null);
+        }
+    }, [customer, isOpen]);
 
     const total = useMemo(() =>
         cartItems.reduce((sum, item) => sum + item.totalPrice, 0),
@@ -54,20 +62,31 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, onConfir
         { id: 'credit', label: t('payment.customerCredit'), icon: <IconUserClock className="h-6 w-6" /> },
     ];
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedPaymentMethod) return;
 
         setIsProcessing(true);
-        setTimeout(() => {
+        setError(null);
+
+        try {
+            // 1. Traiter le paiement
+            await processPayment({
+                amount: total,
+                paymentMethod: selectedPaymentMethod,
+                customerInfo,
+                cartItems,
+            });
+
+            // 2. Si le paiement réussit, confirmer la commande
             onConfirmOrder(customerInfo, selectedPaymentMethod);
-            setIsProcessing(false);
             setIsSuccess(true);
-            setTimeout(() => {
-                onClose();
-                setIsSuccess(false); // Reset for next use
-            }, 3000);
-        }, 2000);
+            setTimeout(() => onClose(), 3000); // Fermer la modale après 3s
+        } catch (err: any) {
+            setError(err.message || 'Une erreur est survenue lors du paiement.');
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -114,6 +133,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, onConfir
                                     ))}
                                 </div>
                             </div>
+                            {error && (
+                                <div className="text-red-600 bg-red-100 p-3 rounded-md text-sm">{error}</div>
+                            )}
                         </div>
                         <div className="px-6 py-4 bg-slate-50 flex justify-end items-center space-x-4 rounded-b-lg">
                             <span className="font-bold text-lg">{t('ecommerce.total')}: {formatCurrency(total)}</span>

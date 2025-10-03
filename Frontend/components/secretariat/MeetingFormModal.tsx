@@ -1,25 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Meeting, Subsidiary } from '../../types';
+import { Meeting, Subsidiary, Employee } from '../../types';
 import { useI18n } from '../../i18n';
-import { MOCK_EMPLOYEES } from '../../constants';
+import { SaveMeetingDto } from '../../services/apisecretariat/apiMeetings';
 
 interface MeetingFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (data: Omit<Meeting, 'id' | 'subsidiaryId'>) => void;
+    onSave: (data: SaveMeetingDto) => void;
     meeting: Meeting | null;
     subsidiary: Subsidiary;
+    employees: Employee[];
 }
 
-const MeetingFormModal: React.FC<MeetingFormModalProps> = ({ isOpen, onClose, onSave, meeting, subsidiary }) => {
+const MeetingFormModal: React.FC<MeetingFormModalProps> = ({ isOpen, onClose, onSave, meeting, subsidiary, employees }) => {
     const { t } = useI18n();
-    const employees = MOCK_EMPLOYEES.filter(e => e.subsidiaryId === subsidiary.id);
     const initialFormState = {
         title: '',
         date: new Date().toISOString().split('T')[0],
         time: '09:00',
         location: '',
-        participants: [],
+        participants: [] as string[],
         agenda: '',
         minutes: '',
     };
@@ -54,7 +54,7 @@ const MeetingFormModal: React.FC<MeetingFormModalProps> = ({ isOpen, onClose, on
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        onSave({ id: meeting?.id, ...formData });
     };
 
     if (!isOpen) return null;

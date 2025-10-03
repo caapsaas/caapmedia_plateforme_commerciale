@@ -137,7 +137,8 @@ const frTranslations = {
     "sendLink": "Envoyer le lien de réinitialisation",
     "sending": "Envoi en cours...",
     "backToLogin": "Retour à la connexion",
-    "successMessage": "Si un compte existe avec cet e-mail, nous avons envoyé un lien pour réinitialiser votre mot de passe."
+    "successMessage": "Si un compte existe avec cet e-mail, nous avons envoyé un lien pour réinitialiser votre mot de passe.",
+    "errorMessage": "Une erreur est survenue lors de l'envoi du lien de réinitialisation. Veuillez réessayer."
   },
   "ecommerce": {
     "title": "Notre Boutique",
@@ -1400,7 +1401,8 @@ const enTranslations: Translations = {
       "sendLink": "Send Reset Link",
       "sending": "Sending...",
       "backToLogin": "Back to Login",
-      "successMessage": "If an account with that email exists, we have sent a link to reset your password."
+      "successMessage": "If an account with that email exists, we have sent a link to reset your password.",
+      "errorMessage": "An error occurred while sending the reset link. Please try again."
     },
     "ecommerce": {
       "title": "Our Shop",

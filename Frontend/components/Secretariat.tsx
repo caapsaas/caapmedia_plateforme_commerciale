@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import { Subsidiary } from '../types';
+import { Subsidiary, Employee } from '../types';
 import { useI18n } from '../i18n';
 import DocumentManagement from './secretariat/DocumentManagement';
 import MeetingManagement from './secretariat/MeetingManagement';
 import TaskManagement from './secretariat/TaskManagement';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getDocuments, saveDocument, deleteDocument } from '../services/apisecretariat/apiDocuments';
+import { getMeetings, saveMeeting, deleteMeeting } from '../services/apisecretariat/apiMeetings';
+import { getSecretariatTasks, saveSecretariatTask, deleteSecretariatTask } from '../services/apisecretariat/apiTasks';
+import { getEmployees } from '../services/apihr/apiEmployees';
 
 type SecretariatView = 'documents' | 'meetings' | 'tasks';
 
@@ -13,19 +18,69 @@ interface SecretariatProps {
 
 const Secretariat: React.FC<SecretariatProps> = ({ subsidiary }) => {
     const { t } = useI18n();
+    const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState<SecretariatView>('documents');
+    
+    // Default date range for meetings (e.g., this year)
+    const [dateRange, setDateRange] = useState({
+        from: new Date(new Date().getFullYear(), 0, 1),
+        to: new Date(),
+    });
+
+    // Data fetching with TanStack Query
+    const { data: documents = [], isLoading: isLoadingDocs } = useQuery({ queryKey: ['documents', subsidiary.id], queryFn: () => getDocuments() });
+    const { data: meetings = [], isLoading: isLoadingMeetings } = useQuery({ queryKey: ['meetings', subsidiary.id, dateRange], queryFn: () => getMeetings(dateRange.from.toISOString(), dateRange.to.toISOString()) });
+    const { data: tasks = [], isLoading: isLoadingTasks } = useQuery({ queryKey: ['secretariatTasks', subsidiary.id], queryFn: () => getSecretariatTasks() });
+    const { data: employees = [], isLoading: isLoadingEmployees } = useQuery<Employee[]>({ queryKey: ['employees', subsidiary.id], queryFn: () => getEmployees() });
+
+    // Mutations
+    const { mutate: onSaveDocument } = useMutation({ mutationFn: saveDocument, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) });
+    const { mutate: onDeleteDocument } = useMutation({ mutationFn: deleteDocument, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) });
+
+    const { mutate: onSaveMeeting } = useMutation({ mutationFn: saveMeeting, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['meetings'] }) });
+    const { mutate: onDeleteMeeting } = useMutation({ mutationFn: deleteMeeting, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['meetings'] }) });
+
+    const { mutate: onSaveTask } = useMutation({ mutationFn: saveSecretariatTask, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['secretariatTasks'] }) });
+    const { mutate: onDeleteTask } = useMutation({ mutationFn: deleteSecretariatTask, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['secretariatTasks'] }) });
+
+    const isLoading = isLoadingDocs || isLoadingMeetings || isLoadingTasks || isLoadingEmployees;
 
     const renderActiveView = () => {
-        const props = { subsidiary };
+        if (isLoading) {
+            return <div className="p-6 text-center">{t('common.loading')}</div>;
+        }
+
         switch (activeTab) {
             case 'documents':
-                return <DocumentManagement {...props} />;
+                return <DocumentManagement 
+                            subsidiary={subsidiary} 
+                            documents={documents}
+                            onSave={onSaveDocument}
+                            onDelete={onDeleteDocument}
+                        />;
             case 'meetings':
-                return <MeetingManagement {...props} />;
+                return <MeetingManagement 
+                            subsidiary={subsidiary}
+                            meetings={meetings}
+                            employees={employees}
+                            onSave={onSaveMeeting}
+                            onDelete={onDeleteMeeting}
+                        />;
             case 'tasks':
-                return <TaskManagement {...props} />;
+                return <TaskManagement 
+                            subsidiary={subsidiary}
+                            tasks={tasks}
+                            employees={employees}
+                            onSave={onSaveTask}
+                            onDelete={onDeleteTask}
+                        />;
             default:
-                return <DocumentManagement {...props} />;
+                return <DocumentManagement 
+                            subsidiary={subsidiary} 
+                            documents={documents}
+                            onSave={onSaveDocument}
+                            onDelete={onDeleteDocument}
+                        />;
         }
     };
 
