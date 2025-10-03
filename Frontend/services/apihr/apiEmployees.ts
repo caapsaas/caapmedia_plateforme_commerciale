@@ -1,5 +1,5 @@
-import { api } from '../services/api';
-import { Employee, EmployeeStatus, Gender, ContractType } from '../../Frontend/types';
+import { api } from '../api';
+import { Employee, EmployeeStatus, Gender, ContractType } from '../../types';
 
 /**
  * DTO pour la création ou la mise à jour d'un employé.
