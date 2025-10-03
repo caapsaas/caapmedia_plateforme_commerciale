@@ -7,9 +7,11 @@ interface ConfirmationModalProps {
     onConfirm: () => void;
     title: string;
     message: string;
+    confirmButtonText?: string;
+    confirmButtonClass?: string;
 }
 
-const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, onClose, onConfirm, title, message }) => {
+const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, onClose, onConfirm, title, message, confirmButtonText, confirmButtonClass }) => {
     const { t } = useI18n();
 
     if (!isOpen) return null;
@@ -38,9 +40,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, onClose, 
                     <button 
                         type="button" 
                         onClick={onConfirm} 
-                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                        className={confirmButtonClass || "px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"}
                     >
-                        {t('common.confirmDelete')}
+                        {confirmButtonText || t('common.confirmDelete')}
                     </button>
                 </div>
             </div>

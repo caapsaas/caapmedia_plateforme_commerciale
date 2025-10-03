@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { SecretariatTask, SecretariatTaskStatus, Subsidiary } from '../../types';
+import { SecretariatTask, SecretariatTaskStatus, Subsidiary, Employee } from '../../types';
 import { useI18n } from '../../i18n';
-import { MOCK_EMPLOYEES } from '../../constants';
+import { SaveSecretariatTaskDto } from '../../services/apisecretariat/apiTasks';
 
 interface TaskFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (data: Omit<SecretariatTask, 'id' | 'subsidiaryId'>) => void;
+    onSave: (data: SaveSecretariatTaskDto) => void;
     task: SecretariatTask | null;
     subsidiary: Subsidiary;
+    employees: Employee[];
 }
 
-const TaskFormModal: React.FC<TaskFormModalProps> = ({ isOpen, onClose, onSave, task, subsidiary }) => {
+const TaskFormModal: React.FC<TaskFormModalProps> = ({ isOpen, onClose, onSave, task, subsidiary, employees }) => {
     const { t } = useI18n();
-    const employees = MOCK_EMPLOYEES.filter(e => e.subsidiaryId === subsidiary.id);
     const initialFormState = {
         title: '',
         description: '',
@@ -45,7 +45,7 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({ isOpen, onClose, onSave, 
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        onSave({ id: task?.id, ...formData });
     };
 
     if (!isOpen) return null;

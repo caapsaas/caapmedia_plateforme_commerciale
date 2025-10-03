@@ -1,7 +1,7 @@
 
 
 import React, { useState, useMemo } from 'react';
-import { Order, PaymentStatus, OrderStatus } from '../../types';
+import { Order, PaymentStatus, OrderStatus, Product, OrderItem } from '../../types';
 import { useAppContext } from '../../context/AppContext';
 import { useI18n } from '../../i18n';
 import IconDocumentText from '../icons/IconDocumentText';
@@ -17,6 +17,11 @@ import IconEdit from '../icons/IconEdit';
 import IconChevronDown from '../icons/IconChevronDown';
 import IconExclamationTriangle from '../icons/IconExclamationTriangle';
 import IconCheckCircle from '../icons/IconCheckCircle';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getOrders, recordOrderPayment, updateOrderStatus, validateOrderForProduction } from '../../services/apiOrders';
+import { getProducts } from '../../services/apiProducts';
+import { getContacts } from '../../services/apiCrm';
+
 
 const initialFilterState = {
     client: '',
@@ -31,20 +36,45 @@ const initialFilterState = {
 const Sales: React.FC = () => {
     const { state, dispatch } = useAppContext();
     const { t, formatCurrency } = useI18n();
+    const queryClient = useQueryClient();
 
-    const { currentSubsidiary: subsidiary, currentUser, orders, products, contacts } = state;
+    const { currentSubsidiary: subsidiary, currentUser } = state;
+
+    // --- TanStack Query Data Fetching ---
+    const { data: orders = [], isLoading: isLoadingOrders } = useQuery({
+        queryKey: ['orders', subsidiary?.id],
+        queryFn: () => getOrders(),
+        enabled: !!subsidiary, // Ne lance la requête que si une filiale est sélectionnée
+    });
+    const { data: products = [], isLoading: isLoadingProducts } = useQuery({
+        queryKey: ['products', subsidiary?.id],
+        queryFn: () => getProducts(),
+        enabled: !!subsidiary,
+    });
+    const { data: contacts = [], isLoading: isLoadingContacts } = useQuery({
+        queryKey: ['contacts', subsidiary?.id],
+        queryFn: () => getContacts(),
+        enabled: !!subsidiary,
+    });
 
     if (!subsidiary || !currentUser) {
         // This should ideally be handled by a protected route, but this is a safeguard.
         return <div>Chargement ou erreur d'authentification...</div>;
     }
 
-    const onRecordPayment = (orderId: string, amount: number) => 
-        dispatch({ type: 'RECORD_ORDER_PAYMENT', payload: { orderId, amount } });
-    const onUpdateOrderStatus = (orderId: string, newStatus: OrderStatus) => 
-        dispatch({ type: 'UPDATE_ORDER_STATUS', payload: { orderId, newStatus } });
-    const onValidateForProduction = (orderId: string) => 
-        dispatch({ type: 'VALIDATE_ORDER_FOR_PRODUCTION', payload: orderId });
+    // --- TanStack Query Mutations ---
+    const { mutate: recordPaymentMutate } = useMutation({
+        mutationFn: recordOrderPayment,
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orders'] }),
+    });
+    const { mutate: updateStatusMutate } = useMutation({
+        mutationFn: updateOrderStatus,
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orders'] }),
+    });
+    const { mutate: validateOrderMutate } = useMutation({
+        mutationFn: validateOrderForProduction,
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orders'] }),
+    });
     
     // State for modals
     const [payingOrder, setPayingOrder] = useState<Order | null>(null);
@@ -79,7 +109,7 @@ const Sales: React.FC = () => {
 
         if (appliedFilters.client) {
             filtered = filtered.filter(o => o.customerId === appliedFilters.client);
-        }
+        } 
         if (appliedFilters.product) {
             filtered = filtered.filter(o => o.items.some(item => item.product.id === appliedFilters.product));
         }
@@ -130,7 +160,7 @@ const Sales: React.FC = () => {
         const productStats: { [key: string]: { name: string; quantity: number; revenue: number } } = {};
 
         filteredOrders.forEach(order => {
-            order.items.forEach(item => {
+            order.items.forEach((item: OrderItem) => {
                 const { product, quantity, price } = item;
                 if (!productStats[product.id]) {
                     productStats[product.id] = { name: product.name, quantity: 0, revenue: 0 };
@@ -144,6 +174,10 @@ const Sales: React.FC = () => {
             .sort((a, b) => b.revenue - a.revenue)
             .slice(0, 10);
     }, [filteredOrders]);
+
+    if (isLoadingOrders || isLoadingProducts || isLoadingContacts) {
+        return <div>Chargement des données de ventes...</div>;
+    }
 
 
     const clientOptions = useMemo(() => contacts.map(c => ({ value: c.id, label: `${c.name} (${c.company || 'N/A'})` })), [contacts]);
@@ -279,7 +313,7 @@ const Sales: React.FC = () => {
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 {isPendingValidation ? (
-                                                     <button onClick={() => onValidateForProduction(order.id)} className="flex items-center mx-auto space-x-2 px-4 py-2 bg-green-500 text-white text-sm font-semibold rounded-md hover:bg-green-600 transition-colors" title={t('sales.validateForProduction')}>
+                                                     <button onClick={() => validateOrderMutate(order.id)} className="flex items-center mx-auto space-x-2 px-4 py-2 bg-green-500 text-white text-sm font-semibold rounded-md hover:bg-green-600 transition-colors" title={t('sales.validateForProduction')}>
                                                         <IconCheckCircle className="h-5 w-5" />
                                                         <span>{t('sales.validateForProduction')}</span>
                                                      </button>
@@ -338,8 +372,8 @@ const Sales: React.FC = () => {
 
 
             {/* Modals */}
-            {payingOrder && <RecordPaymentModal isOpen={!!payingOrder} onClose={() => setPayingOrder(null)} order={payingOrder} onRecordPayment={onRecordPayment} />}
-            {updatingStatusOrder && <OrderStatusUpdateModal isOpen={!!updatingStatusOrder} onClose={() => setUpdatingStatusOrder(null)} order={updatingStatusOrder} onUpdateStatus={onUpdateOrderStatus} />}
+            {payingOrder && <RecordPaymentModal isOpen={!!payingOrder} onClose={() => setPayingOrder(null)} order={payingOrder} onRecordPayment={(orderId, amount) => recordPaymentMutate({ orderId, amount })} />}
+            {updatingStatusOrder && <OrderStatusUpdateModal isOpen={!!updatingStatusOrder} onClose={() => setUpdatingStatusOrder(null)} order={updatingStatusOrder} onUpdateStatus={(orderId, newStatus) => updateStatusMutate({ orderId, newStatus })} />}
             {invoiceOrder && clientForInvoice && <InvoiceModal isOpen={!!invoiceOrder} onClose={() => setInvoiceOrder(null)} order={invoiceOrder} subsidiary={subsidiary} client={clientForInvoice} />}
             {blOrder && <BonDeLivraison order={blOrder} subsidiary={subsidiary} onClose={() => setBlOrder(null)} />}
         </div>

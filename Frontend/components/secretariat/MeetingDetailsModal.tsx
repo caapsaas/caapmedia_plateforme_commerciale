@@ -1,23 +1,23 @@
 import React, { useState } from 'react';
-import { Meeting } from '../../types';
+import { Meeting, Employee } from '../../types';
 import { useI18n } from '../../i18n';
-import { MOCK_EMPLOYEES } from '../../constants';
 
 interface MeetingDetailsModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSaveMinutes: (meetingId: string, minutes: string) => void;
     meeting: Meeting;
+    employees: Employee[];
 }
 
-const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClose, onSaveMinutes, meeting }) => {
+const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClose, onSaveMinutes, meeting, employees }) => {
     const { t } = useI18n();
     const [minutes, setMinutes] = useState(meeting.minutes);
     const [isEditing, setIsEditing] = useState(false);
 
     const getParticipantNames = (participantIds: string[]) => {
         return participantIds.map(id => {
-            const employee = MOCK_EMPLOYEES.find(e => e.id === id);
+            const employee = employees.find(e => e.id === id);
             return employee ? `${employee.firstName} ${employee.lastName}` : id;
         }).join(', ');
     };

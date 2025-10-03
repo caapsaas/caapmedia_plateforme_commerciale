@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { MOCK_COMPANY_DOCUMENTS } from '../../constants';
-import { Subsidiary, CompanyDocument, DocumentCategory, DocumentStatus } from '../../types';
+import { Subsidiary, CompanyDocument, DocumentStatus } from '../../types';
 import { useI18n } from '../../i18n';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
@@ -13,14 +12,17 @@ import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
+import { SaveDocumentDto } from '../../services/apisecretariat/apiDocuments';
 
 interface DocumentManagementProps {
     subsidiary: Subsidiary;
+    documents: CompanyDocument[];
+    onSave: (data: SaveDocumentDto) => void;
+    onDelete: (id: string) => void;
 }
 
-const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary }) => {
+const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, documents, onSave, onDelete }) => {
     const { t } = useI18n();
-    const [documents, setDocuments] = useState(MOCK_COMPANY_DOCUMENTS.filter(d => d.subsidiaryId === subsidiary.id));
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingDocument, setEditingDocument] = useState<CompanyDocument | null>(null);
     const [deletingDocument, setDeletingDocument] = useState<CompanyDocument | null>(null);
@@ -44,23 +46,14 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary }) =
         setDeletingDocument(null);
     };
 
-    const handleSaveDocument = (data: Omit<CompanyDocument, 'id' | 'subsidiaryId'>) => {
-        if (editingDocument) {
-            setDocuments(docs => docs.map(d => d.id === editingDocument.id ? { ...editingDocument, ...data } : d));
-        } else {
-            const newDoc: CompanyDocument = {
-                ...data,
-                id: `DOC${Date.now()}`,
-                subsidiaryId: subsidiary.id,
-            };
-            setDocuments(prev => [newDoc, ...prev]);
-        }
+    const handleSaveDocument = (data: SaveDocumentDto) => {
+        onSave(data);
         handleCloseModals();
     };
 
     const handleDeleteDocument = () => {
         if (deletingDocument) {
-            setDocuments(docs => docs.filter(d => d.id !== deletingDocument.id));
+            onDelete(deletingDocument.id);
             handleCloseModals();
         }
     };

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { MOCK_SECRETARIAT_TASKS, MOCK_EMPLOYEES } from '../../constants';
-import { Subsidiary, SecretariatTask, SecretariatTaskStatus } from '../../types';
+import { Subsidiary, SecretariatTask, SecretariatTaskStatus, Employee } from '../../types';
 import { useI18n } from '../../i18n';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
@@ -12,14 +11,18 @@ import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
+import { SaveSecretariatTaskDto } from '../../services/apisecretariat/apiTasks';
 
 interface TaskManagementProps {
     subsidiary: Subsidiary;
+    tasks: SecretariatTask[];
+    employees: Employee[];
+    onSave: (data: SaveSecretariatTaskDto) => void;
+    onDelete: (id: string) => void;
 }
 
-const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary }) => {
+const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary, tasks, employees, onSave, onDelete }) => {
     const { t } = useI18n();
-    const [tasks, setTasks] = useState(MOCK_SECRETARIAT_TASKS.filter(task => task.subsidiaryId === subsidiary.id));
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<SecretariatTask | null>(null);
     const [deletingTask, setDeletingTask] = useState<SecretariatTask | null>(null);
@@ -43,25 +46,20 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary }) => {
         setDeletingTask(null);
     };
 
-    const handleSaveTask = (data: Omit<SecretariatTask, 'id' | 'subsidiaryId'>) => {
-        if (editingTask) {
-            setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...editingTask, ...data } : t));
-        } else {
-            const newTask: SecretariatTask = { ...data, id: `TASK${Date.now()}`, subsidiaryId: subsidiary.id };
-            setTasks(prev => [newTask, ...prev]);
-        }
+    const handleSaveTask = (data: SaveSecretariatTaskDto) => {
+        onSave(data);
         handleCloseModals();
     };
 
     const handleDeleteTask = () => {
         if (deletingTask) {
-            setTasks(prev => prev.filter(t => t.id !== deletingTask.id));
+            onDelete(deletingTask.id);
             handleCloseModals();
         }
     };
     
     const getAssigneeName = (id: string) => {
-        const employee = MOCK_EMPLOYEES.find(e => e.id === id);
+        const employee = employees.find(e => e.id === id);
         return employee ? `${employee.firstName} ${employee.lastName}`: 'N/A';
     }
 
@@ -75,7 +73,7 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary }) => {
     };
 
     const handleStatusChange = (taskId: string, newStatus: SecretariatTaskStatus) => {
-        setTasks(tasks.map(task => task.id === taskId ? { ...task, status: newStatus } : task));
+        onSave({ id: taskId, status: newStatus });
     };
 
     const handlePrint = () => window.print();
@@ -185,6 +183,7 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary }) => {
                     onSave={handleSaveTask}
                     task={editingTask}
                     subsidiary={subsidiary}
+                    employees={employees}
                 />
             )}
 

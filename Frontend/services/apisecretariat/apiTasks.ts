@@ -6,11 +6,11 @@ import { SecretariatTask, SecretariatTaskStatus } from '../../types';
  */
 export interface SaveSecretariatTaskDto {
   id?: string;
-  title: string;
-  description: string;
-  assignedToId: string; // employee ID
-  dueDate: string; // Format YYYY-MM-DD
-  status: SecretariatTaskStatus;
+  title?: string;
+  description?: string;
+  assignedToId?: string; // employee ID
+  dueDate?: string; // Format YYYY-MM-DD
+  status?: SecretariatTaskStatus;
 }
 
 /**

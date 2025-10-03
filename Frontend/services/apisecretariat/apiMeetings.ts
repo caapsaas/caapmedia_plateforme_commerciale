@@ -6,12 +6,12 @@ import { Meeting } from '../../types';
  */
 export interface SaveMeetingDto {
   id?: string;
-  title: string;
-  date: string; // Format YYYY-MM-DD
-  time: string; // Format HH:mm
-  location: string;
-  participants: string[]; // Array of employee IDs
-  agenda: string;
+  title?: string;
+  date?: string; // Format YYYY-MM-DD
+  time?: string; // Format HH:mm
+  location?: string;
+  participants?: string[]; // Array of employee IDs
+  agenda?: string;
   minutes?: string;
 }
 
