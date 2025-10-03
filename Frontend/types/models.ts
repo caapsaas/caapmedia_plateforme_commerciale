@@ -232,7 +232,7 @@ export interface Contact {
   subsidiaryId: string;
   address: string;
   salesRepId?: string;
-  password?: string;
+  password: string; // Rendu obligatoire pour l'inscription et la connexion
   status?: ContactStatus;
   isVerified: boolean;
   accountId?: string;

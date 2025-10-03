@@ -7,39 +7,45 @@ interface LoginCredentials {
   password: string;
 }
 
-// Interface for signup data
-interface SignupData {
-  name: string;
-  email: string;
-  phone: string;
-  company: string;
-  address: string;
-  password: string;
-}
 
 // Interface for auth response
-interface AuthResponse {
+ export interface AuthResponse {
   customer: Contact;
   token: string;
 }
 
+export interface SignupData {
+  id: string;
+  name: string;
+  company: string;
+  email: string;
+  phone: string;
+  since: string;
+  subsidiaryId: string;
+  address: string;
+  salesRepId?: string;
+  password: string; // Rendu obligatoire pour l'inscription et la connexion
+  status?: String;
+  isVerified: boolean;
+  accountId?: string;
+}
 /**
  * Login a customer with email and password
  * @param credentials - Login credentials containing email and password
  * @returns Promise with customer data and auth token
  */
 export const loginCustomer = async (credentials: LoginCredentials): Promise<AuthResponse> => {
-  const { data } = await api.post('/auth/login', credentials);
+  const { data } = await api.post('/auth/customer/login', credentials);
   return data;
 };
 
 /**
  * Signup a new customer
- * @param customerData - Customer signup data
+ * @param signupData  - Customer signup data
  * @returns Promise with customer data and auth token
  */
-export const signupCustomer = async (SignupData: SignupData): Promise<AuthResponse> => {
-  const { data } = await api.post('/auth/register', SignupData);
+export const signupCustomer = async (signupData: SignupData): Promise<Contact> => {
+  const { data } = await api.post<Contact>('/auth/customer/signup', signupData);
   return data;
 };
 

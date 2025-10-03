@@ -16,7 +16,7 @@ import { useAppContext } from '../../context/AppContext';
 import { Link } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProducts } from '../../services/apiProducts';
-import { loginCustomer, signupCustomer } from '../../services/apiAuth';
+import { loginCustomer, signupCustomer, SignupData } from '../../services/apiCustomerAuth';
 import { api } from '../../services/api';
 
 const ECommercePage: React.FC = () => {
@@ -49,11 +49,9 @@ const ECommercePage: React.FC = () => {
         }
     });
 
-    const { mutate: signupMutation } = useMutation<Contact, Error, Omit<Contact, 'id' | 'subsidiaryId' | 'since' | 'isVerified' | 'salesRepId' | 'accountId'>>({
+    const { mutate: signupMutation } = useMutation<Contact, Error, SignupData>({
         mutationFn: signupCustomer,        
         onSuccess: (newCustomer) => {
-            // Gérer la réponse, par exemple, afficher un message de succès
-            // ou connecter automatiquement l'utilisateur.
             console.log('Signup successful', newCustomer);
             dispatch({ type: 'CUSTOMER_LOGIN_SUCCESS', payload: newCustomer });
         }
@@ -76,7 +74,8 @@ const ECommercePage: React.FC = () => {
 
     const onLogin = async (email: string, password: string): Promise<'SUCCESS' | 'NOT_VERIFIED' | 'FAILED'> => {
         try {
-            const customer = await loginCustomer({ email, password });
+            const response = await loginCustomer({ email, password });
+            const customer = response.customer; // Extraire le client de la réponse
             dispatch({ type: 'CUSTOMER_LOGIN_SUCCESS', payload: customer });
             return 'SUCCESS';
         } catch (error) {

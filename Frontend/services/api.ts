@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Création d'une instance Axios avec une configuration de base.
 const api = axios.create({
-  baseURL: 'http://localhost:3000', // L'URL de base de votre backend NestJS
+  baseURL: 'https://www.caapmedia.com/api-caapsaas', // L'URL de base de votre backend NestJS
   headers: {
     'Content-Type': 'application/json',
   },
