@@ -1,5 +1,5 @@
-import { api } from '../services/api';
-import { PayrollRecord } from '../types';
+import { api } from '../api';
+import { PayrollRecord } from '../../types';
 
 /**
  * Récupère les fiches de paie pour une période donnée (mois/année).

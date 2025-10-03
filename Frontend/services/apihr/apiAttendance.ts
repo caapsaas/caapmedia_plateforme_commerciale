@@ -1,5 +1,5 @@
-import { api } from './api';
-import { AttendanceRecord, AttendanceStatus } from '../../Frontend/types';
+import { api } from '../api';
+import { AttendanceRecord, AttendanceStatus } from '../../types';
 
 /**
  * DTO pour enregistrer une nouvelle présence.
