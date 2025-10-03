@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { User, Subsidiary } from '../types';
+import { api } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
@@ -14,19 +15,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<AuthContextType['user']>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
 
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (token) {
+        try {
+          const response = await api.get('/auth/profile');
+          if (response.data) {
+            setUser(response.data);
+          } else {
+            // Token invalide ou expiré
+            logout();
+          }
+        } catch (error) {
+          console.error("Failed to fetch user profile", error);
+          logout();
+        }
+      }
+    };
+    fetchUser();
+  }, [token]);
+
   const login = async (email: string, password: string, subsidiaryId: string) => {
-    const response = await fetch('http://localhost:3000/auth/login', {  // Endpoint backend auth
+    const response = await api.post('/auth/login', {  // Endpoint backend auth
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, subsidiaryId }), // subsidiaryId est maintenant envoyé
     });
 
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Échec de la connexion');
+    if (!response.data) {
+        throw new Error('Échec de la connexion');
     }
 
-    const data = await response.json();
+    const data = response.data;
 
     if (data.access_token) {
       localStorage.setItem('token', data.access_token);
