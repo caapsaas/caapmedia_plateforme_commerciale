@@ -5,13 +5,13 @@ import { Contact } from '../../types';
 interface AuthModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onLogin: (email: string, pass: string) => 'SUCCESS' | 'NOT_VERIFIED' | 'FAILED';
-    onSignup: (data: Omit<Contact, 'id' | 'subsidiaryId' | 'since' | 'isVerified' | 'salesRepId' | 'accountId'>) => void;
+    onLogin: (email: string, password: string) => Promise<'SUCCESS' | 'NOT_VERIFIED' | 'FAILED'>;
+    onRegister: (data: Omit<Contact, 'id' | 'subsidiaryId' | 'since' | 'isVerified' | 'salesRepId' | 'accountId'>) => void;
     onAuthSuccess: () => void;
-    onVerifyAccount: (email: string) => void;
+    onVerifyAccount?: (email: string) => void; // Rendu optionnel
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onSignup, onAuthSuccess, onVerifyAccount }) => {
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegister, onAuthSuccess, onVerifyAccount }) => {
     const { t } = useI18n();
     const [view, setView] = useState<'login' | 'signup' | 'forgotPassword'>('login');
     const [error, setError] = useState('');
@@ -30,11 +30,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onSignu
         setSignupData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
-    const handleLoginSubmit = (e: React.FormEvent) => {
+    const handleLoginSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setShowVerificationPrompt(false);
-        const result = onLogin(loginData.email, loginData.password);
+        const result = await onLogin(loginData.email, loginData.password);
         if (result === 'SUCCESS') {
             onAuthSuccess();
         } else if (result === 'NOT_VERIFIED') {
@@ -51,14 +51,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onSignu
             setError('Les mots de passe ne correspondent pas.');
             return;
         }
-        onSignup({ name: signupData.name, company: signupData.company, email: signupData.email, password: signupData.password, address: signupData.address, phone: signupData.phone });
+        onRegister({ name: signupData.name, company: signupData.company, email: signupData.email, password: signupData.password, address: signupData.address, phone: signupData.phone });
         onAuthSuccess();
     };
     
     const handleVerifyClick = () => {
-        onVerifyAccount(loginData.email);
-        setShowVerificationPrompt(false);
-        setError("Compte vérifié ! Vous pouvez maintenant vous connecter.");
+        if (onVerifyAccount) {
+            onVerifyAccount(loginData.email);
+            setShowVerificationPrompt(false);
+            setError("Compte vérifié ! Vous pouvez maintenant vous connecter.");
+        }
     };
 
     const handleForgotPassword = () => {

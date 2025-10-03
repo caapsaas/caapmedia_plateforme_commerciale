@@ -12,23 +12,18 @@ import HeroBanner from './HeroBanner';
 import QuoteRequestModal from './QuoteRequestModal';
 import ECommerceFooter from './ECommerceFooter';
 import CategoryShowcase from './CategoryShowcase';
+import { useAppContext } from '../../context/AppContext';
+import { Link } from '@tanstack/react-router';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getProducts } from '../../services/apiProducts';
+import { loginCustomer, signupCustomer } from '../../services/apiAuth';
+import { api } from '../../services/api';
 
-interface ECommercePageProps {
-    products: Product[];
-    onPlaceOrder: (orderData: { customerInfo: { name: string; email: string; address: string; }; items: OrderItem[]; }, paymentMethod: string) => void;
-    currentCustomer: Contact | null;
-    onLogin: (email: string, pass: string) => 'SUCCESS' | 'NOT_VERIFIED' | 'FAILED';
-    onSignup: (data: Omit<Contact, 'id' | 'subsidiaryId' | 'since' | 'isVerified' | 'salesRepId' | 'accountId'>) => void;
-    onLogout: () => void;
-    onVerifyAccount: (email: string) => void;
-    onNavigateToAccount: () => void;
-    onNavigateToDashboard: () => void;
-    onNavigateToRealisations: () => void;
-    onQuoteRequestSubmit: (data: { name: string; company: string; email: string; phone: string; description: string; }) => void;
-}
-
-const ECommercePage: React.FC<ECommercePageProps> = ({ products, onPlaceOrder, currentCustomer, onLogin, onSignup, onLogout, onVerifyAccount, onNavigateToAccount, onNavigateToDashboard, onNavigateToRealisations, onQuoteRequestSubmit }) => {
+const ECommercePage: React.FC = () => {
+    const { state, dispatch } = useAppContext();
+    const { currentCustomer } = state;
     const { t } = useI18n();
+    const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedMainCategory, setSelectedMainCategory] = useState('');
     const [selectedSubcategory, setSelectedSubcategory] = useState('');
@@ -39,9 +34,58 @@ const ECommercePage: React.FC<ECommercePageProps> = ({ products, onPlaceOrder, c
     const [configuringProduct, setConfiguringProduct] = useState<Product | null>(null);
     const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
 
-    const ecommerceProductHierarchy = useMemo(() => 
-        PRODUCT_HIERARCHY.filter(cat => cat.category !== 'Matières Premières'), 
-    []);
+    // --- TanStack Query ---
+    const { data: allProducts = [], isLoading: isLoadingProducts } = useQuery({
+        queryKey: ['products'],
+        queryFn: getProducts,
+    });
+
+    const { mutate: placeOrderMutation } = useMutation({
+        mutationFn: (data: { orderData: { customerInfo: { name: string; email: string; address: string; }; items: OrderItem[]; }, paymentMethod: string }) => 
+            api.post('/orders/ecommerce', data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
+            setCart([]);
+        }
+    });
+
+    const { mutate: signupMutation } = useMutation<Contact, Error, Omit<Contact, 'id' | 'subsidiaryId' | 'since' | 'isVerified' | 'salesRepId' | 'accountId'>>({
+        mutationFn: signupCustomer,        
+        onSuccess: (newCustomer) => {
+            // Gérer la réponse, par exemple, afficher un message de succès
+            // ou connecter automatiquement l'utilisateur.
+            console.log('Signup successful', newCustomer);
+            dispatch({ type: 'CUSTOMER_LOGIN_SUCCESS', payload: newCustomer });
+        }
+    });
+
+    const { mutate: quoteRequestMutation } = useMutation({
+        mutationFn: (data: { name: string; company: string; email: string; phone: string; description: string; }) =>
+            api.post('/leads/quote-request', data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['leads'] });
+        }
+    });
+
+    // --- Fin TanStack Query ---
+
+    const products = useMemo(() =>
+        allProducts.filter(p => p.mainCategory !== 'Matières Premières'),
+        [allProducts]
+    );
+
+    const onLogin = async (email: string, password: string): Promise<'SUCCESS' | 'NOT_VERIFIED' | 'FAILED'> => {
+        try {
+            const customer = await loginCustomer({ email, password });
+            dispatch({ type: 'CUSTOMER_LOGIN_SUCCESS', payload: customer });
+            return 'SUCCESS';
+        } catch (error) {
+            console.error("Login failed:", error);
+            return 'FAILED';
+        }
+    };
+
+    const onLogout = () => dispatch({ type: 'CUSTOMER_LOGOUT' });
 
     const filteredProducts = useMemo(() => {
         return products.filter(product => {
@@ -118,8 +162,7 @@ const ECommercePage: React.FC<ECommercePageProps> = ({ products, onPlaceOrder, c
             options: item.options,
             designFile: item.designFile,
         }));
-        onPlaceOrder({ customerInfo, items: orderItems }, paymentMethod);
-        setCart([]);
+        placeOrderMutation({ orderData: { customerInfo, items: orderItems }, paymentMethod });
     };
     
     const handleAuthSuccess = () => {
@@ -142,29 +185,33 @@ const ECommercePage: React.FC<ECommercePageProps> = ({ products, onPlaceOrder, c
         setSelectedSubcategory('');
     };
 
+    if (isLoadingProducts) {
+        return <div>Chargement des produits...</div>;
+    }
+
     return (
         <div className="bg-slate-50 min-h-screen flex flex-col">
             <ECommerceHeader 
-                onNavigateToDashboard={onNavigateToDashboard}
+                dashboardPath="/dashboard"
                 currentCustomer={currentCustomer}
                 onLogin={() => setIsAuthModalOpen(true)}
                 onLogout={onLogout}
-                onNavigateToAccount={onNavigateToAccount}
+                accountPath="/account"
                 cartItemCount={cartItemCount}
                 onCartClick={() => setIsCartOpen(true)}
                 searchTerm={searchTerm}
                 onSearchTermChange={setSearchTerm}
                 onQuoteRequest={() => setIsQuoteModalOpen(true)}
                 onSelectAllCategories={handleSelectAllCategories}
-                productHierarchy={ecommerceProductHierarchy}
+                productHierarchy={PRODUCT_HIERARCHY}
                 onSelectMainCategory={handleSelectMainCategory}
                 onSelectSubcategory={handleSelectSubcategory}
             />
             <main className="container mx-auto px-4 pt-8 pb-8 flex-grow">
-                <HeroBanner onNavigateToRealisations={onNavigateToRealisations} onQuoteRequest={() => setIsQuoteModalOpen(true)} />
+                <HeroBanner realisationsPath="/realisations" onQuoteRequest={() => setIsQuoteModalOpen(true)} />
 
-                <CategoryShowcase
-                    productHierarchy={ecommerceProductHierarchy}
+                <CategoryShowcase 
+                    productHierarchy={PRODUCT_HIERARCHY.filter(cat => cat.category !== 'Matières Premières')}
                     onSelectMainCategory={handleSelectMainCategory}
                     onSelectSubcategory={handleSelectSubcategory}
                 />
@@ -176,7 +223,7 @@ const ECommercePage: React.FC<ECommercePageProps> = ({ products, onPlaceOrder, c
                     ))}
                 </div>
             </main>
-            <ECommerceFooter onNavigateToRealisations={onNavigateToRealisations} onSelectMainCategory={handleSelectMainCategory} />
+            <ECommerceFooter realisationsPath="/realisations" onSelectMainCategory={handleSelectMainCategory} onBackToShop={handleSelectAllCategories} />
 
             {isCartOpen && (
                 <ShoppingCart 
@@ -191,10 +238,9 @@ const ECommercePage: React.FC<ECommercePageProps> = ({ products, onPlaceOrder, c
                 <AuthModal
                     isOpen={isAuthModalOpen}
                     onClose={() => setIsAuthModalOpen(false)}
-                    onLogin={onLogin}
-                    onSignup={onSignup}
+                    onLogin={onLogin} // La logique de login est maintenant asynchrone
+                    onRegister={signupMutation}
                     onAuthSuccess={handleAuthSuccess}
-                    onVerifyAccount={onVerifyAccount}
                 />
             )}
             
@@ -221,7 +267,7 @@ const ECommercePage: React.FC<ECommercePageProps> = ({ products, onPlaceOrder, c
                 <QuoteRequestModal 
                     isOpen={isQuoteModalOpen}
                     onClose={() => setIsQuoteModalOpen(false)}
-                    onSave={onQuoteRequestSubmit}
+                    onSave={quoteRequestMutation}
                 />
             )}
         </div>

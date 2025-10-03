@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@google/genai": "0.14.0",
+    "@tanstack/react-query": "^5.90.2",
+    "@tanstack/react-router": "^1.132.31",
     "@types/react-router-dom": "^5.3.3",
     "axios": "^1.12.2",
     "html2canvas": "1.4.1",
@@ -20,10 +22,13 @@
     "react-dom": "18.3.1",
     "react-i18next": "^16.0.0",
     "react-router-dom": "^6.30.1",
-    "recharts": "2.12.7"
+    "recharts": "2.12.7",
+    "router": "^2.2.0",
+    "router-dom": "^3.0.3"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"

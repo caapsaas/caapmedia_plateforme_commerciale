@@ -1,7 +1,8 @@
 
 
 import React, { useState, useMemo } from 'react';
-import { Subsidiary, UserRole, Order, Product, Contact, PaymentStatus, OrderStatus, Sale } from '../../types';
+import { Order, PaymentStatus, OrderStatus } from '../../types';
+import { useAppContext } from '../../context/AppContext';
 import { useI18n } from '../../i18n';
 import IconDocumentText from '../icons/IconDocumentText';
 import BonDeLivraison from '../BonDeLivraison';
@@ -17,17 +18,6 @@ import IconChevronDown from '../icons/IconChevronDown';
 import IconExclamationTriangle from '../icons/IconExclamationTriangle';
 import IconCheckCircle from '../icons/IconCheckCircle';
 
-interface SalesProps {
-    subsidiary: Subsidiary;
-    currentUserRole: UserRole;
-    orders: Order[];
-    products: Product[];
-    contacts: Contact[];
-    onRecordPayment: (orderId: string, amount: number) => void;
-    onUpdateOrderStatus: (orderId: string, newStatus: OrderStatus) => void;
-    onValidateForProduction: (orderId: string) => void;
-}
-
 const initialFilterState = {
     client: '',
     product: '',
@@ -38,9 +28,23 @@ const initialFilterState = {
     paymentStatus: '',
 };
 
-
-const Sales: React.FC<SalesProps> = ({ subsidiary, orders, products, contacts, onRecordPayment, onUpdateOrderStatus, onValidateForProduction }) => {
+const Sales: React.FC = () => {
+    const { state, dispatch } = useAppContext();
     const { t, formatCurrency } = useI18n();
+
+    const { currentSubsidiary: subsidiary, currentUser, orders, products, contacts } = state;
+
+    if (!subsidiary || !currentUser) {
+        // This should ideally be handled by a protected route, but this is a safeguard.
+        return <div>Chargement ou erreur d'authentification...</div>;
+    }
+
+    const onRecordPayment = (orderId: string, amount: number) => 
+        dispatch({ type: 'RECORD_ORDER_PAYMENT', payload: { orderId, amount } });
+    const onUpdateOrderStatus = (orderId: string, newStatus: OrderStatus) => 
+        dispatch({ type: 'UPDATE_ORDER_STATUS', payload: { orderId, newStatus } });
+    const onValidateForProduction = (orderId: string) => 
+        dispatch({ type: 'VALIDATE_ORDER_FOR_PRODUCTION', payload: orderId });
     
     // State for modals
     const [payingOrder, setPayingOrder] = useState<Order | null>(null);

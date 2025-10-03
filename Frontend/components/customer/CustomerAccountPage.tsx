@@ -1,25 +1,53 @@
-import React, { useState } from 'react';
-import { Contact, Order, OrderStatus } from '../../types';
+import React, { useState, useMemo } from 'react';
+import { Contact, Order } from '../../types';
 import { useI18n } from '../../i18n';
 import ProfileView from './ProfileView';
 import OrderHistoryView from './OrderHistoryView';
 import SecurityView from './SecurityView';
 import IconArrowLeft from '../icons/IconArrowLeft';
 import ECommerceFooter from '../ecommerce/ECommerceFooter';
-
-interface CustomerAccountPageProps {
-  customer: Contact;
-  orders: Order[];
-  onBackToShop: () => void;
-  onUpdateClient: (clientData: Contact) => void;
-  onNavigateToRealisations: () => void;
-}
+import { useAppContext } from '../../context/AppContext';
+import { useNavigate, Navigate, Link } from '@tanstack/react-router';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getOrders } from '../../services/apiOrders';
+import { api } from '../../services/api';
 
 type AccountView = 'profile' | 'orders' | 'security' | 'payment' | 'reviews';
 
-const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({ customer, orders, onBackToShop, onUpdateClient, onNavigateToRealisations }) => {
+const CustomerAccountPage: React.FC = () => {
   const { t } = useI18n();
+  const { state } = useAppContext();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeView, setActiveView] = useState<AccountView>('profile');
+
+  const { currentCustomer: customer } = state;
+
+  // Récupérer les commandes avec TanStack Query
+  const { data: allOrders, isLoading: isLoadingOrders } = useQuery({
+    queryKey: ['orders'],
+    queryFn: getOrders,
+  });
+
+  const orders = useMemo(() => {
+    if (!customer || !allOrders) return [];
+    return allOrders.filter(o => o.customerId === customer.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [allOrders, customer]);
+
+  const { mutate: onUpdateClient } = useMutation({
+    mutationFn: (clientData: Contact) => api.patch(`/contacts/${clientData.id}`, clientData),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contacts'] }), // Invalider pour rafraîchir si nécessaire
+  });
+
+  if (!customer) {
+    // Si aucun client n'est connecté, redirigez vers la page d'accueil.
+    // La protection de route dans router.tsx est une meilleure pratique, mais ceci est une sécurité.
+    return <Navigate to="/" />;
+  }
+
+  if (isLoadingOrders) {
+    return <div>Chargement de l'historique des commandes...</div>;
+  }
 
   const renderView = () => {
     switch(activeView) {
@@ -46,11 +74,12 @@ const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({ customer, ord
   return (
     <div className="bg-slate-100 min-h-screen flex flex-col">
       <header className="bg-white shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-          <button onClick={onBackToShop} className="p-2 rounded-full hover:bg-slate-100 transition-colors">
-            <IconArrowLeft className="h-6 w-6 text-slate-700" />
-          </button>
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-slate-800">{t('customerAccount.myAccount')}</h1>
+          <Link to="/" className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-[#c6e911] transition-colors">
+            <IconArrowLeft className="h-6 w-6 text-slate-700" />
+            <span>{t('customerAccount.backToShop')}</span>
+          </Link>
         </div>
       </header>
       <main className="container mx-auto px-4 py-8 flex-grow">
@@ -73,7 +102,7 @@ const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({ customer, ord
           </div>
         </div>
       </main>
-      <ECommerceFooter onNavigateToRealisations={onNavigateToRealisations} onBackToShop={onBackToShop} />
+      <ECommerceFooter realisationsPath="/realisations" onBackToShop={() => navigate({ to: '/' })} />
     </div>
   );
 };

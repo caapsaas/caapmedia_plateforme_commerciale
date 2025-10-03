@@ -2,10 +2,7 @@ import React from 'react';
 import { useI18n } from '../../i18n';
 import IconArrowLeft from '../icons/IconArrowLeft';
 import ECommerceFooter from './ECommerceFooter';
-
-interface RealisationsPageProps {
-    onBackToShop: () => void;
-}
+import { useNavigate } from '@tanstack/react-router';
 
 const services = [
     {
@@ -59,14 +56,15 @@ const clients = [
     'SA'
 ];
 
-const RealisationsPage: React.FC<RealisationsPageProps> = ({ onBackToShop }) => {
+const RealisationsPage: React.FC = () => {
     const { t } = useI18n();
+    const navigate = useNavigate();
 
     return (
         <div className="bg-slate-50 min-h-screen flex flex-col">
             <header className="bg-white shadow-sm sticky top-0 z-30">
                 <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-                    <button onClick={onBackToShop} className="p-2 rounded-full hover:bg-slate-100 transition-colors">
+                    <button onClick={() => navigate({ to: '/' })} className="p-2 rounded-full hover:bg-slate-100 transition-colors">
                         <IconArrowLeft className="h-6 w-6 text-slate-700" />
                     </button>
                     <h1 className="text-2xl font-bold text-slate-800">Nos Réalisations & Prestations</h1>
@@ -110,7 +108,7 @@ const RealisationsPage: React.FC<RealisationsPageProps> = ({ onBackToShop }) => 
                     </div>
                 </section>
             </main>
-            <ECommerceFooter onBackToShop={onBackToShop} />
+            <ECommerceFooter onBackToShop={() => navigate({ to: '/' })} />
         </div>
     );
 };

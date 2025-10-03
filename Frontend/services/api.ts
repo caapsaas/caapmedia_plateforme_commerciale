@@ -1,0 +1,31 @@
+import axios from 'axios';
+
+// Création d'une instance Axios avec une configuration de base.
+const api = axios.create({
+  baseURL: 'http://localhost:3000', // L'URL de base de votre backend NestJS
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Ajout d'un intercepteur de requête.
+// Cette fonction sera appelée avant que chaque requête ne soit envoyée.
+api.interceptors.request.use(
+  (config) => {
+    // Récupérer le token d'authentification depuis le localStorage.
+    const token = localStorage.getItem('token');
+    
+    // Si un token existe, l'ajouter à l'en-tête 'Authorization'.
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    return config;
+  },
+  (error) => {
+    // Gérer les erreurs de configuration de la requête.
+    return Promise.reject(error);
+  }
+);
+
+export { api };

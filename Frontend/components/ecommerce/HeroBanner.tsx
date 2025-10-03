@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useI18n } from '../../i18n';
+import { Link } from '@tanstack/react-router';
 import IconChevronLeft from '../icons/IconChevronLeft';
 import IconChevronRight from '../icons/IconChevronRight';
 
 interface HeroBannerProps {
-    onNavigateToRealisations: () => void;
+    realisationsPath: string;
     onQuoteRequest: () => void;
 }
 
-const HeroBanner: React.FC<HeroBannerProps> = ({ onNavigateToRealisations, onQuoteRequest }) => {
+const HeroBanner: React.FC<HeroBannerProps> = ({ realisationsPath, onQuoteRequest }) => {
     const { t } = useI18n();
     const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -24,50 +25,43 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ onNavigateToRealisations, onQuo
         image: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3',
         title: "L'excellence de l'impression, au cœur de l'Afrique",
         subtitle: 'Des technologies de pointe pour un rendu impeccable, à chaque fois.',
-        cta: 'Découvrir nos services',
-        action: onNavigateToRealisations,
+        cta: { text: 'Découvrir nos services', to: realisationsPath },
       },
       {
         image: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=1945&auto=format&fit=crop&ixlib=rb-4.0.3',
         title: 'Vos idées prennent vie avec des couleurs éclatantes',
         subtitle: 'Notre équipe d’experts vous accompagne de la conception à la réalisation.',
-        cta: 'Voir nos réalisations',
-        action: onNavigateToRealisations,
+        cta: { text: 'Voir nos réalisations', to: realisationsPath },
       },
       {
         image: 'https://images.unsplash.com/photo-1522120691812-dcdfb625f397?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3',
         title: "La couleur est notre métier, votre succès notre passion.",
         subtitle: "Donnez une nouvelle dimension à votre communication avec des impressions vibrantes.",
-        cta: 'Explorer nos produits',
-        action: handleScrollToProducts,
+        cta: { text: 'Explorer nos produits', action: handleScrollToProducts },
       },
       {
         image: 'https://images.unsplash.com/photo-1593508512255-86ab42a8e620?q=80&w=1778&auto=format&fit=crop&ixlib=rb-4.0.3',
         title: 'Des supports qui parlent pour vous.',
         subtitle: 'Flyers, affiches, brochures... tout pour faire passer votre message avec impact.',
-        cta: 'Demander un devis',
-        action: onQuoteRequest,
+        cta: { text: 'Demander un devis', action: onQuoteRequest },
       },
       {
         image: 'https://images.unsplash.com/photo-1618337362778-651368972864?q=80&w=1964&auto=format&fit=crop&ixlib=rb-4.0.3',
         title: 'De la carte de visite au grand format, la qualité est notre signature',
         subtitle: 'Des supports de communication qui marquent les esprits et valorisent votre image.',
-        cta: 'Demander un devis',
-        action: onQuoteRequest,
+        cta: { text: 'Demander un devis', action: onQuoteRequest },
       },
       {
         image: 'https://images.unsplash.com/photo-1502691851195-6e43a9c75d69?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3',
         title: "Une explosion de couleurs pour vos projets",
         subtitle: "Laissez votre créativité s'exprimer, nous nous occupons de la technique.",
-        cta: 'Demander un devis',
-        action: onQuoteRequest,
+        cta: { text: 'Demander un devis', action: onQuoteRequest },
       },
       {
         image: 'https://images.unsplash.com/photo-1587440871875-191322ee64b0?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3',
         title: "Du digital à l'imprimé, une communication 360°",
         subtitle: 'Nous créons des expériences de marque cohérentes sur tous les canaux.',
-        cta: 'Découvrir nos services digitaux',
-        action: onNavigateToRealisations,
+        cta: { text: 'Découvrir nos services digitaux', to: realisationsPath },
       },
     ];
 
@@ -100,9 +94,15 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ onNavigateToRealisations, onQuo
                             <p className="mt-2 text-xs md:text-sm">
                                 {slide.subtitle}
                             </p>
-                            <button onClick={slide.action} className="mt-4 px-4 py-2 md:mt-6 md:px-5 md:py-2.5 bg-[#c6e911] text-slate-800 font-bold rounded-full hover:bg-[#adc40f] transition-colors text-xs md:text-sm">
-                                {slide.cta}
-                            </button>
+                            {'to' in slide.cta ? (
+                                <Link to={slide.cta.to} className="mt-4 inline-block px-4 py-2 md:mt-6 md:px-5 md:py-2.5 bg-[#c6e911] text-slate-800 font-bold rounded-full hover:bg-[#adc40f] transition-colors text-xs md:text-sm">
+                                    {slide.cta.text}
+                                </Link>
+                            ) : (
+                                <button onClick={slide.cta.action} className="mt-4 px-4 py-2 md:mt-6 md:px-5 md:py-2.5 bg-[#c6e911] text-slate-800 font-bold rounded-full hover:bg-[#adc40f] transition-colors text-xs md:text-sm">
+                                    {slide.cta.text}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

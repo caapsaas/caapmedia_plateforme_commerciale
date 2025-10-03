@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Product, Contact, OrderItem, ProductOptions } from './types';
+import { Product, Contact, OrderItem } from './types';
+import { useAppContext } from './context/AppContext';
 import { useI18n } from './i18n';
 import ECommerceHeader from './components/ecommerce/ECommerceHeader';
 import ProductCard from './components/ecommerce/ProductCard';
@@ -12,22 +13,11 @@ import HeroBanner from './components/ecommerce/HeroBanner';
 import QuoteRequestModal from './components/ecommerce/QuoteRequestModal';
 import ECommerceFooter from './components/ecommerce/ECommerceFooter';
 import CategoryShowcase from './components/ecommerce/CategoryShowcase';
+import { Link } from '@tanstack/react-router';
 
-interface ECommercePageProps {
-    products: Product[];
-    onPlaceOrder: (orderData: { customerInfo: { name: string; email: string; address: string; }; items: OrderItem[]; }, paymentMethod: string) => void;
-    currentCustomer: Contact | null;
-    onLogin: (email: string, pass: string) => 'SUCCESS' | 'NOT_VERIFIED' | 'FAILED';
-    onSignup: (data: Omit<Contact, 'id' | 'subsidiaryId' | 'since' | 'isVerified' | 'salesRepId' | 'accountId'>) => void;
-    onLogout: () => void;
-    onVerifyAccount: (email: string) => void;
-    onNavigateToAccount: () => void;
-    onNavigateToDashboard: () => void;
-    onNavigateToRealisations: () => void;
-    onQuoteRequestSubmit: (data: { name: string; company: string; email: string; phone: string; description: string; }) => void;
-}
-
-const ECommercePage: React.FC<ECommercePageProps> = ({ products, onPlaceOrder, currentCustomer, onLogin, onSignup, onLogout, onVerifyAccount, onNavigateToAccount, onNavigateToDashboard, onNavigateToRealisations, onQuoteRequestSubmit }) => {
+const ECommercePage: React.FC = () => {
+    const { state, dispatch } = useAppContext();
+    const { products: allProducts, currentCustomer, contacts } = state;
     const { t } = useI18n();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedMainCategory, setSelectedMainCategory] = useState('');
@@ -38,6 +28,31 @@ const ECommercePage: React.FC<ECommercePageProps> = ({ products, onPlaceOrder, c
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [configuringProduct, setConfiguringProduct] = useState<Product | null>(null);
     const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
+
+    const products = useMemo(() =>
+        allProducts.filter(p => p.mainCategory !== 'Matières Premières'),
+        [allProducts]
+    );
+
+    const onPlaceOrder = (orderData: { customerInfo: { name: string; email: string; address: string; }; items: OrderItem[]; }, paymentMethod: string) => {
+        dispatch({ type: 'PLACE_ECOMMERCE_ORDER', payload: { orderData, paymentMethod } });
+    };
+
+    const onLogin = (email: string, pass: string) => {
+        const customer = contacts.find(c => c.email.toLowerCase() === email.toLowerCase() && c.password === pass);
+        if (customer) {
+            if (customer.isVerified) {
+                dispatch({ type: 'CUSTOMER_LOGIN_SUCCESS', payload: customer });
+                return 'SUCCESS';
+            }
+            return 'NOT_VERIFIED';
+        }
+        return 'FAILED';
+    };
+    const onSignup = (data: Omit<Contact, 'id' | 'subsidiaryId' | 'since' | 'isVerified' | 'salesRepId' | 'accountId'>) => dispatch({ type: 'CUSTOMER_SIGNUP', payload: data });
+    const onLogout = () => dispatch({ type: 'CUSTOMER_LOGOUT' });
+    const onVerifyAccount = (email: string) => dispatch({ type: 'VERIFY_CUSTOMER', payload: email });
+    const onQuoteRequestSubmit = (data: { name: string; company: string; email: string; phone: string; description: string; }) => dispatch({ type: 'SUBMIT_QUOTE_REQUEST', payload: data });
 
     const filteredProducts = useMemo(() => {
         return products.filter(product => {
@@ -141,11 +156,11 @@ const ECommercePage: React.FC<ECommercePageProps> = ({ products, onPlaceOrder, c
     return (
         <div className="bg-slate-50 min-h-screen flex flex-col">
             <ECommerceHeader 
-                onNavigateToDashboard={onNavigateToDashboard}
+                dashboardPath="/dashboard"
                 currentCustomer={currentCustomer}
                 onLogin={() => setIsAuthModalOpen(true)}
                 onLogout={onLogout}
-                onNavigateToAccount={onNavigateToAccount}
+                accountPath="/account"
                 cartItemCount={cartItemCount}
                 onCartClick={() => setIsCartOpen(true)}
                 searchTerm={searchTerm}
@@ -157,7 +172,7 @@ const ECommercePage: React.FC<ECommercePageProps> = ({ products, onPlaceOrder, c
                 onSelectSubcategory={handleSelectSubcategory}
             />
             <main className="container mx-auto px-4 pt-8 pb-8 flex-grow">
-                <HeroBanner onNavigateToRealisations={onNavigateToRealisations} onQuoteRequest={() => setIsQuoteModalOpen(true)} />
+                <HeroBanner realisationsPath="/realisations" onQuoteRequest={() => setIsQuoteModalOpen(true)} />
 
                 <CategoryShowcase
                     productHierarchy={PRODUCT_HIERARCHY}
@@ -172,7 +187,7 @@ const ECommercePage: React.FC<ECommercePageProps> = ({ products, onPlaceOrder, c
                     ))}
                 </div>
             </main>
-            <ECommerceFooter onNavigateToRealisations={onNavigateToRealisations} onSelectMainCategory={handleSelectMainCategory} />
+            <ECommerceFooter realisationsPath="/realisations" onSelectMainCategory={handleSelectMainCategory} />
 
             {isCartOpen && (
                 <ShoppingCart 

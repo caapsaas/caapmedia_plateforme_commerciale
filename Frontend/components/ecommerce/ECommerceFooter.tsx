@@ -8,15 +8,15 @@ import IconMail from '../icons/IconMail';
 import IconFacebook from '../icons/IconFacebook';
 import IconInstagram from '../icons/IconInstagram';
 import IconLinkedIn from '../icons/IconLinkedIn';
+import { Link } from '@tanstack/react-router';
 
 interface ECommerceFooterProps {
-    onNavigateToRealisations?: () => void;
+    realisationsPath?: string;
     onSelectMainCategory?: (category: string) => void;
     onBackToShop?: () => void;
 }
 
-
-const ECommerceFooter: React.FC<ECommerceFooterProps> = ({ onNavigateToRealisations, onSelectMainCategory, onBackToShop }) => {
+const ECommerceFooter: React.FC<ECommerceFooterProps> = ({ realisationsPath, onSelectMainCategory, onBackToShop }) => {
     const { t } = useI18n();
 
     const handleServiceClick = (category: string) => {
@@ -29,12 +29,6 @@ const ECommerceFooter: React.FC<ECommerceFooterProps> = ({ onNavigateToRealisati
             onBackToShop();
         } else {
              window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-    };
-    
-    const handleRealisationsClick = () => {
-        if(onNavigateToRealisations) {
-            onNavigateToRealisations();
         }
     };
 
@@ -64,8 +58,12 @@ const ECommerceFooter: React.FC<ECommerceFooterProps> = ({ onNavigateToRealisati
                     <div>
                         <h3 className="font-bold text-white uppercase mb-4">{t('footer.usefulLinks')}</h3>
                          <ul className="space-y-2 text-sm">
-                            <li><button onClick={handleRealisationsClick} disabled={!onNavigateToRealisations} className="hover:text-[#c6e911] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">{t('footer.about')}</button></li>
-                            <li><button onClick={handleRealisationsClick} disabled={!onNavigateToRealisations} className="hover:text-[#c6e911] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">{t('footer.realisations')}</button></li>
+                            {realisationsPath ? (
+                                <>
+                                    <li><Link to={realisationsPath} className="hover:text-[#c6e911] transition-colors">{t('footer.about')}</Link></li>
+                                    <li><Link to={realisationsPath} className="hover:text-[#c6e911] transition-colors">{t('footer.realisations')}</Link></li>
+                                </>
+                            ) : null}
                             <li><a href="#contact-section" className="hover:text-[#c6e911] transition-colors">{t('footer.contact')}</a></li>
                         </ul>
                     </div>

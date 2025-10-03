@@ -8,13 +8,14 @@ import { Contact } from '../../types';
 import IconHeart from '../icons/IconHeart';
 import IconMenu from '../icons/IconMenu';
 import { categoryToKeyMap } from '../../constants';
+import { Link } from '@tanstack/react-router';
 
 interface ECommerceHeaderProps {
-    onNavigateToDashboard: () => void;
+    dashboardPath: string;
     currentCustomer: Contact | null;
     onLogin: () => void;
     onLogout: () => void;
-    onNavigateToAccount: () => void;
+    accountPath: string;
     cartItemCount: number;
     onCartClick: () => void;
     searchTerm: string;
@@ -119,7 +120,9 @@ const ECommerceHeader: React.FC<ECommerceHeaderProps> = (props) => {
                                 </button>
                                 {isAccountMenuOpen && (
                                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20" role="menu">
-                                        <button onClick={() => { props.onNavigateToAccount(); setIsAccountMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" role="menuitem">{t('ecommerce.myAccount')}</button>
+                                        <Link to={props.accountPath} onClick={() => setIsAccountMenuOpen(false)} className="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" role="menuitem">
+                                            {t('ecommerce.myAccount')}
+                                        </Link>
                                         <button onClick={() => { props.onLogout(); setIsAccountMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" role="menuitem">{t('common.logout')}</button>
                                     </div>
                                 )}
@@ -132,7 +135,9 @@ const ECommerceHeader: React.FC<ECommerceHeaderProps> = (props) => {
                                 {isGuestMenuOpen && (
                                     <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-20" role="menu">
                                         <button onClick={() => { props.onLogin(); setIsGuestMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" role="menuitem">{t('ecommerce.customerLogin')}</button>
-                                        <button onClick={() => { props.onNavigateToDashboard(); setIsGuestMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" role="menuitem">{t('ecommerce.employeeLogin')}</button>
+                                        <Link to={props.dashboardPath} onClick={() => setIsGuestMenuOpen(false)} className="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" role="menuitem">
+                                            {t('ecommerce.employeeLogin')}
+                                        </Link>
                                         <div className="border-t my-1"></div>
                                         <button onClick={() => { props.onLogin(); setIsGuestMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" role="menuitem">{t('ecommerce.createAccount')}</button>
                                     </div>

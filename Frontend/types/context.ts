@@ -30,32 +30,12 @@ import {
 } from './models';
 
 export interface AppState {
-    appMode: AppMode;
     currentSubsidiary: Subsidiary | null;
-    currentView: View;
     currentUser: User | null;
     currentCustomer: Contact | null;
     isSidebarOpen: boolean;
     isSidebarCollapsed: boolean;
     showIdleModal: boolean;
-    products: Product[];
-    sales: Sale[];
-    orders: Order[];
-    contacts: Contact[];
-    suppliers: Supplier[];
-    users: User[];
-    purchaseOrders: PurchaseOrder[];
-    supplierDebts: SupplierDebt[];
-    financialTransactions: FinancialTransaction[];
-    expenseRecords: ExpenseRecord[];
-    opportunities: Opportunity[];
-    interactions: Interaction[];
-    crmTasks: CrmTask[];
-    leads: Lead[];
-    accounts: Account[];
-    contracts: Contract[];
-    equipment: Equipment[];
-    taxRates: TaxRate[];
 }
 
 export type AppAction =

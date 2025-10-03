@@ -6,10 +6,13 @@ import { MOCK_SUBSIDIARIES } from './constants';
 import IconBuilding from './components/icons/IconBuilding';
 import { useI18n } from './i18n';
 import { useAppContext } from './context/AppContext';
+import { useNavigate } from '@tanstack/react-router';
+import { useAuth } from './context/AuthContext';
 
 const LoginPage: React.FC = () => {
   const { t } = useI18n();
-  const { state, dispatch } = useAppContext();
+  const navigate = useNavigate();
+  const { dispatch } = useAppContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [selectedSubsidiary, setSelectedSubsidiary] = useState('');
@@ -21,14 +24,11 @@ const LoginPage: React.FC = () => {
   const [resetSent, setResetSent] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const { login: authLogin } = useAuth();
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (!selectedSubsidiary) {
-      setError(t('login.errorSelectSubsidiary'));
-      return;
-    }
 
     if (!email || !password) {
       setError(t('login.errorFillFields'));
@@ -36,26 +36,19 @@ const LoginPage: React.FC = () => {
     }
 
     setIsLoading(true);
-
-    setTimeout(() => {
-      setIsLoading(false);
-      const user = state.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
-
-      if (!user) {
-        setError(t('login.errorIncorrectCredentials'));
-        return;
-      }
-
-      if (user.email.toLowerCase() !== 'nalobert@gmail.com' && user.subsidiaryId !== selectedSubsidiary) {
-        setError(t('login.errorUserNotOnSubsidiary'));
-        return;
-      }
+    try {
+      // Appel de la fonction de login du AuthContext
+      const loginResult = await authLogin(email, password, selectedSubsidiary);
       
-      const subsidiary = MOCK_SUBSIDIARIES.find(s => s.id === selectedSubsidiary);
-      if (subsidiary) {
-        dispatch({ type: 'LOGIN_SUCCESS', payload: { user, subsidiary }});
-      }
-    }, 1000);
+      // La fonction login dans AuthContext doit retourner les données de l'utilisateur et de la filiale
+      // pour les passer au AppContext.
+      dispatch({ type: 'LOGIN_SUCCESS', payload: { user: loginResult.user, subsidiary: loginResult.subsidiary }});
+      navigate({ to: '/dashboard' });
+    } catch (err: any) {
+      setError(err.message || t('login.errorIncorrectCredentials'));
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const handleForgotPassword = () => {
