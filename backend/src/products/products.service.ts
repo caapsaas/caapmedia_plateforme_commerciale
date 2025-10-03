@@ -33,15 +33,19 @@ export class ProductsService {
   /**
    * 
    * @param createProductDto // DTO contenant les données du produit à créer
+   * @param user // Utilisateur connecté
+   * @param files // Fichiers uploadés
    * @returns // Produit créé
    */
-  async create(createProductDto: CreateProductDto, user: any) {
-    const { configurableOptions, productImages, ...productData } = createProductDto;
+  async create(createProductDto: CreateProductDto, user: any, files: Express.Multer.File[]) {
+    const { configurableOptions, ...productData } = createProductDto;
 
-    // On crée le produit avec ses options configurables et images dans la base de données avec Prisma.
     const product = await this.prisma.product.create({
       data: {
         ...productData,
+        stock: Number(productData.stock),
+        price: Number(productData.price),
+        sellingPrice: Number(productData.sellingPrice),
         subsidiaryId: user.subsidiaryId,
         configurableOptions: configurableOptions
           ? {
@@ -56,11 +60,11 @@ export class ProductsService {
             })),
           }
           : undefined,
-        productImages: productImages
+        productImages: files?.length
           ? {
-            create: productImages.map((img) => ({
-              imageName: img.imageName,
-              imageUrl: img.imageUrl,
+            create: files.map((file) => ({
+              imageName: file.originalname,
+              imageUrl: `/api-caapsaas/products/${file.filename}`,
             })),
           }
           : undefined,
@@ -70,6 +74,7 @@ export class ProductsService {
 
     return this.mapDecimals(product);
   }
+
 
   /**
    * 
@@ -105,30 +110,45 @@ export class ProductsService {
    * 
    * @param id // ID du produit
    * @param updateProductDto // DTO contenant les données du produit à mettre à jour
+   * @param user // Utilisateur connecté
+   * @param files // Fichiers uploadés
    * @returns // Produit mis à jour
    */
-  async update(id: string, updateProductDto: UpdateProductDto, user: any) {
+  async update(id: string, updateProductDto: UpdateProductDto, user: any, files: Express.Multer.File[]) {
     const { configurableOptions, productImages, ...productData } =
       updateProductDto;
 
     // Vérifie que le produit existe
     await this.findOne(id, user);
 
+    const dataToUpdate: any = { ...productData };
+
+    // Convertir les champs numériques de string à number s'ils sont présents
+    if (productData.stock !== undefined) {
+      dataToUpdate.stock = Number(productData.stock);
+    }
+    if (productData.price !== undefined) {
+      dataToUpdate.price = Number(productData.price);
+    }
+    if (productData.sellingPrice !== undefined) {
+      dataToUpdate.sellingPrice = Number(productData.sellingPrice);
+    }
+
     const product = await this.prisma.$transaction(async (tx) => {
       // Mise à jour des infos de base
       await tx.product.update({
         where: { id, subsidiaryId: user.subsidiaryId },
-        data: { ...productData, subsidiaryId: user.subsidiaryId },
+        data: { ...dataToUpdate, subsidiaryId: user.subsidiaryId },
       });
 
-      // 🔹 Mise à jour des options configurables
+      // Mise à jour des options configurables
       if (configurableOptions) {
         // Supprimer toutes les anciennes options
         await tx.configurableOption.deleteMany({ where: { productId: id } });
 
         // Recréer chaque option avec connectOrCreate sur l’item
         for (const opt of configurableOptions) {
-          // 1️⃣ Créer ou récupérer l'item
+          // Créer ou récupérer l'item
           const item = await tx.configurableOptionItem.upsert({
             where: { optionName: opt.item.optionName },
             update: {},
@@ -138,7 +158,7 @@ export class ProductsService {
             },
           });
 
-          // 2️⃣ Créer la ConfigurableOption en utilisant itemId
+          // Créer la ConfigurableOption en utilisant itemId
           await tx.configurableOption.create({
             data: {
               optionType: opt.optionType,
@@ -149,13 +169,14 @@ export class ProductsService {
         }
       }
 
-      // 🔹 Mise à jour des images
-      if (productImages) {
+      // Mise à jour des images
+      if (files?.length) {
         await tx.productImage.deleteMany({ where: { productId: id } });
+
         await tx.productImage.createMany({
-          data: productImages.map((img) => ({
-            imageName: img.imageName,
-            imageUrl: img.imageUrl,
+          data: files.map((file) => ({
+            imageName: file.originalname,
+            imageUrl: `/api-caapsaas/products/${file.filename}`,
             productId: id,
           })),
         });

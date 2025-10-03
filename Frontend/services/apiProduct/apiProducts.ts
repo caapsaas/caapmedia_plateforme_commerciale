@@ -1,5 +1,5 @@
-import { api } from './api';
-import { Product } from '../types';
+import { api } from '../api';
+import { Product } from '../../types';
 
 /**
  * Récupère tous les produits.
