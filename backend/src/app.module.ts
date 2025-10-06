@@ -12,6 +12,7 @@ import { HrModule } from './hr/hr.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import { EquipementModule } from './maintenance/equipement/equipement.module';
 import { MaintenanceRecordModule } from './maintenance/maintenance_record/maintenance_record.module';
+import { CrmModule } from './crm/crm.module';
 
 @Module({
   imports: [
@@ -34,7 +35,8 @@ import { MaintenanceRecordModule } from './maintenance/maintenance_record/mainte
     SecretariatModule,
     MaintenanceModule, 
     EquipementModule,
-    MaintenanceRecordModule
+    MaintenanceRecordModule,
+    CrmModule
 
   ],
   controllers: [AppController],

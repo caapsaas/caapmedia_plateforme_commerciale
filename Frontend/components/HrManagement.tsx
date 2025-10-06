@@ -11,7 +11,7 @@ import {
     getAttendances, saveAttendance,
     getAbsences, saveAbsence, deleteAbsence,
     getPayrolls, processPayroll
-} from '../services/apiHr';
+} from '../services/apihr/apiPayroll';
 
 type HrView = 'employees' | 'attendance' | 'payroll' | 'absences';
 

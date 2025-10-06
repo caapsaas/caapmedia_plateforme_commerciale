@@ -46,7 +46,7 @@ export class EmployeeController {
   }
 
   @Get()
-  @Roles('HR_MANAGER')
+  @Roles('HR_MANAGER', 'ADMIN')
   @ApiOperation({ summary: 'Get all employees of a subsidiary' })
   async findAll(
     @Request() req,
@@ -58,7 +58,7 @@ export class EmployeeController {
   }
 
   @Get(':id')
-  @Roles('HR_MANAGER', 'MANAGER')
+  @Roles('HR_MANAGER', 'ADMIN')
   @ApiOperation({ summary: 'Get a single employee by ID' })
   async findOne(
     @Param('id') id: string,
@@ -132,7 +132,7 @@ export class EmployeeController {
   }
 
   @Post(':id/performance-reviews')
-  @Roles('HR_MANAGER', 'MANAGER')
+  @Roles('HR_MANAGER', 'ADMIN')
   @ApiOperation({ summary: 'Add a performance review' })
   async addPerformanceReview(
     @Param('id') id: string,
@@ -151,7 +151,7 @@ export class EmployeeController {
   }
 
   @Post(':id/leaves')
-  @Roles('HR_MANAGER')
+  @Roles('HR_MANAGER','ADMIN')
   @ApiOperation({ summary: 'Add a leave record' })
   async addLeaveRecord(
     @Param('id') id: string,
