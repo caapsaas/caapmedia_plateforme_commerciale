@@ -14,6 +14,7 @@ import { EquipementModule } from './maintenance/equipement/equipement.module';
 import { MaintenanceRecordModule } from './maintenance/maintenance_record/maintenance_record.module';
 import { OrdersModule } from './ecommerce/orders/orders.module';
 import { TaxesModule } from './ecommerce/taxes/taxes.module';
+import { CrmModule } from './crm/crm.module';
 
 @Module({
   imports: [
@@ -38,7 +39,8 @@ import { TaxesModule } from './ecommerce/taxes/taxes.module';
     EquipementModule,
     MaintenanceRecordModule,
     OrdersModule,
-    TaxesModule
+    TaxesModule,
+    CrmModule
 
   ],
   controllers: [AppController],

@@ -234,6 +234,8 @@ model Account {
   subsidiary    Subsidiary    @relation(fields: [subsidiaryId], references: [id])
   contacts      Contact[]
   opportunities Opportunity[]
+  
+   @@unique([accountName, subsidiaryId])
 
   @@map("accounts")
 }
@@ -250,11 +252,11 @@ model Contact {
   isVerified    Boolean        @default(false) @map("is_verified")
   accountId     String?        @map("account_id") @db.Uuid
   salesRepId    String?        @map("sales_rep_id") @db.Uuid
-  subsidiaryId  String         @map("subsidiary_id") @db.Uuid
+  subsidiaryId  String?        @map("subsidiary_id") @db.Uuid
   status        ContactStatus? @map("status")
   account       Account?       @relation(fields: [accountId], references: [id])
   salesRep      User?          @relation(fields: [salesRepId], references: [id])
-  subsidiary    Subsidiary     @relation(fields: [subsidiaryId], references: [id])
+  subsidiary    Subsidiary?     @relation(fields: [subsidiaryId], references: [id])
   contracts     Contract[]
   crmTasks      CrmTask[]
   interactions  Interaction[]
@@ -581,7 +583,7 @@ model Interaction {
 model CrmTask {
   id            String          @id @default(uuid()) @map("id") @db.Uuid
   title         String          @db.VarChar(255)
-  description   String
+  description   String?
   dueDate       DateTime        @map("due_date")
   contactId     String          @map("contact_id") @db.Uuid
   opportunityId String?         @map("opportunity_id") @db.Uuid

@@ -37,7 +37,7 @@ export class PayrollrecordController {
   }
 
   @Delete(':id')
-  @Roles('HR_MANAGER','ADMIN ')
+  @Roles('HR_MANAGER', 'ADMIN')
   remove(@Param('id') id: string) {
     return this.payrollRecordService.remove(id);
   }
