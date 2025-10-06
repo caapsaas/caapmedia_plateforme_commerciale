@@ -1,25 +1,34 @@
 import React, { useState } from 'react';
-import { useAppContext } from '../context/AppContext';
+import { Subsidiary, Equipment, EquipmentStatus } from '../types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getEquipments, saveEquipment, deleteEquipment, SaveEquipmentDto } from '../services/apiMaintenance';
 import { useI18n } from '../i18n';
-import { Equipment, EquipmentStatus } from '../types';
 import IconPlus from './icons/IconPlus';
 import IconEdit from './icons/IconEdit';
 import IconDelete from './icons/IconDelete';
 import EquipmentFormModal from './maintenance/EquipmentFormModal';
 import ConfirmationModal from './common/ConfirmationModal';
 
-const Equipements: React.FC = () => {
-    const { t, formatCurrency } = useI18n();
-    const { state, dispatch } = useAppContext();
-    const { equipment, currentSubsidiary } = state;
+interface EquipementsProps {
+    subsidiary: Subsidiary;
+}
 
+const Equipements: React.FC<EquipementsProps> = ({ subsidiary }) => {
+    const { t, formatCurrency } = useI18n();
+    const queryClient = useQueryClient();
+
+    const { data: equipment = [], isLoading } = useQuery({ 
+        queryKey: ['equipment', subsidiary.id], 
+        queryFn: () => getEquipments(subsidiary.id) 
+    });
+    const { mutate: saveMutation } = useMutation({ mutationFn: saveEquipment, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] }) });
+    const { mutate: deleteMutation } = useMutation({ mutationFn: deleteEquipment, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] }) });
+    
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
     const [deletingEquipment, setDeletingEquipment] = useState<Equipment | null>(null);
     
-    if (!currentSubsidiary) return null;
-
-    const subsidiaryEquipment = equipment.filter(e => e.subsidiaryId === currentSubsidiary.id);
+    const totalAcquisitionValue = equipment.reduce((acc, item) => acc + item.acquisitionValue, 0);
 
     const handleOpenAddModal = () => {
         setEditingEquipment(null);
@@ -40,14 +49,14 @@ const Equipements: React.FC = () => {
         setDeletingEquipment(null);
     };
 
-    const handleSave = (data: Omit<Equipment, 'id' | 'subsidiaryId' | 'maintenanceHistory'> & { id?: string }) => {
-        dispatch({ type: 'SAVE_EQUIPMENT', payload: data });
+    const handleSave = (data: SaveEquipmentDto) => {
+        saveMutation(data);
         handleCloseModals();
     };
 
     const handleDelete = () => {
         if (deletingEquipment) {
-            dispatch({ type: 'DELETE_EQUIPMENT', payload: deletingEquipment.id });
+            deleteMutation(deletingEquipment.id);
             handleCloseModals();
         }
     };
@@ -61,9 +70,16 @@ const Equipements: React.FC = () => {
         }
     };
 
+    if (isLoading) {
+        return <div className="p-6 text-center">{t('common.loading')}</div>;
+    }
+
     return (
         <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-slate-800">{t('equipements.title')}</h2>
+            <div className="flex justify-between items-center">
+                <h2 className="text-3xl font-bold text-slate-800">{t('equipements.title')}</h2>
+                <div className="text-right"><div className="text-sm text-slate-500">Valeur totale</div><div className="text-2xl font-bold">{formatCurrency(totalAcquisitionValue)}</div></div>
+            </div>
             <div className="bg-white p-6 rounded-xl shadow-md">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-semibold text-slate-800">{t('equipements.listTitle')}</h3>
@@ -84,7 +100,7 @@ const Equipements: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {subsidiaryEquipment.map((item) => (
+                            {equipment.map((item) => (
                                 <tr key={item.id} className="bg-white border-b hover:bg-slate-50">
                                     <td className="px-6 py-4 font-semibold">{item.name}</td>
                                     <td className="px-6 py-4">{item.acquisitionDate}</td>

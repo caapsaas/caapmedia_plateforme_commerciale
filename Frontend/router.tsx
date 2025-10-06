@@ -1,5 +1,6 @@
 import { createRouter, createRoute, createRootRoute, Outlet } from '@tanstack/react-router';
 import App from './App'; // Nous allons refactorer App.tsx pour qu'il devienne notre layout
+import { useAppContext } from './context/AppContext';
 import LoginPage from './LoginPage';
 import ECommercePage from './components/ecommerce/ECommercePage';
 import RealisationsPage from './components/ecommerce/RealisationsPage';
@@ -77,10 +78,30 @@ const mesCommandesRoute = createRoute({ getParentRoute: () => dashboardRoute, pa
 const financeRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/finance', component: Finance });
 const configurationRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/configuration', component: Configuration });
 const hrRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/hr', component: HrManagement });
-const secretariatRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/secretariat', component: Secretariat });
 const productionRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/production', component: Production });
-const maintenanceRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/maintenance', component: Maintenance });
-const equipementsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/equipements', component: Equipements });
+
+// Wrapper for components that need the current subsidiary
+const SecretariatRouteComponent = () => {
+  const { state } = useAppContext();
+  if (!state.currentSubsidiary) return <div>Loading subsidiary...</div>; // Or a proper loader
+  return <Secretariat subsidiary={state.currentSubsidiary} />;
+};
+
+const MaintenanceRouteComponent = () => {
+  const { state } = useAppContext();
+  if (!state.currentSubsidiary) return <div>Loading subsidiary...</div>;
+  return <Maintenance subsidiary={state.currentSubsidiary} />;
+};
+
+const EquipementsRouteComponent = () => {
+  const { state } = useAppContext();
+  if (!state.currentSubsidiary) return <div>Loading subsidiary...</div>;
+  return <Equipements subsidiary={state.currentSubsidiary} />;
+};
+
+const secretariatRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/secretariat', component: SecretariatRouteComponent });
+const maintenanceRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/maintenance', component: MaintenanceRouteComponent });
+const equipementsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/equipements', component: EquipementsRouteComponent });
 
 
 // 6. Création de l'arbre des routes
