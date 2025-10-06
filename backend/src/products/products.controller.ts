@@ -1,10 +1,15 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, Req } from '@nestjs/common';
+import { UseInterceptors } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { UploadedFiles } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { UseGuards } from '@nestjs/common';
 import { SetMetadata } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
+import { extname } from 'path';
 import { CreateProductDto, UpdateProductDto } from './dto/create-product.dto';
 
 @Controller('products')
@@ -16,10 +21,21 @@ export class ProductsController {
    * Exemple d'URL : /products/add-product
    */
   @Post()
+  @UseInterceptors(
+    FilesInterceptor('productImages', 5, {
+      storage: diskStorage({
+        destination: './public/products',
+        filename: (req, file, cb) => {
+          const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
+          cb(null, `${randomName}${extname(file.originalname)}`);
+        },
+      }),
+    }),
+  )
   @UseGuards(JwtAuthGuard, RoleGuard)
   @SetMetadata('roles', [UserRole.ADMIN])
-  create(@Body() createProductDto: CreateProductDto, @Req() req: any) {
-    return this.productsService.create(createProductDto, req.user);
+  create(@Body() createProductDto: CreateProductDto, @UploadedFiles() files: Express.Multer.File[], @Req() req: any) {
+    return this.productsService.create(createProductDto, req.user, files);
   }
 
   /**
@@ -49,14 +65,26 @@ export class ProductsController {
    * Exemple d'URL : /products/:id
    */
   @Patch(':id')
+  @UseInterceptors(
+    FilesInterceptor('productImages', 5, {
+      storage: diskStorage({
+        destination: './public/products',
+        filename: (req, file, cb) => {
+          const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
+          cb(null, `${randomName}${extname(file.originalname)}`);
+        },
+      }),
+    }),
+  )
   @UseGuards(JwtAuthGuard, RoleGuard)
   @SetMetadata('roles', [UserRole.ADMIN])
   update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateProductDto: UpdateProductDto,
+    @UploadedFiles() files: Express.Multer.File[],
     @Req() req: any,
   ) {
-    return this.productsService.update(id, updateProductDto, req.user);
+    return this.productsService.update(id, updateProductDto, req.user, files);
   }
 
   /**

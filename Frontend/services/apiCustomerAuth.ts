@@ -1,5 +1,5 @@
 import { api } from './api';
-import { Contact } from '../types';
+import { Contact, ContactStatus } from '../types';
 
 // Interface for login credentials
 interface LoginCredentials {
@@ -25,7 +25,7 @@ export interface SignupData {
   address: string;
   salesRepId?: string;
   password: string; // Rendu obligatoire pour l'inscription et la connexion
-  status?: String;
+  status?: ContactStatus;
   isVerified: boolean;
   accountId?: string;
 }

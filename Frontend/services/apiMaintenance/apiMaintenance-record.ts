@@ -1,11 +1,11 @@
-import { api } from './api';
-import { MaintenanceRecord } from '../types';
+import { api } from '../api';
+import { MaintenanceRecord } from '../../types';
 
 /**
  * DTO pour la création d'un enregistrement de maintenance.
  * Les dates sont généralement envoyées en tant que chaînes ISO.
  */
-export interface CreateMaintenanceRecordDto {
+export interface CreateMaintenanceRecord {
   equipmentId: string;
   maintenanceDate: string;
   technician: string;
@@ -17,12 +17,12 @@ export interface CreateMaintenanceRecordDto {
  * DTO pour la mise à jour d'un enregistrement de maintenance.
  * Tous les champs sont optionnels.
  */
-export type UpdateMaintenanceRecordDto = Partial<CreateMaintenanceRecordDto>;
+export type UpdateMaintenanceRecord = Partial<CreateMaintenanceRecord>;
 
 /**
  * DTO pour la recherche d'enregistrements de maintenance.
  */
-export interface SearchMaintenanceRecordDto {
+export interface SearchMaintenanceRecord {
   equipmentId?: string;
   technician?: string;
   fromDate?: string;
@@ -33,7 +33,7 @@ export interface SearchMaintenanceRecordDto {
  * Crée un nouvel enregistrement de maintenance.
  * @param data - Les données de l'enregistrement à créer.
  */
-export const createMaintenanceRecord = async (data: CreateMaintenanceRecordDto): Promise<MaintenanceRecord> => {
+export const createMaintenanceRecord = async (data: CreateMaintenanceRecord): Promise<MaintenanceRecord> => {
   const response = await api.post<MaintenanceRecord>('/maintenance-records', data);
   return response.data;
 };
@@ -51,7 +51,7 @@ export const getMaintenanceRecordsForEquipment = async (equipmentId: string): Pr
  * Recherche des enregistrements de maintenance en fonction de critères.
  * @param query - Les critères de recherche.
  */
-export const searchMaintenanceRecords = async (query: SearchMaintenanceRecordDto): Promise<MaintenanceRecord[]> => {
+export const searchMaintenanceRecords = async (query: SearchMaintenanceRecord): Promise<MaintenanceRecord[]> => {
   const response = await api.get<MaintenanceRecord[]>('/maintenance-records/search', { params: query });
   return response.data;
 };
@@ -61,7 +61,7 @@ export const searchMaintenanceRecords = async (query: SearchMaintenanceRecordDto
  * @param id - L'ID de l'enregistrement à mettre à jour.
  * @param data - Les données à mettre à jour.
  */
-export const updateMaintenanceRecord = async (id: string, data: UpdateMaintenanceRecordDto): Promise<MaintenanceRecord> => {
+export const updateMaintenanceRecord = async (id: string, data: UpdateMaintenanceRecord): Promise<MaintenanceRecord> => {
   const response = await api.patch<MaintenanceRecord>(`/maintenance-records/${id}`, data);
   return response.data;
 };
