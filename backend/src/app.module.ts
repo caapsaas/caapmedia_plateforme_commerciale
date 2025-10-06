@@ -6,12 +6,14 @@ import { CommonModule } from './common/common.module';
 import { AuthModule } from './common/auth/auth.module';
 import { SubsidiariesModule } from './common/subsidiaries/subsidiaries.module';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { ProductsModule } from './products/products.module';
+import { ProductsModule } from './ecommerce/products/products.module';
 import { SecretariatModule } from './secretariat/secretariat.module';
 import { HrModule } from './hr/hr.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import { EquipementModule } from './maintenance/equipement/equipement.module';
 import { MaintenanceRecordModule } from './maintenance/maintenance_record/maintenance_record.module';
+import { OrdersModule } from './ecommerce/orders/orders.module';
+import { TaxesModule } from './ecommerce/taxes/taxes.module';
 
 @Module({
   imports: [
@@ -34,7 +36,9 @@ import { MaintenanceRecordModule } from './maintenance/maintenance_record/mainte
     SecretariatModule,
     MaintenanceModule, 
     EquipementModule,
-    MaintenanceRecordModule
+    MaintenanceRecordModule,
+    OrdersModule,
+    TaxesModule
 
   ],
   controllers: [AppController],
