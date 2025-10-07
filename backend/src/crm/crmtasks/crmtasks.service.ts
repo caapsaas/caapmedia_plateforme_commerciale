@@ -6,7 +6,7 @@ import {
   import { PrismaService } from 'src/common/utils/prisma/prisma.service';
   import { CreateTaskDto } from './dto/create-task.dto';
   import { UpdateTaskDto } from './dto/update-task.dto';
-  import { Prisma, User, UserRole } from '@prisma/client';
+  import { Prisma, User, UserRole, CrmTaskStatus } from '@prisma/client';
   
   @Injectable()
   export class CrmtasksService {
@@ -32,6 +32,7 @@ import {
         data: {
           ...createTaskDto,
           userId: creator.id,
+          status: CrmTaskStatus.TODO, // Définir le statut par défaut
         },
       });
     }

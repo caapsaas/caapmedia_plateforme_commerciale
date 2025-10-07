@@ -30,10 +30,6 @@ export class AccountsService {
       throw new NotFoundException(`Subsidiary with ID "${subsidiaryId}" not found.`);
     }
 
-    if (!createAccountDto.accountName) {
-      throw new BadRequestException('Account name is required to create an account.');
-    }
-
     // Vérifier si un compte avec le même nom existe déjà dans la filiale
     const existingAccount = await this.prisma.account.findUnique({
       where: {
