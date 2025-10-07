@@ -5,10 +5,16 @@ import { CreateLeadDto } from './dto/create-lead.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
 import { User, LeadStatus, ContactStatus, OpportunityStage, OpportunitySource, Account } from '@prisma/client';
 import { AccountsService } from '../accounts/accounts.service';
+import { ContactsService } from '../contacts/contacts.service';
+import { CreateContactDto } from '../contacts/dto/create-contact.dto';
 
 @Injectable()
 export class LeadsService {
-  constructor(private prisma: PrismaService, private accountsService: AccountsService) {}
+  constructor(
+    private prisma: PrismaService, 
+    private accountsService: AccountsService,
+    private contactsService: ContactsService, // Injecter ContactsService
+  ) {}
 
   async create(createLeadDto: CreateLeadDto, user: User) {
     return this.prisma.lead.create({
@@ -89,21 +95,17 @@ export class LeadsService {
       }
 
       // 2. Créer le Contact
-      const contact = await tx.contact.create({
-        data: {
-          contactName: lead.leadName,
-          company: lead.company,
-          email: lead.email,
-          phone: lead.phone,
-          address: 'Unknown', // L'adresse n'existe pas sur le modèle Lead, on met une valeur par défaut.
-          passwordHash: 'temporary_hash', // Gérer la création de mot de passe client
-          since: new Date(),
-          status: ContactStatus.ACTIVE,
-          accountId: account.id,
-          subsidiaryId: user.subsidiaryId,
-          salesRepId: user.id,
-        },
-      });
+      // Utiliser le service de contacts pour centraliser la logique de création
+      const contactDto: CreateContactDto = {
+        contactName: lead.leadName,
+        company: lead.company,
+        email: lead.email,
+        phone: lead.phone,
+        address: 'Unknown', // L'adresse n'existe pas sur le modèle Lead
+        accountId: account.id,
+      };
+      // La méthode `create` du service gère le hashage du mot de passe et l'assignation
+      const contact = await this.contactsService.create(contactDto, user);
 
       // 3. Créer l'Opportunité
       const opportunity = await tx.opportunity.create({

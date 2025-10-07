@@ -8,20 +8,21 @@ import {
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
-import { Prisma, User, UserRole } from '@prisma/client';
+import { Prisma, User, UserRole, ContactStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { ContactLoginDto } from './dto/contact-login.dto';
+import { RegisterContactDto } from './dto/register-contact.dto';
 
 @Injectable()
 export class ContactsService {
   constructor(private prisma: PrismaService, private jwtService: JwtService) {}
 
-  async create(createContactDto: CreateContactDto) {
+  async create(createContactDto: CreateContactDto, user: User) {
     const existingContact = await this.prisma.contact.findFirst({
       where: {
         email: createContactDto.email,
-        subsidiaryId: createContactDto.subsidiaryId,
+        subsidiaryId: user.subsidiaryId,
       },
     });
 
@@ -38,6 +39,8 @@ export class ContactsService {
     return this.prisma.contact.create({
       data: {
         ...createContactDto,
+        subsidiaryId: user.subsidiaryId,
+        salesRepId: user.id,
         since: new Date(),
         passwordHash,
       },
@@ -115,6 +118,39 @@ export class ContactsService {
 
   // --- Client (Contact) Authentication & Portal ---
 
+  async register(registerContactDto: RegisterContactDto) {
+    const { email, password,  ...rest } = registerContactDto;
+
+    const existingContact = await this.prisma.contact.findFirst({
+      where: {
+        email: email,
+      
+      },
+    });
+
+    if (existingContact) {
+      throw new ConflictException(
+        `A contact with email "${email}" already exists in this subsidiary.`,
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const newContact = await this.prisma.contact.create({
+      data: {
+        ...rest,
+        email,
+        since: new Date(),
+        status: ContactStatus.ACTIVE,
+        passwordHash,
+      },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash: _, ...result } = newContact;
+    return result;
+  }
+
   async loginContact(contactLoginDto: ContactLoginDto) {
     const { email, password } = contactLoginDto;
 
@@ -124,6 +160,11 @@ export class ContactsService {
 
     if (!contact || !contact.passwordHash) {
       throw new UnauthorizedException('Invalid credentials or portal access not enabled.');
+    }
+
+    // Vérification du statut du compte
+    if (contact.status !== ContactStatus.ACTIVE) {
+      throw new UnauthorizedException('Your account is not active. Please contact support.');
     }
 
     const isPasswordMatching = await bcrypt.compare(password, contact.passwordHash);

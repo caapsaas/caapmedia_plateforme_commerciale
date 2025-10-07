@@ -19,13 +19,22 @@ import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { CurrentUser, Roles } from 'src/common/auth/role/role.decorator';
 import type { User } from '@prisma/client';
 import {  UserRole } from '@prisma/client';
+import { RegisterContactDto } from './dto/register-contact.dto';
 import { ContactLoginDto } from './dto/contact-login.dto';
+import { ContactJwtAuthGuard } from 'src/common/auth/jwt/contact-jwt.guard';
 
 @Controller('crm/contacts')
 export class ContactsController {
   constructor(private readonly contactsService: ContactsService) {}
 
   // --- Routes pour le portail client (publiques ou avec leur propre garde) ---
+
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  async registerContact(@Body() registerContactDto: RegisterContactDto) {
+    // Route publique pour l'auto-enregistrement d'un contact
+    return this.contactsService.register(registerContactDto);
+  }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -39,14 +48,14 @@ export class ContactsController {
     return this.contactsService.logoutContact();
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(ContactJwtAuthGuard)
   @Get('profile')
   getContactProfile(@CurrentUser() contact: any) {
     // Note: Le guard doit être capable d'identifier un 'Contact'
     return this.contactsService.getContactProfile(contact);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(ContactJwtAuthGuard)
   @Get('orders')
   getContactOrders(@CurrentUser() contact: any) {
     // Note: Le guard doit être capable d'identifier un 'Contact'
@@ -57,9 +66,11 @@ export class ContactsController {
   // --- Routes existantes pour les employés (gardées) ---
 
   @Post()
-  create(@Body() createContactDto: CreateContactDto) {
-    // This endpoint is now public and does not require authentication.
-    return this.contactsService.create(createContactDto);
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
+  create(@Body() createContactDto: CreateContactDto, @CurrentUser() user: User) {
+    // Route interne pour la création de contact par un employé
+    return this.contactsService.create(createContactDto, user);
   }
 
   @Get()

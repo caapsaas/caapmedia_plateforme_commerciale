@@ -4,9 +4,10 @@ import { LeadsService } from './leads.service';
 import { LeadsController } from './leads.controller';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { AccountsModule } from '../accounts/accounts.module';
+import { ContactsModule } from '../contacts/contacts.module';
 
 @Module({
-  imports: [AccountsModule],
+  imports: [AccountsModule, ContactsModule], // Importer ContactsModule
   controllers: [LeadsController],
   providers: [LeadsService,PrismaService],
 })
