@@ -72,6 +72,34 @@ export class CreateOrderDto {
   items: CreateOrderItemDto[];
 }
 
+export class CreateOrderBySalesRepDto {
+  @IsUUID()
+  @IsNotEmpty()
+  customerId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  customerName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  paymentDueDate: string;
+
+  @IsOptional()
+  @IsUUID()
+  opportunityId?: string;
+
+  @IsNotEmpty()
+  @IsEnum(OrderSource)
+  source: OrderSource;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateOrderItemDto)
+  items: CreateOrderItemDto[];
+}
+
+
 
 
 export class UpdateProductionStatusDto {
