@@ -6,7 +6,7 @@ import {
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateOpportunityDto } from './dto/create-opportunity.dto';
 import { UpdateOpportunityDto } from './dto/update-opportunity.dto';
-import type { User } from '@prisma/client';
+import { Prisma, User, UserRole } from '@prisma/client';
 
 @Injectable()
 export class OpportunitiesService {
@@ -49,9 +49,17 @@ export class OpportunitiesService {
   }
 
   async findAll(user: User) {
-    // Un commercial ne voit que ses opportunités. Un admin pourrait tout voir.
+    const where: Prisma.OpportunityWhereInput = {
+      subsidiaryId: user.subsidiaryId,
+    };
+
+    // Un ADMIN voit toutes les opportunités de la filiale, les autres ne voient que les leurs.
+    if (user.userRole !== UserRole.ADMIN) {
+      where.userId = user.id;
+    }
+
     return this.prisma.opportunity.findMany({
-      where: { subsidiaryId: user.subsidiaryId, userId: user.id },
+      where,
       include: {
         contact: { select: { contactName: true } },
         account: { select: { accountName: true } },

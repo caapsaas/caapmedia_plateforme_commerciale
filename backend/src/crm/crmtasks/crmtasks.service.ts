@@ -47,7 +47,7 @@ import {
       // Un utilisateur standard (ex: COMMERCIAL) ne voit que ses propres tâches.
       // Un ADMIN ou HR_MANAGER voit toutes les tâches de la filiale.
       const privilegedRoles: UserRole[] = [UserRole.ADMIN];
-      if (!privilegedRoles.includes(user.userRole)) {
+      if (!privilegedRoles.includes(user.userRole.toUpperCase() as UserRole)) {
         where.userId = user.id;
       }
 

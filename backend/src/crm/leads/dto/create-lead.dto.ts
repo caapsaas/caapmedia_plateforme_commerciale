@@ -25,4 +25,8 @@ export class CreateLeadDto {
   @IsEnum(LeadStatus)
   @IsNotEmpty()
   status: LeadStatus;
+
+  @IsString()
+  @IsOptional()
+  salesRepId?: string;
 }
