@@ -6,7 +6,7 @@ import {
   import { PrismaService } from 'src/common/utils/prisma/prisma.service';
   import { CreateTaskDto } from './dto/create-task.dto';
   import { UpdateTaskDto } from './dto/update-task.dto';
-  import { Prisma, User, UserRole } from '@prisma/client';
+  import { Prisma, User, UserRole, CrmTaskStatus } from '@prisma/client';
   
   @Injectable()
   export class CrmtasksService {
@@ -32,6 +32,7 @@ import {
         data: {
           ...createTaskDto,
           userId: creator.id,
+          status: CrmTaskStatus.TODO, // Définir le statut par défaut
         },
       });
     }
@@ -46,7 +47,7 @@ import {
       // Un utilisateur standard (ex: COMMERCIAL) ne voit que ses propres tâches.
       // Un ADMIN ou HR_MANAGER voit toutes les tâches de la filiale.
       const privilegedRoles: UserRole[] = [UserRole.ADMIN];
-      if (!privilegedRoles.includes(user.userRole)) {
+      if (!privilegedRoles.includes(user.userRole.toUpperCase() as UserRole)) {
         where.userId = user.id;
       }
 
