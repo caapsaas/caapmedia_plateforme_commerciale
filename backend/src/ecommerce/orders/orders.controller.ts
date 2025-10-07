@@ -1,8 +1,8 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, Req, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
-import { CreateOrderDto, UpdateProductionStatusDto } from './dto/create-order.dto';
-import { FindAllOrdersDto } from './dto/find-all-orders.dto'; 
+import { CreateOrderDto, CreateOrderBySalesRepDto, UpdateProductionStatusDto } from './dto/create-order.dto';
+import { FindAllOrdersDto } from './dto/find-all-orders.dto';
 import { SetMetadata } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
@@ -12,62 +12,112 @@ import { extname } from 'path';
 
 @Controller('ecommerce/orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+    constructor(private readonly ordersService: OrdersService) { }
 
-  @Post()
-  @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileFieldsInterceptor([
-    { name: 'designFiles', maxCount: 10 } // 'designFiles' est le nom du champ pour les fichiers
-  ], {
-    storage: diskStorage({
-      destination: './public/order_item_img',
-      filename: (req, file, cb) => {
-        const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
-        cb(null, `${randomName}${extname(file.originalname)}`);
-      },
-    }),
-  }))
-  create(
-    @Body() createOrderDto: CreateOrderDto, 
-    @UploadedFiles() files: { designFiles?: Express.Multer.File[] },
-    @Req() req
-  ) {
-    // Le DTO est parsé à partir du corps du formulaire, et les fichiers sont injectés.
-    return this.ordersService.create(createOrderDto, req.user, files.designFiles);
-  }
+    /**
+     * Endpoint pour créer une commande
+     * Exemple d'URL : /ecommerce/orders
+     */
+    @Post()
+    @UseGuards(JwtAuthGuard)
+    @UseInterceptors(FileFieldsInterceptor([
+        { name: 'designFiles', maxCount: 10 }
+    ], {
+        storage: diskStorage({
+            destination: './public/order_item_img',
+            filename: (req, file, cb) => {
+                const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
+                cb(null, `${randomName}${extname(file.originalname)}`);
+            },
+        }),
+    }))
+    create(
+        @Body() createOrderDto: CreateOrderDto,
+        @UploadedFiles() files: { designFiles?: Express.Multer.File[] },
+        @Req() req
+    ) {
+        // Le DTO est parsé à partir du corps du formulaire, et les fichiers sont injectés.
+        return this.ordersService.create(createOrderDto, req.user, files.designFiles);
+    }
 
-  @Get()
-  @UseGuards(JwtAuthGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
-  findAll(@Query() query: FindAllOrdersDto, @Req() req) {
-    return this.ordersService.findAll(req.user, query);
-  }
+    /**
+     * Endpoint pour créer une commande par un commercial
+     * Exemple d'URL : /ecommerce/orders/by-salesrep
+     */
+    @Post('by-salesrep')
+    @UseGuards(JwtAuthGuard)
+    @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL])
+    @UseInterceptors(FileFieldsInterceptor([
+        { name: 'designFiles', maxCount: 10 }
+    ], {
+        storage: diskStorage({
+            destination: './public/order_item_img',
+            filename: (req, file, cb) => {
+                const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
+                cb(null, `${randomName}${extname(file.originalname)}`);
+            },
+        }),
+    }))
+    createBySalesRep(
+        @Body() createOrderDto: CreateOrderBySalesRepDto,
+        @UploadedFiles() files: { designFiles?: Express.Multer.File[] },
+        @Req() req
+    ) {
+        return this.ordersService.createBySalesRep(createOrderDto, req.user, files.designFiles);
+    }
 
-  @Get(':id')
-  findOne(@Param('id') id: string, @Req() req) {
-    return this.ordersService.findOne(id, req.user);
-  }
+    /**
+     * Endpoint pour récupérer toutes les commandes d'une filiale
+     * Exemple d'URL : /ecommerce/orders
+     */
+    @Get()
+    @UseGuards(JwtAuthGuard)
+    @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
+    findAll(@Query() query: FindAllOrdersDto, @Req() req) {
+        return this.ordersService.findAll(req.user, query);
+    }
 
-  @Get('analytics/top-selling')
-  @UseGuards(JwtAuthGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
-  findTopSellingProducts(@Req() req) {
-    return this.ordersService.getBestSellingProducts(req.user);
-  }
+    /**
+     * Endpoint pour récupérer une commande par son ID
+     * Exemple d'URL : /ecommerce/orders/:id
+     */
+    @Get(':id')
+    findOne(@Param('id') id: string, @Req() req) {
+        return this.ordersService.findOne(id, req.user);
+    }
 
-  @Get('customer/:customerId')
-  @UseGuards(JwtAuthGuard)
-  findByCustomer(@Param('customerId') customerId: string) {
-    return this.ordersService.findGroupsByCustomer(customerId);
-  }
+    /**
+     * Endpoint pour récupérer les meilleures ventes
+     * Exemple d'URL : /ecommerce/orders/analytics/top-selling
+     */
+    @Get('analytics/top-selling')
+    @UseGuards(JwtAuthGuard)
+    @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
+    findTopSellingProducts(@Req() req) {
+        return this.ordersService.getBestSellingProducts(req.user);
+    }
 
-  @Patch(':id/production-status')
-  @UseGuards(JwtAuthGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
-  updateProductionStatus(
-    @Param('id') id: string,
-    @Body() updateProductionStatusDto: UpdateProductionStatusDto,
-    @Req() req) {
-    return this.ordersService.updateProductionStatus(id, updateProductionStatusDto, req.user);
-  }
+    /**
+     * Endpoint pour récupérer les commandes par client
+     * Exemple d'URL : /ecommerce/orders/customer/:customerId
+     */
+    @Get('customer/:customerId')
+    @UseGuards(JwtAuthGuard)
+    findByCustomer(@Param('customerId') customerId: string) {
+        return this.ordersService.findGroupsByCustomer(customerId);
+    }
+
+    /**
+     * Endpoint pour mettre à jour le statut de production d'une commande
+     * Exemple d'URL : /ecommerce/orders/:id/production-status
+     */
+    @Patch(':id/production-status')
+    @UseGuards(JwtAuthGuard)
+    @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
+    updateProductionStatus(
+        @Param('id') id: string,
+        @Body() updateProductionStatusDto: UpdateProductionStatusDto,
+        @Req() req) {
+        return this.ordersService.updateProductionStatus(id, updateProductionStatusDto, req.user);
+    }
 }

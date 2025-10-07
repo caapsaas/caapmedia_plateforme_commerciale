@@ -1,8 +1,8 @@
 // src/ecommerce/orders/orders.service.ts
 
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'src/common/utils/prisma/prisma.service';
-import { CreateOrderDto, UpdateProductionStatusDto } from './dto/create-order.dto';
+import { PrismaService } from 'src/common/utils/prisma/prisma.service'; // Assurez-vous que ce chemin est correct
+import { CreateOrderDto, CreateOrderBySalesRepDto, UpdateProductionStatusDto } from './dto/create-order.dto';
 import { Order, OrderGroup, OrderStatus, PaymentStatus, Prisma, ProductionStatus } from '@prisma/client';
 import { FindAllOrdersDto, OrderPeriod } from './dto/find-all-orders.dto';
 import { sub, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
@@ -12,15 +12,19 @@ export class OrdersService {
   constructor(private prisma: PrismaService) { }
 
   /**
-   * Crée une nouvelle commande.
-   * La logique est encapsulée dans une transaction pour garantir l'intégrité des données.
+   * 
+   * @param createOrderDto // DTO contenant les données de la commande à créer
+   * @param user // Utilisateur connecté
+   * @param designFiles // Fichiers uploadés
+   * @returns // Commande créée
    */
   async create(createOrderDto: CreateOrderDto, user: any, designFiles?: Express.Multer.File[]) {
     const { items, customerName, paymentDueDate, source, opportunityId } = createOrderDto;
+
     // Le corps d'un formulaire multipart est toujours en string, il faut parser les items.
     const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
 
-    const { userId, subsidiaryId } = user; // On suppose que le client est un 'user' avec un 'userId'
+    const { id: customerId } = user; // L'utilisateur connecté est le client
 
     if (!items || items.length === 0) {
       throw new BadRequestException('Une commande doit contenir au moins un article.');
@@ -73,7 +77,7 @@ export class OrdersService {
         orderGroup = await tx.orderGroup.create({
           data: {
             groupCode: `GRP-${Date.now()}`, // Générer un code de groupe unique
-            customerId: userId, // Utiliser l'ID de l'utilisateur connecté
+            customerId: customerId, // Utiliser l'ID de l'utilisateur connecté
             totalAmount: overallTotalAmount,
           },
         });
@@ -109,10 +113,9 @@ export class OrdersService {
             productionStatus: ProductionStatus.PREPRESS,
             paymentStatus: PaymentStatus.UNPAID,
             // Relations
-            customerId: userId, // Utiliser l'ID de l'utilisateur connecté
+            customerId: customerId, // Utiliser l'ID de l'utilisateur connecté
             subsidiaryId,
             taxRateId: taxRate.id,
-            salesRepId: userId,
             opportunityId,
             groupId: orderGroup?.id, // Lier au groupe si il existe
             // Création imbriquée des articles et de l'historique
@@ -165,7 +168,153 @@ export class OrdersService {
   }
 
   /**
-   * Récupère toutes les commandes pour la filiale de l'utilisateur.
+   * 
+   * @param createOrderDto // DTO contenant les données de la commande à créer
+   * @param user // Utilisateur connecté
+   * @param designFiles // Fichiers uploadés
+   * @returns // Commande créée
+   */
+  async createBySalesRep(createOrderDto: CreateOrderBySalesRepDto, user: any, designFiles?: Express.Multer.File[]) {
+    const { items, customerId, customerName, paymentDueDate, source, opportunityId } = createOrderDto;
+    
+    // Le corps d'un formulaire multipart est toujours en string, il faut parser les items.
+    const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
+
+    const { userId: salesRepId, subsidiaryId: salesRepSubsidiaryId } = user;
+
+    if (!parsedItems || parsedItems.length === 0) {
+      throw new BadRequestException('Une commande doit contenir au moins un article.');
+    }
+
+    // 1. Récupérer toutes les données de référence (Produits, Taxe par défaut, Client)
+    const productIds = parsedItems.map((item) => item.productId);
+    const [products, taxRate, customer] = await Promise.all([
+      this.prisma.product.findMany({ where: { id: { in: productIds } } }),
+      this.prisma.taxRate.findFirstOrThrow({ where: { isDefault: true } }),
+      this.prisma.contact.findUniqueOrThrow({ where: { id: customerId } }),
+    ]);
+
+    // Valider que le client appartient à la même filiale que le commercial
+    if (customer.subsidiaryId !== salesRepSubsidiaryId) {
+      throw new BadRequestException('Le client sélectionné n\'appartient pas à votre filiale.');
+    }
+
+    if (products.length !== productIds.length) {
+      throw new NotFoundException('Un ou plusieurs produits sont introuvables.');
+    }
+
+    const productMap = new Map(products.map((p) => [p.id, p]));
+
+    // 2. Regrouper les articles par filiale (subsidiaryId) du produit
+    const itemsBySubsidiary = new Map<string, any[]>();
+    for (const item of parsedItems) {
+      const product = productMap.get(item.productId);
+      if (!product) {
+        continue;
+      }
+      const productSubsidiaryId = product.subsidiaryId;
+      if (!itemsBySubsidiary.has(productSubsidiaryId)) {
+        itemsBySubsidiary.set(productSubsidiaryId, []);
+      }
+      itemsBySubsidiary.get(productSubsidiaryId)!.push({ ...item, product });
+    }
+
+    // 3. Exécuter la création dans une transaction globale
+    return this.prisma.$transaction(async (tx) => {
+      const createdOrders: Order[] = [];
+      let orderGroup: OrderGroup | null = null;
+      let overallTotalAmount = 0;
+
+      // Calculer le montant total global pour le groupe de commandes
+      for (const item of parsedItems) {
+        const product = productMap.get(item.productId)!;
+        overallTotalAmount += product.sellingPrice.toNumber() * item.quantity;
+      }
+      overallTotalAmount = overallTotalAmount * (1 + taxRate.rate.toNumber());
+
+      // Si plusieurs filiales sont concernées, créer un OrderGroup
+      if (itemsBySubsidiary.size > 1) {
+        orderGroup = await tx.orderGroup.create({
+          data: {
+            groupCode: `GRP-${Date.now()}`,
+            customerId: customerId,
+            totalAmount: overallTotalAmount,
+          },
+        });
+      }
+
+      // Créer une commande (ou sous-commande) pour chaque filiale
+      for (const [subsidiaryId, subsidiaryItems] of itemsBySubsidiary.entries()) {
+        let subtotal = 0;
+        const orderItemsData = subsidiaryItems.map((item) => {
+          const unitPrice = item.product.sellingPrice;
+          subtotal += unitPrice.toNumber() * item.quantity;
+          return { ...item, unitPrice };
+        });
+
+        const taxAmount = subtotal * taxRate.rate.toNumber();
+        const totalAmount = subtotal + taxAmount;
+
+        const newOrder = await tx.order.create({
+          data: {
+            customerName,
+            paymentDueDate: new Date(paymentDueDate),
+            source,
+            subtotal,
+            taxAmount,
+            totalAmount,
+            taxRateValue: taxRate.rate,
+            status: OrderStatus.NEW,
+            productionStatus: ProductionStatus.PREPRESS,
+            paymentStatus: PaymentStatus.UNPAID,
+            customerId: customerId,
+            subsidiaryId, // Filiale du produit
+            taxRateId: taxRate.id,
+            salesRepId: salesRepId, // ID du commercial connecté
+            opportunityId,
+            groupId: orderGroup?.id,
+            orderItems: {
+              create: orderItemsData.map((item, index) => {
+                const file = designFiles?.[index];
+                return {
+                  quantity: item.quantity,
+                  unitPrice: item.unitPrice,
+                  designFileName: file?.originalname,
+                  designFileUrl: file ? `/api-caapsaas/order_item_img/${file.filename}` : undefined,
+                  productId: item.productId,
+                  productOptions: item.options
+                    ? { create: item.options.map((opt) => ({ optionType: opt.optionType, optionValue: opt.optionValue })) }
+                    : undefined,
+                };
+              }),
+            },
+            productionHistory: {
+              create: { status: ProductionStatus.PREPRESS },
+            },
+          },
+        });
+        createdOrders.push(newOrder);
+      }
+
+      if (orderGroup) {
+        return tx.orderGroup.findUniqueOrThrow({
+          where: { id: orderGroup.id },
+          include: { orders: { include: { orderItems: true } } },
+        });
+      } else {
+        return tx.order.findUniqueOrThrow({
+          where: { id: createdOrders[0].id },
+          include: { orderItems: true },
+        });
+      }
+    });
+  }
+
+  /**
+   * 
+   * @param user // Utilisateur connecté
+   * @param query // Paramètres de la requête
+   * @returns // Liste des commandes
    */
   async findAll(user: any, query: FindAllOrdersDto) {
     const { customerId, productId, orderStatus, paymentStatus, period, startDate, endDate } = query;
@@ -227,7 +376,10 @@ export class OrdersService {
   }
 
   /**
-   * Récupère une commande spécifique par son ID.
+   * 
+   * @param id // ID de la commande
+   * @param user // Utilisateur connecté
+   * @returns // Commande trouvée
    */
   async findOne(id: string, user: any) {
     const order = await this.prisma.order.findUnique({
@@ -248,7 +400,11 @@ export class OrdersService {
   }
 
   /**
-   * Met à jour le statut de production d'une commande et enregistre l'historique.
+   * 
+   * @param id // ID de la commande
+   * @param updateDto // DTO contenant le statut de production à mettre à jour
+   * @param user // Utilisateur connecté
+   * @returns // Commande mise à jour
    */
   async updateProductionStatus(id: string, updateDto: UpdateProductionStatusDto, user: any) {
     // Vérifier que la commande existe et appartient à la bonne filiale
@@ -272,7 +428,9 @@ export class OrdersService {
   }
 
   /**
-   * Récupère les commandes pour un client spécifique.
+   * 
+   * @param customerId // ID du client
+   * @returns // Liste des commandes du client
    */
   async findGroupsByCustomer(customerId: string) {
     const groups = await this.prisma.orderGroup.findMany({
@@ -314,6 +472,12 @@ export class OrdersService {
     }));
   }
 
+  /**
+   * 
+   * @param user // Utilisateur connecté
+   * @param limit // Nombre de produits à retourner
+   * @returns // Liste des produits les plus vendus
+   */
   async getBestSellingProducts(user: any, limit = 10) {
     const { subsidiaryId } = user;
 
