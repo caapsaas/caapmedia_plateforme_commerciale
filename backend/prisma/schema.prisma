@@ -329,6 +329,17 @@ model OpportunityProduct {
   @@map("opportunity_products")
 }
 
+model OrderGroup {
+  id            String   @id @default(uuid()) @db.Uuid
+  groupCode     String   @unique @map("group_code") 
+  customerId    String   @map("customer_id") @db.Uuid
+  totalAmount   Decimal  @default(0) @map("total_amount") @db.Decimal(15, 2)
+  createdAt     DateTime @default(now()) @map("created_at")
+  orders        Order[]  
+
+  @@map("order_group")
+}
+
 model Order {
   id                String                   @id @default(uuid()) @map("id") @db.Uuid
   orderDate         DateTime                 @default(now()) @map("order_date")
@@ -344,6 +355,7 @@ model Order {
   taxRateId         String                   @map("tax_rate_id") @db.Uuid
   salesRepId        String?                  @map("sales_rep_id") @db.Uuid
   opportunityId     String?                  @map("opportunity_id") @db.Uuid
+  groupId           String?                  @map("group_id") @db.Uuid
   status            OrderStatus              @map("status")
   productionStatus  ProductionStatus         @map("production_status")
   paymentStatus     PaymentStatus            @map("payment_status")
@@ -355,6 +367,7 @@ model Order {
   salesRep          User?                    @relation(fields: [salesRepId], references: [id])
   subsidiary        Subsidiary               @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
   taxRate           TaxRate                  @relation(fields: [taxRateId], references: [id])
+  orderGroup        OrderGroup?              @relation(fields: [groupId], references: [id])
 
   @@map("orders")
 }
