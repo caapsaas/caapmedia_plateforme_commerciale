@@ -1,7 +1,8 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, Req, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { OrdersService } from './orders.service';
+import { ContactJwtAuthGuard } from 'src/common/auth/jwt/contact-jwt.guard';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
-import { CreateOrderDto, CreateOrderBySalesRepDto, UpdateProductionStatusDto } from './dto/create-order.dto';
+import { CreateOrderDto, CreateOrderBySalesRepDto, RecordPaymentDto, UpdateProductionStatusDto } from './dto/create-order.dto';
 import { FindAllOrdersDto } from './dto/find-all-orders.dto';
 import { SetMetadata } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
@@ -19,7 +20,7 @@ export class OrdersController {
      * Exemple d'URL : /ecommerce/orders
      */
     @Post()
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(ContactJwtAuthGuard)
     @UseInterceptors(FileFieldsInterceptor([
         { name: 'designFiles', maxCount: 10 }
     ], {
@@ -82,6 +83,7 @@ export class OrdersController {
      * Exemple d'URL : /ecommerce/orders/:id
      */
     @Get(':id')
+    @UseGuards(ContactJwtAuthGuard)
     findOne(@Param('id') id: string, @Req() req) {
         return this.ordersService.findOne(id, req.user);
     }
@@ -102,7 +104,7 @@ export class OrdersController {
      * Exemple d'URL : /ecommerce/orders/customer/:customerId
      */
     @Get('customer/:customerId')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(ContactJwtAuthGuard)
     findByCustomer(@Param('customerId') customerId: string) {
         return this.ordersService.findGroupsByCustomer(customerId);
     }
@@ -111,7 +113,7 @@ export class OrdersController {
      * Endpoint pour mettre à jour le statut de production d'une commande
      * Exemple d'URL : /ecommerce/orders/:id/production-status
      */
-    @Patch(':id/production-status')
+    @Patch('/production-status/:id')
     @UseGuards(JwtAuthGuard)
     @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
     updateProductionStatus(
@@ -119,5 +121,19 @@ export class OrdersController {
         @Body() updateProductionStatusDto: UpdateProductionStatusDto,
         @Req() req) {
         return this.ordersService.updateProductionStatus(id, updateProductionStatusDto, req.user);
+    }
+
+    /**
+     * Endpoint pour enregistrer un paiement pour une commande
+     * Exemple d'URL : PATCH /ecommerce/orders/:id/payment
+     */
+    @Patch('/payment/:id')
+    @UseGuards(JwtAuthGuard)
+    @SetMetadata('roles', [UserRole.ADMIN, UserRole.CAISSIER, UserRole.FINANCIAL_DIRECTOR])
+    recordPayment(
+        @Param('id') id: string,
+        @Body() recordPaymentDto: RecordPaymentDto,
+        @Req() req) {
+        return this.ordersService.recordPayment(id, recordPaymentDto, req.user);
     }
 }
