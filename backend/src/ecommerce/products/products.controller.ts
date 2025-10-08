@@ -18,7 +18,7 @@ export class ProductsController {
 
   /**
    * Endpoint pour créer un nouveau produit
-   * Exemple d'URL : /products/add-product
+   * Exemple d'URL : /products
    */
   @Post()
   @UseInterceptors(

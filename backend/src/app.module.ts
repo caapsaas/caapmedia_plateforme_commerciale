@@ -17,6 +17,7 @@ import { TaxesModule } from './ecommerce/taxes/taxes.module';
 import { CrmModule } from './crm/crm.module';
 import { SalesModule } from './ecommerce/sales/sales.module';
 import { FinanceModule } from './finance/finance.module';
+import { PurchaseModule } from './purchase/purchase.module';
 
 @Module({
   imports: [
@@ -44,7 +45,8 @@ import { FinanceModule } from './finance/finance.module';
     TaxesModule,
     CrmModule,
     SalesModule,
-    FinanceModule
+    FinanceModule,
+    PurchaseModule
 
   ],
   controllers: [AppController],
