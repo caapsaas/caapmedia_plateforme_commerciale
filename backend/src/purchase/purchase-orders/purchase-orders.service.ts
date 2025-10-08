@@ -17,15 +17,25 @@ export class PurchaseOrdersService {
      * @param user Utilisateur connecté
      * @returns Bon de commande créé
      */
-    async create(createPurchaseOrderDto: CreatePurchaseOrderDto, user: User) {
+    async create(createPurchaseOrderDto: CreatePurchaseOrderDto, authenticatedUser: User) {
         const { supplierId, expectedDeliveryDate, paymentTerms, items } = createPurchaseOrderDto;
-        const { subsidiaryId } = user;
+        const { subsidiaryId } = authenticatedUser;
 
         if (!items || items.length === 0) {
             throw new BadRequestException('Un bon de commande doit contenir au moins un article.');
         }
 
         return this.prisma.$transaction(async (tx) => {
+            // Récupérer le nom complet de l'utilisateur pour l'historique
+            const fullUser = await tx.user.findUnique({
+                where: { id: authenticatedUser.id },
+                select: { userName: true },
+            });
+            if (!fullUser) {
+                throw new NotFoundException('Utilisateur authentifié non trouvé.');
+            }
+            const userNameForHistory = fullUser.userName;
+
             // 1. Valider le fournisseur
             const supplier = await tx.supplier.findUnique({
                 where: { id: supplierId },
@@ -65,7 +75,7 @@ export class PurchaseOrdersService {
                     subsidiary: { connect: { id: subsidiaryId } },
                     purchaseOrderItems: {
                         create: items.map(item => ({
-                            productName: products.find(p => p.id === item.productId)!.productName,
+                            productName: products.find(p => p.id === item.productId)?.productName || 'Produit inconnu', // Ajout d'une valeur par défaut
                             quantity: item.quantity,
                             quantityReceived: 0,
                             purchasePrice: item.purchasePrice,
@@ -74,7 +84,7 @@ export class PurchaseOrdersService {
                     },
                     purchaseOrderHistory: {
                         create: {
-                            eventName: `Bon de commande créé par ${user.userName}`,
+                            eventName: `Bon de commande créé par ${userNameForHistory}`,
                         },
                     },
                 },
@@ -139,7 +149,7 @@ export class PurchaseOrdersService {
 
         return this.prisma.purchaseOrder.findMany({
             where,
-            include: { supplier: true, _count: { select: { purchaseOrderItems: true } } },
+            include: { supplier: true, purchaseOrderItems: true },
             orderBy: { orderDate: 'desc' },
         });
     }
@@ -185,7 +195,7 @@ export class PurchaseOrdersService {
             }
 
             for (const item of receiveItemsDto.items) {
-                const orderItem = order.purchaseOrderItems.find(oi => oi.id.toString() === item.purchaseOrderItemId);
+                const orderItem = order.purchaseOrderItems.find(oi => oi.id === item.purchaseOrderItemId);
                 if (!orderItem) {
                     throw new BadRequestException(`Article de commande avec l'ID "${item.purchaseOrderItemId}" non trouvé.`);
                 }
@@ -201,10 +211,19 @@ export class PurchaseOrdersService {
                     data: { quantityReceived: { increment: item.quantityReceived } },
                 });
 
-                // Mettre à jour le stock du produit
+                // Mettre à jour le stock et potentiellement le prix d'achat du produit
+                const product = await tx.product.findUnique({ where: { id: orderItem.productId } });
+                const dataToUpdate: Prisma.ProductUpdateInput = {
+                    stock: { increment: item.quantityReceived }
+                };
+
+                if (product && product.price.comparedTo(orderItem.purchasePrice) !== 0) {
+                    dataToUpdate.price = orderItem.purchasePrice;
+                }
+
                 await tx.product.update({
                     where: { id: orderItem.productId },
-                    data: { stock: { increment: item.quantityReceived } },
+                    data: dataToUpdate,
                 });
             }
 

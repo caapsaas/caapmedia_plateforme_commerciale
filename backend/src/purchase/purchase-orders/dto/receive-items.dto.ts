@@ -1,16 +1,15 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsDefined,
   IsInt,
-  IsNotEmpty,
-  IsUUID,
   Min,
   ValidateNested,
 } from 'class-validator';
 
 class ReceiveItemDto {
-  @IsUUID()
-  purchaseOrderItemId: string;
+  @IsInt()
+  purchaseOrderItemId: number;
 
   @IsInt()
   @Min(1)
@@ -21,5 +20,6 @@ export class ReceiveItemsDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ReceiveItemDto)
+  @IsDefined()
   items: ReceiveItemDto[];
 }
