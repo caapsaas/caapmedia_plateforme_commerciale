@@ -7,6 +7,11 @@ import { Prisma } from '@prisma/client';
 export class TaxesService {
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * Créer une taxe
+   * @param createTaxDto Dto contenant les donnees de la taxe a creer
+   * @returns Taxe creee
+   */
   async create(createTaxDto: CreateTaxDto) {
     return this.prisma.$transaction(async (tx) => {
       // Si la nouvelle taxe est définie par défaut, on désactive les autres.
@@ -25,16 +30,31 @@ export class TaxesService {
     });
   }
 
+  /**
+   * Recuperer toutes les taxes
+   * @returns Liste des taxes
+   */
   findAll() {
     return this.prisma.taxRate.findMany({
       orderBy: { taxRatesName: 'asc' },
     });
   }
 
+  /**
+   * Recuperer une taxe par son id
+   * @param id Id de la taxe a recuperer
+   * @returns Taxe trouvee
+   */
   findOne(id: string) {
     return this.prisma.taxRate.findUniqueOrThrow({ where: { id } });
   }
 
+  /**
+   * Mettre a jour une taxe
+   * @param id Id de la taxe a mettre a jour
+   * @param updateTaxDto Dto contenant les donnees de la taxe a mettre a jour
+   * @returns Taxe mise a jour
+   */
   async update(id: string, updateTaxDto: UpdateTaxDto) {
     // Règle : On ne peut pas désactiver manuellement une taxe par défaut.
     // La seule façon de le faire est de définir une autre taxe comme étant par défaut.
@@ -63,6 +83,11 @@ export class TaxesService {
     });
   }
 
+  /**
+   * Supprimer une taxe
+   * @param id Id de la taxe a supprimer
+   * @returns Taxe supprimee
+   */
   async remove(id: string) {
     const tax = await this.findOne(id);
     if (tax.isDefault) {

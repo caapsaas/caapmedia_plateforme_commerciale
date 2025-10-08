@@ -1,5 +1,3 @@
-// src/ecommerce/orders/dto/create-order.dto.ts
-
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -99,17 +97,14 @@ export class CreateOrderBySalesRepDto {
   items: CreateOrderItemDto[];
 }
 
-
-
+export class RecordPaymentDto {
+  @IsNumber()
+  @Min(0.01)
+  amount: number;
+}
 
 export class UpdateProductionStatusDto {
   @IsEnum(ProductionStatus)
   @IsNotEmpty()
   status: ProductionStatus;
-}
-
-export class UpdatePaymentStatusDto {
-  @IsEnum(PaymentStatus)
-  @IsNotEmpty()
-  status: PaymentStatus;
 }

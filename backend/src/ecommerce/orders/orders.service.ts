@@ -1,8 +1,8 @@
 // src/ecommerce/orders/orders.service.ts
 
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service'; // Assurez-vous que ce chemin est correct
-import { CreateOrderDto, CreateOrderBySalesRepDto, UpdateProductionStatusDto } from './dto/create-order.dto';
+import { CreateOrderDto, CreateOrderBySalesRepDto, RecordPaymentDto, UpdateProductionStatusDto } from './dto/create-order.dto';
 import { Order, OrderGroup, OrderStatus, PaymentStatus, Prisma, ProductionStatus } from '@prisma/client';
 import { FindAllOrdersDto, OrderPeriod } from './dto/find-all-orders.dto';
 import { sub, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
@@ -10,6 +10,27 @@ import { sub, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from
 @Injectable()
 export class OrdersService {
   constructor(private prisma: PrismaService) { }
+
+  // Fonction utilitaire pour mapper une commande à son format de réponse
+  private mapOrderToResponse(order: any) {
+    return {
+      orderId: order.id,
+      subsidiaryId: order.subsidiaryId,
+      subtotal: order.subtotal.toNumber(),
+      taxAmount: order.taxAmount.toNumber(),
+      totalAmount: order.totalAmount.toNumber(),
+      status: order.status,
+      orderItems: order.orderItems.map((item: any) => ({
+        productName: item.product?.productName,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice.toNumber(),
+        options: item.productOptions?.map((opt: any) => ({
+          optionType: opt.optionType,
+          optionValue: opt.optionValue,
+        })),
+      })),
+    };
+  }
 
   /**
    * 
@@ -20,6 +41,11 @@ export class OrdersService {
    */
   async create(createOrderDto: CreateOrderDto, user: any, designFiles?: Express.Multer.File[]) {
     const { items, customerName, paymentDueDate, source, opportunityId } = createOrderDto;
+
+    const paymentDue = new Date(paymentDueDate);
+    if (isNaN(paymentDue.getTime())) {
+      throw new BadRequestException('Date de paiement invalide');
+    }
 
     // Le corps d'un formulaire multipart est toujours en string, il faut parser les items.
     const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
@@ -103,7 +129,7 @@ export class OrdersService {
         const newOrder = await tx.order.create({
           data: {
             customerName,
-            paymentDueDate: new Date(paymentDueDate),
+            paymentDueDate: paymentDue,
             source,
             subtotal,
             taxAmount,
@@ -125,19 +151,19 @@ export class OrdersService {
                 // On suppose que l'ordre des fichiers correspond à l'ordre des articles.
                 const file = designFiles?.[index];
                 return {
-                quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                designFileName: file?.originalname,
-                designFileUrl: file ? `/api-caapsaas/order_item_img/${file.filename}` : undefined,
-                productId: item.productId,
-                productOptions: item.options
-                  ? {
-                    create: item.options.map((opt) => ({
-                      optionType: opt.optionType,
-                      optionValue: opt.optionValue,
-                    })),
-                  }
-                  : undefined,
+                  quantity: parseInt(item.quantity),
+                  unitPrice: item.unitPrice,
+                  designFileName: file?.originalname ? file.originalname : item.designFileName,
+                  designFileUrl: file ? `/api-caapsaas/order_item_img/${file.filename}` : item.designFileUrl,
+                  productId: item.productId,
+                  productOptions: item.options
+                    ? {
+                      create: item.options.map((opt) => ({
+                        optionType: opt.optionType,
+                        optionValue: opt.optionValue,
+                      })),
+                    }
+                    : undefined,
                 };
               }),
             },
@@ -176,7 +202,7 @@ export class OrdersService {
    */
   async createBySalesRep(createOrderDto: CreateOrderBySalesRepDto, user: any, designFiles?: Express.Multer.File[]) {
     const { items, customerId, customerName, paymentDueDate, source, opportunityId } = createOrderDto;
-    
+
     // Le corps d'un formulaire multipart est toujours en string, il faut parser les items.
     const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
 
@@ -433,43 +459,54 @@ export class OrdersService {
    * @returns // Liste des commandes du client
    */
   async findGroupsByCustomer(customerId: string) {
-    const groups = await this.prisma.orderGroup.findMany({
-      where: { customerId },
-      include: {
-        orders: {
-          include: {
-            orderItems: {
-              include: { product: true, productOptions: true },
+    const [groups, singleOrders] = await Promise.all([
+      // 1. Récupérer les groupes de commandes existants
+      this.prisma.orderGroup.findMany({
+        where: { customerId },
+        include: {
+          orders: {
+            include: {
+              orderItems: {
+                include: { product: true, productOptions: true },
+              },
             },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+      }),
+      // 2. Récupérer les commandes uniques (non groupées)
+      this.prisma.order.findMany({
+        where: { customerId, groupId: null },
+        include: {
+          orderItems: {
+            include: { product: true, productOptions: true },
+          },
+        },
+      }),
+    ]);
 
-    return groups.map((group) => ({
+    // 3. Mapper les vrais groupes de commandes
+    const groupedOrders = groups.map((group) => ({
       groupId: group.id,
       groupCode: group.groupCode,
       totalAmount: group.totalAmount.toNumber(),
       createdAt: group.createdAt,
-      orders: group.orders.map((order) => ({
-        orderId: order.id,
-        subsidiaryId: order.subsidiaryId,
-        subtotal: order.subtotal.toNumber(),
-        taxAmount: order.taxAmount.toNumber(),
-        totalAmount: order.totalAmount.toNumber(),
-        status: order.status,
-        orderItems: order.orderItems.map((item) => ({
-          productName: item.product?.productName,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice.toNumber(),
-          options: item.productOptions?.map((opt) => ({
-            optionType: opt.optionType,
-            optionValue: opt.optionValue,
-          })),
-        })),
-      })),
+      orders: group.orders.map(this.mapOrderToResponse),
     }));
+
+    // 4. Créer des "groupes synthétiques" pour les commandes uniques
+    const singleOrderGroups = singleOrders.map((order) => ({
+      groupId: order.id, // Utiliser l'ID de la commande comme ID de groupe
+      groupCode: `ORD-${order.id.substring(0, 8)}`, // Créer un code de groupe synthétique
+      totalAmount: order.totalAmount.toNumber(),
+      createdAt: order.orderDate,
+      orders: [this.mapOrderToResponse(order)], // La commande est la seule de son "groupe"
+    }));
+
+    // 5. Combiner et trier les résultats
+    const allOrders = [...groupedOrders, ...singleOrderGroups];
+    allOrders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    return allOrders;
   }
 
   /**
@@ -510,6 +547,53 @@ export class OrdersService {
       totalRevenue: r.total_revenue,
     }));
   }
-  
+
+  /**
+   * Enregistre un paiement pour une commande.
+   * @param id ID de la commande
+   * @param recordPaymentDto DTO contenant le montant à payer
+   * @param user Utilisateur connecté
+   * @returns La commande mise à jour avec le solde
+   */
+  async recordPayment(id: string, recordPaymentDto: RecordPaymentDto, user: any) {
+    const { amount } = recordPaymentDto;
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Récupérer la commande et vérifier les droits
+      const order = await tx.order.findUnique({
+        where: { id },
+      });
+
+      if (!order) {
+        throw new NotFoundException(`Commande avec l'ID "${id}" non trouvée.`);
+      }
+
+      // 2. Valider le paiement
+      const totalAmount = order.totalAmount.toNumber();
+      const alreadyPaid = order.amountPaid.toNumber();
+      const remainingBalance = totalAmount - alreadyPaid;
+
+      if (amount > remainingBalance) {
+        throw new BadRequestException(`Le montant du paiement (${amount}) dépasse le solde restant (${remainingBalance}).`);
+      }
+
+      // 3. Mettre à jour le montant payé et le statut
+      const newAmountPaid = alreadyPaid + amount;
+      let newPaymentStatus: PaymentStatus = PaymentStatus.PARTIALLY_PAID;
+      if (newAmountPaid >= totalAmount) {
+        newPaymentStatus = PaymentStatus.PAID;
+      }
+
+      const updatedOrder = await tx.order.update({
+        where: { id },
+        data: {
+          amountPaid: newAmountPaid,
+          paymentStatus: newPaymentStatus,
+        },
+      });
+
+      return updatedOrder;
+    });
+  }
 
 }
