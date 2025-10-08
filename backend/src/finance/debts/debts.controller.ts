@@ -1,0 +1,47 @@
+import { Controller, Get, Post, Body, Patch, Param, UseGuards } from '@nestjs/common';
+import { DebtsService } from './debts.service';
+import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
+import { CurrentUser } from '../../common/auth/role/role.decorator';
+import type { User } from '@prisma/client';
+import { CreateSupplierDebtDto } from './dto/create-supplier-debt.dto';
+import { PaySupplierDebtDto } from './dto/pay-supplier-debt.dto';
+import { CreateLongTermDebtDto } from './dto/create-long-term-debt.dto';
+import { UpdateLongTermDebtDto } from './dto/update-long-term-debt.dto';
+
+@UseGuards(JwtAuthGuard)
+@Controller('finance/debts')
+export class DebtsController {
+  constructor(private readonly debtsService: DebtsService) {}
+
+  // --- Supplier Debts Routes ---
+  @Post('supplier')
+  createSupplierDebt(@Body() createDto: CreateSupplierDebtDto, @CurrentUser() user: User) {
+    return this.debtsService.createSupplierDebt(createDto, user);
+  }
+
+  @Get('supplier')
+  findAllSupplierDebts(@CurrentUser() user: User) {
+    return this.debtsService.findAllSupplierDebts(user);
+  }
+
+  @Post('supplier/:id/pay')
+  paySupplierDebt(@Param('id') id: string, @Body() payDto: PaySupplierDebtDto, @CurrentUser() user: User) {
+    return this.debtsService.paySupplierDebt(id, payDto, user);
+  }
+
+  // --- Long-Term Debts Routes ---
+  @Post('long-term')
+  createLongTermDebt(@Body() createDto: CreateLongTermDebtDto, @CurrentUser() user: User) {
+    return this.debtsService.createLongTermDebt(createDto, user);
+  }
+
+  @Get('long-term')
+  findAllLongTermDebts(@CurrentUser() user: User) {
+    return this.debtsService.findAllLongTermDebts(user);
+  }
+
+  @Patch('long-term/:id')
+  updateLongTermDebt(@Param('id') id: string, @Body() updateDto: UpdateLongTermDebtDto, @CurrentUser() user: User) {
+    return this.debtsService.updateLongTermDebt(id, updateDto, user);
+  }
+}
