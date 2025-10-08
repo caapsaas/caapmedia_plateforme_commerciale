@@ -514,6 +514,7 @@ model TreasuryAccount {
   balance      Decimal    @map("balance") @db.Decimal(15, 2)
   currency     String     @map("currency") @db.VarChar(10)
   subsidiaryId String     @map("subsidiary_id") @db.Uuid
+  financialTransactions FinancialTransaction[]
   subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
   @@map("treasury_accounts")
@@ -523,13 +524,14 @@ model FinancialTransaction {
   id                       String            @id @default(uuid()) @map("id") @db.Uuid
   transactionDate          DateTime          @map("transaction_date")
   description              String?           @map("description")
+  financialTransactionType TransactionType   @map("financial_transaction_type")
   amount                   Decimal           @map("amount") @db.Decimal(15, 2)
-  account                  String            @map("account") @db.VarChar(255)
+  status                   TransactionStatus @map("status")
   relatedDocumentId        String?           @map("related_document_id") @db.VarChar(50)
   subsidiaryId             String            @map("subsidiary_id") @db.Uuid
-  financialTransactionType TransactionType   @map("financial_transaction_type")
-  status                   TransactionStatus @map("status")
+  treasuryAccountId        String            @map("treasury_account_id") @db.Uuid
   subsidiary               Subsidiary        @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  treasuryAccount          TreasuryAccount   @relation(fields: [treasuryAccountId], references: [id], onDelete: Cascade)
 
   @@map("financial_transactions")
 }
