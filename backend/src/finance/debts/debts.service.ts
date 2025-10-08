@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Inject, forwardRef, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { User, UserRole, DebtStatus, TransactionType } from '@prisma/client';
 import { CreateSupplierDebtDto } from './dto/create-supplier-debt.dto';
@@ -6,6 +6,7 @@ import { PaySupplierDebtDto } from './dto/pay-supplier-debt.dto';
 import { TreasuryService } from '../treasury/treasury.service';
 import { CreateLongTermDebtDto } from './dto/create-long-term-debt.dto';
 import { UpdateLongTermDebtDto } from './dto/update-long-term-debt.dto';
+import { validate as isUUID } from 'uuid';
 
 @Injectable()
 export class DebtsService {
@@ -14,6 +15,12 @@ export class DebtsService {
     @Inject(forwardRef(() => TreasuryService))
     private treasuryService: TreasuryService,
   ) {}
+
+  private validateSubsidiaryId(subsidiaryId: string) {
+    if (!isUUID(subsidiaryId)) {
+      throw new BadRequestException('ID de filiale invalide dans le token utilisateur.');
+    }
+  }
 
   // ================================================================= //
   //                         SUPPLIER DEBTS                            //
@@ -27,6 +34,8 @@ export class DebtsService {
       throw new ForbiddenException('Permission denied to create supplier debts.');
     }
 
+    this.validateSubsidiaryId(user.subsidiaryId);
+
     return this.prisma.supplierDebt.create({
       data: {
         ...dto,
@@ -38,6 +47,7 @@ export class DebtsService {
   }
 
   async findAllSupplierDebts(user: User) {
+    this.validateSubsidiaryId(user.subsidiaryId);
     return this.prisma.supplierDebt.findMany({
       where: { subsidiaryId: user.subsidiaryId },
       orderBy: { dueDate: 'asc' },
@@ -51,6 +61,8 @@ export class DebtsService {
     if (!allowedRoles.includes(userRole)) {
       throw new ForbiddenException('Permission denied to pay supplier debts.');
     }
+
+    this.validateSubsidiaryId(user.subsidiaryId);
 
     const debt = await this.prisma.supplierDebt.findFirst({
       where: { id, subsidiaryId: user.subsidiaryId },
@@ -73,7 +85,7 @@ export class DebtsService {
         transactionDate: new Date(dto.paymentDate).toISOString(),
         description: `Paiement facture fournisseur: ${debt.supplierName} - Facture N°${debt.invoiceId}`,
         financialTransactionType: TransactionType.DEPENSE,
-        amount: debt.amount,
+        amount: debt.amount, // Prisma.Decimal est déjà le bon type ici, pas de changement nécessaire.
         treasuryAccountId: dto.treasuryAccountId,
         relatedDocumentId: debt.id,
       }, user);
@@ -94,6 +106,8 @@ export class DebtsService {
       throw new ForbiddenException('Permission denied to create long-term debts.');
     }
 
+    this.validateSubsidiaryId(user.subsidiaryId);
+
     return this.prisma.longTermDebt.create({
       data: {
         ...dto,
@@ -105,6 +119,7 @@ export class DebtsService {
   }
 
   async findAllLongTermDebts(user: User) {
+    this.validateSubsidiaryId(user.subsidiaryId);
     return this.prisma.longTermDebt.findMany({
       where: { subsidiaryId: user.subsidiaryId },
       orderBy: { maturityDate: 'asc' },
@@ -118,7 +133,9 @@ export class DebtsService {
     if (!allowedRoles.includes(userRole)) {
       throw new ForbiddenException('Permission denied to update long-term debts.');
     }
-    
+
+    this.validateSubsidiaryId(user.subsidiaryId);
+
     const debt = await this.prisma.longTermDebt.findFirst({
         where: { id, subsidiaryId: user.subsidiaryId },
     });

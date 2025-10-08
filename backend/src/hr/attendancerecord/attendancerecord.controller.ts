@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, UseGuards, Request, Patch, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, UseGuards, Request, Patch, Delete, ParseUUIDPipe } from '@nestjs/common';
 import { AttendanceRecordService } from './attendancerecord.service';
 import { CreateAttendanceRecordDto, UpdateAttendanceRecordDto } from './dto/atendancerecord.dto';
 import { RoleGuard } from '../../common/auth/role/role.guard'; // ...
@@ -27,19 +27,19 @@ export class AttendanceRecordController {
 
   @Get(':id')
   @Roles('HR_MANAGER', 'ADMIN') // Ajout de la protection pour la cohérence
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.attendanceRecordService.findOne(id);
   }
 
   @Patch(':id')
   @Roles('HR_MANAGER', 'ADMIN')
-  update(@Param('id') id: string, @Body() updateAttendanceRecordDto: UpdateAttendanceRecordDto) {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateAttendanceRecordDto: UpdateAttendanceRecordDto) {
     return this.attendanceRecordService.update(id, updateAttendanceRecordDto);
   }
 
   @Delete(':id')
   @Roles('HR_MANAGER', 'ADMIN')
-  remove(@Param('id') id: string) {
+  remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.attendanceRecordService.remove(id);
   }
 }
