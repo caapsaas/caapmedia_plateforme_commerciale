@@ -41,7 +41,14 @@ const frTranslations = {
     "customerCredit": "Paiement dans 30 jours (Crédit client)",
     "pay": "Payer",
     "processing": "Traitement en cours...",
-    "success": "Paiement réussi !"
+    "success": "Paiement réussi !",
+    "CASH": "Espèces",
+    "CARD": "Carte",
+    "CHECK": "Chèque",
+    "MOBILE_MONEY": "Mobile Money",
+    "PAYCAAP": "PayCaap",
+    "PAY_ON_DELIVERY": "Paiement à la livraison",
+    "CUSTOMER_CREDIT": "Crédit Client (30 jours)"
   },
   "quoteRequest": {
     "title": "Demande de Devis",
@@ -1305,7 +1312,14 @@ const enTranslations: Translations = {
         "customerCredit": "Pay in 30 days (Customer Credit)",
         "pay": "Pay",
         "processing": "Processing...",
-        "success": "Payment successful!"
+        "success": "Payment successful!",
+        "CASH": "Cash",
+        "CARD": "Card",
+        "CHECK": "Check",
+        "MOBILE_MONEY": "Mobile Money",
+        "PAYCAAP": "PayCaap",
+        "PAY_ON_DELIVERY": "Pay on Delivery",
+        "CUSTOMER_CREDIT": "Customer Credit (30 days)"
     },
     "quoteRequest": {
         "title": "Request a Quote",

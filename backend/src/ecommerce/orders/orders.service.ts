@@ -1,11 +1,10 @@
-// src/ecommerce/orders/orders.service.ts
-
-import { BadRequestException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from 'src/common/utils/prisma/prisma.service'; // Assurez-vous que ce chemin est correct
+import { BadRequestException, Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateOrderDto, CreateOrderBySalesRepDto, RecordPaymentDto, UpdateProductionStatusDto } from './dto/create-order.dto';
-import { Order, OrderGroup, OrderStatus, PaymentStatus, Prisma, ProductionStatus } from '@prisma/client';
+import { Order, OrderGroup, OrderStatus, PaymentStatus, Prisma, ProductionStatus, CustomerPaymentMethod, SaleStatus } from '@prisma/client';
 import { FindAllOrdersDto, OrderPeriod } from './dto/find-all-orders.dto';
 import { sub, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
+import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class OrdersService {
@@ -32,6 +31,45 @@ export class OrdersService {
     };
   }
 
+   /**
+   * Met à jour le compte crédit d'un client.
+   * Crée le compte s'il n'existe pas.
+   */
+   private async updateCustomerCredit(
+    tx: Prisma.TransactionClient,
+    contactId: string,
+    subsidiaryId: string,
+    amount: Decimal,
+    clientName: string,
+    companyName: string
+  ) {
+    const creditAccount = await tx.creditAccount.findUnique({
+      where: { contactId },
+    });
+
+    if (creditAccount) {
+      await tx.creditAccount.update({
+        where: { id: creditAccount.id },
+        data: {
+          balance: { increment: amount },
+          lastPaymentDate: new Date(),
+        },
+      });
+    } else {
+      await tx.creditAccount.create({
+        data: {
+          balance: amount,
+          lastPaymentDate: new Date(),
+          contact: { connect: { id: contactId } },
+          subsidiary: { connect: { id: subsidiaryId } },
+          clientName: clientName,
+          companyName: companyName
+        },
+      });
+    }
+  }
+
+
   /**
    * 
    * @param createOrderDto // DTO contenant les données de la commande à créer
@@ -40,7 +78,7 @@ export class OrdersService {
    * @returns // Commande créée
    */
   async create(createOrderDto: CreateOrderDto, user: any, designFiles?: Express.Multer.File[]) {
-    const { items, customerName, paymentDueDate, source, opportunityId } = createOrderDto;
+    const { items, customerName, paymentDueDate, source, opportunityId, paymentMethod } = createOrderDto;
 
     const paymentDue = new Date(paymentDueDate);
     if (isNaN(paymentDue.getTime())) {
@@ -50,7 +88,7 @@ export class OrdersService {
     // Le corps d'un formulaire multipart est toujours en string, il faut parser les items.
     const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
 
-    const { id: customerId } = user; // L'utilisateur connecté est le client
+    const { id: customerId, contactName, company } = user; // L'utilisateur connecté est le client
 
     if (!items || items.length === 0) {
       throw new BadRequestException('Une commande doit contenir au moins un article.');
@@ -136,6 +174,7 @@ export class OrdersService {
             totalAmount,
             taxRateValue: taxRate.rate,
             status: OrderStatus.NEW,
+            paymentMethod: paymentMethod,
             productionStatus: ProductionStatus.PREPRESS,
             paymentStatus: PaymentStatus.UNPAID,
             // Relations
@@ -177,6 +216,11 @@ export class OrdersService {
         createdOrders.push(newOrder);
       }
 
+      // Si le paiement est à crédit, on met à jour le compte crédit du client avec le montant total
+      if (paymentMethod === CustomerPaymentMethod.CUSTOMER_CREDIT) {
+        await this.updateCustomerCredit(tx, customerId, itemsBySubsidiary.keys().next().value, new Decimal(overallTotalAmount), contactName, company);
+      }
+
       // Retourner le groupe de commande avec ses sous-commandes, ou la commande unique
       if (orderGroup) {
         return tx.orderGroup.findUniqueOrThrow({
@@ -201,7 +245,7 @@ export class OrdersService {
    * @returns // Commande créée
    */
   async createBySalesRep(createOrderDto: CreateOrderBySalesRepDto, user: any, designFiles?: Express.Multer.File[]) {
-    const { items, customerId, customerName, paymentDueDate, source, opportunityId } = createOrderDto;
+    const { items, customerId, customerName, paymentDueDate, source, opportunityId, paymentMethod } = createOrderDto;
 
     // Le corps d'un formulaire multipart est toujours en string, il faut parser les items.
     const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
@@ -291,6 +335,7 @@ export class OrdersService {
             totalAmount,
             taxRateValue: taxRate.rate,
             status: OrderStatus.NEW,
+            paymentMethod: paymentMethod, // Ajout du mode de paiement
             productionStatus: ProductionStatus.PREPRESS,
             paymentStatus: PaymentStatus.UNPAID,
             customerId: customerId,
@@ -320,6 +365,11 @@ export class OrdersService {
           },
         });
         createdOrders.push(newOrder);
+      }
+
+      // Si le paiement est à crédit, on met à jour le compte crédit du client avec le montant total
+      if (paymentMethod === CustomerPaymentMethod.CUSTOMER_CREDIT) {
+        await this.updateCustomerCredit(tx, customerId, salesRepSubsidiaryId, new Decimal(overallTotalAmount), customer.contactName, customer.company);
       }
 
       if (orderGroup) {
@@ -556,12 +606,14 @@ export class OrdersService {
    * @returns La commande mise à jour avec le solde
    */
   async recordPayment(id: string, recordPaymentDto: RecordPaymentDto, user: any) {
-    const { amount } = recordPaymentDto;
+    const { amount, paymentMethod } = recordPaymentDto;
+    const paymentAmount = new Decimal(amount);
 
     return this.prisma.$transaction(async (tx) => {
       // 1. Récupérer la commande et vérifier les droits
       const order = await tx.order.findUnique({
         where: { id },
+        include: { orderItems: { include: { product: true } }, customer: true },
       });
 
       if (!order) {
@@ -569,28 +621,67 @@ export class OrdersService {
       }
 
       // 2. Valider le paiement
-      const totalAmount = order.totalAmount.toNumber();
-      const alreadyPaid = order.amountPaid.toNumber();
-      const remainingBalance = totalAmount - alreadyPaid;
-
-      if (amount > remainingBalance) {
-        throw new BadRequestException(`Le montant du paiement (${amount}) dépasse le solde restant (${remainingBalance}).`);
+      const newAmountPaid = order.amountPaid.add(paymentAmount);
+      if (newAmountPaid.greaterThan(order.totalAmount)) {
+        throw new BadRequestException('Le montant payé ne peut pas dépasser le total de la commande.');
       }
 
-      // 3. Mettre à jour le montant payé et le statut
-      const newAmountPaid = alreadyPaid + amount;
-      let newPaymentStatus: PaymentStatus = PaymentStatus.PARTIALLY_PAID;
-      if (newAmountPaid >= totalAmount) {
-        newPaymentStatus = PaymentStatus.PAID;
-      }
+      const remainingBalance = order.totalAmount.sub(newAmountPaid);
+      const newPaymentStatus = remainingBalance.isZero() ? PaymentStatus.PAID : PaymentStatus.PARTIALLY_PAID;
 
       const updatedOrder = await tx.order.update({
         where: { id },
         data: {
           amountPaid: newAmountPaid,
           paymentStatus: newPaymentStatus,
+          paymentMethod: paymentMethod, 
         },
+        include: { orderItems: { include: { product: true } }, customer: true },
       });
+
+      // 4. Si la commande est entièrement payée, mettre à jour le stock et créer les ventes
+      if (newPaymentStatus === PaymentStatus.PAID) {
+        // D'abord, mettre à jour le stock
+        for (const item of updatedOrder.orderItems) {
+          if (item.productId) {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: {
+                stock: {
+                  decrement: item.quantity,
+                },
+              },
+            });
+          }
+        }
+
+        // Ensuite, créer les enregistrements de vente
+        const salesToCreate = updatedOrder.orderItems.map(item => {
+          if (!item.product) {
+            // Ce cas ne devrait pas arriver si la base est cohérente, mais c'est une sécurité.
+            throw new InternalServerErrorException(`Produit manquant pour l'article de commande ${item.id}`);
+          }
+          return {
+            productName: item.product.productName,
+            quantity: item.quantity,
+            totalPrice: new Decimal(item.unitPrice).mul(item.quantity),
+            saleDate: new Date(),
+            customerName: updatedOrder.customer.contactName,
+            taxRate: updatedOrder.taxRateValue,
+            // Utilise le mode de paiement de la commande ou celui de l'encaissement
+            paymentMethod: updatedOrder.paymentMethod || paymentMethod,
+            customerId: updatedOrder.customerId,
+            subsidiaryId: updatedOrder.subsidiaryId,
+            salesRepId: updatedOrder.salesRepId,
+            orderId: updatedOrder.id, // Lier la vente à la commande
+            status: SaleStatus.PAID, // Le statut de la vente est directement 'PAID'
+          };
+        });
+
+        await tx.sale.createMany({
+          data: salesToCreate,
+        });
+      }
 
       return updatedOrder;
     });

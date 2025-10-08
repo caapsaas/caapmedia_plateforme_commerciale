@@ -255,6 +255,7 @@ model Contact {
   subsidiaryId  String?        @map("subsidiary_id") @db.Uuid
   status        ContactStatus? @map("status")
   account       Account?       @relation(fields: [accountId], references: [id])
+  creditAccount CreditAccount?
   salesRep      User?          @relation(fields: [salesRepId], references: [id])
   subsidiary    Subsidiary?     @relation(fields: [subsidiaryId], references: [id])
   contracts     Contract[]
@@ -267,6 +268,18 @@ model Contact {
   @@map("contacts")
 }
 
+enum CustomerPaymentMethod {
+  CASH
+  CARD
+  CHECK
+  MOBILE_MONEY
+  PAYCAAP
+  PAY_ON_DELIVERY
+  CUSTOMER_CREDIT
+
+  @@map("customer_payment_method")
+}
+
 model Sale {
   id           String     @id @default(uuid()) @map("id") @db.Uuid
   productName  String     @map("product_name") @db.VarChar(255)
@@ -275,12 +288,15 @@ model Sale {
   saleDate     DateTime   @default(now()) @map("sale_date")
   customerName String     @map("customer_name") @db.VarChar(255)
   taxRate      Decimal    @map("tax_rate") @db.Decimal(5, 2)
+  paymentMethod CustomerPaymentMethod @map("payment_method")
   customerId   String     @map("customer_id") @db.Uuid
   subsidiaryId String     @map("subsidiary_id") @db.Uuid
   salesRepId   String?    @map("sales_rep_id") @db.Uuid
+  orderId      String?    @map("order_id") @db.Uuid
   status       SaleStatus @map("status")
   customer     Contact    @relation(fields: [customerId], references: [id])
   salesRep     User?      @relation(fields: [salesRepId], references: [id])
+  order        Order?     @relation(fields: [orderId], references: [id])
   subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
   @@map("sale")
@@ -349,6 +365,7 @@ model Order {
   totalAmount       Decimal                  @default(0) @map("total_amount") @db.Decimal(15, 2)
   taxRateValue      Decimal                  @map("tax_rate_value") @db.Decimal(5, 2)
   amountPaid        Decimal                  @default(0) @map("amount_paid") @db.Decimal(15, 2)
+  paymentMethod     CustomerPaymentMethod?   @map("payment_method")
   paymentDueDate    DateTime                 @map("payment_due_date")
   customerId        String                   @map("customer_id") @db.Uuid
   subsidiaryId      String                   @map("subsidiary_id") @db.Uuid
@@ -360,6 +377,7 @@ model Order {
   productionStatus  ProductionStatus         @map("production_status")
   paymentStatus     PaymentStatus            @map("payment_status")
   source            OrderSource              @map("source")
+  sales             Sale[]
   orderItems        OrderItem[]
   productionHistory OrderProductionHistory[]
   customer          Contact                  @relation(fields: [customerId], references: [id])
@@ -482,6 +500,8 @@ model CreditAccount {
   companyName     String     @map("company_name") @db.VarChar(255)
   balance         Decimal    @map("balance") @db.Decimal(15, 2)
   lastPaymentDate DateTime   @map("last_payment_date")
+  contactId       String     @unique @map("contact_id") @db.Uuid
+  contact         Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
   subsidiaryId    String     @map("subsidiary_id") @db.Uuid
   subsidiary      Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 

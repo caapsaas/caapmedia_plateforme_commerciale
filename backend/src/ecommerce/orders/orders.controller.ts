@@ -129,7 +129,7 @@ export class OrdersController {
      */
     @Patch('/payment/:id')
     @UseGuards(JwtAuthGuard)
-    @SetMetadata('roles', [UserRole.ADMIN, UserRole.CAISSIER, UserRole.FINANCIAL_DIRECTOR])
+    @SetMetadata('roles', [UserRole.ADMIN, UserRole.CAISSIER])
     recordPayment(
         @Param('id') id: string,
         @Body() recordPaymentDto: RecordPaymentDto,
