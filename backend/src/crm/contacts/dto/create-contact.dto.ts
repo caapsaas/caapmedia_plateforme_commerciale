@@ -1,11 +1,5 @@
-import {
-    IsString,
-    IsNotEmpty,
-    IsEmail,
-    IsOptional,
-    IsUUID,
-    IsEnum,
-  } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, IsUUID, IsEnum, IsDateString, IsDate } from 'class-validator';
+
   import { ContactStatus } from '@prisma/client';
   
   export class CreateContactDto {
@@ -40,5 +34,9 @@ import {
     @IsUUID()
     @IsOptional()
     subsidiaryId?: string;
+
+    @IsDateString()
+    @IsOptional()
+    since?: Date;
   }
   

@@ -47,6 +47,7 @@ model Subsidiary {
   treasuryAccounts      TreasuryAccount[]
   users                 User[]
 
+  @@index([subsidiaryName]) // Ajout de cet index
   @@map("subsidiaries")
 }
 
@@ -164,6 +165,10 @@ model Employee {
   payrollRecords           PayrollRecord[]
   secretariatTasks         SecretariatTask[]
 
+  @@index([subsidiaryId, lastName])
+  @@index([status])
+  @@index([department])
+
   @@map("employees")
 }
 
@@ -237,9 +242,12 @@ model Account {
   subsidiary    Subsidiary    @relation(fields: [subsidiaryId], references: [id])
   contacts      Contact[]
   opportunities Opportunity[]
-  
-   @@unique([accountName, subsidiaryId])
 
+  @@index([subsidiaryId, salesRepId, accountName])
+  @@index([subsidiaryId, accountName])             
+  @@index([industry]) 
+
+  @@unique([accountName, subsidiaryId])
   @@map("accounts")
 }
 
@@ -258,10 +266,10 @@ model Contact {
   subsidiaryId  String?        @map("subsidiary_id") @db.Uuid
   status        ContactStatus? @map("status")
   account       Account?       @relation(fields: [accountId], references: [id])
-  creditAccount CreditAccount?
   salesRep      User?          @relation(fields: [salesRepId], references: [id])
-  subsidiary    Subsidiary?     @relation(fields: [subsidiaryId], references: [id])
+  subsidiary    Subsidiary?    @relation(fields: [subsidiaryId], references: [id])
   contracts     Contract[]
+  creditAccount CreditAccount?
   crmTasks      CrmTask[]
   interactions  Interaction[]
   opportunities Opportunity[]
@@ -270,39 +278,32 @@ model Contact {
 
   @@index([subsidiaryId, since])
 
+  @@index([subsidiaryId, salesRepId, contactName])
+  @@index([subsidiaryId, contactName])             
+  @@index([status])                                
+  @@index([accountId])
+
   @@map("contacts")
 }
 
-enum CustomerPaymentMethod {
-  CASH
-  CARD
-  CHECK
-  MOBILE_MONEY
-  PAYCAAP
-  PAY_ON_DELIVERY
-  CUSTOMER_CREDIT
-
-  @@map("customer_payment_method")
-}
-
 model Sale {
-  id           String     @id @default(uuid()) @map("id") @db.Uuid
-  productName  String     @map("product_name") @db.VarChar(255)
-  quantity     Int        @map("quantity")
-  totalPrice   Decimal    @map("total_price") @db.Decimal(15, 2)
-  saleDate     DateTime   @default(now()) @map("sale_date")
-  customerName String     @map("customer_name") @db.VarChar(255)
-  taxRate      Decimal    @map("tax_rate") @db.Decimal(5, 2)
+  id            String                @id @default(uuid()) @map("id") @db.Uuid
+  productName   String                @map("product_name") @db.VarChar(255)
+  quantity      Int                   @map("quantity")
+  totalPrice    Decimal               @map("total_price") @db.Decimal(15, 2)
+  saleDate      DateTime              @default(now()) @map("sale_date")
+  customerName  String                @map("customer_name") @db.VarChar(255)
+  taxRate       Decimal               @map("tax_rate") @db.Decimal(5, 2)
+  customerId    String                @map("customer_id") @db.Uuid
+  subsidiaryId  String                @map("subsidiary_id") @db.Uuid
+  salesRepId    String?               @map("sales_rep_id") @db.Uuid
+  status        SaleStatus            @map("status")
+  orderId       String?               @map("order_id") @db.Uuid
   paymentMethod CustomerPaymentMethod @map("payment_method")
-  customerId   String     @map("customer_id") @db.Uuid
-  subsidiaryId String     @map("subsidiary_id") @db.Uuid
-  salesRepId   String?    @map("sales_rep_id") @db.Uuid
-  orderId      String?    @map("order_id") @db.Uuid
-  status       SaleStatus @map("status")
-  customer     Contact    @relation(fields: [customerId], references: [id])
-  salesRep     User?      @relation(fields: [salesRepId], references: [id])
-  order        Order?     @relation(fields: [orderId], references: [id])
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  customer      Contact               @relation(fields: [customerId], references: [id])
+  order         Order?                @relation(fields: [orderId], references: [id])
+  salesRep      User?                 @relation(fields: [salesRepId], references: [id])
+  subsidiary    Subsidiary            @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
   @@index([subsidiaryId, saleDate(sort: Desc)])
   @@index([subsidiaryId, customerId])
@@ -358,12 +359,12 @@ model OpportunityProduct {
 }
 
 model OrderGroup {
-  id            String   @id @default(uuid()) @db.Uuid
-  groupCode     String   @unique @map("group_code") 
-  customerId    String   @map("customer_id") @db.Uuid
-  totalAmount   Decimal  @default(0) @map("total_amount") @db.Decimal(15, 2)
-  createdAt     DateTime @default(now()) @map("created_at")
-  orders        Order[]  
+  id          String   @id @default(uuid()) @db.Uuid
+  groupCode   String   @unique @map("group_code")
+  customerId  String   @map("customer_id") @db.Uuid
+  totalAmount Decimal  @default(0) @map("total_amount") @db.Decimal(15, 2)
+  createdAt   DateTime @default(now()) @map("created_at")
+  orders      Order[]
 
   @@index([customerId])
 
@@ -379,27 +380,27 @@ model Order {
   totalAmount       Decimal                  @default(0) @map("total_amount") @db.Decimal(15, 2)
   taxRateValue      Decimal                  @map("tax_rate_value") @db.Decimal(5, 2)
   amountPaid        Decimal                  @default(0) @map("amount_paid") @db.Decimal(15, 2)
-  paymentMethod     CustomerPaymentMethod?   @map("payment_method")
   paymentDueDate    DateTime                 @map("payment_due_date")
   customerId        String                   @map("customer_id") @db.Uuid
   subsidiaryId      String                   @map("subsidiary_id") @db.Uuid
   taxRateId         String                   @map("tax_rate_id") @db.Uuid
   salesRepId        String?                  @map("sales_rep_id") @db.Uuid
   opportunityId     String?                  @map("opportunity_id") @db.Uuid
-  groupId           String?                  @map("group_id") @db.Uuid
   status            OrderStatus              @map("status")
   productionStatus  ProductionStatus         @map("production_status")
   paymentStatus     PaymentStatus            @map("payment_status")
   source            OrderSource              @map("source")
-  sales             Sale[]
+  groupId           String?                  @map("group_id") @db.Uuid
+  paymentMethod     CustomerPaymentMethod?   @map("payment_method")
   orderItems        OrderItem[]
   productionHistory OrderProductionHistory[]
   customer          Contact                  @relation(fields: [customerId], references: [id])
+  orderGroup        OrderGroup?              @relation(fields: [groupId], references: [id])
   opportunity       Opportunity?             @relation(fields: [opportunityId], references: [id])
   salesRep          User?                    @relation(fields: [salesRepId], references: [id])
   subsidiary        Subsidiary               @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
   taxRate           TaxRate                  @relation(fields: [taxRateId], references: [id])
-  orderGroup        OrderGroup?              @relation(fields: [groupId], references: [id])
+  sales             Sale[]
 
   @@index([subsidiaryId, customerId, orderDate(sort: Desc)])
   @@index([subsidiaryId, status])
@@ -530,22 +531,24 @@ model CreditAccount {
   companyName     String     @map("company_name") @db.VarChar(255)
   balance         Decimal    @map("balance") @db.Decimal(15, 2)
   lastPaymentDate DateTime   @map("last_payment_date")
+  subsidiaryId    String     @map("subsidiary_id") @db.Uuid
   contactId       String     @unique @map("contact_id") @db.Uuid
   contact         Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  subsidiaryId    String     @map("subsidiary_id") @db.Uuid
   subsidiary      Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
   @@map("credit_account")
 }
 
 model TreasuryAccount {
-  id           String     @id @default(uuid()) @map("id") @db.Uuid
-  accountName  String     @map("account_name") @db.VarChar(255)
-  balance      Decimal    @map("balance") @db.Decimal(15, 2)
-  currency     String     @map("currency") @db.VarChar(10)
-  subsidiaryId String     @map("subsidiary_id") @db.Uuid
+  id                    String                 @id @default(uuid()) @map("id") @db.Uuid
+  accountName           String                 @map("account_name") @db.VarChar(255)
+  balance               Decimal                @map("balance") @db.Decimal(15, 2)
+  currency              String                 @map("currency") @db.VarChar(10)
+  subsidiaryId          String                 @map("subsidiary_id") @db.Uuid
   financialTransactions FinancialTransaction[]
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  subsidiary            Subsidiary             @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@index([subsidiaryId, accountName])
 
   @@map("treasury_accounts")
 }
@@ -554,14 +557,19 @@ model FinancialTransaction {
   id                       String            @id @default(uuid()) @map("id") @db.Uuid
   transactionDate          DateTime          @map("transaction_date")
   description              String?           @map("description")
-  financialTransactionType TransactionType   @map("financial_transaction_type")
   amount                   Decimal           @map("amount") @db.Decimal(15, 2)
-  status                   TransactionStatus @map("status")
   relatedDocumentId        String?           @map("related_document_id") @db.VarChar(50)
   subsidiaryId             String            @map("subsidiary_id") @db.Uuid
+  financialTransactionType TransactionType   @map("financial_transaction_type")
+  status                   TransactionStatus @map("status")
   treasuryAccountId        String            @map("treasury_account_id") @db.Uuid
   subsidiary               Subsidiary        @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
   treasuryAccount          TreasuryAccount   @relation(fields: [treasuryAccountId], references: [id], onDelete: Cascade)
+
+  @@index([subsidiaryId, transactionDate])
+  @@index([financialTransactionType])
+  @@index([status])
+  @@index([treasuryAccountId])
 
   @@map("financial_transactions")
 }
@@ -575,6 +583,10 @@ model CompanyDocument {
   category     DocumentCategory @map("category")
   status       DocumentStatus   @map("status")
   subsidiary   Subsidiary       @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  @@index([subsidiaryId, uploadDate])
+  @@index([category])
+  @@index([status])
+
 
   @@map("company_documents")
 }
@@ -590,6 +602,8 @@ model Meeting {
   subsidiaryId    String               @map("subsidiary_id") @db.Uuid
   participants    MeetingParticipant[]
   subsidiary      Subsidiary           @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@index([subsidiaryId, meetingDate])
 
   @@map("meetings")
 }
@@ -615,6 +629,9 @@ model SecretariatTask {
   status       SecretariatTaskStatus @map("status")
   assignedTo   Employee?             @relation(fields: [assignedToId], references: [id])
   subsidiary   Subsidiary            @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  @@index([subsidiaryId, dueDate])
+  @@index([status])
+  @@index([assignedToId])
 
   @@map("secretariat_tasks")
 }
@@ -662,6 +679,10 @@ model Lead {
   salesRep     Employee?  @relation(fields: [salesRepId], references: [id])
   subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id])
 
+  @@index([subsidiaryId, leadName])
+  @@index([status])                 
+  @@index([salesRepId])
+
   @@map("leads")
 }
 
@@ -689,6 +710,9 @@ model FixedAsset {
   subsidiaryId     String     @map("subsidiary_id") @db.Uuid
   subsidiary       Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
+    @@index([subsidiaryId, acquisitionDate])
+
+
   @@map("fixed_assets")
 }
 
@@ -701,6 +725,8 @@ model LongTermDebt {
   maturityDate   DateTime   @map("maturity_date")
   subsidiaryId   String     @map("subsidiary_id") @db.Uuid
   subsidiary     Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@index([subsidiaryId, maturityDate])
 
   @@map("long_term_debts")
 }
@@ -753,6 +779,10 @@ model AbsenceRecord {
   employee     Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   subsidiary   Subsidiary  @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
+  @@index([subsidiaryId, startDate])
+  @@index([employeeId])
+  @@index([typeAbsence])
+
   @@map("absence_records")
 }
 
@@ -770,6 +800,10 @@ model AttendanceRecord {
   status         AttendanceStatus @map("status")
   employee       Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   subsidiary     Subsidiary       @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@index([subsidiaryId, attendanceDate])
+  @@index([employeeId])
+  @@index([status])
 
   @@map("attendance_records")
 }
@@ -789,6 +823,11 @@ model PayrollRecord {
   employee      Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   subsidiary    Subsidiary    @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
+  @@index([subsidiaryId, payrollPeriod])
+  @@index([employeeId])
+  @@index([status])
+
+
   @@map("payroll_records")
 }
 
@@ -805,6 +844,8 @@ model SupplierDebt {
   purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   subsidiary      Subsidiary    @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
+  @@index([subsidiaryId, dueDate])
+  @@index([status])
   @@index([purchaseOrderId])
 
   @@map("supplier_debts")
@@ -820,7 +861,23 @@ model ExpenseRecord {
   expenseRecordType ExpenseType     @map("expense_record_type")
   subsidiary        Subsidiary      @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
+  @@index([subsidiaryId, expenseDate])
+  @@index([category])
+  @@index([expenseRecordType])
+  
   @@map("expense_records")
+}
+
+enum CustomerPaymentMethod {
+  CASH
+  CARD
+  CHECK
+  MOBILE_MONEY
+  PAYCAAP
+  PAY_ON_DELIVERY
+  CUSTOMER_CREDIT
+
+  @@map("customer_payment_method")
 }
 
 enum UserRole {
