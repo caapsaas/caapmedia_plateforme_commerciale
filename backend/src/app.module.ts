@@ -18,6 +18,7 @@ import { CrmModule } from './crm/crm.module';
 import { SalesModule } from './ecommerce/sales/sales.module';
 import { FinanceModule } from './finance/finance.module';
 import { PurchaseModule } from './purchase/purchase.module';
+import { EcommerceModule } from './ecommerce/ecommerce.module';
 
 @Module({
   imports: [
@@ -32,7 +33,7 @@ import { PurchaseModule } from './purchase/purchase.module';
     SecretariatModule,
     AuthModule, 
     SubsidiariesModule,
-    ProductsModule, 
+    EcommerceModule, 
 
     HrModule, 
     AuthModule,
@@ -45,6 +46,7 @@ import { PurchaseModule } from './purchase/purchase.module';
     TaxesModule,
     CrmModule,
     SalesModule,
+    ProductsModule,
     FinanceModule,
     PurchaseModule
 
