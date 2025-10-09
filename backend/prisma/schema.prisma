@@ -97,6 +97,9 @@ model Product {
   subsidiary           Subsidiary           @relation(fields: [subsidiaryId], references: [id])
   purchaseOrderItems   PurchaseOrderItem[]
 
+  @@index([subsidiaryId])
+  @@index([subsidiaryId, stock])
+
   @@map("products")
 }
 
@@ -265,6 +268,8 @@ model Contact {
   orders        Order[]
   sales         Sale[]
 
+  @@index([subsidiaryId, since])
+
   @@map("contacts")
 }
 
@@ -299,6 +304,11 @@ model Sale {
   order        Order?     @relation(fields: [orderId], references: [id])
   subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
+  @@index([subsidiaryId, saleDate(sort: Desc)])
+  @@index([subsidiaryId, customerId])
+  @@index([subsidiaryId, salesRepId])
+  @@index([subsidiaryId, status, saleDate])
+
   @@map("sale")
 }
 
@@ -309,6 +319,8 @@ model TaxRate {
   isDefault    Boolean @default(false) @map("is_default")
   description  String? @map("description")
   orders       Order[]
+
+  @@index([isDefault])
 
   @@map("tax_rates")
 }
@@ -353,6 +365,8 @@ model OrderGroup {
   createdAt     DateTime @default(now()) @map("created_at")
   orders        Order[]  
 
+  @@index([customerId])
+
   @@map("order_group")
 }
 
@@ -387,6 +401,10 @@ model Order {
   taxRate           TaxRate                  @relation(fields: [taxRateId], references: [id])
   orderGroup        OrderGroup?              @relation(fields: [groupId], references: [id])
 
+  @@index([subsidiaryId, customerId, orderDate(sort: Desc)])
+  @@index([subsidiaryId, status])
+  @@index([subsidiaryId, paymentStatus])
+
   @@map("orders")
 }
 
@@ -411,6 +429,9 @@ model OrderItem {
   order          Order?          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product        Product?        @relation(fields: [productId], references: [id], onDelete: Cascade)
   productOptions ProductOption[]
+
+  @@index([productId])
+  @@index([orderId])
 
   @@map("order_item")
 }
@@ -446,6 +467,8 @@ model Supplier {
   purchaseOrders PurchaseOrder[]
   subsidiary     Subsidiary      @relation(fields: [subsidiaryId], references: [id])
 
+  @@unique([supplierName, subsidiaryId])
+
   @@map("suppliers")
 }
 
@@ -467,6 +490,11 @@ model PurchaseOrder {
   supplier             Supplier               @relation(fields: [supplierId], references: [id], onDelete: Cascade)
   supplierDebts        SupplierDebt[]
 
+  @@index([subsidiaryId, orderDate(sort: Desc)])
+  @@index([subsidiaryId, supplierId])
+  @@index([subsidiaryId, status])
+  @@index([subsidiaryId, paymentStatus])
+
   @@map("purchase_orders")
 }
 
@@ -480,6 +508,8 @@ model PurchaseOrderItem {
   productId        String        @map("product_id") @db.Uuid
   product          Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
   purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
 
   @@map("purchase_order_items")
 }
@@ -687,6 +717,11 @@ model Equipment {
   subsidiary          Subsidiary          @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
   maintenanceRecords  MaintenanceRecord[]
 
+  @@index([subsidiaryId])
+  @@index([subsidiaryId, status])
+  @@index([subsidiaryId, nextMaintenanceDate])
+  @@index([subsidiaryId, acquisitionDate])
+
   @@map("equipment")
 }
 
@@ -698,6 +733,9 @@ model MaintenanceRecord {
   maintenanceCost Decimal   @map("maintenance_cost") @db.Decimal(10, 2)
   equipmentId     String    @map("equipment_id") @db.Uuid
   equipment       Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@index([equipmentId])
+  @@index([equipmentId, maintenanceDate])
 
   @@map("maintenance_records")
 }
@@ -766,6 +804,8 @@ model SupplierDebt {
   status          DebtStatus    @map("status")
   purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   subsidiary      Subsidiary    @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseOrderId])
 
   @@map("supplier_debts")
 }

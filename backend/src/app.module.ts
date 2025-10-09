@@ -19,6 +19,7 @@ import { SalesModule } from './ecommerce/sales/sales.module';
 import { FinanceModule } from './finance/finance.module';
 import { PurchaseModule } from './purchase/purchase.module';
 import { EcommerceModule } from './ecommerce/ecommerce.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -48,7 +49,8 @@ import { EcommerceModule } from './ecommerce/ecommerce.module';
     SalesModule,
     ProductsModule,
     FinanceModule,
-    PurchaseModule
+    PurchaseModule,
+    AnalyticsModule
 
   ],
   controllers: [AppController],
