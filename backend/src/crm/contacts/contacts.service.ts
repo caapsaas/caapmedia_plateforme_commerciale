@@ -41,7 +41,7 @@ export class ContactsService {
         ...createContactDto,
         subsidiaryId: user.subsidiaryId,
         salesRepId: user.id,
-        since: new Date(),
+        since: createContactDto.since ? new Date(createContactDto.since) : new Date(),
         passwordHash,
       },
     });
@@ -140,7 +140,7 @@ export class ContactsService {
       data: {
         ...rest,
         email,
-        since: new Date(),
+        since: registerContactDto.since ? new Date(registerContactDto.since) : new Date(),
         status: ContactStatus.ACTIVE,
         passwordHash,
       },
