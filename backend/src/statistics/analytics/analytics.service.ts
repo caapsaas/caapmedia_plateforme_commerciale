@@ -1,15 +1,16 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { PeriodFilterDto, PeriodFilter } from './dto/period-filter.dto';
-import { Prisma, User, Sale } from '@prisma/client';
+import { Prisma, User } from '@prisma/client';
 import { sub, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
 
 @Injectable()
 export class AnalyticsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   /**
-   * Crée un filtre de date pour les requêtes Prisma à partir du DTO.
+   * @param periodFilterDto Dto contenant le filtre de période.
+   * @returns filtre de date pour les requêtes Prisma à partir du DTO.
    */
   private getDateFilter(periodFilterDto: PeriodFilterDto): Prisma.DateTimeFilter {
     const { period, startDate, endDate } = periodFilterDto;
@@ -51,7 +52,9 @@ export class AnalyticsService {
   }
 
   /**
-   * Statistiques du Tableau de Bord global
+   * @param user Utilisateur connecté.
+   * @param periodFilterDto Dto contenant le filtre de période.
+   * @returns Statistiques du Tableau de Bord global.
    */
   async getDashboardStats(user: User, periodFilterDto: PeriodFilterDto) {
     const { subsidiaryId } = user;
@@ -68,8 +71,8 @@ export class AnalyticsService {
     // Pour le revenu net, nous devons toujours nous baser sur les commandes pour obtenir le prix d'achat.
     // Mais nous filtrons par les ID de commandes présentes dans les ventes payées.
     const salesWithOrder = await this.prisma.sale.findMany({
-        where: { ...where, orderId: { not: null } },
-        include: { order: { include: { orderItems: { include: { product: true } } } } }
+      where: { ...where, orderId: { not: null } },
+      include: { order: { include: { orderItems: { include: { product: true } } } } }
     });
 
     let totalCostOfGoods = new Prisma.Decimal(0);
@@ -92,8 +95,8 @@ export class AnalyticsService {
 
     // Valeur du stock
     const productsWithStock = await this.prisma.product.findMany({
-        where: { subsidiaryId, stock: { gt: 0 } },
-        select: { stock: true, price: true, mainCategory: true }
+      where: { subsidiaryId, stock: { gt: 0 } },
+      select: { stock: true, price: true, mainCategory: true }
     });
     const stockValue = productsWithStock.reduce((acc, p) => acc.add(p.price.mul(p.stock)), new Prisma.Decimal(0));
 
@@ -123,7 +126,7 @@ export class AnalyticsService {
         stock: true, // Quantité totale d'articles par catégorie
       },
     });
-    
+
     // Pour obtenir la valeur, il faut une autre requête ou un calcul manuel.
     // Ici, nous calculons la valeur monétaire.
     const stockDistribution = productsWithStock.reduce((acc, product) => {
@@ -147,7 +150,9 @@ export class AnalyticsService {
   }
 
   /**
-   * Analyse des Ventes
+   * @param user Utilisateur connecté.
+   * @param periodFilterDto Dto contenant le filtre de période.
+   * @returns Analyse des ventes.
    */
   async getSalesAnalysis(user: User, periodFilterDto: PeriodFilterDto) {
     const { subsidiaryId } = user;
@@ -162,8 +167,8 @@ export class AnalyticsService {
 
     // Nombre de commandes (en comptant directement dans la table Order)
     const orderCount = await this.prisma.order.count({
-      where: { 
-        subsidiaryId, 
+      where: {
+        subsidiaryId,
         orderDate: dateFilter,
       },
     });
@@ -175,11 +180,11 @@ export class AnalyticsService {
 
     // Produits les plus vendus (basé sur la table Sale)
     const topSellingProducts = await this.prisma.sale.groupBy({
-        by: ['productName'],
-        _sum: { quantity: true, totalPrice: true },
-        where: where,
-        orderBy: { _sum: { quantity: 'desc' } },
-        take: 5,
+      by: ['productName'],
+      _sum: { quantity: true, totalPrice: true },
+      where: where,
+      orderBy: { _sum: { quantity: 'desc' } },
+      take: 5,
     });
 
     // Répartition des ventes par catégorie de produits
@@ -213,22 +218,24 @@ export class AnalyticsService {
     });
 
     return {
-        totalRevenue: totalRevenueResult._sum.totalPrice?.toNumber() ?? 0,
-        orderCount,
-        cashSaleCount,
-        averageBasket: averageBasket.toNumber(),
-        topSellingProducts,
-        salesByCategory,
-        topCustomers: topCustomers.map(c => ({
-          customerId: c.customerId,
-          customerName: c.customerName,
-          totalSpent: c._sum.totalPrice?.toNumber() ?? 0,
-        })),
+      totalRevenue: totalRevenueResult._sum.totalPrice?.toNumber() ?? 0,
+      orderCount,
+      cashSaleCount,
+      averageBasket: averageBasket.toNumber(),
+      topSellingProducts,
+      salesByCategory,
+      topCustomers: topCustomers.map(c => ({
+        customerId: c.customerId,
+        customerName: c.customerName,
+        totalSpent: c._sum.totalPrice?.toNumber() ?? 0,
+      })),
     };
   }
 
   /**
-   * Analyse des Achats
+   * @param user Utilisateur connecté.
+   * @param periodFilterDto Dto contenant le filtre de période.
+   * @returns Analyse des achats.
    */
   async getPurchaseAnalysis(user: User, periodFilterDto: PeriodFilterDto) {
     const { subsidiaryId } = user;
@@ -236,8 +243,8 @@ export class AnalyticsService {
     const where: Prisma.PurchaseOrderWhereInput = { subsidiaryId, orderDate: dateFilter };
 
     const totalPurchaseValueResult = await this.prisma.purchaseOrder.aggregate({
-        _sum: { totalAmount: true },
-        where,
+      _sum: { totalAmount: true },
+      where,
     });
 
     const totalOrders = await this.prisma.purchaseOrder.count({ where });
@@ -245,26 +252,26 @@ export class AnalyticsService {
     const averageOrderValue = totalOrders > 0 ? (totalPurchaseValueResult._sum.totalAmount || new Prisma.Decimal(0)).div(totalOrders) : new Prisma.Decimal(0);
 
     const spendingBySupplier = await this.prisma.purchaseOrder.groupBy({
-        by: ['supplierId', 'supplierName'],
-        _sum: { totalAmount: true },
-        where,
-        orderBy: { _sum: { totalAmount: 'desc' } },
+      by: ['supplierId', 'supplierName'],
+      _sum: { totalAmount: true },
+      where,
+      orderBy: { _sum: { totalAmount: 'desc' } },
     });
 
     const topPurchasedProducts = await this.prisma.purchaseOrderItem.groupBy({
-        by: ['productId', 'productName'],
-        _sum: { quantity: true },
-        where: { purchaseOrder: where },
-        orderBy: { _sum: { quantity: 'desc' } },
-        take: 5,
+      by: ['productId', 'productName'],
+      _sum: { quantity: true },
+      where: { purchaseOrder: where },
+      orderBy: { _sum: { quantity: 'desc' } },
+      take: 5,
     });
 
     return {
-        totalPurchaseValue: totalPurchaseValueResult._sum.totalAmount?.toNumber() ?? 0,
-        totalOrders,
-        averageOrderValue: averageOrderValue.toNumber(),
-        spendingBySupplier: spendingBySupplier.map(s => ({ ...s, _sum: { totalAmount: s._sum.totalAmount?.toNumber() ?? 0 } })),
-        topPurchasedProducts,
+      totalPurchaseValue: totalPurchaseValueResult._sum.totalAmount?.toNumber() ?? 0,
+      totalOrders,
+      averageOrderValue: averageOrderValue.toNumber(),
+      spendingBySupplier: spendingBySupplier.map(s => ({ ...s, _sum: { totalAmount: s._sum.totalAmount?.toNumber() ?? 0 } })),
+      topPurchasedProducts,
     };
   }
 }

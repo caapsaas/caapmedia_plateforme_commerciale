@@ -9,7 +9,9 @@ export class FinancesStatsService {
   constructor(private prisma: PrismaService) { }
 
   /**
-   * Utilitaire pour créer un filtre de date pour les requêtes Prisma.
+   * @param periodFilterDto Dto de filtre de période
+   * @param dateField Champ de date
+   * @returns Retourne un filtre de date pour les requêtes Prisma.
    */
   private getDateFilter(periodFilterDto: PeriodFilterDto, dateField: string): Record<string, Prisma.DateTimeFilter> {
     const { period, startDate, endDate } = periodFilterDto;
@@ -50,7 +52,9 @@ export class FinancesStatsService {
   }
 
   /**
-   * 1. Gestion des créances clients
+   * @param user Utilisateur
+   * @param periodFilterDto Dto de filtre de période
+   * @returns Retourne le solde des créances clients.
    */
   async getCustomerReceivables(user: User, periodFilterDto: PeriodFilterDto) {
     const { subsidiaryId } = user;
@@ -68,7 +72,9 @@ export class FinancesStatsService {
   }
 
   /**
-   * 2. Gestion des dettes fournisseurs
+   * @param user Utilisateur
+   * @param periodFilterDto Dto de filtre de période
+   * @returns Retourne le solde des dettes fournisseurs.
    */
   async getSupplierDebts(user: User, periodFilterDto: PeriodFilterDto) {
     const { subsidiaryId } = user;
@@ -89,7 +95,9 @@ export class FinancesStatsService {
   }
 
   /**
-   * 3. Compte de résultat (P&L)
+   * @param user Utilisateur
+   * @param periodFilterDto Dto de filtre de période
+   * @returns Retourne le compte de résultat (P&L).
    */
   async getPnlStatement(user: User, periodFilterDto: PeriodFilterDto) {
     const { subsidiaryId } = user;
@@ -142,7 +150,8 @@ export class FinancesStatsService {
   }
 
   /**
-   * 4. Bilan comptable
+   * @param user Utilisateur
+   * @returns Retourne le bilan comptable.
    */
   async getBalanceSheet(user: User) {
     const { subsidiaryId } = user;
@@ -186,7 +195,9 @@ export class FinancesStatsService {
   }
 
   /**
-   * 5. Analyse CRM
+   * @param user Utilisateur
+   * @param periodFilterDto Dto de filtre de période
+   * @returns Retourne l'analyse CRM.
    */
   async getCrmAnalysis(user: User, periodFilterDto: PeriodFilterDto) {
     const { subsidiaryId } = user;
