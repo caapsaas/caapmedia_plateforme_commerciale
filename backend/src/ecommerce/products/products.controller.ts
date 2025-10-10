@@ -50,6 +50,15 @@ export class ProductsController {
   }
 
   /**
+   * Endpoint pour récupérer tous les produits
+   * Exemple d'URL : /products/get-all-products
+   */
+  @Get('get-all-products')
+  findAllProducts() {
+    return this.productsService.findMany();
+  }
+
+  /**
    * Endpoint pour récupérer un produit par son ID
    * Exemple d'URL : /products/:id
    */

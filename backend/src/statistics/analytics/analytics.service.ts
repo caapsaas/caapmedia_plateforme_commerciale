@@ -101,20 +101,20 @@ export class AnalyticsService {
     // Utilisation de SQL brut pour une performance optimale sur le groupement par date.
     const salesPerformance: { date: string, sales: number }[] = await this.prisma.$queryRaw`
       SELECT
-        TO_CHAR("saleDate", 'YYYY-MM-DD') as date,
-        SUM("totalPrice")::float as sales
-      FROM "sales"
-      WHERE "subsidiaryId" = ${subsidiaryId}::uuid
+        TO_CHAR("sale_date", 'YYYY-MM-DD') as date,
+        SUM("total_price")::float as sales
+      FROM "sale"
+      WHERE "subsidiary_id" = ${subsidiaryId}::uuid
         AND status = 'PAID'
-        AND "saleDate" >= ${dateFilter.gte}
-        AND "saleDate" <= ${dateFilter.lte}
+        AND "sale_date" >= ${dateFilter.gte}
+        AND "sale_date" <= ${dateFilter.lte}
       GROUP BY date
       ORDER BY date ASC;
     `;
 
     // Répartition du stock par catégorie
     const stockByCategoryResult = await this.prisma.product.groupBy({
-      by: ['mainCategory'],
+      by: ['category'],
       where: {
         subsidiaryId,
         stock: { gt: 0 },
@@ -142,6 +142,7 @@ export class AnalyticsService {
       stockDistribution: Object.fromEntries(
         Object.entries(stockDistribution).map(([key, value]) => [key, value.toNumber()])
       ),
+      stockByCategory: stockByCategoryResult
     };
   }
 
@@ -159,12 +160,13 @@ export class AnalyticsService {
       where: where,
     });
 
-    // Nombre de commandes uniques (en comptant les groupes de ventes par orderId)
-    const distinctOrders = await this.prisma.sale.findMany({
-      where: { ...where, orderId: { not: null } },
-      distinct: ['orderId'],
+    // Nombre de commandes (en comptant directement dans la table Order)
+    const orderCount = await this.prisma.order.count({
+      where: { 
+        subsidiaryId, 
+        orderDate: dateFilter,
+      },
     });
-    const orderCount = distinctOrders.length;
 
     // Ventes à la caisse (ventes sans orderId)
     const cashSaleCount = await this.prisma.sale.count({ where: { ...where, orderId: null } });
@@ -180,12 +182,48 @@ export class AnalyticsService {
         take: 5,
     });
 
+    // Répartition des ventes par catégorie de produits
+    // On utilise une requête SQL brute pour joindre `Sale` et `Product` afin d'accéder à la catégorie.
+    const salesByCategory: { category: string, total: number }[] = await this.prisma.$queryRaw`
+      SELECT
+        p.category as "category",
+        SUM(s.quantity)::float as total
+      FROM "sale" s -- Utilisation de LOWER() pour une jointure insensible à la casse
+      JOIN "products" p ON LOWER(s.product_name) = LOWER(p.product_name) AND s.subsidiary_id = p.subsidiary_id
+      WHERE s.subsidiary_id = ${subsidiaryId}::uuid
+        AND s.sale_date >= ${dateFilter.gte}
+        AND s.sale_date <= ${dateFilter.lte}
+      GROUP BY p.category
+      ORDER BY total DESC;
+    `;
+
+    // Top 5 des meilleurs clients
+    const topCustomers = await this.prisma.sale.groupBy({
+      by: ['customerId', 'customerName'],
+      where: where,
+      _sum: {
+        totalPrice: true,
+      },
+      orderBy: {
+        _sum: {
+          totalPrice: 'desc',
+        },
+      },
+      take: 5,
+    });
+
     return {
         totalRevenue: totalRevenueResult._sum.totalPrice?.toNumber() ?? 0,
         orderCount,
         cashSaleCount,
         averageBasket: averageBasket.toNumber(),
         topSellingProducts,
+        salesByCategory,
+        topCustomers: topCustomers.map(c => ({
+          customerId: c.customerId,
+          customerName: c.customerName,
+          totalSpent: c._sum.totalPrice?.toNumber() ?? 0,
+        })),
     };
   }
 

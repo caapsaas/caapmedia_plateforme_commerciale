@@ -91,6 +91,17 @@ export class ProductsService {
 
   /**
    * 
+   * @returns // Liste des produits
+   */
+  async findMany() {
+    const products = await this.prisma.product.findMany({
+      include: this.includeAll,
+    });
+    return products.map((p) => this.mapDecimals(p));
+  }
+
+  /**
+   * 
    * @param id // ID du produit
    * @returns // Produit trouvé
    */

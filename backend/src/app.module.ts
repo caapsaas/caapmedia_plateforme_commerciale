@@ -19,7 +19,8 @@ import { SalesModule } from './ecommerce/sales/sales.module';
 import { FinanceModule } from './finance/finance.module';
 import { PurchaseModule } from './purchase/purchase.module';
 import { EcommerceModule } from './ecommerce/ecommerce.module';
-import { AnalyticsModule } from './analytics/analytics.module';
+import { AnalyticsModule } from './statistics/analytics/analytics.module';
+import { StatisticsModule } from './statistics/statistics.module';
 
 @Module({
   imports: [
@@ -50,7 +51,8 @@ import { AnalyticsModule } from './analytics/analytics.module';
     ProductsModule,
     FinanceModule,
     PurchaseModule,
-    AnalyticsModule
+    AnalyticsModule,
+    StatisticsModule
 
   ],
   controllers: [AppController],
