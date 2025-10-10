@@ -9,6 +9,13 @@ import { UpdateFinancialTransactionDto } from './dto/update-financial-transactio
 export class TreasuryService {
   constructor(private prisma: PrismaService) {}
 
+  private checkPermissions(user: User, allowedRoles: UserRole[], message: string) {
+    const userRole = (user as any).role || user.userRole;
+    if (!allowedRoles.includes(userRole)) {
+      throw new ForbiddenException(message);
+    }
+  }
+
   // ================================================================= //
   //                       TREASURY ACCOUNTS                           //
   // ================================================================= //
@@ -16,10 +23,7 @@ export class TreasuryService {
   async createAccount(dto: CreateTreasuryAccountDto, user: User) {
     const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR];
     // Le `user` vient du token JWT, la propriété est `role`, pas `userRole`.
-    const userRole = (user as any).role || user.userRole;
-    if (!allowedRoles.includes(userRole)) {
-      throw new ForbiddenException('Permission denied to create treasury accounts.');
-    }
+    this.checkPermissions(user, allowedRoles, 'Permission denied to create treasury accounts.');
 
     return this.prisma.treasuryAccount.create({
       data: {
@@ -42,16 +46,30 @@ export class TreasuryService {
   //                     FINANCIAL TRANSACTIONS                        //
   // ================================================================= //
 
-  async createTransaction(dto: CreateFinancialTransactionDto, user: User) {
+  async createIncomeTransaction(dto: CreateFinancialTransactionDto, user: User) {
+    // Forcer le type pour s'assurer que c'est bien une recette
+    dto.financialTransactionType = TransactionType.RECETTE;
+    return this.createTransaction(dto, user);
+  }
+
+  async createExpenseTransaction(dto: CreateFinancialTransactionDto, user: User) {
+    // Forcer le type pour s'assurer que c'est bien une dépense
+    dto.financialTransactionType = TransactionType.DEPENSE;
+    return this.createTransaction(dto, user);
+  }
+
+  /**
+   * Méthode interne pour la création de toute transaction financière.
+   * Gère la mise à jour du solde et l'enregistrement de la transaction.
+   * @param dto Les données de la transaction
+   * @param user L'utilisateur effectuant l'action
+   */
+  private async createTransaction(dto: CreateFinancialTransactionDto, user: User) {
     const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER];
-    // Le `user` vient du token JWT, la propriété est `role`, pas `userRole`.
-    const userRole = (user as any).role || user.userRole;
-    if (!allowedRoles.includes(userRole)) {
-      throw new ForbiddenException('Permission denied to create transactions.');
-    }
+    this.checkPermissions(user, allowedRoles, 'Permission denied to create transactions.');
 
     const { treasuryAccountId, amount, financialTransactionType, transactionDate } = dto;
-
+    
     const account = await this.prisma.treasuryAccount.findFirst({
       where: { id: treasuryAccountId, subsidiaryId: user.subsidiaryId },
     });
@@ -60,18 +78,25 @@ export class TreasuryService {
       throw new NotFoundException(`Treasury account with ID "${treasuryAccountId}" not found.`);
     }
 
-    // Calculer le nouveau solde
-    const newBalance =
-      financialTransactionType === TransactionType.RECETTE
-        ? account.balance.plus(amount)
-        : account.balance.minus(amount);
+    // Vérification du solde pour les dépenses
+    if (financialTransactionType === TransactionType.DEPENSE) {
+      if (account.balance.comparedTo(amount) < 0) {
+        throw new BadRequestException(`Solde insuffisant sur le compte "${account.accountName}". Solde actuel: ${account.balance}, Montant de la dépense: ${amount}.`);
+      }
+    }
+
+    // Utiliser increment/decrement pour la mise à jour atomique du solde
+    const balanceUpdateOperation =
+      financialTransactionType === TransactionType.RECETTE 
+        ? { increment: amount } 
+        : { decrement: amount };
 
     // Utiliser une transaction Prisma pour garantir l'atomicité
     return this.prisma.$transaction(async (tx) => {
       // 1. Mettre à jour le solde du compte
       await tx.treasuryAccount.update({
         where: { id: treasuryAccountId },
-        data: { balance: newBalance },
+        data: { balance: balanceUpdateOperation },
       });
 
       // 2. Créer l'enregistrement de la transaction
@@ -93,6 +118,9 @@ export class TreasuryService {
   }
 
   async findAllTransactions(user: User) {
+    const allowedRoles = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER];
+    this.checkPermissions(user, allowedRoles, 'Permission denied to view transactions.');
+
     return this.prisma.financialTransaction.findMany({
       where: { subsidiaryId: user.subsidiaryId },
       orderBy: { transactionDate: 'desc' },
@@ -102,11 +130,7 @@ export class TreasuryService {
 
   async updateTransactionStatus(id: string, dto: UpdateFinancialTransactionDto, user: User) {
     const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR];
-    // Le `user` vient du token JWT, la propriété est `role`, pas `userRole`.
-    const userRole = (user as any).role || user.userRole;
-    if (!allowedRoles.includes(userRole)) {
-      throw new ForbiddenException('Permission denied to update transaction status.');
-    }
+    this.checkPermissions(user, allowedRoles, 'Permission denied to update transaction status.');
 
     const transaction = await this.prisma.financialTransaction.findFirst({
       where: { id, subsidiaryId: user.subsidiaryId },

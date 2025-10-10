@@ -23,10 +23,15 @@ export class TreasuryController {
     return this.treasuryService.findAllAccounts(user);
   }
 
-  // --- Financial Transactions Routes ---
-  @Post('transactions')
-  createTransaction(@Body() createDto: CreateFinancialTransactionDto, @CurrentUser() user: User) {
-    return this.treasuryService.createTransaction(createDto, user);
+  // --- Income and Expense Transaction Routes ---
+  @Post('incomes')
+  createIncomeTransaction(@Body() createDto: CreateFinancialTransactionDto, @CurrentUser() user: User) {
+    return this.treasuryService.createIncomeTransaction(createDto, user);
+  }
+
+  @Post('expenses')
+  createExpenseTransaction(@Body() createDto: CreateFinancialTransactionDto, @CurrentUser() user: User) {
+    return this.treasuryService.createExpenseTransaction(createDto, user);
   }
 
   @Get('transactions')

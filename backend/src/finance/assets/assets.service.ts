@@ -34,7 +34,7 @@ export class AssetsService {
       });
 
       // 2. Créer la transaction de dépense correspondante
-      await this.treasuryService.createTransaction({
+      await this.treasuryService.createExpenseTransaction({
         transactionDate: new Date(dto.acquisitionDate).toISOString(),
         description: `Achat immobilisation: ${asset.fixedAssetsName}`,
         financialTransactionType: TransactionType.DEPENSE,
