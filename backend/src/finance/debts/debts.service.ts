@@ -81,7 +81,7 @@ export class DebtsService {
       });
 
       // 2. Créer la transaction financière correspondante
-      await this.treasuryService.createTransaction({
+      await this.treasuryService.createExpenseTransaction({
         transactionDate: new Date(dto.paymentDate).toISOString(),
         description: `Paiement facture fournisseur: ${debt.supplierName} - Facture N°${debt.invoiceId}`,
         financialTransactionType: TransactionType.DEPENSE,
