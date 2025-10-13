@@ -10,7 +10,7 @@ import {
   
   @Injectable()
   export class CrmtasksService {
-    constructor(private prisma: PrismaService) {}
+    constructor(private readonly prisma: PrismaService) {}
   
     async create(createTaskDto: CreateTaskDto, creator: User) {
       // Vérifier que le contact existe et appartient à la même filiale

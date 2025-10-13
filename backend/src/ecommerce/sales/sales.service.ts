@@ -7,7 +7,7 @@ import { sub, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from
 
 @Injectable()
 export class SalesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Crée une vente directe (vente au comptoir).

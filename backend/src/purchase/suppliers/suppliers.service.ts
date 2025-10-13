@@ -5,7 +5,7 @@ import { User } from '@prisma/client';
 
 @Injectable()
 export class SuppliersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) { }
 
   /**
    * Methode pour creer un fournisseur

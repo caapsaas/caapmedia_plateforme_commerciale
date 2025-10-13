@@ -6,8 +6,8 @@ import { UserRole, DocumentCategory, DocumentStatus, SecretariatTaskStatus } fro
 @Injectable()
 export class SecretariatService {
   constructor(
-    private prisma: PrismaService,
-    private logger: LoggerService,
+    private readonly prisma: PrismaService,
+    private readonly logger: LoggerService,
   ) {}
 
   // CRUD for CompanyDocument

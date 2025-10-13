@@ -7,7 +7,7 @@ import { UpdateFinancialTransactionDto } from './dto/update-financial-transactio
 
 @Injectable()
 export class TreasuryService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   private checkPermissions(user: User, allowedRoles: UserRole[], message: string) {
     const userRole = (user as any).role || user.userRole;

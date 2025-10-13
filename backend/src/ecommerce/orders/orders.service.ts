@@ -8,7 +8,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) { }
 
   // Fonction utilitaire pour mapper une commande à son format de réponse
   private mapOrderToResponse(order: any) {

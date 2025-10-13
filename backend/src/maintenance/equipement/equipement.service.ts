@@ -4,7 +4,7 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 
 @Injectable()
 export class EquipementService {
-    constructor(private prisma: PrismaService) { }
+    constructor(private readonly prisma: PrismaService) { }
 
     includeAll = {
         maintenanceRecords: true,

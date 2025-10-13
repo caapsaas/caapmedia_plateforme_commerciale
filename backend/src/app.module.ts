@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { PrismaModule } from './common/utils/prisma/prisma.module';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './common/auth/auth.module';
 import { SubsidiariesModule } from './common/subsidiaries/subsidiaries.module';
@@ -31,6 +32,7 @@ import { StatisticsModule } from './statistics/statistics.module';
       limit: 10,
     }]),
     ConfigModule.forRoot({ isGlobal: true }), // Charge .env globalement
+    PrismaModule,
     CommonModule,
     SecretariatModule,
     AuthModule, 

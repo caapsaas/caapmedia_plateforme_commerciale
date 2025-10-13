@@ -6,7 +6,7 @@ import { User, UserRole } from '@prisma/client';
 
 @Injectable()
 export class ExpensesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(createExpenseDto: CreateExpenseDto, user: User) {
     // Seuls les rôles financiers ou admin peuvent créer des charges

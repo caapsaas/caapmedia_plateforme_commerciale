@@ -4,7 +4,7 @@ import { CreateProductDto, UpdateProductDto } from './dto/create-product.dto';
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) { }
 
   private includeAll = {
     configurableOptions: {

@@ -11,9 +11,9 @@ import { CreateContactDto } from '../contacts/dto/create-contact.dto';
 @Injectable()
 export class LeadsService {
   constructor(
-    private prisma: PrismaService, 
-    private accountsService: AccountsService,
-    private contactsService: ContactsService, // Injecter ContactsService
+    private readonly prisma: PrismaService, 
+    private readonly accountsService: AccountsService,
+    private readonly contactsService: ContactsService, // Injecter ContactsService
   ) {}
 
   async create(createLeadDto: CreateLeadDto, user: User) {

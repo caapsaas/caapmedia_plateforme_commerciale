@@ -8,7 +8,7 @@ import { AbsenceRecord } from '@prisma/client';
 export class AbsenceRecordService {
   private readonly logger = new Logger(AbsenceRecordService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateAbsenceRecordDto, employeeId: string, subsidiaryId: string): Promise<AbsenceRecord> {
     this.logger.log(`Creating absence record for employee ${employeeId}`);

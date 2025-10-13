@@ -6,7 +6,7 @@ import { sub, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from
 
 @Injectable()
 export class FinancesStatsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) { }
 
   /**
    * @param periodFilterDto Dto de filtre de période

@@ -6,8 +6,8 @@ import { UserRole } from '@prisma/client';
 @Injectable()
 export class SubsidiaryService {
   constructor(
-    private prisma: PrismaService,
-    private logger: LoggerService,
+    private readonly prisma: PrismaService,
+    private readonly logger: LoggerService,
   ) {}
 
   async createSubsidiary(
