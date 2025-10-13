@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { PrismaModule } from './common/utils/prisma/prisma.module';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './common/auth/auth.module';
 import { SubsidiariesModule } from './common/subsidiaries/subsidiaries.module';
@@ -19,7 +20,8 @@ import { SalesModule } from './ecommerce/sales/sales.module';
 import { FinanceModule } from './finance/finance.module';
 import { PurchaseModule } from './purchase/purchase.module';
 import { EcommerceModule } from './ecommerce/ecommerce.module';
-import { AnalyticsModule } from './analytics/analytics.module';
+import { AnalyticsModule } from './statistics/analytics/analytics.module';
+import { StatisticsModule } from './statistics/statistics.module';
 
 @Module({
   imports: [
@@ -30,6 +32,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
       limit: 10,
     }]),
     ConfigModule.forRoot({ isGlobal: true }), // Charge .env globalement
+    PrismaModule,
     CommonModule,
     SecretariatModule,
     AuthModule, 
@@ -50,7 +53,8 @@ import { AnalyticsModule } from './analytics/analytics.module';
     ProductsModule,
     FinanceModule,
     PurchaseModule,
-    AnalyticsModule
+    AnalyticsModule,
+    StatisticsModule
 
   ],
   controllers: [AppController],

@@ -7,7 +7,7 @@ import { PayrollRecord } from '@prisma/client';
 export class PayrollRecordService {
   private readonly logger = new Logger(PayrollRecordService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreatePayrollRecordDto, employeeId: string, subsidiaryId: string): Promise<PayrollRecord> {
     this.logger.log(`Creating payroll record for employee ${employeeId} in subsidiary ${subsidiaryId}`);

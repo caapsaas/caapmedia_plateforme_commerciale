@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ContactsService } from './contacts.service';
 import { ContactsController } from './contacts.controller';
-import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ContactJwtStrategy } from 'src/common/auth/jwt/contact-jwt.strategy';
 
@@ -14,7 +13,7 @@ import { ContactJwtStrategy } from 'src/common/auth/jwt/contact-jwt.strategy';
     }),
   ],
   controllers: [ContactsController],
-  providers: [ContactsService, PrismaService, ContactJwtStrategy],
+  providers: [ContactsService, ContactJwtStrategy],
   exports: [ContactsService], // Exporter le service pour qu'il soit utilisable par d'autres modules
 })
 export class ContactsModule {}

@@ -16,7 +16,7 @@ import { RegisterContactDto } from './dto/register-contact.dto';
 
 @Injectable()
 export class ContactsService {
-  constructor(private prisma: PrismaService, private jwtService: JwtService) {}
+  constructor(private readonly prisma: PrismaService, private readonly jwtService: JwtService) {}
 
   async create(createContactDto: CreateContactDto, user: User) {
     const existingContact = await this.prisma.contact.findFirst({

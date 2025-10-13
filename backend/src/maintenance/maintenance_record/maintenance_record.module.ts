@@ -1,10 +1,8 @@
 import { Module } from '@nestjs/common';
 import { MaintenanceRecordController } from './maintenance_record.controller';
 import { MaintenanceRecordService } from './maintenance_record.service';
-import { UtilsModule } from 'src/common/utils/utils.module';
 
 @Module({
-  imports: [UtilsModule],
   controllers: [MaintenanceRecordController],
   providers: [MaintenanceRecordService]
 })

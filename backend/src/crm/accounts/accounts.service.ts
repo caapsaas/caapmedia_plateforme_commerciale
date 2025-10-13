@@ -12,7 +12,7 @@ import { Prisma, User, UserRole } from '@prisma/client';
 
 @Injectable()
 export class AccountsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(createAccountDto: CreateAccountDto, user?: User) {
     // Déterminer l'ID de la filiale. Il doit être fourni soit par l'utilisateur connecté, soit dans le DTO.

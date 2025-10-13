@@ -9,7 +9,7 @@ import { ReceiveItemsDto } from './dto/receive-items.dto';
 
 @Injectable()
 export class PurchaseOrdersService {
-    constructor(private prisma: PrismaService) { }
+    constructor(private readonly prisma: PrismaService) { }
 
     /**
      * Créer un bon de commande fournisseur

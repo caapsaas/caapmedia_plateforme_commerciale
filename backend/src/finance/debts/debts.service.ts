@@ -11,9 +11,9 @@ import { validate as isUUID } from 'uuid';
 @Injectable()
 export class DebtsService {
   constructor(
-    private prisma: PrismaService,
+    private readonly prisma: PrismaService,
     @Inject(forwardRef(() => TreasuryService))
-    private treasuryService: TreasuryService,
+    private readonly treasuryService: TreasuryService,
   ) {}
 
   private validateSubsidiaryId(subsidiaryId: string) {

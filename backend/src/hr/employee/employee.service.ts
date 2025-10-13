@@ -25,7 +25,7 @@ import {
 export class EmployeeService {
   private readonly logger = new Logger(EmployeeService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * CREATE employee

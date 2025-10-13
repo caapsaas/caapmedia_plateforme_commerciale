@@ -10,9 +10,9 @@ import * as nodemailer from 'nodemailer';
 @Injectable()
 export class AuthService {
   constructor(
-    private prisma: PrismaService,
-    private jwtService: JwtService,
-    private logger: LoggerService,
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+    private readonly logger: LoggerService,
   ) {}
 
 //****1- Fonction de creation d'un utilisateur****

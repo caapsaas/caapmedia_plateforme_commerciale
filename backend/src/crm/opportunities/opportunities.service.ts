@@ -10,7 +10,7 @@ import { Prisma, User, UserRole } from '@prisma/client';
 
 @Injectable()
 export class OpportunitiesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(createOpportunityDto: CreateOpportunityDto, user: User) {
     const { productIds, ...opportunityData } = createOpportunityDto;

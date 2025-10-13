@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { EmployeeService } from './employee.service';
 import { EmployeeController } from './employee.controller';
-import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CommonModule } from 'src/common/common.module';
 
 @Module({
@@ -9,7 +8,7 @@ import { CommonModule } from 'src/common/common.module';
     CommonModule,  
   ],
   controllers: [EmployeeController],
-  providers: [EmployeeService, PrismaService], // Prisma global, mais listé pour clarté
+  providers: [EmployeeService], // Prisma global, mais listé pour clarté
   exports: [EmployeeService]
 })
 

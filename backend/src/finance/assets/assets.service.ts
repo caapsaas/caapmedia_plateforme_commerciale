@@ -8,9 +8,9 @@ import { TreasuryService } from '../treasury/treasury.service';
 @Injectable()
 export class AssetsService {
   constructor(
-    private prisma: PrismaService,
+    private readonly prisma: PrismaService,
     @Inject(forwardRef(() => TreasuryService))
-    private treasuryService: TreasuryService,
+    private readonly treasuryService: TreasuryService,
   ) {}
 
   async create(dto: CreateFixedAssetDto, user: User) {

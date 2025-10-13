@@ -4,7 +4,7 @@ import { CreateProductDto, UpdateProductDto } from './dto/create-product.dto';
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) { }
 
   private includeAll = {
     configurableOptions: {
@@ -84,6 +84,17 @@ export class ProductsService {
   async findAll(user: any) {
     const products = await this.prisma.product.findMany({
       where: { subsidiaryId: user.subsidiaryId },
+      include: this.includeAll,
+    });
+    return products.map((p) => this.mapDecimals(p));
+  }
+
+  /**
+   * 
+   * @returns // Liste des produits
+   */
+  async findMany() {
+    const products = await this.prisma.product.findMany({
       include: this.includeAll,
     });
     return products.map((p) => this.mapDecimals(p));

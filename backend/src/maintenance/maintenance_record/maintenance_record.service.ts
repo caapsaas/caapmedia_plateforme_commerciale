@@ -4,7 +4,7 @@ import { CreateMaintenanceRecordDto, UpdateMaintenanceRecordDto, SearchMaintenan
 
 @Injectable()
 export class MaintenanceRecordService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   includeAll = {
     equipment: true
