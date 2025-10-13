@@ -1,3 +1,4 @@
+// services/api.ts
 import axios from 'axios';
 
 // Création d'une instance Axios avec une configuration de base.
