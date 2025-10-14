@@ -2,29 +2,50 @@ import { api } from '../api';
 import { PayrollRecord } from '../../types';
 
 /**
- * Récupère les fiches de paie pour une période donnée (mois/année).
- * @param period - La période au format YYYY-MM.
+ * Données pour la création d'une fiche de paie.
+ * Les champs gérés par le backend sont omis.
  */
-export const getPayrollRecords = async (period: string): Promise<PayrollRecord[]> => {
-  const { data } = await api.get<PayrollRecord[]>('/hr/payroll', { params: { period } });
+export type PayrollRecordCreationData = Omit<PayrollRecord, 'id' | 'subsidiaryId' | 'createdAt' | 'updatedAt'>;
+
+/**
+ * Données pour la mise à jour d'une fiche de paie.
+ */
+export type PayrollRecordUpdateData = Partial<PayrollRecordCreationData>;
+
+/**
+ * Récupère toutes les fiches de paie pour la filiale de l'utilisateur connecté.
+ * Protégé par rôle (HR_MANAGER, ADMIN).
+ */
+export const getPayrollRecords = async (): Promise<PayrollRecord[]> => {
+  const { data } = await api.get<PayrollRecord[]>('/hr/payroll-records');
   return data;
 };
 
 /**
- * Lance le traitement de la paie pour une période donnée.
- * @param period - La période au format YYYY-MM.
+ * Récupère une fiche de paie spécifique par son ID.
+ * Protégé par rôle (HR_MANAGER, ADMIN).
  */
-export const processPayrollForPeriod = async (period: string): Promise<{ message: string; count: number }> => {
-  const { data } = await api.post<{ message: string; count: number }>(`/hr/payroll/process`, { period });
+export const getPayrollRecordById = async (id: string): Promise<PayrollRecord> => {
+  const { data } = await api.get<PayrollRecord>(`/hr/payroll-records/${id}`);
   return data;
 };
 
 /**
- * Met à jour le statut d'une fiche de paie (ex: marquer comme payée) et enregistre la signature.
- * @param recordId - L'ID de la fiche de paie.
- * @param signature - Les données de la signature de l'employé.
+ * Crée ou met à jour une fiche de paie.
+ * Protégé par rôle (HR_MANAGER, ADMIN).
+ * @param payrollData - Les données de la fiche de paie.
  */
-export const signAndPayPayrollRecord = async (recordId: string, signature: string): Promise<PayrollRecord> => {
-  const { data } = await api.patch<PayrollRecord>(`/hr/payroll/${recordId}/pay`, { signature });
+export const savePayrollRecord = async (payrollData: Partial<PayrollRecord>): Promise<PayrollRecord> => {
+  return payrollData.id
+    ? (await api.patch<PayrollRecord>(`/hr/payroll-records/${payrollData.id}`, payrollData)).data
+    : (await api.post<PayrollRecord>('/hr/payroll-records', payrollData)).data;
+};
+
+/**
+ * Supprime une fiche de paie par son ID.
+ * Protégé par rôle (HR_MANAGER, ADMIN).
+ */
+export const deletePayrollRecord = async (id: string): Promise<PayrollRecord> => {
+  const { data } = await api.delete<PayrollRecord>(`/hr/payroll-records/${id}`);
   return data;
 };

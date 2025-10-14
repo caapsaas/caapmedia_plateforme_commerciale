@@ -1,33 +1,42 @@
 import { api } from '../api';
-import { AttendanceRecord, AttendanceStatus } from '../../types';
+import { AttendanceRecord } from '../../types';
 
 /**
- * DTO pour enregistrer une nouvelle présence.
+ * Données pour la création d'un enregistrement de présence.
+ * Les champs gérés par le backend sont omis.
  */
-export interface RecordAttendanceDto {
-  employeeId: string;
-  date: string; // Format YYYY-MM-DD
-  status: AttendanceStatus;
-  arrivalTime?: string; // Format HH:mm
-  departureTime?: string; // Format HH:mm
-  breakTime?: number; // En minutes
-  signature?: string; // Données de la signature (ex: base64)
-}
+export type AttendanceRecordCreationData = Omit<AttendanceRecord, 'id' | 'subsidiaryId' | 'createdAt' | 'updatedAt'>;
 
 /**
- * Récupère les enregistrements de présence pour une période donnée.
- * @param fromDate - Date de début (YYYY-MM-DD).
- * @param toDate - Date de fin (YYYY-MM-DD).
+ * Données pour la mise à jour d'un enregistrement de présence.
  */
-export const getAttendanceRecords = async (fromDate: string, toDate: string): Promise<AttendanceRecord[]> => {
-  const { data } = await api.get<AttendanceRecord[]>('/hr/attendance', { params: { fromDate, toDate } });
+export type AttendanceRecordUpdateData = Partial<AttendanceRecordCreationData>;
+
+/**
+ * Récupère tous les enregistrements de présence pour la filiale de l'utilisateur connecté.
+ * Protégé par rôle (HR_MANAGER, ADMIN).
+ */
+export const getAttendanceRecords = async (): Promise<AttendanceRecord[]> => {
+  const { data } = await api.get<AttendanceRecord[]>('/hr/attendance-records');
   return data;
 };
 
 /**
- * Enregistre une nouvelle présence pour un employé.
+ * Crée ou met à jour un enregistrement de présence.
+ * Protégé par rôle (HR_MANAGER, ADMIN).
+ * @param attendanceData - Les données de la présence.
  */
-export const recordAttendance = async (attendanceData: RecordAttendanceDto): Promise<AttendanceRecord> => {
-  const { data } = await api.post<AttendanceRecord>('/hr/attendance', attendanceData);
+export const saveAttendanceRecord = async (attendanceData: Partial<AttendanceRecord>): Promise<AttendanceRecord> => {
+  return attendanceData.id
+    ? (await api.patch<AttendanceRecord>(`/hr/attendance-records/${attendanceData.id}`, attendanceData)).data
+    : (await api.post<AttendanceRecord>('/hr/attendance-records', attendanceData)).data;
+};
+
+/**
+ * Supprime un enregistrement de présence par son ID.
+ * Protégé par rôle (HR_MANAGER, ADMIN).
+ */
+export const deleteAttendanceRecord = async (id: string): Promise<AttendanceRecord> => {
+  const { data } = await api.delete<AttendanceRecord>(`/hr/attendance-records/${id}`);
   return data;
 };

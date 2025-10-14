@@ -405,6 +405,13 @@ export enum EmployeeStatus {
   TERMINATED = 'TERMINATED',
 }
 
+export enum DocumentType {
+  CONTRACT = 'contract',
+  ID_CARD = 'idCard',
+  WORK_PERMIT = 'workPermit',
+  DIPLOMA = 'diploma',
+}
+
 export enum PaymentMethod {
     BANK_TRANSFER = 'BANK_TRANSFER',
     CHECK = 'CHECK',
@@ -468,14 +475,21 @@ export interface Employee {
         rating: number; // 1-5
         comments: string;
     }[];
-    // Leave
     leaveBalance: number;
-    leaveRecords: {
-        type: 'ANNUAL' | 'SICK' | 'UNPAID';
-        startDate: string;
-        endDate: string;
-        days: number;
-    }[];
+  leaveRecords: LeaveRecord[];
+}
+
+export enum LeaveType {
+  ANNUAL = 'ANNUAL',
+  SICK = 'SICK',
+  UNPAID = 'UNPAID',
+}
+
+export interface LeaveRecord {
+  type: LeaveType;
+  startDate: string;
+  endDate: string;
+  days: number;
 }
 
 export type EmployeeFormData = Omit<Employee, 'id' | 'subsidiaryId' | 'documents' | 'positionHistory' | 'trainings' | 'performanceReviews' | 'leaveBalance' | 'leaveRecords'>;

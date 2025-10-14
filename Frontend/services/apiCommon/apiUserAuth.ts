@@ -1,5 +1,5 @@
-import { api } from './api';
-import { User, Subsidiary, UserRole } from '../types';
+import { api } from '../api';
+import { User, Subsidiary, UserRole } from '../../types';
 
 /**
  * Interfaces pour les données d'authentification des utilisateurs (employés).
@@ -8,13 +8,16 @@ import { User, Subsidiary, UserRole } from '../types';
 export interface UserLoginCredentials {
   email: string;
   password: string;
-  subsidiaryId: string;
 }
 
 export interface UserLoginResponse {
   user: User;
-  subsidiary: Subsidiary;
   access_token: string;
+}
+
+export interface UserRegisterResponse {
+  message: string;
+  userId: string;
 }
 
 export type UserRegisterData = Omit<User, 'id'>;
@@ -53,8 +56,8 @@ export const loginUser = async (credentials: UserLoginCredentials): Promise<User
  * @param userData - Données du nouvel utilisateur.
  * @returns L'utilisateur créé.
  */
-export const registerUser = async (userData: UserRegisterData): Promise<User> => {
-  const { data } = await api.post<User>('/auth/register', userData);
+export const registerUser = async (userData: UserRegisterData): Promise<UserRegisterResponse> => {
+  const { data } = await api.post<UserRegisterResponse>('/auth/register', userData);
   return data;
 };
 
@@ -100,8 +103,13 @@ export const searchUsers = async (query: UserSearchQuery): Promise<User[]> => {
   return data;
 };
 
-export const forgotpassword = async (email: string): Promise<void> => {
-  await api.post('/auth/forgot-password', { email });
+/**
+ * Déclenche la procédure de mot de passe oublié.
+ * @param email - L'email de l'utilisateur.
+ */
+export const forgotPassword = async (email: string): Promise<{ message: string }> => {
+  const { data } = await api.post<{ message: string }>('/auth/forgot-password', { email });
+  return data;
 };
 
 
