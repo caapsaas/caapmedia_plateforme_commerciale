@@ -313,16 +313,22 @@ export interface TreasuryAccount {
   subsidiaryId: string;
 }
 
+export enum TransactionStatus {
+  VALIDATED = 'Validé',
+  PENDING = 'En attente',
+}
+
 export interface FinancialTransaction {
   id: string;
   date: string;
   description: string;
   type: 'Recette' | 'Dépense';
   amount: number;
-  account: string; // e.g., 'Banque', 'Coffre-fort'
-  status: 'Validé' | 'En attente';
+  treasuryAccountId: string;
+  status: TransactionStatus;
   subsidiaryId: string;
   relatedDocumentId?: string; // e.g., PO-2024-001 or CMD-001
+  financialTransactionType: 'RECETTE' | 'DEPENSE';
 }
 
 export interface SupplierDebt {
