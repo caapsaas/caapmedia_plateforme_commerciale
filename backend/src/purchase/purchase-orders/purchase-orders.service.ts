@@ -90,6 +90,7 @@ export class PurchaseOrdersService {
                 },
                 include: {
                     purchaseOrderItems: true,
+                    purchaseOrderHistory: true,
                 },
             });
 

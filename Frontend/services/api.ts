@@ -1,15 +1,14 @@
-// services/api.ts
 import axios from 'axios';
 
 // Création d'une instance Axios avec une configuration de base.
 const api = axios.create({
-  baseURL: 'https://www.caapmedia.com/api-caapsaas', // L'URL de base de votre backend NestJS
+  baseURL: 'https://www.caapmedia.com/api-caapmedia', // L'URL de base de votre backend NestJS
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Ajout d'un intercepteur de requête.
+
 // Cette fonction sera appelée avant que chaque requête ne soit envoyée.
 api.interceptors.request.use(
   (config) => {

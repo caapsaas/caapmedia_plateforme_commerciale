@@ -411,6 +411,16 @@ export enum PaymentMethod {
     CASH = 'CASH',
 }
 
+export enum CustomerPaymentMethod {
+  CASH = 'CASH',
+  CARD = 'CARD',
+  CHECK = 'CHECK',
+  MOBILE_MONEY = 'MOBILE_MONEY',
+  PAYCAAP = 'PAYCAAP',
+  PAY_ON_DELIVERY = 'PAY_ON_DELIVERY',
+  CUSTOMER_CREDIT = 'CUSTOMER_CREDIT',
+}
+
 export interface EmployeeDocument {
     name: string;
     url: string;
