@@ -5,6 +5,7 @@ import IconLock from '../components/icons/IconLock';
 import IconBuilding from '../components/icons/IconBuilding';
 import { useI18n } from '../i18n';
 import { useAppContext } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { loginUser as apiLogin, forgotPassword as apiForgotPassword } from '../services/apiCommon/apiUserAuth';
 import { getSubsidiaries } from '../services/apiCommon/apiSubsidiaries'; // Importation depuis le nouveau fichier
 import { Subsidiary } from '../types';
@@ -12,6 +13,7 @@ import { Subsidiary } from '../types';
 const LoginPage: React.FC = () => {
   const { t } = useI18n();
   const { dispatch } = useAppContext();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [selectedSubsidiary, setSelectedSubsidiary] = useState('');
@@ -51,8 +53,10 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const { user, subsidiary } = await apiLogin({ email, password, subsidiaryId: selectedSubsidiary });
-      dispatch({ type: 'LOGIN_SUCCESS', payload: { user, subsidiary }});
+      const { user, access_token, subsidiary } = await apiLogin({ email, password });
+      login({ user, token: access_token });
+
+      dispatch({ type: 'LOGIN_SUCCESS', payload: { user, subsidiary } });
     } catch (err: any) {
       // Gérer les erreurs spécifiques de l'API (ex: 401, 403)
       setError(err.message || t('login.errorIncorrectCredentials'));
@@ -60,72 +64,72 @@ const LoginPage: React.FC = () => {
       setIsLoading(false);
     }
   };
-  
+
   const handleForgotPassword = () => {
     setShowForgotPassword(true);
     setResetSent(false);
     setResetEmail('');
   };
-  
+
   const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setForgotPasswordError(null);
     setIsResetting(true);
     try {
-        await apiForgotPassword(resetEmail);
-        setResetSent(true);
+      await apiForgotPassword(resetEmail);
+      setResetSent(true);
     } catch (err: any) {
-        setForgotPasswordError(err.message || t('forgotPassword.errorMessage'));
+      setForgotPasswordError(err.message || t('forgotPassword.errorMessage'));
     } finally {
-        setIsResetting(false);
+      setIsResetting(false);
     }
   };
-  
+
   const ForgotPasswordModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
-        <div className="bg-white rounded-lg shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
-            <form onSubmit={handleForgotPasswordSubmit}>
-                <div className="p-6">
-                    <h3 className="text-lg font-bold text-slate-900">{t('forgotPassword.title')}</h3>
-                    <div className="mt-4 space-y-4">
-                        {resetSent ? (
-                            <div className="text-center p-4 bg-green-100 text-green-800 rounded-md">
-                                <p>{t('forgotPassword.successMessage')}</p>
-                            </div>
-                        ) : (
-                            <>
-                                <p className="text-sm text-slate-600">{t('forgotPassword.instruction')}</p>
-                                <div>
-                                    <label htmlFor="reset-email" className="block text-sm font-medium text-slate-700">{t('login.emailLabel')}</label>
-                                    <div className="mt-1 relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <IconAtSymbol className="h-5 w-5 text-gray-400" />
-                                        </div>
-                                        <input type="email" id="reset-email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} required className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#c6e911] focus:border-transparent transition" />
-                                    </div>
-                                </div>
-                                {forgotPasswordError && (
-                                    <p className="text-red-500 text-sm">{forgotPasswordError}</p>
-                                )}
-                            </>
-                        )}
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <form onSubmit={handleForgotPasswordSubmit}>
+          <div className="p-6">
+            <h3 className="text-lg font-bold text-slate-900">{t('forgotPassword.title')}</h3>
+            <div className="mt-4 space-y-4">
+              {resetSent ? (
+                <div className="text-center p-4 bg-green-100 text-green-800 rounded-md">
+                  <p>{t('forgotPassword.successMessage')}</p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-slate-600">{t('forgotPassword.instruction')}</p>
+                  <div>
+                    <label htmlFor="reset-email" className="block text-sm font-medium text-slate-700">{t('login.emailLabel')}</label>
+                    <div className="mt-1 relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <IconAtSymbol className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input type="email" id="reset-email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} required className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#c6e911] focus:border-transparent transition" />
                     </div>
-                </div>
-                <div className="px-6 py-4 bg-slate-50 flex justify-end space-x-3 rounded-b-lg">
-                    <button type="button" onClick={() => setShowForgotPassword(false)} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors">{resetSent ? t('common.close') : t('common.cancel')}</button>
-                    {!resetSent && (
-                        <button type="submit" disabled={isResetting} className="px-4 py-2 bg-[#c6e911] text-slate-800 rounded-md hover:bg-[#adc40f] transition-colors flex items-center min-w-[120px] justify-center">
-                            {isResetting ? (
-                                <>
-                                 <svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                 {t('forgotPassword.sending')}
-                                </>
-                            ) : t('forgotPassword.sendLink')}
-                        </button>
-                    )}
-                </div>
-            </form>
-        </div>
+                  </div>
+                  {forgotPasswordError && (
+                    <p className="text-red-500 text-sm">{forgotPasswordError}</p>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+          <div className="px-6 py-4 bg-slate-50 flex justify-end space-x-3 rounded-b-lg">
+            <button type="button" onClick={() => setShowForgotPassword(false)} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors">{resetSent ? t('common.close') : t('common.cancel')}</button>
+            {!resetSent && (
+              <button type="submit" disabled={isResetting} className="px-4 py-2 bg-[#c6e911] text-slate-800 rounded-md hover:bg-[#adc40f] transition-colors flex items-center min-w-[120px] justify-center">
+                {isResetting ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    {t('forgotPassword.sending')}
+                  </>
+                ) : t('forgotPassword.sendLink')}
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
     </div>
   );
 
@@ -137,13 +141,13 @@ const LoginPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-center">{t('login.platformTitle')}</h1>
           <p className="mt-4 text-center text-gray-300">{t('login.platformSubtitle')}</p>
         </div>
-        
+
         <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
           <h2 className="text-3xl font-bold text-slate-800 mb-2">{t('login.title')}</h2>
           <p className="text-slate-600 mb-8">{t('login.subtitle')}</p>
-          
+
           <form onSubmit={handleLogin} className="space-y-6">
-             <div>
+            <div>
               <label htmlFor="subsidiary" className="block text-sm font-medium text-slate-700">{t('login.subsidiary')}</label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

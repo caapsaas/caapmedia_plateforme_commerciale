@@ -13,6 +13,7 @@ export interface UserLoginCredentials {
 export interface UserLoginResponse {
   user: User;
   access_token: string;
+  subsidiary: Subsidiary;
 }
 
 export interface UserRegisterResponse {
