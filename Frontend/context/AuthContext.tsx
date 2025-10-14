@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { User, Subsidiary } from '../types';
+import { User } from '../types';
 import { api } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string, subsidiaryId: string) => Promise<{ user: User, subsidiary: Subsidiary }>;
+  login: (data: { user: User; token: string }) => void;
   logout: () => void;
 }
 
@@ -35,28 +35,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     fetchUser();
   }, [token]);
 
-  const login = async (email: string, password: string, subsidiaryId: string) => {
-    const response = await api.post('/auth/login', {  // Endpoint backend auth
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, subsidiaryId }), // subsidiaryId est maintenant envoyé
-    });
-
-    if (!response.data) {
-        throw new Error('Échec de la connexion');
-    }
-
-    const data = response.data;
-
-    if (data.access_token) {
-      localStorage.setItem('token', data.access_token);
-      setToken(data.access_token);
-      setUser(data.user);
-      // Retourne les données pour que LoginPage puisse les dispatcher vers AppContext
-      return { user: data.user, subsidiary: data.subsidiary };
-    } else {
-      throw new Error('Token d\'accès non reçu');
-    }
+  const login = (data: { user: User; token: string }) => {
+    localStorage.setItem('token', data.token);
+    setToken(data.token);
+    setUser(data.user);
   };
 
   const logout = () => {

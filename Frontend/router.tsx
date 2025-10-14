@@ -1,7 +1,7 @@
 import { createRouter, createRoute, createRootRoute, Outlet } from '@tanstack/react-router';
 import App from './App'; // Nous allons refactorer App.tsx pour qu'il devienne notre layout
 import { useAppContext } from './context/AppContext';
-import LoginPage from './LoginPage';
+import LoginPage from './components/LoginPage';
 import ECommercePage from './components/ecommerce/ECommercePage';
 import RealisationsPage from './components/ecommerce/RealisationsPage';
 import CustomerAccountPage from './components/customer/CustomerAccountPage';
@@ -83,7 +83,7 @@ const productionRoute = createRoute({ getParentRoute: () => dashboardRoute, path
 // Wrapper for components that need the current subsidiary
 const SecretariatRouteComponent = () => {
   const { state } = useAppContext();
-  if (!state.currentSubsidiary) return <div>Loading subsidiary...</div>; // Or a proper loader
+  if (!state.currentSubsidiary) return <div>Loading subsidiary...</div>;
   return <Secretariat subsidiary={state.currentSubsidiary} />;
 };
 

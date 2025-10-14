@@ -1,8 +1,6 @@
 import React, { createContext, useReducer, useContext, ReactNode } from 'react';
-import { AppState, AppAction, Subsidiary, User, Contact } from '../types';
-import { 
-    AppMode, View, UserRole
-} from '../types';
+import { AppState, AppAction } from '../types/context';
+import { View, UserRole } from '../types/models';
 
 // L'état initial se concentre maintenant sur la session et l'UI.
 // Les données (produits, commandes...) seront gérées par TanStack Query.
@@ -35,7 +33,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         case 'CHANGE_ROLE':
             if (state.currentUser) {
                 const updatedUser = { ...state.currentUser, role: action.payload };
-                 let defaultView = View.ANALYTICS;
+                let defaultView = View.ANALYTICS;
                 const userRole = action.payload;
                 if (userRole === UserRole.CAISSIER) defaultView = View.CAISSE;
                 else if (userRole === UserRole.COMMERCIAL) defaultView = View.CRM;
@@ -47,7 +45,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
                 return { ...state, currentUser: updatedUser };
             }
             return state;
-        
+
         case 'CUSTOMER_LOGIN_SUCCESS':
             return { ...state, currentCustomer: action.payload };
 
