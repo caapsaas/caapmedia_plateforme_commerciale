@@ -12,12 +12,11 @@ import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
-import { SaveDocumentDto } from '../../services/apisecretariat/apiDocuments';
 
 interface DocumentManagementProps {
     subsidiary: Subsidiary;
     documents: CompanyDocument[];
-    onSave: (data: SaveDocumentDto) => void;
+    onSave: (data: any) => void;
     onDelete: (id: string) => void;
 }
 
@@ -46,7 +45,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
         setDeletingDocument(null);
     };
 
-    const handleSaveDocument = (data: SaveDocumentDto) => {
+    const handleSaveDocument = (data: any) => {
         onSave(data);
         handleCloseModals();
     };

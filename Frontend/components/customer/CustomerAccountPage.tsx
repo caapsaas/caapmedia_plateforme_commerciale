@@ -9,7 +9,7 @@ import ECommerceFooter from '../ecommerce/ECommerceFooter';
 import { useAppContext } from '../../context/AppContext';
 import { useNavigate, Navigate, Link } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getOrders } from '../../services/apiOrders';
+import { getOrders } from '../../services/apiE-commerce/apiOrders';
 import { api } from '../../services/api';
 
 type AccountView = 'profile' | 'orders' | 'security' | 'payment' | 'reviews';
@@ -24,9 +24,9 @@ const CustomerAccountPage: React.FC = () => {
   const { currentCustomer: customer } = state;
 
   // Récupérer les commandes avec TanStack Query
-  const { data: allOrders, isLoading: isLoadingOrders } = useQuery({
+  const { data: allOrders, isLoading: isLoadingOrders } = useQuery<Order[]>({
     queryKey: ['orders'],
-    queryFn: getOrders,
+    queryFn: () => getOrders(),
   });
 
   const orders = useMemo(() => {

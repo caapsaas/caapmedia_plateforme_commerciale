@@ -17,9 +17,10 @@ interface CrmDashboardProps {
     opportunities: Opportunity[];
     interactions: Interaction[];
     crmTasks: CrmTask[];
+    onUpdateTaskStatus: (taskId: string, status: CrmTaskStatus) => void;
 }
 
-const CrmDashboard: React.FC<CrmDashboardProps> = ({ opportunities, crmTasks, interactions, contacts }) => {
+const CrmDashboard: React.FC<CrmDashboardProps> = ({ opportunities, crmTasks, interactions, contacts, onUpdateTaskStatus }) => {
     const { t, formatCurrency } = useI18n();
 
     const pipelineValue = opportunities
@@ -59,9 +60,12 @@ const CrmDashboard: React.FC<CrmDashboardProps> = ({ opportunities, crmTasks, in
                             <li key={task.id} className="flex items-center justify-between p-2 bg-slate-50 rounded-md">
                                 <div>
                                     <p className="font-semibold">{task.title}</p>
-                                    <p className="text-xs text-slate-500">{contacts.find(c=> c.id === task.contactId)?.name || ''} - {task.dueDate}</p>
+                                    <p className="text-xs text-slate-500">{contacts.find(c=> c.id === task.contactId)?.contactName || ''} - {task.dueDate}</p>
                                 </div>
-                                <button className="text-xs font-semibold text-green-600 hover:underline">Terminer</button>
+                                <button 
+                                    onClick={() => onUpdateTaskStatus(task.id, CrmTaskStatus.DONE)}
+                                    className="text-xs font-semibold text-green-600 hover:underline"
+                                >{t('crm.tasks.complete')}</button>
                             </li>
                         ))}
                         {myTasks.length === 0 && <p className="text-sm text-slate-500">Aucune tâche en cours.</p>}
@@ -75,7 +79,7 @@ const CrmDashboard: React.FC<CrmDashboardProps> = ({ opportunities, crmTasks, in
                      <ul className="space-y-3">
                         {recentInteractions.map(interaction => (
                             <li key={interaction.id} className="text-sm border-l-4 border-slate-200 pl-4">
-                                <p className="font-semibold">{t(`crm.interactions.types.${interaction.type}`)} avec {contacts.find(c=> c.id === interaction.contactId)?.name || ''}</p>
+                                <p className="font-semibold">{t(`crm.interactions.types.${interaction.type}`)} avec {contacts.find(c=> c.id === interaction.contactId)?.contactName || ''}</p>
                                 <p className="text-slate-600 truncate">{interaction.notes}</p>
                                 <p className="text-xs text-slate-400">{new Date(interaction.date).toLocaleString()}</p>
                             </li>

@@ -1,6 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { Subsidiary, Contact, Opportunity, Interaction, CrmTask, User, OpportunityStage, Lead, Account, Contract, CrmTaskStatus } from '../types';
 import { useI18n } from '../i18n';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { 
+    getContacts, saveContact, deleteContact,
+    getOpportunities, saveOpportunity, updateOpportunityStage, winOpportunity,
+    getLeads, saveLead, deleteLead, convertLead,
+    getAccounts, saveAccount, deleteAccount,
+    getContracts, saveContract, deleteContract,
+    getCrmTasks, saveTask, updateTaskStatus, 
+    getInteractions, logInteraction 
+} from '../services/apiCrm/apiCrm';
+import { getAllUsers } from '../services/apiCommon/apiUserAuth';
 import CrmDashboard from '../components/crm/CrmDashboard';
 import OpportunityPipeline from '../components/crm/OpportunityPipeline';
 import ContactManagement from '../components/crm/ContactManagement';
@@ -14,36 +25,55 @@ type CrmView = 'dashboard' | 'leads' | 'accounts' | 'contacts' | 'pipeline' | 'a
 interface CrmProps {
     subsidiary: Subsidiary;
     currentUser: User;
-    users: User[];
-    contacts: Contact[];
-    opportunities: Opportunity[];
-    interactions: Interaction[];
-    crmTasks: CrmTask[];
-    leads: Lead[];
-    accounts: Account[];
-    contracts: Contract[];
-    onSaveOpportunity: (data: Partial<Opportunity>) => void;
-    onUpdateOpportunityStage: (oppId: string, newStage: OpportunityStage) => void;
-    onWinOpportunity: (opportunity: Opportunity) => void;
-    onLogInteraction: (data: Omit<Interaction, 'id' | 'date' | 'userId'>) => void;
-    onConvertLead: (leadId: string) => void;
-    onSaveTask: (data: Omit<CrmTask, 'id' | 'userId'> & { id?: string }) => void;
-    onUpdateTaskStatus: (taskId: string, status: CrmTaskStatus) => void;
-    onSaveContact: (data: Omit<Contact, 'id' | 'subsidiaryId'> & { id?: string }) => void;
-    onDeleteContact: (id: string) => void;
-    onSaveLead: (data: Omit<Lead, 'id' | 'subsidiaryId'> & { id?: string }) => void;
-    onDeleteLead: (id: string) => void;
-    onSaveAccount: (data: Omit<Account, 'id' | 'subsidiaryId'> & { id?: string }) => void;
-    onDeleteAccount: (id: string) => void;
-    onSaveContract: (data: Omit<Contract, 'id' | 'subsidiaryId'> & { id?: string }) => void;
-    onDeleteContract: (id: string) => void;
 }
 
 const Crm: React.FC<CrmProps> = (props) => {
     const { t } = useI18n();
+    const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState<CrmView>('leads');
     
     const { currentUser, subsidiary } = props;
+
+    // --- Data Fetching avec React Query ---
+    const queryKey = (key: string) => [key, subsidiary.id];
+
+    const { data: contacts = [], isLoading: l1 } = useQuery<Contact[]>({ queryKey: queryKey('contacts'), queryFn: () => getContacts(subsidiary.id) });
+    const { data: opportunities = [], isLoading: l2 } = useQuery<Opportunity[]>({ queryKey: queryKey('opportunities'), queryFn: () => getOpportunities(subsidiary.id) });
+    const { data: leads = [], isLoading: l3 } = useQuery<Lead[]>({ queryKey: queryKey('leads'), queryFn: () => getLeads(subsidiary.id) });
+    const { data: accounts = [], isLoading: l4 } = useQuery<Account[]>({ queryKey: queryKey('accounts'), queryFn: () => getAccounts(subsidiary.id) });
+    const { data: contracts = [], isLoading: l5 } = useQuery<Contract[]>({ queryKey: queryKey('contracts'), queryFn: () => getContracts(subsidiary.id) });
+    const { data: crmTasks = [], isLoading: l6 } = useQuery<CrmTask[]>({ queryKey: queryKey('crmTasks'), queryFn: () => getCrmTasks(subsidiary.id) });
+    const { data: interactions = [], isLoading: l7 } = useQuery<Interaction[]>({ queryKey: queryKey('interactions'), queryFn: () => getInteractions(subsidiary.id) });
+    const { data: users = [], isLoading: l8 } = useQuery<User[]>({ queryKey: ['users', subsidiary.id], queryFn: () => getAllUsers() });
+
+    const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8;
+
+    // --- Mutations avec React Query ---
+    const invalidateCrmQueries = () => {
+        queryClient.invalidateQueries({ queryKey: ['contacts'] });
+        queryClient.invalidateQueries({ queryKey: ['opportunities'] });
+        queryClient.invalidateQueries({ queryKey: ['leads'] });
+        queryClient.invalidateQueries({ queryKey: ['accounts'] });
+        queryClient.invalidateQueries({ queryKey: ['contracts'] });
+        queryClient.invalidateQueries({ queryKey: ['crmTasks'] });
+        queryClient.invalidateQueries({ queryKey: ['interactions'] });
+    };
+
+    const { mutate: onSaveContact } = useMutation({ mutationFn: saveContact, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('contacts') }) });
+    const { mutate: onDeleteContact } = useMutation({ mutationFn: deleteContact, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('contacts') }) });
+    const { mutate: onSaveLead } = useMutation({ mutationFn: saveLead, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('leads') }) });
+    const { mutate: onDeleteLead } = useMutation({ mutationFn: deleteLead, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('leads') }) });
+    const { mutate: onConvertLead } = useMutation({ mutationFn: convertLead, onSuccess: invalidateCrmQueries });
+    const { mutate: onSaveAccount } = useMutation({ mutationFn: saveAccount, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('accounts') }) });
+    const { mutate: onDeleteAccount } = useMutation({ mutationFn: deleteAccount, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('accounts') }) });
+    const { mutate: onSaveContract } = useMutation({ mutationFn: saveContract, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('contracts') }) });
+    const { mutate: onDeleteContract } = useMutation({ mutationFn: deleteContract, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('contracts') }) });
+    const { mutate: onSaveOpportunity } = useMutation({ mutationFn: saveOpportunity, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('opportunities') }) });
+    const { mutate: onUpdateOpportunityStage } = useMutation({ mutationFn: updateOpportunityStage, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('opportunities') }) });
+    const { mutate: onWinOpportunity } = useMutation({ mutationFn: winOpportunity, onSuccess: invalidateCrmQueries });
+    const { mutate: onSaveTask } = useMutation({ mutationFn: saveTask, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('crmTasks') }) });
+    const { mutate: onUpdateTaskStatus } = useMutation({ mutationFn: updateTaskStatus, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('crmTasks') }) });
+    const { mutate: onLogInteraction } = useMutation({ mutationFn: logInteraction, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('interactions') }) });
 
     const userFilteredData = useMemo(() => {
         const isFullAccess = currentUser.role === 'ADMIN' || currentUser.role === 'FINANCIAL_DIRECTOR';
@@ -52,80 +82,84 @@ const Crm: React.FC<CrmProps> = (props) => {
         const filterByUser = <T extends { salesRepId?: string }>(items: T[]) => items.filter(i => i.salesRepId === currentUser.id);
         const filterTaskByUser = <T extends { userId?: string }>(items: T[]) => items.filter(i => i.userId === currentUser.id);
 
-        const contacts = isFullAccess ? filterBySubsidiary(props.contacts) : filterByUser(filterBySubsidiary(props.contacts));
-        const leads = isFullAccess ? filterBySubsidiary(props.leads) : props.leads.filter(l => l.subsidiaryId === subsidiary.id && (l.salesRepId === currentUser.id || !l.salesRepId));
-        const accounts = isFullAccess ? filterBySubsidiary(props.accounts) : filterByUser(filterBySubsidiary(props.accounts));
-        const opportunities = isFullAccess ? filterBySubsidiary(props.opportunities) : props.opportunities.filter(o => o.userId === currentUser.id && o.subsidiaryId === subsidiary.id);
-        const contracts = filterBySubsidiary(props.contracts);
+        const filteredContacts = isFullAccess ? filterBySubsidiary(contacts) : filterByUser(filterBySubsidiary(contacts));
+        const filteredLeads = isFullAccess ? filterBySubsidiary(leads) : leads.filter(l => l.subsidiaryId === subsidiary.id && (l.salesRepId === currentUser.id || !l.salesRepId));
+        const filteredAccounts = isFullAccess ? filterBySubsidiary(accounts) : filterByUser(filterBySubsidiary(accounts));
+        const filteredOpportunities = isFullAccess ? filterBySubsidiary(opportunities) : opportunities.filter(o => o.userId === currentUser.id && o.subsidiaryId === subsidiary.id);
+        const filteredContracts = filterBySubsidiary(contracts);
 
-        const contactIds = new Set(contacts.map(c => c.id));
-        const interactions = props.interactions.filter(i => contactIds.has(i.contactId));
-        const crmTasks = isFullAccess ? props.crmTasks : filterTaskByUser(props.crmTasks);
+        const contactIds = new Set(filteredContacts.map(c => c.id));
+        const filteredInteractions = interactions.filter(i => contactIds.has(i.contactId));
+        const filteredCrmTasks = isFullAccess ? crmTasks : filterTaskByUser(crmTasks);
 
-        return { contacts, leads, accounts, opportunities, interactions, crmTasks, contracts };
-    }, [props, currentUser, subsidiary.id]);
+        return { contacts: filteredContacts, leads: filteredLeads, accounts: filteredAccounts, opportunities: filteredOpportunities, interactions: filteredInteractions, crmTasks: filteredCrmTasks, contracts: filteredContracts };
+    }, [contacts, opportunities, leads, accounts, contracts, crmTasks, interactions, currentUser, subsidiary.id]);
 
     const renderActiveView = () => {
         const baseProps = { subsidiary, currentUser };
 
+        if (isLoading) {
+            return <div className="p-6 text-center">{t('common.loading')}</div>;
+        }
+
         switch (activeTab) {
             case 'dashboard':
-                return <CrmDashboard {...baseProps} {...userFilteredData} />;
+                return <CrmDashboard {...baseProps} {...userFilteredData} onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })} />;
             case 'leads':
                 return <LeadsManagement 
                            {...baseProps}
                            leads={userFilteredData.leads}
-                           onSave={props.onSaveLead}
-                           onDelete={props.onDeleteLead}
-                           onConvertLead={props.onConvertLead}
+                           onSave={(data) => onSaveLead(data)}
+                           onDelete={(id) => onDeleteLead(id)}
+                           onConvertLead={(id) => onConvertLead(id)}
                         />;
             case 'accounts':
                 return <AccountManagement 
                             {...baseProps}
                             accounts={userFilteredData.accounts}
-                            onSave={props.onSaveAccount}
-                            onDelete={props.onDeleteAccount}
+                            onSave={(data) => onSaveAccount(data)}
+                            onDelete={(id) => onDeleteAccount(id)}
                         />;
             case 'contacts':
                 return <ContactManagement 
                             {...baseProps}
                             clients={userFilteredData.contacts}
-                            onSave={props.onSaveContact}
-                            onDelete={props.onDeleteContact}
+                            onSave={(data) => onSaveContact(data)}
+                            onDelete={(id) => onDeleteContact(id)}
                             opportunities={userFilteredData.opportunities}
                             interactions={userFilteredData.interactions}
                             crmTasks={userFilteredData.crmTasks}
-                            contracts={userFilteredData.contracts}
-                            onLogInteraction={props.onLogInteraction}
+                            contracts={userFilteredData.contracts} // Pas de changement ici, c'était déjà bon
+                            onLogInteraction={(data) => onLogInteraction(data)}
                         />;
             case 'contracts':
                 return <ContractManagement 
                             {...baseProps}
                             contracts={userFilteredData.contracts}
-                            contacts={props.contacts}
-                            onSave={props.onSaveContract}
-                            onDelete={props.onDeleteContract}
+                            contacts={contacts}
+                            onSave={(data) => onSaveContract(data)}
+                            onDelete={(id) => onDeleteContract(id)}
                         />;
             case 'pipeline':
                 return <OpportunityPipeline 
                             {...baseProps} 
                             opportunities={userFilteredData.opportunities}
-                            clients={userFilteredData.contacts}
-                            allClients={props.contacts}
-                            onSaveOpportunity={props.onSaveOpportunity}
-                            onUpdateOpportunityStage={props.onUpdateOpportunityStage}
-                            onWinOpportunity={props.onWinOpportunity}
+                            clients={userFilteredData.contacts} // Clients the user can see
+                            allClients={contacts} // All clients for selection
+                            onSaveOpportunity={(data) => onSaveOpportunity(data)}
+                            onUpdateOpportunityStage={(oppId, newStage) => onUpdateOpportunityStage({ oppId, newStage })}
+                            onWinOpportunity={(data) => onWinOpportunity(data)}
                         />;
             case 'activities':
                 return <ActivitiesView 
                             contacts={userFilteredData.contacts}
                             interactions={userFilteredData.interactions}
                             crmTasks={userFilteredData.crmTasks}
-                            onSaveTask={props.onSaveTask}
-                            onUpdateTaskStatus={props.onUpdateTaskStatus}
+                            onSaveTask={(data) => onSaveTask(data)}
+                            onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })}
                         />;
             default:
-                return <CrmDashboard {...baseProps} {...userFilteredData} />;
+                return <CrmDashboard {...baseProps} {...userFilteredData} onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })} />;
         }
     };
 

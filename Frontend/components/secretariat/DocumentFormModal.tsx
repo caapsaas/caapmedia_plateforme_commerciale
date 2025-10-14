@@ -5,7 +5,7 @@ import { useI18n } from '../../i18n';
 interface DocumentFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (data: Omit<CompanyDocument, 'id' | 'subsidiaryId'>) => void;
+    onSave: (data: any) => void;
     document: CompanyDocument | null;
 }
 
@@ -16,10 +16,10 @@ const DocumentFormModal: React.FC<DocumentFormModalProps> = ({ isOpen, onClose, 
         category: DocumentCategory.OTHER,
         status: DocumentStatus.DRAFT,
         uploadDate: new Date().toISOString().split('T')[0],
-        fileUrl: '',
     };
     
     const [formData, setFormData] = useState(initialFormState);
+    const [file, setFile] = useState<File | null>(null);
 
     useEffect(() => {
         if (document) {
@@ -27,12 +27,12 @@ const DocumentFormModal: React.FC<DocumentFormModalProps> = ({ isOpen, onClose, 
                 name: document.name,
                 category: document.category,
                 status: document.status,
-                uploadDate: document.uploadDate,
-                fileUrl: document.fileUrl
+                uploadDate: document.uploadDate
             });
         } else {
             setFormData(initialFormState);
         }
+        setFile(null); // Réinitialiser le fichier à chaque ouverture
     }, [document, isOpen]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -42,14 +42,13 @@ const DocumentFormModal: React.FC<DocumentFormModalProps> = ({ isOpen, onClose, 
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            const fileName = e.target.files[0].name;
-            setFormData(prev => ({ ...prev, fileUrl: `/docs/company/${fileName}` }));
+            setFile(e.target.files[0]);
         }
     };
     
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        onSave({ id: document?.id, ...formData, file: file ?? undefined });
     };
 
     if (!isOpen) return null;
@@ -94,7 +93,7 @@ const DocumentFormModal: React.FC<DocumentFormModalProps> = ({ isOpen, onClose, 
                                                 <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleFileChange} />
                                             </label>
                                         </div>
-                                        {formData.fileUrl && <p className="text-xs text-slate-500">{formData.fileUrl.split('/').pop()}</p>}
+                                        {file ? <p className="text-xs text-slate-500">{file.name}</p> : (document?.fileUrl && <p className="text-xs text-slate-500">{document.fileUrl.split('/').pop()}</p>)}
                                     </div>
                                 </div>
                             </div>

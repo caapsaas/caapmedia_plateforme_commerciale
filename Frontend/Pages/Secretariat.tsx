@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
-import { Subsidiary, Employee } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Subsidiary, Employee, CompanyDocument, Meeting, SecretariatTask } from '../types';
 import { useI18n } from '../i18n';
 import DocumentManagement from '../components/secretariat/DocumentManagement';
 import MeetingManagement from '../components/secretariat/MeetingManagement';
 import TaskManagement from '../components/secretariat/TaskManagement';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     getCompanyDocuments,
     createCompanyDocument,
@@ -27,32 +26,70 @@ interface SecretariatProps {
 
 const Secretariat: React.FC<SecretariatProps> = ({ subsidiary }) => {
     const { t } = useI18n();
-    const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState<SecretariatView>('documents');
     
-    // --- Data fetching with TanStack Query ---
-    const { data: documents = [], isLoading: isLoadingDocs } = useQuery({ queryKey: ['documents', subsidiary.id], queryFn: getCompanyDocuments });
-    const { data: meetings = [], isLoading: isLoadingMeetings } = useQuery({ queryKey: ['meetings', subsidiary.id], queryFn: getMeetings });
-    const { data: tasks = [], isLoading: isLoadingTasks } = useQuery({ queryKey: ['secretariatTasks', subsidiary.id], queryFn: getSecretariatTasks });
-    const { data: employees = [], isLoading: isLoadingEmployees } = useQuery<Employee[]>({ queryKey: ['employees', subsidiary.id], queryFn: () => getEmployees() });
+    // --- State Management with useState (like LoginPage.tsx) ---
+    const [documents, setDocuments] = useState<CompanyDocument[]>([]);
+    const [meetings, setMeetings] = useState<Meeting[]>([]);
+    const [tasks, setTasks] = useState<SecretariatTask[]>([]);
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // --- Mutations ---
-    // Note: The save logic for documents is split into create and update due to file handling.
-    // The DocumentManagement component will need to decide which to call.
-    // For simplicity, we can create a wrapper here.
-    const onSaveDocument = (data: any) => {
-        return data.id ? updateCompanyDocument(data.id, data) : createCompanyDocument(data);
+    // --- Data Fetching with useEffect (like LoginPage.tsx) ---
+    const fetchData = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            // Fetch all data in parallel
+            const [docs, meets, tks, emps] = await Promise.all([
+                getCompanyDocuments(),
+                getMeetings(),
+                getSecretariatTasks(),
+                getEmployees()
+            ]);
+            setDocuments(docs);
+            setMeetings(meets);
+            setTasks(tks);
+            setEmployees(emps);
+        } catch (err: any) {
+            setError(err.message || t('common.error.generic'));
+        } finally {
+            setIsLoading(false);
+        }
     };
-    const { mutate: saveDocumentMutation } = useMutation({ mutationFn: onSaveDocument, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) });
-    const { mutate: onDeleteDocument } = useMutation({ mutationFn: deleteCompanyDocument, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) });
 
-    const { mutate: onSaveMeeting } = useMutation({ mutationFn: saveMeeting, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['meetings'] }) });
-    const { mutate: onDeleteMeeting } = useMutation({ mutationFn: deleteMeeting, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['meetings'] }) });
+    useEffect(() => {
+        fetchData();
+    }, [subsidiary.id]); // Refetch if subsidiary changes
 
-    const { mutate: onSaveTask } = useMutation({ mutationFn: saveSecretariatTask, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['secretariatTasks'] }) });
-    const { mutate: onDeleteTask } = useMutation({ mutationFn: deleteSecretariatTask, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['secretariatTasks'] }) });
+    // --- Manual Mutation Handlers (like LoginPage.tsx) ---
+    const onSaveDocument = async (data: any) => {
+        await (data.id ? updateCompanyDocument(data.id, data) : createCompanyDocument(data));
+        fetchData(); // Manually refetch data
+    };
+    const onDeleteDocument = async (id: string) => {
+        await deleteCompanyDocument(id);
+        fetchData(); // Manually refetch data
+    };
 
-    const isLoading = isLoadingDocs || isLoadingMeetings || isLoadingTasks || isLoadingEmployees;
+    const onSaveMeeting = async (data: any) => {
+        await saveMeeting(data);
+        fetchData(); // Manually refetch data
+    };
+    const onDeleteMeeting = async (id: string) => {
+        await deleteMeeting(id);
+        fetchData(); // Manually refetch data
+    };
+
+    const onSaveTask = async (data: any) => {
+        await saveSecretariatTask(data);
+        fetchData(); // Manually refetch data
+    };
+    const onDeleteTask = async (id: string) => {
+        await deleteSecretariatTask(id);
+        fetchData(); // Manually refetch data
+    };
 
     const renderActiveView = () => {
         if (isLoading) {
@@ -64,7 +101,7 @@ const Secretariat: React.FC<SecretariatProps> = ({ subsidiary }) => {
                 return <DocumentManagement 
                             subsidiary={subsidiary} 
                             documents={documents}
-                            onSave={saveDocumentMutation}
+                            onSave={onSaveDocument}
                             onDelete={onDeleteDocument}
                         />;
             case 'meetings':
@@ -87,7 +124,7 @@ const Secretariat: React.FC<SecretariatProps> = ({ subsidiary }) => {
                 return <DocumentManagement 
                             subsidiary={subsidiary} 
                             documents={documents}
-                            onSave={saveDocumentMutation}
+                            onSave={onSaveDocument}
                             onDelete={onDeleteDocument}
                         />;
         }

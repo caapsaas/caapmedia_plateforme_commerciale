@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { useI18n } from '../../i18n';
-import { SignupData } from '../../services/apiCustomerAuth';
+import { ContactRegisterData } from '../../services/apiCrm/apicontacts';
+import { ContactStatus } from '../../types';
 
 interface AuthModalProps {
     isOpen: boolean;
     onClose: () => void;
     onLogin: (email: string, password: string) => Promise<'SUCCESS' | 'NOT_VERIFIED' | 'FAILED'>;
-    onRegister: (data: SignupData) => void;
+    onRegister: (data: ContactRegisterData) => void;
     onAuthSuccess: () => void;
     onVerifyAccount?: (email: string) => void; // Rendu optionnel
+    subsidiaryId: string;
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegister, onAuthSuccess, onVerifyAccount }) => {
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegister, onAuthSuccess, onVerifyAccount, subsidiaryId }) => {
     const { t } = useI18n();
     const [view, setView] = useState<'login' | 'signup' | 'forgotPassword'>('login');
     const [error, setError] = useState('');
@@ -20,7 +22,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegis
     const [resetSent, setResetSent] = useState(false);
 
     const [loginData, setLoginData] = useState({ email: '', password: '' });
-    const [signupData, setSignupData] = useState({ name: '', company: '', email: '', phone: '', password: '', confirmPassword: '', address: '' });
+    const [signupData, setSignupData] = useState({
+        contactName: '',
+        company: '',
+        email: '',
+        phone: '',
+        password: '',
+        address: '',
+    });
 
     const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setLoginData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -47,11 +56,17 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegis
     const handleSignupSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        if (signupData.password !== signupData.confirmPassword) {
+        if (signupData.password !== (document.getElementById('confirmPassword') as HTMLInputElement).value) {
             setError('Les mots de passe ne correspondent pas.');
             return;
         }
-        onRegister({ name: signupData.name, company: signupData.company, email: signupData.email, password: signupData.password, address: signupData.address, phone: signupData.phone });
+        const fullSignupData: ContactRegisterData = {
+            ...signupData,
+            since: new Date().toISOString(),
+            isVerified: false, 
+            subsidiaryId: subsidiaryId,
+        };
+        onRegister(fullSignupData);
         onAuthSuccess();
     };
     
@@ -124,8 +139,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegis
                     <form onSubmit={handleSignupSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                         <h3 className="text-xl font-bold text-center">{t('customerAccount.signupTitle')}</h3>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700">{t('customerAccount.name')}</label>
-                            <input type="text" name="name" value={signupData.name} onChange={handleSignupChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911]"/>
+                            <label className="block text-sm font-medium text-slate-700">{t('customerAccount.name')}</label> 
+                            <input type="text" name="contactName" value={signupData.contactName} onChange={handleSignupChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911]"/>
                         </div>
                          <div>
                             <label className="block text-sm font-medium text-slate-700">{t('configuration.form.company')}</label>
@@ -149,7 +164,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegis
                         </div>
                          <div>
                             <label className="block text-sm font-medium text-slate-700">{t('customerAccount.confirmPassword')}</label>
-                            <input type="password" name="confirmPassword" value={signupData.confirmPassword} onChange={handleSignupChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911]"/>
+                            <input type="password" id="confirmPassword" required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911]"/>
                         </div>
                         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
                         <button type="submit" className="w-full py-3 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f]">{t('customerAccount.signupAction')}</button>
