@@ -3,11 +3,11 @@ import { Subsidiary, Equipment, EquipmentStatus } from '../types';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getEquipments, saveEquipment, deleteEquipment, SaveEquipmentDto } from '../services/apiMaintenance';
 import { useI18n } from '../i18n';
-import IconPlus from './icons/IconPlus';
-import IconEdit from './icons/IconEdit';
-import IconDelete from './icons/IconDelete';
-import EquipmentFormModal from './maintenance/EquipmentFormModal';
-import ConfirmationModal from './common/ConfirmationModal';
+import IconPlus from '../components/icons/IconPlus';
+import IconEdit from '../components/icons/IconEdit';
+import IconDelete from '../components/icons/IconDelete';
+import EquipmentFormModal from '../components/maintenance/EquipmentFormModal';
+import ConfirmationModal from '../components/common/ConfirmationModal';
 
 interface EquipementsProps {
     subsidiary: Subsidiary;

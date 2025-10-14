@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Product, Contact } from '../types';
 import { useI18n } from '../i18n';
-import { CartItem } from './ecommerce/ShoppingCart';
+import { CartItem } from '../components/ecommerce/ShoppingCart';
 
 interface CheckoutModalProps {
     isOpen: boolean;

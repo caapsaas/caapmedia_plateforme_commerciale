@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { MOCK_CONTACTS } from '../constants';
 import { Contact, Subsidiary } from '../types';
-import IconPlus from './icons/IconPlus';
-import IconEdit from './icons/IconEdit';
-import IconDelete from './icons/IconDelete';
+import IconPlus from '../components/icons/IconPlus';
+import IconEdit from '../components/icons/IconEdit';
+import IconDelete from '../components/icons/IconDelete';
 import { useI18n } from '../i18n';
-import ClientFormModal from './configuration/ClientFormModal';
-import ConfirmationModal from './common/ConfirmationModal';
+import ClientFormModal from '../components/configuration/ClientFormModal';
+import ConfirmationModal from '../components/common/ConfirmationModal';
 import { exportToCsv } from '../utils/csvExporter';
 import { exportToPdf } from '../utils/pdfExporter';
-import IconPrint from './icons/IconPrint';
-import IconExport from './icons/IconExport';
-import IconPdf from './icons/IconPdf';
+import IconPrint from '../components/icons/IconPrint';
+import IconExport from '../components/icons/IconExport';
+import IconPdf from '../components/icons/IconPdf';
 
 interface ClientsProps {
     subsidiary: Subsidiary;

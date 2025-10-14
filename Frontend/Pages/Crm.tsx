@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { Subsidiary, Contact, Opportunity, Interaction, CrmTask, User, OpportunityStage, Lead, Account, Contract, CrmTaskStatus } from '../types';
 import { useI18n } from '../i18n';
-import CrmDashboard from './crm/CrmDashboard';
-import OpportunityPipeline from './crm/OpportunityPipeline';
-import ContactManagement from './crm/ContactManagement';
-import ActivitiesView from './crm/ActivitiesView';
-import LeadsManagement from './crm/LeadsManagement';
-import AccountManagement from './crm/AccountManagement';
-import ContractManagement from './crm/ContractManagement';
+import CrmDashboard from '../components/crm/CrmDashboard';
+import OpportunityPipeline from '../components/crm/OpportunityPipeline';
+import ContactManagement from '../components/crm/ContactManagement';
+import ActivitiesView from '../components/crm/ActivitiesView';
+import LeadsManagement from '../components/crm/LeadsManagement';
+import AccountManagement from '../components/crm/AccountManagement';
+import ContractManagement from '../components/crm/ContractManagement';
 
 type CrmView = 'dashboard' | 'leads' | 'accounts' | 'contacts' | 'pipeline' | 'activities' | 'contracts';
 

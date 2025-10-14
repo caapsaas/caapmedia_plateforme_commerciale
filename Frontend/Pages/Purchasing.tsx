@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { Subsidiary, PurchaseOrder, PurchaseOrderStatus, PaymentStatus, Product, PurchaseOrderItem } from '../types';
 import { useI18n } from '../i18n';
-import IconPlus from './icons/IconPlus';
-import IconEye from './icons/IconEye';
-import IconCheck from './icons/IconCheck';
-import IconDelete from './icons/IconDelete';
-import PurchaseOrderFormModal from './purchasing/PurchaseOrderFormModal';
-import PurchaseOrderDetailsModal from './purchasing/PurchaseOrderDetailsModal';
-import ConfirmationModal from './common/ConfirmationModal';
-import ReceiveItemsModal from './purchasing/ReceiveItemsModal';
-import RecordPaymentModal from './purchasing/RecordPaymentModal';
-import IconCoins from './icons/IconCoins';
+import IconPlus from '../components/icons/IconPlus';
+import IconEye from '../components/icons/IconEye';
+import IconCheck from '../components/icons/IconCheck';
+import IconDelete from '../components/icons/IconDelete';
+import PurchaseOrderFormModal from '../components/purchasing/PurchaseOrderFormModal';
+import PurchaseOrderDetailsModal from '../components/purchasing/PurchaseOrderDetailsModal';
+import ConfirmationModal from '../components/common/ConfirmationModal';
+import ReceiveItemsModal from '../components/purchasing/ReceiveItemsModal';
+import RecordPaymentModal from '../components/purchasing/RecordPaymentModal';
+import IconCoins from '../components/icons/IconCoins';
 
 interface PurchasingProps {
     subsidiary: Subsidiary;

@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useI18n } from '../i18n';
 import { MOCK_SUBSIDIARIES } from '../constants';
-import PeriodFilter from './filters/PeriodFilter';
-import DashboardView from './analytics/DashboardView';
-import SalesAnalysisView from './analytics/SalesAnalysisView';
-import PurchaseAnalysisView from './analytics/PurchaseAnalysisView';
-import BankView from './analytics/BankView';
-import SafeView from './analytics/SafeView';
+import PeriodFilter from '../components/filters/PeriodFilter';
+import DashboardView from '../components/analytics/DashboardView';
+import SalesAnalysisView from '../components/analytics/SalesAnalysisView';
+import PurchaseAnalysisView from '../components/analytics/PurchaseAnalysisView';
+import BankView from '../components/analytics/BankView';
+import SafeView from '../components/analytics/SafeView';
 import { useAppContext } from '../context/AppContext';
 
 type AnalyticsView = 'general' | 'dashboard' | 'sales' | 'purchases' | 'banks' | 'safe';

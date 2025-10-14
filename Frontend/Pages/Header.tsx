@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { UserRole } from '../types';
-import IconLogout from './icons/IconLogout';
+import IconLogout from '../components/icons/IconLogout';
 import { useI18n } from '../i18n';
-import IconGlobe from './icons/IconGlobe';
-import IconMenu from './icons/IconMenu';
+import IconGlobe from '../components/icons/IconGlobe';
+import IconMenu from '../components/icons/IconMenu';
 import { useAppContext } from '../context/AppContext';
 
 const Header: React.FC = () => {

@@ -1,19 +1,19 @@
 import React, { useState, useMemo } from 'react';
 import { Subsidiary, UserRole, Order, Product, Contact, PaymentStatus, OrderStatus, Sale } from '../types';
 import { useI18n } from '../i18n';
-import IconDocumentText from './icons/IconDocumentText';
+import IconDocumentText from '../components/icons/IconDocumentText';
 import BonDeLivraison from './BonDeLivraison';
-import SelectFilter from './filters/SelectFilter';
-import PeriodFilter from './filters/PeriodFilter';
-import IconInvoice from './icons/IconInvoice';
+import SelectFilter from '../components/filters/SelectFilter';
+import PeriodFilter from '../components/filters/PeriodFilter';
+import IconInvoice from '../components/icons/IconInvoice';
 import InvoiceModal from './InvoiceModal';
-import RecordPaymentModal from './sales/RecordPaymentModal';
-import OrderStatusUpdateModal from './sales/OrderStatusUpdateModal';
-import IconCoins from './icons/IconCoins';
-import IconEdit from './icons/IconEdit';
-import IconChevronDown from './icons/IconChevronDown';
-import IconExclamationTriangle from './icons/IconExclamationTriangle';
-import IconCheckCircle from './icons/IconCheckCircle';
+import RecordPaymentModal from '../components/sales/RecordPaymentModal';
+import OrderStatusUpdateModal from '../components/sales/OrderStatusUpdateModal';
+import IconCoins from '../components/icons/IconCoins';
+import IconEdit from '../components/icons/IconEdit';
+import IconChevronDown from '../components/icons/IconChevronDown';
+import IconExclamationTriangle from '../components/icons/IconExclamationTriangle';
+import IconCheckCircle from '../components/icons/IconCheckCircle';
 
 interface SalesProps {
     subsidiary: Subsidiary;

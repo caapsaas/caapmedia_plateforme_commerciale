@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
 import { Kpi, Subsidiary, StockChartData, SalesChartData, Product, Sale, Contact, User, UserRole, Order } from '../../types';
 import { categoryToKeyMap } from '../../constants';
-import KpiCard from '../KpiCard';
-import SalesChart from '../SalesChart';
-import StockChart from '../StockChart';
+import KpiCard from '../../Pages/KpiCard';
+import SalesChart from '../../Pages/SalesChart';
+import StockChart from '../../Pages/StockChart';
 import IconTrendingUp from '../icons/IconTrendingUp';
 import IconCurrency from '../icons/IconCurrency';
 import IconUsers from '../icons/IconUsers';

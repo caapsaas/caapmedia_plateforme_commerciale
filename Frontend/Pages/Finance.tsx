@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Subsidiary, SupplierDebt, FinancialTransaction, FinanceView, Order, Product, ExpenseRecord, Sale, Equipment } from '../types';
-import CreditManagement from './finance/CreditManagement';
-import TreasuryManagement from './finance/TreasuryManagement';
-import SupplierDebts from './finance/SupplierDebts';
-import ExpenseManagement from './finance/ExpenseManagement';
-import ProfitAndLossStatement from './finance/ProfitAndLossStatement';
+import CreditManagement from '../components/finance/CreditManagement';
+import TreasuryManagement from '../components/finance/TreasuryManagement';
+import SupplierDebts from '../components/finance/SupplierDebts';
+import ExpenseManagement from '../components/finance/ExpenseManagement';
+import ProfitAndLossStatement from '../components/finance/ProfitAndLossStatement';
 import { useI18n } from '../i18n';
-import IconDocumentChartBar from './icons/IconDocumentChartBar';
-import BalanceSheet from './finance/BalanceSheet';
-import IconScale from './icons/IconScale';
+import IconDocumentChartBar from '../components/icons/IconDocumentChartBar';
+import BalanceSheet from '../components/finance/BalanceSheet';
+import IconScale from '../components/icons/IconScale';
 
 interface FinanceProps {
     subsidiary: Subsidiary;

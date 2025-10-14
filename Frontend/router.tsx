@@ -5,21 +5,21 @@ import LoginPage from './LoginPage';
 import ECommercePage from './components/ecommerce/ECommercePage';
 import RealisationsPage from './components/ecommerce/RealisationsPage';
 import CustomerAccountPage from './components/customer/CustomerAccountPage';
-import Analytics from './components/Analytics';
+import Analytics from './Pages/Analytics';
 import Sales from './components/sales/Sales';
 import Crm from './Crm';
-import Stock from './components/Stock';
-import Purchasing from './components/Purchasing';
-import AiMarketing from './components/AiMarketing';
-import Caisse from './components/Caisse';
-import MesCommandes from './components/MesCommandes';
-import Finance from './components/Finance';
-import Configuration from './components/Configuration';
-import HrManagement from './components/HrManagement';
-import Secretariat from './components/Secretariat';
-import Production from './components/Production';
-import Maintenance from './components/Maintenance';
-import Equipements from './components/Equipements';
+import Stock from './Pages/Stock';
+import Purchasing from './Pages/Purchasing';
+import AiMarketing from './Pages/AiMarketing';
+import Caisse from './Pages/Caisse';
+import MesCommandes from './Pages/MesCommandes';
+import Finance from './Pages/Finance';
+import Configuration from './Pages/Configuration';
+import HrManagement from './Pages/HrManagement';
+import Secretariat from './Pages/Secretariat';
+import Production from './Pages/Production';
+import Maintenance from './Pages/Maintenance';
+import Equipements from './Pages/Equipements';
 
 // 1. La route racine (Root) qui contiendra notre layout principal
 const rootRoute = createRootRoute({

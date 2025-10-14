@@ -1,11 +1,11 @@
 
 import React, { useState } from 'react';
-import ProductManagement from './configuration/ProductManagement';
-import UserManagement from './configuration/UserManagement';
-import SupplierManagement from './configuration/SupplierManagement';
+import ProductManagement from '../components/configuration/ProductManagement';
+import UserManagement from '../components/configuration/UserManagement';
+import SupplierManagement from '../components/configuration/SupplierManagement';
 import { Subsidiary, Product, User, Supplier, TaxRate } from '../types';
 import { useI18n } from '../i18n';
-import TaxManagement from './configuration/TaxManagement';
+import TaxManagement from '../components/configuration/TaxManagement';
 
 type ConfigView = 'products' | 'users' | 'suppliers' | 'taxes';
 

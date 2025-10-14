@@ -1,25 +1,25 @@
 
 import React from 'react';
 import { View, UserRole } from '../types';
-import IconAnalytics from './icons/IconAnalytics';
-import IconSales from './icons/IconSales';
-import IconStock from './icons/IconStock';
-import IconAi from './icons/IconAi';
-import IconCrm from './icons/IconCrm';
-import IconCashRegister from './icons/IconCashRegister';
-import IconMyOrders from './icons/IconMyOrders';
-import IconFinance from './icons/IconFinance';
-import IconLogout from './icons/IconLogout';
-import IconSettings from './icons/IconSettings';
-import IconChevronDoubleLeft from './icons/IconChevronDoubleLeft';
-import IconBriefcase from './icons/IconBriefcase';
+import IconAnalytics from '../components/icons/IconAnalytics';
+import IconSales from '../components/icons/IconSales';
+import IconStock from '../components/icons/IconStock';
+import IconAi from '../components/icons/IconAi';
+import IconCrm from '../components/icons/IconCrm';
+import IconCashRegister from '../components/icons/IconCashRegister';
+import IconMyOrders from '../components/icons/IconMyOrders';
+import IconFinance from '../components/icons/IconFinance';
+import IconLogout from '../components/icons/IconLogout';
+import IconSettings from '../components/icons/IconSettings';
+import IconChevronDoubleLeft from '../components/icons/IconChevronDoubleLeft';
+import IconBriefcase from '../components/icons/IconBriefcase';
 import { useI18n } from '../i18n';
-import IconClipboardList from './icons/IconClipboardList';
-import IconTruck from './icons/IconTruck';
-import IconFactory from './icons/IconFactory';
-import IconMaintenance from './icons/IconMaintenance';
+import IconClipboardList from '../components/icons/IconClipboardList';
+import IconTruck from '../components/icons/IconTruck';
+import IconFactory from '../components/icons/IconFactory';
+import IconMaintenance from '../components/icons/IconMaintenance';
 import { useAppContext } from '../context/AppContext';
-import IconBuildingStorefront from './icons/IconBuildingStorefront';
+import IconBuildingStorefront from '../components/icons/IconBuildingStorefront';
 
 const NavLink: React.FC<{
   icon: React.ReactNode;

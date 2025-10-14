@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Subsidiary, Employee, Attendance, Payroll, Absence } from '../types';
 import { useI18n } from '../i18n';
-import EmployeeDatabase from './hr/EmployeeDatabase';
-import AttendanceManagement from './hr/AttendanceManagement';
-import PayrollManagement from './hr/PayrollManagement';
-import AbsenceManagement from './hr/AbsenceManagement';
+import EmployeeDatabase from '../components/hr/EmployeeDatabase';
+import AttendanceManagement from '../components/hr/AttendanceManagement';
+import PayrollManagement from '../components/hr/PayrollManagement';
+import AbsenceManagement from '../components/hr/AbsenceManagement';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
     getEmployees, saveEmployee, deleteEmployee,

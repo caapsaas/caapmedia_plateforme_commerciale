@@ -125,4 +125,11 @@ export class AuthController {
   async logout(@Request() req) {
     return this.authService.logout(req.user);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  async getProfile(@Request() req) {
+    // req.user est le payload du token JWT, qui contient l'ID de l'utilisateur (sub)
+    return this.authService.getProfile(req.user.sub);
+  }
 }

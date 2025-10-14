@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Subsidiary, Product, Order, OrderStatus, Contact, PaymentStatus, ProductionStatus } from '../types';
-import IconMinus from './icons/IconMinus';
-import IconDelete from './icons/IconDelete';
+import IconMinus from '../components/icons/IconMinus';
+import IconDelete from '../components/icons/IconDelete';
 import { useI18n } from '../i18n';
 // FIX: Import useAppContext to access global state.
 import { useAppContext } from '../context/AppContext';

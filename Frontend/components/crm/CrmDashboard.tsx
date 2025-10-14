@@ -1,7 +1,7 @@
 import React from 'react';
 import { Subsidiary, Contact, Opportunity, Interaction, CrmTask, User, OpportunityStage, Kpi, CrmTaskStatus } from '../../types';
 import { useI18n } from '../../i18n';
-import KpiCard from '../KpiCard';
+import KpiCard from '../../Pages/KpiCard';
 import IconCurrency from '../icons/IconCurrency';
 import IconTrendingUp from '../icons/IconTrendingUp';
 import IconBullhorn from '../icons/IconBullhorn';

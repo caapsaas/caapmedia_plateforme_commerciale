@@ -3,12 +3,12 @@
 import React, { useMemo } from 'react';
 import { Subsidiary, PurchaseOrder, Product, Kpi } from '../../types';
 import { useI18n } from '../../i18n';
-import KpiCard from '../KpiCard';
+import KpiCard from '../../Pages/KpiCard';
 import IconTrendingUp from '../icons/IconTrendingUp';
 import IconCurrency from '../icons/IconCurrency';
 import IconTruck from '../icons/IconTruck';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import PurchaseChart from '../PurchaseChart';
+import PurchaseChart from '../../Pages/PurchaseChart';
 
 
 interface PurchaseAnalysisViewProps {

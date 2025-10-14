@@ -1,8 +1,8 @@
 import React from 'react';
 import { Order, Subsidiary } from '../types';
 import { useI18n } from '../i18n';
-import IconPrint from './icons/IconPrint';
-import IconPdf from './icons/IconPdf';
+import IconPrint from '../components/icons/IconPrint';
+import IconPdf from '../components/icons/IconPdf';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
