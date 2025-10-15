@@ -1,9 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Subsidiary, Order, Product, ExpenseRecord, Sale, Equipment, SupplierDebt, FinancialTransaction, ExpenseCategory, PaymentStatus } from '../../types';
 import { useI18n } from '../../i18n';
-import { MOCK_TREASURY_ACCOUNTS } from '../../constants';
-// FIX: Import the newly added TAX_RATE constant.
-import { TAX_RATE } from '../../constants';
 
 interface BalanceSheetProps {
     subsidiary: Subsidiary;
@@ -17,7 +14,7 @@ interface BalanceSheetProps {
 }
 
 const BalanceSheet: React.FC<BalanceSheetProps> = ({
-    subsidiary, orders, products, expenseRecords, sales, equipment, supplierDebts
+    subsidiary, orders, products, expenseRecords, sales, equipment, supplierDebts, financialTransactions
 }) => {
     const { t, formatCurrency } = useI18n();
     const [asOfDate, setAsOfDate] = useState(new Date().toISOString().split('T')[0]);
@@ -27,10 +24,10 @@ const BalanceSheet: React.FC<BalanceSheetProps> = ({
         endDate.setHours(23, 59, 59, 999);
         const startOfYear = new Date(endDate.getFullYear(), 0, 1);
 
-        // ASSETS
-        const cash = MOCK_TREASURY_ACCOUNTS
-            .filter(acc => acc.subsidiaryId === subsidiary.id)
-            .reduce((sum, acc) => sum + acc.balance, 0);
+        // ACTIFS
+        const cash = financialTransactions
+            .filter(t => new Date(t.date) <= endDate)
+            .reduce((sum, t) => sum + (t.financialTransactionType === 'RECETTE' ? t.amount : -t.amount), 0);
 
         const accountsReceivable = orders
             .filter(o => o.subsidiaryId === subsidiary.id && new Date(o.date) <= endDate && o.paymentStatus !== PaymentStatus.PAID)
@@ -38,7 +35,7 @@ const BalanceSheet: React.FC<BalanceSheetProps> = ({
 
         const inventoryValue = products
             .filter(p => p.subsidiaryId === subsidiary.id)
-            .reduce((sum, p) => sum + (p.stock * p.price), 0);
+            .reduce((sum, p) => sum + (p.stock * p.price), 0); // Note: Utiliser le prix de revient serait plus juste
 
         const fixedAssets = equipment
             .filter(e => e.subsidiaryId === subsidiary.id && new Date(e.acquisitionDate) <= endDate)
@@ -46,34 +43,26 @@ const BalanceSheet: React.FC<BalanceSheetProps> = ({
 
         const totalAssets = cash + accountsReceivable + inventoryValue + fixedAssets;
 
-        // LIABILITIES & EQUITY
+        // PASSIFS & CAPITAUX PROPRES
         const accountsPayable = supplierDebts
             .filter(d => d.subsidiaryId === subsidiary.id && new Date(d.dueDate) <= endDate && d.status !== 'Payé')
             .reduce((sum, d) => sum + d.amount, 0);
         
         const shareCapital = subsidiary.shareCapital;
 
-        const filteredOrders = orders.filter(o => o.subsidiaryId === subsidiary.id && new Date(o.date) >= startOfYear && new Date(o.date) <= endDate);
-        const filteredSales = sales.filter(s => s.subsidiaryId === subsidiary.id && new Date(s.date) >= startOfYear && new Date(s.date) <= endDate);
-        const filteredExpenses = expenseRecords.filter(e => e.subsidiaryId === subsidiary.id && new Date(e.date) >= startOfYear && new Date(e.date) <= endDate);
-
-        const revenue = filteredOrders.reduce((s, o) => s + o.subtotal, 0) + filteredSales.reduce((s, sale) => s + (sale.totalPrice / (1 + TAX_RATE)), 0);
-        const cogs = filteredOrders.reduce((s, o) => s + o.items.reduce((itemSum, i) => itemSum + ((products.find(p => p.id === i.product.id)?.price || 0) * i.quantity), 0), 0) + filteredSales.reduce((s, sale) => s + ((products.find(p => p.name === sale.productName)?.price || 0) * sale.quantity), 0);
+        // Calcul simplifié du Résultat Net (devrait être dans un service partagé)
+        const revenue = orders.filter(o => new Date(o.date) >= startOfYear && new Date(o.date) <= endDate).reduce((s, o) => s + o.subtotal, 0);
+        const cogs = revenue * 0.6; // Estimation très simplifiée du coût des marchandises
         const grossProfit = revenue - cogs;
-        const operatingExpenses = filteredExpenses.filter(e => e.category !== ExpenseCategory.PURCHASE_COST).reduce((sum, expense) => sum + expense.amount, 0);
+        const operatingExpenses = expenseRecords.filter(e => new Date(e.date) >= startOfYear && new Date(e.date) <= endDate).reduce((sum, expense) => sum + expense.amount, 0);
         const operatingIncome = grossProfit - operatingExpenses;
         const tax = operatingIncome > 0 ? operatingIncome * 0.30 : 0;
         const netIncome = operatingIncome - tax;
         
-        const totalLiabilities = accountsPayable;
-        const totalEquity = shareCapital + netIncome;
-        const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
+        const totalLiabilitiesAndEquity = accountsPayable + shareCapital + netIncome;
 
-        return {
-            cash, accountsReceivable, inventoryValue, fixedAssets, totalAssets,
-            accountsPayable, shareCapital, netIncome, totalLiabilitiesAndEquity
-        };
-    }, [asOfDate, subsidiary.id, orders, products, expenseRecords, sales, equipment, supplierDebts, subsidiary.shareCapital]);
+        return { cash, accountsReceivable, inventoryValue, fixedAssets, totalAssets, accountsPayable, shareCapital, netIncome, totalLiabilitiesAndEquity };
+    }, [asOfDate, subsidiary.id, orders, products, expenseRecords, sales, equipment, supplierDebts, financialTransactions, subsidiary.shareCapital]);
 
     const DataRow: React.FC<{ label: string; value: number; isTotal?: boolean; indent?: boolean }> = ({ label, value, isTotal, indent }) => (
         <div className={`flex justify-between py-2 ${isTotal ? 'font-bold border-t pt-3 mt-2' : ''} ${indent ? 'pl-4' : ''}`}>

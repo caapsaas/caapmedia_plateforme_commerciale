@@ -23,7 +23,7 @@ const HrManagement: React.FC<HrManagementProps> = ({ subsidiary }) => {
     const [activeTab, setActiveTab] = useState<HrView>('employees');
 
     // --- Data Fetching ---
-    const { data: employees = [], isLoading: isLoadingEmployees } = useQuery<Employee[]>({ queryKey: ['employees', subsidiary.id], queryFn: () => getEmployees(subsidiary.id) });
+    const { data: employees = [], isLoading: isLoadingEmployees } = useQuery<Employee[]>({ queryKey: ['employees', subsidiary.id], queryFn: () => getEmployees() });
     const { data: attendances = [], isLoading: isLoadingAttendances } = useQuery<AttendanceRecord[]>({ queryKey: ['attendances', subsidiary.id], queryFn: () => getAttendanceRecords() });
     const { data: absences = [], isLoading: isLoadingAbsences } = useQuery<AbsenceRecord[]>({ queryKey: ['absences', subsidiary.id], queryFn: () => getAbsenceRecords() });
     const { data: payrolls = [], isLoading: isLoadingPayrolls } = useQuery<PayrollRecord[]>({ queryKey: ['payrolls', subsidiary.id], queryFn: () => getPayrollRecords() });

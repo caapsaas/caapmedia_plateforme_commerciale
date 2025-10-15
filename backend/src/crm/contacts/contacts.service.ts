@@ -181,6 +181,7 @@ export class ContactsService {
 
     return {
       access_token: this.jwtService.sign(payload),
+      contact: contact,
     };
   }
 

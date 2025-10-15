@@ -13,28 +13,30 @@ import IconPrint from '../components/icons/IconPrint';
 import IconExport from '../components/icons/IconExport';
 import IconPdf from '../components/icons/IconPdf';
 import { getContacts, saveContact, deleteContact } from '../services/apiCrm/apiCrm';
+import { useAppContext } from '../context/AppContext';
 
-interface ClientsProps {
-    subsidiary: Subsidiary;
-}
-
-const Clients: React.FC<ClientsProps> = ({ subsidiary }) => {
+const Clients: React.FC = () => {
     const { t } = useI18n();
+    const { state } = useAppContext();
+    const { currentSubsidiary: subsidiary } = state;
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingContact, setEditingContact] = useState<Contact | null>(null);
     const [deletingContact, setDeletingContact] = useState<Contact | null>(null);
 
-    const queryKey = ['contacts', subsidiary.id];
+    const queryKey = ['contacts', subsidiary?.id];
 
     // --- Data Fetching ---
     const { data: contacts = [], isLoading } = useQuery({
         queryKey: queryKey,
-        queryFn: () => getContacts(subsidiary.id)
+        queryFn: () => getContacts(subsidiary!.id)
     });
 
     // --- Mutations ---
-    const { mutate: saveMutation } = useMutation({ mutationFn: saveContact, onSuccess: () => queryClient.invalidateQueries({ queryKey }) });
+    const { mutate: saveMutation } = useMutation<Contact, Error, Omit<Contact, 'id'> & { id?: string }>({ 
+        mutationFn: saveContact, 
+        onSuccess: () => queryClient.invalidateQueries({ queryKey }) 
+    });
     const { mutate: deleteMutation } = useMutation({ mutationFn: deleteContact, onSuccess: () => queryClient.invalidateQueries({ queryKey }) });
 
     const handleOpenAddModal = () => {
@@ -58,7 +60,7 @@ const Clients: React.FC<ClientsProps> = ({ subsidiary }) => {
     };
 
     const handleSaveContact = (contactData: Omit<Contact, 'id' | 'subsidiaryId'> & { id?: string }) => {
-        saveMutation(contactData);
+        saveMutation({ ...contactData, subsidiaryId: subsidiary!.id });
         handleCloseModals();
     };
 
@@ -68,6 +70,10 @@ const Clients: React.FC<ClientsProps> = ({ subsidiary }) => {
             handleCloseModals();
         }
     };
+
+    if (!subsidiary) {
+        return <div className="p-6 text-center">{t('common.loading')}</div>;
+    }
 
     const handlePrint = () => window.print();
 

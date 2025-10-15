@@ -1,43 +1,62 @@
-import React from 'react';
-import { MOCK_TREASURY_ACCOUNTS } from '../../constants';
-import { FinancialTransaction, Subsidiary } from '../../types';
+import React, { useState, useMemo } from 'react';
+import { FinancialTransaction, Subsidiary, TreasuryAccount, TransactionType, TransactionStatus } from '../../types';
 import { useI18n } from '../../i18n';
 import { exportToCsv } from '../../utils/csvExporter';
 import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getTreasuryAccounts, getFinancialTransactions, createIncomeTransaction, createExpenseTransaction } from '../../services/apiFinance/apiTreasury';
+import TransactionFormModal, { TransactionFormData } from './TransactionFormModal';
 
 interface TreasuryManagementProps {
     subsidiary: Subsidiary;
-    financialTransactions: FinancialTransaction[];
 }
 
-const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary, financialTransactions: allTransactions }) => {
+const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) => {
     const { t, formatCurrency } = useI18n();
-    const treasuryAccounts = MOCK_TREASURY_ACCOUNTS.filter(a => a.subsidiaryId === subsidiary.id);
-    const transactions = allTransactions.filter(t => t.subsidiaryId === subsidiary.id);
+    const queryClient = useQueryClient();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalType, setModalType] = useState<TransactionType>('DEPENSE');
 
-    const getStatusClass = (status: FinancialTransaction['status']) => {
+    const queryKey = (key: string) => [key, subsidiary.id];
+
+    const { data: treasuryAccounts = [], isLoading: l1 } = useQuery<TreasuryAccount[]>({ queryKey: queryKey('treasuryAccounts'), queryFn: getTreasuryAccounts });
+    const { data: transactions = [], isLoading: l2 } = useQuery<FinancialTransaction[]>({ queryKey: queryKey('financialTransactions'), queryFn: getFinancialTransactions });
+
+    const { mutate: saveTransaction } = useMutation({
+        mutationFn: (data: { formData: TransactionFormData; type: TransactionType }) => {
+            const transactionData = {
+                ...data.formData,
+                transactionDate: data.formData.date, // Map date to transactionDate
+                status: TransactionStatus.PENDING,
+            };
+            return data.type === 'RECETTE' ? createIncomeTransaction(transactionData) : createExpenseTransaction(transactionData);
+        },
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('financialTransactions') }),
+    });
+
+    const getStatusClass = (status: TransactionStatus) => {
         switch (status) {
-            case 'Validé': return 'bg-green-100 text-green-800';
-            case 'En attente': return 'bg-yellow-100 text-yellow-800';
+            case TransactionStatus.VALIDATED: return 'bg-green-100 text-green-800';
+            case TransactionStatus.PENDING: return 'bg-yellow-100 text-yellow-800';
             default: return 'bg-slate-100 text-slate-800';
         }
     }
     
-    const getTranslatedStatus = (status: FinancialTransaction['status']) => {
+    const getTranslatedStatus = (status: TransactionStatus) => {
         switch (status) {
-            case 'Validé': return t('treasury.statusValidated');
-            case 'En attente': return t('treasury.statusPending');
+            case TransactionStatus.VALIDATED: return t('treasury.statusValidated');
+            case TransactionStatus.PENDING: return t('treasury.statusPending');
             default: return status;
         }
     }
     
-    const getTranslatedType = (type: FinancialTransaction['type']) => {
+    const getTranslatedType = (type: TransactionType) => {
         switch (type) {
-            case 'Recette': return t('treasury.typeIncome');
-            case 'Dépense': return t('treasury.typeExpense');
+            case 'RECETTE': return t('treasury.typeIncome');
+            case 'DEPENSE': return t('treasury.typeExpense');
             default: return type;
         }
     }
@@ -46,16 +65,16 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary, fin
 
     const handleExport = () => {
         const headers = [
-            { key: 'date', label: t('treasury.date') },
+            { key: 'transactionDate', label: t('treasury.date') },
             { key: 'description', label: t('treasury.description') },
-            { key: 'account', label: t('treasury.account') },
-            { key: 'type', label: t('treasury.type') },
+            { key: 'treasuryAccountName', label: t('treasury.account') },
+            { key: 'financialTransactionType', label: t('treasury.type') },
             { key: 'amount', label: t('treasury.amount') },
             { key: 'status', label: t('treasury.status') },
         ];
         const data = transactions.map(tx => ({
             ...tx,
-            type: getTranslatedType(tx.type),
+            financialTransactionType: getTranslatedType(tx.financialTransactionType),
             status: getTranslatedStatus(tx.status),
         }));
         exportToCsv('transactions_tresorerie', headers, data);
@@ -63,21 +82,37 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary, fin
 
     const handleExportPdf = () => {
         const headers = [
-            { key: 'date', label: t('treasury.date') },
+            { key: 'transactionDate', label: t('treasury.date') },
             { key: 'description', label: t('treasury.description') },
-            { key: 'account', label: t('treasury.account') },
-            { key: 'type', label: t('treasury.type') },
+            { key: 'treasuryAccountName', label: t('treasury.account') },
+            { key: 'financialTransactionType', label: t('treasury.type') },
             { key: 'amount', label: t('treasury.amount') },
             { key: 'status', label: t('treasury.status') },
         ];
         const data = transactions.map(tx => ({
             ...tx,
-            type: getTranslatedType(tx.type),
+            financialTransactionType: getTranslatedType(tx.financialTransactionType),
             status: getTranslatedStatus(tx.status),
-            amount: `${tx.type === 'Recette' ? '+' : '-'}${formatCurrency(tx.amount)}`
+            amount: `${tx.financialTransactionType === 'RECETTE' ? '+' : '-'}${formatCurrency(tx.amount)}`
         }));
         exportToPdf(t('treasury.recentTransactions'), headers, data, 'tresorerie');
     };
+
+    const handleOpenModal = (type: TransactionType) => {
+        setModalType(type);
+        setIsModalOpen(true);
+    };
+
+    const handleSaveTransaction = (formData: TransactionFormData, type: TransactionType) => {
+        saveTransaction({ formData, type });
+        setIsModalOpen(false);
+    };
+
+    const isLoading = l1 || l2;
+
+    if (isLoading) {
+        return <div className="p-6 text-center">{t('common.loading')}</div>;
+    }
 
     return (
         <div className="space-y-6">
@@ -94,8 +129,8 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary, fin
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-semibold text-slate-800">{t('treasury.recentTransactions')}</h3>
                     <div className="flex flex-wrap items-center gap-2 no-print">
-                         <button className="px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-md hover:bg-red-600 transition-colors">{t('treasury.addExpense')}</button>
-                         <button className="px-4 py-2 bg-green-500 text-white text-sm font-semibold rounded-md hover:bg-green-600 transition-colors">{t('treasury.addIncome')}</button>
+                         <button onClick={() => handleOpenModal('DEPENSE')} className="px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-md hover:bg-red-600 transition-colors">{t('treasury.addExpense')}</button>
+                         <button onClick={() => handleOpenModal('RECETTE')} className="px-4 py-2 bg-green-500 text-white text-sm font-semibold rounded-md hover:bg-green-600 transition-colors">{t('treasury.addIncome')}</button>
                          <button onClick={handlePrint} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
                             <IconPrint className="h-4 w-4" />
                             <span>{t('common.print')}</span>
@@ -125,12 +160,12 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary, fin
                         <tbody>
                             {transactions.map((tx) => (
                                 <tr key={tx.id} className="bg-white border-b hover:bg-slate-50">
-                                    <td className="px-6 py-4">{tx.date}</td>
+                                    <td className="px-6 py-4">{new Date(tx.date).toLocaleDateString()}</td>
                                     <td className="px-6 py-4 font-medium text-slate-900">{tx.description}</td>
-                                    <td className="px-6 py-4">{tx.account}</td>
-                                    <td className={`px-6 py-4 font-semibold ${tx.type === 'Recette' ? 'text-green-600' : 'text-red-600'}`}>{getTranslatedType(tx.type)}</td>
-                                    <td className={`px-6 py-4 text-right font-bold ${tx.type === 'Recette' ? 'text-green-700' : 'text-red-700'}`}>
-                                        {tx.type === 'Recette' ? '+' : '-'}{formatCurrency(tx.amount)}
+                                    <td className="px-6 py-4">{treasuryAccounts.find(a => a.id === tx.treasuryAccountId)?.name}</td>
+                                    <td className={`px-6 py-4 font-semibold ${tx.financialTransactionType === 'RECETTE' ? 'text-green-600' : 'text-red-600'}`}>{getTranslatedType(tx.financialTransactionType)}</td>
+                                    <td className={`px-6 py-4 text-right font-bold ${tx.financialTransactionType === 'RECETTE' ? 'text-green-700' : 'text-red-700'}`}>
+                                        {tx.financialTransactionType === 'RECETTE' ? '+' : '-'}{formatCurrency(tx.amount)}
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(tx.status)}`}>
@@ -143,6 +178,13 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary, fin
                     </table>
                 </div>
             </div>
+            <TransactionFormModal 
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSave={handleSaveTransaction}
+                transactionType={modalType}
+                accounts={treasuryAccounts}
+            />
         </div>
     );
 };

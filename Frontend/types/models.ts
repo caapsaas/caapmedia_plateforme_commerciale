@@ -60,7 +60,7 @@ export interface Subsidiary {
   email: string;
   ifu: string; // Identifiant Financier Unique
   rccm: string; // Registre du Commerce et du Crédit Mobilier
-  bankDetails: {
+  bankDetails?: { // Rendu optionnel pour correspondre au schéma
     bankName: string;
     accountNumber: string;
     swift: string;
@@ -323,17 +323,18 @@ export enum TransactionStatus {
   PENDING = 'En attente',
 }
 
+export type TransactionType = 'RECETTE' | 'DEPENSE';
+
 export interface FinancialTransaction {
   id: string;
   date: string;
   description: string;
-  type: 'Recette' | 'Dépense';
   amount: number;
   treasuryAccountId: string;
   status: TransactionStatus;
   subsidiaryId: string;
   relatedDocumentId?: string; // e.g., PO-2024-001 or CMD-001
-  financialTransactionType: 'RECETTE' | 'DEPENSE';
+  financialTransactionType: TransactionType;
 }
 
 export interface SupplierDebt {
