@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Subsidiary, Employee, AttendanceRecord, AttendanceStatus } from '../../types';
 import { useI18n } from '../../i18n';
-import { MOCK_EMPLOYEES } from '../../constants';
 import SignaturePad from '../common/SignaturePad';
 
 interface AttendanceActionModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: (record: AttendanceRecord) => void;
+    employees: Employee[];
     subsidiary: Subsidiary;
 }
 
-const AttendanceActionModal: React.FC<AttendanceActionModalProps> = ({ isOpen, onClose, onSave, subsidiary }) => {
+const AttendanceActionModal: React.FC<AttendanceActionModalProps> = ({ isOpen, onClose, onSave, employees, subsidiary }) => {
     const { t } = useI18n();
-    const [employees] = useState(MOCK_EMPLOYEES.filter(e => e.subsidiaryId === subsidiary.id));
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [status, setStatus] = useState<AttendanceStatus>(AttendanceStatus.PRESENT);

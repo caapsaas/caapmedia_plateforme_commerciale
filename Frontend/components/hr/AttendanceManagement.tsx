@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { MOCK_ATTENDANCE } from '../../constants';
-import { Subsidiary, AttendanceRecord, AttendanceStatus } from '../../types';
+import { Subsidiary, AttendanceRecord, AttendanceStatus, Employee } from '../../types';
 import { useI18n } from '../../i18n';
 import IconPlus from '../icons/IconPlus';
 import IconSignature from '../icons/IconSignature';
@@ -11,14 +10,17 @@ import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
+import { UseMutateFunction } from '@tanstack/react-query';
 
 interface AttendanceManagementProps {
     subsidiary: Subsidiary;
+    employees: Employee[];
+    attendances: AttendanceRecord[];
+    onSave: UseMutateFunction<AttendanceRecord, Error, Partial<AttendanceRecord>, unknown>;
 }
 
-const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary }) => {
+const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary, employees, attendances, onSave }) => {
     const { t } = useI18n();
-    const [attendanceRecords, setAttendanceRecords] = useState(MOCK_ATTENDANCE.filter(a => a.subsidiaryId === subsidiary.id));
     const [viewingSignature, setViewingSignature] = useState<{name: string, signature: string} | null>(null);
     const [isActionModalOpen, setIsActionModalOpen] = useState(false);
 
@@ -32,14 +34,8 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary 
         }
     };
     
-    const handleSaveAttendance = (record: AttendanceRecord) => {
-        const existingIndex = attendanceRecords.findIndex(r => r.employeeId === record.employeeId && r.date === record.date);
-
-        if (existingIndex > -1) {
-            setAttendanceRecords(prev => prev.map((r, index) => index === existingIndex ? record : r));
-        } else {
-            setAttendanceRecords(prev => [record, ...prev]);
-        }
+    const handleSaveAttendance = (record: Partial<AttendanceRecord>) => {
+        onSave(record);
         setIsActionModalOpen(false);
     };
 
@@ -53,7 +49,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary 
             { key: 'arrivalTime', label: t('hr.attendance.arrivalTime') },
             { key: 'departureTime', label: t('hr.attendance.departureTime') },
         ];
-        const data = attendanceRecords.map(r => ({ ...r, status: t(`hr.attendance.status_${r.status}`) }));
+        const data = attendances.map(r => ({ ...r, status: t(`hr.attendance.status_${r.status}`) }));
         exportToCsv('registre_presences', headers, data);
     };
 
@@ -65,7 +61,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary 
             { key: 'arrivalTime', label: t('hr.attendance.arrivalTime') },
             { key: 'departureTime', label: t('hr.attendance.departureTime') },
         ];
-        const data = attendanceRecords.map(r => ({ ...r, status: t(`hr.attendance.status_${r.status}`) }));
+        const data = attendances.map(r => ({ ...r, status: t(`hr.attendance.status_${r.status}`) }));
         exportToPdf(t('hr.attendance.title'), headers, data, 'presences');
     };
 
@@ -106,7 +102,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary 
                         </tr>
                     </thead>
                     <tbody>
-                        {attendanceRecords.map((record) => (
+                        {attendances.map((record) => (
                             <tr key={record.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{record.employeeName}</td>
                                 <td className="px-6 py-4">{record.date}</td>
@@ -148,6 +144,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary 
                     isOpen={isActionModalOpen}
                     onClose={() => setIsActionModalOpen(false)}
                     onSave={handleSaveAttendance}
+                    employees={employees}
                     subsidiary={subsidiary}
                 />
             )}

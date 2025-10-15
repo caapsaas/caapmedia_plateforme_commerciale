@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
-import { Subsidiary, Employee, Attendance, Payroll, Absence } from '../types';
+import { Subsidiary, Employee, AttendanceRecord, PayrollRecord, AbsenceRecord } from '../types';
 import { useI18n } from '../i18n';
 import EmployeeDatabase from '../components/hr/EmployeeDatabase';
 import AttendanceManagement from '../components/hr/AttendanceManagement';
 import PayrollManagement from '../components/hr/PayrollManagement';
 import AbsenceManagement from '../components/hr/AbsenceManagement';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-    getEmployees, saveEmployee, deleteEmployee,
-    getAttendances, saveAttendance,
-    getAbsences, saveAbsence, deleteAbsence,
-    getPayrolls, processPayroll
-} from '../services/apihr/apiPayroll';
+import { getAttendanceRecords, saveAttendanceRecord } from '../services/apihr/apiAttendance';
+import { getAbsenceRecords, saveAbsenceRecord, deleteAbsenceRecord } from '../services/apihr/apiAbsences';
+import { getPayrollRecords, processPayroll } from '../services/apihr/apiPayroll';
+import { getEmployees, saveEmployee, deleteEmployee } from '../services/apihr/apiEmployees';
 
 type HrView = 'employees' | 'attendance' | 'payroll' | 'absences';
 
@@ -26,17 +24,17 @@ const HrManagement: React.FC<HrManagementProps> = ({ subsidiary }) => {
 
     // --- Data Fetching ---
     const { data: employees = [], isLoading: isLoadingEmployees } = useQuery<Employee[]>({ queryKey: ['employees', subsidiary.id], queryFn: () => getEmployees(subsidiary.id) });
-    const { data: attendances = [], isLoading: isLoadingAttendances } = useQuery<Attendance[]>({ queryKey: ['attendances', subsidiary.id], queryFn: () => getAttendances(subsidiary.id) });
-    const { data: absences = [], isLoading: isLoadingAbsences } = useQuery<Absence[]>({ queryKey: ['absences', subsidiary.id], queryFn: () => getAbsences(subsidiary.id) });
-    const { data: payrolls = [], isLoading: isLoadingPayrolls } = useQuery<Payroll[]>({ queryKey: ['payrolls', subsidiary.id], queryFn: () => getPayrolls(subsidiary.id) });
+    const { data: attendances = [], isLoading: isLoadingAttendances } = useQuery<AttendanceRecord[]>({ queryKey: ['attendances', subsidiary.id], queryFn: () => getAttendanceRecords() });
+    const { data: absences = [], isLoading: isLoadingAbsences } = useQuery<AbsenceRecord[]>({ queryKey: ['absences', subsidiary.id], queryFn: () => getAbsenceRecords() });
+    const { data: payrolls = [], isLoading: isLoadingPayrolls } = useQuery<PayrollRecord[]>({ queryKey: ['payrolls', subsidiary.id], queryFn: () => getPayrollRecords() });
 
     // --- Mutations ---
-    const { mutate: onSaveEmployee } = useMutation({ mutationFn: saveEmployee, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['employees'] }) });
-    const { mutate: onDeleteEmployee } = useMutation({ mutationFn: deleteEmployee, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['employees'] }) });
-    const { mutate: onSaveAttendance } = useMutation({ mutationFn: saveAttendance, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['attendances'] }) });
-    const { mutate: onSaveAbsence } = useMutation({ mutationFn: saveAbsence, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['absences'] }) });
-    const { mutate: onDeleteAbsence } = useMutation({ mutationFn: deleteAbsence, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['absences'] }) });
-    const { mutate: onProcessPayroll } = useMutation({ mutationFn: processPayroll, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['payrolls'] }) });
+    const { mutate: onSaveEmployee } = useMutation({ mutationFn: saveEmployee, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['employees', subsidiary.id] }) });
+    const { mutate: onDeleteEmployee } = useMutation({ mutationFn: deleteEmployee, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['employees', subsidiary.id] }) });
+    const { mutate: onSaveAttendance } = useMutation({ mutationFn: saveAttendanceRecord, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['attendances', subsidiary.id] }) });
+    const { mutate: onSaveAbsence } = useMutation({ mutationFn: saveAbsenceRecord, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['absences', subsidiary.id] }) });
+    const { mutate: onDeleteAbsence } = useMutation({ mutationFn: deleteAbsenceRecord, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['absences', subsidiary.id] }) });
+    const { mutate: onProcessPayroll } = useMutation({ mutationFn: processPayroll, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['payrolls', subsidiary.id] }) });
 
     const isLoading = isLoadingEmployees || isLoadingAttendances || isLoadingAbsences || isLoadingPayrolls;
 

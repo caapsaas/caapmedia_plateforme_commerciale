@@ -50,13 +50,13 @@ const Crm: React.FC<CrmProps> = (props) => {
 
     // --- Mutations avec React Query ---
     const invalidateCrmQueries = () => {
-        queryClient.invalidateQueries({ queryKey: ['contacts'] });
-        queryClient.invalidateQueries({ queryKey: ['opportunities'] });
-        queryClient.invalidateQueries({ queryKey: ['leads'] });
-        queryClient.invalidateQueries({ queryKey: ['accounts'] });
-        queryClient.invalidateQueries({ queryKey: ['contracts'] });
-        queryClient.invalidateQueries({ queryKey: ['crmTasks'] });
-        queryClient.invalidateQueries({ queryKey: ['interactions'] });
+        queryClient.invalidateQueries({ queryKey: queryKey('contacts') });
+        queryClient.invalidateQueries({ queryKey: queryKey('opportunities') });
+        queryClient.invalidateQueries({ queryKey: queryKey('leads') });
+        queryClient.invalidateQueries({ queryKey: queryKey('accounts') });
+        queryClient.invalidateQueries({ queryKey: queryKey('contracts') });
+        queryClient.invalidateQueries({ queryKey: queryKey('crmTasks') });
+        queryClient.invalidateQueries({ queryKey: queryKey('interactions') });
     };
 
     const { mutate: onSaveContact } = useMutation({ mutationFn: saveContact, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('contacts') }) });

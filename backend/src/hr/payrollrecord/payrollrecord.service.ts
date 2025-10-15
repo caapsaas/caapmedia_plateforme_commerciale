@@ -1,7 +1,7 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { CreatePayrollRecordDto, UpdatePayrollRecordDto } from './dto/payrollrecord.dto';
-import { PayrollRecord } from '@prisma/client';
+import { PayrollRecord, EmployeeStatus, PayrollStatus } from '@prisma/client';
 
 @Injectable()
 export class PayrollRecordService {
@@ -61,5 +61,67 @@ export class PayrollRecordService {
   async remove(id: string): Promise<PayrollRecord> {
     await this.findOne(id); // Vérifie l'existence
     return this.prisma.payrollRecord.delete({ where: { id } });
+  }
+
+  /**
+   * Traite la paie pour une filiale et une période données.
+   * Crée des fiches de paie pour tous les employés actifs qui n'en ont pas encore pour cette période.
+   * @param subsidiaryId L'ID de la filiale.
+   * @param period La période de paie (ex: "YYYY-MM").
+   */
+  async processPayroll(subsidiaryId: string, period: string): Promise<{ count: number }> {
+    this.logger.log(`Processing payroll for subsidiary ${subsidiaryId} for period ${period}`);
+
+    // 1. Récupérer les employés actifs de la filiale
+    const activeEmployees = await this.prisma.employee.findMany({
+      where: {
+        subsidiaryId,
+        status: EmployeeStatus.ACTIVE,
+      },
+    });
+
+    if (activeEmployees.length === 0) {
+      this.logger.warn(`No active employees found for subsidiary ${subsidiaryId}.`);
+      return { count: 0 };
+    }
+
+    // 2. Récupérer les fiches de paie déjà existantes pour cette période
+    const existingPayrolls = await this.prisma.payrollRecord.findMany({
+      where: {
+        subsidiaryId,
+        payrollPeriod: period,
+        employeeId: { in: activeEmployees.map(e => e.id) },
+      },
+      select: { employeeId: true },
+    });
+    const existingEmployeeIds = new Set(existingPayrolls.map(p => p.employeeId));
+
+    // 3. Filtrer les employés qui n'ont pas encore de fiche de paie
+    const employeesToProcess = activeEmployees.filter(e => !existingEmployeeIds.has(e.id));
+
+    if (employeesToProcess.length === 0) {
+      this.logger.log(`All active employees already have a payroll record for period ${period}.`);
+      return { count: 0 };
+    }
+
+    // 4. Créer les nouvelles fiches de paie en une seule transaction
+    const newPayrollsData = employeesToProcess.map(employee => ({
+      employeeId: employee.id,
+      employeeName: `${employee.firstName} ${employee.lastName}`,
+      payrollPeriod: period,
+      grossSalary: employee.baseSalary, // Utilise le salaire de base de l'employé
+      deductions: 0, // Initialisé à 0
+      netSalary: employee.baseSalary, // Initialisé au salaire de base
+      status: PayrollStatus.PENDING,
+      subsidiaryId: subsidiaryId,
+    }));
+
+    const result = await this.prisma.payrollRecord.createMany({
+      data: newPayrollsData,
+      skipDuplicates: true, // Au cas où, pour éviter les erreurs de concurrence
+    });
+
+    this.logger.log(`Successfully created ${result.count} new payroll records.`);
+    return { count: result.count };
   }
 }
