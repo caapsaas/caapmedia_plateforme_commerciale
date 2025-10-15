@@ -6,23 +6,45 @@ import { Subsidiary, User, UserRole } from '../../types';
 import { useI18n } from '../../i18n';
 import UserFormModal from './UserFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAppContext } from '../../context/AppContext';
+import { getAllUsers, registerUser, updateUser, deleteUser, UserRegisterData, UserUpdateData } from '../../services/apiCommon/apiUserAuth';
+import { getSubsidiaries } from '../../services/apiCommon/apiSubsidiaries';
 
-interface UserManagementProps {
-    subsidiary: Subsidiary;
-    users: User[];
-    allSubsidiaries: Subsidiary[];
-    onSave: (userData: Omit<User, 'id'> & { id?: string }) => void;
-    onDelete: (id: string) => void;
-}
-
-const UserManagement: React.FC<UserManagementProps> = ({ subsidiary, users, allSubsidiaries, onSave, onDelete }) => {
+const UserManagement: React.FC = () => {
     const { t } = useI18n();
+    const { state } = useAppContext();
+    const { currentSubsidiary: subsidiary } = state;
+    const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [deletingUser, setDeletingUser] = useState<User | null>(null);
 
-    const subsidiaryUsers = users.filter(u => u.subsidiaryId === subsidiary.id);
+    // --- Data Fetching ---
+    const { data: users = [], isLoading: isLoadingUsers } = useQuery<User[]>({
+        queryKey: ['users', subsidiary?.id],
+        queryFn: getAllUsers,
+        enabled: !!subsidiary,
+    });
+    const { data: allSubsidiaries = [], isLoading: isLoadingSubs } = useQuery<Subsidiary[]>({
+        queryKey: ['subsidiaries'],
+        queryFn: getSubsidiaries,
+    });
 
+    // --- Mutations ---
+    const { mutate: createUser } = useMutation({
+        mutationFn: (data: UserRegisterData) => registerUser(data),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users', subsidiary?.id] })
+    });
+    const { mutate: editUser } = useMutation({
+        mutationFn: ({ id, data }: { id: string, data: UserUpdateData }) => updateUser(id, data),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users', subsidiary?.id] })
+    });
+    const { mutate: onDelete } = useMutation({ mutationFn: deleteUser, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users', subsidiary?.id] }) });
+
+    // Le filtrage se fait maintenant sur les données récupérées localement
+    const subsidiaryUsers = users.filter(u => u.subsidiaryId === subsidiary?.id);
+    
     const handleOpenAddModal = () => {
         setEditingUser(null);
         setIsModalOpen(true);
@@ -44,7 +66,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ subsidiary, users, allS
     };
 
     const handleSaveUser = (userData: Omit<User, 'id'> & { id?: string }) => {
-        onSave(userData);
+        const { id, ...data } = userData;
+        if (id) {
+            editUser({ id, data });
+        } else {
+            createUser(data as UserRegisterData);
+        }
         handleCloseModals();
     };
 
@@ -54,6 +81,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ subsidiary, users, allS
             handleCloseModals();
         }
     };
+
+    if (!subsidiary || isLoadingUsers || isLoadingSubs) {
+        return <div className="p-6 text-center">{t('common.loading')}</div>;
+    }
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">

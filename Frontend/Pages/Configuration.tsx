@@ -4,65 +4,33 @@ import ProductManagement from '../components/configuration/ProductManagement';
 import UserManagement from '../components/configuration/UserManagement';
 import SupplierManagement from '../components/configuration/SupplierManagement';
 import ClientManagement from '../components/configuration/ClientManagement'; // Importer ClientManagement
-import { Subsidiary, Product, User, Supplier, TaxRate, Contact } from '../types';
+import { Subsidiary } from '../types';
 import { useI18n } from '../i18n';
 import TaxManagement from '../components/configuration/TaxManagement';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getContacts, saveContact, deleteContact } from '../services/apiCrm/apiCrm';
 
 type ConfigView = 'products' | 'users' | 'suppliers' | 'taxes' | 'clients';
 
 interface ConfigurationProps {
     subsidiary: Subsidiary;
-    users: User[];
-    suppliers: Supplier[];
-    onSaveUser: (userData: Omit<User, 'id'> & { id?: string }) => void;
-    onDeleteUser: (id: string) => void;
-    onSaveSupplier: (supplierData: Omit<Supplier, 'id' | 'subsidiaryId'> & { id?: string }) => void;
-    onDeleteSupplier: (id: string) => void;
-    onSaveTaxRate: (taxData: Omit<TaxRate, 'id'> & { id?: string }) => void;
-    onDeleteTaxRate: (id: string) => void;
 }
 
 const Configuration: React.FC<ConfigurationProps> = (props) => {
     const { t } = useI18n();
-    const queryClient = useQueryClient();
-    const [activeTab, setActiveTab] = useState<ConfigView>('clients');
-
-    // --- Data Fetching & Mutations for Clients ---
-    const { data: contacts = [], isLoading: isLoadingContacts } = useQuery<Contact[]>({
-        queryKey: ['contacts', props.subsidiary.id],
-        queryFn: () => getContacts(props.subsidiary.id)
-    });
-    const { mutate: onSaveContact } = useMutation<Contact, Error, Partial<Contact>>({ mutationFn: saveContact, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contacts', props.subsidiary.id] }) });
-    const { mutate: onDeleteContact } = useMutation<Contact, Error, string>({ mutationFn: deleteContact, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contacts', props.subsidiary.id] }) });
+    const [activeTab, setActiveTab] = useState<ConfigView>('products');
 
     const renderActiveView = () => {
         const { subsidiary } = props;
         const commonProps = { subsidiary };
         
-        // Afficher un chargement si les données des clients ne sont pas encore prêtes
-        if (activeTab === 'clients' && isLoadingContacts) return <div className="p-6 text-center">{t('common.loading')}</div>;
-
         switch (activeTab) {
             case 'products':
                 return <ProductManagement />;
             case 'users':
-                return <UserManagement 
-                            {...commonProps}
-                            users={props.users}
-                            onSave={props.onSaveUser}
-                            onDelete={props.onDeleteUser}
-                        />;
+                return <UserManagement />;
             case 'suppliers':
                 return <SupplierManagement />;
             case 'clients':
-                return <ClientManagement
-                            {...commonProps}
-                            contacts={contacts}
-                            onSave={onSaveContact}
-                            onDelete={onDeleteContact}
-                        />;
+                return <ClientManagement />;
             case 'taxes':
                 return <TaxManagement />;
             default:
