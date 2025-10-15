@@ -1,17 +1,18 @@
-import React, { useState, useMemo } from 'react';
-import { Subsidiary, Product, Order, OrderStatus, Contact, PaymentStatus, ProductionStatus } from '../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Subsidiary, Product, Order, Contact, TaxRate, OrderStatus, ProductionStatus, PaymentStatus } from '../types';
 import IconMinus from '../components/icons/IconMinus';
 import IconDelete from '../components/icons/IconDelete';
 import { useI18n } from '../i18n';
-// FIX: Import useAppContext to access global state.
-import { useAppContext } from '../context/AppContext';
+import { useQuery } from '@tanstack/react-query';
+import { getContacts } from '../services/apiCrm/apicontacts';
+import { getTaxes } from '../services/apiE-commerce/apitaxes';
+import SelectFilter from '../components/filters/SelectFilter';
 
 interface NewOrderProps {
     subsidiary: Subsidiary;
     products: Product[];
-    // FIX: Correct the type for onOrderPlaced to match the 'PLACE_ORDER' action payload.
-    onOrderPlaced: (newOrder: Omit<Order, 'id' | 'subsidiaryId' | 'status' | 'salesRepId' | 'paymentStatus' | 'amountPaid' | 'productionStatus' | 'productionHistory' | 'taxRateId' | 'taxRateValue'>) => void;
-    currentCustomer: Contact;
+    onOrderPlaced: (newOrder: Omit<Order, 'id' | 'subsidiaryId'>) => void;
+    selectedCustomer?: Contact; // Customer can be pre-selected
 }
 
 type CartItem = {
@@ -19,14 +20,19 @@ type CartItem = {
     quantity: number;
 };
 
-const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, onOrderPlaced, currentCustomer }) => {
+const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, onOrderPlaced, selectedCustomer }) => {
     const { t, formatCurrency } = useI18n();
-    // FIX: Get state from context to access tax rates.
-    const { state } = useAppContext();
     const [searchTerm, setSearchTerm] = useState('');
     const [cart, setCart] = useState<CartItem[]>([]);
     const [orderPlaced, setOrderPlaced] = useState(false);
     const [quantities, setQuantities] = useState<Record<string, number>>({});
+    const [selectedCustomerId, setSelectedCustomerId] = useState<string>(selectedCustomer?.id || '');
+
+    useEffect(() => {
+        if (selectedCustomer) {
+            setSelectedCustomerId(selectedCustomer.id);
+        }
+    }, [selectedCustomer]);
 
     const availableProducts = useMemo(() => 
         allProducts.filter(p => p.subsidiaryId === subsidiary.id),
@@ -40,6 +46,16 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
             && product.stock > 0
         ), [availableProducts, searchTerm]
     );
+
+    const { data: clients = [] } = useQuery<Contact[]>({
+        queryKey: ['contacts', subsidiary.id],
+        queryFn: getContacts,
+    });
+
+    const { data: taxRates = [] } = useQuery<TaxRate[]>({
+        queryKey: ['taxes'],
+        queryFn: getTaxes,
+    });
 
     const handleQuantityChange = (productId: string, quantity: number) => {
         const newQuantity = isNaN(quantity) ? 0 : quantity;
@@ -90,23 +106,21 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
         [cart]
     );
 
-    // FIX: Use default tax rate from context for calculations.
-    const defaultTaxRate = useMemo(() => state.taxRates.find(t => t.isDefault) || { rate: 0.1925 }, [state.taxRates]);
+    const defaultTaxRate = useMemo(() => taxRates.find(t => t.isDefault) || { rate: 0.1925, id: '' }, [taxRates]);
     const taxAmount = useMemo(() => subtotal * defaultTaxRate.rate, [subtotal, defaultTaxRate]);
     const totalAmount = useMemo(() => subtotal + taxAmount, [subtotal, taxAmount]);
 
     const handleSubmitOrder = () => {
-        if (!currentCustomer) return;
+        const customer = clients.find(c => c.id === selectedCustomerId);
+        if (!customer) return;
         
         const paymentDueDate = new Date();
         paymentDueDate.setDate(paymentDueDate.getDate() + 30);
 
-        // FIX: Create newOrderData without taxRateId and taxRateValue to match the expected type.
-        // The reducer will add these properties.
         const newOrderData = {
             date: new Date().toISOString().split('T')[0],
-            customerId: currentCustomer.id,
-            customerName: currentCustomer.name,
+            customerId: customer.id,
+            customerName: customer.contactName,
             items: cart.map(item => ({
                 product: item.product,
                 quantity: item.quantity,
@@ -115,15 +129,28 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
             subtotal,
             taxAmount,
             totalAmount,
+            taxRateId: defaultTaxRate.id,
+            taxRateValue: defaultTaxRate.rate,
             paymentDueDate: paymentDueDate.toISOString().split('T')[0],
+            // Ajout des propriétés manquantes pour correspondre au type Order
+            status: OrderStatus.NEW,
+            productionStatus: ProductionStatus.PREPRESS,
+            paymentStatus: PaymentStatus.UNPAID,
+            amountPaid: 0,
+            productionHistory: [{ status: ProductionStatus.PREPRESS, date: new Date().toISOString() }],
         };
         
         onOrderPlaced(newOrderData);
 
         setOrderPlaced(true);
         setCart([]);
-        setTimeout(() => setOrderPlaced(false), 4000);
+        setTimeout(() => {
+            setOrderPlaced(false);
+            setSelectedCustomerId(selectedCustomer?.id || '');
+        }, 4000);
     };
+
+    const clientOptions = useMemo(() => clients.map(c => ({ value: c.id, label: `${c.contactName} (${c.company || 'N/A'})`})), [clients]);
 
     return (
         <div className="grid grid-cols-12 gap-6">
@@ -157,7 +184,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                                 {filteredProducts.map(product => (
                                     <tr key={product.id}>
                                         <td className="px-4 py-3">
-                                            <img src={product.imageUrls?.[0] || 'https://via.placeholder.com/100'} alt={product.name} className="h-12 w-12 object-cover rounded-md"/>
+                                            <img src={product.productImages?.[0]?.imageUrl || 'https://via.placeholder.com/100'} alt={product.name} className="h-12 w-12 object-cover rounded-md"/>
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="font-semibold text-slate-800">{product.name}</div>
@@ -189,6 +216,18 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
             </div>
 
             <div className="col-span-12 lg:col-span-5 bg-white p-6 rounded-xl shadow-md flex flex-col">
+                {!selectedCustomer && (
+                    <div className="mb-4">
+                        <SelectFilter 
+                            label={t('filter.client')} 
+                            name="customer"
+                            value={selectedCustomerId}
+                            onChange={(e) => setSelectedCustomerId(e.target.value)}
+                            options={clientOptions}
+                            placeholder={t('cashRegister.clientSection.selectAdd')}
+                        />
+                    </div>
+                )}
                 <h3 className="text-xl font-bold text-slate-800 border-b pb-2 mb-4">{t('newOrder.orderSummary')}</h3>
                 <div className="flex-grow overflow-y-auto">
                     {orderPlaced ? (
@@ -228,7 +267,6 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                         <span>{formatCurrency(subtotal)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                        {/* FIX: Use dynamic tax rate from context */}
                         <span>{t('invoice.tax')} ({(defaultTaxRate.rate * 100).toFixed(2)}%)</span>
                         <span>{formatCurrency(taxAmount)}</span>
                     </div>
@@ -238,7 +276,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                     </div>
                     <button 
                         onClick={handleSubmitOrder}
-                        disabled={cart.length === 0 || orderPlaced}
+                        disabled={cart.length === 0 || orderPlaced || !selectedCustomerId}
                         className="w-full text-center px-4 py-3 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                     >
                         {t('newOrder.submitOrder')}

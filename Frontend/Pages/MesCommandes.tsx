@@ -1,100 +1,108 @@
-import React, { useState, useMemo } from 'react';
-import { Order, OrderStatus, Subsidiary, Product, Contact, User, UserRole, PaymentStatus } from '../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Order, OrderStatus, Product, Contact } from '../types';
 import { useI18n } from '../i18n';
 import NewOrder from './NewOrder';
 import BonDeLivraison from './BonDeLivraison';
 import IconDocumentText from '../components/icons/IconDocumentText';
 import SelectFilter from '../components/filters/SelectFilter';
 import PeriodFilter from '../components/filters/PeriodFilter';
+import { useAppContext } from '../context/AppContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getOrders, createOrderBySalesRep, FindAllOrdersDto } from '../services/apiE-commerce/apiOrders';
+import { getProducts } from '../services/apiE-commerce/apiProducts';
+import { getContacts } from '../services/apiCrm/apicontacts';
 
-interface MesCommandesProps {
-    subsidiary: Subsidiary;
-    orders: Order[];
-    products: Product[];
-    contacts: Contact[];
-    // FIX: Correct the type for onPlaceOrder to match the 'PLACE_ORDER' action payload.
-    onPlaceOrder: (newOrder: Omit<Order, 'id' | 'subsidiaryId' | 'status' | 'salesRepId' | 'paymentStatus' | 'amountPaid' | 'productionStatus' | 'productionHistory' | 'taxRateId' | 'taxRateValue'>) => void;
-    currentUser: User;
-}
-
-const MesCommandes: React.FC<MesCommandesProps> = ({ subsidiary, orders, products, contacts, onPlaceOrder, currentUser }) => {
+const MesCommandes: React.FC = () => {
     const { t, formatCurrency } = useI18n();
+    const { state } = useAppContext();
+    const { currentSubsidiary: subsidiary, currentUser } = state;
+    const queryClient = useQueryClient();
+
     const [activeTab, setActiveTab] = useState<'history' | 'new'>('history');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [isBlModalOpen, setIsBlModalOpen] = useState(false);
+    const [filters, setFilters] = useState<FindAllOrdersDto>({ period: 'ALL_TIME' });
     
-    const [selectedProduct, setSelectedProduct] = useState('');
-    const [period, setPeriod] = useState('all_time');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    
+    // --- TanStack Query Data Fetching ---
+    const { data: contacts = [] } = useQuery<Contact[]>({
+        queryKey: ['contacts', subsidiary?.id],
+        queryFn: getContacts,
+        enabled: !!subsidiary,
+    });
+
     const currentCustomer = useMemo(() => {
-        // FIX: Replaced check for non-existent UserRole.CLIENT. This component seems to be for
-        // a dashboard user who is also a customer. Find the corresponding contact by matching the user's email.
-        return contacts.find(c => c.email === currentUser.email);
+        if (!currentUser) return null;
+        return contacts.find(c => c.email === currentUser.email) || null;
     }, [contacts, currentUser]);
+
+    // Mettre à jour les filtres avec l'ID du client une fois qu'il est connu
+    useEffect(() => {
+        if (currentCustomer) {
+            setFilters(prev => ({ ...prev, customerId: currentCustomer.id }));
+        }
+    }, [currentCustomer]);
+
+    const { data: filteredClientOrders = [], isLoading: isLoadingOrders } = useQuery<Order[]>({
+        queryKey: ['customerOrders', filters],
+        queryFn: () => getOrders(filters),
+        enabled: !!filters.customerId, // La requête ne se lance que si nous avons un ID client
+    });
+
+    const { data: products = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
+        queryKey: ['products', subsidiary?.id],
+        queryFn: getProducts,
+        enabled: !!subsidiary,
+    });
+
+    const { mutate: placeOrderMutation } = useMutation({
+        mutationFn: createOrderBySalesRep,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['customerOrders', currentCustomer?.id] });
+            setActiveTab('history');
+        },
+    });
+
+    if (!subsidiary || !currentUser) {
+        return <div>Chargement ou erreur d'authentification...</div>;
+    }
     
-    const filteredClientOrders = useMemo(() => {
-        if (!currentCustomer) return [];
-        
-        let clientOrders = orders.filter(order => order.customerId === currentCustomer.id && order.subsidiaryId === subsidiary.id);
-
-        if (selectedProduct) {
-            clientOrders = clientOrders.filter(o => o.items.some(item => item.product.id === selectedProduct));
-        }
-        
-        if (period !== 'all_time') {
-            const now = new Date();
-            let startPeriodDate = new Date();
-            let endPeriodDate = new Date(now);
-
-            if (period === 'custom' && startDate && endDate) {
-                startPeriodDate = new Date(startDate);
-                endPeriodDate = new Date(endDate);
-                endPeriodDate.setHours(23, 59, 59, 999);
-            } else {
-                startPeriodDate.setHours(0, 0, 0, 0);
-                switch (period) {
-                    case 'seven_days': startPeriodDate.setDate(now.getDate() - 6); break;
-                    case 'thirty_days': startPeriodDate.setDate(now.getDate() - 29); break;
-                    case 'ninety_days': startPeriodDate.setDate(now.getDate() - 89); break;
-                    case 'year': startPeriodDate = new Date(now.getFullYear(), 0, 1); break;
-                }
-            }
-            
-            clientOrders = clientOrders.filter(o => {
-                const orderDate = new Date(o.date);
-                return orderDate >= startPeriodDate && orderDate <= endPeriodDate;
-            });
-        }
-        
-        return clientOrders;
-    }, [orders, currentCustomer, subsidiary.id, selectedProduct, period, startDate, endDate]);
-
     const handlePeriodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newPeriod = e.target.value;
-        setPeriod(newPeriod);
-        if (newPeriod !== 'custom') {
-            setStartDate('');
-            setEndDate('');
-        }
+        setFilters(prev => ({
+            ...prev,
+            period: newPeriod as FindAllOrdersDto['period'],
+            startDate: '',
+            endDate: ''
+        }));
     };
 
     const handleResetFilters = () => {
-        setSelectedProduct('');
-        setPeriod('all_time');
-        setStartDate('');
-        setEndDate('');
+        setFilters({ customerId: currentCustomer?.id, period: 'ALL_TIME' });
     };
 
     const productOptions = products
         .filter(p => p.subsidiaryId === subsidiary.id)
         .map(p => ({ value: p.id, label: p.name }));
 
-    // FIX: Correct the type for newOrderData to match the onPlaceOrder prop.
-    const handlePlaceOrder = (newOrderData: Omit<Order, 'id' | 'subsidiaryId' | 'status' | 'salesRepId' | 'paymentStatus' | 'amountPaid' | 'productionStatus' | 'productionHistory' | 'taxRateId' | 'taxRateValue'>) => {
-        onPlaceOrder(newOrderData);
-        setActiveTab('history');
+    const handlePlaceOrder = (newOrderData: Omit<Order, 'id' | 'subsidiaryId'>) => {
+        const formData = new FormData();
+        
+        // Le backend attend les items sous forme de chaîne JSON
+        const itemsForJson = newOrderData.items.map(item => ({
+            productId: item.product.id,
+            quantity: item.quantity,
+            price: item.price,
+            options: item.options || {},
+        }));
+        formData.append('items', JSON.stringify(itemsForJson));
+
+        // Ajouter les autres champs
+        formData.append('customerId', newOrderData.customerId);
+        formData.append('customerName', newOrderData.customerName);
+        formData.append('totalAmount', String(newOrderData.totalAmount));
+        formData.append('paymentDueDate', newOrderData.paymentDueDate);
+
+        placeOrderMutation(formData);
     };
 
     const handleViewBL = (order: Order) => {
@@ -130,6 +138,10 @@ const MesCommandes: React.FC<MesCommandesProps> = ({ subsidiary, orders, product
         </button>
     );
 
+    if (isLoadingOrders || isLoadingProducts) {
+        return <div>{t('common.loading')}</div>;
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
@@ -147,18 +159,18 @@ const MesCommandes: React.FC<MesCommandesProps> = ({ subsidiary, orders, product
                             <SelectFilter
                                 name="product"
                                 label={t('filter.product')}
-                                value={selectedProduct}
-                                onChange={(e) => setSelectedProduct(e.target.value)}
+                                value={filters.productId || ''}
+                                onChange={(e) => setFilters(prev => ({ ...prev, productId: e.target.value }))}
                                 options={productOptions}
                                 placeholder={t('filter.allProducts')}
                             />
                             <PeriodFilter 
-                                period={period}
+                                period={filters.period || 'ALL_TIME'}
                                 onPeriodChange={handlePeriodChange}
-                                startDate={startDate}
-                                onStartDateChange={e => setStartDate(e.target.value)}
-                                endDate={endDate}
-                                onEndDateChange={e => setEndDate(e.target.value)}
+                                startDate={filters.startDate || ''}
+                                onStartDateChange={e => setFilters(prev => ({ ...prev, startDate: e.target.value, period: 'CUSTOM' }))}
+                                endDate={filters.endDate || ''}
+                                onEndDateChange={e => setFilters(prev => ({ ...prev, endDate: e.target.value, period: 'CUSTOM' }))}
                             />
                             <button
                                 onClick={handleResetFilters}
@@ -214,7 +226,14 @@ const MesCommandes: React.FC<MesCommandesProps> = ({ subsidiary, orders, product
                     </div>
                 </div>
             )}
-            {activeTab === 'new' && currentCustomer && <NewOrder subsidiary={subsidiary} products={products} currentCustomer={currentCustomer} onOrderPlaced={handlePlaceOrder} />}
+            {activeTab === 'new' && currentCustomer && (
+                <NewOrder 
+                    subsidiary={subsidiary} 
+                    products={products} 
+                    onOrderPlaced={handlePlaceOrder}
+                    selectedCustomer={currentCustomer}
+                />
+            )}
 
             {isBlModalOpen && selectedOrder && (
                 <BonDeLivraison 
