@@ -1,13 +1,13 @@
 import { createRouter, createRoute, createRootRoute, Outlet } from '@tanstack/react-router';
 import App from './App'; // Nous allons refactorer App.tsx pour qu'il devienne notre layout
 import { useAppContext } from './context/AppContext';
-import LoginPage from './components/LoginPage';
+import LoginPage from './Pages/LoginPage';
 import ECommercePage from './components/ecommerce/ECommercePage';
 import RealisationsPage from './components/ecommerce/RealisationsPage';
 import CustomerAccountPage from './components/customer/CustomerAccountPage';
 import Analytics from './Pages/Analytics';
 import Sales from './components/sales/Sales';
-import Crm from './Crm';
+import Crm from './Pages/Crm';
 import Stock from './Pages/Stock';
 import Purchasing from './Pages/Purchasing';
 import AiMarketing from './Pages/AiMarketing';

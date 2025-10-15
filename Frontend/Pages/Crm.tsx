@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Subsidiary, Contact, Opportunity, Interaction, CrmTask, User, OpportunityStage, Lead, Account, Contract, CrmTaskStatus } from '../types';
+import { Contact, Opportunity, Interaction, CrmTask, User, OpportunityStage, Lead, Account, Contract, CrmTaskStatus } from '../types';
+import { useAppContext } from '../context/AppContext';
 import { useI18n } from '../i18n';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -22,17 +23,17 @@ import ContractManagement from '../components/crm/ContractManagement';
 
 type CrmView = 'dashboard' | 'leads' | 'accounts' | 'contacts' | 'pipeline' | 'activities' | 'contracts';
 
-interface CrmProps {
-    subsidiary: Subsidiary;
-    currentUser: User;
-}
-
-const Crm: React.FC<CrmProps> = (props) => {
+const Crm: React.FC = () => {
     const { t } = useI18n();
+    const { state } = useAppContext();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState<CrmView>('leads');
     
-    const { currentUser, subsidiary } = props;
+    const { currentUser, currentSubsidiary: subsidiary } = state;
+
+    if (!currentUser || !subsidiary) {
+        return <div>{t('common.loading')}</div>;
+    }
 
     // --- Data Fetching avec React Query ---
     const queryKey = (key: string) => [key, subsidiary.id];

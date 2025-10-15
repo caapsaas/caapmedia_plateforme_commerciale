@@ -4,23 +4,20 @@ import ProductManagement from '../components/configuration/ProductManagement';
 import UserManagement from '../components/configuration/UserManagement';
 import SupplierManagement from '../components/configuration/SupplierManagement';
 import ClientManagement from '../components/configuration/ClientManagement'; // Importer ClientManagement
-import { Subsidiary } from '../types';
 import { useI18n } from '../i18n';
 import TaxManagement from '../components/configuration/TaxManagement';
+import { useAppContext } from '../context/AppContext';
 
 type ConfigView = 'products' | 'users' | 'suppliers' | 'taxes' | 'clients';
 
-interface ConfigurationProps {
-    subsidiary: Subsidiary;
-}
-
-const Configuration: React.FC<ConfigurationProps> = (props) => {
+const Configuration: React.FC = () => {
     const { t } = useI18n();
+    const { state } = useAppContext();
+    const { currentSubsidiary: subsidiary } = state;
     const [activeTab, setActiveTab] = useState<ConfigView>('products');
 
     const renderActiveView = () => {
-        const { subsidiary } = props;
-        const commonProps = { subsidiary };
+        if (!subsidiary) return <div>{t('common.loading')}</div>;
         
         switch (activeTab) {
             case 'products':
