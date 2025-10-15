@@ -1,24 +1,25 @@
-import React, { useState } from 'react';
-import { Subsidiary, SupplierDebt, FinancialTransaction, FinanceView, Order, Product, ExpenseRecord, Sale, Equipment, Contact } from '../types';
+import React, { useState, useMemo } from 'react';
+import { Subsidiary, FinanceView } from '../types';
 import CreditManagement from '../components/finance/CreditManagement';
 import TreasuryManagement from '../components/finance/TreasuryManagement';
 import SupplierDebts from '../components/finance/SupplierDebts';
 import ExpenseManagement from '../components/finance/ExpenseManagement';
 import ProfitAndLossStatement from '../components/finance/ProfitAndLossStatement';
 import { useI18n } from '../i18n';
-import { useQuery } from '@tanstack/react-query';
 import IconDocumentChartBar from '../components/icons/IconDocumentChartBar';
 import BalanceSheet from '../components/finance/BalanceSheet';
 import IconScale from '../components/icons/IconScale';
-// Importez vos fonctions de service API ici
-import { getSupplierDebts } from '../services/apiFinance/apiDebts'; 
-import { getFinancialTransactions } from '../services/apiFinance/apiTreasury';
+import { useQuery } from '@tanstack/react-query';
+
+// Importez vos types de données réels et vos fonctions d'API
+import { Order, Product, ExpenseRecord, Sale, Equipment, SupplierDebt, FinancialTransaction } from '../types';
 import { getOrders } from '../services/apiE-commerce/apiOrders';
-import { getProducts } from '../services/apiE-commerce/apiProducts';
-import { getExpenses } from '../services/apiFinance/apiExpense';
-import { getSales } from '../services/apiE-commerce/apiSales'; // Assurez-vous que ces fonctions existent
-import { getEquipments } from '../services/apiMaintenance/apiEquipment';
-import { getContacts } from '../services/apiCrm/apicontacts';
+import { getProductsBySubsidiary as getProducts } from '../services/apiE-commerce/apiProducts';
+import { getSales } from '../services/apiE-commerce/apiSales'; // à créer
+import { getExpenses } from '../services/apiFinance/apiExpense'; // à créer
+import { getSupplierDebts } from '../services/apiFinance/apiDebts'; // à créer
+import { getFinancialTransactions } from '../services/apiFinance/apiTreasury'; // à créer
+import { getEquipments } from '../services/apiMaintenance/apiEquipment'; // à créer
 
 interface FinanceProps {
     subsidiary: Subsidiary;
@@ -28,24 +29,24 @@ const Finance: React.FC<FinanceProps> = ({ subsidiary }) => {
     const { t } = useI18n();
     const [activeTab, setActiveTab] = useState<FinanceView>(FinanceView.CREDIT);
 
-    // Utilisez TanStack Query pour récupérer les données nécessaires
-    const { data: supplierDebts = [], isLoading: l1 } = useQuery({ queryKey: ['supplierDebts', subsidiary.id], queryFn: () => getSupplierDebts() });
-    const { data: financialTransactions = [], isLoading: l2 } = useQuery({ queryKey: ['financialTransactions', subsidiary.id], queryFn: () => getFinancialTransactions() });
-    const { data: orders = [], isLoading: l3 } = useQuery({ queryKey: ['orders', subsidiary.id], queryFn: () => getOrders({}) });
-    const { data: products = [], isLoading: l4 } = useQuery({ queryKey: ['products', subsidiary.id], queryFn: () => getProducts() });
-    const { data: expenseRecords = [], isLoading: l5 } = useQuery({ queryKey: ['expenseRecords', subsidiary.id], queryFn: () => getExpenses() });
-    const { data: sales = [], isLoading: l6 } = useQuery({ queryKey: ['sales', subsidiary.id], queryFn: () => getSales({}) });
-    const { data: equipment = [], isLoading: l7 } = useQuery({ queryKey: ['equipment', subsidiary.id], queryFn: () => getEquipments() });
-    const { data: contacts = [], isLoading: l8 } = useQuery({ queryKey: ['contacts', subsidiary.id], queryFn: () => getContacts() });
+    // --- Data Fetching avec React Query (similaire à Crm.tsx) ---
+    const queryKey = (key: string) => [key, subsidiary.id];
 
-    const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8;
+    const { data: orders = [], isLoading: l1 } = useQuery<Order[]>({ queryKey: queryKey('orders'), queryFn: () => getOrders() });
+    const { data: products = [], isLoading: l2 } = useQuery<Product[]>({ queryKey: queryKey('products'), queryFn: () => getProducts() });
+    const { data: sales = [], isLoading: l3 } = useQuery<Sale[]>({ queryKey: queryKey('sales'), queryFn: () => getSales() });
+    const { data: expenseRecords = [], isLoading: l4 } = useQuery<ExpenseRecord[]>({ queryKey: queryKey('expenseRecords'), queryFn: () => getExpenses() });
+    const { data: supplierDebts = [], isLoading: l5 } = useQuery<SupplierDebt[]>({ queryKey: queryKey('supplierDebts'), queryFn: () => getSupplierDebts() });
+    const { data: equipment = [], isLoading: l6 } = useQuery<Equipment[]>({ queryKey: queryKey('equipment'), queryFn: () => getEquipments() });
+    const { data: financialTransactions = [], isLoading: l7 } = useQuery<FinancialTransaction[]>({ queryKey: queryKey('financialTransactions'), queryFn: () => getFinancialTransactions() });
+
+    const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7;
 
     const renderActiveView = () => {
         if (isLoading) {
             return <div className="p-6 text-center">{t('common.loading')}</div>;
         }
 
-        const props = { subsidiary, supplierDebts, financialTransactions, orders, products, expenseRecords, sales, equipment, contacts };
         switch (activeTab) {
             case FinanceView.CREDIT:
                 return <CreditManagement subsidiary={subsidiary} />;
@@ -58,7 +59,16 @@ const Finance: React.FC<FinanceProps> = ({ subsidiary }) => {
             case FinanceView.PNL:
                 return <ProfitAndLossStatement subsidiary={subsidiary} orders={orders} products={products} expenseRecords={expenseRecords} sales={sales} />;
             case FinanceView.BILAN:
-                return <BalanceSheet {...props} />;
+                return <BalanceSheet 
+                            subsidiary={subsidiary} 
+                            orders={orders} 
+                            products={products} 
+                            expenseRecords={expenseRecords} 
+                            sales={sales} 
+                            equipment={equipment}
+                            supplierDebts={supplierDebts}
+                            financialTransactions={financialTransactions}
+                        />;
             default:
                 return <CreditManagement subsidiary={subsidiary} />;
         }

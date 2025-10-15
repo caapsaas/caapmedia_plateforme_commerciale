@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TreasuryAccount, FinancialTransaction, TransactionType } from '../../types';
 import { useI18n } from '../../i18n';
 
-export type TransactionFormData = Omit<FinancialTransaction, 'id' | 'subsidiaryId' | 'financialTransactionType' | 'status' | 'transactionDate'> & { date: string; description: string };
+export type TransactionFormData = Omit<FinancialTransaction, 'id' | 'subsidiaryId' | 'financialTransactionType' | 'status' | 'date'> & { date: string; description: string };
 
 interface TransactionFormModalProps {
     isOpen: boolean;
@@ -69,7 +69,7 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onC
                             <div>
                                 <label htmlFor="treasuryAccountId" className="block text-sm font-medium text-slate-700">{t('treasury.account')}</label>
                                     <select name="treasuryAccountId" id="treasuryAccountId" value={formData.treasuryAccountId} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" disabled={accounts.length === 0}>
-                                        {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.accountName}</option>)}
+                                        {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
                                     </select>
                             </div>
                         </div>

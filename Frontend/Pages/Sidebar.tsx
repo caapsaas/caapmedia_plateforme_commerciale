@@ -55,7 +55,7 @@ const NavLink: React.FC<{
 const Sidebar: React.FC = () => {
   const { t } = useI18n();
   const { state, dispatch } = useAppContext();
-  const { currentView, currentUser, currentSubsidiary, isSidebarOpen, isSidebarCollapsed } = state;
+  const { currentUser, currentSubsidiary, isSidebarOpen, isSidebarCollapsed } = state;
 
   if (!currentUser || !currentSubsidiary) return null;
 
@@ -155,7 +155,7 @@ const Sidebar: React.FC = () => {
                 key={item.view}
                 icon={item.icon}
                 label={item.label}
-                isActive={currentView === item.view}
+                isActive={state.currentView === item.view}
                 isCollapsed={isSidebarCollapsed}
                 onClick={() => {
                     setCurrentView(item.view);
