@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { MOCK_PAYROLL, MOCK_EMPLOYEES } from '../../constants';
-import { Subsidiary, PayrollRecord, PayrollStatus } from '../../types';
+import { Subsidiary, PayrollRecord, PayrollStatus, Employee } from '../../types';
 import { useI18n } from '../../i18n';
 import IconSignature from '../icons/IconSignature';
 import ViewSignatureModal from './ViewSignatureModal';
@@ -10,14 +9,17 @@ import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
+import { UseMutateFunction } from '@tanstack/react-query';
 
 interface PayrollManagementProps {
     subsidiary: Subsidiary;
+    employees: Employee[];
+    payrolls: PayrollRecord[];
+    onProcessPayroll: UseMutateFunction<{ count: number; }, Error, { period: string; }, unknown>;
 }
 
-const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary }) => {
+const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary, employees, payrolls, onProcessPayroll }) => {
     const { t, formatCurrency } = useI18n();
-    const [payrollRecords, setPayrollRecords] = useState(MOCK_PAYROLL.filter(p => p.subsidiaryId === subsidiary.id));
     const [viewingSignature, setViewingSignature] = useState<{name: string, signature: string} | null>(null);
     const [signingRecord, setSigningRecord] = useState<PayrollRecord | null>(null);
 
@@ -26,39 +28,14 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary }) => 
     };
 
     const handleSaveSignature = (recordId: string, signature: string) => {
-        setPayrollRecords(prev => prev.map(rec => 
-            rec.id === recordId ? { ...rec, signature, paymentDate: new Date().toISOString().split('T')[0], status: PayrollStatus.PAID } : rec
-        ));
+        // This would be handled by a mutation in a real app
+        console.log(`Signature for ${recordId}:`, signature);
         setSigningRecord(null);
     };
     
-    const processPayroll = () => {
-        // Mock function to process payroll for employees not yet paid this month
+    const handleProcessPayroll = () => {
         const currentPeriod = new Date().toISOString().slice(0, 7); // e.g., "2024-07"
-        const employeesToPay = MOCK_EMPLOYEES.filter(emp => 
-            emp.subsidiaryId === subsidiary.id &&
-            !payrollRecords.some(pr => pr.employeeId === emp.id && pr.period === currentPeriod)
-        );
-
-        const newPayrollRecords: PayrollRecord[] = employeesToPay.map(emp => {
-            const deductions = emp.baseSalary * 0.1; // 10% mock deduction
-            return {
-                id: `PAY-${Date.now()}-${emp.id}`,
-                employeeId: emp.id,
-                employeeName: `${emp.firstName} ${emp.lastName}`,
-                period: currentPeriod,
-                grossSalary: emp.baseSalary,
-                deductions: deductions,
-                netSalary: emp.baseSalary - deductions,
-                paymentDate: null,
-                status: PayrollStatus.PENDING,
-                signature: null,
-                subsidiaryId: subsidiary.id,
-            };
-        });
-
-        setPayrollRecords(prev => [...prev, ...newPayrollRecords]);
-        alert(`${newPayrollRecords.length} new payroll records generated for ${currentPeriod}.`);
+        onProcessPayroll({ period: currentPeriod });
     };
 
     const getStatusClass = (status: PayrollStatus) => {
@@ -75,7 +52,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary }) => 
             { key: 'paymentDate', label: t('hr.payroll.paymentDate') },
             { key: 'status', label: t('hr.payroll.status') },
         ];
-        const data = payrollRecords.map(r => ({ ...r, status: t(`hr.payroll.status_${r.status}`) }));
+        const data = payrolls.map(r => ({ ...r, status: t(`hr.payroll.status_${r.status}`) }));
         exportToCsv('registre_paie', headers, data);
     };
 
@@ -87,7 +64,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary }) => 
             { key: 'paymentDate', label: t('hr.payroll.paymentDate') },
             { key: 'status', label: t('hr.payroll.status') },
         ];
-        const data = payrollRecords.map(r => ({ ...r, status: t(`hr.payroll.status_${r.status}`), netSalary: formatCurrency(r.netSalary) }));
+        const data = payrolls.map(r => ({ ...r, status: t(`hr.payroll.status_${r.status}`), netSalary: formatCurrency(r.netSalary) }));
         exportToPdf(t('hr.payroll.title'), headers, data, 'paie');
     };
 
@@ -96,7 +73,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary }) => 
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-semibold text-slate-800">{t('hr.payroll.title')}</h3>
                 <div className="flex items-center space-x-2 no-print">
-                    <button onClick={processPayroll} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
+                    <button onClick={handleProcessPayroll} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
                         <span>{t('hr.payroll.process')}</span>
                     </button>
                     <button onClick={handlePrint} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
@@ -126,7 +103,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary }) => 
                         </tr>
                     </thead>
                     <tbody>
-                        {payrollRecords.map((record) => (
+                        {payrolls.map((record) => (
                             <tr key={record.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{record.employeeName}</td>
                                 <td className="px-6 py-4">{record.period}</td>

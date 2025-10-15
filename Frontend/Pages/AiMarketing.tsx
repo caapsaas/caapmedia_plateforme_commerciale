@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { generateMarketingIdeas } from '../services/geminiService';
-import IconAi from './icons/IconAi';
+import IconAi from '../components/icons/IconAi';
 import { useI18n } from '../i18n';
 
 const AiMarketing: React.FC = () => {

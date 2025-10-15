@@ -229,7 +229,7 @@ export enum ContactStatus {
 
 export interface Contact {
   id: string;
-  name: string;
+  contactName: string;
   company: string;
   email: string;
   phone: string;

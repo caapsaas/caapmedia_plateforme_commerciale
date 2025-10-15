@@ -1,21 +1,21 @@
 import React, { useState, useMemo } from 'react';
 import { Subsidiary, Product, Contact, Order, OrderItem, ProductOptions } from '../types';
-import IconCash from './icons/IconCash';
-import IconCreditCard from './icons/IconCreditCard';
-import IconMobilePayment from './icons/IconMobilePayment';
-import IconPlus from './icons/IconPlus';
-import IconMinus from './icons/IconMinus';
-import IconDelete from './icons/IconDelete';
+import IconCash from '../components/icons/IconCash';
+import IconCreditCard from '../components/icons/IconCreditCard';
+import IconMobilePayment from '../components/icons/IconMobilePayment';
+import IconPlus from '../components/icons/IconPlus';
+import IconMinus from '../components/icons/IconMinus';
+import IconDelete from '../components/icons/IconDelete';
 import { useI18n } from '../i18n';
-import ClientSelectionModal from './caisse/ClientSelectionModal';
-import IconPaycaap from './icons/IconPaycaap';
-import IconTruckCoins from './icons/IconTruckCoins';
-import IconUserClock from './icons/IconUserClock';
-import OrderSelectionModal from './caisse/OrderSelectionModal';
-import IconSearchDocument from './icons/IconSearchDocument';
-import IconCheck from './icons/IconCheck';
-import PriceCalculatorModal from './ecommerce/PriceCalculatorModal';
-import { CartItem } from './ecommerce/ShoppingCart';
+import ClientSelectionModal from '../components/caisse/ClientSelectionModal';
+import IconPaycaap from '../components/icons/IconPaycaap';
+import IconTruckCoins from '../components/icons/IconTruckCoins';
+import IconUserClock from '../components/icons/IconUserClock';
+import OrderSelectionModal from '../components/caisse/OrderSelectionModal';
+import IconSearchDocument from '../components/icons/IconSearchDocument';
+import IconCheck from '../components/icons/IconCheck';
+import PriceCalculatorModal from '../components/ecommerce/PriceCalculatorModal';
+import { CartItem } from '../components/ecommerce/ShoppingCart';
 
 interface CaisseProps {
     subsidiary: Subsidiary;

@@ -5,11 +5,11 @@ import { Order, PaymentStatus, OrderStatus, Product, OrderItem } from '../../typ
 import { useAppContext } from '../../context/AppContext';
 import { useI18n } from '../../i18n';
 import IconDocumentText from '../icons/IconDocumentText';
-import BonDeLivraison from '../BonDeLivraison';
+import BonDeLivraison from '../../Pages/BonDeLivraison';
 import SelectFilter from '../filters/SelectFilter';
 import PeriodFilter from '../filters/PeriodFilter';
 import IconInvoice from '../icons/IconInvoice';
-import InvoiceModal from '../InvoiceModal';
+import InvoiceModal from '../../Pages/InvoiceModal';
 import RecordPaymentModal from './RecordPaymentModal';
 import OrderStatusUpdateModal from './OrderStatusUpdateModal';
 import IconCoins from '../icons/IconCoins';

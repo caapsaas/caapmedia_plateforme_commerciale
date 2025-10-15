@@ -3,9 +3,9 @@ import { Order, OrderStatus, Subsidiary, Product, Contact, User, UserRole, Payme
 import { useI18n } from '../i18n';
 import NewOrder from './NewOrder';
 import BonDeLivraison from './BonDeLivraison';
-import IconDocumentText from './icons/IconDocumentText';
-import SelectFilter from './filters/SelectFilter';
-import PeriodFilter from './filters/PeriodFilter';
+import IconDocumentText from '../components/icons/IconDocumentText';
+import SelectFilter from '../components/filters/SelectFilter';
+import PeriodFilter from '../components/filters/PeriodFilter';
 
 interface MesCommandesProps {
     subsidiary: Subsidiary;

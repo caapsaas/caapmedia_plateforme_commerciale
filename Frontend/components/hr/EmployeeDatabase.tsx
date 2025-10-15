@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { MOCK_EMPLOYEES } from '../../constants';
 import { Subsidiary, Employee, EmployeeFormData, ContractType, EmployeeStatus } from '../../types';
+import { UseMutateFunction } from '@tanstack/react-query';
 import { useI18n } from '../../i18n';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
@@ -16,13 +16,15 @@ import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
 
 interface EmployeeDatabaseProps {
-    subsidiary: Subsidiary;
+  subsidiary: Subsidiary;
+  employees: Employee[];
+  onSave: UseMutateFunction<Employee, Error, Partial<Employee>, unknown>;
+  onDelete: UseMutateFunction<Employee, Error, string, unknown>;
 }
 
-const EmployeeDatabase: React.FC<EmployeeDatabaseProps> = ({ subsidiary }) => {
+const EmployeeDatabase: React.FC<EmployeeDatabaseProps> = ({ subsidiary, employees, onSave, onDelete }) => {
     const { t } = useI18n();
-    const [employees, setEmployees] = useState(MOCK_EMPLOYEES.filter(e => e.subsidiaryId === subsidiary.id));
-    const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
     const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
     const [viewingEmployee, setViewingEmployee] = useState<Employee | null>(null);
@@ -52,34 +54,15 @@ const EmployeeDatabase: React.FC<EmployeeDatabaseProps> = ({ subsidiary }) => {
         setViewingEmployee(null);
     };
 
-    const handleSaveEmployee = (employeeData: EmployeeFormData) => {
-        if (editingEmployee) {
-            setEmployees(employees.map(e => e.id === editingEmployee.id ? { ...editingEmployee, ...employeeData } : e));
-        } else {
-            const newEmployee: Employee = {
-                ...employeeData,
-                id: `E${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}${Date.now() % 100}`,
-                subsidiaryId: subsidiary.id,
-                documents: { contract: null, idCard: null, workPermit: null, diplomas: [] },
-                positionHistory: [{
-                    position: employeeData.position,
-                    department: employeeData.department,
-                    startDate: employeeData.hireDate,
-                    endDate: null
-                }],
-                trainings: [],
-                performanceReviews: [],
-                leaveBalance: 25, // Default leave balance
-                leaveRecords: [],
-            };
-            setEmployees([newEmployee, ...employees]);
-        }
+    const handleSaveEmployee = (employeeData: Partial<Employee>) => {
+        // The onSave function is a react-query mutation that will handle the API call and data refetching.
+        onSave(employeeData);
         handleCloseModals();
     };
 
     const handleDeleteEmployee = () => {
         if (deletingEmployee) {
-            setEmployees(employees.filter(e => e.id !== deletingEmployee.id));
+            onDelete(deletingEmployee.id);
             handleCloseModals();
         }
     };

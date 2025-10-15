@@ -12,7 +12,7 @@ interface ClientFormModalProps {
 const ClientFormModal: React.FC<ClientFormModalProps> = ({ isOpen, onClose, onSave, client }) => {
     const { t } = useI18n();
     const initialFormState = {
-        name: '',
+        contactName: '',
         company: '',
         email: '',
         phone: '',
@@ -26,7 +26,7 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ isOpen, onClose, onSa
     useEffect(() => {
         if (client) {
             setFormData({
-                name: client.name,
+                contactName: client.contactName,
                 company: client.company,
                 email: client.email,
                 phone: client.phone,
@@ -51,7 +51,7 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ isOpen, onClose, onSa
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        onSave({ ...formData, id: client?.id, password: '' }); // Ajout d'un password vide pour satisfaire le type
     };
     
     if (!isOpen) return null;
@@ -66,8 +66,8 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ isOpen, onClose, onSa
                         </h3>
                         <div className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                             <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
-                                <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <label htmlFor="contactName" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
+                                <input type="text" name="contactName" id="contactName" value={formData.contactName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
                                 <label htmlFor="company" className="block text-sm font-medium text-slate-700">{t('configuration.form.company')}</label>

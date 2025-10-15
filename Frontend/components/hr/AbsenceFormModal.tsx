@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Subsidiary, AbsenceRecord, AbsenceType } from '../../types';
+import { Subsidiary, AbsenceRecord, AbsenceType, Employee } from '../../types';
 import { useI18n } from '../../i18n';
-import { MOCK_EMPLOYEES } from '../../constants';
 
 interface AbsenceFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (data: Omit<AbsenceRecord, 'id' | 'subsidiaryId' | 'employeeName'>) => void;
+    onSave: (data: Partial<AbsenceRecord>) => void;
     absence: AbsenceRecord | null;
+    employees: Employee[];
     subsidiary: Subsidiary;
 }
 
-const AbsenceFormModal: React.FC<AbsenceFormModalProps> = ({ isOpen, onClose, onSave, absence, subsidiary }) => {
+const AbsenceFormModal: React.FC<AbsenceFormModalProps> = ({ isOpen, onClose, onSave, absence, employees, subsidiary }) => {
     const { t } = useI18n();
-    const [employees] = useState(MOCK_EMPLOYEES.filter(e => e.subsidiaryId === subsidiary.id));
     
     const initialFormState = {
         employeeId: '',
@@ -56,7 +55,11 @@ const AbsenceFormModal: React.FC<AbsenceFormModalProps> = ({ isOpen, onClose, on
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        const employee = employees.find(e => e.id === formData.employeeId);
+        onSave({
+            ...formData,
+            employeeName: employee ? `${employee.firstName} ${employee.lastName}` : '',
+        });
     };
 
     if (!isOpen) return null;

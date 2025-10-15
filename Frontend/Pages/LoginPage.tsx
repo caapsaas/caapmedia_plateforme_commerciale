@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import IconGmoLogo from './icons/IconGmoLogo';
-import IconAtSymbol from './icons/IconAtSymbol';
-import IconLock from './icons/IconLock';
-import IconBuilding from './icons/IconBuilding';
+import IconGmoLogo from '../components/icons/IconGmoLogo';
+import IconAtSymbol from '../components/icons/IconAtSymbol';
+import IconLock from '../components/icons/IconLock';
+import IconBuilding from '../components/icons/IconBuilding';
 import { useI18n } from '../i18n';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { loginUser as apiLogin, forgotPassword as apiForgotPassword } from '../services/apiCommon/apiUserAuth';
-import { getSubsidiaries } from '../services/apiCommon/apiSubsidiaries';
+import { getSubsidiaries } from '../services/apiCommon/apiSubsidiaries'; // Importation depuis le nouveau fichier
 import { Subsidiary } from '../types';
 
 const LoginPage: React.FC = () => {

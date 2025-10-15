@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
-import { MOCK_CONTACTS } from '../constants';
 import { Contact, Subsidiary } from '../types';
-import IconPlus from './icons/IconPlus';
-import IconEdit from './icons/IconEdit';
-import IconDelete from './icons/IconDelete';
+import IconPlus from '../components/icons/IconPlus';
+import IconEdit from '../components/icons/IconEdit';
+import IconDelete from '../components/icons/IconDelete';
 import { useI18n } from '../i18n';
-import ClientFormModal from './configuration/ClientFormModal';
-import ConfirmationModal from './common/ConfirmationModal';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import ClientFormModal from '../components/configuration/ClientFormModal';
+import ConfirmationModal from '../components/common/ConfirmationModal';
 import { exportToCsv } from '../utils/csvExporter';
 import { exportToPdf } from '../utils/pdfExporter';
-import IconPrint from './icons/IconPrint';
-import IconExport from './icons/IconExport';
-import IconPdf from './icons/IconPdf';
+import IconPrint from '../components/icons/IconPrint';
+import IconExport from '../components/icons/IconExport';
+import IconPdf from '../components/icons/IconPdf';
+import { getContacts, saveContact, deleteContact } from '../services/apiCrm/apiCrm';
 
 interface ClientsProps {
     subsidiary: Subsidiary;
@@ -19,10 +20,22 @@ interface ClientsProps {
 
 const Clients: React.FC<ClientsProps> = ({ subsidiary }) => {
     const { t } = useI18n();
-    const [contacts, setContacts] = useState(MOCK_CONTACTS.filter(c => c.subsidiaryId === subsidiary.id));
+    const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingContact, setEditingContact] = useState<Contact | null>(null);
     const [deletingContact, setDeletingContact] = useState<Contact | null>(null);
+
+    const queryKey = ['contacts', subsidiary.id];
+
+    // --- Data Fetching ---
+    const { data: contacts = [], isLoading } = useQuery({
+        queryKey: queryKey,
+        queryFn: () => getContacts(subsidiary.id)
+    });
+
+    // --- Mutations ---
+    const { mutate: saveMutation } = useMutation({ mutationFn: saveContact, onSuccess: () => queryClient.invalidateQueries({ queryKey }) });
+    const { mutate: deleteMutation } = useMutation({ mutationFn: deleteContact, onSuccess: () => queryClient.invalidateQueries({ queryKey }) });
 
     const handleOpenAddModal = () => {
         setEditingContact(null);
@@ -45,23 +58,13 @@ const Clients: React.FC<ClientsProps> = ({ subsidiary }) => {
     };
 
     const handleSaveContact = (contactData: Omit<Contact, 'id' | 'subsidiaryId'> & { id?: string }) => {
-        if (editingContact) {
-            setContacts(contacts.map(c => c.id === editingContact.id ? { ...editingContact, ...contactData } : c));
-        } else {
-            const newContact: Contact = {
-                ...contactData,
-                id: `C${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}${Date.now() % 100}`,
-                subsidiaryId: subsidiary.id,
-                since: contactData.since || new Date().toISOString().split('T')[0],
-            };
-            setContacts([newContact, ...contacts]);
-        }
+        saveMutation(contactData);
         handleCloseModals();
     };
 
     const handleDeleteContact = () => {
         if (deletingContact) {
-            setContacts(contacts.filter(c => c.id !== deletingContact.id));
+            deleteMutation(deletingContact.id);
             handleCloseModals();
         }
     };
@@ -115,6 +118,10 @@ const Clients: React.FC<ClientsProps> = ({ subsidiary }) => {
                         </button>
                     </div>
                 </div>
+                {isLoading && (
+                    <div className="text-center p-4">{t('common.loading')}</div>
+                )}
+                {!isLoading && (
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left text-slate-500">
                         <thead className="text-xs text-slate-700 uppercase bg-slate-50">
@@ -132,7 +139,7 @@ const Clients: React.FC<ClientsProps> = ({ subsidiary }) => {
                             {contacts.map((contact) => (
                                 <tr key={contact.id} className="bg-white border-b hover:bg-slate-50">
                                     <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{contact.id}</th>
-                                    <td className="px-6 py-4">{contact.name}</td>
+                                    <td className="px-6 py-4">{contact.contactName}</td>
                                     <td className="px-6 py-4">{contact.company}</td>
                                     <td className="px-6 py-4">{contact.email}</td>
                                     <td className="px-6 py-4">{contact.phone}</td>
@@ -150,6 +157,7 @@ const Clients: React.FC<ClientsProps> = ({ subsidiary }) => {
                         </tbody>
                     </table>
                 </div>
+                )}
             </div>
 
             {isModalOpen && (
@@ -166,7 +174,7 @@ const Clients: React.FC<ClientsProps> = ({ subsidiary }) => {
                     onClose={handleCloseModals}
                     onConfirm={handleDeleteContact}
                     title={t('configuration.modal.deleteClientTitle')}
-                    message={t('configuration.modal.deleteConfirmMessage', { itemName: deletingContact.name })}
+                    message={t('configuration.modal.deleteConfirmMessage', { itemName: deletingContact.contactName })}
                 />
             )}
         </div>

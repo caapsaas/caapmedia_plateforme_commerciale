@@ -5,7 +5,7 @@ import { View, UserRole } from '../types/models';
 // L'état initial se concentre maintenant sur la session et l'UI.
 // Les données (produits, commandes...) seront gérées par TanStack Query.
 const initialState: AppState = {
-    currentUser: null,
+    currentUser: null, 
     currentCustomer: null,
     currentSubsidiary: null,
     isSidebarOpen: false,

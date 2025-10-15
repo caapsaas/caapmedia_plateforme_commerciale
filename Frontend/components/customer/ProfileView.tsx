@@ -10,7 +10,7 @@ interface ProfileViewProps {
 const ProfileView: React.FC<ProfileViewProps> = ({ customer, onUpdateClient }) => {
     const { t } = useI18n();
     const [formData, setFormData] = useState({
-        name: customer.name,
+        name: customer.contactName,
         email: customer.email,
         phone: customer.phone,
         address: customer.address,

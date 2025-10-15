@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { MOCK_ABSENCES, MOCK_EMPLOYEES } from '../../constants';
-import { Subsidiary, AbsenceRecord, AbsenceType } from '../../types';
+import { Subsidiary, AbsenceRecord, AbsenceType, Employee } from '../../types';
 import { useI18n } from '../../i18n';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
@@ -13,14 +12,18 @@ import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
+import { UseMutateFunction } from '@tanstack/react-query';
 
 interface AbsenceManagementProps {
     subsidiary: Subsidiary;
+    employees: Employee[];
+    absences: AbsenceRecord[];
+    onSave: UseMutateFunction<AbsenceRecord, Error, Partial<AbsenceRecord>, unknown>;
+    onDelete: UseMutateFunction<AbsenceRecord, Error, string, unknown>;
 }
 
-const AbsenceManagement: React.FC<AbsenceManagementProps> = ({ subsidiary }) => {
+const AbsenceManagement: React.FC<AbsenceManagementProps> = ({ subsidiary, employees, absences, onSave, onDelete }) => {
     const { t } = useI18n();
-    const [absenceRecords, setAbsenceRecords] = useState(MOCK_ABSENCES.filter(a => a.subsidiaryId === subsidiary.id));
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingAbsence, setEditingAbsence] = useState<AbsenceRecord | null>(null);
     const [deletingAbsence, setDeletingAbsence] = useState<AbsenceRecord | null>(null);
@@ -45,31 +48,14 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({ subsidiary }) => 
         setEditingAbsence(null);
     };
 
-    const handleSaveAbsence = (absenceData: Omit<AbsenceRecord, 'id' | 'subsidiaryId' | 'employeeName'>) => {
-        const employee = MOCK_EMPLOYEES.find(e => e.id === absenceData.employeeId);
-        if (!employee) return;
-
-        const employeeName = `${employee.firstName} ${employee.lastName}`;
-        
-        if (editingAbsence) {
-            setAbsenceRecords(absences => absences.map(a => 
-                a.id === editingAbsence.id ? { ...editingAbsence, ...absenceData, employeeName } : a
-            ));
-        } else {
-            const newAbsence: AbsenceRecord = {
-                ...absenceData,
-                id: `ABS${Date.now()}`,
-                employeeName,
-                subsidiaryId: subsidiary.id,
-            };
-            setAbsenceRecords(prev => [newAbsence, ...prev]);
-        }
+    const handleSaveAbsence = (absenceData: Partial<AbsenceRecord>) => {
+        onSave(absenceData);
         handleCloseModals();
     };
 
     const handleDeleteAbsence = () => {
         if (deletingAbsence) {
-            setAbsenceRecords(absences => absences.filter(a => a.id !== deletingAbsence.id));
+            onDelete(deletingAbsence.id);
             handleCloseModals();
         }
     };
@@ -88,7 +74,7 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({ subsidiary }) => 
             { key: 'endDate', label: t('hr.absences.table.endDate') },
             { key: 'reason', label: t('hr.absences.table.reason') },
         ];
-        const data = absenceRecords.map(r => ({ ...r, type: t(`hr.absenceType.${r.type}`) }));
+        const data = absences.map(r => ({ ...r, type: t(`hr.absenceType.${r.type}`) }));
         exportToCsv('registre_absences', headers, data);
     };
 
@@ -100,7 +86,7 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({ subsidiary }) => 
             { key: 'endDate', label: t('hr.absences.table.endDate') },
             { key: 'reason', label: t('hr.absences.table.reason') },
         ];
-        const data = absenceRecords.map(r => ({ ...r, type: t(`hr.absenceType.${r.type}`) }));
+        const data = absences.map(r => ({ ...r, type: t(`hr.absenceType.${r.type}`) }));
         exportToPdf(t('hr.absences.title'), headers, data, 'absences');
     };
 
@@ -141,7 +127,7 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({ subsidiary }) => 
                         </tr>
                     </thead>
                     <tbody>
-                        {absenceRecords.map((record) => (
+                        {absences.map((record) => (
                             <tr key={record.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{record.employeeName}</td>
                                 <td className="px-6 py-4">
@@ -182,6 +168,7 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({ subsidiary }) => 
                     onClose={handleCloseModals}
                     onSave={handleSaveAbsence}
                     absence={editingAbsence}
+                    employees={employees}
                     subsidiary={subsidiary}
                 />
             )}

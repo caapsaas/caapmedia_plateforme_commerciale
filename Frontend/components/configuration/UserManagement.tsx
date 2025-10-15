@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
@@ -7,16 +6,16 @@ import { Subsidiary, User, UserRole } from '../../types';
 import { useI18n } from '../../i18n';
 import UserFormModal from './UserFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
-import { MOCK_SUBSIDIARIES } from '../../constants';
 
 interface UserManagementProps {
     subsidiary: Subsidiary;
     users: User[];
+    allSubsidiaries: Subsidiary[];
     onSave: (userData: Omit<User, 'id'> & { id?: string }) => void;
     onDelete: (id: string) => void;
 }
 
-const UserManagement: React.FC<UserManagementProps> = ({ subsidiary, users, onSave, onDelete }) => {
+const UserManagement: React.FC<UserManagementProps> = ({ subsidiary, users, allSubsidiaries, onSave, onDelete }) => {
     const { t } = useI18n();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -107,7 +106,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ subsidiary, users, onSa
                     onClose={handleCloseModals}
                     onSave={handleSaveUser}
                     user={editingUser}
-                    subsidiaries={MOCK_SUBSIDIARIES}
+                    subsidiaries={allSubsidiaries}
                     currentSubsidiaryId={subsidiary.id}
                 />
             )}

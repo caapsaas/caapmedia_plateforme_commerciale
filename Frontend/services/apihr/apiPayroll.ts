@@ -49,3 +49,7 @@ export const deletePayrollRecord = async (id: string): Promise<PayrollRecord> =>
   const { data } = await api.delete<PayrollRecord>(`/hr/payroll-records/${id}`);
   return data;
 };
+
+export const processPayroll = async (data: { period: string }): Promise<{ count: number }> => {
+  return (await api.post('/hr/payroll-records/process', data)).data;
+};

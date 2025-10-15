@@ -80,11 +80,13 @@ export class AuthService {
       subsidiaryId: user.subsidiaryId,
     };
     const token = this.jwtService.sign(payload);
+    const subsidiary = await this.prisma.subsidiary.findUnique({ where: { id: user.subsidiaryId } });
 
     this.logger.log(`User ${email} logged in successfully`, 'AuthService');
     return {
       access_token: token,
       user: { id: user.id, email: user.email, role: user.userRole, subsidiaryId: user.subsidiaryId },
+      subsidiary: subsidiary,
     };
   }
 
@@ -286,5 +288,33 @@ export class AuthService {
     // Ce point de terminaison est utile pour la journalisation ou si une liste de blocage est implémentée à l'avenir.
     this.logger.log(`User ${user.email} logged out successfully`, 'AuthService');
     return { message: 'Logged out successfully' };
+  }
+
+  async getProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        userName: true,
+        email: true,
+        userRole: true,
+        subsidiaryId: true,
+        subsidiary: {
+          select: {
+            id: true,
+            subsidiaryName: true,
+            logoSvg: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      this.logger.error(`Profile for user ID ${userId} not found`, 'AuthService');
+      throw new NotFoundException('User profile not found');
+    }
+
+    this.logger.log(`Profile retrieved for user ${user.email}`, 'AuthService');
+    return user;
   }
 }

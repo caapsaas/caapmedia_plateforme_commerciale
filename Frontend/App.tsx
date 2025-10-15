@@ -1,6 +1,6 @@
 import React from 'react';
-import Sidebar from './components/Sidebar';
-import Header from './components/Header';
+import Sidebar from './Pages/Sidebar';
+import Header from './Pages/Header';
 import useIdleTimer from './hooks/useIdleTimer';
 import IdleTimeoutModal from './components/common/IdleTimeoutModal';
 import { useAppContext } from './context/AppContext';

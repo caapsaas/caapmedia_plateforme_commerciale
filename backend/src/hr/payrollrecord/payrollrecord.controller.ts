@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ParseUUIDPipe, HttpCode, HttpStatus } from '@nestjs/common';
 import { PayrollRecordService } from './payrollrecord.service';
 import { CreatePayrollRecordDto, UpdatePayrollRecordDto } from './dto/payrollrecord.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
@@ -40,5 +40,13 @@ export class PayrollrecordController {
   @Roles('HR_MANAGER', 'ADMIN')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.payrollRecordService.remove(id);
+  }
+
+  @Post('process')
+  @Roles('HR_MANAGER', 'ADMIN')
+  @HttpCode(HttpStatus.OK)
+  processPayroll(@Body() body: { period: string }, @Request() req) {
+    const subsidiaryId = req.user.subsidiaryId;
+    return this.payrollRecordService.processPayroll(subsidiaryId, body.period);
   }
 }

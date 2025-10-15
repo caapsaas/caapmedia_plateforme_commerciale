@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useI18n } from '../i18n';
 import { useAppContext } from '../context/AppContext';
 import { ProductionStatus, Order, OrderStatus } from '../types';
-import ProductionOrderCard from './production/ProductionOrderCard';
+import ProductionOrderCard from '../components/production/ProductionOrderCard';
 
 const Production: React.FC = () => {
     const { t } = useI18n();

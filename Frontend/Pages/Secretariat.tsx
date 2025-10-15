@@ -1,13 +1,21 @@
-import React, { useState } from 'react';
-import { Subsidiary, Employee } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Subsidiary, Employee, CompanyDocument, Meeting, SecretariatTask } from '../types';
 import { useI18n } from '../i18n';
-import DocumentManagement from './secretariat/DocumentManagement';
-import MeetingManagement from './secretariat/MeetingManagement';
-import TaskManagement from './secretariat/TaskManagement';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getDocuments, saveDocument, deleteDocument } from '../services/apisecretariat/apiDocuments';
-import { getMeetings, saveMeeting, deleteMeeting } from '../services/apisecretariat/apiMeetings';
-import { getSecretariatTasks, saveSecretariatTask, deleteSecretariatTask } from '../services/apisecretariat/apiTasks';
+import DocumentManagement from '../components/secretariat/DocumentManagement';
+import MeetingManagement from '../components/secretariat/MeetingManagement';
+import TaskManagement from '../components/secretariat/TaskManagement';
+import {
+    getCompanyDocuments,
+    createCompanyDocument,
+    updateCompanyDocument,
+    deleteCompanyDocument,
+    getMeetings,
+    saveMeeting,
+    deleteMeeting,
+    getSecretariatTasks,
+    saveSecretariatTask,
+    deleteSecretariatTask,
+} from '../services/apisecretariat/apiSecretariat';
 import { getEmployees } from '../services/apihr/apiEmployees';
 
 type SecretariatView = 'documents' | 'meetings' | 'tasks';
@@ -18,32 +26,70 @@ interface SecretariatProps {
 
 const Secretariat: React.FC<SecretariatProps> = ({ subsidiary }) => {
     const { t } = useI18n();
-    const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState<SecretariatView>('documents');
     
-    // Default date range for meetings (e.g., this year)
-    const [dateRange, setDateRange] = useState({
-        from: new Date(new Date().getFullYear(), 0, 1),
-        to: new Date(),
-    });
+    // --- State Management with useState (like LoginPage.tsx) ---
+    const [documents, setDocuments] = useState<CompanyDocument[]>([]);
+    const [meetings, setMeetings] = useState<Meeting[]>([]);
+    const [tasks, setTasks] = useState<SecretariatTask[]>([]);
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // Data fetching with TanStack Query
-    const { data: documents = [], isLoading: isLoadingDocs } = useQuery({ queryKey: ['documents', subsidiary.id], queryFn: () => getDocuments() });
-    const { data: meetings = [], isLoading: isLoadingMeetings } = useQuery({ queryKey: ['meetings', subsidiary.id, dateRange], queryFn: () => getMeetings(dateRange.from.toISOString(), dateRange.to.toISOString()) });
-    const { data: tasks = [], isLoading: isLoadingTasks } = useQuery({ queryKey: ['secretariatTasks', subsidiary.id], queryFn: () => getSecretariatTasks() });
-    const { data: employees = [], isLoading: isLoadingEmployees } = useQuery<Employee[]>({ queryKey: ['employees', subsidiary.id], queryFn: () => getEmployees() });
+    // --- Data Fetching with useEffect (like LoginPage.tsx) ---
+    const fetchData = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            // Fetch all data in parallel
+            const [docs, meets, tks, emps] = await Promise.all([
+                getCompanyDocuments(),
+                getMeetings(),
+                getSecretariatTasks(),
+                getEmployees()
+            ]);
+            setDocuments(docs);
+            setMeetings(meets);
+            setTasks(tks);
+            setEmployees(emps);
+        } catch (err: any) {
+            setError(err.message || t('common.error.generic'));
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-    // Mutations
-    const { mutate: onSaveDocument } = useMutation({ mutationFn: saveDocument, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) });
-    const { mutate: onDeleteDocument } = useMutation({ mutationFn: deleteDocument, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) });
+    useEffect(() => {
+        fetchData();
+    }, [subsidiary.id]); // Refetch if subsidiary changes
 
-    const { mutate: onSaveMeeting } = useMutation({ mutationFn: saveMeeting, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['meetings'] }) });
-    const { mutate: onDeleteMeeting } = useMutation({ mutationFn: deleteMeeting, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['meetings'] }) });
+    // --- Manual Mutation Handlers (like LoginPage.tsx) ---
+    const onSaveDocument = async (data: any) => {
+        await (data.id ? updateCompanyDocument(data.id, data) : createCompanyDocument(data));
+        fetchData(); // Manually refetch data
+    };
+    const onDeleteDocument = async (id: string) => {
+        await deleteCompanyDocument(id);
+        fetchData(); // Manually refetch data
+    };
 
-    const { mutate: onSaveTask } = useMutation({ mutationFn: saveSecretariatTask, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['secretariatTasks'] }) });
-    const { mutate: onDeleteTask } = useMutation({ mutationFn: deleteSecretariatTask, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['secretariatTasks'] }) });
+    const onSaveMeeting = async (data: any) => {
+        await saveMeeting(data);
+        fetchData(); // Manually refetch data
+    };
+    const onDeleteMeeting = async (id: string) => {
+        await deleteMeeting(id);
+        fetchData(); // Manually refetch data
+    };
 
-    const isLoading = isLoadingDocs || isLoadingMeetings || isLoadingTasks || isLoadingEmployees;
+    const onSaveTask = async (data: any) => {
+        await saveSecretariatTask(data);
+        fetchData(); // Manually refetch data
+    };
+    const onDeleteTask = async (id: string) => {
+        await deleteSecretariatTask(id);
+        fetchData(); // Manually refetch data
+    };
 
     const renderActiveView = () => {
         if (isLoading) {
@@ -84,6 +130,12 @@ const Secretariat: React.FC<SecretariatProps> = ({ subsidiary }) => {
         }
     };
 
+    /**
+     * Un sous-composant pour afficher un bouton d'onglet.
+     * @param {object} props - Les props du bouton.
+     * @param {SecretariatView} props.view - La vue associée à ce bouton.
+     * @param {string} props.label - Le texte à afficher sur le bouton.
+     */
     const TabButton: React.FC<{ view: SecretariatView; label: string }> = ({ view, label }) => (
         <button
             onClick={() => setActiveTab(view)}

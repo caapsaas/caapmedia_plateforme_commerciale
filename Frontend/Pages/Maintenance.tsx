@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useI18n } from '../i18n';
 import { Equipment, EquipmentStatus, MaintenanceRecord, Subsidiary } from '../types';
-import IconPlus from './icons/IconPlus';
-import IconEdit from './icons/IconEdit';
-import IconDelete from './icons/IconDelete';
-import IconClipboardList from './icons/IconClipboardList';
-import EquipmentFormModal from './maintenance/EquipmentFormModal';
-import ConfirmationModal from './common/ConfirmationModal';
-import MaintenanceLogModal from './maintenance/MaintenanceLogModal';
+import IconPlus from '../components/icons/IconPlus';
+import IconEdit from '../components/icons/IconEdit';
+import IconDelete from '../components/icons/IconDelete';
+import IconClipboardList from '../components/icons/IconClipboardList';
+import EquipmentFormModal from '../components/maintenance/EquipmentFormModal';
+import ConfirmationModal from '../components/common/ConfirmationModal';
+import MaintenanceLogModal from '../components/maintenance/MaintenanceLogModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getEquipments, saveEquipment, deleteEquipment, addMaintenanceLog, SaveEquipmentDto, SaveLogDto } from '../services/apiMaintenance';
 

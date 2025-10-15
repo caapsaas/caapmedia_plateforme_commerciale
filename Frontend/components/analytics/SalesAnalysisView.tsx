@@ -3,8 +3,8 @@ import { Subsidiary, Order, Sale, Product, Contact, User, UserRole, Kpi, StockCh
 import { useI18n } from '../../i18n';
 // FIX: Import the newly added TAX_RATE constant.
 import { categoryToKeyMap, MOCK_TAX_RATES as TAX_RATE } from '../../constants';
-import KpiCard from '../KpiCard';
-import StockChart from '../StockChart';
+import KpiCard from '../../Pages/KpiCard';
+import StockChart from '../../Pages/StockChart';
 import IconTrendingUp from '../icons/IconTrendingUp';
 import IconCurrency from '../icons/IconCurrency';
 import IconUsers from '../icons/IconUsers';
