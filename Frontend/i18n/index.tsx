@@ -738,7 +738,9 @@ const frTranslations = {
     "form": {
       "name": "Nom",
       "category": "Catégorie",
-      "description": "Description",
+    "description": "Description",
+    "passwordRequired": "Le mot de passe est requis pour un nouvel utilisateur.",
+    "passwordsDoNotMatch": "Les mots de passe ne correspondent pas.",
       "costPrice": "Prix de revient",
       "sellingPrice": "Prix de vente",
       "stock": "Stock",
@@ -2009,7 +2011,9 @@ const enTranslations: Translations = {
         "form": {
             "name": "Name",
             "category": "Category",
-            "description": "Description",
+        "description": "Description",
+        "passwordRequired": "Password is required for a new user.",
+        "passwordsDoNotMatch": "Passwords do not match.",
             "costPrice": "Cost Price",
             "sellingPrice": "Selling Price",
             "stock": "Stock",

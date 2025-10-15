@@ -58,7 +58,7 @@ const Clients: React.FC<ClientsProps> = ({ subsidiary }) => {
     };
 
     const handleSaveContact = (contactData: Omit<Contact, 'id' | 'subsidiaryId'> & { id?: string }) => {
-        saveMutation({ ...contactData, id: editingContact?.id });
+        saveMutation(contactData);
         handleCloseModals();
     };
 

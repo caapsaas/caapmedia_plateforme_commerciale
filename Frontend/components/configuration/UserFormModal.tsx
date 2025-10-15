@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, Subsidiary } from '../../types';
 import { useI18n } from '../../i18n';
@@ -56,11 +55,11 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
 
         if (showPasswordFields) {
             if (!user && !password) { // Password required for new user
-                setPasswordError("Le mot de passe est requis pour un nouvel utilisateur.");
+            setPasswordError(t('configuration.form.passwordRequired'));
                 return;
             }
             if (password !== confirmPassword) {
-                setPasswordError("Les mots de passe ne correspondent pas.");
+            setPasswordError(t('configuration.form.passwordsDoNotMatch'));
                 return;
             }
             if (password) {
