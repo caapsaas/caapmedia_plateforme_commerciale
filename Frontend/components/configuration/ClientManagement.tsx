@@ -2,24 +2,38 @@ import React, { useState } from 'react';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
-import { Subsidiary, Contact } from '../../types';
+import { Contact } from '../../types';
 import { useI18n } from '../../i18n';
 import ClientFormModal from './ClientFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
-import { UseMutateFunction } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAppContext } from '../../context/AppContext';
+import { getContacts, saveContact, deleteContact } from '../../services/apiCrm/apiCrm';
 
-interface ClientManagementProps {
-    subsidiary: Subsidiary;
-    contacts: Contact[];
-    onSave: UseMutateFunction<Contact, Error, Partial<Contact>, unknown>;
-    onDelete: UseMutateFunction<Contact, Error, string, unknown>;
-}
-
-const ClientManagement: React.FC<ClientManagementProps> = ({ subsidiary, contacts, onSave, onDelete }) => {
+const ClientManagement: React.FC = () => {
     const { t } = useI18n();
+    const { state } = useAppContext();
+    const { currentSubsidiary: subsidiary } = state;
+    const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingContact, setEditingContact] = useState<Contact | null>(null);
     const [deletingContact, setDeletingContact] = useState<Contact | null>(null);
+
+    // --- Data Fetching & Mutations ---
+    const { data: contacts = [], isLoading, isError } = useQuery<Contact[]>({
+        queryKey: ['contacts', subsidiary?.id],
+        queryFn: () => getContacts(subsidiary!.id),
+        enabled: !!subsidiary,
+    });
+
+    const { mutate: onSave } = useMutation<Contact, Error, Omit<Contact, 'id'> & { id?: string }>({ 
+        mutationFn: saveContact, 
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contacts', subsidiary?.id] }) 
+    });
+    const { mutate: onDelete } = useMutation<void, Error, string>({ 
+        mutationFn: deleteContact, 
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contacts', subsidiary?.id] }) 
+    });
 
     const handleOpenAddModal = () => {
         setEditingContact(null);
@@ -42,7 +56,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ subsidiary, contact
     };
 
     const handleSaveContact = (contactData: Omit<Contact, 'id' | 'subsidiaryId'> & { id?: string }) => {
-        onSave({ ...contactData, subsidiaryId: subsidiary.id });
+        onSave({ ...contactData, subsidiaryId: subsidiary!.id });
         handleCloseModals();
     };
 
@@ -52,6 +66,16 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ subsidiary, contact
             handleCloseModals();
         }
     };
+
+    if (!subsidiary) return <div className="p-6 text-center">{t('common.loading')}</div>;
+
+    if (isLoading) {
+        return <div className="p-6 text-center">{t('common.loading')}</div>;
+    }
+
+    if (isError) {
+        return <div className="p-6 text-center text-red-500">Erreur lors du chargement des clients.</div>;
+    }
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
