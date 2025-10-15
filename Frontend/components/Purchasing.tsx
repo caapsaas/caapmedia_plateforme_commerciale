@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Subsidiary, PurchaseOrder, PurchaseOrderStatus, PaymentStatus, Product, PurchaseOrderItem } from '../types';
+import { Subsidiary, PurchaseOrder, PurchaseOrderStatus, PaymentStatus, Product } from '../types/models';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '../i18n';
 import IconPlus from './icons/IconPlus';
 import IconEye from './icons/IconEye';
@@ -11,18 +12,16 @@ import ConfirmationModal from './common/ConfirmationModal';
 import ReceiveItemsModal from './purchasing/ReceiveItemsModal';
 import RecordPaymentModal from './purchasing/RecordPaymentModal';
 import IconCoins from './icons/IconCoins';
+import { useAppContext } from '../context/AppContext'; 
+import { getPurchaseOrders, createPurchaseOrder, receivePurchaseOrderItems, recordPurchaseOrderPayment } from '../services/apiPurchasing/apiPurchase_order';
+import { getProductsBySubsidiary } from '../services/apiE-commerce/apiProducts';
+import { CreatePurchaseOrderDto, ReceiveItemsDto } from '../services/apiPurchasing/apiPurchase_order';
 
-interface PurchasingProps {
-    subsidiary: Subsidiary;
-    purchaseOrders: PurchaseOrder[];
-    products: Product[];
-    onCreatePurchaseOrder: (po: Omit<PurchaseOrder, 'id' | 'subsidiaryId'>) => void;
-    onReceiveItems: (poId: string, receivedItems: { productId: string, quantityReceived: number }[]) => void;
-    onRecordPayment: (poId: string, paymentAmount: number) => void;
-}
-
-const Purchasing: React.FC<PurchasingProps> = ({ subsidiary, purchaseOrders, products, onCreatePurchaseOrder, onReceiveItems, onRecordPayment }) => {
+const Purchasing: React.FC = () => {
     const { t, formatCurrency } = useI18n();
+    const { state } = useAppContext();
+    const { currentSubsidiary: subsidiary } = state;
+    const queryClient = useQueryClient();
     
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -31,7 +30,32 @@ const Purchasing: React.FC<PurchasingProps> = ({ subsidiary, purchaseOrders, pro
     
     const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
 
-    const subsidiaryPOs = purchaseOrders.filter(po => po.subsidiaryId === subsidiary.id);
+    // --- TanStack Query: Data Fetching ---
+    const { data: purchaseOrders = [], isLoading: isLoadingPOs } = useQuery<PurchaseOrder[]>({
+        queryKey: ['purchaseOrders', subsidiary?.id],
+        queryFn: () => getPurchaseOrders(),
+        enabled: !!subsidiary,
+    });
+
+    const { data: products = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
+        queryKey: ['products', subsidiary?.id],
+        queryFn: () => getProductsBySubsidiary(),
+        enabled: !!subsidiary,
+    });
+
+    // --- TanStack Query: Mutations ---
+    const { mutate: createPurchaseOrderMutate } = useMutation({
+        mutationFn: createPurchaseOrder,
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] }),
+    });
+    const { mutate: receiveItemsMutate } = useMutation({
+        mutationFn: ({ id, data }: { id: string, data: ReceiveItemsDto }) => receivePurchaseOrderItems(id, data),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] }),
+    });
+    const { mutate: recordPaymentMutate } = useMutation({
+        mutationFn: ({ id, data }: { id: string, data: { amount: number } }) => recordPurchaseOrderPayment(id, data),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] }),
+    });
 
     const handleOpenAddModal = () => {
         setSelectedPO(null);
@@ -81,6 +105,10 @@ const Purchasing: React.FC<PurchasingProps> = ({ subsidiary, purchaseOrders, pro
         }
     };
 
+    if (!subsidiary || isLoadingPOs || isLoadingProducts) {
+        return <div>{t('common.loading')}</div>;
+    }
+
     return (
         <div className="space-y-6">
             <h2 className="text-3xl font-bold text-slate-800">{t('purchasing.title')}</h2>
@@ -108,7 +136,7 @@ const Purchasing: React.FC<PurchasingProps> = ({ subsidiary, purchaseOrders, pro
                             </tr>
                         </thead>
                         <tbody>
-                            {subsidiaryPOs.map(po => (
+                            {purchaseOrders.map(po => (
                                 <tr key={po.id} className="bg-white border-b hover:bg-slate-50">
                                     <td className="px-6 py-4 font-semibold">{po.id}</td>
                                     <td className="px-6 py-4">{po.supplierName}</td>
@@ -150,7 +178,7 @@ const Purchasing: React.FC<PurchasingProps> = ({ subsidiary, purchaseOrders, pro
                 <PurchaseOrderFormModal 
                     isOpen={isFormModalOpen}
                     onClose={handleCloseModals}
-                    onSave={onCreatePurchaseOrder}
+                    onSave={(data: CreatePurchaseOrderDto) => createPurchaseOrderMutate(data)}
                     subsidiary={subsidiary}
                     products={products}
                 />
@@ -169,7 +197,7 @@ const Purchasing: React.FC<PurchasingProps> = ({ subsidiary, purchaseOrders, pro
                     isOpen={isReceiveModalOpen}
                     onClose={handleCloseModals}
                     purchaseOrder={selectedPO}
-                    onReceive={onReceiveItems}
+                    onReceive={(poId, items) => receiveItemsMutate({ id: poId, data: { items } })}
                 />
             )}
 
@@ -178,7 +206,7 @@ const Purchasing: React.FC<PurchasingProps> = ({ subsidiary, purchaseOrders, pro
                     isOpen={isPaymentModalOpen}
                     onClose={handleCloseModals}
                     purchaseOrder={selectedPO}
-                    onRecordPayment={onRecordPayment}
+                    onRecordPayment={(poId, amount) => recordPaymentMutate({ id: poId, data: { amount } })}
                 />
             )}
 

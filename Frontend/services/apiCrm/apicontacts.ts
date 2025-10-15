@@ -34,6 +34,7 @@ export interface ContactLoginCredentials {
  */
 export interface ContactLoginResponse {
   access_token: string;
+  contact: Contact;
 }
 
 // --- Fonctions API pour les Employés (CRM Interne) ---

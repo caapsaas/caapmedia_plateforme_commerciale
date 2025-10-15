@@ -73,3 +73,44 @@ export const rangeToKeyMap: { [key: string]: string } = {
     'Standard': 'productRange.standard',
     'Premium': 'productRange.premium',
 };
+
+export const PRODUCT_HIERARCHY = [
+  { "category": "Imprimerie", "slug": "imprimerie", "subcategories": [
+      { "name": "Pub", "slug": "pub" },
+      { "name": "Carterie", "slug": "carterie" },
+      { "name": "Packaging", "slug": "packaging" },
+      { "name": "Papeterie", "slug": "papeterie" },
+      { "name": "Resto - Hôtels", "slug": "resto-hotels" },
+      { "name": "Impression livre", "slug": "impression-livre" }
+  ]},
+  { "category": "Signalétique & Display", "slug": "signaletique-display", "subcategories": [
+      { "name": "Bâches & Banderoles", "slug": "baches-banderoles" },
+      { "name": "Roll-up & Kakemono", "slug": "rollup-kakemono" },
+      { "name": "Drapeaux & Oriflammes", "slug": "drapeaux-oriflammes" },
+      { "name": "Panneaux & Enseignes", "slug": "panneaux-enseignes" },
+      { "name": "Stands & PLV", "slug": "stands-plv" }
+  ]},
+  { "category": "Objets publicitaires", "slug": "objets-publicitaires", "subcategories": [
+      { "name": "Textile", "slug": "textile" },
+      { "name": "Mugs, gobelets et gourdes", "slug": "mugs-gobelets-gourdes" },
+      { "name": "Sacs personnalisés", "slug": "sacs-personnalises" },
+      { "name": "Événementiel", "slug": "evenementiel" },
+      { "name": "Mobilier publicitaire", "slug": "mobilier-publicitaire" },
+      { "name": "Écriture & Bureau", "slug": "ecriture-bureau" },
+      { "name": "Maison & Déco", "slug": "maison-deco" }
+  ]},
+  { "category": "Prestations de services", "slug": "prestations-services", "subcategories": [
+      { "name": "Création & gestion de sites web", "slug": "creation-sites-web" },
+      { "name": "Marketing digital & publicité", "slug": "marketing-digital" },
+      { "name": "Réseaux sociaux", "slug": "reseaux-sociaux" },
+      { "name": "Design & identité visuelle", "slug": "design-identite-visuelle" }
+  ]},
+  { "category": "Matières Premières", "slug": "matieres-premieres", "subcategories": [
+      { "name": "Papiers & Cartons", "slug": "papiers-cartons" },
+      { "name": "Encres & Chimiques", "slug": "encres-chimiques" },
+      { "name": "Supports & Bâches", "slug": "supports-baches" },
+      { "name": "Finition & Façonnage", "slug": "finition-faconnage" },
+      { "name": "Prestations Externes", "slug": "prestations-externes" },
+      { "name": "Textiles", "slug": "textiles-raw" }
+  ]}
+];

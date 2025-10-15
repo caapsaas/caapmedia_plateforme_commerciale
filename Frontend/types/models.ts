@@ -101,6 +101,11 @@ export interface ConfigurableOptions {
     numbering?: ConfigurableOptionItem[];
 }
 
+export interface ProductImage {
+    id: string;
+    imageName: string;
+    imageUrl: string;
+}
 
 export interface Product {
   id: string;
@@ -114,7 +119,7 @@ export interface Product {
   warehouse: string;
   subsidiaryId: string;
   range?: string;
-  imageUrls?: string[];
+  productImages?: ProductImage[];
   configurableOptions?: ConfigurableOptions;
 }
 

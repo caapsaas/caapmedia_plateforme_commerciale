@@ -99,4 +99,14 @@ export class CreateProductDto {
     productImages?: ProductImageDto[];
 }
 
+export class UpdateProductPriceDto {
+    @IsNumber()
+    @IsPositive()
+    price: number;
+
+    @IsNumber()
+    @IsPositive()
+    sellingPrice: number;
+}
+
 export class UpdateProductDto extends PartialType(CreateProductDto) {}

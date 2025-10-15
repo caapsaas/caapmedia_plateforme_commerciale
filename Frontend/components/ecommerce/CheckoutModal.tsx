@@ -11,7 +11,6 @@ import IconPaycaap from '../icons/IconPaycaap';
 import IconCheckCircle from '../icons/IconCheckCircle';
 import IconTruckCoins from '../icons/IconTruckCoins';
 import IconUserClock from '../icons/IconUserClock';
-import { processPayment } from '../../services/apiPayments';
 
 type PaymentMethod = 'Card' | 'OrangeMoney' | 'Wave' | 'MtnMoney' | 'Paycaap' | 'delivery' | 'credit';
 
@@ -69,24 +68,18 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, onConfir
         setIsProcessing(true);
         setError(null);
 
-        try {
-            // 1. Traiter le paiement
-            await processPayment({
-                amount: total,
-                paymentMethod: selectedPaymentMethod,
-                customerInfo,
-                cartItems,
-            });
+        // Simulation du traitement du paiement
+        setTimeout(() => {
+            // Pour le moment, nous supposons que le paiement réussit toujours.
+            // On pourrait ajouter une logique pour simuler un échec :
+            // const paymentSucceeded = Math.random() > 0.1; // 90% de chance de succès
 
-            // 2. Si le paiement réussit, confirmer la commande
+            // Le paiement est considéré comme réussi, on confirme la commande.
             onConfirmOrder(customerInfo, selectedPaymentMethod);
             setIsSuccess(true);
-            setTimeout(() => onClose(), 3000); // Fermer la modale après 3s
-        } catch (err: any) {
-            setError(err.message || 'Une erreur est survenue lors du paiement.');
-        } finally {
             setIsProcessing(false);
-        }
+            setTimeout(() => onClose(), 3000); // Fermer la modale après 3 secondes
+        }, 2000); // Délai de 2 secondes pour simuler l'appel API
     };
 
     if (!isOpen) return null;
@@ -103,7 +96,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, onConfir
 
                 {isSuccess ? (
                     <div className="p-8 text-center">
-                        <IconCheckCircle className="h-16 w-16 mx-auto text-green-500"/>
+                        <IconCheckCircle className="h-16 w-16 mx-auto text-green-500" />
                         <p className="text-slate-600 mt-2">{t('ecommerce.orderSuccess')}</p>
                     </div>
                 ) : (
@@ -139,15 +132,15 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, onConfir
                         </div>
                         <div className="px-6 py-4 bg-slate-50 flex justify-end items-center space-x-4 rounded-b-lg">
                             <span className="font-bold text-lg">{t('ecommerce.total')}: {formatCurrency(total)}</span>
-                            <button 
-                                type="submit" 
+                            <button
+                                type="submit"
                                 disabled={isProcessing || !selectedPaymentMethod}
                                 className="px-6 py-3 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f] disabled:bg-slate-400 flex items-center justify-center min-w-[120px]"
                             >
                                 {isProcessing ? (
                                     <svg className="animate-spin h-5 w-5 text-slate-800" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
                                 ) : t('payment.pay')}
                             </button>

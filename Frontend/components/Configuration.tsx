@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import ProductManagement from './configuration/ProductManagement';
 import UserManagement from './configuration/UserManagement';
 import SupplierManagement from './configuration/SupplierManagement';
-import { Subsidiary, Product, User, Supplier, TaxRate } from '../types';
+import { Subsidiary, User, Supplier, TaxRate } from '../types/models';
 import { useI18n } from '../i18n';
 import TaxManagement from './configuration/TaxManagement';
 
@@ -11,12 +11,8 @@ type ConfigView = 'products' | 'users' | 'suppliers' | 'taxes';
 
 interface ConfigurationProps {
     subsidiary: Subsidiary;
-    products: Product[];
     users: User[];
     suppliers: Supplier[];
-    onSaveProduct: (productData: Omit<Product, 'id' | 'subsidiaryId' | 'imageUrls'> & { id?: string }) => void;
-    onDeleteProduct: (id: string) => void;
-    onGenerateImage: (productId: string) => Promise<void>;
     onSaveUser: (userData: Omit<User, 'id'> & { id?: string }) => void;
     onDeleteUser: (id: string) => void;
     onSaveSupplier: (supplierData: Omit<Supplier, 'id' | 'subsidiaryId'> & { id?: string }) => void;
@@ -35,9 +31,7 @@ const Configuration: React.FC<ConfigurationProps> = (props) => {
         
         switch (activeTab) {
             case 'products':
-                return <ProductManagement 
-                            {...commonProps} 
-                        />;
+                return <ProductManagement />;
             case 'users':
                 return <UserManagement 
                             {...commonProps}
@@ -58,9 +52,7 @@ const Configuration: React.FC<ConfigurationProps> = (props) => {
                             onDelete={props.onDeleteTaxRate}
                         />;
             default:
-                return <ProductManagement 
-                            {...commonProps} 
-                        />;
+                return <ProductManagement />;
         }
     };
 

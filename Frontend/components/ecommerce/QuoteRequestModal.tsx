@@ -8,7 +8,7 @@ import IconCheckCircle from '../icons/IconCheckCircle';
 interface QuoteRequestModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (data: { name: string; company: string; email: string; phone: string; description: string; }) => void;
+    onSave: (data: { name: string; company: string; email: string; phone: string; description: string; file?: File | null; }) => void;
 }
 
 const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, onClose, onSave }) => {
@@ -46,7 +46,7 @@ const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, onClose, 
         setIsSubmitting(true);
         // Simulate API call to send email and save lead
         setTimeout(() => {
-            onSave(formData);
+            onSave({ ...formData, file });
             setIsSubmitting(false);
             setIsSuccess(true);
             setTimeout(() => {

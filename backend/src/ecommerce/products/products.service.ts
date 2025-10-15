@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
-import { CreateProductDto, UpdateProductDto } from './dto/create-product.dto';
+import { CreateProductDto, UpdateProductDto, UpdateProductPriceDto } from './dto/create-product.dto';
 
 @Injectable()
 export class ProductsService {
@@ -18,6 +18,7 @@ export class ProductsService {
     if (!product) return null;
     return {
       ...product,
+      productImages: product.productImages, // Ajout explicite pour la clarté
       price: product.price?.toString(),
       sellingPrice: product.sellingPrice?.toString(),
       stock: product.stock?.toString(),
@@ -115,6 +116,38 @@ export class ProductsService {
       throw new NotFoundException(`Product with ID "${id}" not found`);
     }
     return this.mapDecimals(product);
+  }
+
+  /**
+   * Met à jour uniquement le prix de revient et le prix de vente d'un produit.
+   * @param id ID du produit
+   * @param updateProductPriceDto DTO contenant le prix de revient et de vente
+   * @param user Utilisateur authentifié
+   * @returns Le produit mis à jour
+   */
+  async updatePrice(id: string, updateProductPriceDto: UpdateProductPriceDto, user: any) {
+    const { price, sellingPrice } = updateProductPriceDto;
+
+    if (price === undefined || sellingPrice === undefined) {
+      throw new BadRequestException('Le prix de revient et le prix de vente sont requis.');
+    }
+
+    // Vérifie que le produit existe et appartient à la bonne filiale
+    await this.findOne(id, user);
+
+    const updatedProduct = await this.prisma.product.update({
+      where: {
+        id: id,
+        subsidiaryId: user.subsidiaryId,
+      },
+      data: {
+        price: Number(price),
+        sellingPrice: Number(sellingPrice),
+      },
+      include: this.includeAll,
+    });
+
+    return this.mapDecimals(updatedProduct);
   }
 
   /**

@@ -4,30 +4,57 @@ import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
 import IconSparkles from '../icons/IconSparkles';
-import { Subsidiary, Product } from '../../types';
+import { Product } from '../../types/models';
+import { ProductFormData } from '../../types/forms';
 import { useI18n } from '../../i18n';
 import ProductFormModal from './ProductFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
 import { useAppContext } from '../../context/AppContext';
-import { generateProductImage } from '../../services/geminiService';
 import IconUpload from '../icons/IconUpload';
 import ProductImportModal from './ProductImportModal';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getProductsBySubsidiary, createProduct, updateProduct, deleteProduct, generateProductImage } from '../../services/apiE-commerce/apiProducts'; 
+import { getImageUrl } from '../../utils/imageUtils';
 
-interface ProductManagementProps {
-    subsidiary: Subsidiary;
-}
-
-const ProductManagement: React.FC<ProductManagementProps> = ({ subsidiary }) => {
+const ProductManagement: React.FC = () => {
     const { t, formatCurrency } = useI18n();
-    const { state, dispatch } = useAppContext();
+    const { state } = useAppContext();
+    const { currentSubsidiary: subsidiary } = state;
+    const queryClient = useQueryClient();
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
-    const [generatingImageId, setGeneratingImageId] = useState<string | null>(null);
-    const [generationError, setGenerationError] = useState<Record<string, string | null>>({});
 
-    const subsidiaryProducts = state.products.filter(p => p.subsidiaryId === subsidiary.id);
+    // --- TanStack Query: Data Fetching ---
+    const { data: products = [], isLoading, isError } = useQuery<Product[]>({
+        queryKey: ['products', subsidiary?.id],
+        queryFn: getProductsBySubsidiary,
+        enabled: !!subsidiary,
+    });
+
+    // --- TanStack Query: Mutations ---
+    const { mutate: saveProductMutate } = useMutation({
+        mutationFn: ({ id, data }: { id?: string, data: ProductFormData }) => id ? updateProduct(id, data) : createProduct(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products', subsidiary?.id] });
+            handleCloseModals();
+        },
+    });
+
+    const { mutate: deleteProductMutate } = useMutation({
+        mutationFn: deleteProduct,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products', subsidiary?.id] });
+            handleCloseModals();
+        },
+    });
+
+    const { mutate: generateImageMutate, isPending: isGeneratingImage, variables: generatingImageId } = useMutation({
+        mutationFn: generateProductImage,
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products', subsidiary?.id] }),
+    });
 
     const handleOpenAddModal = () => {
         setEditingProduct(null);
@@ -49,35 +76,23 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ subsidiary }) => 
         setEditingProduct(null);
     };
 
-    const handleSave = (productData: Omit<Product, 'id' | 'subsidiaryId' | 'imageUrls'> & { id?: string }) => {
-        dispatch({ type: 'SAVE_PRODUCT', payload: productData });
-        handleCloseModals();
+    const handleSave = (productData: ProductFormData & { id?: string }) => {
+        saveProductMutate({ id: productData.id, data: productData });
     };
 
     const handleDeleteConfirm = () => {
         if(deletingProduct) {
-            dispatch({ type: 'DELETE_PRODUCT', payload: deletingProduct.id });
-            handleCloseModals();
+            deleteProductMutate(deletingProduct.id);
         }
     };
     
-    const handleGenerateImageClick = async (productId: string) => {
-        setGeneratingImageId(productId);
-        setGenerationError(prev => ({ ...prev, [productId]: null }));
-        try {
-            const product = state.products.find(p => p.id === productId);
-            if (!product) return;
-            const newImageUrl = await generateProductImage(product.name, product.description);
-            dispatch({ type: 'UPDATE_PRODUCT_IMAGE', payload: { productId, imageUrl: newImageUrl }});
-        } catch (error) {
-            console.error("Image generation failed", error);
-            const errorMessageKey = error instanceof Error ? error.message : 'product.serviceUnavailable';
-            setGenerationError(prev => ({ ...prev, [productId]: t(errorMessageKey) }));
-        } finally {
-            setGeneratingImageId(null);
-        }
-    };
+    if (isLoading) {
+        return <div>{t('common.loading')}</div>;
+    }
 
+    if (isError) {
+        return <div>Erreur lors du chargement des produits.</div>;
+    }
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
@@ -108,10 +123,13 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ subsidiary }) => 
                         </tr>
                     </thead>
                     <tbody>
-                        {subsidiaryProducts.map((product) => (
+                        {products.map((product) => (
                             <tr key={product.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4">
-                                    <img src={product.imageUrls?.[0] || 'https://via.placeholder.com/100'} alt={product.name} className="h-12 w-12 object-cover rounded-md"/>
+                                    <img 
+                                        src={product.productImages && product.productImages.length > 0 ? getImageUrl(product.productImages[0].imageUrl) : 'https://via.placeholder.com/100'} 
+                                        alt={product.name} 
+                                        className="h-12 w-12 object-cover rounded-md"/>
                                 </td>
                                 <td className="px-6 py-4 font-semibold">{product.name}</td>
                                 <td className="px-6 py-4">{product.range ? t(rangeToKeyMap[product.range] || product.range) : ''}</td>
@@ -123,11 +141,11 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ subsidiary }) => 
                                 <td className="px-6 py-4 text-center">
                                      <div className="flex flex-col items-center justify-center">
                                         <div className="flex items-center justify-center space-x-1">
-                                            <button 
-                                                onClick={() => handleGenerateImageClick(product.id)}
+                                            <button
+                                                onClick={() => generateImageMutate(product.id)}
                                                 className="p-2 text-slate-500 hover:text-purple-600 hover:bg-purple-100 rounded-full transition-colors disabled:opacity-50"
                                                 aria-label={t('configuration.form.generateWithAI')}
-                                                disabled={generatingImageId === product.id}
+                                                disabled={isGeneratingImage}
                                             >
                                                 {generatingImageId === product.id ? (
                                                      <svg className="animate-spin h-5 w-5 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -142,9 +160,6 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ subsidiary }) => 
                                                 <IconDelete className="h-5 w-5" />
                                             </button>
                                         </div>
-                                        {generationError[product.id] && (
-                                            <p className="text-red-600 text-xs mt-1">{generationError[product.id]}</p>
-                                        )}
                                     </div>
                                 </td>
                             </tr>

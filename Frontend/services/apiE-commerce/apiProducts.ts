@@ -1,16 +1,10 @@
 import { api } from '../api';
-import { Product } from '../../types';
+import { Product } from '../../types/models';
+import { ProductFormData } from '../../types/forms';
 
-// Type pour les données du formulaire de produit, gérant les fichiers et les types de données envoyés.
-export type ProductFormData = Omit<Product, 'id' | 'subsidiaryId' | 'imageUrls' | 'configurableOptions' | 'stock' | 'price' | 'sellingPrice'> & {
-    stock: string | number;
+export type UpdateProductSellingAndPriceData = {
     price: string | number;
     sellingPrice: string | number;
-    productImages?: File[];
-    configurableOptions?: {
-        optionType: string;
-        item: { optionName: string; multiplier: number | string };
-    }[];
 };
 
 /**
@@ -76,6 +70,16 @@ export const createProduct = async (productData: ProductFormData) => {
 };
 
 /**
+ * Met à jour le prix d'un produit.
+ * @param id - L'ID du produit à mettre à jour.
+ * @param updateData - Les données du produit à mettre à jour.
+ */
+export const updateProductSellingAndPrice = async (id: string, updateData: UpdateProductSellingAndPriceData) => {
+    const { data } = await api.patch(`/products/${id}/update-price`, updateData);
+    return data;
+}
+
+/**
  * Met à jour un produit existant.
  * @param id - L'ID du produit à mettre à jour.
  * @param productData - Les données du produit à mettre à jour.
@@ -118,5 +122,14 @@ export const updateProduct = async (id: string, productData: Partial<ProductForm
  */
 export const deleteProduct = async (id: string) => {
     const { data } = await api.delete(`/products/${id}`);
+    return data;
+};
+
+/**
+ * Demande la génération d'une nouvelle image pour un produit via l'IA.
+ * @param productId - L'ID du produit.
+ */
+export const generateProductImage = async (productId: string): Promise<Product> => {
+    const { data } = await api.post<Product>(`/products/${productId}/generate-image`);
     return data;
 };

@@ -2,24 +2,42 @@
 import React, { useState } from 'react';
 import { TaxRate } from '../../types';
 import { useI18n } from '../../i18n';
-import { useAppContext } from '../../context/AppContext';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
 import ConfirmationModal from '../common/ConfirmationModal';
 import TaxFormModal from './TaxFormModal';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getTaxes, createTax, updateTax, deleteTax } from '../../services/apiE-commerce/apitaxes';
 
-interface TaxManagementProps {
-    onSave: (taxData: Omit<TaxRate, 'id'> & { id?: string }) => void;
-    onDelete: (id: string) => void;
-}
-
-const TaxManagement: React.FC<TaxManagementProps> = ({ onSave, onDelete }) => {
+const TaxManagement: React.FC = () => {
     const { t } = useI18n();
-    const { state } = useAppContext();
+    const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTax, setEditingTax] = useState<TaxRate | null>(null);
     const [deletingTax, setDeletingTax] = useState<TaxRate | null>(null);
+
+    const { data: taxRates = [], isLoading, isError } = useQuery<TaxRate[]>({
+        queryKey: ['taxes'],
+        queryFn: getTaxes,
+    });
+
+    const { mutate: saveTaxMutate } = useMutation({
+        mutationFn: (taxData: Omit<TaxRate, 'id'> & { id?: string }) => 
+            taxData.id ? updateTax(taxData.id, taxData) : createTax(taxData),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['taxes'] });
+            handleCloseModals();
+        },
+    });
+
+    const { mutate: deleteTaxMutate } = useMutation({
+        mutationFn: deleteTax,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['taxes'] });
+            handleCloseModals();
+        },
+    });
 
     const handleOpenAddModal = () => {
         setEditingTax(null);
@@ -38,19 +56,26 @@ const TaxManagement: React.FC<TaxManagementProps> = ({ onSave, onDelete }) => {
     const handleCloseModals = () => {
         setIsModalOpen(false);
         setDeletingTax(null);
+        setEditingTax(null);
     };
     
     const handleSave = (taxData: Omit<TaxRate, 'id'> & { id?: string }) => {
-        onSave(taxData);
-        handleCloseModals();
+        saveTaxMutate(taxData);
     };
 
     const handleDelete = () => {
         if (deletingTax) {
-            onDelete(deletingTax.id);
-            handleCloseModals();
+            deleteTaxMutate(deletingTax.id);
         }
     };
+
+    if (isLoading) {
+        return <div>{t('common.loading')}</div>;
+    }
+
+    if (isError) {
+        return <div>{t('common.error.load', { item: 'taxes' })}</div>;
+    }
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-md">
@@ -72,7 +97,7 @@ const TaxManagement: React.FC<TaxManagementProps> = ({ onSave, onDelete }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {state.taxRates.map((tax) => (
+                        {taxRates.map((tax) => (
                             <tr key={tax.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{tax.name}</td>
                                 <td className="px-6 py-4">{(tax.rate * 100).toFixed(2)}%</td>

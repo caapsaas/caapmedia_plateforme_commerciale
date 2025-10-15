@@ -111,7 +111,7 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({ isOpen, onClose
                     warehouse: productData.warehouse || '',
                     range: productData.range || '',
                     subsidiaryId: state.currentSubsidiary!.id,
-                    imageUrls: ['https://via.placeholder.com/400x300']
+                    // productImages will be empty for imported products initially
                 });
             }
             

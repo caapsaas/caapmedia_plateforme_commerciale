@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { ProductImage } from '../../types/models';
+import { getImageUrl } from '../../utils/imageUtils';
 import IconChevronLeft from '../icons/IconChevronLeft';
 import IconChevronRight from '../icons/IconChevronRight';
 
 interface ImageZoomModalProps {
     isOpen: boolean;
     onClose: () => void;
-    images: string[];
+    images: ProductImage[];
     startIndex?: number;
 }
 
@@ -52,8 +54,11 @@ const ImageZoomModal: React.FC<ImageZoomModalProps> = ({ isOpen, onClose, images
             </button>
             
             <div className="flex-grow flex items-center justify-center p-4 relative group" onClick={e => e.stopPropagation()}>
-                <img src={images[currentIndex]} alt={`Zoomed view ${currentIndex + 1}`} className="max-h-full max-w-full object-contain transition-all duration-300"/>
-
+                <img 
+                    src={getImageUrl(images[currentIndex].imageUrl)} 
+                    alt={images[currentIndex].imageName || `Vue zoomée ${currentIndex + 1}`} 
+                    className="max-h-full max-w-full object-contain transition-all duration-300"
+                />
                 {images.length > 1 && (
                     <>
                         <button onClick={prevImage} className="absolute top-1/2 left-4 -translate-y-1/2 p-3 bg-white/20 rounded-full text-white hover:bg-white/40 transition-all opacity-50 group-hover:opacity-100" aria-label="Previous image">
@@ -68,14 +73,14 @@ const ImageZoomModal: React.FC<ImageZoomModalProps> = ({ isOpen, onClose, images
 
             {images.length > 1 && (
                 <div className="flex-shrink-0 h-28 w-full flex justify-center items-center gap-2 p-2" onClick={e => e.stopPropagation()}>
-                    {images.map((img, index) => (
+                    {images.map((image, index) => (
                         <button 
-                            key={index} 
+                            key={image.id || index} 
                             onClick={() => setCurrentIndex(index)}
                             className={`h-20 w-20 rounded-md overflow-hidden transition-all duration-200 focus:outline-none ring-2 ring-offset-2 ring-offset-black ${currentIndex === index ? 'ring-[#c6e911]' : 'ring-transparent opacity-60 hover:opacity-100'}`}
                             aria-label={`Go to slide ${index + 1}`}
                         >
-                            <img src={img} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
+                            <img src={getImageUrl(image.imageUrl)} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
                         </button>
                     ))}
                 </div>

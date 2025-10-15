@@ -6,6 +6,7 @@ import { CartItem } from './ShoppingCart';
 import IconUpload from '../icons/IconUpload';
 import IconFile from '../icons/IconFile';
 import IconDelete from '../icons/IconDelete';
+import { getImageUrl } from '../../utils/imageUtils';
 
 interface PriceCalculatorModalProps {
     isOpen: boolean;
@@ -96,7 +97,8 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
             quantity,
             unitPrice: price.unitPrice,
             totalPrice: price.totalPrice,
-            designFile: designFile ? { name: designFile.name, url: URL.createObjectURL(designFile) } : undefined
+            designFile: designFile ? { name: designFile.name, url: URL.createObjectURL(designFile) } : undefined,
+            designFileObject: designFile || undefined
         });
         onClose();
     };
@@ -104,8 +106,8 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
     if (!isOpen || !product) return null;
     
     const config = product.configurableOptions;
-    const hasImages = product.imageUrls && product.imageUrls.length > 0;
-    const activeImageUrl = hasImages ? product.imageUrls[activeImageIndex] : 'https://via.placeholder.com/400x300?text=Image+Indisponible';
+    const hasImages = product.productImages && product.productImages.length > 0;
+    const activeImageUrl = hasImages && product.productImages ? getImageUrl(product.productImages[activeImageIndex].imageUrl) : 'https://via.placeholder.com/400x300?text=Image+Indisponible';
 
     const renderSelect = (name: keyof ProductOptions, labelKey: string, items: {name: string}[]) => (
         <div key={name}>
@@ -141,16 +143,16 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
                              <div className="w-full aspect-[4/3] rounded-lg overflow-hidden bg-slate-100 mb-2">
                                 <img src={activeImageUrl} alt={product.name} className="w-full h-full object-cover" />
                             </div>
-                            {hasImages && product.imageUrls && product.imageUrls.length > 1 && (
+                            {hasImages && product.productImages && product.productImages.length > 1 && (
                                 <div className="grid grid-cols-5 gap-2">
-                                    {product.imageUrls.slice(0, 5).map((url, index) => (
+                                    {product.productImages.slice(0, 5).map((image, index) => (
                                         <button 
                                             key={index} 
                                             onClick={() => setActiveImageIndex(index)} 
                                             className={`aspect-square rounded-md overflow-hidden focus:outline-none ring-2 ring-offset-1 ${activeImageIndex === index ? 'ring-[#c6e911]' : 'ring-transparent'}`}
                                             aria-label={`View image ${index + 1}`}
                                         >
-                                            <img src={url} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover"/>
+                                            <img src={getImageUrl(image.imageUrl)} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover"/>
                                         </button>
                                     ))}
                                 </div>

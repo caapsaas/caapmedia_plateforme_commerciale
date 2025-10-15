@@ -6,7 +6,7 @@ interface ReceiveItemsModalProps {
     isOpen: boolean;
     onClose: () => void;
     purchaseOrder: PurchaseOrder;
-    onReceive: (poId: string, receivedItems: { productId: string, quantityReceived: number }[]) => void;
+    onReceive: (poId: string, receivedItems: { purchaseOrderItemId: string, quantityReceived: number }[]) => void;
 }
 
 const ReceiveItemsModal: React.FC<ReceiveItemsModalProps> = ({ isOpen, onClose, purchaseOrder, onReceive }) => {
@@ -27,7 +27,7 @@ const ReceiveItemsModal: React.FC<ReceiveItemsModalProps> = ({ isOpen, onClose, 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const itemsToReceive = Object.entries(receivedQuantities)
-            .map(([productId, quantityReceived]) => ({ productId, quantityReceived }))
+            .map(([purchaseOrderItemId, quantityReceived]) => ({ purchaseOrderItemId, quantityReceived }))
             .filter(item => item.quantityReceived > 0);
         
         if (itemsToReceive.length > 0) {

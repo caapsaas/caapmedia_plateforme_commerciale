@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Product, Contact, OrderItem } from '../../types';
+import { Product, Contact } from '../../types';
 import { useI18n } from '../../i18n';
 import ECommerceHeader from './ECommerceHeader';
 import ProductCard from './ProductCard';
@@ -13,11 +13,11 @@ import QuoteRequestModal from './QuoteRequestModal';
 import ECommerceFooter from './ECommerceFooter';
 import CategoryShowcase from './CategoryShowcase';
 import { useAppContext } from '../../context/AppContext';
-import { Link } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getProducts } from '../../services/apiProducts';
-import { loginCustomer, signupCustomer, SignupData } from '../../services/apiCustomerAuth';
-import { api } from '../../services/api';
+import { getProducts } from '../../services/apiE-commerce/apiProducts';
+import { createOrder } from '../../services/apiE-commerce/apiOrders';
+import { createQuoteRequest } from '../../services/apiCrm/apiLeads';
+import { loginContact, registerContact, ContactRegisterData } from '../../services/apiCrm/apicontacts';
 
 const ECommercePage: React.FC = () => {
     const { state, dispatch } = useAppContext();
@@ -41,25 +41,23 @@ const ECommercePage: React.FC = () => {
     });
 
     const { mutate: placeOrderMutation } = useMutation({
-        mutationFn: (data: { orderData: { customerInfo: { name: string; email: string; address: string; }; items: OrderItem[]; }, paymentMethod: string }) => 
-            api.post('/orders/ecommerce', data),
+        mutationFn: createOrder,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['orders'] });
             setCart([]);
         }
     });
 
-    const { mutate: signupMutation } = useMutation<Contact, Error, SignupData>({
-        mutationFn: signupCustomer,        
+    const { mutate: signupMutation } = useMutation<Contact, Error, ContactRegisterData>({
+        mutationFn: registerContact,        
         onSuccess: (newCustomer) => {
             console.log('Signup successful', newCustomer);
             dispatch({ type: 'CUSTOMER_LOGIN_SUCCESS', payload: newCustomer });
         }
     });
 
-    const { mutate: quoteRequestMutation } = useMutation({
-        mutationFn: (data: { name: string; company: string; email: string; phone: string; description: string; }) =>
-            api.post('/leads/quote-request', data),
+    const { mutate: quoteRequestMutation } = useMutation<any, Error, FormData>({
+        mutationFn: createQuoteRequest,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['leads'] });
         }
@@ -68,14 +66,14 @@ const ECommercePage: React.FC = () => {
     // --- Fin TanStack Query ---
 
     const products = useMemo(() =>
-        allProducts.filter(p => p.mainCategory !== 'Matières Premières'),
+        allProducts.filter((p: Product) => p.mainCategory !== 'Matières Premières'),
         [allProducts]
     );
 
     const onLogin = async (email: string, password: string): Promise<'SUCCESS' | 'NOT_VERIFIED' | 'FAILED'> => {
         try {
-            const response = await loginCustomer({ email, password });
-            const customer = response.customer; // Extraire le client de la réponse
+            const response = await loginContact({ email, password });
+            const customer = response.contact; // Extraire le client de la réponse
             dispatch({ type: 'CUSTOMER_LOGIN_SUCCESS', payload: customer });
             return 'SUCCESS';
         } catch (error) {
@@ -87,7 +85,7 @@ const ECommercePage: React.FC = () => {
     const onLogout = () => dispatch({ type: 'CUSTOMER_LOGOUT' });
 
     const filteredProducts = useMemo(() => {
-        return products.filter(product => {
+        return products.filter((product: Product) => {
             const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
             if (!matchesSearch) return false;
 
@@ -154,14 +152,37 @@ const ECommercePage: React.FC = () => {
     };
     
     const handleConfirmOrder = (customerInfo: { name: string; email: string; address: string; }, paymentMethod: string) => {
-        const orderItems: OrderItem[] = cart.map(item => ({
-            product: item.product,
+        const formData = new FormData();
+        
+        // 1. Préparer les données des articles pour la sérialisation JSON
+        // Le backend s'attend à recevoir les fichiers dans le même ordre que les articles.
+        const orderItemsForJson = cart.map(item => ({
+            productId: item.product.id,
             quantity: item.quantity,
-            price: item.unitPrice,
+            unitPrice: item.unitPrice,
             options: item.options,
-            designFile: item.designFile,
+            // Le backend utilisera le nom du fichier pour l'associer
+            designFileName: item.designFileObject?.name, 
         }));
-        placeOrderMutation({ orderData: { customerInfo, items: orderItems }, paymentMethod });
+
+        // 2. Ajouter les champs textuels au FormData
+        formData.append('customerName', customerInfo.name); // Le backend utilise `customerName`
+        formData.append('paymentMethod', paymentMethod);
+        formData.append('paymentDueDate', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()); // Exemple: paiement dans 30 jours
+        formData.append('source', 'web_order');
+        formData.append('items', JSON.stringify(orderItemsForJson)); // Envoyer les articles en tant que chaîne JSON
+        if (currentCustomer) {
+            formData.append('customerId', currentCustomer.id);
+        }
+
+        // 3. Ajouter tous les fichiers de design sous la même clé 'designFiles'
+        cart.forEach(item => {
+            if (item.designFileObject) {
+                formData.append('designFiles', item.designFileObject);
+            }
+        });
+
+        placeOrderMutation(formData);
     };
     
     const handleAuthSuccess = () => {
@@ -217,7 +238,7 @@ const ECommercePage: React.FC = () => {
 
                 {/* Products Grid */}
                 <div id="products-grid" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mt-12">
-                    {filteredProducts.map(product => (
+                    {filteredProducts.map((product: Product) => (
                         <ProductCard key={product.id} product={product} onAddToCart={handleProductClick} />
                     ))}
                 </div>
@@ -266,7 +287,13 @@ const ECommercePage: React.FC = () => {
                 <QuoteRequestModal 
                     isOpen={isQuoteModalOpen}
                     onClose={() => setIsQuoteModalOpen(false)}
-                    onSave={quoteRequestMutation}
+                    onSave={(data) => {
+                        const formData = new FormData();
+                        Object.entries(data).forEach(([key, value]) => {
+                            if (value) formData.append(key, value instanceof File ? value : String(value));
+                        });
+                        quoteRequestMutation(formData);
+                    }}
                 />
             )}
         </div>

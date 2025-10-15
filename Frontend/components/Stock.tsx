@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { categoryToKeyMap, rangeToKeyMap } from '../constants';
-import { Subsidiary, Product } from '../types';
+import { Subsidiary, Product } from '../types/models';
+import { ProductFormData } from '../types/forms';
 import { useI18n } from '../i18n';
 import { exportToCsv } from '../utils/csvExporter';
 import { exportToPdf } from '../utils/pdfExporter';
@@ -16,14 +17,14 @@ import ProductFormModal from './configuration/ProductFormModal';
 import IconSaveCheck from './icons/IconSaveCheck';
 import IconCancelX from './icons/IconCancelX';
 import IconSearch from './icons/IconSearch';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getProductsBySubsidiary, createProduct, deleteProduct, updateProductSellingAndPrice } from '../services/apiE-commerce/apiProducts';
 
-interface StockProps {
-    subsidiary: Subsidiary;
-}
-
-const Stock: React.FC<StockProps> = ({ subsidiary }) => {
+const Stock: React.FC = () => {
     const { t, formatCurrency, formatNumber } = useI18n();
-    const { state, dispatch } = useAppContext();
+    const { state } = useAppContext();
+    const queryClient = useQueryClient();
+    const { currentSubsidiary: subsidiary } = state;
     
     const [editingProductId, setEditingProductId] = useState<string | null>(null);
     const [editedPrices, setEditedPrices] = useState<{ cost: number; selling: number }>({ cost: 0, selling: 0 });
@@ -32,7 +33,40 @@ const Stock: React.FC<StockProps> = ({ subsidiary }) => {
     const [showSaveConfirm, setShowSaveConfirm] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
-    const products = state.products.filter(p => p.subsidiaryId === subsidiary.id);
+    // --- TanStack Query: Data Fetching ---
+    const { data: products = [], isLoading: isLoadingProducts, isError } = useQuery<Product[]>({
+        queryKey: ['products', subsidiary?.id],
+        queryFn: () => getProductsBySubsidiary(),
+        enabled: !!subsidiary, // La requête ne s'exécute que si une filiale est définie
+    });
+
+    // --- TanStack Query: Mutations ---
+    const { mutate: updatePriceMutate } = useMutation({
+        mutationFn: ({ id, data }: { id: string, data: { price: number, sellingPrice: number } }) => updateProductSellingAndPrice(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products', subsidiary?.id] });
+        },
+    });
+
+    const { mutate: createProductMutate } = useMutation({
+        mutationFn: (productData: ProductFormData) => createProduct(productData),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products', subsidiary?.id] });
+            setIsAddModalOpen(false);
+        },
+    });
+
+    const { mutate: deleteProductMutate } = useMutation({
+        mutationFn: (id: string) => deleteProduct(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products', subsidiary?.id] });
+            setProductToDelete(null);
+        },
+    });
+
+    if (!subsidiary) {
+        return <div>{t('common.loading')}</div>;
+    }
 
     const filteredProducts = useMemo(() => {
         const lowercasedTerm = searchTerm.toLowerCase();
@@ -42,7 +76,7 @@ const Stock: React.FC<StockProps> = ({ subsidiary }) => {
         return products.filter(product =>
             product.name.toLowerCase().includes(lowercasedTerm) ||
             product.id.toLowerCase().includes(lowercasedTerm) ||
-            product.description.toLowerCase().includes(lowercasedTerm)
+            (product.description && product.description.toLowerCase().includes(lowercasedTerm))
         );
     }, [products, searchTerm]);
 
@@ -69,16 +103,13 @@ const Stock: React.FC<StockProps> = ({ subsidiary }) => {
     const confirmSave = () => {
         if (!editingProductId) return;
         
-        const productToUpdate = state.products.find(p => p.id === editingProductId);
-        if (!productToUpdate) return;
-        
-        const updatedProductData = {
-            ...productToUpdate,
+        updatePriceMutate({
+            id: editingProductId,
+            data: {
             price: editedPrices.cost,
             sellingPrice: editedPrices.selling,
-        };
-
-        dispatch({ type: 'SAVE_PRODUCT', payload: updatedProductData });
+            }
+        });
         setShowSaveConfirm(false);
         setEditingProductId(null);
     };
@@ -89,14 +120,12 @@ const Stock: React.FC<StockProps> = ({ subsidiary }) => {
 
     const confirmDelete = () => {
         if (productToDelete) {
-            dispatch({ type: 'DELETE_PRODUCT', payload: productToDelete.id });
-            setProductToDelete(null);
+            deleteProductMutate(productToDelete.id);
         }
     };
     
-    const handleSaveNewProduct = (productData: Omit<Product, 'id' | 'subsidiaryId' | 'imageUrls'> & { id?: string }) => {
-        dispatch({ type: 'SAVE_PRODUCT', payload: productData });
-        setIsAddModalOpen(false);
+    const handleSaveNewProduct = (productData: ProductFormData & { id?: string }) => {
+        createProductMutate(productData);
     };
 
     const handlePrint = () => window.print();
@@ -143,6 +172,14 @@ const Stock: React.FC<StockProps> = ({ subsidiary }) => {
             handleCancel();
         }
     };
+
+    if (isLoadingProducts) {
+        return <div>{t('common.loading')}</div>;
+    }
+
+    if (isError) {
+        return <div>Erreur lors du chargement des produits.</div>;
+    }
 
     return (
         <div className="space-y-6">

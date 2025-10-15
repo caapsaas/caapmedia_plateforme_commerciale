@@ -2,55 +2,64 @@ import React, { useState } from 'react';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
-import { Subsidiary, Supplier } from '../../types';
+import { Supplier } from '../../types';
 import { useI18n } from '../../i18n';
 import SupplierFormModal from './SupplierFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getSuppliers, createSupplier, updateSupplier, deleteSupplier } from '../../services/apiPurchasing/apiSupplier';
 
-interface SupplierManagementProps {
-    subsidiary: Subsidiary;
-    suppliers: Supplier[];
-    onSave: (supplierData: Omit<Supplier, 'id' | 'subsidiaryId'> & { id?: string }) => void;
-    onDelete: (id: string) => void;
-}
-
-const SupplierManagement: React.FC<SupplierManagementProps> = ({ subsidiary, suppliers, onSave, onDelete }) => {
+const SupplierManagement: React.FC = () => {
     const { t } = useI18n();
+    const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
     const [deletingSupplier, setDeletingSupplier] = useState<Supplier | null>(null);
 
-    const subsidiarySuppliers = suppliers.filter(s => s.subsidiaryId === subsidiary.id);
+    const { data: suppliers = [], isLoading, isError } = useQuery<Supplier[]>({
+        queryKey: ['suppliers'],
+        queryFn: getSuppliers,
+    });
+
+    const { mutate: saveSupplierMutate } = useMutation({
+        mutationFn: (supplierData: Omit<Supplier, 'id' | 'subsidiaryId'> & { id?: string }) =>
+            supplierData.id ? updateSupplier(supplierData.id, supplierData) : createSupplier(supplierData),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+            handleCloseModals();
+        },
+    });
+
+    const { mutate: deleteSupplierMutate } = useMutation({
+        mutationFn: deleteSupplier,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+            handleCloseModals();
+        },
+    });
 
     const handleOpenAddModal = () => {
         setEditingSupplier(null);
         setIsModalOpen(true);
     };
-
     const handleOpenEditModal = (supplier: Supplier) => {
         setEditingSupplier(supplier);
         setIsModalOpen(true);
     };
-
     const handleOpenDeleteModal = (supplier: Supplier) => {
         setDeletingSupplier(supplier);
     };
-
     const handleCloseModals = () => {
         setIsModalOpen(false);
         setDeletingSupplier(null);
         setEditingSupplier(null);
     };
-
     const handleSaveSupplier = (supplierData: Omit<Supplier, 'id' | 'subsidiaryId'> & { id?: string }) => {
-        onSave(supplierData);
-        handleCloseModals();
+        saveSupplierMutate(supplierData);
     };
-
     const handleDeleteSupplier = () => {
         if (deletingSupplier) {
-            onDelete(deletingSupplier.id);
-            handleCloseModals();
+            deleteSupplierMutate(deletingSupplier.id);
         }
     };
 
@@ -76,7 +85,7 @@ const SupplierManagement: React.FC<SupplierManagementProps> = ({ subsidiary, sup
                         </tr>
                     </thead>
                     <tbody>
-                        {subsidiarySuppliers.map((supplier) => (
+                        {suppliers.map((supplier) => (
                             <tr key={supplier.id} className="bg-white border-b hover:bg-slate-50">
                                 <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{supplier.id}</th>
                                 <td className="px-6 py-4 font-semibold">{supplier.name}</td>
