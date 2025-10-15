@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Subsidiary, FinanceView } from '../types';
+import { FinanceView } from '../types';
+import { useAppContext } from '../context/AppContext';
 import CreditManagement from '../components/finance/CreditManagement';
 import TreasuryManagement from '../components/finance/TreasuryManagement';
 import SupplierDebts from '../components/finance/SupplierDebts';
@@ -21,13 +22,15 @@ import { getSupplierDebts } from '../services/apiFinance/apiDebts'; // à créer
 import { getFinancialTransactions } from '../services/apiFinance/apiTreasury'; // à créer
 import { getEquipments } from '../services/apiMaintenance/apiEquipment'; // à créer
 
-interface FinanceProps {
-    subsidiary: Subsidiary;
-}
-
-const Finance: React.FC<FinanceProps> = ({ subsidiary }) => {
+const Finance: React.FC = () => {
     const { t } = useI18n();
+    const { state } = useAppContext();
+    const { currentSubsidiary: subsidiary } = state;
     const [activeTab, setActiveTab] = useState<FinanceView>(FinanceView.CREDIT);
+
+    if (!subsidiary) {
+        return <div className="p-6 text-center">{t('common.loading')}</div>;
+    }
 
     // --- Data Fetching avec React Query (similaire à Crm.tsx) ---
     const queryKey = (key: string) => [key, subsidiary.id];

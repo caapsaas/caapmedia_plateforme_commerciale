@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Subsidiary, Employee, AttendanceRecord, PayrollRecord, AbsenceRecord } from '../types';
+import { Employee, AttendanceRecord, PayrollRecord, AbsenceRecord } from '../types';
+import { useAppContext } from '../context/AppContext';
 import { useI18n } from '../i18n';
 import EmployeeDatabase from '../components/hr/EmployeeDatabase';
 import AttendanceManagement from '../components/hr/AttendanceManagement';
@@ -13,14 +14,16 @@ import { getEmployees, saveEmployee, deleteEmployee } from '../services/apihr/ap
 
 type HrView = 'employees' | 'attendance' | 'payroll' | 'absences';
 
-interface HrManagementProps {
-    subsidiary: Subsidiary;
-}
-
-const HrManagement: React.FC<HrManagementProps> = ({ subsidiary }) => {
+const HrManagement: React.FC = () => {
     const { t } = useI18n();
     const queryClient = useQueryClient();
+    const { state } = useAppContext();
+    const { currentSubsidiary: subsidiary } = state;
     const [activeTab, setActiveTab] = useState<HrView>('employees');
+
+    if (!subsidiary) {
+        return <div className="p-6 text-center">{t('common.loading')}</div>;
+    }
 
     // --- Data Fetching ---
     const { data: employees = [], isLoading: isLoadingEmployees } = useQuery<Employee[]>({ queryKey: ['employees', subsidiary.id], queryFn: () => getEmployees() });
