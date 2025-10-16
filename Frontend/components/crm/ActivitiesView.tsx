@@ -74,7 +74,7 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({ contacts, interactions,
     }, [interactions]);
 
 
-    const getContactName = (contactId: string) => contacts.find(c => c.id === contactId)?.name || 'N/A';
+    const getContactName = (contactId: string) => contacts.find(c => c.id === contactId)?.contactName || 'N/A';
     
     const handleNewTaskChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setNewTask(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -124,7 +124,7 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({ contacts, interactions,
                         </select>
                         <select name="contactId" value={newTask.contactId} onChange={handleNewTaskChange} className="border-slate-300 rounded-md shadow-sm" required>
                             <option value="">{t('crm.activities.selectContact')}</option>
-                            {contacts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            {contacts.map(c => <option key={c.id} value={c.id}>{c.contactName}</option>)}
                         </select>
                          <div>
                             <select name="priority" id="priority" value={newTask.priority} onChange={handleNewTaskChange} className="border-slate-300 rounded-md shadow-sm h-full">
