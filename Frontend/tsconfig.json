@@ -28,6 +28,6 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["."], // Inclure tous les fichiers du répertoire Frontend
+  "include": [".", "components/purchasing/Purchasing.tsx"], // Inclure tous les fichiers du répertoire Frontend
   "exclude": ["node_modules"]
 }

@@ -33,7 +33,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, onConfir
     useEffect(() => {
         if (customer) {
             setCustomerInfo({
-                name: customer.name,
+                name: customer.contactName,
                 email: customer.email,
                 address: customer.address || '',
             });

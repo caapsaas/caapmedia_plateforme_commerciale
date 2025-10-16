@@ -9,7 +9,7 @@ import Analytics from './Pages/Analytics';
 import Sales from './components/sales/Sales';
 import Crm from './Pages/Crm';
 import Stock from './Pages/Stock';
-import Purchasing from './Pages/Purchasing';
+import Purchasing from './components/purchasing/Purchasing';
 import AiMarketing from './Pages/AiMarketing';
 import Caisse from './components/caisse/Caisse';
 import MesCommandes from './Pages/MesCommandes';

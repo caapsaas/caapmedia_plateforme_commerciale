@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
-import { Subsidiary, PurchaseOrder, PurchaseOrderStatus, PaymentStatus, Product } from '../types/models';
+import { Subsidiary, PurchaseOrder, PurchaseOrderStatus, PaymentStatus, Product, Supplier } from '../../types/models';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useI18n } from '../i18n';
-import { useAppContext } from '../context/AppContext'; 
-import { getPurchaseOrders, createPurchaseOrder, receivePurchaseOrderItems, recordPurchaseOrderPayment } from '../services/apiPurchasing/apiPurchase_order';
-import { getProductsBySubsidiary } from '../services/apiE-commerce/apiProducts';
-import { CreatePurchaseOrderDto, ReceiveItemsDto } from '../services/apiPurchasing/apiPurchase_order';
-import IconPlus from '../components/icons/IconPlus';
-import IconEye from '../components/icons/IconEye';
-import IconCheck from '../components/icons/IconCheck';
-import IconDelete from '../components/icons/IconDelete';
-import PurchaseOrderFormModal from '../components/purchasing/PurchaseOrderFormModal';
-import PurchaseOrderDetailsModal from '../components/purchasing/PurchaseOrderDetailsModal';
-import ConfirmationModal from '../components/common/ConfirmationModal';
-import ReceiveItemsModal from '../components/purchasing/ReceiveItemsModal';
-import RecordPaymentModal from '../components/purchasing/RecordPaymentModal';
-import IconCoins from '../components/icons/IconCoins';
+import { useI18n } from '../../i18n';
+import { useAppContext } from '../../context/AppContext'; 
+import { getPurchaseOrders, createPurchaseOrder, receivePurchaseOrderItems, recordPurchaseOrderPayment } from '../../services/apiPurchasing/apiPurchase_order';
+import { getSuppliers } from '../../services/apiPurchasing/apiSupplier';
+import { getProductsBySubsidiary } from '../../services/apiE-commerce/apiProducts';
+import { CreatePurchaseOrderDto, ReceiveItemsDto } from '../../services/apiPurchasing/apiPurchase_order';
+import IconPlus from '../icons/IconPlus';
+import IconEye from '../icons/IconEye';
+import IconCheck from '../icons/IconCheck';
+import IconDelete from '../icons/IconDelete';
+import PurchaseOrderFormModal from './PurchaseOrderFormModal';
+import PurchaseOrderDetailsModal from './PurchaseOrderDetailsModal';
+import ConfirmationModal from '../common/ConfirmationModal';
+import ReceiveItemsModal from './ReceiveItemsModal';
+import RecordPaymentModal from './RecordPaymentModal';
+import IconCoins from '../icons/IconCoins';
 
 const Purchasing: React.FC = () => {
     const { t, formatCurrency } = useI18n();
@@ -40,6 +41,12 @@ const Purchasing: React.FC = () => {
     const { data: products = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
         queryKey: ['products', subsidiary?.id],
         queryFn: () => getProductsBySubsidiary(),
+        enabled: !!subsidiary,
+    });
+
+    const { data: suppliers = [], isLoading: isLoadingSuppliers } = useQuery<Supplier[]>({
+        queryKey: ['suppliers', subsidiary?.id],
+        queryFn: () => getSuppliers(),
         enabled: !!subsidiary,
     });
 
@@ -105,7 +112,7 @@ const Purchasing: React.FC = () => {
         }
     };
 
-    if (!subsidiary || isLoadingPOs || isLoadingProducts) {
+    if (!subsidiary || isLoadingPOs || isLoadingProducts || isLoadingSuppliers) {
         return <div>{t('common.loading')}</div>;
     }
 
@@ -179,8 +186,8 @@ const Purchasing: React.FC = () => {
                     isOpen={isFormModalOpen}
                     onClose={handleCloseModals}
                     onSave={(data: CreatePurchaseOrderDto) => createPurchaseOrderMutate(data)}
-                    subsidiary={subsidiary}
                     products={products}
+                    suppliers={suppliers}
                 />
             )}
 
@@ -189,6 +196,7 @@ const Purchasing: React.FC = () => {
                     isOpen={isDetailsModalOpen}
                     onClose={handleCloseModals}
                     purchaseOrder={selectedPO}
+                    subsidiary={subsidiary}
                 />
             )}
             

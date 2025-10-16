@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Subsidiary, Product, PurchaseOrder, PurchaseOrderItem, PaymentTerms, PurchaseOrderStatus, PaymentStatus } from '../../types';
-import { MOCK_SUPPLIERS } from '../../constants';
+import React, { useState } from 'react';
+import { Subsidiary, Product, PurchaseOrderItem, PaymentTerms, Supplier } from '../../types';
 import { useI18n } from '../../i18n';
 import IconDelete from '../icons/IconDelete';
+import { CreatePurchaseOrderDto } from '../../services/apiPurchasing/apiPurchase_order';
 
 interface PurchaseOrderFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (po: Omit<PurchaseOrder, 'id' | 'subsidiaryId'>) => void;
-    subsidiary: Subsidiary;
+    onSave: (data: CreatePurchaseOrderDto) => void;
     products: Product[];
+    suppliers: Supplier[];
 }
 
-const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen, onClose, onSave, subsidiary, products }) => {
+const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen, onClose, onSave, products, suppliers }) => {
     const { t, formatCurrency } = useI18n();
     const [supplierId, setSupplierId] = useState('');
     const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
@@ -22,8 +22,6 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
     const [selectedProduct, setSelectedProduct] = useState('');
     const [quantity, setQuantity] = useState(1);
     const [purchasePrice, setPurchasePrice] = useState(0);
-
-    const suppliers = MOCK_SUPPLIERS.filter(s => s.subsidiaryId === subsidiary.id);
 
     const handleAddProduct = () => {
         if (!selectedProduct || quantity <= 0 || purchasePrice <= 0) return;
@@ -52,21 +50,13 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const supplier = suppliers.find(s => s.id === supplierId);
-        if (!supplier || items.length === 0) return;
+        if (!supplierId || items.length === 0) return;
         
         onSave({
             supplierId,
-            supplierName: supplier.name,
-            orderDate,
             expectedDeliveryDate,
-            items,
-            totalAmount,
-            status: PurchaseOrderStatus.ORDERED,
             paymentTerms,
-            paymentStatus: PaymentStatus.UNPAID,
-            amountPaid: 0,
-            history: [{ date: orderDate, event: 'Commande créée.' }]
+            items,
         });
         onClose();
     };

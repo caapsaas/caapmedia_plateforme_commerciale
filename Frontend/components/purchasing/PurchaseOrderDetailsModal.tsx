@@ -1,21 +1,20 @@
 import React from 'react';
-import { PurchaseOrder } from '../../types';
+import { PurchaseOrder, Subsidiary } from '../../types';
 import { useI18n } from '../../i18n';
 import IconPrint from '../icons/IconPrint';
 import IconPdf from '../icons/IconPdf';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { MOCK_SUBSIDIARIES } from '../../constants';
 
 interface PurchaseOrderDetailsModalProps {
     isOpen: boolean;
     onClose: () => void;
     purchaseOrder: PurchaseOrder;
+    subsidiary: Subsidiary;
 }
 
-const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps> = ({ isOpen, onClose, purchaseOrder }) => {
+const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps> = ({ isOpen, onClose, purchaseOrder, subsidiary }) => {
     const { t, formatCurrency, language } = useI18n();
-    const subsidiary = MOCK_SUBSIDIARIES.find(s => s.id === purchaseOrder.subsidiaryId);
     const LogoComponent = subsidiary?.logo;
     const contentRef = React.useRef<HTMLDivElement>(null);
 
