@@ -62,7 +62,7 @@ const ContractManagement: React.FC<ContractManagementProps> = ({ contracts, cont
     };
 
     const getClientName = (clientId: string) => {
-        return contacts.find(c => c.id === clientId)?.name || clientId;
+        return contacts.find(c => c.id === clientId)?.contactName || clientId;
     };
 
     return (

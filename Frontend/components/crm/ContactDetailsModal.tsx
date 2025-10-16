@@ -105,7 +105,7 @@ const ContactDetailsModal: React.FC<ContactDetailsModalProps> = ({
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                 <div className="p-6 border-b">
-                    <h3 className="text-xl font-bold text-slate-900">{client.name}</h3>
+                    <h3 className="text-xl font-bold text-slate-900">{client.contactName}</h3>
                     <p className="text-slate-600">{client.company}</p>
                 </div>
                 <div className="p-4 bg-slate-50 border-b">

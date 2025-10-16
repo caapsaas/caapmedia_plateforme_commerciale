@@ -12,7 +12,7 @@ interface ContactFormModalProps {
 const ContactFormModal: React.FC<ContactFormModalProps> = ({ isOpen, onClose, onSave, contact }) => {
     const { t } = useI18n();
     const initialFormState = {
-        name: '',
+        contactName: '',
         company: '',
         email: '',
         phone: '',
@@ -21,7 +21,8 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({ isOpen, onClose, on
         isVerified: true,
         status: ContactStatus.PROSPECT,
         accountId: '',
-        salesRepId: ''
+        salesRepId: '',
+        password: '' // Ajout de la propriété manquante
     };
     const [formData, setFormData] = useState<Omit<Contact, 'id' | 'subsidiaryId'>>(initialFormState);
 
@@ -56,8 +57,8 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({ isOpen, onClose, on
                         </h3>
                         <div className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                             <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
-                                <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <label htmlFor="contactName" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
+                                <input type="text" name="contactName" id="contactName" value={formData.contactName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
                                 <label htmlFor="company" className="block text-sm font-medium text-slate-700">{t('configuration.form.company')}</label>

@@ -97,7 +97,7 @@ const ContactManagement: React.FC<ContactManagementProps> = ({ clients, opportun
                             const contractCount = contracts.filter(c => c.clientId === client.id && c.status === ContractStatus.ACTIVE).length;
                             return (
                                 <tr key={client.id} className="bg-white border-b hover:bg-slate-50">
-                                    <td className="px-6 py-4 font-semibold">{client.name}</td>
+                                    <td className="px-6 py-4 font-semibold">{client.contactName}</td>
                                     <td className="px-6 py-4">{client.company}</td>
                                     <td className="px-6 py-4">{client.email}</td>
                                     <td className="px-6 py-4">
@@ -151,7 +151,7 @@ const ContactManagement: React.FC<ContactManagementProps> = ({ clients, opportun
                     onClose={handleCloseModals}
                     onConfirm={handleDeleteContact}
                     title={t('configuration.modal.deleteClientTitle')}
-                    message={t('configuration.modal.deleteConfirmMessage', { itemName: deletingContact.name })}
+                    message={t('configuration.modal.deleteConfirmMessage', { itemName: deletingContact.contactName })}
                 />
             )}
         </div>

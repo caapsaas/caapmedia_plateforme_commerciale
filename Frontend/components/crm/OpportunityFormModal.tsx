@@ -81,7 +81,7 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({ isOpen, onC
                                 <label htmlFor="contactId" className="block text-sm font-medium text-slate-700">{t('crm.opportunity.form.client')}</label>
                                 <select name="contactId" id="contactId" value={formData.contactId} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911]">
                                     <option value="" disabled>{t('crm.opportunity.form.selectClient')}</option>
-                                    {clients.map(c => <option key={c.id} value={c.id}>{c.name} - {c.company}</option>)}
+                                    {clients.map(c => <option key={c.id} value={c.id}>{c.contactName} - {c.company}</option>)}
                                 </select>
                             </div>
                             <div>

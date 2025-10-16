@@ -3,7 +3,7 @@ import { Subsidiary, Contact, Opportunity, Interaction, CrmTask, User, Opportuni
 import { useI18n } from '../../i18n';
 import KpiCard from '../../Pages/KpiCard';
 import IconCurrency from '../icons/IconCurrency';
-import IconTrendingUp from '../icons/IconTrendingUp';
+//import IconTrendingUp from '../icons/IconTrendingUp';
 import IconBullhorn from '../icons/IconBullhorn';
 import IconFunnel from '../icons/IconFunnel';
 import IconClipboardCheck from '../icons/IconClipboardCheck';

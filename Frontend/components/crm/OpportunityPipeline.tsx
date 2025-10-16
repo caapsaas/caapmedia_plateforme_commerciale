@@ -47,7 +47,7 @@ const Column: React.FC<{
                     <OpportunityCard 
                         key={opp.id}
                         opportunity={opp}
-                        clientName={clients.find(c => c.id === opp.contactId)?.name || 'N/A'}
+                        clientName={clients.find(c => c.id === opp.contactId)?.contactName || 'N/A'}
                         onDragStart={(e) => onDragStart(e, opp.id)}
                         onClick={() => onCardClick(opp)}
                     />
