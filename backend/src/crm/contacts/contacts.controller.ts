@@ -67,7 +67,7 @@ export class ContactsController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
   create(@Body() createContactDto: CreateContactDto, @CurrentUser() user: User) {
     // Route interne pour la création de contact par un employé
     return this.contactsService.create(createContactDto, user);
@@ -75,21 +75,21 @@ export class ContactsController {
 
   @Get()
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
   findAll(@CurrentUser() user: User) {
     return this.contactsService.findAll(user);
   }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
   findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     return this.contactsService.findOne(id, user);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
   update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateContactDto: UpdateContactDto,
@@ -100,7 +100,7 @@ export class ContactsController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
   remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     return this.contactsService.remove(id, user);
   }

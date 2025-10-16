@@ -44,10 +44,9 @@ import {
         },
       };
 
-      // Un utilisateur standard (ex: COMMERCIAL) ne voit que ses propres tâches.
-      // Un ADMIN ou HR_MANAGER voit toutes les tâches de la filiale.
-      const privilegedRoles: UserRole[] = [UserRole.ADMIN];
-      if (!privilegedRoles.includes(user.userRole.toUpperCase() as UserRole)) {
+      // Les utilisateurs standards (ex: COMMERCIAL) ne voient que leurs propres tâches.
+      const privilegedRoles: UserRole[] = [UserRole.ADMIN, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR];
+      if (!privilegedRoles.includes(user.userRole)) {
         where.userId = user.id;
       }
 
@@ -71,7 +70,11 @@ import {
         throw new NotFoundException(`Task with ID "${id}" not found.`);
       }
       // Vérifier que l'utilisateur a le droit de voir cette tâche
-      if (task.userId !== user.id) {
+      const privilegedRoles: UserRole[] = [UserRole.ADMIN, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR];
+      if (
+        !privilegedRoles.includes(user.userRole) &&
+        task.userId !== user.id
+      ) {
         throw new ForbiddenException('You are not allowed to view this task.');
       }
       return task;

@@ -53,8 +53,10 @@ export class OpportunitiesService {
       subsidiaryId: user.subsidiaryId,
     };
 
-    // Un ADMIN voit toutes les opportunités de la filiale, les autres ne voient que les leurs.
-    if (user.userRole !== UserRole.ADMIN) {
+    // Les admins et secrétaires voient toutes les opportunités de la filiale.
+    // Les autres (commerciaux) ne voient que les leurs.
+    const privilegedRoles: UserRole[] = [UserRole.ADMIN, UserRole.SECRETARY];
+    if (!privilegedRoles.includes(user.userRole)) {
       where.userId = user.id;
     }
 
@@ -85,7 +87,11 @@ export class OpportunitiesService {
       throw new NotFoundException(`Opportunity with ID "${id}" not found.`);
     }
 
-    if (opportunity.subsidiaryId !== user.subsidiaryId) {
+    const privilegedRoles: UserRole[] = [UserRole.ADMIN, UserRole.SECRETARY];
+    if (
+      opportunity.subsidiaryId !== user.subsidiaryId ||
+      (!privilegedRoles.includes(user.userRole) && opportunity.userId !== user.id)
+    ) {
       throw new ForbiddenException(
         'You do not have permission to view this opportunity.',
       );

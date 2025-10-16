@@ -3,7 +3,7 @@ import { Injectable, NotFoundException, BadRequestException, ConflictException, 
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
-import { User, LeadStatus, OpportunityStage, OpportunitySource, Account, UserRole } from '@prisma/client';
+import { User, LeadStatus, OpportunityStage, OpportunitySource, Account, UserRole, Prisma } from '@prisma/client';
 import { AccountsService } from '../accounts/accounts.service';
 import { ContactsService } from '../contacts/contacts.service';
 import { CreateContactDto } from '../contacts/dto/create-contact.dto';
@@ -23,33 +23,15 @@ export class LeadsService {
       throw new NotFoundException(`User with ID "${user.id}" not found.`);
     }
 
-    let finalSalesRepId: string | null = null;
+    // Le commercial assigné est l'utilisateur qui crée la piste, sauf si un admin en spécifie un autre.
+    let finalSalesRepId = user.id;
 
-    if (fullUser.userRole === UserRole.ADMIN) {
-      // Un ADMIN peut assigner la piste à n'importe quel employé (ou à personne).
-      // Si un salesRepId est fourni, on l'utilise. Sinon, il reste null.
-      if (createLeadDto.salesRepId) {
-        const employeeExists = await this.prisma.employee.findUnique({ where: { id: createLeadDto.salesRepId }});
-        if (!employeeExists) {
-          throw new NotFoundException(`Sales representative with ID "${createLeadDto.salesRepId}" not found.`);
-        }
-        finalSalesRepId = createLeadDto.salesRepId;
+    if (fullUser.userRole === UserRole.ADMIN && createLeadDto.salesRepId) {
+      const employeeExists = await this.prisma.employee.findUnique({ where: { id: createLeadDto.salesRepId }});
+      if (!employeeExists) {
+        throw new NotFoundException(`Sales representative with ID "${createLeadDto.salesRepId}" not found.`);
       }
-    } else {
-      // Un non-ADMIN (ex: COMMERCIAL) doit être un employé et ne peut assigner la piste qu'à lui-même.
-      if (createLeadDto.salesRepId) {
-        throw new ForbiddenException('You are not allowed to assign leads to other representatives.');
-      }
-      const employee = await this.prisma.employee.findUnique({
-        where: { email: fullUser.email },
-      });
-
-      if (!employee) {
-        throw new NotFoundException(
-          `Employee record not found for user "${fullUser.email}". Non-admin users must be employees to create leads.`,
-        );
-      }
-      finalSalesRepId = employee.id;
+      finalSalesRepId = createLeadDto.salesRepId;
     }
 
     // Vérifier si une piste avec cet email existe déjà
@@ -71,18 +53,33 @@ export class LeadsService {
   }
 
   async findAll(user: User) {
+    const where: Prisma.LeadWhereInput = {
+      subsidiaryId: user.subsidiaryId,
+    };
+
+    // Les admins et secrétaires voient toutes les pistes de la filiale.
+    // Les commerciaux ne voient que les leurs.
+    const privilegedRoles: UserRole[] = [UserRole.ADMIN, UserRole.SECRETARY];
+    if (!privilegedRoles.includes(user.userRole)) {
+      where.salesRepId = user.id;
+    }
+
     return this.prisma.lead.findMany({
-      where: { subsidiaryId: user.subsidiaryId },
+      where,
       orderBy: { leadName: 'asc' },
     });
   }
 
   async findOne(id: string, user: User) {
     const lead = await this.prisma.lead.findUnique({
-      where: { id, subsidiaryId: user.subsidiaryId },
+      where: { id },
     });
     if (!lead) {
       throw new NotFoundException(`Lead with ID "${id}" not found.`);
+    }
+    const privilegedRoles: UserRole[] = [UserRole.ADMIN, UserRole.SECRETARY];
+    if (lead.subsidiaryId !== user.subsidiaryId || (!privilegedRoles.includes(user.userRole) && lead.salesRepId !== user.id)) {
+      throw new ForbiddenException('You are not allowed to view this lead.');
     }
     return lead;
   }
@@ -119,21 +116,8 @@ export class LeadsService {
       throw new BadRequestException('Only qualified leads can be converted.');
     }
 
-    let salesRepId: string | null = null;
-
-    // Si l'utilisateur n'est pas un admin, il doit être un employé pour convertir.
-    if (fullUser.userRole !== UserRole.ADMIN) {
-      const employee = await this.prisma.employee.findUnique({
-        where: { email: fullUser.email },
-      });
-
-      if (!employee) {
-        throw new NotFoundException(
-          `Sales representative with email "${user.email}" not found. Cannot convert lead.`,
-        );
-      }
-      salesRepId = employee.id;
-    }
+    // Le commercial assigné est celui de la piste, ou l'utilisateur actuel si la piste n'a pas de commercial.
+    const salesRepId = lead.salesRepId ?? fullUser.id;
 
     return this.prisma.$transaction(async (tx) => {
       // 1. Essayer de créer le Compte (Account). Le service gère les doublons.
@@ -145,7 +129,7 @@ export class LeadsService {
             phone: lead.phone,
             address: 'Unknown', // Valeur par défaut, à mettre à jour par l'utilisateur
             subsidiaryId: fullUser.subsidiaryId,
-            salesRepId: salesRepId ?? undefined, // CORRECTION: Convertit null en undefined pour correspondre au DTO
+            salesRepId: salesRepId,
         }, fullUser);
       } catch (error) {
         if (error instanceof ConflictException) {
