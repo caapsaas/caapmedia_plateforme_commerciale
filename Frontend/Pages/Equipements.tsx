@@ -1,27 +1,37 @@
 import React, { useState } from 'react';
-import { Subsidiary, Equipment, EquipmentStatus } from '../types';
+import { Equipment, EquipmentStatus } from '../types';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getEquipments, saveEquipment, deleteEquipment, SaveEquipmentDto } from '../services/apiMaintenance';
+import { getEquipments, createEquipment, updateEquipment, deleteEquipment } from '../services/apiMaintenance/apiEquipment';
 import { useI18n } from '../i18n';
 import IconPlus from '../components/icons/IconPlus';
 import IconEdit from '../components/icons/IconEdit';
 import IconDelete from '../components/icons/IconDelete';
 import EquipmentFormModal from '../components/maintenance/EquipmentFormModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
+import { useAppContext } from '../context/AppContext';
 
-interface EquipementsProps {
-    subsidiary: Subsidiary;
-}
+type SaveEquipmentDto = Omit<Equipment, 'id' | 'subsidiaryId' | 'maintenanceHistory'> & { id?: string };
 
-const Equipements: React.FC<EquipementsProps> = ({ subsidiary }) => {
+const Equipements: React.FC = () => {
     const { t, formatCurrency } = useI18n();
+    const { state } = useAppContext();
+    const { currentSubsidiary: subsidiary } = state;
     const queryClient = useQueryClient();
 
     const { data: equipment = [], isLoading } = useQuery({ 
-        queryKey: ['equipment', subsidiary.id], 
-        queryFn: () => getEquipments(subsidiary.id) 
+        queryKey: ['equipment', subsidiary?.id], 
+        queryFn: getEquipments,
+        enabled: !!subsidiary
     });
-    const { mutate: saveMutation } = useMutation({ mutationFn: saveEquipment, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] }) });
+
+    const { mutate: createMutation } = useMutation({ 
+        mutationFn: createEquipment, 
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] }) 
+    });
+    const { mutate: updateMutation } = useMutation({ 
+        mutationFn: ({ id, data }: { id: string, data: Partial<SaveEquipmentDto> }) => updateEquipment(id, data), 
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] }) 
+    });
     const { mutate: deleteMutation } = useMutation({ mutationFn: deleteEquipment, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] }) });
     
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -50,7 +60,12 @@ const Equipements: React.FC<EquipementsProps> = ({ subsidiary }) => {
     };
 
     const handleSave = (data: SaveEquipmentDto) => {
-        saveMutation(data);
+        const { id, ...saveData } = data;
+        if (id) {
+            updateMutation({ id, data: saveData });
+        } else {
+            createMutation(saveData);
+        }
         handleCloseModals();
     };
 
@@ -70,7 +85,7 @@ const Equipements: React.FC<EquipementsProps> = ({ subsidiary }) => {
         }
     };
 
-    if (isLoading) {
+    if (isLoading || !subsidiary) {
         return <div className="p-6 text-center">{t('common.loading')}</div>;
     }
 

@@ -1,29 +1,45 @@
 import React, { useState } from 'react';
-import { useI18n } from '../i18n';
-import { Equipment, EquipmentStatus, MaintenanceRecord, Subsidiary } from '../types';
-import IconPlus from '../components/icons/IconPlus';
-import IconEdit from '../components/icons/IconEdit';
-import IconDelete from '../components/icons/IconDelete';
-import IconClipboardList from '../components/icons/IconClipboardList';
-import EquipmentFormModal from '../components/maintenance/EquipmentFormModal';
-import ConfirmationModal from '../components/common/ConfirmationModal';
-import MaintenanceLogModal from '../components/maintenance/MaintenanceLogModal';
+import { useI18n } from '../../i18n';
+import { Equipment, EquipmentStatus, MaintenanceRecord } from '../../types';
+import IconPlus from '../icons/IconPlus';
+import IconEdit from '../icons/IconEdit';
+import IconDelete from '../icons/IconDelete';
+import IconClipboardList from '../icons/IconClipboardList';
+import EquipmentFormModal from './EquipmentFormModal';
+import ConfirmationModal from '../common/ConfirmationModal';
+import MaintenanceLogModal from './MaintenanceLogModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getEquipments, saveEquipment, deleteEquipment, addMaintenanceLog, SaveEquipmentDto, SaveLogDto } from '../services/apiMaintenance';
+import { getEquipments, createEquipment, updateEquipment, deleteEquipment, CreateEquipmentDto } from '../../services/apiMaintenance/apiEquipment';
+import { createMaintenanceRecord, CreateMaintenanceRecordDto } from '../../services/apiMaintenance/apiMaintenance_record';
+import { useAppContext } from '../../context/AppContext';
 
-interface MaintenanceProps {
-    subsidiary: Subsidiary;
-}
+type SaveEquipmentDto = CreateEquipmentDto & { id?: string };
 
-const Maintenance: React.FC<MaintenanceProps> = ({ subsidiary }) => {
+const Maintenance: React.FC = () => {
     const { t } = useI18n();
+    const { state } = useAppContext();
+    const { currentSubsidiary: subsidiary } = state;
     const queryClient = useQueryClient();
 
     // --- Data Fetching & Mutations ---
-    const { data: equipment = [], isLoading } = useQuery({ queryKey: ['equipment', subsidiary.id], queryFn: () => getEquipments(subsidiary.id) });
-    const { mutate: saveMutation } = useMutation({ mutationFn: saveEquipment, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] }) });
+    const { data: equipment = [], isLoading } = useQuery({ 
+        queryKey: ['equipment', subsidiary?.id], 
+        queryFn: getEquipments,
+        enabled: !!subsidiary
+    });
+    const { mutate: createMutation } = useMutation({ 
+        mutationFn: createEquipment, 
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] }) 
+    });
+    const { mutate: updateMutation } = useMutation({ 
+        mutationFn: ({ id, data }: { id: string, data: Partial<CreateEquipmentDto> }) => updateEquipment(id, data), 
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] }) 
+    });
     const { mutate: deleteMutation } = useMutation({ mutationFn: deleteEquipment, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] }) });
-    const { mutate: addLogMutation } = useMutation({ mutationFn: addMaintenanceLog, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] }) });
+    const { mutate: addLogMutation } = useMutation({ 
+        mutationFn: (data: CreateMaintenanceRecordDto) => createMaintenanceRecord(data), 
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] }) 
+    });
 
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isLogModalOpen, setIsLogModalOpen] = useState(false);
@@ -31,7 +47,7 @@ const Maintenance: React.FC<MaintenanceProps> = ({ subsidiary }) => {
     const [deletingEquipment, setDeletingEquipment] = useState<Equipment | null>(null);
     const [viewingLogFor, setViewingLogFor] = useState<Equipment | null>(null);
     
-    if (isLoading) return <div className="p-6 text-center">{t('common.loading')}</div>;
+    if (isLoading || !subsidiary) return <div className="p-6 text-center">{t('common.loading')}</div>;
 
     const handleOpenAddModal = () => {
         setEditingEquipment(null);
@@ -59,7 +75,12 @@ const Maintenance: React.FC<MaintenanceProps> = ({ subsidiary }) => {
     };
 
     const handleSave = (data: SaveEquipmentDto) => {
-        saveMutation(data);
+        const { id, ...saveData } = data;
+        if (id) {
+            updateMutation({ id, data: saveData });
+        } else {
+            createMutation(saveData);
+        }
         handleCloseModals();
     };
 
@@ -68,10 +89,6 @@ const Maintenance: React.FC<MaintenanceProps> = ({ subsidiary }) => {
             deleteMutation(deletingEquipment.id);
             handleCloseModals();
         }
-    };
-    
-    const handleAddLog = (equipmentId: string, record: SaveLogDto) => {
-        addLogMutation({ equipmentId, record });
     };
     
     const getStatusClass = (status: EquipmentStatus) => {
@@ -156,7 +173,7 @@ const Maintenance: React.FC<MaintenanceProps> = ({ subsidiary }) => {
                     isOpen={isLogModalOpen}
                     onClose={handleCloseModals}
                     equipment={viewingLogFor}
-                    onAddLog={handleAddLog}
+                    onAddLog={addLogMutation}
                 />
             )}
         </div>

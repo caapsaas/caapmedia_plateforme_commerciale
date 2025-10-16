@@ -1,6 +1,18 @@
 import { api } from '../api';
 import { MaintenanceRecord } from '../../types';
 
+/**
+ * DTO pour la création d'un nouvel équipement.
+ * Correspond à CreateEquipmentDto du backend.
+ */
+export interface CreateMaintenanceRecordDto {
+    maintenanceDate: string;
+    technician: string;
+    description: string;
+    maintenanceCost: number;
+    equipmentId: string;
+}
+
 
 /**
  * DTO pour la recherche d'enregistrements de maintenance.
@@ -17,7 +29,7 @@ export interface SearchMaintenanceRecordDto {
  * Crée un nouvel enregistrement de maintenance.
  * @param data - Les données de l'enregistrement à créer.
  */
-export const createMaintenanceRecord = async (data: MaintenanceRecord) => {
+export const createMaintenanceRecord = async (data: CreateMaintenanceRecordDto) => {
   const response = await api.post<MaintenanceRecord>('/maintenance-records', data);
   return response.data;
 };
@@ -54,7 +66,7 @@ export const getMaintenanceRecordById = async (id: string) => {
  * @param id - L'ID de l'enregistrement à mettre à jour.
  * @param data - Les données à mettre à jour.
  */
-export const updateMaintenanceRecord = async (id: string, data: Partial<MaintenanceRecord>) => {
+export const updateMaintenanceRecord = async (id: string, data: Partial<CreateMaintenanceRecordDto>) => {
   const response = await api.patch(`/maintenance-records/${id}`, data);
   return response.data;
 };

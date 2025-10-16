@@ -2,6 +2,19 @@ import { api } from "../api";
 import { Equipment, EquipmentStatus } from "../../types";
 
 /**
+ * DTO pour la création d'un nouvel équipement.
+ * Correspond à CreateEquipmentDto du backend.
+ */
+export interface CreateEquipmentDto {
+    name: string;
+    acquisitionDate: string;
+    acquisitionValue: number;
+    status: EquipmentStatus;
+    lastMaintenanceDate: string;
+    nextMaintenanceDate: string;
+}
+
+/**
  * DTO pour la recherche d'équipements, correspondant à SearchEquipmentDto du backend.
  */
 export interface SearchEquipmentDto {

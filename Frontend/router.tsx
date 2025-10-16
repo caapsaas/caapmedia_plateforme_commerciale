@@ -18,7 +18,7 @@ import Configuration from './Pages/Configuration';
 import HrManagement from './Pages/HrManagement';
 import Secretariat from './Pages/Secretariat';
 import Production from './Pages/Production';
-import Maintenance from './Pages/Maintenance';
+import Maintenance from './components/maintenance/Maintenance';
 import Equipements from './Pages/Equipements';
 
 // 1. La route racine (Root) qui contiendra notre layout principal

@@ -764,13 +764,13 @@ export enum EquipmentStatus {
 
 export interface MaintenanceRecord {
     id: string;
-    date: string;
+    maintenanceDate: string;
     technician: string;
     description: string;
-    cost: number;
+    maintenanceCost: number;
 }
 export interface Equipment {
-    id: string;
+    id: string; 
     name: string;
     status: EquipmentStatus;
     lastMaintenanceDate: string;

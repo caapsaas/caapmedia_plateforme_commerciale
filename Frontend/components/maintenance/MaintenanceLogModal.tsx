@@ -1,35 +1,36 @@
 import React, { useState } from 'react';
-import { Equipment, MaintenanceRecord } from '../../types';
+import { Equipment } from '../../types';
 import { useI18n } from '../../i18n';
 import IconPlus from '../icons/IconPlus';
+import { CreateMaintenanceRecordDto } from '../../services/apiMaintenance/apiMaintenance_record';
 
 interface MaintenanceLogModalProps {
     isOpen: boolean;
     onClose: () => void;
     equipment: Equipment;
-    onAddLog: (equipmentId: string, record: Omit<MaintenanceRecord, 'id'>) => void;
+    onAddLog: (data: CreateMaintenanceRecordDto) => void;
 }
 
 const MaintenanceLogModal: React.FC<MaintenanceLogModalProps> = ({ isOpen, onClose, equipment, onAddLog }) => {
     const { t, formatCurrency } = useI18n();
     const [showAddForm, setShowAddForm] = useState(false);
     const initialFormState = {
-        date: new Date().toISOString().split('T')[0],
+        maintenanceDate: new Date().toISOString().split('T')[0],
         technician: '',
         description: '',
-        cost: 0,
+        maintenanceCost: 0,
     };
     const [newLog, setNewLog] = useState(initialFormState);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        const numValue = name === 'cost' ? parseFloat(value) || 0 : value;
+        const numValue = name === 'maintenanceCost' ? parseFloat(value) || 0 : value;
         setNewLog(prev => ({ ...prev, [name]: numValue }));
     };
 
     const handleAddSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onAddLog(equipment.id, newLog);
+        onAddLog({ equipmentId: equipment.id, ...newLog });
         setNewLog(initialFormState);
         setShowAddForm(false);
     };
@@ -56,8 +57,8 @@ const MaintenanceLogModal: React.FC<MaintenanceLogModalProps> = ({ isOpen, onClo
                     {showAddForm ? (
                         <form onSubmit={handleAddSubmit} className="space-y-4 p-4 bg-slate-50 rounded-lg">
                             <div>
-                                <label htmlFor="date" className="block text-sm font-medium text-slate-700">{t('maintenance.form.date')}</label>
-                                <input type="date" name="date" value={newLog.date} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />
+                                <label htmlFor="maintenanceDate" className="block text-sm font-medium text-slate-700">{t('maintenance.form.maintenanceDate')}</label>
+                                <input type="date" name="maintenanceDate" value={newLog.maintenanceDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />
                             </div>
                              <div>
                                 <label htmlFor="technician" className="block text-sm font-medium text-slate-700">{t('maintenance.form.technician')}</label>
@@ -68,8 +69,8 @@ const MaintenanceLogModal: React.FC<MaintenanceLogModalProps> = ({ isOpen, onClo
                                 <textarea name="description" value={newLog.description} onChange={handleChange} required rows={3} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"></textarea>
                             </div>
                              <div>
-                                <label htmlFor="cost" className="block text-sm font-medium text-slate-700">{t('maintenance.form.cost')}</label>
-                                <input type="number" name="cost" value={newLog.cost} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />
+                                <label htmlFor="maintenanceCost" className="block text-sm font-medium text-slate-700">{t('maintenance.form.cost')}</label>
+                                <input type="number" name="maintenanceCost" value={newLog.maintenanceCost} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />
                             </div>
                             <div className="flex justify-end gap-2">
                                 <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md">{t('common.cancel')}</button>
@@ -80,9 +81,9 @@ const MaintenanceLogModal: React.FC<MaintenanceLogModalProps> = ({ isOpen, onClo
                         <ul className="space-y-3">
                             {equipment.maintenanceHistory.map(record => (
                                 <li key={record.id} className="text-sm border-l-4 border-slate-200 pl-4">
-                                    <p className="font-semibold">{record.date} - <span className="text-slate-600">{record.technician}</span></p>
+                                    <p className="font-semibold">{record.maintenanceDate} - <span className="text-slate-600">{record.technician}</span></p>
                                     <p className="text-slate-800">{record.description}</p>
-                                    <p className="text-xs text-slate-500 font-medium">Coût: {formatCurrency(record.cost)}</p>
+                                    <p className="text-xs text-slate-500 font-medium">Coût: {formatCurrency(record.maintenanceCost)}</p>
                                 </li>
                             ))}
                             {equipment.maintenanceHistory.length === 0 && <p>Aucun historique de maintenance.</p>}
