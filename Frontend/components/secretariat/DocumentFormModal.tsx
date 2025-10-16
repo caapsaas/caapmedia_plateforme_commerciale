@@ -5,7 +5,7 @@ import { useI18n } from '../../i18n';
 interface DocumentFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (data: any) => void;
+    onSave: (data: FormData) => void;
     document: CompanyDocument | null;
 }
 
@@ -48,7 +48,16 @@ const DocumentFormModal: React.FC<DocumentFormModalProps> = ({ isOpen, onClose, 
     
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave({ id: document?.id, ...formData, file: file ?? undefined });
+        const data = new FormData();
+        if (document?.id) {
+            data.append('id', document.id);
+        }
+        data.append('name', formData.name);
+        data.append('category', formData.category);
+        data.append('status', formData.status);
+        data.append('uploadDate', formData.uploadDate);
+        if (file) data.append('file', file);
+        onSave(data);
     };
 
     if (!isOpen) return null;

@@ -87,7 +87,7 @@ const productionRoute = createRoute({ getParentRoute: () => dashboardRoute, path
 const SecretariatRouteComponent = () => {
   const { state } = useAppContext();
   if (!state.currentSubsidiary) return <div>Loading subsidiary...</div>;
-  return <Secretariat subsidiary={state.currentSubsidiary} />;
+  return <Secretariat />;
 };
 
 const MaintenanceRouteComponent = () => {
