@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Subsidiary, Employee, CompanyDocument, Meeting, SecretariatTask } from '../types';
 import { useI18n } from '../i18n';
+import { useAppContext } from '../context/AppContext';
 import DocumentManagement from '../components/secretariat/DocumentManagement';
 import MeetingManagement from '../components/secretariat/MeetingManagement';
 import TaskManagement from '../components/secretariat/TaskManagement';
 import {
+    SaveMeetingDto,
     getCompanyDocuments,
     createCompanyDocument,
     updateCompanyDocument,
@@ -15,81 +17,71 @@ import {
     getSecretariatTasks,
     saveSecretariatTask,
     deleteSecretariatTask,
+    SaveSecretariatTaskDto,
 } from '../services/apisecretariat/apiSecretariat';
 import { getEmployees } from '../services/apihr/apiEmployees';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 type SecretariatView = 'documents' | 'meetings' | 'tasks';
 
-interface SecretariatProps {
-    subsidiary: Subsidiary;
-}
-
-const Secretariat: React.FC<SecretariatProps> = ({ subsidiary }) => {
+const Secretariat: React.FC = () => {
     const { t } = useI18n();
+    const queryClient = useQueryClient();
+    const { state } = useAppContext();
+    const { currentSubsidiary: subsidiary } = state;
     const [activeTab, setActiveTab] = useState<SecretariatView>('documents');
-    
-    // --- State Management with useState (like LoginPage.tsx) ---
-    const [documents, setDocuments] = useState<CompanyDocument[]>([]);
-    const [meetings, setMeetings] = useState<Meeting[]>([]);
-    const [tasks, setTasks] = useState<SecretariatTask[]>([]);
-    const [employees, setEmployees] = useState<Employee[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
 
-    // --- Data Fetching with useEffect (like LoginPage.tsx) ---
-    const fetchData = async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            // Fetch all data in parallel
-            const [docs, meets, tks, emps] = await Promise.all([
-                getCompanyDocuments(),
-                getMeetings(),
-                getSecretariatTasks(),
-                getEmployees()
-            ]);
-            setDocuments(docs);
-            setMeetings(meets);
-            setTasks(tks);
-            setEmployees(emps);
-        } catch (err: any) {
-            setError(err.message || t('common.error.generic'));
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    if (!subsidiary) {
+        return <div className="p-6 text-center">{t('common.loading')}</div>;
+    }
 
-    useEffect(() => {
-        fetchData();
-    }, [subsidiary.id]); // Refetch if subsidiary changes
+    const queryKey = (key: string) => [key, subsidiary.id];
 
-    // --- Manual Mutation Handlers (like LoginPage.tsx) ---
-    const onSaveDocument = async (data: any) => {
-        await (data.id ? updateCompanyDocument(data.id, data) : createCompanyDocument(data));
-        fetchData(); // Manually refetch data
-    };
-    const onDeleteDocument = async (id: string) => {
-        await deleteCompanyDocument(id);
-        fetchData(); // Manually refetch data
-    };
+    // --- Data Fetching ---
+    const { data: documents = [], isLoading: isLoadingDocuments } = useQuery<CompanyDocument[]>({
+        queryKey: queryKey('companyDocuments'),
+        queryFn: getCompanyDocuments
+    });
+    const { data: meetings = [], isLoading: isLoadingMeetings } = useQuery<Meeting[]>({
+        queryKey: queryKey('meetings'),
+        queryFn: getMeetings
+    });
+    const { data: tasks = [], isLoading: isLoadingTasks } = useQuery<SecretariatTask[]>({
+        queryKey: queryKey('secretariatTasks'),
+        queryFn: getSecretariatTasks
+    });
+    const { data: employees = [], isLoading: isLoadingEmployees } = useQuery<Employee[]>({
+        queryKey: queryKey('employees'),
+        queryFn: () => getEmployees()
+    });
 
-    const onSaveMeeting = async (data: any) => {
-        await saveMeeting(data);
-        fetchData(); // Manually refetch data
-    };
-    const onDeleteMeeting = async (id: string) => {
-        await deleteMeeting(id);
-        fetchData(); // Manually refetch data
-    };
+    // --- Mutations ---
+    const { mutate: onSaveDocument } = useMutation({
+        mutationFn: (data: FormData) => data.get('id') ? updateCompanyDocument(data.get('id') as string, data) : createCompanyDocument(data),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('companyDocuments') })
+    });
+    const { mutate: onDeleteDocument } = useMutation({
+        mutationFn: deleteCompanyDocument,
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('companyDocuments') })
+    });
+    const { mutate: onSaveMeeting } = useMutation({
+        mutationFn: (data: SaveMeetingDto) => saveMeeting(data),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('meetings') })
+    });
+    const { mutate: onDeleteMeeting } = useMutation({
+        mutationFn: deleteMeeting,
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('meetings') })
+    });
+    const { mutate: onSaveTask } = useMutation({
+        mutationFn: (data: SaveSecretariatTaskDto) => saveSecretariatTask(data),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('secretariatTasks') })
+    });
+    const { mutate: onDeleteTask } = useMutation({
+        mutationFn: deleteSecretariatTask,
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('secretariatTasks') })
+    });
 
-    const onSaveTask = async (data: any) => {
-        await saveSecretariatTask(data);
-        fetchData(); // Manually refetch data
-    };
-    const onDeleteTask = async (id: string) => {
-        await deleteSecretariatTask(id);
-        fetchData(); // Manually refetch data
-    };
+    const isLoading = isLoadingDocuments || isLoadingMeetings || isLoadingTasks || isLoadingEmployees;
 
     const renderActiveView = () => {
         if (isLoading) {

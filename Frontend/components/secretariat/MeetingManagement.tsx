@@ -13,7 +13,7 @@ import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
-import { SaveMeetingDto } from '../../services/apisecretariat/apiMeetings';
+import { SaveMeetingDto } from '../../services/apisecretariat/apiSecretariat';
 
 interface MeetingManagementProps {
     subsidiary: Subsidiary;

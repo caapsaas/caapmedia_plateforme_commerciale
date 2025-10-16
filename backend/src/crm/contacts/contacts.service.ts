@@ -52,8 +52,8 @@ export class ContactsService {
       subsidiaryId: user.subsidiaryId,
     };
 
-    // Si l'utilisateur est un commercial, il ne voit que ses propres contacts
-    if (user.userRole === UserRole.COMMERCIAL) {
+    // Seul le commercial a une vue restreinte à ses propres contacts.
+    if (user.userRole === UserRole.COMMERCIAL) { 
       where.salesRepId = user.id;
     }
 
@@ -87,7 +87,7 @@ export class ContactsService {
     // Vérifier que l'utilisateur a le droit de voir ce contact
     if (
       contact.subsidiaryId !== user.subsidiaryId ||
-      (user.userRole === UserRole.COMMERCIAL && contact.salesRepId !== user.id)
+      (user.userRole === UserRole.COMMERCIAL && contact.salesRepId !== user.id) // Seul le commercial est restreint
     ) {
       throw new ForbiddenException('You are not allowed to view this contact.');
     }
@@ -181,6 +181,7 @@ export class ContactsService {
 
     return {
       access_token: this.jwtService.sign(payload),
+      contact: contact,
     };
   }
 

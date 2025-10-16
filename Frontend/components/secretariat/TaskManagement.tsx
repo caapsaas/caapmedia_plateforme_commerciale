@@ -11,7 +11,7 @@ import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
-import { SaveSecretariatTaskDto } from '../../services/apisecretariat/apiTasks';
+import { SaveSecretariatTaskDto } from '../../services/apisecretariat/apiSecretariat';
 
 interface TaskManagementProps {
     subsidiary: Subsidiary;

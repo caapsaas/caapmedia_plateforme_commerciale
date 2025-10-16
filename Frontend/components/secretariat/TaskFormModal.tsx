@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { SecretariatTask, SecretariatTaskStatus, Subsidiary, Employee } from '../../types';
 import { useI18n } from '../../i18n';
-import { SaveSecretariatTaskDto } from '../../services/apisecretariat/apiTasks';
+import { SaveSecretariatTaskDto } from '../../services/apisecretariat/apiSecretariat';
 
 interface TaskFormModalProps {
     isOpen: boolean;

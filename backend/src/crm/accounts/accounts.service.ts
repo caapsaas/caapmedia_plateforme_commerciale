@@ -14,9 +14,9 @@ import { Prisma, User, UserRole } from '@prisma/client';
 export class AccountsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createAccountDto: CreateAccountDto, user?: User) {
+  async create(createAccountDto: CreateAccountDto, user: User) {
     // Déterminer l'ID de la filiale. Il doit être fourni soit par l'utilisateur connecté, soit dans le DTO.
-    const subsidiaryId = user?.subsidiaryId || createAccountDto.subsidiaryId;
+    const subsidiaryId = user.subsidiaryId || createAccountDto.subsidiaryId;
 
     if (!subsidiaryId) {
       throw new BadRequestException(
@@ -51,7 +51,7 @@ export class AccountsService {
         ...createAccountDto,
         subsidiaryId: subsidiaryId,
         // Si un employé crée le compte, il lui est assigné par défaut.
-        salesRepId: user?.id,
+        salesRepId: user.id,
       },
     });
   }
@@ -62,8 +62,8 @@ export class AccountsService {
     };
 
     // Un commercial ne voit que les comptes qui lui sont assignés.
-    // Un admin voit tous les comptes de la filiale.
-    if (user.userRole === UserRole.COMMERCIAL) {
+    // Un admin ou une secrétaire voit tous les comptes de la filiale.
+    if (user.userRole === UserRole.COMMERCIAL) { // Seul le commercial a une vue restreinte
       where.salesRepId = user.id;
     }
 
@@ -94,7 +94,8 @@ export class AccountsService {
     // Vérifier que l'utilisateur a le droit de voir ce compte
     if (
       account.subsidiaryId !== user.subsidiaryId ||
-      (user.userRole === UserRole.COMMERCIAL && account.salesRepId !== user.id)
+      (user.userRole === UserRole.COMMERCIAL && // Seul le commercial est restreint
+        account.salesRepId !== user.id)
     ) {
       throw new ForbiddenException('You are not allowed to view this account.');
     }

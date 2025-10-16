@@ -13,6 +13,7 @@ export interface CompanyDocumentSearchQuery {
 
 export type MeetingCreationData = Omit<Meeting, 'id' | 'participants'> & { participantIds?: string[] };
 export type MeetingUpdateData = Partial<MeetingCreationData>;
+export type SaveMeetingDto = Partial<Meeting> & { participantIds?: string[] };
 export interface MeetingSearchQuery {
   title?: string;
   meetingDate?: string; // YYYY-MM-DD
@@ -20,6 +21,7 @@ export interface MeetingSearchQuery {
 
 export type SecretariatTaskCreationData = Omit<SecretariatTask, 'id'>;
 export type SecretariatTaskUpdateData = Partial<SecretariatTaskCreationData>;
+export type SaveSecretariatTaskDto = Partial<SecretariatTask>;
 export interface SecretariatTaskSearchQuery {
   title?: string;
   status?: SecretariatTaskStatus;
@@ -50,15 +52,8 @@ export const searchCompanyDocuments = async (query: CompanyDocumentSearchQuery):
  * Crée un nouveau document d'entreprise avec un fichier.
  * @param documentData - Les données du document et le fichier.
  */
-export const createCompanyDocument = async (documentData: CompanyDocumentCreationData): Promise<CompanyDocument> => {
-  const formData = new FormData();
-  Object.entries(documentData).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      formData.append(key, value as string | Blob);
-    }
-  });
-
-  const { data } = await api.post<CompanyDocument>('/secretariat/documents', formData, {
+export const createCompanyDocument = async (documentData: FormData): Promise<CompanyDocument> => {
+  const { data } = await api.post<CompanyDocument>('/secretariat/documents', documentData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return data;
@@ -69,15 +64,8 @@ export const createCompanyDocument = async (documentData: CompanyDocumentCreatio
  * @param id - L'ID du document.
  * @param updateData - Les données à mettre à jour (peut inclure un nouveau fichier).
  */
-export const updateCompanyDocument = async (id: string, updateData: CompanyDocumentUpdateData): Promise<CompanyDocument> => {
-  const formData = new FormData();
-  Object.entries(updateData).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      formData.append(key, value as string | Blob);
-    }
-  });
-
-  const { data } = await api.patch<CompanyDocument>(`/secretariat/documents/${id}`, formData, {
+export const updateCompanyDocument = async (id: string, updateData: FormData): Promise<CompanyDocument> => {
+  const { data } = await api.patch<CompanyDocument>(`/secretariat/documents/${id}`, updateData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return data;
@@ -114,7 +102,7 @@ export const searchMeetings = async (query: MeetingSearchQuery): Promise<Meeting
  * Crée ou met à jour une réunion.
  * @param meetingData - Les données de la réunion.
  */
-export const saveMeeting = async (meetingData: Partial<Meeting> & { participantIds?: string[] }): Promise<Meeting> => {
+export const saveMeeting = async (meetingData: SaveMeetingDto): Promise<Meeting> => {
   return meetingData.id
     ? (await api.patch<Meeting>(`/secretariat/meetings/${meetingData.id}`, meetingData)).data
     : (await api.post<Meeting>('/secretariat/meetings', meetingData)).data;
@@ -142,7 +130,7 @@ export const getSecretariatTasks = async (): Promise<SecretariatTask[]> => {
  * Crée ou met à jour une tâche.
  * @param taskData - Les données de la tâche.
  */
-export const saveSecretariatTask = async (taskData: Partial<SecretariatTask>): Promise<SecretariatTask> => {
+export const saveSecretariatTask = async (taskData: SaveSecretariatTaskDto): Promise<SecretariatTask> => {
   return taskData.id
     ? (await api.patch<SecretariatTask>(`/secretariat/tasks/${taskData.id}`, taskData)).data
     : (await api.post<SecretariatTask>('/secretariat/tasks', taskData)).data;

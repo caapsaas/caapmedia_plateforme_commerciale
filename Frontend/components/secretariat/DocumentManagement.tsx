@@ -16,7 +16,7 @@ import IconPdf from '../icons/IconPdf';
 interface DocumentManagementProps {
     subsidiary: Subsidiary;
     documents: CompanyDocument[];
-    onSave: (data: any) => void;
+    onSave: (data: FormData) => void;
     onDelete: (id: string) => void;
 }
 
@@ -45,7 +45,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
         setDeletingDocument(null);
     };
 
-    const handleSaveDocument = (data: any) => {
+    const handleSaveDocument = (data: FormData) => {
         onSave(data);
         handleCloseModals();
     };

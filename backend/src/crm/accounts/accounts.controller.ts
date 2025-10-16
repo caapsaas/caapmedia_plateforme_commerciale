@@ -24,39 +24,38 @@ export class AccountsController {
   constructor(private readonly accountsService: AccountsService) {}
 
   @Post()
-  // Le guard est retiré pour rendre la route publique.
-  // L'utilisateur est optionnel : il sera présent si un employé est connecté, sinon undefined.
-  create(
-    @Body() createAccountDto: CreateAccountDto,
-    @CurrentUser() user?: User,
-  ) {
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
+  create(@Body() createAccountDto: CreateAccountDto, @CurrentUser() user: User) {
+    // Si un utilisateur est connecté, le service l'utilisera pour assigner le commercial et la filiale.
+    // Le DTO peut toujours contenir un subsidiaryId pour les admins créant des comptes dans d'autres filiales.
     return this.accountsService.create(createAccountDto, user);
   }
 
   @Get()
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
   findAll(@CurrentUser() user: User) {
     return this.accountsService.findAll(user);
   }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
   findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     return this.accountsService.findOne(id, user);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
   update(@Param('id', ParseUUIDPipe) id: string, @Body() updateAccountDto: UpdateAccountDto, @CurrentUser() user: User) {
     return this.accountsService.update(id, updateAccountDto, user);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
   remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     return this.accountsService.remove(id, user);
   }

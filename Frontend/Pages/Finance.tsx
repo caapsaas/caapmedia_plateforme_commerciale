@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Subsidiary, SupplierDebt, FinancialTransaction, FinanceView, Order, Product, ExpenseRecord, Sale, Equipment } from '../types';
+import React, { useState, useMemo } from 'react';
+import { FinanceView } from '../types';
+import { useAppContext } from '../context/AppContext';
 import CreditManagement from '../components/finance/CreditManagement';
 import TreasuryManagement from '../components/finance/TreasuryManagement';
 import SupplierDebts from '../components/finance/SupplierDebts';
@@ -9,29 +10,51 @@ import { useI18n } from '../i18n';
 import IconDocumentChartBar from '../components/icons/IconDocumentChartBar';
 import BalanceSheet from '../components/finance/BalanceSheet';
 import IconScale from '../components/icons/IconScale';
+import { useQuery } from '@tanstack/react-query';
 
-interface FinanceProps {
-    subsidiary: Subsidiary;
-    supplierDebts: SupplierDebt[];
-    financialTransactions: FinancialTransaction[];
-    orders: Order[];
-    products: Product[];
-    expenseRecords: ExpenseRecord[];
-    sales: Sale[];
-    equipment: Equipment[];
-}
+// Importez vos types de données réels et vos fonctions d'API
+import { Order, Product, ExpenseRecord, Sale, Equipment, SupplierDebt, FinancialTransaction } from '../types';
+import { getOrders } from '../services/apiE-commerce/apiOrders';
+import { getProductsBySubsidiary as getProducts } from '../services/apiE-commerce/apiProducts';
+import { getSales } from '../services/apiE-commerce/apiSales'; // à créer
+import { getExpenses } from '../services/apiFinance/apiExpense'; // à créer
+import { getSupplierDebts } from '../services/apiFinance/apiDebts'; // à créer
+import { getFinancialTransactions } from '../services/apiFinance/apiTreasury'; // à créer
+import { getEquipments } from '../services/apiMaintenance/apiEquipment'; // à créer
 
-const Finance: React.FC<FinanceProps> = ({ subsidiary, supplierDebts, financialTransactions, orders, products, expenseRecords, sales, equipment }) => {
+const Finance: React.FC = () => {
     const { t } = useI18n();
+    const { state } = useAppContext();
+    const { currentSubsidiary: subsidiary } = state;
     const [activeTab, setActiveTab] = useState<FinanceView>(FinanceView.CREDIT);
 
+    if (!subsidiary) {
+        return <div className="p-6 text-center">{t('common.loading')}</div>;
+    }
+
+    // --- Data Fetching avec React Query (similaire à Crm.tsx) ---
+    const queryKey = (key: string) => [key, subsidiary.id];
+
+    const { data: orders = [], isLoading: l1 } = useQuery<Order[]>({ queryKey: queryKey('orders'), queryFn: () => getOrders() });
+    const { data: products = [], isLoading: l2 } = useQuery<Product[]>({ queryKey: queryKey('products'), queryFn: () => getProducts() });
+    const { data: sales = [], isLoading: l3 } = useQuery<Sale[]>({ queryKey: queryKey('sales'), queryFn: () => getSales() });
+    const { data: expenseRecords = [], isLoading: l4 } = useQuery<ExpenseRecord[]>({ queryKey: queryKey('expenseRecords'), queryFn: () => getExpenses() });
+    const { data: supplierDebts = [], isLoading: l5 } = useQuery<SupplierDebt[]>({ queryKey: queryKey('supplierDebts'), queryFn: () => getSupplierDebts() });
+    const { data: equipment = [], isLoading: l6 } = useQuery<Equipment[]>({ queryKey: queryKey('equipment'), queryFn: () => getEquipments() });
+    const { data: financialTransactions = [], isLoading: l7 } = useQuery<FinancialTransaction[]>({ queryKey: queryKey('financialTransactions'), queryFn: () => getFinancialTransactions() });
+
+    const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7;
+
     const renderActiveView = () => {
-        const props = { subsidiary, supplierDebts, financialTransactions, orders, products, expenseRecords, sales, equipment };
+        if (isLoading) {
+            return <div className="p-6 text-center">{t('common.loading')}</div>;
+        }
+
         switch (activeTab) {
             case FinanceView.CREDIT:
                 return <CreditManagement subsidiary={subsidiary} />;
             case FinanceView.TREASURY:
-                return <TreasuryManagement subsidiary={subsidiary} financialTransactions={financialTransactions} />;
+                return <TreasuryManagement subsidiary={subsidiary} />;
             case FinanceView.SUPPLIERS:
                 return <SupplierDebts subsidiary={subsidiary} supplierDebts={supplierDebts} />;
             case FinanceView.EXPENSES:
@@ -39,7 +62,16 @@ const Finance: React.FC<FinanceProps> = ({ subsidiary, supplierDebts, financialT
             case FinanceView.PNL:
                 return <ProfitAndLossStatement subsidiary={subsidiary} orders={orders} products={products} expenseRecords={expenseRecords} sales={sales} />;
             case FinanceView.BILAN:
-                return <BalanceSheet {...props} />;
+                return <BalanceSheet 
+                            subsidiary={subsidiary} 
+                            orders={orders} 
+                            products={products} 
+                            expenseRecords={expenseRecords} 
+                            sales={sales} 
+                            equipment={equipment}
+                            supplierDebts={supplierDebts}
+                            financialTransactions={financialTransactions}
+                        />;
             default:
                 return <CreditManagement subsidiary={subsidiary} />;
         }

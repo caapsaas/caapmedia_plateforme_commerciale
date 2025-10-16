@@ -74,17 +74,20 @@ const stockRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/s
 const purchasingRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/purchasing', component: Purchasing });
 const aiMarketingRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/ai-marketing', component: AiMarketing });
 const caisseRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/caisse', component: Caisse });
-const mesCommandesRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/mes-commandes', component: MesCommandes });
-const financeRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/finance', component: Finance });
+const mesCommandesRoute = createRoute({
+  getParentRoute: () => dashboardRoute,
+  path: '/mes-commandes',
+  component: MesCommandes,
+});
+
 const configurationRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/configuration', component: Configuration });
-const hrRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/hr', component: HrManagement });
 const productionRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/production', component: Production });
 
 // Wrapper for components that need the current subsidiary
 const SecretariatRouteComponent = () => {
   const { state } = useAppContext();
   if (!state.currentSubsidiary) return <div>Loading subsidiary...</div>;
-  return <Secretariat subsidiary={state.currentSubsidiary} />;
+  return <Secretariat />;
 };
 
 const MaintenanceRouteComponent = () => {
@@ -99,7 +102,22 @@ const EquipementsRouteComponent = () => {
   return <Equipements subsidiary={state.currentSubsidiary} />;
 };
 
+const FinanceRouteComponent = () => {
+  const { state } = useAppContext();
+  if (!state.currentSubsidiary) return <div>Loading subsidiary...</div>;
+
+  return <Finance />;
+};
+
+const HrManagementRouteComponent = () => {
+  const { state } = useAppContext();
+  if (!state.currentSubsidiary) return <div>Loading subsidiary...</div>;
+  return <HrManagement  />;
+};
+
 const secretariatRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/secretariat', component: SecretariatRouteComponent });
+const hrRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/hr', component: HrManagementRouteComponent });
+const financeRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/finance', component: FinanceRouteComponent });
 const maintenanceRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/maintenance', component: MaintenanceRouteComponent });
 const equipementsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/equipements', component: EquipementsRouteComponent });
 

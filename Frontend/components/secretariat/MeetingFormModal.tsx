@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Meeting, Subsidiary, Employee } from '../../types';
 import { useI18n } from '../../i18n';
-import { SaveMeetingDto } from '../../services/apisecretariat/apiMeetings';
+import { SaveMeetingDto } from '../../services/apisecretariat/apiSecretariat';
 
 interface MeetingFormModalProps {
     isOpen: boolean;
