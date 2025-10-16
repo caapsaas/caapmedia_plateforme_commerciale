@@ -17,11 +17,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProducts } from '../../services/apiE-commerce/apiProducts';
 import { createOrder } from '../../services/apiE-commerce/apiOrders';
 import { createQuoteRequest } from '../../services/apiCrm/apiLeads';
-import { loginContact, registerContact, ContactRegisterData } from '../../services/apiCrm/apiContacts';
+import { loginContact, registerContact, ContactRegisterData } from '../../services/apiCrm/apicontacts';
+
+// Le type de données reçu du formulaire d'inscription, correspondant à celui de AuthModal
+type SignupFormData = Omit<ContactRegisterData, 'subsidiaryId' | 'since' | 'isVerified'>;
 
 const ECommercePage: React.FC = () => {
     const { state, dispatch } = useAppContext();
-    const { currentCustomer } = state;
+    const { currentCustomer, currentSubsidiary } = state;
     const { t } = useI18n();
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
@@ -48,8 +51,19 @@ const ECommercePage: React.FC = () => {
         }
     });
 
-    const { mutate: signupMutation } = useMutation<Contact, Error, ContactRegisterData>({
-        mutationFn: registerContact,        
+    const { mutate: signupMutation } = useMutation<Contact, Error, SignupFormData>({
+        mutationFn: (signupData) => {
+            if (!currentSubsidiary) {
+                throw new Error("Subsidiary not found. Cannot register contact.");
+            }
+            const fullSignupData: ContactRegisterData = {
+                ...signupData,
+                subsidiaryId: currentSubsidiary.id,
+                since: new Date().toISOString(),
+                isVerified: false,
+            };
+            return registerContact(fullSignupData);
+        },
         onSuccess: (newCustomer) => {
             console.log('Signup successful', newCustomer);
             dispatch({ type: 'CUSTOMER_LOGIN_SUCCESS', payload: newCustomer });
@@ -261,6 +275,7 @@ const ECommercePage: React.FC = () => {
                     onLogin={onLogin} // La logique de login est maintenant asynchrone
                     onRegister={signupMutation}
                     onAuthSuccess={handleAuthSuccess}
+                    // subsidiaryId n'est plus nécessaire ici
                 />
             )}
             

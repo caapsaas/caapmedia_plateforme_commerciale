@@ -1,19 +1,20 @@
 import React, { useState } from 'react';
 import { useI18n } from '../../i18n';
-import { ContactRegisterData } from '../../services/apiCrm/apiContacts';
-import { ContactStatus } from '../../types';
+import { ContactRegisterData } from '../../services/apiCrm/apicontacts';
+
+// Le type de données que le formulaire envoie vers le haut.
+type SignupFormData = Omit<ContactRegisterData, 'subsidiaryId' | 'since' | 'isVerified'>;
 
 interface AuthModalProps {
     isOpen: boolean;
     onClose: () => void;
     onLogin: (email: string, password: string) => Promise<'SUCCESS' | 'NOT_VERIFIED' | 'FAILED'>;
-    onRegister: (data: ContactRegisterData) => void;
+    onRegister: (data: SignupFormData) => void;
     onAuthSuccess: () => void;
     onVerifyAccount?: (email: string) => void; // Rendu optionnel
-    subsidiaryId: string;
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegister, onAuthSuccess, onVerifyAccount, subsidiaryId }) => {
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegister, onAuthSuccess, onVerifyAccount }) => {
     const { t } = useI18n();
     const [view, setView] = useState<'login' | 'signup' | 'forgotPassword'>('login');
     const [error, setError] = useState('');
@@ -60,13 +61,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegis
             setError('Les mots de passe ne correspondent pas.');
             return;
         }
-        const fullSignupData: ContactRegisterData = {
-            ...signupData,
-            since: new Date().toISOString(),
-            isVerified: false, 
-            subsidiaryId: subsidiaryId,
-        };
-        onRegister(fullSignupData);
+        onRegister(signupData);
         onAuthSuccess();
     };
     
