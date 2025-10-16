@@ -15,7 +15,7 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({ isOpen, onC
     const [activeTab, setActiveTab] = useState<'select' | 'create'>('select');
     const [searchTerm, setSearchTerm] = useState('');
     const [newClientData, setNewClientData] = useState({
-        name: '',
+        contactName: '',
         company: '',
         email: '',
         phone: '',
@@ -24,7 +24,7 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({ isOpen, onC
 
     const filteredClients = useMemo(() => {
         return clients.filter(client => 
-            client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            client.contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (client.company && client.company.toLowerCase().includes(searchTerm.toLowerCase()))
         );
     }, [clients, searchTerm]);
@@ -40,7 +40,7 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({ isOpen, onC
             since: new Date().toISOString().split('T')[0],
             isVerified: true, // Auto-verified for in-store creation
             password: '', // Default password, can be changed by user
-            status: ContactStatus.ACTIVE,
+            status: ContactStatus.ACTIVE
         });
     };
 
@@ -65,7 +65,7 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({ isOpen, onC
                         <ul className="max-h-60 overflow-y-auto divide-y divide-slate-200">
                             {filteredClients.map(client => (
                                 <li key={client.id} onClick={() => onClientSelect(client)} className="p-3 hover:bg-slate-100 cursor-pointer">
-                                    <p className="font-semibold">{client.name}</p>
+                                    <p className="font-semibold">{client.contactName}</p>
                                     <p className="text-sm text-slate-500">{client.company}</p>
                                 </li>
                             ))}
@@ -75,7 +75,7 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({ isOpen, onC
                     <form onSubmit={handleCreateSubmit} className="p-6 space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
-                            <input type="text" name="name" value={newClientData.name} onChange={handleNewClientChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"/>
+                            <input type="text" name="contactName" value={newClientData.contactName} onChange={handleNewClientChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"/>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700">{t('configuration.form.company')}</label>
@@ -93,7 +93,7 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({ isOpen, onC
                             <label className="block text-sm font-medium text-slate-700">{t('configuration.form.address')}</label>
                             <input type="text" name="address" value={newClientData.address} onChange={handleNewClientChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"/>
                         </div>
-                        <button type="submit" className="w-full py-3 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f]">{t('cashRegister.clientSection.createAndSelect')}</button>
+                        <button type="submit" className="w-full py-3 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f]">{t('createAndSelect')}</button>
                     </form>
                 )}
             </div>

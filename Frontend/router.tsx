@@ -11,7 +11,7 @@ import Crm from './Pages/Crm';
 import Stock from './Pages/Stock';
 import Purchasing from './Pages/Purchasing';
 import AiMarketing from './Pages/AiMarketing';
-import Caisse from './Pages/Caisse';
+import Caisse from './components/caisse/Caisse';
 import MesCommandes from './Pages/MesCommandes';
 import Finance from './Pages/Finance';
 import Configuration from './Pages/Configuration';

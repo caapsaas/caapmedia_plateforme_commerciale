@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useI18n } from '../../i18n';
-import { ContactRegisterData } from '../../services/apiCrm/apicontacts';
+import { ContactRegisterData } from '../../services/apiCrm/apiContacts';
 import { ContactStatus } from '../../types';
 
 interface AuthModalProps {

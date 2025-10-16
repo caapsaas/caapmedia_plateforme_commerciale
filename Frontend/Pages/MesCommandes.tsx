@@ -10,7 +10,7 @@ import { useAppContext } from '../context/AppContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getOrders, createOrderBySalesRep, FindAllOrdersDto } from '../services/apiE-commerce/apiOrders';
 import { getProducts } from '../services/apiE-commerce/apiProducts';
-import { getContacts } from '../services/apiCrm/apicontacts';
+import { getContacts } from '../services/apiCrm/apiContacts';
 
 const MesCommandes: React.FC = () => {
     const { t, formatCurrency } = useI18n();
@@ -164,6 +164,7 @@ const MesCommandes: React.FC = () => {
                                 options={productOptions}
                                 placeholder={t('filter.allProducts')}
                             />
+                            
                             <PeriodFilter 
                                 period={filters.period || 'ALL_TIME'}
                                 onPeriodChange={handlePeriodChange}

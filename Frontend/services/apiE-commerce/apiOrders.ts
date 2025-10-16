@@ -1,5 +1,5 @@
 import { api } from '.././api';
-import { ProductionStatus, CustomerPaymentMethod, OrderStatus, PaymentStatus } from '../../types';
+import { CustomerPaymentMethod, OrderStatus, PaymentStatus } from '../../types';
 
 /**
  * DTO pour le filtrage des commandes, correspondant à FindAllOrdersDto du backend.
@@ -91,7 +91,18 @@ export const recordOrderPayment = async (payload: { orderId: string; amount: num
  * Met à jour le statut de production d'une commande.
  * @param payload - Contient l'ID de la commande et le nouveau statut de production.
  */
-export const updateProductionStatus = async (payload: { orderId: string; status: ProductionStatus }) => {
+export const updateProductionStatus = async (payload: { orderId: string; status: OrderStatus }) => {
     const { data } = await api.patch(`/ecommerce/orders/production-status/${payload.orderId}`, { status: payload.status });
     return data;
 };
+
+/**
+ * Valide une commande pour la production.
+ * @param payload - Contient l'ID de la commande.
+ * NB: Cette fonction n'est pas encore disponible sur le backend.
+ */
+export const validateOrderForProduction = async (payload: { orderId: string }) => {
+    const { data } = await api.patch(`/ecommerce/orders/validate-production/${payload.orderId}`);
+    return data;
+};
+    

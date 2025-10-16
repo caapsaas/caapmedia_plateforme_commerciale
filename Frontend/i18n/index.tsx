@@ -487,6 +487,7 @@ const frTranslations = {
       "createTab": "Créer un nouveau client",
       "searchClient": "Rechercher un client..."
     },
+    "createAndSelect": "Créer et Sélectionner",
     "findOrder": "Trouver une commande",
     "orderSelectionModal": {
       "title": "Sélectionner une commande",
@@ -1760,6 +1761,7 @@ const enTranslations: Translations = {
           "createTab": "Create New Customer",
           "searchClient": "Search for a customer..."
         },
+        "createAndSelect": "Create and Select",
         "findOrder": "Find an Order",
         "orderSelectionModal": {
           "title": "Select an Order",

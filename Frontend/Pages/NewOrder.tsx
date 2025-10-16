@@ -4,15 +4,15 @@ import IconMinus from '../components/icons/IconMinus';
 import IconDelete from '../components/icons/IconDelete';
 import { useI18n } from '../i18n';
 import { useQuery } from '@tanstack/react-query';
-import { getContacts } from '../services/apiCrm/apicontacts';
+import { getContacts } from '../services/apiCrm/apiContacts';
 import { getTaxes } from '../services/apiE-commerce/apitaxes';
 import SelectFilter from '../components/filters/SelectFilter';
 
 interface NewOrderProps {
     subsidiary: Subsidiary;
     products: Product[];
-    onOrderPlaced: (newOrder: Omit<Order, 'id' | 'subsidiaryId'>) => void;
     selectedCustomer?: Contact; // Customer can be pre-selected
+    onOrderPlaced: (newOrder: Omit<Order, 'id' | 'subsidiaryId'>) => void;
 }
 
 type CartItem = {
@@ -20,7 +20,7 @@ type CartItem = {
     quantity: number;
 };
 
-const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, onOrderPlaced, selectedCustomer }) => {
+const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, selectedCustomer, onOrderPlaced }) => {
     const { t, formatCurrency } = useI18n();
     const [searchTerm, setSearchTerm] = useState('');
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -34,7 +34,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
         }
     }, [selectedCustomer]);
 
-    const availableProducts = useMemo(() => 
+    const availableProducts = useMemo(() =>
         allProducts.filter(p => p.subsidiaryId === subsidiary.id),
         [subsidiary.id, allProducts]
     );
@@ -42,7 +42,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
     const filteredProducts = useMemo(() =>
         availableProducts.filter(product =>
             (product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.description.toLowerCase().includes(searchTerm.toLowerCase()))
+                product.description.toLowerCase().includes(searchTerm.toLowerCase()))
             && product.stock > 0
         ), [availableProducts, searchTerm]
     );
@@ -100,7 +100,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
             );
         });
     };
-    
+
     const subtotal = useMemo(() =>
         cart.reduce((sum, item) => sum + item.product.sellingPrice * item.quantity, 0),
         [cart]
@@ -113,7 +113,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
     const handleSubmitOrder = () => {
         const customer = clients.find(c => c.id === selectedCustomerId);
         if (!customer) return;
-        
+
         const paymentDueDate = new Date();
         paymentDueDate.setDate(paymentDueDate.getDate() + 30);
 
@@ -139,7 +139,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
             amountPaid: 0,
             productionHistory: [{ status: ProductionStatus.PREPRESS, date: new Date().toISOString() }],
         };
-        
+
         onOrderPlaced(newOrderData);
 
         setOrderPlaced(true);
@@ -150,7 +150,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
         }, 4000);
     };
 
-    const clientOptions = useMemo(() => clients.map(c => ({ value: c.id, label: `${c.contactName} (${c.company || 'N/A'})`})), [clients]);
+    const clientOptions = useMemo(() => clients.map(c => ({ value: c.id, label: `${c.contactName} (${c.company || 'N/A'})` })), [clients]);
 
     return (
         <div className="grid grid-cols-12 gap-6">
@@ -168,7 +168,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                         <svg className="h-5 w-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                     </div>
                 </div>
-                <div className="flex-grow overflow-auto pr-2" style={{maxHeight: '60vh'}}>
+                <div className="flex-grow overflow-auto pr-2" style={{ maxHeight: '60vh' }}>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left text-slate-500">
                             <thead className="text-xs text-slate-700 uppercase bg-slate-50 sticky top-0">
@@ -184,7 +184,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                                 {filteredProducts.map(product => (
                                     <tr key={product.id}>
                                         <td className="px-4 py-3">
-                                            <img src={product.productImages?.[0]?.imageUrl || 'https://via.placeholder.com/100'} alt={product.name} className="h-12 w-12 object-cover rounded-md"/>
+                                            <img src={product.productImages?.[0]?.imageUrl || 'https://via.placeholder.com/100'} alt={product.name} className="h-12 w-12 object-cover rounded-md" />
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="font-semibold text-slate-800">{product.name}</div>
@@ -192,8 +192,8 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                                         </td>
                                         <td className="px-4 py-3 text-right font-medium text-slate-700">{formatCurrency(product.sellingPrice)}</td>
                                         <td className="px-4 py-3">
-                                            <input 
-                                                type="number" 
+                                            <input
+                                                type="number"
                                                 min="0"
                                                 max={product.stock}
                                                 value={quantities[product.id] || ''}
@@ -218,8 +218,8 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
             <div className="col-span-12 lg:col-span-5 bg-white p-6 rounded-xl shadow-md flex flex-col">
                 {!selectedCustomer && (
                     <div className="mb-4">
-                        <SelectFilter 
-                            label={t('filter.client')} 
+                        <SelectFilter
+                            label={t('filter.client')}
                             name="customer"
                             value={selectedCustomerId}
                             onChange={(e) => setSelectedCustomerId(e.target.value)}
@@ -274,7 +274,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                         <span>{t('newOrder.total')}</span>
                         <span>{formatCurrency(totalAmount)}</span>
                     </div>
-                    <button 
+                    <button
                         onClick={handleSubmitOrder}
                         disabled={cart.length === 0 || orderPlaced || !selectedCustomerId}
                         className="w-full text-center px-4 py-3 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"

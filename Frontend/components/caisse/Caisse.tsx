@@ -1,37 +1,35 @@
 import React, { useState, useMemo } from 'react';
-import { Subsidiary, Product, Contact, Order, OrderItem, ProductOptions } from '../types';
-import IconCash from '../components/icons/IconCash';
-import IconCreditCard from '../components/icons/IconCreditCard';
-import IconMobilePayment from '../components/icons/IconMobilePayment';
-import IconPlus from '../components/icons/IconPlus';
-import IconMinus from '../components/icons/IconMinus';
-import IconDelete from '../components/icons/IconDelete';
-import { useI18n } from '../i18n';
-import ClientSelectionModal from '../components/caisse/ClientSelectionModal';
-import IconPaycaap from '../components/icons/IconPaycaap';
-import IconTruckCoins from '../components/icons/IconTruckCoins';
-import IconUserClock from '../components/icons/IconUserClock';
-import OrderSelectionModal from '../components/caisse/OrderSelectionModal';
-import IconSearchDocument from '../components/icons/IconSearchDocument';
-import IconCheck from '../components/icons/IconCheck';
-import PriceCalculatorModal from '../components/ecommerce/PriceCalculatorModal';
-import { CartItem } from '../components/ecommerce/ShoppingCart';
+import { Product, Contact, Order, ProductOptions, CustomerPaymentMethod } from '../../types';
+import IconCash from '../icons/IconCash';
+import IconCreditCard from '../icons/IconCreditCard';
+import IconMobilePayment from '../icons/IconMobilePayment';
+import IconPlus from '../icons/IconPlus';
+import IconMinus from '../icons/IconMinus';
+import IconDelete from '../icons/IconDelete';
+import { useI18n } from '../../i18n';
+import ClientSelectionModal from './ClientSelectionModal';
+import IconPaycaap from '../icons/IconPaycaap';
+import IconTruckCoins from '../icons/IconTruckCoins';
+import IconUserClock from '../icons/IconUserClock';
+import OrderSelectionModal from './OrderSelectionModal';
+import IconSearchDocument from '../icons/IconSearchDocument';
+import IconCheck from '../icons/IconCheck';
+import PriceCalculatorModal from '../ecommerce/PriceCalculatorModal';
+import { CartItem } from '../ecommerce/ShoppingCart';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getProductsBySubsidiary } from '../../services/apiE-commerce/apiProducts';
+import { getContacts, createContactByEmployee, ContactCreationData } from '../../services/apiCrm/apiContacts';
+import { useAppContext } from '../../context/AppContext'; // Assurez-vous que ce chemin est correct
+import { getOrders, createOrderBySalesRep, recordOrderPayment, FindAllOrdersDto } from '../../services/apiE-commerce/apiOrders';
+import { getImageUrl } from '../../utils/imageUtils';
 
-interface CaisseProps {
-    subsidiary: Subsidiary;
-    products: Product[];
-    contacts: Contact[];
-    orders: Order[];
-    onCheckout: (cartItems: CartItem[], paymentMethod: string, client: Contact | Omit<Contact, 'id' | 'subsidiaryId'>) => void;
-    onRecordPayment: (orderId: string, amount: number) => void;
-}
-
-type PaymentMethod = 'cash' | 'card' | 'check' | 'mobile' | 'paycaap' | 'delivery' | 'credit';
 type CaisseMode = 'new_sale' | 'payment';
 
-const Caisse: React.FC<CaisseProps> = (props) => {
-    const { subsidiary, products: allProducts, contacts, orders, onCheckout, onRecordPayment } = props;
+const Caisse: React.FC = () => {
+    const { state } = useAppContext();
+    const { currentSubsidiary: subsidiary } = state;
     const { t, formatCurrency } = useI18n();
+    const queryClient = useQueryClient();
     
     // Global state for mode and modals
     const [mode, setMode] = useState<CaisseMode>('new_sale');
@@ -51,10 +49,62 @@ const Caisse: React.FC<CaisseProps> = (props) => {
     // State for UI feedback
     const [operationSuccess, setOperationSuccess] = useState(false);
 
+    // --- TanStack Query Data Fetching & Mutations ---
+    const { data: products = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
+        queryKey: ['products', subsidiary?.id],
+        queryFn: () => getProductsBySubsidiary(),
+        enabled: !!subsidiary,
+    });
+
+    const { data: contacts = [], isLoading: isLoadingContacts } = useQuery<Contact[]>({
+        queryKey: ['contacts', subsidiary?.id],
+        queryFn: getContacts,
+        enabled: !!subsidiary,
+    });
+
+    const { data: orders = [], isLoading: isLoadingOrders } = useQuery<Order[]>({
+        queryKey: ['orders', subsidiary?.id, { period: 'ALL_TIME' } as FindAllOrdersDto],
+        queryFn: () => getOrders({ period: 'ALL_TIME' }),
+        enabled: !!subsidiary,
+    });
+
+    const { mutate: recordPaymentMutate, isPending: isRecordingPayment } = useMutation({
+        mutationFn: (data: { orderId: string; amount: number; paymentMethod: CustomerPaymentMethod }) => recordOrderPayment(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
+            setOperationSuccess(true);
+            setTimeout(() => handleStartNewSale(), 3000);
+        }
+    });
+    
+    const { mutate: createOrderAndPayMutate, isPending: isCheckingOut } = useMutation({
+        mutationFn: async (data: { orderPayload: FormData, paymentPayload: { amount: number, paymentMethod: CustomerPaymentMethod } }) => {
+            const newOrder = await createOrderBySalesRep(data.orderPayload);
+            await recordOrderPayment({ orderId: newOrder.id, ...data.paymentPayload });
+            return newOrder;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
+            queryClient.invalidateQueries({ queryKey: ['sales'] });
+            setOperationSuccess(true);
+            setCart([]);
+            setSelectedPaymentMethod(null);
+            setSelectedContact(null);
+            setTimeout(() => setOperationSuccess(false), 3000);
+        }
+    });
+
+    const { mutate: createContactMutate } = useMutation({
+        mutationFn: (data: ContactCreationData) => createContactByEmployee(data),
+        onSuccess: (newContact) => {
+            queryClient.invalidateQueries({ queryKey: ['contacts'] });
+            handleClientSelected(newContact);
+        }
+    });
+
     // Memoized data
-    const availableProducts = useMemo(() => allProducts.filter(p => p.subsidiaryId === subsidiary.id), [subsidiary.id, allProducts]);
-    const filteredProducts = useMemo(() => availableProducts.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())), [availableProducts, searchTerm]);
-    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+    const filteredProducts = useMemo(() => products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())), [products, searchTerm]);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CustomerPaymentMethod | null>(null);
 
     // --- NEW SALE MODE LOGIC ---
      const addSimpleProductToCart = (product: Product) => {
@@ -114,13 +164,28 @@ const Caisse: React.FC<CaisseProps> = (props) => {
     const newSaleTotal = useMemo(() => cart.reduce((sum, item) => sum + item.totalPrice, 0), [cart]);
 
     const handleCheckout = () => {
-        if (cart.length === 0 || !selectedPaymentMethod || !selectedContact) return;
-        onCheckout(cart, selectedPaymentMethod, selectedContact);
-        setOperationSuccess(true);
-        setCart([]);
-        setSelectedPaymentMethod(null);
-        setSelectedContact(null);
-        setTimeout(() => setOperationSuccess(false), 3000);
+        if (isCheckingOut || cart.length === 0 || !selectedPaymentMethod || !selectedContact) return;
+        
+        // 1. Préparer les données pour la création de la commande
+        const formData = new FormData();
+        const itemsForJson = cart.map(item => ({
+            productId: item.product.id,
+            quantity: item.quantity,
+            price: item.unitPrice,
+            options: item.options || {},
+        }));
+        formData.append('items', JSON.stringify(itemsForJson));
+        formData.append('customerId', selectedContact.id);
+        formData.append('customerName', selectedContact.contactName);
+        formData.append('paymentMethod', selectedPaymentMethod);
+        // Pour une vente directe, la date d'échéance est aujourd'hui
+        formData.append('paymentDueDate', new Date().toISOString());
+
+        // 2. Appeler la mutation qui crée la commande PUIS enregistre le paiement
+        createOrderAndPayMutate({
+            orderPayload: formData,
+            paymentPayload: { amount: newSaleTotal, paymentMethod: selectedPaymentMethod }
+        });
     };
 
     // --- PAYMENT MODE LOGIC ---
@@ -137,15 +202,11 @@ const Caisse: React.FC<CaisseProps> = (props) => {
     };
 
     const handleRecordPayment = () => {
-        if (!loadedOrder || !paymentAmount || !selectedPaymentMethod) return;
+        if (isRecordingPayment || !loadedOrder || !paymentAmount || !selectedPaymentMethod) return;
         const amount = parseFloat(paymentAmount);
         const remainingBalance = loadedOrder.totalAmount - loadedOrder.amountPaid;
         if (amount > 0 && amount <= remainingBalance) {
-            onRecordPayment(loadedOrder.id, amount);
-            setOperationSuccess(true);
-            setTimeout(() => {
-                handleStartNewSale();
-            }, 3000);
+            recordPaymentMutate({ orderId: loadedOrder.id, amount, paymentMethod: selectedPaymentMethod });
         }
     };
     
@@ -158,19 +219,22 @@ const Caisse: React.FC<CaisseProps> = (props) => {
         setSelectedPaymentMethod(null);
     };
     
-    const handleClientSelected = (contact: Contact | Omit<Contact, 'id' | 'subsidiaryId'>) => {
-        setSelectedContact(contact as Contact);
+    const handleClientSelected = (contact: Contact) => {
+        setSelectedContact(contact);
         setIsClientModalOpen(false);
     };
 
+    const handleCreateClient = (clientData: ContactCreationData) => {
+        createContactMutate(clientData);
+        // The onSuccess of the mutation will select the client and close the modal
+    };
+
     const paymentMethods = [
-        { id: 'cash', label: t('cashRegister.paymentMethods.cash'), icon: <IconCash className="h-6 w-6" /> },
-        { id: 'card', label: t('cashRegister.paymentMethods.card'), icon: <IconCreditCard className="h-6 w-6" /> },
-        { id: 'check', label: t('cashRegister.paymentMethods.check'), icon: <IconCheck className="h-6 w-6" /> },
-        { id: 'mobile', label: t('cashRegister.paymentMethods.mobile'), icon: <IconMobilePayment className="h-6 w-6" /> },
-        { id: 'paycaap', label: t('payment.paycaap'), icon: <IconPaycaap className="h-5" /> },
-        { id: 'delivery', label: t('payment.payOnDelivery'), icon: <IconTruckCoins className="h-6 w-6" /> },
-        { id: 'credit', label: t('payment.customerCredit'), icon: <IconUserClock className="h-6 w-6" /> },
+        { id: CustomerPaymentMethod.CASH, label: t('payment.CASH'), icon: <IconCash className="h-6 w-6" /> },
+        { id: CustomerPaymentMethod.CARD, label: t('payment.CARD'), icon: <IconCreditCard className="h-6 w-6" /> },
+        { id: CustomerPaymentMethod.CHECK, label: t('payment.CHECK'), icon: <IconCheck className="h-6 w-6" /> },
+        { id: CustomerPaymentMethod.MOBILE_MONEY, label: t('payment.MOBILE_MONEY'), icon: <IconMobilePayment className="h-6 w-6" /> },
+        { id: CustomerPaymentMethod.PAYCAAP, label: t('payment.PAYCAAP'), icon: <IconPaycaap className="h-5" /> }
     ];
     
     const renderSuccessMessage = () => (
@@ -191,6 +255,14 @@ const Caisse: React.FC<CaisseProps> = (props) => {
             .map(([key, value]) => `${t(`calculator.${key}`)}: ${value}`)
             .join(', ');
     };
+
+    if (!subsidiary) {
+        return <div>{t('login.selectSubsidiary')}</div>;
+    }
+
+    if (!subsidiary || isLoadingProducts || isLoadingContacts || isLoadingOrders) {
+        return <div>{t('common.loading')}</div>;
+    }
 
     return (
         <div className="h-full flex flex-col">
@@ -224,7 +296,7 @@ const Caisse: React.FC<CaisseProps> = (props) => {
                                                 disabled={isOutOfStock}
                                             >
                                                 <div className="w-full h-20 mb-2 rounded overflow-hidden bg-slate-100">
-                                                    <img src={p.imageUrls?.[0] || 'https://via.placeholder.com/150'} alt={p.name} className="w-full h-full object-cover"/>
+                                                    <img src={p.productImages && p.productImages.length > 0 ? getImageUrl(p.productImages[0].imageUrl) : 'https://via.placeholder.com/150'} alt={p.name} className="w-full h-full object-cover"/>
                                                 </div>
                                                 <div className="flex-grow flex flex-col">
                                                     <h3 className="font-semibold text-sm leading-tight">{p.name}</h3>
@@ -264,7 +336,7 @@ const Caisse: React.FC<CaisseProps> = (props) => {
                         {mode === 'new_sale' ? (
                             <div className="border-b pb-2 mb-4">
                                 <h3 className="text-xl font-bold text-slate-800">{t('cashRegister.clientSection.title')}</h3>
-                                {selectedContact ? <div className="flex items-center justify-between mt-2"><div><p className="font-semibold">{selectedContact.name}</p><p className="text-sm text-slate-500">{selectedContact.company}</p></div><button onClick={() => setIsClientModalOpen(true)} className="text-sm text-[#c6e911] hover:underline">{t('cashRegister.clientSection.change')}</button></div> : <button onClick={() => setIsClientModalOpen(true)} className="mt-2 w-full text-center px-4 py-2 bg-slate-200 text-slate-800 font-semibold rounded-lg hover:bg-slate-300 transition-colors">{t('cashRegister.clientSection.selectAdd')}</button>}
+                                {selectedContact ? <div className="flex items-center justify-between mt-2"><div><p className="font-semibold">{selectedContact.contactName}</p><p className="text-sm text-slate-500">{selectedContact.company}</p></div><button onClick={() => setIsClientModalOpen(true)} className="text-sm text-[#c6e911] hover:underline">{t('cashRegister.clientSection.change')}</button></div> : <button onClick={() => setIsClientModalOpen(true)} className="mt-2 w-full text-center px-4 py-2 bg-slate-200 text-slate-800 font-semibold rounded-lg hover:bg-slate-300 transition-colors">{t('cashRegister.clientSection.selectAdd')}</button>}
                             </div>
                         ) : null}
                         <h3 className="text-xl font-bold text-slate-800 border-b pb-2 mb-4">{t('cashRegister.cartTitle')}</h3>
@@ -288,7 +360,7 @@ const Caisse: React.FC<CaisseProps> = (props) => {
                             )}
                             <div>
                                 <p className="font-semibold mb-2">{t('cashRegister.paymentMethod')}</p>
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">{paymentMethods.map(method => <button key={method.id} onClick={() => setSelectedPaymentMethod(method.id as PaymentMethod)} className={`flex flex-col items-center justify-center text-center space-y-1 p-2 rounded-lg border-2 transition-all h-20 ${selectedPaymentMethod === method.id ? 'border-[#c6e911] bg-[#c6e911]/10' : 'border-slate-300 bg-white hover:border-slate-400'}`}>{method.icon}<span className="text-xs font-medium">{method.label}</span></button>)}</div>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">{paymentMethods.map(method => <button key={method.id} onClick={() => setSelectedPaymentMethod(method.id as CustomerPaymentMethod)} className={`flex flex-col items-center justify-center text-center space-y-1 p-2 rounded-lg border-2 transition-all h-20 ${selectedPaymentMethod === method.id ? 'border-[#c6e911] bg-[#c6e911]/10' : 'border-slate-300 bg-white hover:border-slate-400'}`}>{method.icon}<span className="text-xs font-medium">{method.label}</span></button>)}</div>
                             </div>
                             <button onClick={mode === 'new_sale' ? handleCheckout : handleRecordPayment} disabled={(mode === 'new_sale' && (cart.length === 0 || !selectedPaymentMethod || !selectedContact)) || (mode === 'payment' && (!paymentAmount || parseFloat(paymentAmount) <= 0 || !selectedPaymentMethod))} className="w-full text-center px-4 py-3 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">{t('cashRegister.checkoutButton')}</button>
                         </div>
@@ -296,7 +368,7 @@ const Caisse: React.FC<CaisseProps> = (props) => {
                     )}
                 </div>
             </div>
-            {isClientModalOpen && <ClientSelectionModal isOpen={isClientModalOpen} onClose={() => setIsClientModalOpen(false)} clients={contacts} onClientSelect={handleClientSelected} onClientCreate={handleClientSelected} />}
+            {isClientModalOpen && <ClientSelectionModal isOpen={isClientModalOpen} onClose={() => setIsClientModalOpen(false)} clients={contacts} onClientSelect={handleClientSelected} onClientCreate={handleCreateClient} />}
             {isOrderSelectionModalOpen && <OrderSelectionModal isOpen={isOrderSelectionModalOpen} onClose={() => setIsOrderSelectionModalOpen(false)} orders={orders} contacts={contacts} onOrderSelect={handleOrderSelected} />}
              {configuringProduct && (
                 <PriceCalculatorModal
