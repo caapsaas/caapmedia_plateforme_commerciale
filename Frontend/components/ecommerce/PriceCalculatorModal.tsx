@@ -28,22 +28,22 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
         if (product?.configurableOptions) {
             const defaults: Partial<ProductOptions> = {};
             const config = product.configurableOptions;
-            if (config.formats?.[0]) defaults.format = config.formats[0].name;
-            if (config.grammages?.[0]) defaults.grammage = config.grammages[0].name;
-            if (config.printSides?.[0]) defaults.printSide = config.printSides[0].name;
-            if (config.laminations?.[0]) defaults.lamination = config.laminations[0].name;
-            if (config.sizes?.[0]) defaults.size = config.sizes[0].name;
-            if (config.colors?.[0]) defaults.color = config.colors[0].name;
-            if (config.materials?.[0]) defaults.material = config.materials[0].name;
-            if (config.dimensions?.[0]) defaults.dimension = config.dimensions[0].name;
-            if (config.bindings?.[0]) defaults.binding = config.bindings[0].name;
-            if (config.foldings?.[0]) defaults.folding = config.foldings[0].name;
-            if (config.corners?.[0]) defaults.corner = config.corners[0].name;
-            if (config.eyelets?.[0]) defaults.eyelet = config.eyelets[0].name;
-            if (config.pages?.[0]) defaults.page = config.pages[0].name;
-            if (config.handles?.[0]) defaults.handle = config.handles[0].name;
-            if (config.stub?.[0]) defaults.stub = config.stub[0].name;
-            if (config.numbering?.[0]) defaults.numbering = config.numbering[0].name;
+            if (config.FORMATS?.[0]) defaults.format = config.FORMATS[0].optionName;
+            if (config.GRAMMAGES?.[0]) defaults.grammage = config.GRAMMAGES[0].optionName;
+            if (config.PRINTSIDES?.[0]) defaults.printSide = config.PRINTSIDES[0].optionName;
+            if (config.LAMINATIONS?.[0]) defaults.lamination = config.LAMINATIONS[0].optionName;
+            if (config.SIZES?.[0]) defaults.size = config.SIZES[0].optionName;
+            if (config.COLORS?.[0]) defaults.color = config.COLORS[0].optionName;
+            if (config.MATERIALS?.[0]) defaults.material = config.MATERIALS[0].optionName;
+            if (config.DIMENSIONS?.[0]) defaults.dimension = config.DIMENSIONS[0].optionName;
+            if (config.BINDINGS?.[0]) defaults.binding = config.BINDINGS[0].optionName;
+            if (config.FOLDINGS?.[0]) defaults.folding = config.FOLDINGS[0].optionName;
+            if (config.CORNERS?.[0]) defaults.corner = config.CORNERS[0].optionName;
+            if (config.EYELETS?.[0]) defaults.eyelet = config.EYELETS[0].optionName;
+            if (config.PAGES?.[0]) defaults.page = config.PAGES[0].optionName;
+            if (config.HANDLES?.[0]) defaults.handle = config.HANDLES[0].optionName;
+            if (config.STUB?.[0]) defaults.stub = config.STUB[0].optionName;
+            if (config.NUMBERING?.[0]) defaults.numbering = config.NUMBERING[0].optionName;
             
             setOptions(defaults);
             setQuantity(100);
@@ -109,7 +109,7 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
     const hasImages = product.productImages && product.productImages.length > 0;
     const activeImageUrl = hasImages && product.productImages ? getImageUrl(product.productImages[activeImageIndex].imageUrl) : 'https://via.placeholder.com/400x300?text=Image+Indisponible';
 
-    const renderSelect = (name: keyof ProductOptions, labelKey: string, items: {name: string}[]) => (
+    const renderSelect = (name: keyof ProductOptions, labelKey: string, items: {optionName: string}[]) => (
         <div key={name}>
             <label htmlFor={name} className="block text-sm font-medium text-slate-700">{t(labelKey)}</label>
             <select
@@ -119,7 +119,7 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
                 onChange={handleOptionChange}
                 className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
             >
-                {items.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}
+                {items.map(item => <option key={item.optionName} value={item.optionName}>{item.optionName}</option>)}
             </select>
         </div>
     );
@@ -129,7 +129,7 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
             <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
-                    <h3 className="text-xl font-bold text-slate-800">{product.name}</h3>
+                    <h3 className="text-xl font-bold text-slate-800">{product.productName}</h3>
                     <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
@@ -141,7 +141,7 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
                         {/* Image Column */}
                         <div>
                              <div className="w-full aspect-[4/3] rounded-lg overflow-hidden bg-slate-100 mb-2">
-                                <img src={activeImageUrl} alt={product.name} className="w-full h-full object-cover" />
+                                <img src={activeImageUrl} alt={product.productName} className="w-full h-full object-cover" />
                             </div>
                             {hasImages && product.productImages && product.productImages.length > 1 && (
                                 <div className="grid grid-cols-5 gap-2">
@@ -164,22 +164,22 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
                              <div>
                                 <h4 className="text-lg font-semibold text-slate-800 mb-3 border-b pb-2">{t('calculator.title')}</h4>
                                 <div className="space-y-4">
-                                    {config?.formats && renderSelect('format', 'calculator.format', config.formats)}
-                                    {config?.grammages && renderSelect('grammage', 'calculator.grammage', config.grammages)}
-                                    {config?.printSides && renderSelect('printSide', 'calculator.printSide', config.printSides)}
-                                    {config?.laminations && renderSelect('lamination', 'calculator.lamination', config.laminations)}
-                                    {config?.sizes && renderSelect('size', 'calculator.size', config.sizes)}
-                                    {config?.colors && renderSelect('color', 'calculator.color', config.colors)}
-                                    {config?.materials && renderSelect('material', 'calculator.material', config.materials)}
-                                    {config?.dimensions && renderSelect('dimension', 'calculator.dimension', config.dimensions)}
-                                    {config?.bindings && renderSelect('binding', 'calculator.binding', config.bindings)}
-                                    {config?.foldings && renderSelect('folding', 'calculator.folding', config.foldings)}
-                                    {config?.corners && renderSelect('corner', 'calculator.corners', config.corners)}
-                                    {config?.eyelets && renderSelect('eyelet', 'calculator.eyelets', config.eyelets)}
-                                    {config?.pages && renderSelect('page', 'calculator.pages', config.pages)}
-                                    {config?.handles && renderSelect('handle', 'calculator.handles', config.handles)}
-                                    {config?.stub && renderSelect('stub', 'calculator.stub', config.stub)}
-                                    {config?.numbering && renderSelect('numbering', 'calculator.numbering', config.numbering)}
+                                    {config?.FORMATS && renderSelect('format', 'calculator.format', config.FORMATS)}
+                                    {config?.GRAMMAGES && renderSelect('grammage', 'calculator.grammage', config.GRAMMAGES)}
+                                    {config?.PRINTSIDES && renderSelect('printSide', 'calculator.printSide', config.PRINTSIDES)}
+                                    {config?.LAMINATIONS && renderSelect('lamination', 'calculator.lamination', config.LAMINATIONS)}
+                                    {config?.SIZES && renderSelect('size', 'calculator.size', config.SIZES)}
+                                    {config?.COLORS && renderSelect('color', 'calculator.color', config.COLORS)}
+                                    {config?.MATERIALS && renderSelect('material', 'calculator.material', config.MATERIALS)}
+                                    {config?.DIMENSIONS && renderSelect('dimension', 'calculator.dimension', config.DIMENSIONS)}
+                                    {config?.BINDINGS && renderSelect('binding', 'calculator.binding', config.BINDINGS)}
+                                    {config?.FOLDINGS && renderSelect('folding', 'calculator.folding', config.FOLDINGS)}
+                                    {config?.CORNERS && renderSelect('corner', 'calculator.corners', config.CORNERS)}
+                                    {config?.EYELETS && renderSelect('eyelet', 'calculator.eyelets', config.EYELETS)}
+                                    {config?.PAGES && renderSelect('page', 'calculator.pages', config.PAGES)}
+                                    {config?.HANDLES && renderSelect('handle', 'calculator.handles', config.HANDLES)}
+                                    {config?.STUB && renderSelect('stub', 'calculator.stub', config.STUB)}
+                                    {config?.NUMBERING && renderSelect('numbering', 'calculator.numbering', config.NUMBERING)}
                                 </div>
                             </div>
                             <div>

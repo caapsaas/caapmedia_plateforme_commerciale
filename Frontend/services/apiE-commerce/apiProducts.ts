@@ -12,7 +12,6 @@ export type UpdateProductSellingAndPriceData = {
  */
 export const getProducts = async () => {
     const { data } = await api.get('/products/get-all-products');
-    console.log(data);
     return data;
 };
 

@@ -34,7 +34,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
         <div className="bg-white rounded-xl shadow-md overflow-hidden group transition-all duration-300 hover:shadow-xl flex flex-col">
             <div className="relative">
                 <div className="relative w-full aspect-[4/3] bg-gray-200">
-                    <img src={activeImageUrl} alt={product.name} className="w-full h-full object-cover" />
+                    <img src={activeImageUrl} alt={product.productName} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     
                     {/* Overlay for icons */}
@@ -82,7 +82,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
 
             <div className="p-4 flex flex-col flex-grow justify-between">
                 <div>
-                    <h3 className="font-bold text-base text-slate-800 truncate" title={product.name}>{product.name}</h3>
+                    <h3 className="font-bold text-base text-slate-800 truncate" title={product.productName}>{product.productName}</h3>
                     <p className="text-sm text-slate-500 mt-1">{product.category}</p>
                 </div>
                 <div className="flex justify-between items-center mt-4">

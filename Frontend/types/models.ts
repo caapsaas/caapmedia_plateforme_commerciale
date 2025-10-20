@@ -78,27 +78,27 @@ export interface User {
 }
 
 export interface ConfigurableOptionItem {
-    name: string;
+    optionName: string;
     multiplier: number; // Price multiplier
 }
 
 export interface ConfigurableOptions {
-    formats?: ConfigurableOptionItem[];
-    grammages?: ConfigurableOptionItem[];
-    printSides?: ConfigurableOptionItem[];
-    laminations?: ConfigurableOptionItem[];
-    sizes?: ConfigurableOptionItem[];
-    colors?: ConfigurableOptionItem[];
-    materials?: ConfigurableOptionItem[];
-    dimensions?: ConfigurableOptionItem[];
-    bindings?: ConfigurableOptionItem[];
-    foldings?: ConfigurableOptionItem[];
-    corners?: ConfigurableOptionItem[];
-    eyelets?: ConfigurableOptionItem[];
-    pages?: ConfigurableOptionItem[];
-    handles?: ConfigurableOptionItem[];
-    stub?: ConfigurableOptionItem[];
-    numbering?: ConfigurableOptionItem[];
+    FORMATS?: ConfigurableOptionItem[];
+    GRAMMAGES?: ConfigurableOptionItem[];
+    PRINTSIDES?: ConfigurableOptionItem[];
+    LAMINATIONS?: ConfigurableOptionItem[];
+    SIZES?: ConfigurableOptionItem[];
+    COLORS?: ConfigurableOptionItem[];
+    MATERIALS?: ConfigurableOptionItem[];
+    DIMENSIONS?: ConfigurableOptionItem[];
+    BINDINGS?: ConfigurableOptionItem[];
+    FOLDINGS?: ConfigurableOptionItem[];
+    CORNERS?: ConfigurableOptionItem[];
+    EYELETS?: ConfigurableOptionItem[];
+    PAGES?: ConfigurableOptionItem[];
+    HANDLES?: ConfigurableOptionItem[];
+    STUB?: ConfigurableOptionItem[];
+    NUMBERING?: ConfigurableOptionItem[];
 }
 
 export interface ProductImage {
