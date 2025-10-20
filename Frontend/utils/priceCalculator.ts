@@ -22,28 +22,28 @@ export function calculatePrice(
 
     if (config) {
         const allOptions = [
-            { key: 'format', items: config.formats },
-            { key: 'grammage', items: config.grammages },
-            { key: 'printSide', items: config.printSides },
-            { key: 'lamination', items: config.laminations },
-            { key: 'size', items: config.sizes },
-            { key: 'color', items: config.colors },
-            { key: 'material', items: config.materials },
-            { key: 'dimension', items: config.dimensions },
-            { key: 'binding', items: config.bindings },
-            { key: 'folding', items: config.foldings },
-            { key: 'corner', items: config.corners },
-            { key: 'eyelet', items: config.eyelets },
-            { key: 'page', items: config.pages },
-            { key: 'handle', items: config.handles },
-            { key: 'stub', items: config.stub },
-            { key: 'numbering', items: config.numbering },
+            { key: 'format', items: config.FORMATS },
+            { key: 'grammage', items: config.GRAMMAGES },
+            { key: 'printSide', items: config.PRINTSIDES },
+            { key: 'lamination', items: config.LAMINATIONS },
+            { key: 'size', items: config.SIZES },
+            { key: 'color', items: config.COLORS },
+            { key: 'material', items: config.MATERIALS },
+            { key: 'dimension', items: config.DIMENSIONS },
+            { key: 'binding', items: config.BINDINGS },
+            { key: 'folding', items: config.FOLDINGS },
+            { key: 'corner', items: config.CORNERS },
+            { key: 'eyelet', items: config.EYELETS },
+            { key: 'page', items: config.PAGES },
+            { key: 'handle', items: config.HANDLES },
+            { key: 'stub', items: config.STUB },
+            { key: 'numbering', items: config.NUMBERING },
         ];
 
         for (const opt of allOptions) {
             const selectedValue = (options as any)[opt.key];
             if (selectedValue && opt.items) {
-                const multiplier = opt.items.find(i => i.name === selectedValue)?.multiplier || 1;
+                const multiplier = opt.items.find(i => i.optionName === selectedValue)?.multiplier || 1;
                 basePrice *= multiplier;
             }
         }

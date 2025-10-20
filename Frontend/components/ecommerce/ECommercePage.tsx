@@ -43,8 +43,6 @@ const ECommercePage: React.FC = () => {
         queryFn: getProducts,
     });
 
-    console.log(allProducts);
-
     const { mutate: placeOrderMutation } = useMutation({
         mutationFn: createOrder,
         onSuccess: () => {
@@ -221,9 +219,6 @@ const ECommercePage: React.FC = () => {
         setSelectedSubcategory('');
     };
 
-    if (isLoadingProducts) {
-        return <div>Chargement des produits...</div>;
-    }
 
     return (
         <div className="bg-slate-50 min-h-screen flex flex-col">
@@ -251,6 +246,12 @@ const ECommercePage: React.FC = () => {
                     onSelectMainCategory={handleSelectMainCategory}
                     onSelectSubcategory={handleSelectSubcategory}
                 />
+
+                {isLoadingProducts && (
+                    <div className="flex justify-center items-center h-full">
+                        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-slate-900">Chargement des produits...</div>
+                    </div>
+                )}
 
                 {/* Products Grid */}
                 <div id="products-grid" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mt-12">

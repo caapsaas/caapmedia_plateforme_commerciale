@@ -16,20 +16,32 @@ export class ProductsService {
   // Cette fonction convertit ces champs en nombres ou chaînes pour que le JSON renvoyé soit plus simple à manipuler côté client
   private mapDecimals(product: any) {
     if (!product) return null;
+
+    // Regrouper configurableOptions par optionType
+    const groupedOptions = product.configurableOptions?.reduce((acc: any, co: any) => {
+      const type = co.optionType || 'Autre';
+      if (!acc[type]) acc[type] = [];
+
+      if (co.item) {
+        acc[type].push({
+          ...co.item,
+          multiplier: co.item.multiplier?.toString(),
+        });
+      }
+
+      return acc;
+    }, {}) || {};
+
     return {
       ...product,
-      productImages: product.productImages, // Ajout explicite pour la clarté
+      productImages: product.productImages,
       price: product.price?.toString(),
       sellingPrice: product.sellingPrice?.toString(),
       stock: product.stock?.toString(),
-      configurableOptions: product.configurableOptions?.map((co: any) => ({
-        ...co,
-        item: co.item
-          ? { ...co.item, multiplier: co.item.multiplier?.toString() }
-          : null,
-      })),
+      configurableOptions: groupedOptions,
     };
   }
+
 
   /**
    * 
