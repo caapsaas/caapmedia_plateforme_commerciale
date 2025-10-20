@@ -82,6 +82,7 @@ export class AuthController {
     return this.authService.register(dto.userName, dto.email, dto.password, dto.userRole, dto.subsidiaryId);
   }
 
+
   @Post('login')
   async login(@Body() dto: LoginDto) {
     return this.authService.login(dto.email, dto.password);
@@ -91,6 +92,15 @@ export class AuthController {
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto.email);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('Userprofile')
+  async getProfileUser(@Request() req) {
+    // req.user contient le payload du token JWT, qui inclut l'ID (sub), l'email, etc.
+    // Nous passons cet objet directement à notre nouvelle méthode de service.
+    return this.authService.getProfileUser(req.user);
+  }
+  
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @SetMetadata('roles', [UserRole.ADMIN])

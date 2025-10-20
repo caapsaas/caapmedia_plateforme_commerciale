@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ContactsService } from './contacts.service';
 import { ContactsController } from './contacts.controller';
 import { JwtModule } from '@nestjs/jwt';
-import { ContactJwtStrategy } from 'src/common/auth/jwt/contact-jwt.strategy';
+import { ContactJwtStrategy } from 'src/common/auth/strategies/contact-jwt.strategy';
 
 @Module({
   imports: [

@@ -290,6 +290,14 @@ export class AuthService {
     return { message: 'Logged out successfully' };
   }
 
+  async getProfileUser(user: { id: string; email: string; role: UserRole; subsidiaryId: string }) {
+    // Les informations de l'utilisateur sont déjà dans le payload du token JWT.
+    // On peut les retourner directement.
+    // Si on voulait des informations plus à jour, on pourrait faire une requête à la base de données.
+    this.logger.log(`Profile retrieved for user ${user.email}`, 'AuthService');
+    return user;
+  }
+
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -317,4 +325,17 @@ export class AuthService {
     this.logger.log(`Profile retrieved for user ${user.email}`, 'AuthService');
     return user;
   }
+
+  // ✅ C'est la méthode à ajouter pour la JwtStrategy
+  async findOneById(id: string) {
+    // Cette méthode est utilisée par la stratégie JWT pour valider le token
+    // et attacher l'utilisateur à la requête.
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: { subsidiary: true }, // Inclure la filiale pour avoir toutes les infos
+    });
+    // La stratégie se chargera de retirer le mot de passe.
+    return user;
+  }
+  
 }
