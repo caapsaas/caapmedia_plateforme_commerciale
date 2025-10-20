@@ -109,7 +109,7 @@ export interface ProductImage {
 
 export interface Product {
   id: string;
-  name: string;
+  productName: string;
   mainCategory: string;
   category: string; // This is the subcategory
   description: string;

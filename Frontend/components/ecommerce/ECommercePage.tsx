@@ -38,10 +38,12 @@ const ECommercePage: React.FC = () => {
     const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
 
     // --- TanStack Query ---
-    const { data: allProducts = [], isLoading: isLoadingProducts } = useQuery({
+    const { data: allProducts = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
         queryKey: ['products'],
         queryFn: getProducts,
     });
+
+    console.log(allProducts);
 
     const { mutate: placeOrderMutation } = useMutation({
         mutationFn: createOrder,
@@ -100,7 +102,7 @@ const ECommercePage: React.FC = () => {
 
     const filteredProducts = useMemo(() => {
         return products.filter((product: Product) => {
-            const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch = product.productName.toLowerCase().includes(searchTerm.toLowerCase());
             if (!matchesSearch) return false;
 
             if (selectedSubcategory) {
