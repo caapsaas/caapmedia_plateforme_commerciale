@@ -9,7 +9,7 @@ import ECommerceFooter from '../ecommerce/ECommerceFooter';
 import { useAppContext } from '../../context/AppContext';
 import { useNavigate, Navigate, Link } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getOrders } from '../../services/apiE-commerce/apiOrders';
+import { getOrdersByCustomer } from '../../services/apiE-commerce/apiOrders';
 import { api } from '../../services/api';
 
 type AccountView = 'profile' | 'orders' | 'security' | 'payment' | 'reviews';
@@ -21,25 +21,25 @@ const CustomerAccountPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [activeView, setActiveView] = useState<AccountView>('profile');
 
-  const { currentCustomer: customer } = state;
+  const { currentCustomer: contact } = state;
 
   // Récupérer les commandes avec TanStack Query
   const { data: allOrders, isLoading: isLoadingOrders } = useQuery<Order[]>({
     queryKey: ['orders'],
-    queryFn: () => getOrders(),
+    queryFn: () => getOrdersByCustomer(contact?.id || ''),
   });
 
   const orders = useMemo(() => {
-    if (!customer || !allOrders) return [];
-    return allOrders.filter(o => o.customerId === customer.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [allOrders, customer]);
+    if (!contact || !allOrders) return [];
+    return [...allOrders].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [allOrders]);
 
   const { mutate: onUpdateClient } = useMutation({
     mutationFn: (clientData: Contact) => api.patch(`/contacts/${clientData.id}`, clientData),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contacts'] }), // Invalider pour rafraîchir si nécessaire
   });
 
-  if (!customer) {
+  if (!contact) {
     // Si aucun client n'est connecté, redirigez vers la page d'accueil.
     // La protection de route dans router.tsx est une meilleure pratique, mais ceci est une sécurité.
     return <Navigate to="/" />;
@@ -52,7 +52,7 @@ const CustomerAccountPage: React.FC = () => {
   const renderView = () => {
     switch(activeView) {
       case 'profile':
-        return <ProfileView customer={customer} onUpdateClient={onUpdateClient} />;
+        return <ProfileView customer={contact} onUpdateClient={onUpdateClient} />;
       case 'orders':
         return <OrderHistoryView orders={orders} />;
       case 'security':
