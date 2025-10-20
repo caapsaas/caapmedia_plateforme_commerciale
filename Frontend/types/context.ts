@@ -36,6 +36,7 @@ export interface AppState {
     isSidebarOpen: boolean;
     isSidebarCollapsed: boolean;
     showIdleModal: boolean;
+    currentView: View;
 }
 
 export type AppAction =

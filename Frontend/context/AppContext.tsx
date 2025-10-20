@@ -11,6 +11,7 @@ const initialState: AppState = {
     isSidebarOpen: false,
     isSidebarCollapsed: window.innerWidth < 768,
     showIdleModal: false,
+    currentView: View.ANALYTICS,
 };
 
 const appReducer = (state: AppState, action: AppAction): AppState => {

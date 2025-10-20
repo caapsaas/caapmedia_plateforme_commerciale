@@ -17,7 +17,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProducts } from '../../services/apiE-commerce/apiProducts';
 import { createOrder } from '../../services/apiE-commerce/apiOrders';
 import { createQuoteRequest } from '../../services/apiCrm/apiLeads';
-import { loginContact, registerContact, ContactRegisterData } from '../../services/apiCrm/apiContacts';
+import { loginContact, registerContact, ContactRegisterData } from '../../services/apiCrm/apicontacts';
 
 // Le type de données reçu du formulaire d'inscription, correspondant à celui de AuthModal
 type SignupFormData = Omit<ContactRegisterData, 'subsidiaryId' | 'since' | 'isVerified'>;

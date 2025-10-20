@@ -19,7 +19,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const fetchUser = async () => {
       if (token) {
         try {
-          const response = await api.get('/auth/profile');
+          const response = await api.get('/auth/Userprofile');
           if (response.data) {
             setUser(response.data);
           } else {
