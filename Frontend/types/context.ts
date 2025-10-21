@@ -35,6 +35,7 @@ export interface AppState {
     currentCustomer: Contact | null;
     isSidebarOpen: boolean;
     isSidebarCollapsed: boolean;
+    isRestored: boolean;
     showIdleModal: boolean;
     currentView: View;
     products?: Product[];

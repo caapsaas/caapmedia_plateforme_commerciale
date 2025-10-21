@@ -13,7 +13,7 @@ import IconPrint from '../components/icons/IconPrint';
 import IconExport from '../components/icons/IconExport';
 import IconPdf from '../components/icons/IconPdf';
 import { getContacts, saveContact, deleteContact } from '../services/apiCrm/apiCrm';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from '../context/AppContext'; // Assurez-vous que getContacts est bien exporté depuis apiCrm
 
 const Clients: React.FC = () => {
     const { t } = useI18n();
@@ -29,7 +29,7 @@ const Clients: React.FC = () => {
     // --- Data Fetching ---
     const { data: contacts = [], isLoading } = useQuery({
         queryKey: queryKey,
-        queryFn: () => getContacts(subsidiary!.id)
+        queryFn: () => getContacts(subsidiary!.id) // L'appel ici est correct
     });
 
     // --- Mutations ---

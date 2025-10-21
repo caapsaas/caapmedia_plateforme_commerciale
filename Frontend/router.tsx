@@ -1,6 +1,6 @@
 import { createRouter, createRoute, createRootRoute, Outlet, redirect, createRootRouteWithContext } from '@tanstack/react-router';
 import App from './App'; // Nous allons refactorer App.tsx pour qu'il devienne notre layout
-import { useAppContext } from './context/AppContext';
+import { AppProvider, useAppContext } from './context/AppContext';
 import { useAuth } from './context/AuthContext'; // Importez le hook d'authentification
 import LoginPage from './Pages/LoginPage';
 import ECommercePage from './components/ecommerce/ECommercePage';
@@ -25,7 +25,8 @@ import Equipements from './Pages/Equipements';
 
 // 1. Utiliser createRootRouteWithContext pour typer le contexte du routeur
 const rootRoute = createRootRouteWithContext<{
-  auth: ReturnType<typeof useAuth>;
+  auth: ReturnType<typeof useAuth>
+  app: ReturnType<typeof useAppContext>
 }>()({
   // Le reste de la configuration de la route racine
   component: App, // App.tsx devient le composant de layout
@@ -58,21 +59,12 @@ const customerAccountRoute = createRoute({
   // TODO: Ajouter une logique de redirection si le client n'est pas connecté
 });
 
-// Wrapper de layout pour le tableau de bord qui gère l'état de chargement de la filiale
-const DashboardLayout = () => {
-  const { state } = useAppContext();
-  if (!state.currentSubsidiary) {
-    // Idéalement, ceci pourrait être un composant de chargement plus sophistiqué
-    return <div className="p-4">Chargement de la filiale...</div>;
-  }
-  return <Outlet />;
-};
-
 // 4. Route "layout" pour le tableau de bord
 const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/dashboard',
-  component: DashboardLayout, // Ce composant rendra les routes enfants après vérification
+  // Le composant est maintenant un simple Outlet, car le chargement est géré par `loader`.
+  component: Outlet, 
   // ✅ Étape 2 : Protéger la route avec beforeLoad
   beforeLoad: ({ context, location }) => {
     // Si l'utilisateur n'est PAS authentifié (pas de token), on le redirige
@@ -86,6 +78,26 @@ const dashboardRoute = createRoute({
       });
     }
   },
+  // ✅ NOUVEAU : Utiliser un `loader` pour attendre les données essentielles.
+  // Cette fonction s'exécutera après `beforeLoad` et avant le rendu du composant.
+  // Elle mettra en pause le rendu jusqu'à ce que la promesse soit résolue.
+  loader: async ({ context }) => {
+    // On attend que l'état soit restauré depuis le localStorage.
+    // Si ce n'est pas déjà fait, on attend que ça le soit.
+    if (!context.app.state.isRestored) {
+      await new Promise<void>(resolve => {
+        const check = () => {
+          if (context.app.state.isRestored) {
+            resolve();
+          } else {
+            setTimeout(check, 10); // Vérifie toutes les 10ms
+          }
+        };
+        check();
+      });
+    }
+    return {};
+  }
 });
 
 // 5. Routes enfants du tableau de bord
@@ -157,11 +169,12 @@ declare module '@tanstack/react-router' {
 }
 
 // 8. Création du routeur via une fonction pour injection de dépendance
-export function createMyRouter(auth: ReturnType<typeof useAuth>) {
+export function createMyRouter(auth: ReturnType<typeof useAuth>, app: ReturnType<typeof useAppContext>) {
   router = createRouter({
     routeTree,
     context: {
       auth, // Le contexte est maintenant directement fourni à la création
+      app,
     },
   });
   return router;
