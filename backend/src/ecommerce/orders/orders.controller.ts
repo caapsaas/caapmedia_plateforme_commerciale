@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, Query, Req, UploadedFiles, U
 import { OrdersService } from './orders.service';
 import { ContactJwtAuthGuard } from 'src/common/auth/jwt/contact-jwt.guard';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
-import { CreateOrderDto, CreateOrderBySalesRepDto, RecordPaymentDto, UpdateProductionStatusDto } from './dto/create-order.dto';
+import { CreateOrderDto, CreateOrderBySalesRepDto, RecordPaymentDto, UpdateOrderStatusDto } from './dto/create-order.dto';
 import { FindAllOrdersDto } from './dto/find-all-orders.dto';
 import { SetMetadata } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
@@ -118,9 +118,9 @@ export class OrdersController {
     @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
     updateProductionStatus(
         @Param('id') id: string,
-        @Body() updateProductionStatusDto: UpdateProductionStatusDto,
+        @Body() updateProductionStatusDto: UpdateOrderStatusDto,
         @Req() req) {
-        return this.ordersService.updateProductionStatus(id, updateProductionStatusDto, req.user);
+        return this.ordersService.updateOrderStatus(id, updateProductionStatusDto, req.user);
     }
 
     /**

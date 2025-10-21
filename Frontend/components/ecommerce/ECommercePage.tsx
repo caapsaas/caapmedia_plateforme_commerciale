@@ -257,7 +257,7 @@ const ECommercePage: React.FC = () => {
 
                 {isLoadingProducts && (
                     <div className="flex justify-center items-center h-full">
-                        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-slate-900">Chargement des produits...</div>
+                        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-slate-900"></div>
                     </div>
                 )}
 

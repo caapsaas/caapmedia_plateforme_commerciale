@@ -50,13 +50,13 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
                     {/* Header */}
                     <div className="flex justify-between items-start mb-8">
                         <div>
-                            <LogoComponent className="h-20 w-auto" />
+                            {LogoComponent && <LogoComponent className="h-20 w-auto" />}
                             <p className="font-bold text-lg mt-2">{subsidiary.name}</p>
                         </div>
                         <div className="text-right">
                             <h4 className="font-bold text-lg">{t('bonDeLivraison.title')}</h4>
                             <p className="text-slate-700">{t('bonDeLivraison.orderNum')} <span className="font-semibold">{order.id}</span></p>
-                            <p className="text-slate-600">{t('bonDeLivraison.date')}: {new Date(order.date).toLocaleDateString(language)}</p>
+                            <p className="text-slate-600">{t('bonDeLivraison.date')}: {new Date(order.orderDate).toLocaleDateString(language)}</p>
                         </div>
                     </div>
                     
@@ -79,12 +79,12 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
                                 </tr>
                             </thead>
                             <tbody>
-                                {order.items.map((item, index) => (
+                                {order.orderItems.map((item, index) => (
                                     <tr key={index} className="bg-white border-b">
-                                        <td className="px-6 py-4 font-medium text-slate-900">{item.product.name}</td>
+                                        <td className="px-6 py-4 font-medium text-slate-900">{item.product.productName}</td>
                                         <td className="px-6 py-4 text-center">{item.quantity}</td>
-                                        <td className="px-6 py-4 text-right">{formatCurrency(item.price)}</td>
-                                        <td className="px-6 py-4 text-right font-semibold">{formatCurrency(item.price * item.quantity)}</td>
+                                        <td className="px-6 py-4 text-right">{formatCurrency(item.unitPrice)}</td>
+                                        <td className="px-6 py-4 text-right font-semibold">{formatCurrency(item.unitPrice * item.quantity)}</td>
                                     </tr>
                                 ))}
                             </tbody>
