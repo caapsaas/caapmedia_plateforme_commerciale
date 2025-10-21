@@ -3,7 +3,11 @@ import { Contact, Opportunity, Interaction, CrmTask, Lead, Account, Contract, Op
 
 // Fonctions de lecture (GET)
 export const getContacts = (subsidiaryId: string): Promise<Contact[]> => api.get(`/crm/contacts?subsidiaryId=${subsidiaryId}`).then(res => res.data);
-export const getOpportunities = (subsidiaryId: string): Promise<Opportunity[]> => api.get(`/crm/opportunities?subsidiaryId=${subsidiaryId}`).then(res => res.data);
+export const getOpportunities = (subsidiaryId: string): Promise<Opportunity[]> => api.get(`/crm/opportunities?subsidiaryId=${subsidiaryId}`)
+    .then(res => res.data)
+    .catch(error => {
+        throw error; // Re-throw to allow components to handle the error
+    });
 export const getLeads = (subsidiaryId: string): Promise<Lead[]> => api.get(`/crm/leads?subsidiaryId=${subsidiaryId}`).then(res => res.data);
 export const getAccounts = (subsidiaryId: string): Promise<Account[]> => api.get(`/crm/accounts?subsidiaryId=${subsidiaryId}`).then(res => res.data);
 export const getContracts = (subsidiaryId: string): Promise<Contract[]> => api.get(`/crm/contracts?subsidiaryId=${subsidiaryId}`).then(res => res.data);
@@ -23,17 +27,15 @@ export const deleteContact = (id: string): Promise<void> => api.delete(`/crm/con
 
 // --- Lead ---
 export const saveLead = (data: Omit<Lead, 'id' | 'subsidiaryId'> & { id?: string }): Promise<Lead> => {
-    const formData = new FormData();
-    Object.keys(data).forEach(key => {
-        const value = (data as any)[key];
-        if (value !== undefined && value !== null) {
-            formData.append(key, value);
-        }
-    });
-
+    // Renommer 'name' en 'leadName' pour correspondre au backend
+    const { name, ...rest } = data;
+    const payload = { 
+        ...rest,
+        leadName: name 
+    };
     return data.id
-        ? api.put(`/crm/leads/${data.id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(res => res.data)
-        : api.post('/crm/leads', formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(res => res.data);
+        ? api.patch(`/crm/leads/${data.id}`, payload).then(res => res.data) // Utiliser PATCH pour la mise à jour partielle
+        : api.post('/crm/leads', payload).then(res => res.data);
 };
 export const deleteLead = (id: string): Promise<void> => api.delete(`/crm/leads/${id}`);
 export const convertLead = (leadId: string): Promise<Contact> => api.post(`/crm/leads/${leadId}/convert`).then(res => res.data);

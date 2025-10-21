@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { join } from 'path';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   // Crée une instance avec le logger activé
@@ -12,6 +12,13 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true,
   });
+
+  // Active la validation globale des DTOs
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true, // Supprime les propriétés non définies dans le DTO
+    forbidNonWhitelisted: true, // Lance une erreur si des propriétés non autorisées sont présentes
+    transform: true, // Transforme automatiquement les payloads en instances de DTO
+  }));
   app.setGlobalPrefix('api-caapmedia');
   app.useStaticAssets(join(__dirname, '..', 'public'), {
     prefix: '/api-caapmedia',

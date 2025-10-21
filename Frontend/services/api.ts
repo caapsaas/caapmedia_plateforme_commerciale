@@ -17,6 +17,10 @@ api.interceptors.request.use(
     const token = localStorage.getItem('token');
     const contactToken = sessionStorage.getItem('contactToken');
 
+    //console.log("Token from localStorage:", token); // Ajout de ce log
+    //console.log("contactToken from sessionStorage:", contactToken); // Ajout de ce log
+    // Si un token existe, l'ajouter à l'en-tête 'Authorization'.
+
     
     // Si un token existe, l'ajouter à l'en-tête 'Authorization'.
     if (token) {
