@@ -5,10 +5,12 @@ import { useI18n } from '../i18n';
 import IconGlobe from '../components/icons/IconGlobe';
 import IconMenu from '../components/icons/IconMenu';
 import { useAppContext } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 
 const Header: React.FC = () => {
   const { t, language, setLanguage } = useI18n();
   const { state, dispatch } = useAppContext();
+  const { logout: authLogout } = useAuth();
   const { currentUser, currentSubsidiary } = state;
   const roles = Object.values(UserRole);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -16,7 +18,6 @@ const Header: React.FC = () => {
 
   if (!currentUser || !currentSubsidiary) return null;
   
-  const onLogout = () => dispatch({ type: 'LOGOUT' });
   const handleRoleChange = (role: UserRole) => dispatch({ type: 'CHANGE_ROLE', payload: role });
   const onMenuButtonClick = () => dispatch({ type: 'SET_SIDEBAR_OPEN', payload: true });
 
@@ -98,7 +99,7 @@ const Header: React.FC = () => {
               >
                 <button
                   onClick={() => {
-                    onLogout();
+                    authLogout();
                     setIsProfileMenuOpen(false);
                   }}
                   className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center space-x-2"

@@ -19,7 +19,7 @@ import NewOrder from '../../Pages/NewOrder';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getOrders, recordOrderPayment, updateProductionStatus, createOrderBySalesRep, validateOrderForProduction, FindAllOrdersDto } from '../../services/apiE-commerce/apiOrders';
 import { getProductsBySubsidiary } from '../../services/apiE-commerce/apiProducts';
-import { getContacts } from '../../services/apiCrm/apiContacts';
+import { getContacts } from '../../services/apiCrm/apicontacts';
 
 const initialFilterState: FindAllOrdersDto = { period: 'ALL_TIME' };
 
@@ -129,7 +129,7 @@ const Sales: React.FC = () => {
                 const { product, quantity, price } = item;
                 if (!product) return; // Safety check
                 if (!productStats[product.id]) {
-                    productStats[product.id] = { name: product.name, quantity: 0, revenue: 0 };
+                    productStats[product.id] = { name: product.productName, quantity: 0, revenue: 0 };
                 }
                 productStats[product.id].quantity += quantity;
                 productStats[product.id].revenue += price * quantity;
@@ -142,7 +142,7 @@ const Sales: React.FC = () => {
     }, [filteredOrders]);
 
     const clientOptions = useMemo(() => contacts.map(c => ({ value: c.id, label: `${c.contactName} (${c.company || 'N/A'})` })), [contacts]);
-    const productOptions = useMemo(() => products.map(p => ({ value: p.id, label: p.name })), [products]);
+    const productOptions = useMemo(() => products.map(p => ({ value: p.id, label: p.productName })), [products]);
     const orderStatusOptions = useMemo(() => Object.values(OrderStatus).map(s => ({ value: s, label: t(`order.status_${s}`) })), [t]);
     const paymentStatusOptions = useMemo(() => Object.values(PaymentStatus).map(s => ({ value: s, label: t(`order.paymentStatus_${s}`) })), [t]);
 

@@ -13,7 +13,7 @@ type AnalyticsView = 'general' | 'dashboard' | 'sales' | 'purchases' | 'banks' |
 
 const Analytics: React.FC = () => {
     const { state } = useAppContext();
-    const { currentSubsidiary, products, sales, orders, contacts, currentUser, purchaseOrders } = state;
+    const { currentSubsidiary, products = [], sales = [], orders = [], contacts = [], currentUser, purchaseOrders = [] } = state;
     const { t } = useI18n();
     const [activeTab, setActiveTab] = useState<AnalyticsView>('dashboard');
     const [selectedSubsidiaryId, setSelectedSubsidiaryId] = useState(currentSubsidiary?.id || '');
