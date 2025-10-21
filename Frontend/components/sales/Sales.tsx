@@ -17,9 +17,9 @@ import IconCheckCircle from '../icons/IconCheckCircle';
 import IconExclamationTriangle from '../icons/IconExclamationTriangle';
 import NewOrder from '../../Pages/NewOrder';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getOrders, recordOrderPayment, updateProductionStatus, createOrderBySalesRep, validateOrderForProduction, FindAllOrdersDto } from '../../services/apiE-commerce/apiOrders';
+import { getOrders, recordOrderPayment, updateProductionStatus, createOrderBySalesRep, validateOrderForProduction, FindAllOrdersDto, getTopSellingProducts } from '../../services/apiE-commerce/apiOrders';
 import { getProductsBySubsidiary } from '../../services/apiE-commerce/apiProducts';
-import { getContacts } from '../../services/apiCrm/apicontacts';
+import { getContacts } from '../../services/apiCrm/apiContacts';
 
 const initialFilterState: FindAllOrdersDto = { period: 'ALL_TIME' };
 
@@ -55,6 +55,12 @@ const Sales: React.FC = () => {
         enabled: !!subsidiary,
     });
 
+    const { data: topSellingProducts = [], isLoading: isLoadingTopSellingProducts } = useQuery<Product[]>({
+        queryKey: ['top-selling-products', subsidiary?.id],
+        queryFn: () => getTopSellingProducts(),
+        enabled: !!subsidiary,
+    });
+
     if (!subsidiary || !currentUser) {
         // This should ideally be handled by a protected route, but this is a safeguard.
         return <div>Chargement ou erreur d'authentification...</div>;
@@ -68,11 +74,6 @@ const Sales: React.FC = () => {
 
     const { mutate: updateOrderStatusMutate } = useMutation({
         mutationFn: (payload: { orderId: string; status: OrderStatus }) => updateProductionStatus(payload),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orders'] }),
-    });
-
-    const { mutate: validateOrderMutate } = useMutation({
-        mutationFn: (payload: { orderId: string }) => validateOrderForProduction(payload),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orders'] }),
     });
 
@@ -121,26 +122,6 @@ const Sales: React.FC = () => {
     };
 
 
-    const topSellingProducts = useMemo(() => {
-        const productStats: { [key: string]: { name: string; quantity: number; revenue: number } } = {};
-
-        filteredOrders.forEach(order => {
-            order.items.forEach(item => {
-                const { product, quantity, price } = item;
-                if (!product) return; // Safety check
-                if (!productStats[product.id]) {
-                    productStats[product.id] = { name: product.productName, quantity: 0, revenue: 0 };
-                }
-                productStats[product.id].quantity += quantity;
-                productStats[product.id].revenue += price * quantity;
-            });
-        });
-
-        return Object.values(productStats)
-            .sort((a, b) => b.revenue - a.revenue)
-            .slice(0, 10);
-    }, [filteredOrders]);
-
     const clientOptions = useMemo(() => contacts.map(c => ({ value: c.id, label: `${c.contactName} (${c.company || 'N/A'})` })), [contacts]);
     const productOptions = useMemo(() => products.map(p => ({ value: p.id, label: p.productName })), [products]);
     const orderStatusOptions = useMemo(() => Object.values(OrderStatus).map(s => ({ value: s, label: t(`order.status_${s}`) })), [t]);
@@ -171,17 +152,12 @@ const Sales: React.FC = () => {
         }
     };
 
-    const clientForInvoice = useMemo(() => {
-        if (!invoiceOrder) return null;
-        return contacts.find(c => c.id === invoiceOrder.customerId);
-    }, [invoiceOrder, contacts]);
-
     const TabButton: React.FC<{ view: 'history' | 'new'; label: string }> = ({ view, label }) => (
         <button
             onClick={() => setActiveTab(view)}
             className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#c6e911] ${activeTab === view
-                    ? 'bg-[#c6e911] text-slate-800 shadow'
-                    : 'bg-white text-slate-600 hover:bg-slate-100'
+                ? 'bg-[#c6e911] text-slate-800 shadow'
+                : 'bg-white text-slate-600 hover:bg-slate-100'
                 }`}
         >
             {label}
@@ -265,7 +241,7 @@ const Sales: React.FC = () => {
                                                     <tr key={order.id} className={`bg-white border-b hover:bg-slate-50 transition-colors ${isPendingValidation ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}>
                                                         <td className="px-6 py-4 font-semibold">{order.id}</td>
                                                         <td className="px-6 py-4">{order.customerName}</td>
-                                                        <td className="px-6 py-4">{order.date}</td>
+                                                        <td className="px-6 py-4">{new Date(order.orderDate).toLocaleDateString('fr-FR')}</td>
                                                         <td className="px-6 py-4 text-right">
                                                             <div className="font-bold">{formatCurrency(order.totalAmount)}</div>
                                                             <div className="text-xs text-slate-500">{t('invoice.tax')} ({(order.taxRateValue * 100).toFixed(2)}%): {formatCurrency(order.taxAmount)}</div>
@@ -298,7 +274,7 @@ const Sales: React.FC = () => {
                                                         </td>
                                                         <td className="px-6 py-4 text-center">
                                                             {order.status === OrderStatus.PENDING_VALIDATION ? (
-                                                                <button onClick={() => validateOrderMutate({ orderId: order.id })} className="flex items-center mx-auto space-x-2 px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-md hover:bg-green-600 transition-colors" title={t('sales.validateForProduction')}>
+                                                                <button onClick={() => updateOrderStatusMutate({ orderId: order.id, status: OrderStatus.IN_PRODUCTION })} className="flex items-center mx-auto space-x-2 px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-md hover:bg-green-600 transition-colors" title={t('sales.validateForProduction')}>
                                                                     <IconCheckCircle className="h-4 w-4" />
                                                                     <span>{t('sales.validateForProduction')}</span>
                                                                 </button>
@@ -321,40 +297,40 @@ const Sales: React.FC = () => {
                             </div>
                         )}
                     </div>
+
+                    {/* Top Selling Products Section */}
+                    <div className="bg-white rounded-xl shadow-md">
+                        <button onClick={() => setShowTopProducts(!showTopProducts)} className="w-full p-4 text-left flex justify-between items-center">
+                            <h3 className="text-xl font-semibold text-slate-800">{t('sales.topSellingProducts.title')}</h3>
+                            <IconChevronDown className={`h-6 w-6 transition-transform ${showTopProducts ? 'rotate-180' : ''}`} />
+                        </button>
+                        {showTopProducts && (
+                            <div className="p-6 pt-0">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm text-left text-slate-500">
+                                        <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                                            <tr>
+                                                <th className="px-6 py-3">{t('sales.topSellingProducts.product')}</th>
+                                                <th className="px-6 py-3 text-center">{t('sales.topSellingProducts.quantity')}</th>
+                                                <th className="px-6 py-3 text-right">{t('sales.topSellingProducts.revenue')}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {topSellingProducts.map(p => (
+                                                <tr key={p.productName} className="bg-white border-b hover:bg-slate-50">
+                                                    <td className="px-6 py-4 font-semibold">{p.productName}</td>
+                                                    <td className="px-6 py-4 text-center">{p.quantity}</td>
+                                                    <td className="px-6 py-4 text-right font-bold">{formatCurrency(p.totalRevenue)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
-
-            {/* Top Selling Products Section */}
-            <div className="bg-white rounded-xl shadow-md">
-                <button onClick={() => setShowTopProducts(!showTopProducts)} className="w-full p-4 text-left flex justify-between items-center">
-                    <h3 className="text-xl font-semibold text-slate-800">{t('sales.topSellingProducts.title')}</h3>
-                    <IconChevronDown className={`h-6 w-6 transition-transform ${showTopProducts ? 'rotate-180' : ''}`} />
-                </button>
-                {showTopProducts && (
-                    <div className="p-6 pt-0">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left text-slate-500">
-                                <thead className="text-xs text-slate-700 uppercase bg-slate-50">
-                                    <tr>
-                                        <th className="px-6 py-3">{t('sales.topSellingProducts.product')}</th>
-                                        <th className="px-6 py-3 text-center">{t('sales.topSellingProducts.quantity')}</th>
-                                        <th className="px-6 py-3 text-right">{t('sales.topSellingProducts.revenue')}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {topSellingProducts.map(p => (
-                                        <tr key={p.name} className="bg-white border-b hover:bg-slate-50">
-                                            <td className="px-6 py-4 font-semibold">{p.name}</td>
-                                            <td className="px-6 py-4 text-center">{p.quantity}</td>
-                                            <td className="px-6 py-4 text-right font-bold">{formatCurrency(p.revenue)}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
-            </div>
 
             {activeTab === 'new' && (
                 <NewOrder
@@ -367,7 +343,7 @@ const Sales: React.FC = () => {
             {/* Modals */}
             {payingOrder && <RecordPaymentModal isOpen={!!payingOrder} onClose={() => setPayingOrder(null)} order={payingOrder} onRecordPayment={(orderId, amount, paymentMethod) => recordPaymentMutate({ orderId, amount, paymentMethod })} />}
             {updatingStatusOrder && <OrderStatusUpdateModal isOpen={!!updatingStatusOrder} onClose={() => setUpdatingStatusOrder(null)} order={updatingStatusOrder} onUpdateStatus={(orderId, newStatus) => updateOrderStatusMutate({ orderId, status: newStatus })} />}
-            {invoiceOrder && clientForInvoice && <InvoiceModal isOpen={!!invoiceOrder} onClose={() => setInvoiceOrder(null)} order={invoiceOrder} subsidiary={subsidiary} client={clientForInvoice} />}
+            {invoiceOrder && <InvoiceModal isOpen={!!invoiceOrder} onClose={() => setInvoiceOrder(null)} order={invoiceOrder} subsidiary={subsidiary} client={invoiceOrder.customer} />}
             {blOrder && <BonDeLivraison order={blOrder} subsidiary={subsidiary} onClose={() => setBlOrder(null)} />}
         </div>
     );

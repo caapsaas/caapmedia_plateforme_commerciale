@@ -42,7 +42,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, order, subsidiary, 
         <div className="p-8 bg-white text-sm" ref={invoiceContentRef}>
             <div className="grid grid-cols-2 items-start mb-10">
                 <div>
-                    <LogoComponent className="h-20 w-auto" />
+                    {LogoComponent && <LogoComponent className="h-20 w-auto" />}
                     <div className="mt-4 text-slate-700">
                         <p className="font-bold text-base">{subsidiary.name}</p>
                         <p>{subsidiary.address}</p>
@@ -62,7 +62,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, order, subsidiary, 
             
             <div className="mb-10 p-4 bg-slate-50 rounded-lg">
                 <h3 className="font-semibold text-slate-500 uppercase text-xs mb-1">{t('invoice.billedTo')}</h3>
-                <p className="font-bold text-slate-800">{client.name}</p>
+                <p className="font-bold text-slate-800">{client.contactName}</p>
                 <p className="text-slate-600">{client.company}</p>
                 <p className="text-slate-600">{client.address}</p>
                 <p className="text-slate-600">{client.phone}</p>
@@ -79,12 +79,12 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, order, subsidiary, 
                         </tr>
                     </thead>
                     <tbody>
-                        {order.items.map((item, index) => (
-                            <tr key={index} className="bg-white border-b">
-                                <td className="px-6 py-4 font-medium text-slate-900">{item.product.name}</td>
+                        {order.orderItems.map((item) => (
+                            <tr key={item.id} className="bg-white border-b">
+                                <td className="px-6 py-4 font-medium text-slate-900">{item.product.productName}</td>
                                 <td className="px-6 py-4 text-center">{item.quantity}</td>
-                                <td className="px-6 py-4 text-right">{formatCurrency(item.price)}</td>
-                                <td className="px-6 py-4 text-right font-semibold">{formatCurrency(item.price * item.quantity)}</td>
+                                <td className="px-6 py-4 text-right">{formatCurrency(item.unitPrice)}</td>
+                                <td className="px-6 py-4 text-right font-semibold">{formatCurrency(item.unitPrice * item.quantity)}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -98,7 +98,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, order, subsidiary, 
                         <span className="font-medium text-slate-800">{formatCurrency(order.subtotal)}</span>
                     </div>
                     <div className="flex justify-between py-1">
-                        <span className="text-slate-600">{t('invoice.tax')} (18%):</span>
+                        <span className="text-slate-600">{t('invoice.tax')} ({(order.taxRateValue * 100).toFixed(2)}%):</span>
                         <span className="font-medium text-slate-800">{formatCurrency(order.taxAmount)}</span>
                     </div>
                     <div className="flex justify-between py-2 border-t-2 border-slate-300 mt-2">
@@ -110,9 +110,11 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, order, subsidiary, 
 
             <div className="mt-10 pt-4 border-t border-slate-200 text-slate-600">
                 <h4 className="font-semibold mb-2">{t('invoice.paymentInfo')}</h4>
-                <p>Banque: {subsidiary.bankDetails.bankName}</p>
-                <p>N° de compte: {subsidiary.bankDetails.accountNumber}</p>
-                <p>Code SWIFT: {subsidiary.bankDetails.swift}</p>
+                {subsidiary.bankDetails && <>
+                    <p>Banque: {subsidiary.bankDetails.bankName}</p>
+                    <p>N° de compte: {subsidiary.bankDetails.accountNumber}</p>
+                    <p>Code SWIFT: {subsidiary.bankDetails.swift}</p>
+                </>}
             </div>
 
             <div className="mt-8 text-center text-xs text-slate-400">

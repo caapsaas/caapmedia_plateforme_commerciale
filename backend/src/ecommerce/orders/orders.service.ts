@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
-import { CreateOrderDto, CreateOrderBySalesRepDto, RecordPaymentDto, UpdateProductionStatusDto } from './dto/create-order.dto';
+import { CreateOrderDto, CreateOrderBySalesRepDto, RecordPaymentDto, UpdateOrderStatusDto } from './dto/create-order.dto';
 import { Order, OrderGroup, OrderStatus, PaymentStatus, Prisma, ProductionStatus, CustomerPaymentMethod, SaleStatus } from '@prisma/client';
 import { FindAllOrdersDto, OrderPeriod } from './dto/find-all-orders.dto';
 import { sub, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
@@ -663,22 +663,22 @@ export class OrdersService {
    * @param user // Utilisateur connecté
    * @returns // Commande mise à jour
    */
-  async updateProductionStatus(id: string, updateDto: UpdateProductionStatusDto, user: any) {
+  async updateOrderStatus(id: string, updateDto: UpdateOrderStatusDto, user: any) {
     // Vérifier que la commande existe et appartient à la bonne filiale
     await this.findOne(id, user);
 
     return this.prisma.$transaction(async (tx) => {
       const updatedOrder = await tx.order.update({
         where: { id },
-        data: { productionStatus: updateDto.status },
+        data: { status: updateDto.status },
       });
 
-      await tx.orderProductionHistory.create({
-        data: {
-          orderId: id,
-          status: updateDto.status,
-        },
-      });
+      // await tx.orderProductionHistory.create({
+      //   data: {
+      //     orderId: id,
+      //     status: updateDto.status,
+      //   },
+      // });
 
       return updatedOrder;
     });

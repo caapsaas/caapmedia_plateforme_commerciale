@@ -41,7 +41,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
     const filteredProducts = useMemo(() =>
         availableProducts.filter(product =>
-            (product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (product.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 product.description.toLowerCase().includes(searchTerm.toLowerCase()))
             && product.stock > 0
         ), [availableProducts, searchTerm]
@@ -184,10 +184,10 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                                 {filteredProducts.map(product => (
                                     <tr key={product.id}>
                                         <td className="px-4 py-3">
-                                            <img src={product.productImages?.[0]?.imageUrl || 'https://via.placeholder.com/100'} alt={product.name} className="h-12 w-12 object-cover rounded-md" />
+                                            <img src={product.productImages?.[0]?.imageUrl || 'https://via.placeholder.com/100'} alt={product.productName} className="h-12 w-12 object-cover rounded-md" />
                                         </td>
                                         <td className="px-4 py-3">
-                                            <div className="font-semibold text-slate-800">{product.name}</div>
+                                            <div className="font-semibold text-slate-800">{product.productName}</div>
                                             <div className="text-xs text-slate-500 max-w-xs">{product.description}</div>
                                         </td>
                                         <td className="px-4 py-3 text-right font-medium text-slate-700">{formatCurrency(product.sellingPrice)}</td>
@@ -246,7 +246,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                             {cart.map(item => (
                                 <li key={item.product.id} className="py-3 flex items-center">
                                     <div className="flex-grow">
-                                        <p className="font-semibold text-slate-800">{item.product.name}</p>
+                                        <p className="font-semibold text-slate-800">{item.product.productName}</p>
                                         <div className="flex items-center space-x-2 text-sm text-slate-500">
                                             <span>{item.quantity} x {formatCurrency(item.product.sellingPrice)}</span>
                                             <span className="font-bold text-slate-700">{formatCurrency(item.product.sellingPrice * item.quantity)}</span>

@@ -12,7 +12,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { OrderSource } from '@prisma/client';
-import { ProductionStatus, CustomerPaymentMethod } from '@prisma/client';
+import { OrderStatus, CustomerPaymentMethod } from '@prisma/client';
 
 class CreateProductOptionDto {
   @IsString()
@@ -115,8 +115,8 @@ export class RecordPaymentDto {
   paymentMethod: CustomerPaymentMethod;
 }
 
-export class UpdateProductionStatusDto {
-  @IsEnum(ProductionStatus)
+export class UpdateOrderStatusDto {
+  @IsEnum(OrderStatus)
   @IsNotEmpty()
-  status: ProductionStatus;
+  status: OrderStatus;
 }
