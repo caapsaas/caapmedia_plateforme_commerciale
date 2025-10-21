@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Contact } from '../../types';
+import { Contact, CustomerPaymentMethod } from '../../types';
 import { useI18n } from '../../i18n';
 import { CartItem } from './ShoppingCart';
 import IconVisa from '../icons/IconVisa';
@@ -12,12 +12,10 @@ import IconCheckCircle from '../icons/IconCheckCircle';
 import IconTruckCoins from '../icons/IconTruckCoins';
 import IconUserClock from '../icons/IconUserClock';
 
-type PaymentMethod = 'Card' | 'OrangeMoney' | 'Wave' | 'MtnMoney' | 'Paycaap' | 'delivery' | 'credit';
-
 interface CheckoutModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirmOrder: (customerInfo: { name: string; email: string; address: string; }, paymentMethod: string) => void;
+    onConfirmOrder: (customerInfo: { name: string; email: string; address: string; }, paymentMethod: CustomerPaymentMethod) => void;
     cartItems: CartItem[];
     customer: Contact | null;
 }
@@ -25,7 +23,7 @@ interface CheckoutModalProps {
 const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, onConfirmOrder, cartItems, customer }) => {
     const { t, formatCurrency } = useI18n();
     const [customerInfo, setCustomerInfo] = useState({ name: '', email: '', address: '' });
-    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CustomerPaymentMethod | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -51,14 +49,14 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, onConfir
         [cartItems]
     );
 
-    const paymentOptions: { id: PaymentMethod; label: string; icon: React.ReactNode }[] = [
-        { id: 'Card', label: t('payment.creditCard'), icon: <div className="flex items-center gap-2"><IconVisa className="h-4" /><IconMastercard className="h-4" /></div> },
-        { id: 'OrangeMoney', label: t('payment.orangeMoney'), icon: <IconOrangeMoney className="h-5" /> },
-        { id: 'Wave', label: t('payment.wave'), icon: <IconWave className="h-6" /> },
-        { id: 'MtnMoney', label: t('payment.mtnMoney'), icon: <IconMtnMoney className="h-6" /> },
-        { id: 'Paycaap', label: t('payment.paycaap'), icon: <IconPaycaap className="h-5" /> },
-        { id: 'delivery', label: t('payment.payOnDelivery'), icon: <IconTruckCoins className="h-6 w-6" /> },
-        { id: 'credit', label: t('payment.customerCredit'), icon: <IconUserClock className="h-6 w-6" /> },
+    const paymentOptions: { id: CustomerPaymentMethod; label: string; icon: React.ReactNode }[] = [
+        { id: CustomerPaymentMethod.CARD, label: t('payment.CARD'), icon: <div className="flex items-center gap-2"><IconVisa className="h-4" /><IconMastercard className="h-4" /></div> },
+        { id: CustomerPaymentMethod.ORANGE_MONEY, label: t('payment.ORANGE_MONEY'), icon: <IconOrangeMoney className="h-5" /> },
+        { id: CustomerPaymentMethod.WAVE, label: t('payment.WAVE'), icon: <IconWave className="h-6" /> },
+        { id: CustomerPaymentMethod.MOBILE_MONEY, label: t('payment.MOBILE_MONEY'), icon: <IconMtnMoney className="h-6" /> },
+        { id: CustomerPaymentMethod.PAYCAAP, label: t('payment.PAYCAAP'), icon: <IconPaycaap className="h-5" /> },
+        { id: CustomerPaymentMethod.PAY_ON_DELIVERY, label: t('payment.PAY_ON_DELIVERY'), icon: <IconTruckCoins className="h-6 w-6" /> },
+        { id: CustomerPaymentMethod.CUSTOMER_CREDIT, label: t('payment.CUSTOMER_CREDIT'), icon: <IconUserClock className="h-6 w-6" /> },
     ];
 
     const handleSubmit = async (e: React.FormEvent) => {

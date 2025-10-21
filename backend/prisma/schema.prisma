@@ -869,9 +869,9 @@ model ExpenseRecord {
 }
 
 enum CustomerPaymentMethod {
-  CASH
   CARD
-  CHECK
+  ORANGE_MONEY
+  WAVE
   MOBILE_MONEY
   PAYCAAP
   PAY_ON_DELIVERY

@@ -1,28 +1,24 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { User } from '../types';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { User, Contact } from '../types';
 import { api } from '../services/api';
 import { useAppContext } from './AppContext';
 
 interface AuthContextType {
   user: User | null;
+  contact: Contact | null;
   token: string | null;
   login: (data: { user: User; token: string }) => void;
   logout: () => void;
+  loginCustomer: (contact: { contact: Contact; access_token: string }) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthContextType['user']>(null);
-  const { dispatch: appDispatch } = useAppContext();
-  const [token, setToken] = useState<string | null>(sessionStorage.getItem('token'));
-
-  const logout = useCallback(() => {
-    sessionStorage.removeItem('token');
-    setToken(null);
-    setUser(null);
-    appDispatch({ type: 'LOGOUT' }); // ✅ On synchronise AppContext ici
-  }, [appDispatch]);
+  const [contact, setContact] = useState<AuthContextType['contact']>(null);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [contactToken, setContactToken] = useState<string | null>(localStorage.getItem('contactToken'));
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -42,17 +38,50 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     };
     fetchUser();
-  }, [token, logout]);
+  }, [token]);
 
-const login = (data: { user: User; token: string }) => {
-  sessionStorage.setItem('token', data.token);
-  setToken(data.token);
-  setUser(data.user);
-};
+  useEffect(() => {
+    const fetchContact = async () => {
+      if (token) {
+        try {
+          const response = await api.get('/crm/contacts/profile');
+          if (response.data) {
+            setContact(response.data);
+          } else {
+            // Token invalide ou expiré
+            logout();
+          }
+        } catch (error) {
+          console.error("Failed to fetch contact profile", error);
+          logout();
+        }
+      }
+    };
+    fetchContact();
+  }, [contactToken]);
 
+  const login = (data: { user: User; token: string }) => {
+    localStorage.setItem('token', data.token);
+    setToken(data.token);
+    setUser(data.user);
+  };
+
+  const loginCustomer = (contact: { contact: Contact; access_token: string }) => {
+    localStorage.setItem('contactToken', contact.access_token);
+    setContactToken(contact.access_token);
+    setContact(contact.contact);
+  };
+
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    setToken(null);
+    setUser(null);
+    setContact(null);
+  };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, contact, token, login, logout, loginCustomer }}>
       {children}
     </AuthContext.Provider>
   );

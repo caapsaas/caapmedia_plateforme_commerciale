@@ -64,11 +64,11 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ cartItems, onClose, onUpdat
                                     <div className="w-16 h-16 bg-slate-100 rounded-md flex-shrink-0 overflow-hidden">
                                         <img 
                                             src={item.product.productImages && item.product.productImages.length > 0 ? getImageUrl(item.product.productImages[0].imageUrl) : 'https://via.placeholder.com/100'} 
-                                            alt={item.product.name} 
+                                            alt={item.product.productName} 
                                             className="h-full w-full object-cover" />
                                     </div>
                                     <div className="flex-grow">
-                                        <p className="font-semibold text-slate-800">{item.product.name}</p>
+                                        <p className="font-semibold text-slate-800">{item.product.productName}</p>
                                         <p className="text-xs text-slate-500">{formatOptions(item.options)}</p>
                                         {item.designFile && (
                                             <p className="text-xs text-green-600 font-medium mt-1 truncate">

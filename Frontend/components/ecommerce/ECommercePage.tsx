@@ -17,14 +17,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProducts } from '../../services/apiE-commerce/apiProducts';
 import { createOrder } from '../../services/apiE-commerce/apiOrders';
 import { createQuoteRequest } from '../../services/apiCrm/apiLeads';
-import { loginContact, registerContact, ContactRegisterData } from '../../services/apiCrm/apicontacts';
-
+import { loginContact, registerContact, ContactRegisterData } from '../../services/apiCrm/apiContacts';
+import { useAuth } from '../../context/AuthContext';
 // Le type de données reçu du formulaire d'inscription, correspondant à celui de AuthModal
 type SignupFormData = Omit<ContactRegisterData, 'subsidiaryId' | 'since' | 'isVerified'>;
 
 const ECommercePage: React.FC = () => {
     const { state, dispatch } = useAppContext();
-    const { currentCustomer, currentSubsidiary } = state;
+    const { loginCustomer, contact } = useAuth();
     const { t } = useI18n();
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
@@ -35,6 +35,7 @@ const ECommercePage: React.FC = () => {
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [configuringProduct, setConfiguringProduct] = useState<Product | null>(null);
+    const [isCheckoutFlow, setIsCheckoutFlow] = useState(false); // <-- AJOUTER CET ÉTAT
     const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
 
     // --- TanStack Query ---
@@ -53,21 +54,14 @@ const ECommercePage: React.FC = () => {
 
     const { mutate: signupMutation } = useMutation<Contact, Error, SignupFormData>({
         mutationFn: (signupData) => {
-            if (!currentSubsidiary) {
-                throw new Error("Subsidiary not found. Cannot register contact.");
-            }
+           
             const fullSignupData: ContactRegisterData = {
                 ...signupData,
-                subsidiaryId: currentSubsidiary.id,
                 since: new Date().toISOString(),
                 isVerified: false,
             };
             return registerContact(fullSignupData);
         },
-        onSuccess: (newCustomer) => {
-            console.log('Signup successful', newCustomer);
-            dispatch({ type: 'CUSTOMER_LOGIN_SUCCESS', payload: newCustomer });
-        }
     });
 
     const { mutate: quoteRequestMutation } = useMutation<any, Error, FormData>({
@@ -87,6 +81,8 @@ const ECommercePage: React.FC = () => {
     const onLogin = async (email: string, password: string): Promise<'SUCCESS' | 'NOT_VERIFIED' | 'FAILED'> => {
         try {
             const response = await loginContact({ email, password });
+            loginCustomer({contact: response.contact, access_token: response.access_token});
+
             const customer = response.contact; // Extraire le client de la réponse
             dispatch({ type: 'CUSTOMER_LOGIN_SUCCESS', payload: customer });
             return 'SUCCESS';
@@ -109,7 +105,7 @@ const ECommercePage: React.FC = () => {
             if (selectedMainCategory) {
                 return product.mainCategory === selectedMainCategory;
             }
-            return true; // No category filter applied
+            return true;
         });
     }, [products, searchTerm, selectedMainCategory, selectedSubcategory]);
     
@@ -158,7 +154,8 @@ const ECommercePage: React.FC = () => {
 
     const handleInitiateCheckout = () => {
         setIsCartOpen(false);
-        if (currentCustomer) {
+        setIsCheckoutFlow(true);
+        if (contact) {
             setIsCheckoutOpen(true);
         } else {
             setIsAuthModalOpen(true);
@@ -170,24 +167,30 @@ const ECommercePage: React.FC = () => {
         
         // 1. Préparer les données des articles pour la sérialisation JSON
         // Le backend s'attend à recevoir les fichiers dans le même ordre que les articles.
-        const orderItemsForJson = cart.map(item => ({
-            productId: item.product.id,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            options: item.options,
-            // Le backend utilisera le nom du fichier pour l'associer
-            designFileName: item.designFileObject?.name, 
-        }));
+        const orderItemsForJson = cart.map(item => {
+            // Transformer l'objet options en tableau [{optionType, optionValue}]
+            const optionsArray = Object.entries(item.options || {})
+                .filter(([, value]) => value) // S'assurer que la valeur de l'option n'est pas vide
+                .map(([key, value]) => ({
+                    optionType: key.toUpperCase() + 'S', // ex: 'size' -> 'SIZES'
+                    optionValue: value as string,
+                }));
+
+            return {
+                productId: item.product.id,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                options: optionsArray,
+                designFileName: item.designFileObject?.name,
+            };
+        });
 
         // 2. Ajouter les champs textuels au FormData
         formData.append('customerName', customerInfo.name); // Le backend utilise `customerName`
         formData.append('paymentMethod', paymentMethod);
         formData.append('paymentDueDate', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()); // Exemple: paiement dans 30 jours
-        formData.append('source', 'web_order');
+        formData.append('source', 'WEB_ORDER');
         formData.append('items', JSON.stringify(orderItemsForJson)); // Envoyer les articles en tant que chaîne JSON
-        if (currentCustomer) {
-            formData.append('customerId', currentCustomer.id);
-        }
 
         // 3. Ajouter tous les fichiers de design sous la même clé 'designFiles'
         cart.forEach(item => {
@@ -195,13 +198,15 @@ const ECommercePage: React.FC = () => {
                 formData.append('designFiles', item.designFileObject);
             }
         });
-
         placeOrderMutation(formData);
     };
     
     const handleAuthSuccess = () => {
         setIsAuthModalOpen(false);
-        setIsCheckoutOpen(true);
+        if(isCheckoutFlow){
+            setIsCheckoutOpen(true);
+            setIsCheckoutFlow(false);
+        }
     };
 
     const handleSelectMainCategory = (category: string) => {
@@ -224,8 +229,11 @@ const ECommercePage: React.FC = () => {
         <div className="bg-slate-50 min-h-screen flex flex-col">
             <ECommerceHeader 
                 dashboardPath="/dashboard"
-                currentCustomer={currentCustomer}
-                onLogin={() => setIsAuthModalOpen(true)}
+                currentCustomer={contact}
+                onLogin={() => {
+                    setIsCheckoutFlow(false); // L'utilisateur se connecte depuis l'en-tête, pas pour payer
+                    setIsAuthModalOpen(true);
+                }}
                 onLogout={onLogout}
                 accountPath="/account"
                 cartItemCount={cartItemCount}
@@ -278,7 +286,6 @@ const ECommercePage: React.FC = () => {
                     onLogin={onLogin} // La logique de login est maintenant asynchrone
                     onRegister={signupMutation}
                     onAuthSuccess={handleAuthSuccess}
-                    // subsidiaryId n'est plus nécessaire ici
                 />
             )}
             
@@ -288,7 +295,7 @@ const ECommercePage: React.FC = () => {
                     onClose={() => setIsCheckoutOpen(false)}
                     onConfirmOrder={handleConfirmOrder}
                     cartItems={cart}
-                    customer={currentCustomer}
+                    customer={contact}
                 />
             )}
 

@@ -1,9 +1,9 @@
 import React from 'react';
-import { Order, OrderStatus } from '../../types';
+import { OrderStatus, OrderGroup } from '../../types';
 import { useI18n } from '../../i18n';
 
 interface OrderHistoryViewProps {
-    orders: Order[];
+    orders: OrderGroup[];
 }
 
 const OrderHistoryView: React.FC<OrderHistoryViewProps> = ({ orders }) => {
@@ -38,13 +38,13 @@ const OrderHistoryView: React.FC<OrderHistoryViewProps> = ({ orders }) => {
                     </thead>
                     <tbody>
                         {orders.map(order => (
-                            <tr key={order.id} className="bg-white border-b hover:bg-slate-50">
-                                <td className="px-6 py-4 font-semibold">{order.id}</td>
-                                <td className="px-6 py-4">{order.date}</td>
-                                <td className="px-6 py-4 font-bold">{formatCurrency(order.totalAmount)}</td>
+                            <tr key={order.orders[0].orderId} className="bg-white border-b hover:bg-slate-50">
+                                <td className="px-6 py-4 font-semibold">{order.orders[0].orderId}</td>
+                                <td className="px-6 py-4">{new Date(order.createdAt).toLocaleDateString()}</td>
+                                <td className="px-6 py-4 font-bold">{formatCurrency(order.orders[0].totalAmount)}</td>
                                 <td className="px-6 py-4">
-                                     <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(order.status)}`}>
-                                        {getTranslatedStatus(order.status)}
+                                     <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(order.orders[0].status)}`}>
+                                        {getTranslatedStatus(order.orders[0].status)}
                                     </span>
                                 </td>
                             </tr>

@@ -19,7 +19,7 @@ export type ContactUpdateData = Partial<ContactCreationData>;
 /**
  * Données pour l'auto-enregistrement d'un contact sur le portail.
  */
-export type ContactRegisterData = Omit<Contact, 'id' | 'status' | 'createdAt' | 'updatedAt' | 'passwordHash' | 'name'>;
+export type ContactRegisterData = Omit<Contact, 'id' | 'subsidiaryId' >;
 
 /**
  * Identifiants pour la connexion d'un contact au portail.
