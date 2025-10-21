@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { User } from '../types';
 import { api } from '../services/api';
+import { useAppContext } from './AppContext';
 
 interface AuthContextType {
   user: User | null;
@@ -13,39 +14,42 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthContextType['user']>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const { dispatch: appDispatch } = useAppContext();
+  const [token, setToken] = useState<string | null>(sessionStorage.getItem('token'));
+
+  const logout = useCallback(() => {
+    sessionStorage.removeItem('token');
+    setToken(null);
+    setUser(null);
+    appDispatch({ type: 'LOGOUT' }); // ✅ On synchronise AppContext ici
+  }, [appDispatch]);
 
   useEffect(() => {
     const fetchUser = async () => {
-      if (token) {
-        try {
-          const response = await api.get('/auth/Userprofile');
-          if (response.data) {
-            setUser(response.data);
-          } else {
-            // Token invalide ou expiré
-            logout();
-          }
-        } catch (error) {
-          console.error("Failed to fetch user profile", error);
-          logout();
-        }
+      // Si pas de token, on ne fait rien.
+      if (!token) {
+        setUser(null); // Assurer que l'utilisateur est bien déconnecté
+        return;
+      }
+
+      try {
+        const response = await api.get('/auth/Userprofile');
+        setUser(response.data);
+      } catch (error) {
+        console.error("Failed to fetch user profile, logging out.", error);
+        // Si l'appel échoue (ex: token expiré -> 401), on déconnecte l'utilisateur.
+        logout();
       }
     };
     fetchUser();
-  }, [token]);
+  }, [token, logout]);
 
-  const login = (data: { user: User; token: string }) => {
-    localStorage.setItem('token', data.token);
-    setToken(data.token);
-    setUser(data.user);
-  };
+const login = (data: { user: User; token: string }) => {
+  sessionStorage.setItem('token', data.token);
+  setToken(data.token);
+  setUser(data.user);
+};
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
-    setUser(null);
-  };
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout }}>

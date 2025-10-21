@@ -14,7 +14,7 @@ import { Subsidiary } from '../types';
 const LoginPage: React.FC = () => {
   const { t } = useI18n();
   const { dispatch } = useAppContext();
-  const { login } = useAuth();
+  const { login, user: authUser } = useAuth();
   const navigate = useNavigate();
   const { redirect } = useSearch({ from: '/login' }); // Récupère le paramètre 'redirect' de l'URL
   const [email, setEmail] = useState('');
@@ -31,6 +31,15 @@ const LoginPage: React.FC = () => {
 
   const [subsidiaries, setSubsidiaries] = useState<Subsidiary[]>([]);
 
+  useEffect(() => {
+    // Ce `useEffect` réagit au changement de l'état d'authentification.
+    // Si l'utilisateur est authentifié, on le redirige.
+    if (authUser) {
+      navigate({ to: redirect || '/dashboard', replace: true });
+    }
+  }, [authUser, navigate, redirect]);
+
+
  /* useEffect(() => {
     const fetchSubsidiaries = async () => {
       const subs = await getSubsidiaries();
@@ -39,40 +48,34 @@ const LoginPage: React.FC = () => {
     fetchSubsidiaries();
   }, []);*/
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+ const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
 
-    /*if (!selectedSubsidiary) {
-      setError(t('login.errorSelectSubsidiary'));
-      return;
-    }*/
+  if (!email || !password) {
+    setError(t('login.errorFillFields'));
+    return;
+  }
 
-    if (!email || !password) {
-      setError(t('login.errorFillFields'));
-      return;
-    }
+  setIsLoading(true);
 
-    setIsLoading(true);
+  try {
+    // 1️⃣ Appel à l’API d’authentification
+    const { user, access_token, subsidiary } = await apiLogin({ email, password });
 
-    try {
-      const { user, access_token, subsidiary } = await apiLogin({ email, password });
-      login({ user, token: access_token });
+    // 2️⃣ Mise à jour complète du contexte Auth (token + user)
+    login({ user, token: access_token });
 
-      dispatch({ type: 'LOGIN_SUCCESS', payload: { user, subsidiary } });
+    // 3️⃣ Mise à jour du store global si nécessaire
+    dispatch({ type: 'LOGIN_SUCCESS', payload: { user, subsidiary } });
 
-      // ✅ Étape 3: Rediriger après la connexion
-      navigate({
-        to: redirect || '/dashboard', // Redirige vers l'URL demandée ou le dashboard par défaut
-        replace: true // Remplace l'entrée de l'historique pour ne pas pouvoir revenir à la page de login
-      });
-    } catch (err: any) {
-      // Gérer les erreurs spécifiques de l'API (ex: 401, 403)
-      setError(err.message || t('login.errorIncorrectCredentials'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  } catch (err: any) {
+    setError(err.message || t('login.errorIncorrectCredentials'));
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const handleForgotPassword = () => {
     setShowForgotPassword(true);
