@@ -1,6 +1,7 @@
-import { createRouter, createRoute, createRootRoute, Outlet } from '@tanstack/react-router';
+import { createRouter, createRoute, createRootRoute, Outlet, redirect } from '@tanstack/react-router';
 import App from './App'; // Nous allons refactorer App.tsx pour qu'il devienne notre layout
 import { useAppContext } from './context/AppContext';
+import { useAuth } from './context/AuthContext'; // Importez le hook d'authentification
 import LoginPage from './Pages/LoginPage';
 import ECommercePage from './components/ecommerce/ECommercePage';
 import RealisationsPage from './components/ecommerce/RealisationsPage';
@@ -58,7 +59,19 @@ const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/dashboard',
   component: () => <Outlet />, // Ce composant rendra les routes enfants
-  // TODO: Ajouter une logique de redirection si l'employé n'est pas connecté
+  // ✅ Étape 2 : Protéger la route avec beforeLoad
+  beforeLoad: ({ context, location }: { context: { auth: { token: string | null } }, location: any }) => {
+    // Si l'utilisateur n'est PAS authentifié (pas de token), on le redirige
+    if (!context.auth.token) {
+      throw redirect({
+        to: '/login',
+        search: {
+          // On garde en mémoire la page où il voulait aller pour le rediriger après connexion
+          redirect: location.href,
+        },
+      });
+    }
+  },
 });
 
 // 5. Routes enfants du tableau de bord
@@ -149,12 +162,26 @@ const routeTree = rootRoute.addChildren([
   ]),
 ]);
 
-// 7. Création du routeur
-export const router = createRouter({ routeTree });
+// 7. Déclaration du routeur pour la type-sécurité (avant la création)
+let router: ReturnType<typeof createRouter>;
 
-// 8. Déclaration du routeur pour la type-sécurité
 declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router;
   }
+  // ✅ Déclarer la forme du contexte pour l'autocomplétion et la sécurité de type
+  interface RouterContext {
+    auth: ReturnType<typeof useAuth>;
+  }
+}
+
+// 8. Création du routeur via une fonction pour injection de dépendance
+export function createMyRouter(auth: ReturnType<typeof useAuth>) {
+  router = createRouter({
+    routeTree,
+    context: {
+      auth, // Le contexte est maintenant directement fourni à la création
+    },
+  });
+  return router;
 }

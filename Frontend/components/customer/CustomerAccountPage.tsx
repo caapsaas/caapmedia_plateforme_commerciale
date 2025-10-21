@@ -1,43 +1,47 @@
 import React, { useState, useMemo } from 'react';
-import { Contact, Order } from '../../types';
+import { Contact, OrderGroup } from '../../types';
 import { useI18n } from '../../i18n';
 import ProfileView from './ProfileView';
 import OrderHistoryView from './OrderHistoryView';
 import SecurityView from './SecurityView';
 import IconArrowLeft from '../icons/IconArrowLeft';
 import ECommerceFooter from '../ecommerce/ECommerceFooter';
-import { useAppContext } from '../../context/AppContext';
 import { useNavigate, Navigate, Link } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { updateContact } from '../../services/apiCrm/apiContacts';
 import { getOrdersByCustomer } from '../../services/apiE-commerce/apiOrders';
-import { api } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 type AccountView = 'profile' | 'orders' | 'security' | 'payment' | 'reviews';
 
 const CustomerAccountPage: React.FC = () => {
   const { t } = useI18n();
-  const { state } = useAppContext();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeView, setActiveView] = useState<AccountView>('profile');
-
-  const { currentCustomer: contact } = state;
+  const { contact } = useAuth();
 
   // Récupérer les commandes avec TanStack Query
-  const { data: allOrders, isLoading: isLoadingOrders } = useQuery<Order[]>({
+  const { data: allOrders, isLoading: isLoadingOrders } = useQuery<OrderGroup[]>({
     queryKey: ['orders'],
     queryFn: () => getOrdersByCustomer(contact?.id || ''),
   });
 
   const orders = useMemo(() => {
     if (!contact || !allOrders) return [];
-    return [...allOrders].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return [...allOrders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [allOrders]);
 
-  const { mutate: onUpdateClient } = useMutation({
-    mutationFn: (clientData: Contact) => api.patch(`/contacts/${clientData.id}`, clientData),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contacts'] }), // Invalider pour rafraîchir si nécessaire
+  const { mutate } = useMutation({
+    mutationFn: (data: { id: string; data: Partial<Contact> }) => updateContact(data.id, data.data),
+    onSuccess: () => {queryClient.invalidateQueries({ queryKey: ['contacts'] });},
   });
+
+  const handleUpdateClient = (clientData: Partial<Contact>) => {
+    if (contact?.id) {
+      mutate({ id: contact.id, data: clientData });
+    }
+  };
 
   if (!contact) {
     // Si aucun client n'est connecté, redirigez vers la page d'accueil.
@@ -45,15 +49,14 @@ const CustomerAccountPage: React.FC = () => {
     return <Navigate to="/" />;
   }
 
-  if (isLoadingOrders) {
-    return <div>Chargement de l'historique des commandes...</div>;
-  }
-
   const renderView = () => {
-    switch(activeView) {
+    switch (activeView) {
       case 'profile':
-        return <ProfileView customer={contact} onUpdateClient={onUpdateClient} />;
+        return <ProfileView customer={contact} onUpdateClient={handleUpdateClient} />;
       case 'orders':
+        if (isLoadingOrders) {
+          return <div>Chargement de l'historique des commandes...</div>;
+        }
         return <OrderHistoryView orders={orders} />;
       case 'security':
         return <SecurityView />;
@@ -63,7 +66,7 @@ const CustomerAccountPage: React.FC = () => {
   };
 
   const NavItem: React.FC<{ view: AccountView, labelKey: string }> = ({ view, labelKey }) => (
-    <button 
+    <button
       onClick={() => setActiveView(view)}
       className={`text-left w-full p-3 rounded-md transition-colors ${activeView === view ? 'bg-[#c6e911] text-slate-800' : 'hover:bg-slate-100'}`}
     >

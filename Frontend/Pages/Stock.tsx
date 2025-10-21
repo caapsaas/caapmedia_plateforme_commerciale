@@ -74,7 +74,7 @@ const Stock: React.FC = () => {
             return products;
         }
         return products.filter(product =>
-            product.name.toLowerCase().includes(lowercasedTerm) ||
+            product.productName.toLowerCase().includes(lowercasedTerm) ||
             product.id.toLowerCase().includes(lowercasedTerm) ||
             (product.description && product.description.toLowerCase().includes(lowercasedTerm))
         );
@@ -247,7 +247,7 @@ const Stock: React.FC = () => {
                                 return (
                                 <tr key={product.id} className="bg-white border-b hover:bg-slate-50">
                                     <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{product.id}</th>
-                                    <td className="px-6 py-4 font-semibold">{product.name}</td>
+                                    <td className="px-6 py-4 font-semibold">{product.productName}</td>
                                     <td className="px-6 py-4">{product.range ? t(rangeToKeyMap[product.range] || product.range) : ''}</td>
                                     <td className="px-6 py-4">{t(categoryToKeyMap[product.category] || product.category)}</td>
                                     <td className="px-6 py-4">{product.warehouse}</td>
@@ -317,7 +317,7 @@ const Stock: React.FC = () => {
                     onClose={() => setProductToDelete(null)}
                     onConfirm={confirmDelete}
                     title={t('configuration.modal.deleteProductTitle')}
-                    message={t('configuration.modal.deleteConfirmMessage', { itemName: productToDelete.name })}
+                    message={t('configuration.modal.deleteConfirmMessage', { itemName: productToDelete.productName })}
                 />
             )}
             

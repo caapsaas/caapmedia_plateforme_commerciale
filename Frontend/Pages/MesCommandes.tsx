@@ -82,7 +82,7 @@ const MesCommandes: React.FC = () => {
 
     const productOptions = products
         .filter(p => p.subsidiaryId === subsidiary.id)
-        .map(p => ({ value: p.id, label: p.name }));
+        .map(p => ({ value: p.id, label: p.productName }));
 
     const handlePlaceOrder = (newOrderData: Omit<Order, 'id' | 'subsidiaryId'>) => {
         const formData = new FormData();

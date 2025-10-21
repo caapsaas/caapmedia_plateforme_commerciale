@@ -6,6 +6,14 @@ import { FindAllOrdersDto, OrderPeriod } from './dto/find-all-orders.dto';
 import { sub, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
 import { Decimal } from '@prisma/client/runtime/library';
 
+// Degressive pricing table: [quantity, discount percentage]
+const degressivePricing = [
+  { threshold: 1000, discount: new Decimal(0.20) },
+  { threshold: 500, discount: new Decimal(0.15) },
+  { threshold: 250, discount: new Decimal(0.10) },
+  { threshold: 100, discount: new Decimal(0.05) },
+];
+
 @Injectable()
 export class OrdersService {
   constructor(private readonly prisma: PrismaService) { }
@@ -122,19 +130,46 @@ export class OrdersService {
       itemsBySubsidiary.get(subsidiaryId)!.push({ ...item, product });
     }
 
+    // Pré-charger tous les items d'options configurables nécessaires pour le calcul du prix
+    const allOptionValues = parsedItems.flatMap(item => item.options?.map(opt => opt.optionValue) || []);
+    const configurableOptionItems = await this.prisma.configurableOptionItem.findMany({
+      where: { optionName: { in: allOptionValues } },
+    });
+    const optionItemMap = new Map(configurableOptionItems.map(item => [item.optionName, item]));
+
     // 3. Exécuter la création dans une transaction globale
     return this.prisma.$transaction(async (tx) => {
       const createdOrders: Order[] = [];
       let orderGroup: OrderGroup | null = null;
-      let overallTotalAmount = 0;
+      let overallTotalAmount = new Decimal(0);
 
       // Calculer le montant total global pour le groupe de commandes
       for (const item of parsedItems) {
         const product = productMap.get(item.productId)!;
-        overallTotalAmount += product.sellingPrice.toNumber() * item.quantity;
+        let unitPrice = new Decimal(product.sellingPrice);
+
+        if (item.options) {
+          for (const opt of item.options) {
+            const optionItem = optionItemMap.get(opt.optionValue);
+            if (optionItem) {
+              unitPrice = unitPrice.mul(optionItem.multiplier);
+            }
+          }
+        }
+
+        // Appliquer la tarification dégressive
+        let discount = new Decimal(0);
+        for (const tier of degressivePricing) {
+          if (item.quantity >= tier.threshold) {
+            discount = tier.discount;
+            break; // La table est triée, on prend la première correspondance
+          }
+        }
+        const finalUnitPrice = unitPrice.mul(new Decimal(1).sub(discount));
+        overallTotalAmount = overallTotalAmount.add(finalUnitPrice.mul(item.quantity));
       }
       // Ajouter la taxe au montant total global
-      overallTotalAmount = overallTotalAmount * (1 + taxRate.rate.toNumber());
+      const overallTotalWithTax = overallTotalAmount.mul(new Decimal(1).add(taxRate.rate));
 
       // Si plusieurs filiales sont concernées, créer un OrderGroup
       if (itemsBySubsidiary.size > 1) {
@@ -142,7 +177,7 @@ export class OrdersService {
           data: {
             groupCode: `GRP-${Date.now()}`, // Générer un code de groupe unique
             customerId: customerId, // Utiliser l'ID de l'utilisateur connecté
-            totalAmount: overallTotalAmount,
+            totalAmount: overallTotalWithTax,
           },
         });
       }
@@ -150,19 +185,42 @@ export class OrdersService {
       // Créer une commande (ou sous-commande) pour chaque filiale
       for (const [subsidiaryId, subsidiaryItems] of itemsBySubsidiary.entries()) {
         // Calculer les totaux pour cette sous-commande
-        let subtotal = 0;
+        let subtotal = new Decimal(0);
         const orderItemsData = subsidiaryItems.map((item) => {
-          const unitPrice = item.product.sellingPrice;
-          subtotal += unitPrice.toNumber() * item.quantity;
+          let unitPrice = new Decimal(item.product.sellingPrice);
+          if (item.options) {
+            for (const opt of item.options) {
+              const optionItem = optionItemMap.get(opt.optionValue);
+              if (optionItem) {
+                unitPrice = unitPrice.mul(optionItem.multiplier);
+              }
+            }
+          }
+
+          // Appliquer la tarification dégressive
+          let discount = new Decimal(0);
+          for (const tier of degressivePricing) {
+            if (item.quantity >= tier.threshold) {
+              discount = tier.discount;
+              break; // La table est triée, on prend la première correspondance
+            }
+          }
+          const finalUnitPrice = unitPrice.mul(new Decimal(1).sub(discount));
+          subtotal = subtotal.add(finalUnitPrice.mul(item.quantity));
           return {
             ...item,
-            unitPrice,
+            unitPrice: finalUnitPrice, // Utiliser le prix unitaire final
           };
         });
 
-        const taxAmount = subtotal * taxRate.rate.toNumber();
-        const totalAmount = subtotal + taxAmount;
+        const taxAmount = subtotal.mul(taxRate.rate);
+        const totalAmount = subtotal.add(taxAmount);
 
+        // Déterminer le statut de paiement initial
+        const unpaidMethods: CustomerPaymentMethod[] = [CustomerPaymentMethod.PAY_ON_DELIVERY, CustomerPaymentMethod.CUSTOMER_CREDIT];
+        const isPaidImmediately = !unpaidMethods.includes(paymentMethod);
+        const initialPaymentStatus = isPaidImmediately ? PaymentStatus.PAID : PaymentStatus.UNPAID;
+        const initialAmountPaid = isPaidImmediately ? totalAmount : 0;
         // Créer la commande
         const newOrder = await tx.order.create({
           data: {
@@ -176,13 +234,13 @@ export class OrdersService {
             status: OrderStatus.NEW,
             paymentMethod: paymentMethod,
             productionStatus: ProductionStatus.PREPRESS,
-            paymentStatus: PaymentStatus.UNPAID,
-            // Relations
-            customerId: customerId, // Utiliser l'ID de l'utilisateur connecté
+            paymentStatus: initialPaymentStatus,
+            amountPaid: initialAmountPaid,
+            customerId: customerId,
             subsidiaryId,
             taxRateId: taxRate.id,
             opportunityId,
-            groupId: orderGroup?.id, // Lier au groupe si il existe
+            groupId: orderGroup?.id,
             // Création imbriquée des articles et de l'historique
             orderItems: {
               create: orderItemsData.map((item, index) => {
@@ -190,7 +248,7 @@ export class OrdersService {
                 // On suppose que l'ordre des fichiers correspond à l'ordre des articles.
                 const file = designFiles?.[index];
                 return {
-                  quantity: parseInt(item.quantity),
+                  quantity: item.quantity,
                   unitPrice: item.unitPrice,
                   designFileName: file?.originalname ? file.originalname : item.designFileName,
                   designFileUrl: file ? `/api-caapsaas/order_item_img/${file.filename}` : item.designFileUrl,
@@ -212,13 +270,48 @@ export class OrdersService {
               },
             },
           },
+          include: {
+            orderItems: true, // Inclure les articles de commande dans la réponse
+          },
         });
+
+        // Si la commande est payée immédiatement, décrémenter le stock et créer la vente
+        if (isPaidImmediately) {
+          for (const item of newOrder.orderItems) {
+            if (item.productId) {
+              await tx.product.update({
+                where: { id: item.productId },
+                data: { stock: { decrement: item.quantity } },
+              });
+            }
+          }
+
+          const salesToCreate = newOrder.orderItems.map(item => ({
+            productName: productMap.get(item.productId!)!.productName,
+            quantity: item.quantity,
+            totalPrice: new Decimal(item.unitPrice).mul(item.quantity),
+            saleDate: new Date(),
+            customerName: newOrder.customerName,
+            taxRate: newOrder.taxRateValue,
+            paymentMethod: newOrder.paymentMethod || paymentMethod,
+            customerId: newOrder.customerId,
+            subsidiaryId: newOrder.subsidiaryId,
+            salesRepId: newOrder.salesRepId,
+            orderId: newOrder.id,
+            status: SaleStatus.PAID,
+          }));
+
+          await tx.sale.createMany({
+            data: salesToCreate,
+          });
+        }
+
         createdOrders.push(newOrder);
       }
 
       // Si le paiement est à crédit, on met à jour le compte crédit du client avec le montant total
       if (paymentMethod === CustomerPaymentMethod.CUSTOMER_CREDIT) {
-        await this.updateCustomerCredit(tx, customerId, itemsBySubsidiary.keys().next().value, new Decimal(overallTotalAmount), contactName, company);
+        await this.updateCustomerCredit(tx, customerId, itemsBySubsidiary.keys().next().value, overallTotalWithTax, contactName, company);
       }
 
       // Retourner le groupe de commande avec ses sous-commandes, ou la commande unique
@@ -289,18 +382,45 @@ export class OrdersService {
       itemsBySubsidiary.get(productSubsidiaryId)!.push({ ...item, product });
     }
 
+    // Pré-charger tous les items d'options configurables nécessaires pour le calcul du prix
+    const allOptionValues = parsedItems.flatMap(item => item.options?.map(opt => opt.optionValue) || []);
+    const configurableOptionItems = await this.prisma.configurableOptionItem.findMany({
+      where: { optionName: { in: allOptionValues } },
+    });
+    const optionItemMap = new Map(configurableOptionItems.map(item => [item.optionName, item]));
+
     // 3. Exécuter la création dans une transaction globale
     return this.prisma.$transaction(async (tx) => {
       const createdOrders: Order[] = [];
       let orderGroup: OrderGroup | null = null;
-      let overallTotalAmount = 0;
+      let overallTotalAmount = new Decimal(0);
 
       // Calculer le montant total global pour le groupe de commandes
       for (const item of parsedItems) {
         const product = productMap.get(item.productId)!;
-        overallTotalAmount += product.sellingPrice.toNumber() * item.quantity;
+        let unitPrice = new Decimal(product.sellingPrice);
+
+        if (item.options) {
+          for (const opt of item.options) {
+            const optionItem = optionItemMap.get(opt.optionValue);
+            if (optionItem) {
+              unitPrice = unitPrice.mul(optionItem.multiplier);
+            }
+          }
+        }
+
+        // Appliquer la tarification dégressive
+        let discount = new Decimal(0);
+        for (const tier of degressivePricing) {
+          if (item.quantity >= tier.threshold) {
+            discount = tier.discount;
+            break; // La table est triée, on prend la première correspondance
+          }
+        }
+        const finalUnitPrice = unitPrice.mul(new Decimal(1).sub(discount));
+        overallTotalAmount = overallTotalAmount.add(finalUnitPrice.mul(item.quantity));
       }
-      overallTotalAmount = overallTotalAmount * (1 + taxRate.rate.toNumber());
+      const overallTotalWithTax = overallTotalAmount.mul(new Decimal(1).add(taxRate.rate));
 
       // Si plusieurs filiales sont concernées, créer un OrderGroup
       if (itemsBySubsidiary.size > 1) {
@@ -308,22 +428,48 @@ export class OrdersService {
           data: {
             groupCode: `GRP-${Date.now()}`,
             customerId: customerId,
-            totalAmount: overallTotalAmount,
+            totalAmount: overallTotalWithTax,
           },
         });
       }
 
       // Créer une commande (ou sous-commande) pour chaque filiale
       for (const [subsidiaryId, subsidiaryItems] of itemsBySubsidiary.entries()) {
-        let subtotal = 0;
+        let subtotal = new Decimal(0);
         const orderItemsData = subsidiaryItems.map((item) => {
-          const unitPrice = item.product.sellingPrice;
-          subtotal += unitPrice.toNumber() * item.quantity;
-          return { ...item, unitPrice };
+          let unitPrice = new Decimal(item.product.sellingPrice);
+          if (item.options) {
+            for (const opt of item.options) {
+              const optionItem = optionItemMap.get(opt.optionValue);
+              if (optionItem) {
+                unitPrice = unitPrice.mul(optionItem.multiplier);
+              }
+            }
+          }
+
+          // Appliquer la tarification dégressive
+          let discount = new Decimal(0);
+          for (const tier of degressivePricing) {
+            if (item.quantity >= tier.threshold) {
+              discount = tier.discount;
+              break; // La table est triée, on prend la première correspondance
+            }
+          }
+          const finalUnitPrice = unitPrice.mul(new Decimal(1).sub(discount));
+          subtotal = subtotal.add(finalUnitPrice.mul(item.quantity));
+          return {
+            ...item,
+            unitPrice: finalUnitPrice,
+          };
         });
 
-        const taxAmount = subtotal * taxRate.rate.toNumber();
-        const totalAmount = subtotal + taxAmount;
+        const taxAmount = subtotal.mul(taxRate.rate);
+        const totalAmount = subtotal.add(taxAmount);
+
+        const unpaidMethods: CustomerPaymentMethod[] = [CustomerPaymentMethod.PAY_ON_DELIVERY, CustomerPaymentMethod.CUSTOMER_CREDIT];
+        const isPaidImmediately = !unpaidMethods.includes(paymentMethod);
+        const initialPaymentStatus = isPaidImmediately ? PaymentStatus.PAID : PaymentStatus.UNPAID;
+        const initialAmountPaid = isPaidImmediately ? totalAmount : 0;
 
         const newOrder = await tx.order.create({
           data: {
@@ -337,7 +483,8 @@ export class OrdersService {
             status: OrderStatus.NEW,
             paymentMethod: paymentMethod, // Ajout du mode de paiement
             productionStatus: ProductionStatus.PREPRESS,
-            paymentStatus: PaymentStatus.UNPAID,
+            paymentStatus: initialPaymentStatus,
+            amountPaid: initialAmountPaid,
             customerId: customerId,
             subsidiaryId, // Filiale du produit
             taxRateId: taxRate.id,
@@ -363,13 +510,47 @@ export class OrdersService {
               create: { status: ProductionStatus.PREPRESS },
             },
           },
+          include: {
+            orderItems: true, // Inclure les articles de commande dans la réponse
+          },
         });
+
+        if (isPaidImmediately) {
+          for (const item of newOrder.orderItems) {
+            if (item.productId) {
+              await tx.product.update({
+                where: { id: item.productId },
+                data: { stock: { decrement: item.quantity } },
+              });
+            }
+          }
+
+          const salesToCreate = newOrder.orderItems.map(item => ({
+            productName: productMap.get(item.productId!)!.productName,
+            quantity: item.quantity,
+            totalPrice: new Decimal(item.unitPrice).mul(item.quantity),
+            saleDate: new Date(),
+            customerName: newOrder.customerName,
+            taxRate: newOrder.taxRateValue,
+            paymentMethod: newOrder.paymentMethod || paymentMethod,
+            customerId: newOrder.customerId,
+            subsidiaryId: newOrder.subsidiaryId,
+            salesRepId: newOrder.salesRepId,
+            orderId: newOrder.id,
+            status: SaleStatus.PAID,
+          }));
+
+          await tx.sale.createMany({
+            data: salesToCreate,
+          });
+        }
+
         createdOrders.push(newOrder);
       }
 
       // Si le paiement est à crédit, on met à jour le compte crédit du client avec le montant total
       if (paymentMethod === CustomerPaymentMethod.CUSTOMER_CREDIT) {
-        await this.updateCustomerCredit(tx, customerId, salesRepSubsidiaryId, new Decimal(overallTotalAmount), customer.contactName, customer.company);
+        await this.updateCustomerCredit(tx, customerId, salesRepSubsidiaryId, overallTotalWithTax, customer.contactName, customer.company);
       }
 
       if (orderGroup) {

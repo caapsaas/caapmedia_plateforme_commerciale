@@ -189,8 +189,16 @@ export interface OrderItem {
   designFile?: { name: string; url: string; };
 }
 
+export interface OrderGroup{
+  groupId: string;
+  groupCode: string;
+  totalAmount: number;
+  createdAt: string;
+  orders: Order[];
+}
+
 export interface Order {
-  id: string;
+  orderId: string;
   date: string;
   customerName: string;
   customerId: string;
@@ -431,9 +439,9 @@ export enum PaymentMethod {
 }
 
 export enum CustomerPaymentMethod {
-  CASH = 'CASH',
   CARD = 'CARD',
-  CHECK = 'CHECK',
+  ORANGE_MONEY = 'ORANGE_MONEY',
+  WAVE = 'WAVE',
   MOBILE_MONEY = 'MOBILE_MONEY',
   PAYCAAP = 'PAYCAAP',
   PAY_ON_DELIVERY = 'PAY_ON_DELIVERY',

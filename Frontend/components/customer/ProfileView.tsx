@@ -4,7 +4,7 @@ import { useI18n } from '../../i18n';
 
 interface ProfileViewProps {
     customer: Contact;
-    onUpdateClient: (clientData: Contact) => void;
+    onUpdateClient: (clientData: Partial<Contact>) => void;
 }
 
 const ProfileView: React.FC<ProfileViewProps> = ({ customer, onUpdateClient }) => {
@@ -22,8 +22,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ customer, onUpdateClient }) =
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onUpdateClient({ ...customer, ...formData });
-        alert('Profil mis à jour !');
+        onUpdateClient(formData);
     };
 
     return (

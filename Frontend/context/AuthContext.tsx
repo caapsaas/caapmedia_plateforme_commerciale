@@ -8,7 +8,7 @@ interface AuthContextType {
   token: string | null;
   login: (data: { user: User; token: string }) => void;
   logout: () => void;
-  loginCustomer: (contact: {contact: Contact; token: string}) => void;
+  loginCustomer: (contact: { contact: Contact; access_token: string }) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,12 +17,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<AuthContextType['user']>(null);
   const [contact, setContact] = useState<AuthContextType['contact']>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [contactToken, setContactToken] = useState<string | null>(localStorage.getItem('contactToken'));
 
   useEffect(() => {
     const fetchUser = async () => {
       if (token) {
         try {
-          const response = await api.get('/auth/profile');
+          const response = await api.get('/auth/Userprofile');
           if (response.data) {
             setUser(response.data);
           } else {
@@ -42,7 +43,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const fetchContact = async () => {
       if (token) {
         try {
-          const response = await api.get('/auth/contact/profile');
+          const response = await api.get('/crm/contacts/profile');
           if (response.data) {
             setContact(response.data);
           } else {
@@ -56,7 +57,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     };
     fetchContact();
-  }, [token]);
+  }, [contactToken]);
 
   const login = (data: { user: User; token: string }) => {
     localStorage.setItem('token', data.token);
@@ -64,12 +65,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(data.user);
   };
 
-  const loginCustomer = (contact: {contact: Contact; token: string}) => {
-    localStorage.setItem('token', contact.token);
-    setToken(contact.token);
+  const loginCustomer = (contact: { contact: Contact; access_token: string }) => {
+    localStorage.setItem('contactToken', contact.access_token);
+    setContactToken(contact.access_token);
     setContact(contact.contact);
   };
-    
+
 
   const logout = () => {
     localStorage.removeItem('token');
@@ -79,7 +80,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, contact,token, login, logout, loginCustomer }}>
+    <AuthContext.Provider value={{ user, contact, token, login, logout, loginCustomer }}>
       {children}
     </AuthContext.Provider>
   );

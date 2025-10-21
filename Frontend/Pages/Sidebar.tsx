@@ -20,6 +20,8 @@ import IconFactory from '../components/icons/IconFactory';
 import IconMaintenance from '../components/icons/IconMaintenance';
 import { useAppContext } from '../context/AppContext';
 import IconBuildingStorefront from '../components/icons/IconBuildingStorefront';
+import IconGmoLogo from '../components/icons/IconGmoLogo'; // Assumons que c'est le logo par défaut ou un des logos
+// Ajoutez ici les autres importations de logos, par exemple : import IconAutreLogo from '../components/icons/IconAutreLogo';
 
 const NavLink: React.FC<{
   icon: React.ReactNode;
@@ -128,7 +130,17 @@ const Sidebar: React.FC = () => {
   };
   
   const navItems = getNavItems();
-  const LogoComponent = currentSubsidiary.logo;
+  
+  // Logique pour sélectionner le bon composant de logo
+  const getLogoComponent = () => {
+    // Remplacez 'GMO' par la valeur réelle du nom de la filiale si nécessaire
+    if (currentSubsidiary?.name?.includes('Douala')) {
+      return IconGmoLogo;
+    }
+    // Ajoutez d'autres conditions pour d'autres filiales
+    return IconGmoLogo; // Un logo par défaut
+  };
+  const LogoComponent = getLogoComponent();
   const sidebarClasses = `
     bg-[#231F20] text-white flex flex-col transition-all duration-300 ease-in-out
     md:relative md:translate-x-0

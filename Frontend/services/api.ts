@@ -14,10 +14,14 @@ api.interceptors.request.use(
   (config) => {
     // Récupérer le token d'authentification depuis le localStorage.
     const token = localStorage.getItem('token');
+    const contactToken = localStorage.getItem('contactToken');
     
     // Si un token existe, l'ajouter à l'en-tête 'Authorization'.
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    if (contactToken) {
+      config.headers.Authorization = `Bearer ${contactToken}`;
     }
     
     return config;

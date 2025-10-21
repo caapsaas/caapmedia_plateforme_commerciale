@@ -7,6 +7,7 @@ import { useI18n } from '../i18n';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { loginUser as apiLogin, forgotPassword as apiForgotPassword } from '../services/apiCommon/apiUserAuth';
+import { useNavigate, useSearch } from '@tanstack/react-router';
 import { getSubsidiaries } from '../services/apiCommon/apiSubsidiaries'; // Importation depuis le nouveau fichier
 import { Subsidiary } from '../types';
 
@@ -14,6 +15,8 @@ const LoginPage: React.FC = () => {
   const { t } = useI18n();
   const { dispatch } = useAppContext();
   const { login } = useAuth();
+  const navigate = useNavigate();
+  const { redirect } = useSearch({ from: '/login' }); // Récupère le paramètre 'redirect' de l'URL
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [selectedSubsidiary, setSelectedSubsidiary] = useState('');
@@ -28,22 +31,22 @@ const LoginPage: React.FC = () => {
 
   const [subsidiaries, setSubsidiaries] = useState<Subsidiary[]>([]);
 
-  useEffect(() => {
+ /* useEffect(() => {
     const fetchSubsidiaries = async () => {
       const subs = await getSubsidiaries();
       setSubsidiaries(subs);
     };
     fetchSubsidiaries();
-  }, []);
+  }, []);*/
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!selectedSubsidiary) {
+    /*if (!selectedSubsidiary) {
       setError(t('login.errorSelectSubsidiary'));
       return;
-    }
+    }*/
 
     if (!email || !password) {
       setError(t('login.errorFillFields'));
@@ -57,6 +60,12 @@ const LoginPage: React.FC = () => {
       login({ user, token: access_token });
 
       dispatch({ type: 'LOGIN_SUCCESS', payload: { user, subsidiary } });
+
+      // ✅ Étape 3: Rediriger après la connexion
+      navigate({
+        to: redirect || '/dashboard', // Redirige vers l'URL demandée ou le dashboard par défaut
+        replace: true // Remplace l'entrée de l'historique pour ne pas pouvoir revenir à la page de login
+      });
     } catch (err: any) {
       // Gérer les erreurs spécifiques de l'API (ex: 401, 403)
       setError(err.message || t('login.errorIncorrectCredentials'));
@@ -147,7 +156,7 @@ const LoginPage: React.FC = () => {
           <p className="text-slate-600 mb-8">{t('login.subtitle')}</p>
 
           <form onSubmit={handleLogin} className="space-y-6">
-            <div>
+            {/* <div>
               <label htmlFor="subsidiary" className="block text-sm font-medium text-slate-700">{t('login.subsidiary')}</label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -169,7 +178,7 @@ const LoginPage: React.FC = () => {
                   ))}
                 </select>
               </div>
-            </div>
+            </div> */}
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-slate-700">{t('login.emailLabel')}</label>
