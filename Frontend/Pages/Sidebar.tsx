@@ -31,6 +31,7 @@ const NavLink: React.FC<{
   label: string;
   isCollapsed: boolean;
   onClick?: () => void;
+  exact?: boolean; // ✅ Ajouter la prop `exact`
 }> = ({ to, icon, label, isCollapsed, onClick }) => (
   <div className="relative group">
     <Link
@@ -41,6 +42,7 @@ const NavLink: React.FC<{
       }`}
       activeProps={{ className: 'bg-[#c6e911] text-slate-800 shadow-lg' }}
       inactiveProps={{ className: 'text-gray-300 hover:bg-gray-700 hover:text-white' }}
+      activeOptions={{ exact: to === '/dashboard/' }} // ✅ Utiliser `exact: true` uniquement pour la racine du dashboard
     >
       {icon}
       <span className={`font-medium whitespace-nowrap ${isCollapsed ? 'hidden' : 'block'}`}>{label}</span>
@@ -69,7 +71,7 @@ const Sidebar: React.FC = () => {
   const getNavItems = () => {
     switch (currentUser.role) {
       case UserRole.ADMIN:
-        return [
+        return [ // Le `exact: true` sera appliqué automatiquement par la nouvelle logique dans NavLink
           { to: '/dashboard/', label: t('sidebar.analytics'), icon: <IconAnalytics className="h-6 w-6 shrink-0" /> },
           { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-6 w-6 shrink-0" /> },
           { to: '/dashboard/sales', label: t('sidebar.orders'), icon: <IconSales className="h-6 w-6 shrink-0" /> },

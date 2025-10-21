@@ -13,6 +13,7 @@ const initialState: AppState = {
     currentCustomer: null,
     currentSubsidiary: null,
     isSidebarOpen: false,
+    isRestored: false, // Ajout pour suivre l'état de réhydratation
     isSidebarCollapsed: window.innerWidth < 768,
     showIdleModal: false,
     currentView: View.ANALYTICS,
@@ -21,7 +22,7 @@ const initialState: AppState = {
 const appReducer = (state: AppState, action: AppAction | RehydrateAction): AppState => {
     switch (action.type) {
         case 'REHYDRATE_STATE':
-            return { ...state, ...action.payload };
+            return { ...state, ...action.payload, isRestored: true };
         case 'SET_SIDEBAR_OPEN':
             return { ...state, isSidebarOpen: action.payload };
         case 'SET_SIDEBAR_COLLAPSED':
@@ -83,11 +84,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           try {
             const savedSubsidiary = JSON.parse(savedSubsidiaryJSON) as Subsidiary;
             // On "réhydrate" l'état avec la filiale sauvegardée
-            dispatch({ type: 'REHYDRATE_STATE', payload: { currentSubsidiary: savedSubsidiary } });
+            dispatch({ type: 'REHYDRATE_STATE', payload: { currentSubsidiary: savedSubsidiary, isRestored: true } });
           } catch (error) {
             console.error("Failed to parse subsidiary from localStorage", error);
             localStorage.removeItem(SUBSIDIARY_STORAGE_KEY);
+            dispatch({ type: 'REHYDRATE_STATE', payload: { isRestored: true } }); // Marquer comme restauré même en cas d'erreur
           }
+        } else {
+            dispatch({ type: 'REHYDRATE_STATE', payload: { isRestored: true } }); // Marquer comme restauré si rien n'est sauvegardé
         }
       }, []);
 

@@ -23,10 +23,17 @@ export const deleteContact = (id: string): Promise<void> => api.delete(`/crm/con
 
 // --- Lead ---
 export const saveLead = (data: Omit<Lead, 'id' | 'subsidiaryId'> & { id?: string }): Promise<Lead> => {
-    const payload = { ...data, subsidiaryId: undefined };
-    return data.id 
-        ? api.put(`/crm/leads/${data.id}`, payload).then(res => res.data) 
-        : api.post('/crm/leads', payload).then(res => res.data);
+    const formData = new FormData();
+    Object.keys(data).forEach(key => {
+        const value = (data as any)[key];
+        if (value !== undefined && value !== null) {
+            formData.append(key, value);
+        }
+    });
+
+    return data.id
+        ? api.put(`/crm/leads/${data.id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(res => res.data)
+        : api.post('/crm/leads', formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(res => res.data);
 };
 export const deleteLead = (id: string): Promise<void> => api.delete(`/crm/leads/${id}`);
 export const convertLead = (leadId: string): Promise<Contact> => api.post(`/crm/leads/${leadId}/convert`).then(res => res.data);
