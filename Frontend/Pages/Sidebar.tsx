@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from '@tanstack/react-router';
 import { View, UserRole } from '../types';
 import IconAnalytics from '../components/icons/IconAnalytics';
 import IconSales from '../components/icons/IconSales';
@@ -20,31 +21,30 @@ import IconFactory from '../components/icons/IconFactory';
 import IconMaintenance from '../components/icons/IconMaintenance';
 import { useAppContext } from '../context/AppContext';
 import IconBuildingStorefront from '../components/icons/IconBuildingStorefront';
+import { useAuth } from '../context/AuthContext';
 import IconGmoLogo from '../components/icons/IconGmoLogo'; // Assumons que c'est le logo par défaut ou un des logos
 // Ajoutez ici les autres importations de logos, par exemple : import IconAutreLogo from '../components/icons/IconAutreLogo';
 
 const NavLink: React.FC<{
+  to: string;
   icon: React.ReactNode;
   label: string;
-  isActive: boolean;
   isCollapsed: boolean;
-  onClick: () => void;
-}> = ({ icon, label, isActive, isCollapsed, onClick }) => (
+  onClick?: () => void;
+}> = ({ to, icon, label, isCollapsed, onClick }) => (
   <div className="relative group">
-    <button
+    <Link
+      to={to}
       onClick={onClick}
-      className={`w-full flex items-center space-x-3 py-3 rounded-lg transition-all duration-200 ${
+      className={`w-full flex items-center space-x-3 py-3 rounded-lg transition-all duration-200 group ${
         isCollapsed ? 'justify-center px-3' : 'px-4'
-      } ${
-        isActive
-          ? 'bg-[#c6e911] text-slate-800 shadow-lg'
-          : 'text-gray-300 hover:bg-gray-700 hover:text-white'
       }`}
-      aria-current={isActive ? 'page' : undefined}
+      activeProps={{ className: 'bg-[#c6e911] text-slate-800 shadow-lg' }}
+      inactiveProps={{ className: 'text-gray-300 hover:bg-gray-700 hover:text-white' }}
     >
       {icon}
       <span className={`font-medium whitespace-nowrap ${isCollapsed ? 'hidden' : 'block'}`}>{label}</span>
-    </button>
+    </Link>
     {isCollapsed && (
       <div className="absolute left-full ml-4 px-2 py-1 bg-gray-800 text-white text-xs rounded-md shadow-lg
         opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-50">
@@ -57,12 +57,12 @@ const NavLink: React.FC<{
 const Sidebar: React.FC = () => {
   const { t } = useI18n();
   const { state, dispatch } = useAppContext();
-  const { currentUser, currentSubsidiary, isSidebarOpen, isSidebarCollapsed } = state;
+  const { logout: authLogout } = useAuth();
+  const { currentUser, currentSubsidiary, isSidebarOpen, isSidebarCollapsed } = state; // Gardez isSidebarOpen et isSidebarCollapsed
 
   if (!currentUser || !currentSubsidiary) return null;
 
-  const onLogout = () => dispatch({ type: 'LOGOUT' });
-  const setCurrentView = (view: View) => dispatch({ type: 'SET_VIEW', payload: view });
+  const onLogout = () => authLogout();
   const setIsSidebarOpen = (isOpen: boolean) => dispatch({ type: 'SET_SIDEBAR_OPEN', payload: isOpen });
   const setIsSidebarCollapsed = (isCollapsed: boolean) => dispatch({ type: 'SET_SIDEBAR_COLLAPSED', payload: isCollapsed });
 
@@ -70,59 +70,59 @@ const Sidebar: React.FC = () => {
     switch (currentUser.role) {
       case UserRole.ADMIN:
         return [
-          { view: View.ANALYTICS, label: t('sidebar.analytics'), icon: <IconAnalytics className="h-6 w-6 shrink-0" /> },
-          { view: View.CRM, label: t('sidebar.crm'), icon: <IconCrm className="h-6 w-6 shrink-0" /> },
-          { view: View.SALES, label: t('sidebar.orders'), icon: <IconSales className="h-6 w-6 shrink-0" /> },
-          { view: View.PRODUCTION, label: t('sidebar.production'), icon: <IconFactory className="h-6 w-6 shrink-0" /> },
-          { view: View.MAINTENANCE, label: t('sidebar.maintenance'), icon: <IconMaintenance className="h-6 w-6 shrink-0" /> },
-          { view: View.EQUIPEMENT, label: t('sidebar.equipements'), icon: <IconBuildingStorefront className="h-6 w-6 shrink-0" /> },
-          { view: View.PURCHASING, label: t('sidebar.purchasing'), icon: <IconTruck className="h-6 w-6 shrink-0" /> },
-          { view: View.STOCK, label: t('sidebar.stockManagement'), icon: <IconStock className="h-6 w-6 shrink-0" /> },
-          { view: View.FINANCE, label: t('sidebar.finance'), icon: <IconFinance className="h-6 w-6 shrink-0" /> },
-          { view: View.HR_MANAGEMENT, label: t('sidebar.hrManagement'), icon: <IconBriefcase className="h-6 w-6 shrink-0" /> },
-          { view: View.SECRETARIAT, label: t('sidebar.secretariat'), icon: <IconClipboardList className="h-6 w-6 shrink-0" /> },
-          { view: View.CONFIGURATION, label: t('sidebar.configuration'), icon: <IconSettings className="h-6 w-6 shrink-0" /> },
-          { view: View.AI_MARKETING, label: t('sidebar.aiAssistant'), icon: <IconAi className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/', label: t('sidebar.analytics'), icon: <IconAnalytics className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/sales', label: t('sidebar.orders'), icon: <IconSales className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/production', label: t('sidebar.production'), icon: <IconFactory className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/maintenance', label: t('sidebar.maintenance'), icon: <IconMaintenance className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/equipements', label: t('sidebar.equipements'), icon: <IconBuildingStorefront className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/purchasing', label: t('sidebar.purchasing'), icon: <IconTruck className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/stock', label: t('sidebar.stockManagement'), icon: <IconStock className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/finance', label: t('sidebar.finance'), icon: <IconFinance className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/hr', label: t('sidebar.hrManagement'), icon: <IconBriefcase className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/secretariat', label: t('sidebar.secretariat'), icon: <IconClipboardList className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/configuration', label: t('sidebar.configuration'), icon: <IconSettings className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/ai-marketing', label: t('sidebar.aiAssistant'), icon: <IconAi className="h-6 w-6 shrink-0" /> },
         ];
       case UserRole.COMMERCIAL:
         return [
-          { view: View.ANALYTICS, label: t('sidebar.analytics'), icon: <IconAnalytics className="h-6 w-6 shrink-0" /> },
-          { view: View.CRM, label: t('sidebar.crm'), icon: <IconCrm className="h-6 w-6 shrink-0" /> },
-          { view: View.SALES, label: t('sidebar.orders'), icon: <IconSales className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/', label: t('sidebar.analytics'), icon: <IconAnalytics className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/sales', label: t('sidebar.orders'), icon: <IconSales className="h-6 w-6 shrink-0" /> },
         ];
       case UserRole.CAISSIER:
         return [
-          { view: View.CAISSE, label: t('sidebar.cashRegister'), icon: <IconCashRegister className="h-6 w-6 shrink-0" /> },
-          { view: View.SALES, label: t('sidebar.transactions'), icon: <IconSales className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/caisse', label: t('sidebar.cashRegister'), icon: <IconCashRegister className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/sales', label: t('sidebar.transactions'), icon: <IconSales className="h-6 w-6 shrink-0" /> },
         ];
       case UserRole.PURCHASING_MANAGER:
         return [
-          { view: View.PURCHASING, label: t('sidebar.purchasing'), icon: <IconTruck className="h-6 w-6 shrink-0" /> },
-          { view: View.STOCK, label: t('sidebar.stockManagement'), icon: <IconStock className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/purchasing', label: t('sidebar.purchasing'), icon: <IconTruck className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/stock', label: t('sidebar.stockManagement'), icon: <IconStock className="h-6 w-6 shrink-0" /> },
         ];
       case UserRole.FINANCIAL_DIRECTOR:
         return [
-          { view: View.ANALYTICS, label: t('sidebar.analytics'), icon: <IconAnalytics className="h-6 w-6 shrink-0" /> },
-          { view: View.CRM, label: t('sidebar.crm'), icon: <IconCrm className="h-6 w-6 shrink-0" /> },
-          { view: View.SALES, label: t('sidebar.orders'), icon: <IconSales className="h-6 w-6 shrink-0" /> },
-          { view: View.PURCHASING, label: t('sidebar.purchasing'), icon: <IconTruck className="h-6 w-6 shrink-0" /> },
-          { view: View.FINANCE, label: t('sidebar.finance'), icon: <IconFinance className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/', label: t('sidebar.analytics'), icon: <IconAnalytics className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/sales', label: t('sidebar.orders'), icon: <IconSales className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/purchasing', label: t('sidebar.purchasing'), icon: <IconTruck className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/finance', label: t('sidebar.finance'), icon: <IconFinance className="h-6 w-6 shrink-0" /> },
         ];
       case UserRole.SECRETARY:
         return [
-          { view: View.SECRETARIAT, label: t('sidebar.secretariat'), icon: <IconClipboardList className="h-6 w-6 shrink-0" /> },
-          { view: View.CRM, label: t('sidebar.crm'), icon: <IconCrm className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/secretariat', label: t('sidebar.secretariat'), icon: <IconClipboardList className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-6 w-6 shrink-0" /> },
         ];
       case UserRole.HR_MANAGER:
         return [
-          { view: View.HR_MANAGEMENT, label: t('sidebar.hrManagement'), icon: <IconBriefcase className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/hr', label: t('sidebar.hrManagement'), icon: <IconBriefcase className="h-6 w-6 shrink-0" /> },
         ];
       case UserRole.PRODUCTION_DIRECTOR:
         return [
-          { view: View.PRODUCTION, label: t('sidebar.production'), icon: <IconFactory className="h-6 w-6 shrink-0" /> },
-          { view: View.MAINTENANCE, label: t('sidebar.maintenance'), icon: <IconMaintenance className="h-6 w-6 shrink-0" /> },
-          { view: View.EQUIPEMENT, label: t('sidebar.equipements'), icon: <IconBuildingStorefront className="h-6 w-6 shrink-0" /> },
-          { view: View.SALES, label: t('sidebar.orders'), icon: <IconSales className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/production', label: t('sidebar.production'), icon: <IconFactory className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/maintenance', label: t('sidebar.maintenance'), icon: <IconMaintenance className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/equipements', label: t('sidebar.equipements'), icon: <IconBuildingStorefront className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/sales', label: t('sidebar.orders'), icon: <IconSales className="h-6 w-6 shrink-0" /> },
         ];
       default:
         return [];
@@ -164,15 +164,12 @@ const Sidebar: React.FC = () => {
             <nav className={`space-y-2 ${isSidebarCollapsed ? 'px-2' : 'px-4'}`}>
             {navItems.length > 0 ? navItems.map((item) => (
                 <NavLink
-                key={item.view}
+                key={item.to}
+                to={item.to}
                 icon={item.icon}
                 label={item.label}
-                isActive={state.currentView === item.view}
                 isCollapsed={isSidebarCollapsed}
-                onClick={() => {
-                    setCurrentView(item.view);
-                    setIsSidebarOpen(false);
-                }}
+                onClick={() => setIsSidebarOpen(false)}
                 />
             )) : (
                 <div className="p-4 text-gray-400">{t('sidebar.noViewForRole')}</div>
@@ -191,9 +188,9 @@ const Sidebar: React.FC = () => {
                 </button>
 
                 <NavLink
+                    to="/login" // Ou une autre route appropriée
                     icon={<IconLogout className="h-6 w-6 shrink-0" />}
                     label={t('common.logout')}
-                    isActive={false}
                     isCollapsed={isSidebarCollapsed}
                     onClick={onLogout}
                 />

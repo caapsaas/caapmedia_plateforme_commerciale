@@ -37,6 +37,11 @@ export interface AppState {
     isSidebarCollapsed: boolean;
     showIdleModal: boolean;
     currentView: View;
+    products?: Product[];
+    sales?: Sale[];
+    orders?: Order[];
+    contacts?: Contact[];
+    purchaseOrders?: PurchaseOrder[];
 }
 
 export type AppAction =

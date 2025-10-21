@@ -19,7 +19,7 @@ const StockChart: React.FC<StockChartProps> = ({ data }) => {
 
   return (
     <div style={{ width: '100%', height: 300 }}>
-        <ResponsiveContainer>
+        <ResponsiveContainer minHeight={300}>
             <PieChart>
                 <Pie
                     data={translatedData}

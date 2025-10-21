@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { User, Contact } from '../types';
 import { api } from '../services/api';
+import { useAppContext } from './AppContext';
 
 interface AuthContextType {
   user: User | null;
@@ -21,19 +22,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const fetchUser = async () => {
-      if (token) {
-        try {
-          const response = await api.get('/auth/Userprofile');
-          if (response.data) {
-            setUser(response.data);
-          } else {
-            // Token invalide ou expiré
-            logout();
-          }
-        } catch (error) {
-          console.error("Failed to fetch user profile", error);
-          logout();
-        }
+      // Si pas de token, on ne fait rien.
+      if (!token) {
+        setUser(null); // Assurer que l'utilisateur est bien déconnecté
+        return;
+      }
+
+      try {
+        const response = await api.get('/auth/Userprofile');
+        setUser(response.data);
+      } catch (error) {
+        console.error("Failed to fetch user profile, logging out.", error);
+        // Si l'appel échoue (ex: token expiré -> 401), on déconnecte l'utilisateur.
+        logout();
       }
     };
     fetchUser();

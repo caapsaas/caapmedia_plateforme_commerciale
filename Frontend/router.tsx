@@ -1,4 +1,4 @@
-import { createRouter, createRoute, createRootRoute, Outlet, redirect } from '@tanstack/react-router';
+import { createRouter, createRoute, createRootRoute, Outlet, redirect, createRootRouteWithContext } from '@tanstack/react-router';
 import App from './App'; // Nous allons refactorer App.tsx pour qu'il devienne notre layout
 import { useAppContext } from './context/AppContext';
 import { useAuth } from './context/AuthContext'; // Importez le hook d'authentification
@@ -22,8 +22,12 @@ import Production from './Pages/Production';
 import Maintenance from './components/maintenance/Maintenance';
 import Equipements from './Pages/Equipements';
 
-// 1. La route racine (Root) qui contiendra notre layout principal
-const rootRoute = createRootRoute({
+
+// 1. Utiliser createRootRouteWithContext pour typer le contexte du routeur
+const rootRoute = createRootRouteWithContext<{
+  auth: ReturnType<typeof useAuth>;
+}>()({
+  // Le reste de la configuration de la route racine
   component: App, // App.tsx devient le composant de layout
 });
 
@@ -54,13 +58,23 @@ const customerAccountRoute = createRoute({
   // TODO: Ajouter une logique de redirection si le client n'est pas connecté
 });
 
+// Wrapper de layout pour le tableau de bord qui gère l'état de chargement de la filiale
+const DashboardLayout = () => {
+  const { state } = useAppContext();
+  if (!state.currentSubsidiary) {
+    // Idéalement, ceci pourrait être un composant de chargement plus sophistiqué
+    return <div className="p-4">Chargement de la filiale...</div>;
+  }
+  return <Outlet />;
+};
+
 // 4. Route "layout" pour le tableau de bord
 const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/dashboard',
-  component: () => <Outlet />, // Ce composant rendra les routes enfants
+  component: DashboardLayout, // Ce composant rendra les routes enfants après vérification
   // ✅ Étape 2 : Protéger la route avec beforeLoad
-  beforeLoad: ({ context, location }: { context: { auth: { token: string | null } }, location: any }) => {
+  beforeLoad: ({ context, location }) => {
     // Si l'utilisateur n'est PAS authentifié (pas de token), on le redirige
     if (!context.auth.token) {
       throw redirect({
@@ -98,43 +112,10 @@ const mesCommandesRoute = createRoute({
 const configurationRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/configuration', component: Configuration });
 const productionRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/production', component: Production });
 
-// Wrapper for components that need the current subsidiary
-const SecretariatRouteComponent = () => {
-  const { state } = useAppContext();
-  if (!state.currentSubsidiary) return <div>Loading subsidiary...</div>;
-  return <Secretariat />;
-};
-
-// const MaintenanceRouteComponent = () => {
-//   const { state } = useAppContext();
-//   if (!state.currentSubsidiary) return <div>Loading subsidiary...</div>;
-//   return <Maintenance subsidiary={state.currentSubsidiary} />;
-// };
-
-// const EquipementsRouteComponent = () => {
-//   const { state } = useAppContext();
-//   if (!state.currentSubsidiary) return <div>Loading subsidiary...</div>;
-//   return <Equipements subsidiary={state.currentSubsidiary} />;
-// };
-
-const FinanceRouteComponent = () => {
-  const { state } = useAppContext();
-  if (!state.currentSubsidiary) return <div>Loading subsidiary...</div>;
-
-  return <Finance />;
-};
-
-const HrManagementRouteComponent = () => {
-  const { state } = useAppContext();
-  if (!state.currentSubsidiary) return <div>Loading subsidiary...</div>;
-  return <HrManagement  />;
-};
-
-const secretariatRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/secretariat', component: SecretariatRouteComponent });
-const hrRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/hr', component: HrManagementRouteComponent });
-const financeRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/finance', component: FinanceRouteComponent });
-// const maintenanceRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/maintenance', component: MaintenanceRouteComponent });
-// const equipementsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/equipements', component: EquipementsRouteComponent });
+// Routes qui dépendaient auparavant de wrappers
+const secretariatRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/secretariat', component: Secretariat });
+const hrRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/hr', component: HrManagement });
+const financeRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/finance', component: Finance });
 
 
 // 6. Création de l'arbre des routes
