@@ -12,8 +12,8 @@ const api = axios.create({
 // Cette fonction sera appelée avant que chaque requête ne soit envoyée.
 api.interceptors.request.use(
   (config) => {
-    // Récupérer le token d'authentification depuis le localStorage.
-    const token = localStorage.getItem('token');
+    // Récupérer le token d'authentification depuis le sessionStorage.
+    const token = sessionStorage.getItem('token');
     
     // Si un token existe, l'ajouter à l'en-tête 'Authorization'.
     if (token) {
