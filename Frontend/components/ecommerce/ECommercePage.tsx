@@ -17,14 +17,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProducts } from '../../services/apiE-commerce/apiProducts';
 import { createOrder } from '../../services/apiE-commerce/apiOrders';
 import { createQuoteRequest } from '../../services/apiCrm/apiLeads';
-import { loginContact, registerContact, ContactRegisterData } from '../../services/apiCrm/apiContacts';
+import { loginContact, registerContact, ContactRegisterData, logoutContact } from '../../services/apiCrm/apiContacts';
+import { useNavigate } from '@tanstack/react-router';
 import { useAuth } from '../../context/AuthContext';
 // Le type de données reçu du formulaire d'inscription, correspondant à celui de AuthModal
 type SignupFormData = Omit<ContactRegisterData, 'subsidiaryId' | 'since' | 'isVerified'>;
 
 const ECommercePage: React.FC = () => {
-    const { state, dispatch } = useAppContext();
-    const { loginCustomer, contact } = useAuth();
+    const navigate = useNavigate();
+    const { loginCustomer, logoutCustomer, contact } = useAuth();
     const { t } = useI18n();
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
@@ -52,9 +53,8 @@ const ECommercePage: React.FC = () => {
         }
     });
 
-    const { mutate: signupMutation } = useMutation<Contact, Error, SignupFormData>({
-        mutationFn: (signupData) => {
-           
+    const { mutateAsync: signupMutation } = useMutation({
+        mutationFn: (signupData: SignupFormData) => {
             const fullSignupData: ContactRegisterData = {
                 ...signupData,
                 since: new Date().toISOString(),
@@ -78,13 +78,20 @@ const ECommercePage: React.FC = () => {
         [allProducts]
     );
 
+    const onRegister = async (signupData: SignupFormData): Promise<'SUCCESS' | 'FAILED'> => {
+        try {
+            await signupMutation(signupData);
+            return 'SUCCESS';
+        } catch (error) {
+            console.error("Registration failed:", error);
+            return 'FAILED';
+        }
+    };
+
     const onLogin = async (email: string, password: string): Promise<'SUCCESS' | 'NOT_VERIFIED' | 'FAILED'> => {
         try {
             const response = await loginContact({ email, password });
             loginCustomer({contact: response.contact, access_token: response.access_token});
-
-            const customer = response.contact; // Extraire le client de la réponse
-            dispatch({ type: 'CUSTOMER_LOGIN_SUCCESS', payload: customer });
             return 'SUCCESS';
         } catch (error) {
             console.error("Login failed:", error);
@@ -92,7 +99,15 @@ const ECommercePage: React.FC = () => {
         }
     };
 
-    const onLogout = () => dispatch({ type: 'CUSTOMER_LOGOUT' });
+    const onLogout = async () => {
+        try {
+            await logoutContact(); // Appelle l'API pour invalider le token côté serveur
+            logoutCustomer(); // Nettoie l'état et le localStorage côté client
+            navigate({ to: '/' });
+        } catch (error) {
+            console.error("Logout failed:", error);
+        }
+    };
 
     const filteredProducts = useMemo(() => {
         return products.filter((product: Product) => {
@@ -206,6 +221,8 @@ const ECommercePage: React.FC = () => {
         if(isCheckoutFlow){
             setIsCheckoutOpen(true);
             setIsCheckoutFlow(false);
+        } else {
+            navigate({ to: '/account' });
         }
     };
 
@@ -283,8 +300,8 @@ const ECommercePage: React.FC = () => {
                 <AuthModal
                     isOpen={isAuthModalOpen}
                     onClose={() => setIsAuthModalOpen(false)}
-                    onLogin={onLogin} // La logique de login est maintenant asynchrone
-                    onRegister={signupMutation}
+                    onLogin={onLogin}
+                    onRegister={onRegister}
                     onAuthSuccess={handleAuthSuccess}
                 />
             )}

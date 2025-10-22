@@ -121,11 +121,18 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
             date: new Date().toISOString().split('T')[0],
             customerId: customer.id,
             customerName: customer.contactName,
-            items: cart.map(item => ({
-                product: item.product,
+            items: cart.map(item => {
+                // Extrait les options du produit pour les envoyer au backend.
+                const options = item.product.configurableOptions 
+                    ? Object.entries(item.product.configurableOptions).flatMap(([optionType, optionItems]) => 
+                        optionItems.map(optionValue => ({ optionType, optionValue: optionValue.optionName }))
+                      )
+                    : [];
+                return {
+                productId: item.product.id,
                 quantity: item.quantity,
-                price: item.product.sellingPrice
-            })),
+                options: options,
+            }}),
             subtotal,
             taxAmount,
             totalAmount,

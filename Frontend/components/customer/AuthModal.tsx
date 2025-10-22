@@ -9,7 +9,7 @@ interface AuthModalProps {
     isOpen: boolean;
     onClose: () => void;
     onLogin: (email: string, password: string) => Promise<'SUCCESS' | 'NOT_VERIFIED' | 'FAILED'>;
-    onRegister: (data: SignupFormData) => void;
+    onRegister: (data: SignupFormData) => Promise<'SUCCESS' | 'FAILED'>;
     onAuthSuccess: () => void;
     onVerifyAccount?: (email: string) => void; // Rendu optionnel
 }
@@ -54,15 +54,19 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegis
         }
     };
     
-    const handleSignupSubmit = (e: React.FormEvent) => {
+    const handleSignupSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         if (signupData.password !== (document.getElementById('confirmPassword') as HTMLInputElement).value) {
             setError('Les mots de passe ne correspondent pas.');
             return;
         }
-        onRegister(signupData);
-        onAuthSuccess();
+        const result = await onRegister(signupData);
+        if (result === 'SUCCESS') {
+            onAuthSuccess();
+        } else {
+            setError("Une erreur est survenue lors de l'inscription. Veuillez réessayer.");
+        }
     };
     
     const handleVerifyClick = () => {

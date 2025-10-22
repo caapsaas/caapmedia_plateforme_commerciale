@@ -88,15 +88,14 @@ const Sales: React.FC = () => {
     const handlePlaceOrder = (newOrderData: Omit<Order, 'id' | 'subsidiaryId'>) => {
         const formData = new FormData();
         const itemsForJson = newOrderData.items.map(item => ({
-            productId: item.product.id,
-            quantity: item.quantity,
-            price: item.price,
-            options: item.options || {},
+            productId: item.productId,
+            quantity: item.quantity,            
+            options: item.options || [],
         }));
         formData.append('items', JSON.stringify(itemsForJson));
         formData.append('customerId', newOrderData.customerId);
         formData.append('customerName', newOrderData.customerName);
-        formData.append('totalAmount', String(newOrderData.totalAmount));
+        formData.append('source', 'MANUAL');
         formData.append('paymentDueDate', newOrderData.paymentDueDate);
 
         createOrderMutate(formData);
