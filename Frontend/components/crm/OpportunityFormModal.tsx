@@ -98,7 +98,7 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({ isOpen, onC
                                 <label htmlFor="products" className="block text-sm font-medium text-slate-700">{t('crm.opportunity.form.products')}</label>
                                 <select name="products" id="products" multiple value={formData.products.map(p => p.id)} onChange={handleProductChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm h-24 focus:border-[#c6e911] focus:ring-[#c6e911]">
                                     <option value="" disabled>{t('crm.opportunity.form.selectProducts')}</option>
-                                    {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    {products.map(p => <option key={p.id} value={p.id}>{p.productName}</option>)}
                                 </select>
                             </div>
                             <div>

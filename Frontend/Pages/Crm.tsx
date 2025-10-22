@@ -83,8 +83,8 @@ const Crm: React.FC = () => {
         const filterByUser = <T extends { salesRepId?: string }>(items: T[]) => items.filter(i => i.salesRepId === currentUser.id);
         const filterTaskByUser = <T extends { userId?: string }>(items: T[]) => items.filter(i => i.userId === currentUser.id);
 
-        const filteredContacts = isFullAccess ? filterBySubsidiary(contacts) : filterByUser(filterBySubsidiary(contacts));
-        const filteredLeads = isFullAccess ? filterBySubsidiary(leads) : leads.filter(l => l.subsidiaryId === subsidiary.id && (l.salesRepId === currentUser.id || !l.salesRepId));
+        const filteredContacts = isFullAccess ? contacts : filterByUser(contacts);
+        const filteredLeads = leads; // Le backend fait déjà le bon filtrage
         const filteredAccounts = isFullAccess ? filterBySubsidiary(accounts) : filterByUser(filterBySubsidiary(accounts));
         const filteredOpportunities = isFullAccess ? filterBySubsidiary(opportunities) : opportunities.filter(o => o.userId === currentUser.id && o.subsidiaryId === subsidiary.id);
         const filteredContracts = filterBySubsidiary(contracts);

@@ -710,7 +710,7 @@ export enum LeadStatus {
 
 export interface Lead {
     id: string;
-    name: string;
+    leadName: string;
     company: string;
     email: string;
     phone: string;

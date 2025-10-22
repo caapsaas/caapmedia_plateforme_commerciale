@@ -86,10 +86,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ leads, onSave, onDele
                     <tbody>
                         {leads.map((lead) => (
                             <tr key={lead.id} className="bg-white border-b hover:bg-slate-50">
-                                <td className="px-6 py-4">
-                                    <div className="font-semibold">{lead.name}</div>
-                                    {lead.description && <div className="text-xs text-slate-500 truncate max-w-xs" title={lead.description}>{lead.description}</div>}
-                                </td>
+                                <td className="px-6 py-4 font-semibold">{lead.leadName}</td>
                                 <td className="px-6 py-4">{lead.company}</td>
                                 <td className="px-6 py-4">{lead.email}</td>
                                 <td className="px-6 py-4">{lead.phone}</td>
@@ -131,7 +128,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ leads, onSave, onDele
                     onClose={handleCloseModals}
                     onConfirm={handleDelete}
                     title={t('crm.leads.modal.deleteTitle')}
-                    message={t('configuration.modal.deleteConfirmMessage', { itemName: deletingLead.name })}
+                    message={t('configuration.modal.deleteConfirmMessage', { itemName: deletingLead.leadName })}
                 />
             )}
         </div>

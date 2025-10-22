@@ -26,6 +26,10 @@ async function bootstrap() {
 
   app.enableShutdownHooks();
   
+  // 🔧 Ajoute ce préfixe global
+  app.setGlobalPrefix('api-caapmedia');
+
+  // Démarre l'application
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
 
