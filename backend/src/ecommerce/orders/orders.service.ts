@@ -466,10 +466,9 @@ export class OrdersService {
         const taxAmount = subtotal.mul(taxRate.rate);
         const totalAmount = subtotal.add(taxAmount);
 
-        const unpaidMethods: CustomerPaymentMethod[] = [CustomerPaymentMethod.PAY_ON_DELIVERY, CustomerPaymentMethod.CUSTOMER_CREDIT];
-        const isPaidImmediately = !unpaidMethods.includes(paymentMethod);
-        const initialPaymentStatus = isPaidImmediately ? PaymentStatus.PAID : PaymentStatus.UNPAID;
-        const initialAmountPaid = isPaidImmediately ? totalAmount : 0;
+        // Pour les commandes manuelles, le paiement n'est pas géré à la création.
+        const initialPaymentStatus = PaymentStatus.UNPAID;
+        const initialAmountPaid = 0;
 
         const newOrder = await tx.order.create({
           data: {
@@ -481,7 +480,7 @@ export class OrdersService {
             totalAmount,
             taxRateValue: taxRate.rate,
             status: OrderStatus.NEW,
-            paymentMethod: paymentMethod, // Ajout du mode de paiement
+            paymentMethod: null, // Le mode de paiement sera défini lors de l'encaissement.
             productionStatus: ProductionStatus.PREPRESS,
             paymentStatus: initialPaymentStatus,
             amountPaid: initialAmountPaid,
@@ -515,44 +514,10 @@ export class OrdersService {
           },
         });
 
-        if (isPaidImmediately) {
-          for (const item of newOrder.orderItems) {
-            if (item.productId) {
-              await tx.product.update({
-                where: { id: item.productId },
-                data: { stock: { decrement: item.quantity } },
-              });
-            }
-          }
-
-          const salesToCreate = newOrder.orderItems.map(item => ({
-            productName: productMap.get(item.productId!)!.productName,
-            quantity: item.quantity,
-            totalPrice: new Decimal(item.unitPrice).mul(item.quantity),
-            saleDate: new Date(),
-            customerName: newOrder.customerName,
-            taxRate: newOrder.taxRateValue,
-            paymentMethod: newOrder.paymentMethod || paymentMethod,
-            customerId: newOrder.customerId,
-            subsidiaryId: newOrder.subsidiaryId,
-            salesRepId: newOrder.salesRepId,
-            orderId: newOrder.id,
-            status: SaleStatus.PAID,
-          }));
-
-          await tx.sale.createMany({
-            data: salesToCreate,
-          });
-        }
-
         createdOrders.push(newOrder);
       }
 
-      // Si le paiement est à crédit, on met à jour le compte crédit du client avec le montant total
-      if (paymentMethod === CustomerPaymentMethod.CUSTOMER_CREDIT) {
-        await this.updateCustomerCredit(tx, customerId, salesRepSubsidiaryId, overallTotalWithTax, customer.contactName, customer.company);
-      }
-
+      // La logique de crédit client est retirée car elle dépend du mode de paiement.
       if (orderGroup) {
         return tx.orderGroup.findUniqueOrThrow({
           where: { id: orderGroup.id },

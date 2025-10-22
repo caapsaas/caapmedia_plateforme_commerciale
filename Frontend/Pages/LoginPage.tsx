@@ -64,7 +64,7 @@ const LoginPage: React.FC = () => {
     const { user, access_token, subsidiary } = await apiLogin({ email, password });
 
     // 2️⃣ Mise à jour complète du contexte Auth (token + user)
-    login({ user, token: access_token });
+    login({ user, token: access_token, subsidiary });
 
     // 3️⃣ Mise à jour du store global si nécessaire
     dispatch({ type: 'LOGIN_SUCCESS', payload: { user, subsidiary } });

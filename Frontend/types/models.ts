@@ -199,7 +199,6 @@ export interface OrderGroup{
 
 export interface Order {
   orderId: string;
-  id: string;
   date: string;
   customerName: string;
   customerId: string;

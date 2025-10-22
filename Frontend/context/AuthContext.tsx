@@ -1,14 +1,15 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { User, Contact } from '../types';
+import { User, Contact, Subsidiary} from '../types';
 import { api } from '../services/api';
-import { useAppContext } from './AppContext';
 
 interface AuthContextType {
   user: User | null;
   contact: Contact | null;
   token: string | null;
-  login: (data: { user: User; token: string }) => void;
+  subsidiary: Subsidiary | null, 
+  login: (data: { user: User; token: string, subsidiary: Subsidiary}) => void;
   logout: () => void;
+  logoutCustomer: () => void;
   loginCustomer: (contact: { contact: Contact; access_token: string }) => void;
 }
 
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthContextType['user']>(null);
   const [contact, setContact] = useState<AuthContextType['contact']>(null);
+  const [subsidiary, setSubsidiary] = useState<AuthContextType['subsidiary']>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [contactToken, setContactToken] = useState<string | null>(localStorage.getItem('contactToken'));
 
@@ -42,28 +44,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const fetchContact = async () => {
-      if (token) {
+      if (contactToken) {
         try {
           const response = await api.get('/crm/contacts/profile');
-          if (response.data) {
-            setContact(response.data);
-          } else {
-            // Token invalide ou expiré
-            logout();
-          }
+          setContact(response.data);
         } catch (error) {
           console.error("Failed to fetch contact profile", error);
-          logout();
+          logoutCustomer();
         }
       }
     };
     fetchContact();
   }, [contactToken]);
 
-  const login = (data: { user: User; token: string }) => {
+  const login = (data: { user: User; token: string , subsidiary: Subsidiary}) => {
     localStorage.setItem('token', data.token);
     setToken(data.token);
     setUser(data.user);
+    setSubsidiary(data.subsidiary);
   };
 
   const loginCustomer = (contact: { contact: Contact; access_token: string }) => {
@@ -72,16 +70,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setContact(contact.contact);
   };
 
+  const logoutCustomer = () => {
+    localStorage.removeItem('contactToken');
+    setContactToken(null);
+    setContact(null);
+  };
+
 
   const logout = () => {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
-    setContact(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, contact, token, login, logout, loginCustomer }}>
+    <AuthContext.Provider value={{ user, contact, token, subsidiary, login, logout, loginCustomer, logoutCustomer }}>
       {children}
     </AuthContext.Provider>
   );
