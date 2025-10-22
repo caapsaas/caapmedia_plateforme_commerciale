@@ -16,47 +16,49 @@ export class LeadsService {
     private readonly contactsService: ContactsService, // Injecter ContactsService
   ) {}
 
-  async create(createLeadDto: CreateLeadDto, user: User) {
-    // Récupérer l'utilisateur complet depuis la base de données pour s'assurer que les rôles sont à jour
-    const fullUser = await this.prisma.user.findUnique({ where: { id: user.id } });
-    if (!fullUser) {
-      throw new NotFoundException(`User with ID "${user.id}" not found.`);
-    }
-
-    // Le commercial assigné est l'utilisateur qui crée la piste, sauf si un admin en spécifie un autre.
-    let finalSalesRepId = user.id;
-
-    if (fullUser.userRole === UserRole.ADMIN && createLeadDto.salesRepId) {
-      const employeeExists = await this.prisma.employee.findUnique({ where: { id: createLeadDto.salesRepId }});
-      if (!employeeExists) {
-        throw new NotFoundException(`Sales representative with ID "${createLeadDto.salesRepId}" not found in Employee table.`);
-      }
-      finalSalesRepId = createLeadDto.salesRepId;
-    } else {
-      // Vérifier que l'utilisateur qui crée la piste existe bien dans la table Employee
-      const creatingEmployee = await this.prisma.employee.findUnique({ where: { id: user.id } });
-      if (!creatingEmployee) {
-        throw new NotFoundException(`The user with ID "${user.id}" does not exist as an Employee and cannot be assigned as a sales representative.`);
-      }
-    }
-
-    // Vérifier si une piste avec cet email existe déjà
-    const existingLead = await this.prisma.lead.findUnique({
-      where: { email: createLeadDto.email },
-    });
-
-    if (existingLead) {
-      throw new ConflictException(`A lead with the email "${createLeadDto.email}" already exists.`);
-    }
-
-    return this.prisma.lead.create({
-      data: {
-        ...createLeadDto,
-        subsidiaryId: fullUser.subsidiaryId,
-        salesRepId: finalSalesRepId,
-      },
-    });
+ async create(createLeadDto: CreateLeadDto, user: User) {
+  // Récupérer l'utilisateur complet depuis la base pour s'assurer que les rôles sont à jour
+  const fullUser = await this.prisma.user.findUnique({ where: { id: user.id } });
+  if (!fullUser) {
+    throw new NotFoundException(`User with ID "${user.id}" not found.`);
   }
+
+  // Par défaut, une piste n'est pas assignée, sauf si un commercial la crée pour lui-même ou qu'un admin l'assigne.
+  let finalSalesRepId: string | null = null;
+
+  if (fullUser.userRole === UserRole.ADMIN && createLeadDto.salesRepId) {
+    // Vérifier que l'utilisateur assigné comme commercial existe bien
+    const salesRepExists = await this.prisma.user.findUnique({
+      where: { id: createLeadDto.salesRepId },
+    });
+    if (!salesRepExists) {
+      throw new NotFoundException(`Sales representative with ID "${createLeadDto.salesRepId}" not found.`);
+    }
+    finalSalesRepId = createLeadDto.salesRepId;
+  } else if (fullUser.userRole !== UserRole.ADMIN) {
+    // Si ce n'est pas un admin, la piste est assignée à l'utilisateur qui la crée (ex: un commercial).
+    finalSalesRepId = user.id;
+  }
+
+  // Vérifier si une piste avec cet email existe déjà
+  const existingLead = await this.prisma.lead.findUnique({
+    where: { email: createLeadDto.email },
+  });
+
+  if (existingLead) {
+    throw new ConflictException(`A lead with the email "${createLeadDto.email}" already exists.`);
+  }
+
+  // Créer la piste
+  return this.prisma.lead.create({
+    data: {
+      ...createLeadDto,
+      subsidiaryId: fullUser.subsidiaryId,
+      salesRepId: finalSalesRepId,
+    },
+  });
+}
+
 
   async findAll(user: User) {
     const where: Prisma.LeadWhereInput = {
@@ -94,19 +96,57 @@ export class LeadsService {
     return lead;
   }
 
-  async update(id: string, updateLeadDto: UpdateLeadDto, user: User) {
-    await this.findOne(id, user); // Vérifie l'existence et l'appartenance
-    return this.prisma.lead.update({
-      where: { id },
-      data: updateLeadDto,
+async update(id: string, updateLeadDto: UpdateLeadDto, user: User) {
+  // 1. Vérifier que la piste existe et que l'utilisateur a le droit de la modifier.
+  // findOne gère déjà les erreurs NotFoundException et ForbiddenException.
+  await this.findOne(id, user);
+
+  // 2. Vérifier l'unicité de l'email si celui-ci est modifié.
+  if (updateLeadDto.email) {
+    const existingLead = await this.prisma.lead.findUnique({
+      where: { email: updateLeadDto.email },
     });
+    if (existingLead && existingLead.id !== id) {
+      throw new ConflictException(`Une piste avec l'email "${updateLeadDto.email}" existe déjà.`);
+    }
   }
 
-  async remove(id: string, user: User) {
-    await this.findOne(id, user); // Vérifie l'existence et l'appartenance
-    await this.prisma.lead.delete({ where: { id } });
-    return { message: `Lead with ID "${id}" deleted successfully.` };
+  // 3. Si un commercial est assigné, vérifier qu'il existe.
+  if (updateLeadDto.salesRepId) {
+    const salesRepExists = await this.prisma.user.findUnique({ where: { id: updateLeadDto.salesRepId }});
+    if (!salesRepExists) {
+      throw new BadRequestException(`Le commercial avec l'ID "${updateLeadDto.salesRepId}" n'a pas été trouvé.`);
+    }
   }
+
+  // 4. Effectuer la mise à jour
+  return this.prisma.lead.update({
+    where: { id },
+    data: updateLeadDto,
+  });
+}
+
+
+
+
+  async remove(id: string, user: User) {
+  // Vérifie simplement que la lead existe
+  const lead = await this.prisma.lead.findUnique({ where: { id } });
+  if (!lead) {
+    throw new NotFoundException(`Lead with ID "${id}" not found.`);
+    // 1. Vérifier que la piste existe et que l'utilisateur a le droit de la supprimer.
+    // findOne gère déjà les erreurs NotFoundException et ForbiddenException.
+    await this.findOne(id, user);
+
+    // 2. Effectuer la suppression
+    return this.prisma.lead.delete({ where: { id } });
+  }
+
+  // Supprime la lead sans aucune vérification de rôle ou d'appartenance
+  await this.prisma.lead.delete({ where: { id } });
+  return { message: `Lead with ID "${id}" deleted successfully.` };
+}
+
 
   /**
    * Convertit une piste qualifiée en Contact, Compte et Opportunité.

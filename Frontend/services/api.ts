@@ -17,7 +17,7 @@ api.interceptors.request.use(
 
     // Récupérer le token d'authentification depuis le localStorage.
     const token = localStorage.getItem('token');
-    const contactToken = sessionStorage.getItem('contactToken');
+    const contactToken = localStorage.getItem('contactToken');
 
     //console.log("Token from localStorage:", token); // Ajout de ce log
     //console.log("contactToken from sessionStorage:", contactToken); // Ajout de ce log
