@@ -12,7 +12,7 @@ interface LeadFormModalProps {
 const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSave, lead }) => {
     const { t } = useI18n();
     const initialFormState: Omit<Lead, 'id' | 'subsidiaryId'> = {
-        name: '',
+        leadName: '',
         company: '',
         email: '',
         phone: '',
@@ -26,7 +26,7 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSave, 
         if (lead) {
             const { id, subsidiaryId, ...editableData } = lead;
             setFormData({
-                name: editableData.name,
+                leadName: editableData.leadName,
                 company: editableData.company,
                 email: editableData.email,
                 phone: editableData.phone,
@@ -60,8 +60,8 @@ const LeadFormModal: React.FC<LeadFormModalProps> = ({ isOpen, onClose, onSave, 
                         </h3>
                         <div className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                             <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-slate-700">{t('crm.leads.name')}</label>
-                                <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <label htmlFor="leadName" className="block text-sm font-medium text-slate-700">{t('crm.leads.name')}</label>
+                                <input type="text" name="leadName" id="leadName" value={formData.leadName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
                                 <label htmlFor="company" className="block text-sm font-medium text-slate-700">{t('crm.leads.company')}</label>

@@ -29,9 +29,15 @@ export class LeadsService {
     if (fullUser.userRole === UserRole.ADMIN && createLeadDto.salesRepId) {
       const employeeExists = await this.prisma.employee.findUnique({ where: { id: createLeadDto.salesRepId }});
       if (!employeeExists) {
-        throw new NotFoundException(`Sales representative with ID "${createLeadDto.salesRepId}" not found.`);
+        throw new NotFoundException(`Sales representative with ID "${createLeadDto.salesRepId}" not found in Employee table.`);
       }
       finalSalesRepId = createLeadDto.salesRepId;
+    } else {
+      // Vérifier que l'utilisateur qui crée la piste existe bien dans la table Employee
+      const creatingEmployee = await this.prisma.employee.findUnique({ where: { id: user.id } });
+      if (!creatingEmployee) {
+        throw new NotFoundException(`The user with ID "${user.id}" does not exist as an Employee and cannot be assigned as a sales representative.`);
+      }
     }
 
     // Vérifier si une piste avec cet email existe déjà
@@ -61,7 +67,11 @@ export class LeadsService {
     // Les commerciaux ne voient que les leurs.
     const privilegedRoles: UserRole[] = [UserRole.ADMIN, UserRole.SECRETARY];
     if (!privilegedRoles.includes(user.userRole)) {
-      where.salesRepId = user.id;
+      // Un commercial voit ses propres pistes ET les pistes non assignées
+      where.OR = [
+        { salesRepId: user.id },
+        { salesRepId: null }
+      ];
     }
 
     return this.prisma.lead.findMany({

@@ -2,7 +2,9 @@ import axios from 'axios';
 
 // Création d'une instance Axios avec une configuration de base.
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api-caapmedia', // L'URL de base de votre backend NestJS
+  baseURL: 'http://localhost:3000/api-caapmedia',
+  
+  // L'URL de base de votre backend NestJS
   headers: {
     'Content-Type': 'application/json',
   },
@@ -16,6 +18,10 @@ api.interceptors.request.use(
     // Récupérer le token d'authentification depuis le localStorage.
     const token = localStorage.getItem('token');
     const contactToken = localStorage.getItem('contactToken');
+
+    //console.log("Token from localStorage:", token); // Ajout de ce log
+    //console.log("contactToken from sessionStorage:", contactToken); // Ajout de ce log
+    // Si un token existe, l'ajouter à l'en-tête 'Authorization'.
 
     
     // Si un token existe, l'ajouter à l'en-tête 'Authorization'.
