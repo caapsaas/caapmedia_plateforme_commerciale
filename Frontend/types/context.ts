@@ -41,7 +41,8 @@ export interface AppState {
     products?: Product[];
     sales?: Sale[];
     orders?: Order[];
-    contacts?: Contact[];
+    contacts?: Contact[]; // Existing state for contacts
+    accounts?: Account[]; // Add state for accounts
     purchaseOrders?: PurchaseOrder[];
 }
 
@@ -83,7 +84,7 @@ export type AppAction =
     | { type: 'DELETE_ACCOUNT'; payload: string }
     | { type: 'SAVE_CONTRACT'; payload: Omit<Contract, 'id' | 'subsidiaryId'> & { id?: string } }
     | { type: 'DELETE_CONTRACT'; payload: string }
-    | { type: 'SAVE_OPPORTUNITY'; payload: Partial<Opportunity> }
+    | { type: 'SAVE_OPPORTUNITY'; payload: (Omit<Opportunity, 'id'> & { id?: string }) | (Partial<Opportunity> & { id: string }) }
     | { type: 'UPDATE_OPPORTUNITY_STAGE'; payload: { oppId: string; newStage: OpportunityStage } }
     | { type: 'WIN_OPPORTUNITY'; payload: Opportunity }
     | { type: 'LOG_INTERACTION'; payload: Omit<Interaction, 'id' | 'date' | 'userId'> }

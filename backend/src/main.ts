@@ -13,12 +13,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Active la validation globale des DTOs
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true, // Supprime les propriétés non définies dans le DTO
-    forbidNonWhitelisted: true, // Lance une erreur si des propriétés non autorisées sont présentes
-    transform: true, // Transforme automatiquement les payloads en instances de DTO
-  }));
+ 
   app.setGlobalPrefix('api-caapmedia');
   app.useStaticAssets(join(__dirname, '..', 'public'), {
     prefix: '/api-caapmedia',

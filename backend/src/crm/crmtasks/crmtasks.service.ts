@@ -33,6 +33,7 @@ import {
           ...createTaskDto,
           userId: creator.id,
           status: CrmTaskStatus.TODO, // Définir le statut par défaut
+           dueDate: new Date(createTaskDto.dueDate),
         },
       });
     }
@@ -88,6 +89,14 @@ import {
     async remove(id: string, user: User) {
       await this.findOne(id, user); // Vérifie l'existence et les droits
       return this.prisma.crmTask.delete({ where: { id } });
+    }
+
+    async updateStatus(id: string, status: CrmTaskStatus, user: User) {
+      await this.findOne(id, user); // Vérifie l'existence et les droits
+      return this.prisma.crmTask.update({
+        where: { id },
+        data: { status },
+      });
     }
   }
   

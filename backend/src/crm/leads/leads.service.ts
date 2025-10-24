@@ -52,10 +52,10 @@ export class LeadsService {
   // Créer la piste
   return this.prisma.lead.create({
     data: {
-      ...createLeadDto,
+      ...createLeadDto, // Garde les autres champs du DTO
       subsidiaryId: fullUser.subsidiaryId,
-      salesRepId: finalSalesRepId,
-    },
+      salesRepId: finalSalesRepId, // Applique le commercial correctement assigné
+   },
   });
 }
 
@@ -98,24 +98,14 @@ export class LeadsService {
 
 async update(id: string, updateLeadDto: UpdateLeadDto, user: User) {
   // 1. Vérifier que la piste existe et que l'utilisateur a le droit de la modifier.
-  // findOne gère déjà les erreurs NotFoundException et ForbiddenException.
   await this.findOne(id, user);
 
-  // 2. Vérifier l'unicité de l'email si celui-ci est modifié.
   if (updateLeadDto.email) {
     const existingLead = await this.prisma.lead.findUnique({
       where: { email: updateLeadDto.email },
     });
     if (existingLead && existingLead.id !== id) {
       throw new ConflictException(`Une piste avec l'email "${updateLeadDto.email}" existe déjà.`);
-    }
-  }
-
-  // 3. Si un commercial est assigné, vérifier qu'il existe.
-  if (updateLeadDto.salesRepId) {
-    const salesRepExists = await this.prisma.user.findUnique({ where: { id: updateLeadDto.salesRepId }});
-    if (!salesRepExists) {
-      throw new BadRequestException(`Le commercial avec l'ID "${updateLeadDto.salesRepId}" n'a pas été trouvé.`);
     }
   }
 
@@ -151,88 +141,72 @@ async update(id: string, updateLeadDto: UpdateLeadDto, user: User) {
   /**
    * Convertit une piste qualifiée en Contact, Compte et Opportunité.
    */
-  async convert(id: string, user: User) {
-    // Récupérer l'utilisateur complet et la piste en une seule fois
-    const [fullUser, lead] = await Promise.all([
-      this.prisma.user.findUnique({ where: { id: user.id } }),
-      this.findOne(id, user)
-    ]);
+// ====================== CONVERT ======================
+async convert(id: string, user: User) {
+  // Récupère l'utilisateur et la lead
+  const [fullUser, lead] = await Promise.all([
+    this.prisma.user.findUnique({ where: { id: user.id } }),
+    this.prisma.lead.findUnique({ where: { id } }),
+  ]);
 
-    if (!fullUser) {
-      throw new NotFoundException(`User with ID "${user.id}" not found.`);
-    }
+  if (!fullUser) throw new NotFoundException(`User with ID "${user.id}" not found.`);
+  if (!lead) throw new NotFoundException(`Lead with ID "${id}" not found.`);
+  if (lead.status !== LeadStatus.QUALIFIED) throw new BadRequestException('Only qualified leads can be converted.');
 
-    if (lead.status !== LeadStatus.QUALIFIED) {
-      throw new BadRequestException('Only qualified leads can be converted.');
-    }
+  const salesRepId = lead.salesRepId ?? fullUser.id;
 
-    // Le commercial assigné est celui de la piste, ou l'utilisateur actuel si la piste n'a pas de commercial.
-    const salesRepId = lead.salesRepId ?? fullUser.id;
-
-    return this.prisma.$transaction(async (tx) => {
-      // 1. Essayer de créer le Compte (Account). Le service gère les doublons.
-      let account: Account;
-      try {
-        account = await this.accountsService.create({
-            accountName: lead.company,
-            industry: 'Unknown', // Valeur par défaut, à mettre à jour par l'utilisateur
-            phone: lead.phone,
-            address: 'Unknown', // Valeur par défaut, à mettre à jour par l'utilisateur
-            subsidiaryId: fullUser.subsidiaryId,
-            salesRepId: salesRepId,
-        }, fullUser);
-      } catch (error) {
-        if (error instanceof ConflictException) {
-          // Le compte existe déjà, nous le récupérons.
-          const existingAccount = await tx.account.findFirst({ where: { accountName: lead.company, subsidiaryId: fullUser.subsidiaryId }});
-          if (!existingAccount) {
-            // This case should not happen if the conflict is on the unique index,
-            // but it's a good practice to handle it for type safety and robustness.
-            throw new NotFoundException(`Failed to find existing account for company "${lead.company}" after conflict.`);
-          }
-          account = existingAccount;
-        } else {
-          throw error; // Relancer les autres erreurs (ex: BadRequestException)
-        }
-      }
-
-      // 2. Créer le Contact
-      // Utiliser le service de contacts pour centraliser la logique de création
-      const contactDto: CreateContactDto = {
-        contactName: lead.leadName,
-        company: lead.company,
-        email: lead.email,
+  return this.prisma.$transaction(async (tx) => {
+    // 1. Créer le compte
+    let account: Account;
+    try {
+      account = await this.accountsService.create({
+        accountName: lead.leadName,
+        industry: lead.company,
         phone: lead.phone,
-        address: 'Unknown', // L'adresse n'existe pas sur le modèle Lead
+        address: 'Unknown',
+        subsidiaryId: fullUser.subsidiaryId,
+        salesRepId: lead.salesRepId ?? undefined, // Convertit null en undefined
+      }, user); // On peut passer l'objet user directement
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        const existingAccount = await tx.account.findFirst({ where: { accountName: lead.leadName, subsidiaryId: fullUser.subsidiaryId } });
+        if (!existingAccount) throw new NotFoundException(`Failed to find existing account for company "${lead.company}" after conflict.`);
+        account = existingAccount;
+      } else {
+        throw error;
+      }
+    }
+
+    // 2. Créer le contact
+    const contactDto: CreateContactDto = {
+      contactName: lead.leadName,
+      company: lead.company,
+      email: lead.email,
+      phone: lead.phone,
+      address: 'Unknown',
+      accountId: account.id,
+    };
+    const contact = await this.contactsService.create(contactDto, fullUser);
+
+    // 3. Créer l'opportunité
+    const opportunity = await tx.opportunity.create({
+      data: {
+        opportunityName: `Opportunity from ${lead.leadName}`,
+        opportunityValue: 0,
+        closeDate: new Date(new Date().setDate(new Date().getDate() + 30)),
+        stage: OpportunityStage.QUALIFICATION,
+        sourceOpportunity: OpportunitySource.MANUAL,
+        contactId: contact.id,
         accountId: account.id,
-      };
-      // La méthode `create` du service gère le hashage du mot de passe et l'assignation
-      const contact = await this.contactsService.create(contactDto, fullUser);
-
-      // 3. Créer l'Opportunité
-      const opportunity = await tx.opportunity.create({
-        data: {
-          opportunityName: `Opportunity from ${lead.leadName}`,
-          opportunityValue: 0, // A estimer plus tard
-          closeDate: new Date(new Date().setDate(new Date().getDate() + 30)), // Ex: 30 jours
-          stage: OpportunityStage.QUALIFICATION,
-          sourceOpportunity: OpportunitySource.MANUAL, // ou une autre source si la piste vient du web
-          contactId: contact.id,
-          accountId: account.id,
-          userId: fullUser.id,
-          subsidiaryId: fullUser.subsidiaryId,
-        },
-      });
-
-      // 4. Supprimer la piste convertie
-      await tx.lead.delete({ where: { id: lead.id } });
-
-      return {
-        message: 'Lead converted successfully.',
-        contact,
-        account,
-        opportunity,
-      };
+        userId: fullUser.id,
+        subsidiaryId: fullUser.subsidiaryId,
+      },
     });
-  }
+
+    // 4. Supprimer la lead convertie
+    await tx.lead.delete({ where: { id: lead.id } });
+
+    return { message: 'Lead converted successfully.', contact, account, opportunity };
+  });
+}
 }

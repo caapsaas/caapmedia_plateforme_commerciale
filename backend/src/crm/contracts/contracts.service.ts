@@ -24,6 +24,9 @@ export class ContractsService {
     return this.prisma.contract.create({
       data: {
         ...createContractDto,
+        // Convertir les chaînes de dates en objets Date pour Prisma
+        startDate: new Date(createContractDto.startDate),
+        endDate: new Date(createContractDto.endDate),
         subsidiaryId: user.subsidiaryId,
       },
     });
@@ -71,8 +74,29 @@ export class ContractsService {
   }
 
   async update(id: string, updateContractDto: UpdateContractDto, user: User) {
-    await this.findOne(id, user); // Vérifie l'existence et les permissions
-    return this.prisma.contract.update({ where: { id }, data: updateContractDto });
+    // 1. Vérifier que le contrat existe et que l'utilisateur a les droits.
+    await this.findOne(id, user);
+
+    // 2. Séparer les clés relationnelles et les champs non modifiables des autres données.
+    const {
+      clientId,
+      startDate,
+      endDate,
+      // Exclure les champs non modifiables
+      id: dtoId,
+      client,
+      subsidiaryId,
+      ...otherData
+    } = updateContractDto as any;
+
+    // 3. Construire l'objet de données pour la mise à jour Prisma.
+    const data: Prisma.ContractUpdateInput = { ...otherData };
+    if (clientId) data.client = { connect: { id: clientId } };
+    if (startDate) data.startDate = new Date(startDate);
+    if (endDate) data.endDate = new Date(endDate);
+
+    // 4. Effectuer la mise à jour.
+    return this.prisma.contract.update({ where: { id }, data });
   }
 
   async remove(id: string, user: User) {

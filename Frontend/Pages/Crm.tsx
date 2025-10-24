@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Contact, Opportunity, Interaction, CrmTask, User, OpportunityStage, Lead, Account, Contract, CrmTaskStatus } from '../types';
+import { Contact, Opportunity, Interaction, CrmTask, User, OpportunityStage, Lead, Account, Contract, CrmTaskStatus, Product } from '../types';
 import { useAppContext } from '../context/AppContext';
 import { useI18n } from '../i18n';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -12,6 +12,7 @@ import {
     getCrmTasks, saveTask, updateTaskStatus, 
     getInteractions, logInteraction 
 } from '../services/apiCrm/apiCrm';
+import { getProducts } from '../services/apiE-commerce/apiProducts';
 import { getAllUsers } from '../services/apiCommon/apiUserAuth';
 import CrmDashboard from '../components/crm/CrmDashboard';
 import OpportunityPipeline from '../components/crm/OpportunityPipeline';
@@ -46,8 +47,9 @@ const Crm: React.FC = () => {
     const { data: crmTasks = [], isLoading: l6 } = useQuery<CrmTask[]>({ queryKey: queryKey('crmTasks'), queryFn: () => getCrmTasks(subsidiary.id) });
     const { data: interactions = [], isLoading: l7 } = useQuery<Interaction[]>({ queryKey: queryKey('interactions'), queryFn: () => getInteractions(subsidiary.id) });
     const { data: users = [], isLoading: l8 } = useQuery<User[]>({ queryKey: ['users', subsidiary.id], queryFn: () => getAllUsers() });
+    const { data: products = [], isLoading: l9 } = useQuery<Product[]>({ queryKey: queryKey('products'), queryFn: () => getProducts() });
 
-    const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8;
+    const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9;
 
     // --- Mutations avec React Query ---
     const invalidateCrmQueries = () => {
@@ -147,6 +149,8 @@ const Crm: React.FC = () => {
                             opportunities={userFilteredData.opportunities}
                             clients={userFilteredData.contacts} // Clients the user can see
                             allClients={contacts} // All clients for selection
+                            produits={products}
+                            allProducts={products}
                             onSaveOpportunity={(data) => onSaveOpportunity(data)}
                             onUpdateOpportunityStage={(oppId, newStage) => onUpdateOpportunityStage({ oppId, newStage })}
                             onWinOpportunity={(data) => onWinOpportunity(data)}

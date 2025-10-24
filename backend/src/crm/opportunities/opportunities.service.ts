@@ -1,6 +1,7 @@
 import {
   Injectable,
   NotFoundException,
+  BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
@@ -14,6 +15,11 @@ export class OpportunitiesService {
 
   async create(createOpportunityDto: CreateOpportunityDto, user: User) {
     const { productIds, ...opportunityData } = createOpportunityDto;
+
+    // Valider la présence des IDs requis
+    if (!opportunityData.contactId || !opportunityData.accountId) {
+      throw new BadRequestException('Contact ID and Account ID are required.');
+    }
 
     // Vérifier que le contact et le compte existent et appartiennent à la filiale
     const [contact, account] = await Promise.all([
@@ -108,14 +114,20 @@ export class OpportunitiesService {
     await this.findOne(id, user); // Vérifie l'existence et les droits
     const { productIds, ...opportunityData } = updateOpportunityDto;
 
+    // La mise à jour des produits se fait en deux étapes :
+    // 1. Supprimer les anciennes associations de produits.
+    // 2. Créer les nouvelles associations.
     return this.prisma.opportunity.update({
       where: { id },
       data: {
         ...opportunityData,
         products: productIds
           ? {
-              set: productIds.map((id) => ({
-                id: id,
+              // Supprime toutes les relations OpportunityProduct existantes pour cette opportunité
+              deleteMany: {},
+              // Crée de nouvelles relations OpportunityProduct pour chaque productId
+              create: productIds.map((productId) => ({
+                product: { connect: { id: productId } },
               })),
             }
           : undefined,

@@ -1,7 +1,5 @@
-
-
 import React, { useState } from 'react';
-import { Subsidiary, Contact, Opportunity, User, OpportunityStage } from '../../types';
+import { Subsidiary, Contact, Opportunity, User, OpportunityStage, Product, Account} from '../../types';
 import { useI18n } from '../../i18n';
 import IconPlus from '../icons/IconPlus';
 import OpportunityCard from './OpportunityCard';
@@ -12,8 +10,11 @@ interface OpportunityPipelineProps {
     currentUser: User;
     clients: Contact[];
     allClients: Contact[]; // To select any client when creating opps
+    produits : Product[];
+    allProducts: Product[];
+    accounts: Account[];
     opportunities: Opportunity[];
-    onSaveOpportunity: (data: Partial<Opportunity>) => void;
+    onSaveOpportunity: (data: (Omit<Opportunity, 'id'> & { id?: string }) | (Partial<Opportunity> & { id: string })) => void;
     onUpdateOpportunityStage: (oppId: string, newStage: OpportunityStage) => void;
     onWinOpportunity: (opportunity: Opportunity) => void;
 }
@@ -22,6 +23,7 @@ const Column: React.FC<{
   stage: OpportunityStage;
   opportunities: Opportunity[];
   clients: Contact[];
+  products: Product[];
   onDrop: (e: React.DragEvent<HTMLDivElement>, stage: OpportunityStage) => void;
   onDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
   onDragLeave: (e: React.DragEvent<HTMLDivElement>) => void;
@@ -29,7 +31,7 @@ const Column: React.FC<{
   onCardClick: (opp: Opportunity) => void;
 }> = ({ stage, opportunities, clients, onDrop, onDragOver, onDragLeave, onDragStart, onCardClick }) => {
     const { t, formatCurrency } = useI18n();
-    const totalValue = opportunities.reduce((sum, o) => sum + o.value, 0);
+    const totalValue = opportunities.reduce((sum, o) => sum + o.opportunityValue, 0);
 
     return (
         <div 
@@ -57,8 +59,15 @@ const Column: React.FC<{
     );
 };
 
+const OpportunityPipeline: React.FC<OpportunityPipelineProps> = ({
+    opportunities = [],
+    allProducts = [],
+    allClients = [],
+    accounts = [],
+    ...props
+}) => {
 
-const OpportunityPipeline: React.FC<OpportunityPipelineProps> = (props) => {
+   // console.log(allProducts);
     const { t } = useI18n();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingOpportunity, setEditingOpportunity] = useState<Opportunity | null>(null);
@@ -73,9 +82,34 @@ const OpportunityPipeline: React.FC<OpportunityPipelineProps> = (props) => {
         setIsModalOpen(true);
     };
 
-    const handleSave = (data: Omit<Opportunity, 'id' | 'subsidiaryId' | 'userId'>) => {
-        const saveData: Partial<Opportunity> = editingOpportunity ? { ...data, id: editingOpportunity.id } : data;
-        props.onSaveOpportunity(saveData);
+    // ✅ Correction ici : on adapte le type du paramètre pour correspondre à la modal
+    const handleSave = (data: Omit<Opportunity, 'id' | 'subsidiaryId' | 'userId' | 'products'> & {
+        opportunityName: string;
+        contactId: string;
+        accountId: string;
+        opportunityValue: number;
+        stage: OpportunityStage;
+        closeDate: string;
+        productIds: string[];
+    }) => {
+        // 1. Convertir la date 'YYYY-MM-DD' en format ISO-8601 complet que Prisma peut comprendre.
+        // Ensure the date is always a valid ISO string, even if it's already one.
+        const isoCloseDate = data.closeDate.includes('T')
+            ? data.closeDate
+            : new Date(data.closeDate).toISOString();
+
+
+        // 2. Construire l'objet à sauvegarder avec la date corrigée et les productIds.
+        // Le backend s'attend à recevoir `productIds`, pas `products`.
+        const saveData = {
+            ...data,
+            closeDate: isoCloseDate,
+            id: editingOpportunity?.id,
+        } as (Omit<Opportunity, 'id'> & { id?: string }) | (Partial<Opportunity> & { id: string });
+
+        // Le type `Partial<Opportunity>` est utilisé pour la mutation, même si le payload final est un DTO.
+        // L'assertion de type ci-dessus garantit que nous envoyons la bonne structure.
+        props.onSaveOpportunity(saveData); 
         setIsModalOpen(false);
     };
 
@@ -86,10 +120,10 @@ const OpportunityPipeline: React.FC<OpportunityPipelineProps> = (props) => {
     const handleDrop = (e: React.DragEvent<HTMLDivElement>, newStage: OpportunityStage) => {
         e.preventDefault();
         const opportunityId = e.dataTransfer.getData("opportunityId");
-        const opportunity = props.opportunities.find(o => o.id === opportunityId);
+        const opportunity = opportunities.find(o => o.id === opportunityId);
         
         if (opportunity && opportunity.stage !== newStage) {
-            if(newStage === OpportunityStage.WON) {
+            if (newStage === OpportunityStage.WON) {
                 props.onWinOpportunity(opportunity);
             } else {
                 props.onUpdateOpportunityStage(opportunityId, newStage);
@@ -113,8 +147,11 @@ const OpportunityPipeline: React.FC<OpportunityPipelineProps> = (props) => {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                 <h2 className="text-2xl font-bold text-slate-800">{t('crm.tabs.pipeline')}</h2>
-                 <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
+                <h2 className="text-2xl font-bold text-slate-800">{t('crm.tabs.pipeline')}</h2>
+                <button
+                    onClick={handleOpenAddModal}
+                    className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors"
+                >
                     <IconPlus className="h-4 w-4" />
                     <span>{t('crm.pipeline.addOpportunity')}</span>
                 </button>
@@ -124,8 +161,9 @@ const OpportunityPipeline: React.FC<OpportunityPipelineProps> = (props) => {
                     <Column
                         key={stage}
                         stage={stage}
-                        opportunities={props.opportunities.filter(o => o.stage === stage)}
-                        clients={props.allClients}
+                        opportunities={opportunities.filter(o => o.stage === stage)}
+                        clients={allClients}
+                        products={allProducts} 
                         onDrop={handleDrop}
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
@@ -135,14 +173,15 @@ const OpportunityPipeline: React.FC<OpportunityPipelineProps> = (props) => {
                 ))}
             </div>
 
-             {isModalOpen && (
+            {isModalOpen && (
                 <OpportunityFormModal
                     isOpen={isModalOpen}
                     onClose={() => setIsModalOpen(false)}
                     onSave={handleSave}
                     opportunity={editingOpportunity}
-                    clients={props.allClients}
-                    products={[]} // Note: products are not available here, might need to pass them down
+                    clients={allClients}
+                    products={allProducts}
+                    
                 />
             )}
         </div>

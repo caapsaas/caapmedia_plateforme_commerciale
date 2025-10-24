@@ -1,6 +1,6 @@
 import React, { createContext, useReducer, useContext, ReactNode, useEffect } from 'react';
 import { AppState, AppAction } from '../types/context';
-import { View, UserRole, Subsidiary } from '../types/models';
+import { View, UserRole, Subsidiary, Account, Contact } from '../types/models';
 
 type RehydrateAction = { type: 'REHYDRATE_STATE'; payload: Partial<AppState> };
 
@@ -63,6 +63,7 @@ const appReducer = (state: AppState, action: AppAction | RehydrateAction): AppSt
 
         case 'CUSTOMER_LOGOUT':
             return { ...state, currentCustomer: null };
+
 
         // Les actions de manipulation de données (CRUD) seront supprimées
         // et remplacées par des mutations TanStack Query dans les composants concernés.

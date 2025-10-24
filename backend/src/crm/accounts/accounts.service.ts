@@ -31,7 +31,7 @@ export class AccountsService {
     }
 
     // Vérifier si un compte avec le même nom existe déjà dans la filiale
-    const existingAccount = await this.prisma.account.findUnique({
+   const existingAccount = await this.prisma.account.findUnique({
       where: {
         accountName_subsidiaryId: {
           accountName: createAccountDto.accountName,
@@ -49,9 +49,7 @@ export class AccountsService {
     return this.prisma.account.create({
       data: {
         ...createAccountDto,
-        subsidiaryId: subsidiaryId,
-        // Si un employé crée le compte, il lui est assigné par défaut.
-        salesRepId: user.id,
+      subsidiaryId: subsidiaryId,
       },
     });
   }
@@ -104,10 +102,37 @@ export class AccountsService {
   }
 
   async update(id: string, updateAccountDto: UpdateAccountDto, user: User) {
-    await this.findOne(id, user); // Vérifie l'existence et les droits
+    // 1. Vérifier l'existence et les droits d'accès au compte.
+    const accountToUpdate = await this.findOne(id, user);
+
+    // 2. Séparer salesRepId des autres données pour le traitement relationnel.
+    const { salesRepId, id: dtoId, _count, ...otherData } = updateAccountDto as any; // Cast to any to safely destructure unknown properties
+
+    // 3. Vérifier l'unicité du nom du compte si celui-ci est modifié.
+    if (otherData.accountName) {
+      const existingAccount = await this.prisma.account.findUnique({
+        where: {
+          accountName_subsidiaryId: {
+            accountName: otherData.accountName,
+            subsidiaryId: accountToUpdate.subsidiaryId,
+          },
+        },
+      });
+      if (existingAccount && existingAccount.id !== id) {
+        throw new ConflictException(`An account with the name "${otherData.accountName}" already exists in this subsidiary.`);
+      }
+    }
+
+    // 4. Construire l'objet de données pour la mise à jour Prisma.
+    const data: Prisma.AccountUpdateInput = { ...otherData };
+    if (salesRepId !== undefined) {
+      data.salesRep = salesRepId ? { connect: { id: salesRepId } } : { disconnect: true };
+    }
+
+    // 5. Effectuer la mise à jour.
     return this.prisma.account.update({
       where: { id },
-      data: updateAccountDto,
+      data,
     });
   }
 

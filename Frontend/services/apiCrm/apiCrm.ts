@@ -16,11 +16,14 @@ export const getContacts = (subsidiaryId: string): Promise<Contact[]> =>
   api.get(`/crm/contacts?subsidiaryId=${subsidiaryId}`).then(res => res.data);
 
 export const saveContact = (data: Omit<Contact, 'id' | 'subsidiaryId'> & { id?: string }): Promise<Contact> => {
-  const payload = { ...data }; // subsidiaryId should be handled by the backend based on the authenticated user
+  const payload = { ...data };
+ 
+
   return data.id
-    ? api.put(`/crm/contacts/${data.id}`, payload).then(res => res.data)
+    ? api.patch(`/crm/contacts/${data.id}`, payload).then(res => res.data)
     : api.post('/crm/contacts', payload).then(res => res.data);
 };
+
 
 export const deleteContact = (id: string): Promise<void> =>
   api.delete(`/crm/contacts/${id}`);
@@ -30,10 +33,14 @@ export const getLeads = (subsidiaryId: string): Promise<Lead[]> =>
   api.get(`/crm/leads?subsidiaryId=${subsidiaryId}`).then(res => res.data);
 
 export const saveLead = (data: Omit<Lead, 'id' | 'subsidiaryId'> & { id?: string }): Promise<Lead> => {
+  // Cloner les données pour éviter de modifier l'objet original
   const payload = { ...data };
+  // Supprimer l'ID du payload pour la création afin d'éviter les erreurs de validation 400 (Bad Request)
+  // car le DTO de création n'attend pas de propriété 'id'.
+  if (!data.id) delete payload.id;
   return data.id
     ? api.patch(`/crm/leads/${data.id}`, payload).then(res => res.data)
-    : api.post('/crm/leads', payload).then(res => res.data);
+    : api.post('/crm/leads', payload).then(res => res.data); 
 };
 
 export const deleteLead = (id: string): Promise<void> =>
@@ -47,9 +54,13 @@ export const getAccounts = (subsidiaryId: string): Promise<Account[]> =>
   api.get(`/crm/accounts?subsidiaryId=${subsidiaryId}`).then(res => res.data);
 
 export const saveAccount = (data: Omit<Account, 'id' | 'subsidiaryId'> & { id?: string }): Promise<Account> => {
-  const payload = { ...data }; // subsidiaryId should be handled by the backend based on the authenticated user
+  // Cloner les données pour éviter de modifier l'objet original
+  const payload = { ...data };
+  // Supprimer l'ID du payload pour la création afin d'éviter les erreurs de validation 400 (Bad Request)
+  // car le DTO de création n'attend pas de propriété 'id'.
+  if (!data.id) delete payload.id;
   return data.id
-    ? api.put(`/crm/accounts/${data.id}`, payload).then(res => res.data)
+    ? api.patch(`/crm/accounts/${data.id}`, payload).then(res => res.data)
     : api.post('/crm/accounts', payload).then(res => res.data);
 };
 
@@ -61,9 +72,13 @@ export const getContracts = (subsidiaryId: string): Promise<Contract[]> =>
   api.get(`/crm/contracts?subsidiaryId=${subsidiaryId}`).then(res => res.data);
 
 export const saveContract = (data: Omit<Contract, 'id' | 'subsidiaryId'> & { id?: string }): Promise<Contract> => {
-  const payload = { ...data }; // subsidiaryId should be handled by the backend based on the authenticated user
+  // Cloner les données pour éviter de modifier l'objet original
+  const payload = { ...data };
+  // Supprimer l'ID du payload pour la création afin d'éviter les erreurs de validation 400 (Bad Request)
+  // car le DTO de création n'attend pas de propriété 'id'.
+  if (!data.id) delete payload.id;
   return data.id
-    ? api.put(`/crm/contracts/${data.id}`, payload).then(res => res.data)
+    ? api.patch(`/crm/contracts/${data.id}`, payload).then(res => res.data)
     : api.post('/crm/contracts', payload).then(res => res.data);
 };
 
@@ -78,10 +93,13 @@ export const getOpportunities = (subsidiaryId: string): Promise<Opportunity[]> =
       throw error;
     });
 
-export const saveOpportunity = (data: Partial<Opportunity>): Promise<Opportunity> => {
-  const payload = { ...data }; // subsidiaryId should be handled by the backend based on the authenticated user
+export const saveOpportunity = (
+  data: (Omit<Opportunity, 'id'> & { id?: string }) | (Partial<Opportunity> & { id: string }),
+): Promise<Opportunity> => {
+  const { id, ...payload } = data;
+  // subsidiaryId est géré par le backend en fonction de l'utilisateur authentifié
   return data.id
-    ? api.put(`/crm/opportunities/${data.id}`, payload).then(res => res.data)
+    ? api.patch(`/crm/opportunities/${data.id}`, payload).then(res => res.data)
     : api.post('/crm/opportunities', payload).then(res => res.data);
 };
 
@@ -97,7 +115,7 @@ export const getCrmTasks = (subsidiaryId: string): Promise<CrmTask[]> =>
 
 export const saveTask = (data: Omit<CrmTask, 'id' | 'userId'> & { id?: string }): Promise<CrmTask> =>
   data.id
-    ? api.put(`/crm/tasks/${data.id}`, data).then(res => res.data)
+    ? api.patch(`/crm/tasks/${data.id}`, data).then(res => res.data)
     : api.post('/crm/tasks', data).then(res => res.data);
 
 export const updateTaskStatus = ({ taskId, status }: { taskId: string; status: CrmTaskStatus }): Promise<CrmTask> =>

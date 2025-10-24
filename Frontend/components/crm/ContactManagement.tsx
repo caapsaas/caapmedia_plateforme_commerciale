@@ -21,7 +21,15 @@ interface ContactManagementProps {
     onDelete: (id: string) => void;
 }
 
-const ContactManagement: React.FC<ContactManagementProps> = ({ clients, opportunities, interactions, crmTasks, contracts, onLogInteraction, onSave, onDelete }) => {
+const ContactManagement: React.FC<ContactManagementProps> = ({ 
+    clients = [], 
+    opportunities = [], 
+    interactions = [], 
+    crmTasks = [], 
+    contracts = [], 
+    onLogInteraction, 
+    onSave, 
+    onDelete }) => {
     const { t } = useI18n();
     const [selectedClient, setSelectedClient] = useState<Contact | null>(null);
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);

@@ -73,7 +73,7 @@ const AccountManagement: React.FC<AccountManagementProps> = ({ accounts, onSave,
                     <tbody>
                         {accounts.map((account) => (
                             <tr key={account.id} className="bg-white border-b hover:bg-slate-50">
-                                <td className="px-6 py-4 font-semibold">{account.name}</td>
+                                <td className="px-6 py-4 font-semibold">{account.accountName}</td>
                                 <td className="px-6 py-4">{account.industry}</td>
                                 <td className="px-6 py-4">{account.phone}</td>
                                 <td className="px-6 py-4">{account.address}</td>
@@ -105,7 +105,7 @@ const AccountManagement: React.FC<AccountManagementProps> = ({ accounts, onSave,
                     onClose={handleCloseModals}
                     onConfirm={handleDelete}
                     title={t('crm.accounts.modal.deleteTitle')}
-                    message={t('configuration.modal.deleteConfirmMessage', { itemName: deletingAccount.name })}
+                    message={t('configuration.modal.deleteConfirmMessage', { itemName: deletingAccount.accountName })}
                 />
             )}
         </div>
