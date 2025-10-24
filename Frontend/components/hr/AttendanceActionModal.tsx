@@ -6,7 +6,7 @@ import SignaturePad from '../common/SignaturePad';
 interface AttendanceActionModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (record: AttendanceRecord) => void;
+    onSave: (record: Partial<AttendanceRecord>) => void;
     employees: Employee[];
     subsidiary: Subsidiary;
 }
@@ -33,8 +33,7 @@ const AttendanceActionModal: React.FC<AttendanceActionModalProps> = ({ isOpen, o
         const selectedEmployee = employees.find(e => e.id === selectedEmployeeId);
         if (!selectedEmployee) return;
 
-        const newRecord: AttendanceRecord = {
-            id: `ATT-${Date.now()}`,
+        const newRecord: Partial<AttendanceRecord> = {
             employeeId: selectedEmployeeId,
             employeeName: `${selectedEmployee.firstName} ${selectedEmployee.lastName}`,
             date,
