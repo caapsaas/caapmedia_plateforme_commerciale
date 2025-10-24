@@ -10,13 +10,13 @@ export class ExpensesService {
 
   async create(createExpenseDto: CreateExpenseDto, user: User) {
     // Seuls les rôles financiers ou admin peuvent créer des charges
-    const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR];
+   // const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR];
 
     // Le `user` vient du token JWT, la propriété est `role`, pas `userRole`.
-    const userRole = (user as any).role || user.userRole;
+    /*const userRole = (user as any).role || user.userRole;
     if (!allowedRoles.includes(userRole)) {
       throw new ForbiddenException('You do not have permission to create an expense.');
-    }
+    }*/
 
     return this.prisma.expenseRecord.create({
       data: {

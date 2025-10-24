@@ -91,7 +91,7 @@ const ProfitAndLossStatement: React.FC<ProfitAndLossStatementProps> = ({ subsidi
             }, 0);
         }, 0);
         const cogsFromCaisse = filteredSales.reduce((sum, sale) => {
-            const product = products.find(p => p.name === sale.productName);
+            const product = products.find(p => p.productName === sale.productName);
             return sum + ((product?.price || 0) * sale.quantity);
         }, 0);
         const cogs = cogsFromOrders + cogsFromCaisse;
@@ -127,9 +127,9 @@ const ProfitAndLossStatement: React.FC<ProfitAndLossStatementProps> = ({ subsidi
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-md">
-            <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6 no-print">
+            <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4 mb-6 no-print">
                 <h3 className="text-xl font-semibold text-slate-800">{t('pnl.title')}</h3>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                      <PeriodFilter 
                         period={period}
                         onPeriodChange={handlePeriodChange}

@@ -9,6 +9,17 @@ import { UpdateFinancialTransactionDto } from './dto/update-financial-transactio
 export class TreasuryService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Helper function to map frontend status strings to Prisma TransactionStatus enum
+  private mapFrontendStatusToPrismaStatus(frontendStatus: string | undefined | null): TransactionStatus {
+    if (frontendStatus === 'Validé') {
+      return TransactionStatus.VALIDE;
+    }
+    if (frontendStatus === 'En attente') {
+      return TransactionStatus.EN_ATTENTE;
+    }
+    return TransactionStatus.EN_ATTENTE; // Default to EN_ATTENTE if not recognized or provided
+  }
+
   private checkPermissions(user: User, allowedRoles: UserRole[], message: string) {
     const userRole = (user as any).role || user.userRole;
     if (!allowedRoles.includes(userRole)) {
@@ -85,6 +96,9 @@ export class TreasuryService {
       }
     }
 
+    // Map the incoming status from DTO to Prisma's TransactionStatus enum
+    const prismaStatus = this.mapFrontendStatusToPrismaStatus(dto.status);
+
     // Utiliser increment/decrement pour la mise à jour atomique du solde
     const balanceUpdateOperation =
       financialTransactionType === TransactionType.RECETTE 
@@ -106,7 +120,7 @@ export class TreasuryService {
           relatedDocumentId: dto.relatedDocumentId,
           amount,
           financialTransactionType,
-          status: dto.status ?? TransactionStatus.EN_ATTENTE,
+          status: prismaStatus, // Use the mapped status
           treasuryAccountId,
           subsidiaryId: user.subsidiaryId,
           transactionDate: new Date(transactionDate),
@@ -140,20 +154,23 @@ export class TreasuryService {
       throw new NotFoundException(`Transaction with ID "${id}" not found.`);
     }
     
-    if (transaction.status === dto.status) {
+    // Map the incoming status from DTO to Prisma's TransactionStatus enum for update
+    const newPrismaStatus = this.mapFrontendStatusToPrismaStatus(dto.status);
+
+    if (transaction.status === newPrismaStatus) {
         return transaction; // Pas de changement
     }
 
     // Logique métier : on ne peut pas annuler une transaction qui a déjà affecté un solde.
     // Pour cela, il faudrait une transaction de contre-passation.
     // Ici, nous permettons seulement de passer de "EN_ATTENTE" à "VALIDE".
-    if (transaction.status !== 'EN_ATTENTE' || dto.status !== 'VALIDE') {
+    if (transaction.status !== TransactionStatus.EN_ATTENTE || newPrismaStatus !== TransactionStatus.VALIDE) {
         throw new BadRequestException('Invalid status transition for transaction.');
     }
 
     return this.prisma.financialTransaction.update({
       where: { id },
-      data: { status: dto.status },
+      data: { status: newPrismaStatus },
     });
   }
 }
