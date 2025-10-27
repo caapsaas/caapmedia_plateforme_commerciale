@@ -81,6 +81,7 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        
         onSave(formData);
     };
 

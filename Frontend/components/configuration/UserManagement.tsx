@@ -110,11 +110,11 @@ const UserManagement: React.FC = () => {
                         {subsidiaryUsers.map((user) => (
                             <tr key={user.id} className="bg-white border-b hover:bg-slate-50">
                                 <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{user.id}</th>
-                                <td className="px-6 py-4 font-semibold">{user.name}</td>
+                                <td className="px-6 py-4 font-semibold">{user.userName}</td>
                                 <td className="px-6 py-4">{user.email}</td>
                                 <td className="px-6 py-4">
                                     <span className="px-2 py-1 text-xs font-semibold rounded-full bg-slate-200 text-slate-800">
-                                        {t(`roles.${user.role}`)}
+                                        {t(`roles.${user.userRole}`)}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-center space-x-2">

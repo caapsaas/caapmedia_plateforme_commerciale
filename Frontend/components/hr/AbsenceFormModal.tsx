@@ -27,11 +27,13 @@ const AbsenceFormModal: React.FC<AbsenceFormModalProps> = ({ isOpen, onClose, on
 
     useEffect(() => {
         if (absence) {
+            // When editing, populate form with existing absence data, formatting dates for input type="date"
             setFormData({
+                id: absence.id, // CRUCIAL: Ensure the ID is part of the form data for updates
                 employeeId: absence.employeeId,
-                typeAbsence:  AbsenceType.JUSTIFIED,
-                startDate: absence.startDate,
-                endDate: absence.endDate,
+                typeAbsence: absence.typeAbsence, // Use the actual absence type from the record
+                startDate: new Date(absence.startDate).toISOString().split('T')[0], // Format date for input type="date"
+                endDate: new Date(absence.endDate).toISOString().split('T')[0],     // Format date for input type="date"
                 reason: absence.reason,
                 documentUrl: absence.documentUrl || '',
             });

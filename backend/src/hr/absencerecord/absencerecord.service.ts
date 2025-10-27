@@ -2,7 +2,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { CreateAbsenceRecordDto, UpdateAbsenceRecordDto } from './dto/absencerecord.dto';
-import { AbsenceRecord, AbsenceType } from '@prisma/client'; // Import AbsenceType
+import { AbsenceRecord, Prisma } from '@prisma/client'; // Import AbsenceType
 
 @Injectable()
 export class AbsenceRecordService {
@@ -53,17 +53,20 @@ export class AbsenceRecordService {
   async update(id: string, dto: UpdateAbsenceRecordDto): Promise<AbsenceRecord> {
     this.logger.log(`Updating absence record ${id}`);
     await this.findOne(id); // Vérifie si l'enregistrement existe
-    const dataToUpdate: Partial<UpdateAbsenceRecordDto> = { ...dto };
-
-    if (dto.startDate) {
-      dataToUpdate.startDate = new Date(dto.startDate);
-    }
-    if (dto.endDate) {
-      dataToUpdate.endDate = new Date(dto.endDate);
-    }
+    
+    // On ne construit l'objet de mise à jour qu'avec les champs pertinents
+    const dataToUpdate: Prisma.AbsenceRecordUpdateInput = {};
+    if (dto.typeAbsence) dataToUpdate.typeAbsence = dto.typeAbsence;
+    if (dto.startDate) dataToUpdate.startDate = new Date(dto.startDate);
+    if (dto.endDate) dataToUpdate.endDate = new Date(dto.endDate);
+    if (dto.reason !== undefined) dataToUpdate.reason = dto.reason;
+    if (dto.documentUrl !== undefined) dataToUpdate.documentUrl = dto.documentUrl;
+    // On ne permet pas de changer l'employé ou la filiale via cette méthode
+    
     return this.prisma.absenceRecord.update({
       where: { id },
       data: dataToUpdate,
+      include: { employee: true, subsidiary: true },
     });
   }
 
