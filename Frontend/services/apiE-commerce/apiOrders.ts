@@ -1,5 +1,5 @@
 import { api } from '.././api';
-import { CustomerPaymentMethod, OrderStatus, PaymentStatus } from '../../types';
+import { CustomerPaymentMethod, OrderStatus, PaymentStatus, CreditAccount } from '../../types';
 
 /**
  * DTO pour le filtrage des commandes, correspondant à FindAllOrdersDto du backend.
@@ -41,6 +41,14 @@ export const createOrderBySalesRep = async (orderData: FormData) => {
     });
     return data;
 };
+
+/**
+ * Recupere la liste des creances clients
+ */
+export const getCredit = async () => {
+    const { data } = await api.get('/ecommerce/orders/credit');
+    return data;
+}
 
 /**
  * Récupère toutes les commandes.

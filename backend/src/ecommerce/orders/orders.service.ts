@@ -43,7 +43,7 @@ export class OrdersService {
    * Met à jour le compte crédit d'un client.
    * Crée le compte s'il n'existe pas.
    */
-   private async updateCustomerCredit(
+  private async updateCustomerCredit(
     tx: Prisma.TransactionClient,
     contactId: string,
     subsidiaryId: string,
@@ -76,6 +76,8 @@ export class OrdersService {
       });
     }
   }
+
+
 
 
   /**
@@ -831,6 +833,17 @@ export class OrdersService {
 
       return updatedOrder;
     });
+  }
+
+  /**
+   * @param user connecte
+   * @returns la liste des contacts/clients avec des credits
+   */
+  async getAllCustomerCredit(user:any){
+    const creditAccount = await this.prisma.creditAccount.findMany({
+      where: {subsidiaryId: user.subsidiaryId},
+    })
+    return creditAccount;
   }
 
 }

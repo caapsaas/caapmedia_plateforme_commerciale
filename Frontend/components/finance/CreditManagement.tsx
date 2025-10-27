@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Subsidiary, Order, Contact, PaymentStatus } from '../../types';
+import { Subsidiary, CreditAccount } from '../../types';
+import { getCustomerReceivables, CustomerReceivablesStats } from '../../services/apiStatistic/apiFinanceStats';
 import { useI18n } from '../../i18n';
 import { exportToCsv } from '../../utils/csvExporter';
 import { exportToPdf } from '../../utils/pdfExporter';
@@ -7,8 +8,7 @@ import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
 import { useQuery } from '@tanstack/react-query';
-import { getOrders } from '../../services/apiE-commerce/apiOrders';
-import { getContacts } from '../../services/apiCrm/apiCrm';
+import { getCredit } from '../../services/apiE-commerce/apiOrders';
 import KpiCard from '../../Pages/KpiCard';
 import IconCreditCard from '../icons/IconCreditCard';
 
@@ -21,54 +21,27 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
     const [searchTerm, setSearchTerm] = useState('');
 
     // 1. Récupération des données réelles depuis le backend
-    const { data: orders = [], isLoading: isLoadingOrders } = useQuery<Order[]>({ queryKey: ['orders', subsidiary.id], queryFn: () => getOrders({}) });
-    const { data: contacts = [], isLoading: isLoadingContacts } = useQuery<Contact[]>({ queryKey: ['contacts', subsidiary.id], queryFn: () => getContacts(subsidiary.id) });
+    const { data: customerCredit = [], isLoading: isLoadingcredit } = useQuery<CreditAccount[]>({ 
+        queryKey: ['credit'], 
+        queryFn: () => getCredit()
+    });
 
-    // 2. Calcul des créances clients à partir des commandes non payées
-    const unpaidOrders = useMemo(() => {
-        return orders.filter(order =>
-            order.subsidiaryId === subsidiary.id &&
-            order.paymentStatus !== PaymentStatus.PAID &&
-            order.totalAmount > order.amountPaid
-        );
-    }, [orders, subsidiary.id]);
-
-    const customerCredits = useMemo(() => {
-        const credits: { [customerId: string]: { customerName: string; company: string; balance: number; lastPaymentDate: string } } = {};
-
-        unpaidOrders.forEach(order => {
-            const balanceDue = order.totalAmount - order.amountPaid;
-            if (!credits[order.customerId]) {
-                const contact = contacts.find(c => c.id === order.customerId);
-                credits[order.customerId] = {
-                    customerName: contact?.contactName || order.customerName,
-                    company: contact?.company || '',
-                    balance: 0,
-                    lastPaymentDate: new Date(order.date).toLocaleDateString(), // Simplification, pourrait être amélioré
-                };
-            }
-            credits[order.customerId].balance += balanceDue;
-        });
-
-        return Object.entries(credits).map(([customerId, data]) => ({
-            id: customerId,
-            ...data
-        }));
-    }, [unpaidOrders, contacts]);
-
-    const totalReceivables = useMemo(() => {
-        return unpaidOrders.reduce((acc, order) => acc + (order.totalAmount - order.amountPaid), 0);
-    }, [unpaidOrders]);
+    const { data: totalReceivables = 0, isLoading: isLoadingReceivable } = useQuery<CustomerReceivablesStats>({
+        queryKey: ['totalReceivables'],
+        queryFn: () => getCustomerReceivables({
+            period: 'ALL_TIME',
+        })
+    });
 
     // 3. Filtrage pour la barre de recherche
     const filteredCredits = useMemo(() => {
         const lowercasedTerm = searchTerm.toLowerCase();
-        if (!lowercasedTerm) return customerCredits;
-        return customerCredits.filter(credit => 
-            credit.customerName.toLowerCase().includes(lowercasedTerm) ||
-            (credit.company && credit.company.toLowerCase().includes(lowercasedTerm))
+        if (!lowercasedTerm) return customerCredit;
+        return customerCredit.filter(credit => 
+            credit.clientName.toLowerCase().includes(lowercasedTerm) ||
+            (credit.companyName && credit.companyName.toLowerCase().includes(lowercasedTerm))
         );
-    }, [customerCredits, searchTerm]);
+    }, [customerCredit, searchTerm]);
 
     const handlePrint = () => window.print();
 
@@ -95,14 +68,14 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
 
     const kpiData = {
         titleKey: 'credit.totalReceivables',
-        value: formatCurrency(totalReceivables),
+        value: formatCurrency(totalReceivables.totalReceivables),
         change: '', // Ajout de la propriété 'change' manquante
         icon: <IconCreditCard className="h-6 w-6 text-slate-500" />,
         changeType: 'increase' as const,
         descriptionKey: 'credit.totalReceivablesDesc'
     };
 
-    if (isLoadingOrders || isLoadingContacts) {
+    if (isLoadingReceivable) {
         return <div className="p-6 text-center">{t('common.loading')}</div>;
     }
 
@@ -154,10 +127,11 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
                         </thead>
                         <tbody>
                             {filteredCredits.map((account) => (
+                                console.log(account),
                                 <tr key={account.id} className="bg-white border-b hover:bg-slate-50">
-                                    <td className="px-6 py-4 font-medium text-slate-900">{account.customerName}</td>
-                                    <td className="px-6 py-4">{account.company}</td>
-                                    <td className="px-6 py-4">{account.lastPaymentDate}</td>
+                                    <td className="px-6 py-4 font-medium text-slate-900">{account.clientName}</td>
+                                    <td className="px-6 py-4">{account.companyName}</td>
+                                    <td className="px-6 py-4">{new Date(account.lastPaymentDate).toLocaleDateString('fr-FR')}</td>
                                     <td className="px-6 py-4 text-right font-bold text-red-600">{formatCurrency(account.balance)}</td>
                                     <td className="px-6 py-4 text-center no-print">
                                         <button className="font-medium text-[#c6e911] hover:text-[#adc40f] mr-4">{t('credit.viewDetails')}</button>

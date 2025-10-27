@@ -12,6 +12,7 @@ import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
+import { getImageUrl } from '../../utils/imageUtils';
 
 interface DocumentManagementProps {
     subsidiary: Subsidiary;
@@ -144,7 +145,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-center space-x-1 no-print">
-                                    <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-block p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-100 rounded-full transition-colors" aria-label={t('hr.absences.table.download')}>
+                                    <a href={getImageUrl(doc.fileUrl)} target="_blank" rel="noopener noreferrer" className="inline-block p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-100 rounded-full transition-colors" aria-label={t('hr.absences.table.download')}>
                                         <IconDownload className="h-5 w-5" />
                                     </a>
                                     <button onClick={() => handleOpenEditModal(doc)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>

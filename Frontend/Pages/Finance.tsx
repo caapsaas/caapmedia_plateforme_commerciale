@@ -13,7 +13,8 @@ import IconScale from '../components/icons/IconScale';
 import { useQuery } from '@tanstack/react-query';
 
 // Importez vos types de données et fonctions d'API
-import { Order, Product, ExpenseRecord, Sale, Equipment, SupplierDebt, FinancialTransaction, TreasuryAccount, PnlStatement, BalanceSheet as BalanceSheetType } from '../types';
+import { Order, Product, ExpenseRecord, Sale, Equipment, SupplierDebt, FinancialTransaction, TreasuryAccount } from '../types';
+import { PnlStatement, BalanceSheet as BalanceSheetType } from '../services/apiStatistic/apiFinanceStats';
 import { getOrders } from '../services/apiE-commerce/apiOrders';
 import { getProductsBySubsidiary as getProducts } from '../services/apiE-commerce/apiProducts';
 import { getSales } from '../services/apiE-commerce/apiSales'; // à créer

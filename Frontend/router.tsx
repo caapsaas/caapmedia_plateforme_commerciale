@@ -1,6 +1,6 @@
 import { createRouter, createRoute, createRootRoute, Outlet, redirect, createRootRouteWithContext } from '@tanstack/react-router';
 import App from './App'; // Nous allons refactorer App.tsx pour qu'il devienne notre layout
-import { AppProvider, useAppContext } from './context/AppContext';
+import { useAppContext } from './context/AppContext';
 import { useAuth } from './context/AuthContext'; // Importez le hook d'authentification
 import LoginPage from './Pages/LoginPage';
 import ECommercePage from './components/ecommerce/ECommercePage';

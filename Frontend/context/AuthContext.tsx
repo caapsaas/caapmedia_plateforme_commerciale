@@ -53,7 +53,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           logoutCustomer();
         }
       }
-    };
+    }
     fetchContact();
   }, [contactToken]);
 
@@ -76,7 +76,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setContact(null);
   };
 
-
+  
   const logout = () => {
     localStorage.removeItem('token');
     setToken(null);

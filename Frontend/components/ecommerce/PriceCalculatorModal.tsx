@@ -20,7 +20,7 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
     
     const [options, setOptions] = useState<Partial<ProductOptions>>({});
     const [quantity, setQuantity] = useState(100);
-    const [price, setPrice] = useState({ unitPrice: 0, totalPrice: 0 });
+    const [price, setPrice] = useState({ unitPriceHT: 0, totalPriceHT: 0 , totalPriceTTC: 0, taxAmount: 0 });
     const [designFile, setDesignFile] = useState<File | null>(null);
     const [activeImageIndex, setActiveImageIndex] = useState(0);
 
@@ -95,8 +95,8 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
             product,
             options,
             quantity,
-            unitPrice: price.unitPrice,
-            totalPrice: price.totalPrice,
+            unitPrice: price.unitPriceHT,
+            totalPrice: price.totalPriceHT,
             designFile: designFile ? { name: designFile.name, url: URL.createObjectURL(designFile) } : undefined,
             designFileObject: designFile || undefined
         });
@@ -229,8 +229,8 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
                 <div className="p-4 bg-slate-50 border-t flex-shrink-0 flex justify-between items-center">
                     <div className="text-left">
                          <p className="text-sm font-medium text-slate-500">{t('calculator.totalPrice')}</p>
-                         <p className="text-3xl font-bold text-slate-800">{formatCurrency(price.totalPrice)}</p>
-                         <p className="text-sm text-slate-600">~{formatCurrency(price.unitPrice)} / {t('calculator.unitPrice')}</p>
+                         <p className="text-3xl font-bold text-slate-800">{formatCurrency(price.totalPriceHT)}</p>
+                         <p className="text-sm text-slate-600">~{formatCurrency(price.unitPriceHT)} / {t('calculator.unitPrice')}</p>
                     </div>
                     <button onClick={handleSubmit} className="px-8 py-4 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f] transition-colors text-base">
                         {t('calculator.addToCart')}

@@ -79,6 +79,17 @@ export class OrdersController {
     }
 
     /**
+     * Endpoint pour recuperer la liste des creances client
+     * Exemple d'url : /ecommerce/orders/credit
+     */
+    @Get('/credit')
+    @UseGuards(JwtAuthGuard)
+    @SetMetadata('roles', [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR])
+    findAllCredit(@Req() req){
+        return this.ordersService.getAllCustomerCredit(req.user);
+    }
+
+    /**
      * Endpoint pour récupérer une commande par son ID
      * Exemple d'URL : /ecommerce/orders/:id
      */
