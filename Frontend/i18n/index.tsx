@@ -46,6 +46,8 @@ const frTranslations = {
     "CARD": "Carte",
     "CHECK": "Chèque",
     "MOBILE_MONEY": "Mobile Money",
+    "WAVE": "Wave",
+    "ORANGE_MONEY": "Orange Money",
     "PAYCAAP": "PayCaap",
     "PAY_ON_DELIVERY": "Paiement à la livraison",
     "CUSTOMER_CREDIT": "Crédit Client (30 jours)"
@@ -1257,6 +1259,7 @@ const frTranslations = {
     "form": {
         "name": "Nom de l'équipement",
         "status": "Statut",
+        "maintenanceDate": "Date de la maintenance",
         "lastMaintenanceDate": "Date de la dernière maintenance",
         "nextMaintenanceDate": "Date de la prochaine maintenance",
         "technician": "Technicien",
@@ -1320,6 +1323,8 @@ const enTranslations: Translations = {
         "CARD": "Card",
         "CHECK": "Check",
         "MOBILE_MONEY": "Mobile Money",
+        "WAVE": "Wave",
+        "ORANGE_MONEY": "Orange Money",
         "PAYCAAP": "PayCaap",
         "PAY_ON_DELIVERY": "Pay on Delivery",
         "CUSTOMER_CREDIT": "Customer Credit (30 days)"
@@ -2531,6 +2536,7 @@ const enTranslations: Translations = {
         "form": {
             "name": "Equipment Name",
             "status": "Status",
+            "maintenanceDate": "Maintenance Date",
             "lastMaintenanceDate": "Last Maintenance Date",
             "nextMaintenanceDate": "Next Maintenance Date",
             "technician": "Technician",

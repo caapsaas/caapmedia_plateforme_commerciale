@@ -36,12 +36,12 @@ const MaintenanceLogModal: React.FC<MaintenanceLogModalProps> = ({ isOpen, onClo
     };
 
     if (!isOpen) return null;
-
+    
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                 <div className="p-6 border-b">
-                    <h3 className="text-lg font-bold text-slate-900">{t('maintenance.modal.logTitle', { name: equipment.name })}</h3>
+                    <h3 className="text-lg font-bold text-slate-900">{t('maintenance.modal.logTitle', { name: equipment.equipmentName })}</h3>
                 </div>
                 <div className="p-6 overflow-y-auto flex-grow">
                     {!showAddForm && (
@@ -79,14 +79,14 @@ const MaintenanceLogModal: React.FC<MaintenanceLogModalProps> = ({ isOpen, onClo
                         </form>
                     ) : (
                         <ul className="space-y-3">
-                            {equipment.maintenanceHistory.map(record => (
+                            {equipment.maintenanceRecords.map(record => (
                                 <li key={record.id} className="text-sm border-l-4 border-slate-200 pl-4">
-                                    <p className="font-semibold">{record.maintenanceDate} - <span className="text-slate-600">{record.technician}</span></p>
+                                    <p className="font-semibold">{new Date(record.maintenanceDate).toLocaleDateString('fr-FR')} - <span className="text-slate-600">{record.technician}</span></p>
                                     <p className="text-slate-800">{record.description}</p>
                                     <p className="text-xs text-slate-500 font-medium">Coût: {formatCurrency(record.maintenanceCost)}</p>
                                 </li>
                             ))}
-                            {equipment.maintenanceHistory.length === 0 && <p>Aucun historique de maintenance.</p>}
+                            {equipment.maintenanceRecords.length === 0 && <p>Aucun historique de maintenance.</p>}
                         </ul>
                     )}
                 </div>

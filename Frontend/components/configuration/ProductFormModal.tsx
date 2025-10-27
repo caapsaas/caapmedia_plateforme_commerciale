@@ -43,10 +43,10 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ isOpen, onClose, on
         const firstCategory = Object.keys(categoryToKeyMap)[0] || '';
         const firstMainCategory = subCategoryToMainCategoryMap[firstCategory] || '';
         return {
-            name: '',
+            productName: '',
             mainCategory: firstMainCategory,
             category: firstCategory,
-            range: '',
+            productRange: '',
             description: '',
             stock: 0,
             price: 0,
@@ -70,7 +70,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ isOpen, onClose, on
             // Pré-remplir l'état du formulaire des options à partir de l'objet configurableOptions
             const optionsState = configurableOptions ? Object.entries(configurableOptions).reduce((acc: FormOptionsState, [optionType, items]: [string, ConfigurableOptionItem[]]) => {
                 acc[optionType as OptionType] = items.map(item => ({
-                    optionName: item.name,
+                    optionName: item.optionName,
                     multiplier: item.multiplier
                 }));
                 return acc;
@@ -141,11 +141,11 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ isOpen, onClose, on
     };
 
     const handleGenerateDescription = useCallback(async () => {
-        if (!formData.name) return;
+        if (!formData.productName) return;
         setIsGenerating(true);
         setDescriptionError(null);
         try {
-            const description = await generateProductDescription(formData.name);
+            const description = await generateProductDescription(formData.productName);
             setFormData(prev => ({ ...prev, description }));
         } catch (error) {
             console.error("Failed to generate description:", error);
@@ -154,7 +154,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ isOpen, onClose, on
         } finally {
             setIsGenerating(false);
         }
-    }, [formData.name, t]);
+    }, [formData.productName, t]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -181,8 +181,8 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ isOpen, onClose, on
                         <div className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                             {/* Form fields */}
                             <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
-                                <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <label htmlFor="productName" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
+                                <input type="text" name="productName" id="productName" value={formData.productName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
@@ -194,8 +194,8 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ isOpen, onClose, on
                                     </select>
                                 </div>
                                 <div>
-                                    <label htmlFor="range" className="block text-sm font-medium text-slate-700">{t('configuration.form.range')}</label>
-                                    <select name="range" id="range" value={formData.range || ''} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                    <label htmlFor="productRange" className="block text-sm font-medium text-slate-700">{t('configuration.form.range')}</label>
+                                    <select name="productRange" id="productRange" value={formData.productRange || ''} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                         <option value="">{t('productRange.none')}</option>
                                         {Object.keys(rangeToKeyMap).map(rangeKey => (
                                             <option key={rangeKey} value={rangeKey}>{t(rangeToKeyMap[rangeKey])}</option>
@@ -210,7 +210,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ isOpen, onClose, on
                                     <button
                                         type="button"
                                         onClick={handleGenerateDescription}
-                                        disabled={isGenerating || !formData.name}
+                                        disabled={isGenerating || !formData.productName}
                                         className="absolute top-2 right-2 p-1 text-purple-600 hover:text-purple-800 rounded-full hover:bg-purple-100 disabled:opacity-50"
                                         title={t('configuration.form.generateWithAI')}
                                     >

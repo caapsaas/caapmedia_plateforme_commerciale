@@ -23,18 +23,18 @@ const PeriodFilter: React.FC<PeriodFilterProps> = ({ period, onPeriodChange, sta
                     onChange={onPeriodChange}
                     className="bg-white border border-slate-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-[#c6e911] focus:border-[#c6e911] sm:text-sm"
                 >
-                    <option value="all_time">{t('filter.allTime')}</option>
-                    <option value="this_month">{t('pnl.thisMonth')}</option>
-                    <option value="last_month">{t('pnl.lastMonth')}</option>
-                    <option value="seven_days">{t('analytics.periods.seven_days')}</option>
-                    <option value="thirty_days">{t('analytics.periods.thirty_days')}</option>
-                    <option value="ninety_days">{t('analytics.periods.ninety_days')}</option>
-                    <option value="year">{t('analytics.periods.year')}</option>
-                    <option value="custom">{t('analytics.periods.custom')}</option>
+                    <option value="ALL_TIME">{t('filter.allTime')}</option>
+                    <option value="THIS_MONTH">{t('pnl.thisMonth')}</option>
+                    <option value="LAST_MONTH">{t('pnl.lastMonth')}</option>
+                    <option value="LAST_7_DAYS">{t('analytics.periods.seven_days')}</option>
+                    <option value="LAST_30_DAYS">{t('analytics.periods.thirty_days')}</option>
+                    <option value="LAST_90_DAYS">{t('analytics.periods.ninety_days')}</option>
+                    <option value="THIS_YEAR">{t('analytics.periods.year')}</option>
+                    <option value="CUSTOM">{t('analytics.periods.custom')}</option>
                 </select>
             </div>
             
-            {period === 'custom' && (
+            {period === 'CUSTOM' && (
                 <div className="flex flex-wrap items-center gap-2">
                     <input
                         type="date"

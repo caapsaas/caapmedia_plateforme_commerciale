@@ -88,7 +88,7 @@ const SupplierManagement: React.FC = () => {
                         {suppliers.map((supplier) => (
                             <tr key={supplier.id} className="bg-white border-b hover:bg-slate-50">
                                 <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{supplier.id}</th>
-                                <td className="px-6 py-4 font-semibold">{supplier.name}</td>
+                                <td className="px-6 py-4 font-semibold">{supplier.supplierName}</td>
                                 <td className="px-6 py-4">{supplier.company}</td>
                                 <td className="px-6 py-4">{supplier.email}</td>
                                 <td className="px-6 py-4">{supplier.phone}</td>
@@ -120,7 +120,7 @@ const SupplierManagement: React.FC = () => {
                     onClose={handleCloseModals}
                     onConfirm={handleDeleteSupplier}
                     title={t('configuration.modal.deleteSupplierTitle')}
-                    message={t('configuration.modal.deleteConfirmMessage', {itemName: deletingSupplier.name})}
+                    message={t('configuration.modal.deleteConfirmMessage', {itemName: deletingSupplier.supplierName})}
                 />
             )}
         </div>

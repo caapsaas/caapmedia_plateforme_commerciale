@@ -13,7 +13,7 @@ const SalesChart: React.FC<SalesChartProps> = ({ data }) => {
   const translatedData = data.map(item => ({
     ...item,
     name: t(item.key),
-    [t('dashboard.chartSalesLabel')]: item.sales
+    [t('analytics.dashboard.chartSalesLabel')]: item.sales
   }));
 
   return (
@@ -35,7 +35,7 @@ const SalesChart: React.FC<SalesChartProps> = ({ data }) => {
                     }}
                 />
                 <Legend />
-                <Bar dataKey={t('dashboard.chartSalesLabel')} fill="#c6e911" radius={[4, 4, 0, 0]} />
+                <Bar dataKey={t('analytics.dashboard.chartSalesLabel')} fill="#c6e911" radius={[4, 4, 0, 0]} />
             </BarChart>
         </ResponsiveContainer>
     </div>

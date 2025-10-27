@@ -257,7 +257,7 @@ export type ClientStatus = ContactStatus;
 
 export interface Supplier {
   id: string;
-  name: string;
+  supplierName: string;
   company: string;
   email: string;
   phone: string;
@@ -793,7 +793,7 @@ export interface Equipment {
 
 export interface TaxRate {
   id: string;
-  name: string;
+  taxRatesName: string;
   rate: number; // e.g., 0.1925 for 19.25%
   isDefault: boolean;
   description?: string;

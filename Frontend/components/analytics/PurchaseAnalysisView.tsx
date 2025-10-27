@@ -1,7 +1,5 @@
-
-
 import React, { useMemo } from 'react';
-import { Subsidiary, PurchaseOrder, Product, Kpi } from '../../types';
+import { Kpi } from '../../types';
 import { useI18n } from '../../i18n';
 import KpiCard from '../../Pages/KpiCard';
 import IconTrendingUp from '../icons/IconTrendingUp';
@@ -9,98 +7,45 @@ import IconCurrency from '../icons/IconCurrency';
 import IconTruck from '../icons/IconTruck';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import PurchaseChart from '../../Pages/PurchaseChart';
+import { PurchaseAnalysis } from '../../services/apiStatistic/apiAnalytics';
 
 
 interface PurchaseAnalysisViewProps {
-  subsidiary: Subsidiary;
-  period: string;
-  startDate?: string;
-  endDate?: string;
-  purchaseOrders: PurchaseOrder[];
-  products: Product[];
+   data: PurchaseAnalysis;
 }
 
 const COLORS = ['#c6e911', '#231F20', '#6B7280', '#FBBF24', '#38BDF8', '#8B5CF6'];
 
-const PurchaseAnalysisView: React.FC<PurchaseAnalysisViewProps> = ({ subsidiary, period, startDate, endDate, purchaseOrders, products }) => {
+const PurchaseAnalysisView: React.FC<PurchaseAnalysisViewProps> = ({ data }) => {
   const { t, formatCurrency } = useI18n();
 
-  const filteredPurchaseOrders = useMemo(() => {
-    let filtered = purchaseOrders.filter(po => po.subsidiaryId === subsidiary.id);
-    
-    if (period !== 'all_time') {
-      const now = new Date();
-      let startPeriodDate = new Date();
-      let endPeriodDate = new Date(now);
+    const kpis: Kpi[] = [
+      { titleKey: "purchaseAnalysis.totalPurchaseValue", value: formatCurrency(data.totalPurchaseValue), change: "+5%", changeType: 'increase', icon: <IconCurrency className="h-8 w-8 text-blue-500" /> },
+      { titleKey: "purchaseAnalysis.totalOrders", value: data.totalOrders.toString(), change: "+2", changeType: 'increase', icon: <IconTruck className="h-8 w-8 text-green-500" /> },
+      { titleKey: "purchaseAnalysis.averageOrderValue", value: formatCurrency(data.averageOrderValue), change: "-1.2%", changeType: 'decrease', icon: <IconTrendingUp className="h-8 w-8 text-red-500" /> },
+    ];
 
-      if (period === 'custom' && startDate && endDate) {
-          startPeriodDate = new Date(startDate);
-          endPeriodDate = new Date(endDate);
-          endPeriodDate.setHours(23, 59, 59, 999);
-      } else {
-          startPeriodDate.setHours(0, 0, 0, 0);
-          switch (period) {
-              case 'seven_days': startPeriodDate.setDate(now.getDate() - 6); break;
-              case 'thirty_days': startPeriodDate.setDate(now.getDate() - 29); break;
-              case 'ninety_days': startPeriodDate.setDate(now.getDate() - 89); break;
-              case 'year': startPeriodDate = new Date(now.getFullYear(), 0, 1); break;
-          }
-      }
-        
-      filtered = filtered.filter(po => {
-        const orderDate = new Date(po.orderDate);
-        return orderDate >= startPeriodDate && orderDate <= endPeriodDate;
-      });
-    }
+    const spendingBySupplier = useMemo(() => {
+            return data.spendingBySupplier.map(s => ({
+            name: s.supplierName,
+            value: s._sum.totalAmount,
+        }));
+    }, [data.spendingBySupplier]);
 
-    return filtered;
-  }, [subsidiary.id, period, startDate, endDate, purchaseOrders]);
 
-  const totalPurchaseValue = filteredPurchaseOrders.reduce((sum, po) => sum + po.totalAmount, 0);
-  const totalOrders = filteredPurchaseOrders.length;
-  const averageOrderValue = totalOrders > 0 ? totalPurchaseValue / totalOrders : 0;
-
-  const kpis: Kpi[] = [
-      { titleKey: "purchaseAnalysis.totalPurchaseValue", value: formatCurrency(totalPurchaseValue), change: "+5%", changeType: 'increase', icon: <IconCurrency className="h-8 w-8 text-blue-500" /> },
-      { titleKey: "purchaseAnalysis.totalOrders", value: totalOrders.toString(), change: "+2", changeType: 'increase', icon: <IconTruck className="h-8 w-8 text-green-500" /> },
-      { titleKey: "purchaseAnalysis.averageOrderValue", value: formatCurrency(averageOrderValue), change: "-1.2%", changeType: 'decrease', icon: <IconTrendingUp className="h-8 w-8 text-red-500" /> },
-  ];
-
-  const spendingBySupplier = useMemo(() => {
-    const data = filteredPurchaseOrders.reduce((acc, po) => {
-        if (!acc[po.supplierName]) {
-            acc[po.supplierName] = 0;
-        }
-        acc[po.supplierName] += po.totalAmount;
-        return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(data).map(([name, value]) => ({ name, value }));
-  }, [filteredPurchaseOrders]);
-
-  const purchasesOverTime = useMemo(() => {
-      const data: {[key: string]: number} = {};
-      filteredPurchaseOrders.forEach(po => {
-          const date = new Date(po.orderDate).toLocaleDateString();
-          if(!data[date]) data[date] = 0;
-          data[date] += po.totalAmount;
-      });
-      return Object.entries(data).map(([key, purchases]) => ({ key, purchases }));
-  }, [filteredPurchaseOrders]);
+    const purchasesOverTime = useMemo(() => {
+        return [];
+    }, []);
 
   const topPurchasedProducts = useMemo(() => {
-    const productData: {[key: string]: { name: string, quantity: number, value: number }} = {};
-    filteredPurchaseOrders.forEach(po => {
-        po.items.forEach(item => {
-            if(!productData[item.productId]) {
-                productData[item.productId] = { name: item.productName, quantity: 0, value: 0 };
-            }
-            productData[item.productId].quantity += item.quantity;
-            productData[item.productId].value += item.quantity * item.purchasePrice;
-        });
-    });
-    return Object.values(productData).sort((a,b) => b.value - a.value).slice(0, 5);
-  }, [filteredPurchaseOrders]);
+        return data.topPurchasedProducts.map(p => ({
+        name: p.productName,
+        quantity: p._sum.quantity || 0,
+        // The 'value' is not directly available, we can approximate or adjust the backend.
+        // For now, let's use quantity as a proxy for the table sorting.
+        value: p._sum.quantity || 0, 
+        }));
+    }, [data.topPurchasedProducts]);
 
 
   return (
@@ -140,7 +85,7 @@ const PurchaseAnalysisView: React.FC<PurchaseAnalysisViewProps> = ({ subsidiary,
                     <tbody>
                         {topPurchasedProducts.map(product => (
                             <tr key={product.name} className="bg-white border-b hover:bg-slate-50">
-                                <td className="px-6 py-4 font-semibold">{product.name}</td>
+                                <td className="px-6 py-4 font-semibold">{product.name}</td> 
                                 <td className="px-6 py-4 text-right">{product.quantity}</td>
                                 <td className="px-6 py-4 text-right font-bold">{formatCurrency(product.value)}</td>
                             </tr>

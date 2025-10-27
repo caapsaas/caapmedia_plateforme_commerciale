@@ -150,7 +150,7 @@ export class PurchaseOrdersService {
 
         return this.prisma.purchaseOrder.findMany({
             where,
-            include: { supplier: true, purchaseOrderItems: true },
+            include: { supplier: true, purchaseOrderItems: true, purchaseOrderHistory: true},
             orderBy: { orderDate: 'desc' },
         });
     }
@@ -184,14 +184,24 @@ export class PurchaseOrdersService {
      * @param user Utilisateur connecté
      * @returns Bon de commande mis à jour
      */
-    async receiveItems(id: string, receiveItemsDto: ReceiveItemsDto, user: User) {
+    async receiveItems(id: string, receiveItemsDto: ReceiveItemsDto, authenticatedUser: User) {
+        const { subsidiaryId } = authenticatedUser;
         return this.prisma.$transaction(async (tx) => {
             const order = await tx.purchaseOrder.findUnique({
                 where: { id },
                 include: { purchaseOrderItems: true },
             });
 
-            if (!order || order.subsidiaryId !== user.subsidiaryId) {
+            const fullUser = await tx.user.findUnique({
+                where: { id: authenticatedUser.id },
+                select: { userName: true },
+            });
+            if (!fullUser) {
+                throw new NotFoundException('Utilisateur authentifié non trouvé.');
+            }
+            const userNameForHistory = fullUser.userName;
+
+            if (!order || order.subsidiaryId !== subsidiaryId) {
                 throw new NotFoundException(`Bon de commande avec l'ID "${id}" non trouvé.`);
             }
 
@@ -252,7 +262,7 @@ export class PurchaseOrdersService {
             await tx.purchaseOrderHistory.create({
                 data: {
                     purchaseOrderId: id,
-                    eventName: `Réception de ${receiveItemsDto.items.length} article(s) par ${user.userName}`,
+                    eventName: `Réception de ${receiveItemsDto.items.length} article(s) par ${userNameForHistory}`,
                 },
             });
 
@@ -267,12 +277,21 @@ export class PurchaseOrdersService {
      * @param user Utilisateur connecté
      * @returns Bon de commande mis à jour
      */
-    async recordPayment(id: string, recordPaymentDto: RecordPurchasePaymentDto, user: User) {
+    async recordPayment(id: string, recordPaymentDto: RecordPurchasePaymentDto, authenticatedUser: User) {
         const { amount } = recordPaymentDto;
         const paymentAmount = new Decimal(amount);
 
         return this.prisma.$transaction(async (tx) => {
-            const order = await this.findOne(id, user); // Utilise findOne pour la validation
+            const order = await this.findOne(id, authenticatedUser); // Utilise findOne pour la validation
+           const { subsidiaryId } = authenticatedUser;
+            const fullUser = await tx.user.findUnique({
+                where: { id: authenticatedUser.id },
+                select: { userName: true },
+            });
+            if (!fullUser) {
+                throw new NotFoundException('Utilisateur authentifié non trouvé.');
+            }
+            const userNameForHistory = fullUser.userName;
 
             const newAmountPaid = order.amountPaid.add(paymentAmount);
             if (newAmountPaid.greaterThan(order.totalAmount)) {
@@ -316,7 +335,7 @@ export class PurchaseOrdersService {
                         amount: order.totalAmount.sub(newAmountPaid),
                         status: debtStatus,
                         purchaseOrderId: id,
-                        subsidiaryId: user.subsidiaryId,
+                        subsidiaryId: subsidiaryId,
                     },
                 });
             }
@@ -325,7 +344,7 @@ export class PurchaseOrdersService {
             await tx.purchaseOrderHistory.create({
                 data: {
                     purchaseOrderId: id,
-                    eventName: `Paiement de ${amount} enregistré par ${user.userName}`,
+                    eventName: `Paiement de ${amount} enregistré par ${userNameForHistory}`,
                 },
             });
 
@@ -340,9 +359,18 @@ export class PurchaseOrdersService {
      * @param user Utilisateur connecté
      * @returns Bon de commande mis à jour
      */
-    async updateStatus(id: string, updateStatusDto: UpdatePurchaseOrderStatusDto, user: User) {
+    async updateStatus(id: string, updateStatusDto: UpdatePurchaseOrderStatusDto, authenticatedUser: User) {
         const { status } = updateStatusDto;
-        await this.findOne(id, user); // Valide l'existence et les droits
+        await this.findOne(id, authenticatedUser); // Valide l'existence et les droits
+
+        const fullUser = await this.prisma.user.findUnique({
+            where: { id: authenticatedUser.id },
+            select: { userName: true },
+        });
+        if (!fullUser) {
+            throw new NotFoundException('Utilisateur authentifié non trouvé.');
+        }
+        const userNameForHistory = fullUser.userName;
 
         return this.prisma.$transaction(async (tx) => {
             const updatedOrder = await tx.purchaseOrder.update({
@@ -353,7 +381,7 @@ export class PurchaseOrdersService {
             await tx.purchaseOrderHistory.create({
                 data: {
                     purchaseOrderId: id,
-                    eventName: `Statut changé à ${status} par ${user.userName}`,
+                    eventName: `Statut changé à ${status} par ${userNameForHistory}`,
                 },
             });
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useI18n } from '../../i18n';
-import { Equipment, EquipmentStatus, MaintenanceRecord } from '../../types';
+import { Equipment, EquipmentStatus } from '../../types';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
@@ -125,14 +125,14 @@ const Maintenance: React.FC = () => {
                         <tbody>
                             {equipment.map((item) => (
                                 <tr key={item.id} className="bg-white border-b hover:bg-slate-50">
-                                    <td className="px-6 py-4 font-semibold">{item.name}</td>
+                                    <td className="px-6 py-4 font-semibold">{item.equipmentName}</td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(item.status)}`}>
                                             {t(`maintenance.status_${item.status}`)}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4">{item.lastMaintenanceDate}</td>
-                                    <td className="px-6 py-4">{item.nextMaintenanceDate}</td>
+                                    <td className="px-6 py-4">{new Date(item.lastMaintenanceDate).toLocaleDateString('fr-FR')}</td>
+                                    <td className="px-6 py-4">{new Date(item.nextMaintenanceDate).toLocaleDateString('fr-FR')}</td>
                                     <td className="px-6 py-4 text-center space-x-1">
                                         <button onClick={() => handleOpenLogModal(item)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-100 rounded-full" title={t('maintenance.history')}>
                                             <IconClipboardList className="h-5 w-5" />
@@ -165,7 +165,7 @@ const Maintenance: React.FC = () => {
                     onClose={handleCloseModals}
                     onConfirm={handleDelete}
                     title={t('maintenance.modal.deleteTitle')}
-                    message={t('configuration.modal.deleteConfirmMessage', { itemName: deletingEquipment.name })}
+                    message={t('configuration.modal.deleteConfirmMessage', { itemName: deletingEquipment.equipmentName })}
                 />
             )}
              {isLogModalOpen && viewingLogFor && (

@@ -1,70 +1,95 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '../i18n';
-import { MOCK_SUBSIDIARIES } from '../constants';
 import PeriodFilter from '../components/filters/PeriodFilter';
 import DashboardView from '../components/analytics/DashboardView';
 import SalesAnalysisView from '../components/analytics/SalesAnalysisView';
 import PurchaseAnalysisView from '../components/analytics/PurchaseAnalysisView';
 import BankView from '../components/analytics/BankView';
 import SafeView from '../components/analytics/SafeView';
-import { useAppContext } from '../context/AppContext';
+import { getDashboardStats, getSalesAnalysis, getPurchaseAnalysis, PeriodFilter as PeriodFilterType } from '../services/apiStatistic/apiAnalytics';
 
-type AnalyticsView = 'general' | 'dashboard' | 'sales' | 'purchases' | 'banks' | 'safe';
+type AnalyticsView = 'dashboard' | 'sales' | 'purchases' | 'banks' | 'safe';
 
 const Analytics: React.FC = () => {
-    const { state } = useAppContext();
-    const { currentSubsidiary, products = [], sales = [], orders = [], contacts = [], currentUser, purchaseOrders = [] } = state;
     const { t } = useI18n();
     const [activeTab, setActiveTab] = useState<AnalyticsView>('dashboard');
-    const [selectedSubsidiaryId, setSelectedSubsidiaryId] = useState(currentSubsidiary?.id || '');
-    const [selectedPeriod, setSelectedPeriod] = useState('thirty_days');
+    const [selectedSubsidiaryId, setSelectedSubsidiaryId] = useState('');
+    const [selectedPeriod, setSelectedPeriod] = useState<PeriodFilterType>('LAST_30_DAYS');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+
+    const isCustomPeriodValid =selectedPeriod !== 'CUSTOM' || (!!startDate && !!endDate && startDate <= endDate);
+
     
     const handlePeriodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newPeriod = e.target.value;
+        const newPeriod = e.target.value as PeriodFilterType;
         setSelectedPeriod(newPeriod);
-        if (newPeriod !== 'custom') {
+        if (newPeriod !== 'CUSTOM') {
             setStartDate('');
             setEndDate('');
         }
     };
 
     const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSelectedPeriod('custom');
+        setSelectedPeriod('CUSTOM');
         setStartDate(e.target.value);
     };
     
     const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSelectedPeriod('custom');
+        setSelectedPeriod('CUSTOM');
         setEndDate(e.target.value);
     };
 
-    const renderActiveView = () => {
-        const subsidiary = MOCK_SUBSIDIARIES.find(s => s.id === selectedSubsidiaryId) || currentSubsidiary;
-        if (!subsidiary || !currentUser) return null;
+    const queryParams = useMemo(() => ({
+        period: selectedPeriod.toLowerCase(),
+        startDate: selectedPeriod === 'CUSTOM' && startDate ? startDate : undefined,
+        endDate: selectedPeriod === 'CUSTOM' && endDate ? endDate : undefined,
+    }), [selectedPeriod, startDate, endDate]);
 
-        const commonProps = {
-            subsidiary,
-            period: selectedPeriod,
-            startDate,
-            endDate,
-        };
+    // --- TanStack Query Data Fetching ---
+    const { data: dashboardData, isLoading: isLoadingDashboard } = useQuery({
+        queryKey: ['dashboardStats', queryParams],
+        queryFn: () => getDashboardStats(queryParams),
+        enabled: activeTab === 'dashboard' && isCustomPeriodValid,
+    });
+
+    const { data: salesAnalysisData, isLoading: isLoadingSales } = useQuery({
+        queryKey: ['salesAnalysis', queryParams],
+        queryFn: () => getSalesAnalysis(queryParams),
+        enabled: activeTab === 'sales' && isCustomPeriodValid,
+    });
+
+    const { data: purchaseAnalysisData, isLoading: isLoadingPurchases } = useQuery({
+        queryKey: ['purchaseAnalysis', queryParams],
+        queryFn: () => getPurchaseAnalysis(queryParams),
+        enabled: activeTab === 'purchases' && isCustomPeriodValid,
+    });
+
+    const renderActiveView = () => {
+        if (selectedPeriod === 'CUSTOM' && (!startDate || !endDate || startDate > endDate)) {
+            return <div className="p-6 text-center text-slate-500">{t('analytics.periods.selectDates')}</div>;
+        }
+        // Only show loading if the current active tab's data is loading
+        const isLoading = (activeTab === 'dashboard' && isLoadingDashboard) ||
+                         (activeTab === 'sales' && isLoadingSales) ||
+                         (activeTab === 'purchases' && isLoadingPurchases);
+        if (isLoading) return <div>{t('common.loading')}</div>;
 
         switch (activeTab) {
             case 'dashboard':
-                return <DashboardView {...commonProps} products={products} sales={sales} orders={orders} clients={contacts} currentUser={currentUser} />;
+                return dashboardData ? <DashboardView data={dashboardData} /> : null;
             case 'sales':
-                return <SalesAnalysisView {...commonProps} orders={orders} sales={sales} products={products} clients={contacts} currentUser={currentUser} />;
+                return salesAnalysisData ? <SalesAnalysisView data={salesAnalysisData} /> : null;
             case 'purchases':
-                return <PurchaseAnalysisView {...commonProps} purchaseOrders={purchaseOrders} products={products} />;
+                return purchaseAnalysisData ? <PurchaseAnalysisView data={purchaseAnalysisData} /> : null;
             case 'banks':
-                return <BankView {...commonProps} />;
+                 // Ces vues n'ont pas encore d'API, on garde l'ancienne structure pour l'instant
+                return <BankView subsidiary={{id: selectedSubsidiaryId, name: 'Dummy'}} period={selectedPeriod} startDate={startDate} endDate={endDate} />;
             case 'safe':
-                return <SafeView {...commonProps} />;
+                return <SafeView subsidiary={{id: selectedSubsidiaryId, name: 'Dummy'}} period={selectedPeriod} startDate={startDate} endDate={endDate} />;
             default:
-                return <DashboardView {...commonProps} products={products} sales={sales} orders={orders} clients={contacts} currentUser={currentUser} />;
-        }
+                return dashboardData ? <DashboardView data={dashboardData} /> : null;        }
     };
 
     const TABS: { view: AnalyticsView; label: string }[] = [
@@ -93,18 +118,6 @@ const Analytics: React.FC = () => {
             <div className="flex flex-col md:flex-row justify-between md:items-start gap-4">
                 <h1 className="text-4xl font-bold text-slate-800">{t('analytics.title')}</h1>
                 <div className="flex items-center space-x-4">
-                    <div>
-                         <label htmlFor="subsidiary-filter" className="text-sm font-medium text-slate-600 sr-only">Filiale</label>
-                         <select
-                            id="subsidiary-filter"
-                            value={selectedSubsidiaryId}
-                            onChange={(e) => setSelectedSubsidiaryId(e.target.value)}
-                            className="bg-white border border-slate-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400 sm:text-sm"
-                         >
-                            <option value="">Toutes les filiales</option>
-                            {MOCK_SUBSIDIARIES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                         </select>
-                    </div>
                     <PeriodFilter 
                         period={selectedPeriod}
                         onPeriodChange={handlePeriodChange}

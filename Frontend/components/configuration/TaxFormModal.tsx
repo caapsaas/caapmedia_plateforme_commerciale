@@ -13,7 +13,7 @@ interface TaxFormModalProps {
 const TaxFormModal: React.FC<TaxFormModalProps> = ({ isOpen, onClose, onSave, taxRate }) => {
     const { t } = useI18n();
     const initialFormState = {
-        name: '',
+        taxRatesName: '',
         rate: 0,
         isDefault: false,
         description: '',
@@ -23,7 +23,7 @@ const TaxFormModal: React.FC<TaxFormModalProps> = ({ isOpen, onClose, onSave, ta
     useEffect(() => {
         if (taxRate) {
             setFormData({
-                name: taxRate.name,
+                taxRatesName: taxRate.taxRatesName,
                 rate: taxRate.rate,
                 isDefault: taxRate.isDefault,
                 description: taxRate.description || '',
@@ -61,8 +61,8 @@ const TaxFormModal: React.FC<TaxFormModalProps> = ({ isOpen, onClose, onSave, ta
                         </h3>
                         <div className="mt-4 space-y-4">
                             <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
-                                <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <label htmlFor="taxRatesName" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
+                                <input type="text" name="taxRatesName" id="taxRatesName" value={formData.taxRatesName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
                                 <label htmlFor="rate" className="block text-sm font-medium text-slate-700">{t('configuration.form.rate')}</label>
