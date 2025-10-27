@@ -15,12 +15,20 @@ const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClo
     const [minutes, setMinutes] = useState(meeting.minutes);
     const [isEditing, setIsEditing] = useState(false);
 
-    const getParticipantNames = (participantIds: string[]) => {
-        return participantIds.map(id => {
+    const formatDate = (dateStr: string | Date) => new Date(dateStr).toLocaleDateString();
+    const formatTime = (timeStr: string | Date) => new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // Convertit les participantIds en noms complets
+   const getParticipantNames = (participantIds: string[]) => {
+    if (!participantIds || participantIds.length === 0) return '';
+    return participantIds
+        .map(id => {
             const employee = employees.find(e => e.id === id);
             return employee ? `${employee.firstName} ${employee.lastName}` : id;
-        }).join(', ');
-    };
+        })
+        .join(', ');
+};
+
 
     const handleSave = () => {
         onSaveMinutes(meeting.id, minutes);
@@ -39,17 +47,18 @@ const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClo
                 <div className="p-6 space-y-4 overflow-y-auto">
                     <div>
                         <h4 className="font-semibold text-slate-700">{t('secretariat.meetings.table.date')}</h4>
-                        <p className="text-slate-600">{`${meeting.date} at ${meeting.time}`}</p>
+                        <p className="text-slate-600">{`${formatDate(meeting.meetingDate)} at ${formatTime(meeting.meetingTime)}`}</p>
                     </div>
                     <div>
                         <h4 className="font-semibold text-slate-700">{t('secretariat.meetings.table.location')}</h4>
-                        <p className="text-slate-600">{meeting.location}</p>
+                        <p className="text-slate-600">{meeting.meetingLocation}</p>
                     </div>
-                     <div>
+                    <div>
                         <h4 className="font-semibold text-slate-700">{t('secretariat.meetings.table.participants')}</h4>
-                        <p className="text-slate-600">{getParticipantNames(meeting.participants)}</p>
+                    <p className="text-slate-600">{getParticipantNames(meeting.participantIds || [])}</p>
+
                     </div>
-                     <div>
+                    <div>
                         <h4 className="font-semibold text-slate-700">{t('secretariat.meetings.details.agenda')}</h4>
                         <pre className="text-slate-600 bg-slate-50 p-2 rounded-md whitespace-pre-wrap font-sans">{meeting.agenda}</pre>
                     </div>
@@ -70,7 +79,7 @@ const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClo
                                 className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                             />
                         ) : (
-                             <pre className="text-slate-600 bg-slate-50 p-2 rounded-md whitespace-pre-wrap font-sans min-h-[100px]">
+                            <pre className="text-slate-600 bg-slate-50 p-2 rounded-md whitespace-pre-wrap font-sans min-h-[100px]">
                                 {minutes || t('secretariat.meetings.details.noMinutes')}
                             </pre>
                         )}
@@ -79,13 +88,13 @@ const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClo
                 <div className="px-6 py-4 bg-slate-50 flex justify-end space-x-3 rounded-b-lg">
                     {isEditing && (
                         <>
-                           <button onClick={() => setIsEditing(false)} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors">{t('common.cancel')}</button>
-                           <button onClick={handleSave} className="px-4 py-2 bg-[#c6e911] text-slate-800 rounded-md hover:bg-[#adc40f] transition-colors">{t('common.save')}</button>
+                            <button onClick={() => setIsEditing(false)} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors">{t('common.cancel')}</button>
+                            <button onClick={handleSave} className="px-4 py-2 bg-[#c6e911] text-slate-800 rounded-md hover:bg-[#adc40f] transition-colors">{t('common.save')}</button>
                         </>
                     )}
-                     {!isEditing && (
+                    {!isEditing && (
                         <button onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors">{t('common.close')}</button>
-                     )}
+                    )}
                 </div>
             </div>
         </div>

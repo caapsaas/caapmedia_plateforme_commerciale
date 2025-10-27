@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { CompanyDocument, DocumentCategory, DocumentStatus } from '../../types';
 import { useI18n } from '../../i18n';
 
@@ -12,7 +13,7 @@ interface DocumentFormModalProps {
 const DocumentFormModal: React.FC<DocumentFormModalProps> = ({ isOpen, onClose, onSave, document }) => {
     const { t } = useI18n();
     const initialFormState = {
-        name: '',
+        documentName: '',
         category: DocumentCategory.OTHER,
         status: DocumentStatus.DRAFT,
         uploadDate: new Date().toISOString().split('T')[0],
@@ -24,7 +25,7 @@ const DocumentFormModal: React.FC<DocumentFormModalProps> = ({ isOpen, onClose, 
     useEffect(() => {
         if (document) {
             setFormData({
-                name: document.name,
+                documentName: document.name,
                 category: document.category,
                 status: document.status,
                 uploadDate: document.uploadDate
@@ -46,17 +47,24 @@ const DocumentFormModal: React.FC<DocumentFormModalProps> = ({ isOpen, onClose, 
         }
     };
     
+    const { subsidiary } = useAuth();
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const data = new FormData();
         if (document?.id) {
             data.append('id', document.id);
         }
-        data.append('name', formData.name);
+        data.append('documentName', formData.documentName);
         data.append('category', formData.category);
         data.append('status', formData.status);
         data.append('uploadDate', formData.uploadDate);
         if (file) data.append('file', file);
+         if (subsidiary?.id) {
+            data.append('subsidiaryId', subsidiary.id);
+        } else {
+            console.warn("⚠️ Aucun subsidiary trouvé dans le contexte Auth !");
+        }
         onSave(data);
     };
 
@@ -72,8 +80,8 @@ const DocumentFormModal: React.FC<DocumentFormModalProps> = ({ isOpen, onClose, 
                         </h3>
                         <div className="mt-4 space-y-4">
                             <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-slate-700">{t('secretariat.documents.table.name')}</label>
-                                <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <label htmlFor="documentName" className="block text-sm font-medium text-slate-700">{t('secretariat.documents.table.name')}</label>
+                                <input type="text" name="documentName" id="documentName" value={formData.documentName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>

@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException 
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '../../src/common/utils/prisma/prisma.service';
 import { LoggerService } from '../../src/common/utils/logger/logger.service';
-import { UserRole, DocumentCategory, DocumentStatus, SecretariatTaskStatus } from '@prisma/client';
+import { UserRole, DocumentCategory, DocumentStatus, SecretariatTaskStatus, Prisma } from '@prisma/client';
 import { CreateCompanyDocumentDto } from './dto/create-company-document.dto'; // Import DTO
 
 @Injectable()

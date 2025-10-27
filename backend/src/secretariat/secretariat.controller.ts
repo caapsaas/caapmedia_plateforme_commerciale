@@ -13,10 +13,10 @@ import {
   ValidationPipe,
   UseInterceptors,
   BadRequestException,
-  UploadedFile,
-  
+  UploadedFile, // Gardé pour la compatibilité de l'update
+  UploadedFiles, // Ajouté pour la création
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express'; // Changed to FileInterceptor
+import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { SecretariatService } from './secretariat.service';
@@ -40,12 +40,12 @@ export class SecretariatController {
   @Post('documents')
   @UsePipes(new ValidationPipe({ transform: true })) // Validation auto du DTO
   @UseInterceptors(
-    FileInterceptor('file', { // 'file' = nom du champ fichier dans le FormData frontend
+    FileFieldsInterceptor([{ name: 'file', maxCount: 1 }], {
     storage: diskStorage({
       destination: './public/uploads/secretariat', // Consistent path with orders module
       filename: (_req, file, cb) => {
         const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join(''); // Random name from orders module
-        cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
+        cb(null, `${randomName}${extname(file.originalname)}`);
       },
     }),
     fileFilter: (_req, file, cb) => {
@@ -58,10 +58,11 @@ export class SecretariatController {
   }),
   )
   async createCompanyDocument(
-    @UploadedFile() file: Express.Multer.File, // Capture le fichier uploadé
+    @UploadedFiles() files: { file?: Express.Multer.File[] },
     @Body() dto: CreateCompanyDocumentDto, // Parse les champs texte (subsidiaryId, etc.)
     @Req() req,
   ) {
+    const file = files?.file?.[0];
     if (!file) {
       throw new BadRequestException('Un fichier est requis pour créer le document');
     }

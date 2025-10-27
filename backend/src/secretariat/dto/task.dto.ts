@@ -20,7 +20,7 @@ export class CreateSecretariatTaskDto {
   assignedToId?: string;
 
   @IsUUID()
-  subsidiaryId?: string;
+  subsidiaryId: string;
 }
 
  export class UpdateSecretariatTaskDto {
@@ -58,5 +58,3 @@ export class CreateSecretariatTaskDto {
   @IsDateString()
   dueDate?: Date;
 }
-
-

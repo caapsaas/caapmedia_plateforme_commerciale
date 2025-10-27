@@ -70,7 +70,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
 
     const handleExportCsv = () => {
         const headers = [
-            { key: 'name', label: t('secretariat.documents.table.name') },
+            { key: 'documentName', label: t('secretariat.documents.table.name') },
             { key: 'category', label: t('secretariat.documents.table.category') },
             { key: 'uploadDate', label: t('secretariat.documents.table.uploadDate') },
             { key: 'status', label: t('secretariat.documents.table.status') },
@@ -85,7 +85,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
 
     const handleExportPdf = () => {
         const headers = [
-            { key: 'name', label: t('secretariat.documents.table.name') },
+            { key: 'documentName', label: t('secretariat.documents.table.name') },
             { key: 'category', label: t('secretariat.documents.table.category') },
             { key: 'uploadDate', label: t('secretariat.documents.table.uploadDate') },
             { key: 'status', label: t('secretariat.documents.table.status') },
@@ -135,7 +135,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
                     <tbody>
                         {documents.map((doc) => (
                             <tr key={doc.id} className="bg-white border-b hover:bg-slate-50">
-                                <td className="px-6 py-4 font-semibold">{doc.name}</td>
+                                <td className="px-6 py-4 font-semibold">{doc.documentName}</td>
                                 <td className="px-6 py-4">{t(`secretariat.documents.categories.${doc.category}`)}</td>
                                 <td className="px-6 py-4">{doc.uploadDate}</td>
                                 <td className="px-6 py-4">
@@ -175,7 +175,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
                     onClose={handleCloseModals}
                     onConfirm={handleDeleteDocument}
                     title={t('secretariat.documents.modal.deleteTitle')}
-                    message={t('configuration.modal.deleteConfirmMessage', { itemName: deletingDocument.name })}
+                    message={t('configuration.modal.deleteConfirmMessage', { itemName: deletingDocument.documentName })}
                 />
             )}
         </div>

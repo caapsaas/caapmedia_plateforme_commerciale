@@ -30,6 +30,19 @@ const MeetingManagement: React.FC<MeetingManagementProps> = ({ subsidiary, meeti
     const [viewingMeeting, setViewingMeeting] = useState<Meeting | null>(null);
     const [deletingMeeting, setDeletingMeeting] = useState<Meeting | null>(null);
 
+    const formatDate = (isoString?: string | Date) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    return date.toLocaleDateString(); // ou date.toISOString().split('T')[0] pour YYYY-MM-DD
+};
+
+const formatTime = (isoString?: string | Date) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+
     const handleOpenAddModal = () => {
         setEditingMeeting(null);
         setIsFormModalOpen(true);
@@ -70,11 +83,9 @@ const MeetingManagement: React.FC<MeetingManagementProps> = ({ subsidiary, meeti
         }
     };
     
-    const getParticipantNames = (participantIds: string[]) => {
-        return participantIds.map(id => {
-            const employee = employees.find(e => e.id === id);
-            return employee ? `${employee.firstName} ${employee.lastName}`: id;
-        }).join(', ');
+    const getParticipantNames = (participants: { employee: Employee }[]) => {
+        if (!participants || participants.length === 0) return 'Aucun participant';
+        return participants.map(p => p.employee ? `${p.employee.firstName} ${p.employee.lastName}` : 'Employé inconnu').join(', ');
     };
 
     const handlePrint = () => window.print();
@@ -145,8 +156,9 @@ const MeetingManagement: React.FC<MeetingManagementProps> = ({ subsidiary, meeti
                         {meetings.map((meeting) => (
                             <tr key={meeting.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{meeting.title}</td>
-                                <td className="px-6 py-4">{`${meeting.date} - ${meeting.time}`}</td>
-                                <td className="px-6 py-4">{meeting.location}</td>
+                                <td className="px-6 py-4">{`${formatDate(meeting.meetingDate)} - ${formatTime(meeting.meetingTime)}`}</td>
+
+                                <td className="px-6 py-4">{meeting.meetingLocation}</td>
                                 <td className="px-6 py-4 max-w-sm truncate">{getParticipantNames(meeting.participants)}</td>
                                 <td className="px-6 py-4 text-center space-x-1 no-print">
                                     <button onClick={() => handleOpenViewModal(meeting)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-100 rounded-full transition-colors" aria-label={t('common.view')}>

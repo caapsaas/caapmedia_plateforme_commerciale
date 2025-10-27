@@ -53,7 +53,7 @@ export class UpdateMeetingDto {
   @IsDate()
   // @ApiPropertyOptional({ description: 'Nouvelle date' })
   meetingDate?: Date;
-
+   
   @IsOptional()
   @Type(() => Date)
   @IsDate()

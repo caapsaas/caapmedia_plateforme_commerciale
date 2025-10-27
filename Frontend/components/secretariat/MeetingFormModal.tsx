@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext'; // 👈 pour récupérer la filiale (subsidiary)
 import { Meeting, Subsidiary, Employee } from '../../types';
 import { useI18n } from '../../i18n';
 import { SaveMeetingDto } from '../../services/apisecretariat/apiSecretariat';
@@ -12,12 +13,12 @@ interface MeetingFormModalProps {
     employees: Employee[];
 }
 
-const MeetingFormModal: React.FC<MeetingFormModalProps> = ({ isOpen, onClose, onSave, meeting, subsidiary, employees }) => {
+const MeetingFormModal: React.FC<MeetingFormModalProps> = ({ isOpen, onClose, onSave, meeting, employees }) => {
     const { t } = useI18n();
     const initialFormState = {
         title: '',
         date: new Date().toISOString().split('T')[0],
-        time: '09:00',
+        time: '',
         location: '',
         participants: [] as string[],
         agenda: '',
@@ -33,7 +34,7 @@ const MeetingFormModal: React.FC<MeetingFormModalProps> = ({ isOpen, onClose, on
                 date: meeting.date,
                 time: meeting.time,
                 location: meeting.location,
-                participants: meeting.participants,
+                participants: meeting.participants.map(p => p.employeeId), // Extraire les IDs
                 agenda: meeting.agenda,
                 minutes: meeting.minutes,
             });
@@ -51,11 +52,31 @@ const MeetingFormModal: React.FC<MeetingFormModalProps> = ({ isOpen, onClose, on
         const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
         setFormData(prev => ({ ...prev, participants: selectedOptions }));
     };
+    const { subsidiary } = useAuth();
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSave({ id: meeting?.id, ...formData });
-    };
+   const handleSubmit = (e: React.FormEvent) => {
+  e.preventDefault();
+
+  // Fusionne la date et l'heure pour former des objets Date valides
+  const meetingDate = new Date(formData.date); // date seule
+  const meetingTime = new Date(`${formData.date}T${formData.time}:00`); // date + heure exacte
+
+  // ✅ correspond parfaitement au CreateMeetingDto
+  const payload = {
+    title: formData.title,
+    meetingDate, // objet Date
+    meetingTime, // objet Date
+    meetingLocation: formData.location,
+    agenda: formData.agenda || '',
+    minutes: formData.minutes || '',
+    subsidiaryId: subsidiary?.id, // 👈 UUID obligatoire
+    participantIds: formData.participants, // tableau d’UUID
+  };
+
+  onSave(payload);
+};
+
+
 
     if (!isOpen) return null;
 
