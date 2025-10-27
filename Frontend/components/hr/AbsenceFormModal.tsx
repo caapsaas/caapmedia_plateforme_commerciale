@@ -16,7 +16,7 @@ const AbsenceFormModal: React.FC<AbsenceFormModalProps> = ({ isOpen, onClose, on
     
     const initialFormState = {
         employeeId: '',
-        typeAbsence: AbsenceType.JUSTIFIED,
+        typeAbsence: '',
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date().toISOString().split('T')[0],
         reason: '',
@@ -29,7 +29,7 @@ const AbsenceFormModal: React.FC<AbsenceFormModalProps> = ({ isOpen, onClose, on
         if (absence) {
             setFormData({
                 employeeId: absence.employeeId,
-                typeAbsence: absence.type,
+                typeAbsence:  AbsenceType.JUSTIFIED,
                 startDate: absence.startDate,
                 endDate: absence.endDate,
                 reason: absence.reason,
@@ -59,6 +59,8 @@ const AbsenceFormModal: React.FC<AbsenceFormModalProps> = ({ isOpen, onClose, on
         onSave({
             ...formData,
             employeeName: employee ? `${employee.firstName} ${employee.lastName}` : '',
+        
+            subsidiaryId: subsidiary.id,
         });
     };
 

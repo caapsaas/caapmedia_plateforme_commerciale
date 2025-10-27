@@ -60,35 +60,44 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({ subsidiary, emplo
         }
     };
 
-    const getTypeClass = (type: AbsenceType) => {
-        return type === AbsenceType.JUSTIFIED ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-    };
+        const getTypeClass = (type: AbsenceType) => {
+        switch (type) {
+            case AbsenceType.JUSTIFIED:
+            return 'bg-yellow-100 text-yellow-800';
+            case AbsenceType.UNJUSTIFIED:
+            return 'bg-red-100 text-red-800';
+            default:
+            return 'bg-slate-100 text-slate-800';
+        }
+        };
 
     const handlePrint = () => window.print();
 
     const handleExportCsv = () => {
         const headers = [
             { key: 'employeeName', label: t('hr.absences.table.employee') },
-            { key: 'type', label: t('hr.absences.table.type') },
+            { key: 'typeAbsence', label: t('hr.absences.table.type') },
             { key: 'startDate', label: t('hr.absences.table.startDate') },
             { key: 'endDate', label: t('hr.absences.table.endDate') },
             { key: 'reason', label: t('hr.absences.table.reason') },
         ];
-        const data = absences.map(r => ({ ...r, type: t(`hr.absenceType.${r.type}`) }));
+        const data = absences.map(r => ({ ...r, typeAbsence: t(`hr.absenceType.${r.typeAbsence}`) }));
         exportToCsv('registre_absences', headers, data);
     };
 
     const handleExportPdf = () => {
         const headers = [
             { key: 'employeeName', label: t('hr.absences.table.employee') },
-            { key: 'type', label: t('hr.absences.table.type') },
+            { key: 'typeAbsence', label: t('hr.absences.table.type') },
             { key: 'startDate', label: t('hr.absences.table.startDate') },
             { key: 'endDate', label: t('hr.absences.table.endDate') },
             { key: 'reason', label: t('hr.absences.table.reason') },
         ];
-        const data = absences.map(r => ({ ...r, type: t(`hr.absenceType.${r.type}`) }));
+        const data = absences.map(r => ({ ...r, typeAbsence: t(`hr.absenceType.${r.typeAbsence}`) }));
         exportToPdf(t('hr.absences.title'), headers, data, 'absences');
     };
+
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
@@ -131,8 +140,8 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({ subsidiary, emplo
                             <tr key={record.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{record.employeeName}</td>
                                 <td className="px-6 py-4">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getTypeClass(record.type)}`}>
-                                        {t(`hr.absenceType.${record.type}`)}
+                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getTypeClass(record.typeAbsence)}`}>
+                                        {t(`hr.absenceType.${record.typeAbsence}`)}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4">{record.startDate}</td>
@@ -140,7 +149,7 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({ subsidiary, emplo
                                 <td className="px-6 py-4 max-w-xs truncate">{record.reason}</td>
                                 <td className="px-6 py-4 text-center no-print">
                                     {record.documentUrl ? (
-                                        <a href={record.documentUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center space-x-2 px-3 py-1 bg-sky-100 text-sky-700 text-xs font-semibold rounded-md hover:bg-sky-200 transition-colors">
+                                        <a href={`${backendUrl}${record.documentUrl}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center space-x-2 px-3 py-1 bg-sky-100 text-sky-700 text-xs font-semibold rounded-md hover:bg-sky-200 transition-colors">
                                             <IconDownload className="h-4 w-4" />
                                             <span>{t('hr.absences.table.download')}</span>
                                         </a>
