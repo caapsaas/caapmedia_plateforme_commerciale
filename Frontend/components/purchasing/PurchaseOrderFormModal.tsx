@@ -30,7 +30,7 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
 
         setItems(prev => [...prev, {
             productId: product.id,
-            productName: product.name,
+            productName: product.productName,
             quantity,
             purchasePrice,
             quantityReceived: 0,
@@ -77,7 +77,7 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
                                 <label htmlFor="supplierId" className="block text-sm font-medium text-slate-700">{t('purchasing.form.supplier')}</label>
                                 <select id="supplierId" value={supplierId} onChange={e => setSupplierId(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                     <option value="" disabled>{t('purchasing.form.selectSupplier')}</option>
-                                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.supplierName}</option>)}
                                 </select>
                             </div>
                             <div>
@@ -106,7 +106,7 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
                                      <label htmlFor="product" className="sr-only">{t('purchasing.form.product')}</label>
                                      <select id="product" value={selectedProduct} onChange={e => { setPurchasePrice(products.find(p => p.id === e.target.value)?.price || 0); setSelectedProduct(e.target.value); }} className="w-full border-slate-300 rounded-md shadow-sm">
                                         <option value="">{t('purchasing.form.selectProduct')}</option>
-                                        {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                        {products.map(p => <option key={p.id} value={p.id}>{p.productName}</option>)}
                                     </select>
                                 </div>
                                 <div>

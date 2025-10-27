@@ -61,7 +61,7 @@ const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps> = ({ i
                         </tr>
                     </thead>
                     <tbody>
-                        {purchaseOrder.items.map((item, index) => (
+                        {purchaseOrder.purchaseOrderItems.map((item, index) => (
                             <tr key={index} className="bg-white border-b">
                                 <td className="px-6 py-4 font-medium text-slate-900">{item.productName}</td>
                                 <td className="px-6 py-4 text-center">{item.quantity}</td>
@@ -83,9 +83,9 @@ const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps> = ({ i
                 <h4 className="font-semibold text-slate-700 mb-2">{t('purchasing.history.title')}</h4>
                 <div className="border border-slate-200 rounded-lg p-4 max-h-40 overflow-y-auto">
                     <ul className="space-y-2">
-                        {purchaseOrder.history.map((entry, index) => (
+                        {purchaseOrder.purchaseOrderHistory.map((entry, index) => (
                             <li key={index} className="text-xs text-slate-600">
-                                <span className="font-semibold">{entry.date}:</span> {entry.event}
+                                <span className="font-semibold">{new Date(entry.eventDate).toLocaleDateString(language)}:</span> {entry.eventName}
                             </li>
                         ))}
                     </ul>

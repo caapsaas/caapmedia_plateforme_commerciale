@@ -99,7 +99,7 @@ const TaxManagement: React.FC = () => {
                     <tbody>
                         {taxRates.map((tax) => (
                             <tr key={tax.id} className="bg-white border-b hover:bg-slate-50">
-                                <td className="px-6 py-4 font-semibold">{tax.name}</td>
+                                <td className="px-6 py-4 font-semibold">{tax.taxRatesName}</td>
                                 <td className="px-6 py-4">{(tax.rate * 100).toFixed(2)}%</td>
                                 <td className="px-6 py-4">{tax.isDefault ? 'Oui' : 'Non'}</td>
                                 <td className="px-6 py-4 text-center space-x-2">
@@ -126,7 +126,7 @@ const TaxManagement: React.FC = () => {
                     onClose={handleCloseModals}
                     onConfirm={handleDelete}
                     title={t('configuration.modal.deleteTaxTitle')}
-                    message={t('configuration.modal.deleteConfirmMessage', { itemName: deletingTax.name })}
+                    message={t('configuration.modal.deleteConfirmMessage', { itemName: deletingTax.taxRatesName })}
                 />
             )}
         </div>

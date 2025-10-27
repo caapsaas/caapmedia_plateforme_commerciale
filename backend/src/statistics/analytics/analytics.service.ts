@@ -45,7 +45,7 @@ export class AnalyticsService {
         break;
       case PeriodFilter.ALL_TIME:
       default:
-        // Pas de filtre de date
+        dateFilter = {};
         break;
     }
     return dateFilter;
@@ -111,6 +111,8 @@ export class AnalyticsService {
         AND status = 'PAID'
         AND "sale_date" >= ${dateFilter.gte}
         AND "sale_date" <= ${dateFilter.lte}
+        AND (${dateFilter.gte}::timestamp IS NULL OR "sale_date" >= ${dateFilter.gte}::timestamp)
+        AND (${dateFilter.lte}::timestamp IS NULL OR "sale_date" <= ${dateFilter.lte}::timestamp)
       GROUP BY date
       ORDER BY date ASC;
     `;
@@ -192,7 +194,7 @@ export class AnalyticsService {
     const salesByCategory: { category: string, total: number }[] = await this.prisma.$queryRaw`
       SELECT
         p.category as "category",
-        SUM(s.quantity)::float as total
+        SUM(s.total_price)::float as total
       FROM "sale" s -- Utilisation de LOWER() pour une jointure insensible à la casse
       JOIN "products" p ON LOWER(s.product_name) = LOWER(p.product_name) AND s.subsidiary_id = p.subsidiary_id
       WHERE s.subsidiary_id = ${subsidiaryId}::uuid

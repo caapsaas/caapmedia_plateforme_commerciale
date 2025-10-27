@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Product, Contact, Order, ProductOptions, CustomerPaymentMethod } from '../../types';
-import IconCash from '../icons/IconCash';
+import IconWave from '../icons/IconWave';
+import IconOrangeMoney from '../icons/IconOrangeMoney';
 import IconCreditCard from '../icons/IconCreditCard';
 import IconMobilePayment from '../icons/IconMobilePayment';
 import IconPlus from '../icons/IconPlus';
@@ -9,18 +10,16 @@ import IconDelete from '../icons/IconDelete';
 import { useI18n } from '../../i18n';
 import ClientSelectionModal from './ClientSelectionModal';
 import IconPaycaap from '../icons/IconPaycaap';
-import IconTruckCoins from '../icons/IconTruckCoins';
-import IconUserClock from '../icons/IconUserClock';
 import OrderSelectionModal from './OrderSelectionModal';
 import IconSearchDocument from '../icons/IconSearchDocument';
-import IconCheck from '../icons/IconCheck';
 import PriceCalculatorModal from '../ecommerce/PriceCalculatorModal';
 import { CartItem } from '../ecommerce/ShoppingCart';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProductsBySubsidiary } from '../../services/apiE-commerce/apiProducts';
 import { getContacts, createContactByEmployee, ContactCreationData } from '../../services/apiCrm/apiContacts';
 import { useAppContext } from '../../context/AppContext'; // Assurez-vous que ce chemin est correct
-import { getOrders, createOrderBySalesRep, recordOrderPayment, FindAllOrdersDto } from '../../services/apiE-commerce/apiOrders';
+import { getOrders, recordOrderPayment, FindAllOrdersDto } from '../../services/apiE-commerce/apiOrders';
+import { createDirectSale, CreateDirectSaleDto } from '../../services/apiE-commerce/apiSales';
 import { getImageUrl } from '../../utils/imageUtils';
 
 type CaisseMode = 'new_sale' | 'payment';
@@ -77,12 +76,8 @@ const Caisse: React.FC = () => {
         }
     });
     
-    const { mutate: createOrderAndPayMutate, isPending: isCheckingOut } = useMutation({
-        mutationFn: async (data: { orderPayload: FormData, paymentPayload: { amount: number, paymentMethod: CustomerPaymentMethod } }) => {
-            const newOrder = await createOrderBySalesRep(data.orderPayload);
-            await recordOrderPayment({ orderId: newOrder.id, ...data.paymentPayload });
-            return newOrder;
-        },
+    const { mutate: createDirectSaleMutate, isPending: isCheckingOut } = useMutation({
+        mutationFn: (data: CreateDirectSaleDto) => createDirectSale(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['orders'] });
             queryClient.invalidateQueries({ queryKey: ['sales'] });
@@ -103,7 +98,7 @@ const Caisse: React.FC = () => {
     });
 
     // Memoized data
-    const filteredProducts = useMemo(() => products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())), [products, searchTerm]);
+    const filteredProducts = useMemo(() => products.filter(p => p.productName.toLowerCase().includes(searchTerm.toLowerCase())), [products, searchTerm]);
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CustomerPaymentMethod | null>(null);
 
     // --- NEW SALE MODE LOGIC ---
@@ -166,26 +161,18 @@ const Caisse: React.FC = () => {
     const handleCheckout = () => {
         if (isCheckingOut || cart.length === 0 || !selectedPaymentMethod || !selectedContact) return;
         
-        // 1. Préparer les données pour la création de la commande
-        const formData = new FormData();
-        const itemsForJson = cart.map(item => ({
-            productId: item.product.id,
-            quantity: item.quantity,
-            price: item.unitPrice,
-            options: item.options || {},
-        }));
-        formData.append('items', JSON.stringify(itemsForJson));
-        formData.append('customerId', selectedContact.id);
-        formData.append('customerName', selectedContact.contactName);
-        formData.append('paymentMethod', selectedPaymentMethod);
-        // Pour une vente directe, la date d'échéance est aujourd'hui
-        formData.append('paymentDueDate', new Date().toISOString());
+        // Préparer le DTO pour la vente directe
+        const saleData: CreateDirectSaleDto = {
+            items: cart.map(item => ({
+                productId: item.product.id,
+                quantity: item.quantity,
+            })),
+            customerId: selectedContact.id,
+            paymentMethod: selectedPaymentMethod,
+        };
 
-        // 2. Appeler la mutation qui crée la commande PUIS enregistre le paiement
-        createOrderAndPayMutate({
-            orderPayload: formData,
-            paymentPayload: { amount: newSaleTotal, paymentMethod: selectedPaymentMethod }
-        });
+        // Appeler la mutation pour créer la vente directe
+        createDirectSaleMutate(saleData);
     };
 
     // --- PAYMENT MODE LOGIC ---
@@ -230,9 +217,9 @@ const Caisse: React.FC = () => {
     };
 
     const paymentMethods = [
-        { id: CustomerPaymentMethod.CASH, label: t('payment.CASH'), icon: <IconCash className="h-6 w-6" /> },
+        { id: CustomerPaymentMethod.WAVE, label: t('payment.WAVE'), icon: <IconWave className="h-6 w-6" /> },
         { id: CustomerPaymentMethod.CARD, label: t('payment.CARD'), icon: <IconCreditCard className="h-6 w-6" /> },
-        { id: CustomerPaymentMethod.CHECK, label: t('payment.CHECK'), icon: <IconCheck className="h-6 w-6" /> },
+        { id: CustomerPaymentMethod.ORANGE_MONEY, label: t('payment.ORANGE_MONEY'), icon: <IconOrangeMoney className="h-6 w-6" /> },
         { id: CustomerPaymentMethod.MOBILE_MONEY, label: t('payment.MOBILE_MONEY'), icon: <IconMobilePayment className="h-6 w-6" /> },
         { id: CustomerPaymentMethod.PAYCAAP, label: t('payment.PAYCAAP'), icon: <IconPaycaap className="h-5" /> }
     ];
@@ -299,7 +286,7 @@ const Caisse: React.FC = () => {
                                                     <img src={p.productImages && p.productImages.length > 0 ? getImageUrl(p.productImages[0].imageUrl) : 'https://via.placeholder.com/150'} alt={p.name} className="w-full h-full object-cover"/>
                                                 </div>
                                                 <div className="flex-grow flex flex-col">
-                                                    <h3 className="font-semibold text-sm leading-tight">{p.name}</h3>
+                                                    <h3 className="font-semibold text-sm leading-tight">{p.productName}</h3>
                                                     <p className="font-bold text-[#c6e911] mt-1 text-sm">{formatCurrency(p.sellingPrice)}</p>
                                                 </div>
                                                 {isService ? (
@@ -316,6 +303,7 @@ const Caisse: React.FC = () => {
                             </div>
                         </>
                     ) : loadedOrder && (
+                        console.log(loadedOrder),
                         <div className="flex-grow overflow-y-auto pr-2">
                             <h3 className="text-xl font-bold text-slate-800 border-b pb-2 mb-4">{t('cashRegister.loadedOrder.title')}</h3>
                             <div className="space-y-2 mb-4 text-sm">
@@ -323,7 +311,7 @@ const Caisse: React.FC = () => {
                                 <p><strong>{t('cashRegister.clientSection.title')}:</strong> {loadedOrder.customerName}</p>
                             </div>
                              <ul className="divide-y divide-slate-200">
-                                {loadedOrder.items.map((item, index) => <li key={index} className="py-2 flex justify-between items-center"><p>{item.product.name} (x{item.quantity})</p><p className="font-semibold">{formatCurrency(item.price * item.quantity)}</p></li>)}
+                                {loadedOrder.orderItems.map((item, index) => <li key={index} className="py-2 flex justify-between items-center"><p>{item.product.productName} (x{item.quantity})</p><p className="font-semibold">{formatCurrency(item.unitPrice * item.quantity)}</p></li>)}
                             </ul>
                         </div>
                     )}
@@ -343,7 +331,7 @@ const Caisse: React.FC = () => {
                         <div className="flex-grow overflow-y-auto">
                             {(mode === 'new_sale' && cart.length === 0) ? <p className="h-full flex items-center justify-center text-slate-500">{t('cashRegister.cartEmpty')}</p> : (
                                 <ul className="divide-y divide-slate-200">
-                                    {mode === 'new_sale' ? cart.map(item => <li key={item.id} className="py-3 flex items-center justify-between"><div><p className="font-semibold text-slate-800">{item.product.name}</p><p className="text-xs text-slate-500">{formatOptions(item.options)}</p><p className="text-sm text-slate-500 mt-1">{formatCurrency(item.unitPrice)}</p></div><div className="flex items-center space-x-2"><button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="p-1 rounded-full bg-slate-200 hover:bg-slate-300"><IconMinus className="h-4 w-4" /></button><span className="font-bold w-6 text-center">{item.quantity}</span><button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1 rounded-full bg-slate-200 hover:bg-slate-300"><IconPlus className="h-4 w-4" /></button><button onClick={() => updateQuantity(item.id, 0)} className="p-1 rounded-full hover:bg-red-100 text-red-500"><IconDelete className="h-4 w-4" /></button></div></li>) : null}
+                                    {mode === 'new_sale' ? cart.map(item => <li key={item.id} className="py-3 flex items-center justify-between"><div><p className="font-semibold text-slate-800">{item.product.productName}</p><p className="text-xs text-slate-500">{formatOptions(item.options)}</p><p className="text-sm text-slate-500 mt-1">{formatCurrency(item.unitPrice)}</p></div><div className="flex items-center space-x-2"><button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="p-1 rounded-full bg-slate-200 hover:bg-slate-300"><IconMinus className="h-4 w-4" /></button><span className="font-bold w-6 text-center">{item.quantity}</span><button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1 rounded-full bg-slate-200 hover:bg-slate-300"><IconPlus className="h-4 w-4" /></button><button onClick={() => updateQuantity(item.id, 0)} className="p-1 rounded-full hover:bg-red-100 text-red-500"><IconDelete className="h-4 w-4" /></button></div></li>) : null}
                                 </ul>
                             )}
                         </div>

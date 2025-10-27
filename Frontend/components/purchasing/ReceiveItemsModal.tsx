@@ -12,22 +12,24 @@ interface ReceiveItemsModalProps {
 const ReceiveItemsModal: React.FC<ReceiveItemsModalProps> = ({ isOpen, onClose, purchaseOrder, onReceive }) => {
     const { t } = useI18n();
     const [receivedQuantities, setReceivedQuantities] = useState<Record<string, number>>({});
-
-    const handleQuantityChange = (productId: string, value: string) => {
+    
+    const handleQuantityChange = (purchaseOrderItemId: string, value: string) => {
         const quantity = parseInt(value, 10);
-        const item = purchaseOrder.items.find(i => i.productId === productId);
+        const item = purchaseOrder.purchaseOrderItems.find(i => i.id === parseInt(purchaseOrderItemId, 10));
         if (!item) return;
         
         const maxReceivable = item.quantity - item.quantityReceived;
         const newQuantity = isNaN(quantity) ? 0 : Math.max(0, Math.min(quantity, maxReceivable));
 
-        setReceivedQuantities(prev => ({ ...prev, [productId]: newQuantity }));
+        setReceivedQuantities(prev => ({ ...prev, [purchaseOrderItemId]: newQuantity }));
     };
+
+    console.log(purchaseOrder);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const itemsToReceive = Object.entries(receivedQuantities)
-            .map(([purchaseOrderItemId, quantityReceived]) => ({ purchaseOrderItemId, quantityReceived }))
+            .map(([purchaseOrderItemId, quantityReceived]) => ({ purchaseOrderItemId: parseInt(purchaseOrderItemId, 10), quantityReceived }))
             .filter(item => item.quantityReceived > 0);
         
         if (itemsToReceive.length > 0) {
@@ -58,10 +60,10 @@ const ReceiveItemsModal: React.FC<ReceiveItemsModalProps> = ({ isOpen, onClose, 
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {purchaseOrder.items.map(item => {
+                                    {purchaseOrder.purchaseOrderItems.map(item => {
                                         const remaining = item.quantity - item.quantityReceived;
                                         return (
-                                            <tr key={item.productId} className="border-b">
+                                            <tr key={item.id} className="border-b">
                                                 <td className="px-4 py-3 font-medium">{item.productName}</td>
                                                 <td className="px-4 py-3 text-center">{item.quantity}</td>
                                                 <td className="px-4 py-3 text-center">{item.quantityReceived}</td>
@@ -70,8 +72,8 @@ const ReceiveItemsModal: React.FC<ReceiveItemsModalProps> = ({ isOpen, onClose, 
                                                         type="number" 
                                                         min="0"
                                                         max={remaining}
-                                                        value={receivedQuantities[item.productId] || ''}
-                                                        onChange={e => handleQuantityChange(item.productId, e.target.value)}
+                                                        value={receivedQuantities[item.id] || ''}
+                                                        onChange={e => handleQuantityChange(item.id.toString(), e.target.value)}
                                                         className="w-24 p-1 text-center border border-slate-300 rounded-md"
                                                         placeholder="0"
                                                         disabled={remaining === 0}

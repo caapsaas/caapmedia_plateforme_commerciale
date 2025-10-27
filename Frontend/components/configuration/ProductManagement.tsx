@@ -128,11 +128,11 @@ const ProductManagement: React.FC = () => {
                                 <td className="px-6 py-4">
                                     <img 
                                         src={product.productImages && product.productImages.length > 0 ? getImageUrl(product.productImages[0].imageUrl) : 'https://via.placeholder.com/100'} 
-                                        alt={product.name} 
+                                        alt={product.productName} 
                                         className="h-12 w-12 object-cover rounded-md"/>
                                 </td>
-                                <td className="px-6 py-4 font-semibold">{product.name}</td>
-                                <td className="px-6 py-4">{product.range ? t(rangeToKeyMap[product.range] || product.range) : ''}</td>
+                                <td className="px-6 py-4 font-semibold">{product.productName}</td>
+                                <td className="px-6 py-4">{product.productRange ? t(rangeToKeyMap[product.productRange] || product.productRange) : 'Non specifie'}</td>
                                 <td className="px-6 py-4">{t(categoryToKeyMap[product.category] || product.category)}</td>
                                 <td className="px-6 py-4">{formatCurrency(product.sellingPrice)}</td>
                                 <td className={`px-6 py-4 font-bold ${product.stock < 100 ? 'text-red-500' : 'text-green-600'}`}>
@@ -189,7 +189,7 @@ const ProductManagement: React.FC = () => {
                     onClose={handleCloseModals}
                     onConfirm={handleDeleteConfirm}
                     title={t('configuration.modal.deleteProductTitle')}
-                    message={t('configuration.modal.deleteConfirmMessage', {itemName: deletingProduct.name})}
+                    message={t('configuration.modal.deleteConfirmMessage', {itemName: deletingProduct.productName})}
                 />
             )}
         </div>

@@ -5,25 +5,25 @@ import { useI18n } from '../../i18n';
 interface SupplierFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (supplier: Omit<Supplier, 'id' | 'subsidiaryId'>) => void;
+    onSave: (supplier: Omit<Supplier, 'id' | 'subsidiaryId'> & { id?: string }) => void;
     supplier: Supplier | null;
 }
 
 const SupplierFormModal: React.FC<SupplierFormModalProps> = ({ isOpen, onClose, onSave, supplier }) => {
     const { t } = useI18n();
     const initialFormState = {
-        name: '',
+        supplierName: '',
         company: '',
         email: '',
         phone: '',
         address: '',
     };
-    const [formData, setFormData] = useState(initialFormState);
+    const [formData, setFormData] = useState<Omit<Supplier, 'id' | 'subsidiaryId'> & { id?: string }>(initialFormState);
 
     useEffect(() => {
         if (supplier) {
             setFormData({
-                name: supplier.name,
+                supplierName: supplier.supplierName,
                 company: supplier.company,
                 email: supplier.email,
                 phone: supplier.phone,
@@ -41,7 +41,10 @@ const SupplierFormModal: React.FC<SupplierFormModalProps> = ({ isOpen, onClose, 
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        onSave({
+            ...formData,
+            id: supplier?.id,
+        });
     };
     
     if (!isOpen) return null;
@@ -56,8 +59,8 @@ const SupplierFormModal: React.FC<SupplierFormModalProps> = ({ isOpen, onClose, 
                         </h3>
                         <div className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                             <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
-                                <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <label htmlFor="supplierName" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
+                                <input type="text" name="supplierName" id="supplierName" value={formData.supplierName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                              <div>
                                 <label htmlFor="company" className="block text-sm font-medium text-slate-700">{t('configuration.form.company')}</label>
