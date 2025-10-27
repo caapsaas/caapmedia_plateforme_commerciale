@@ -82,34 +82,27 @@ export class LeadsService {
     });
   }
 
-  async findOne(id: string, user: User) {
-    const lead = await this.prisma.lead.findUnique({
-      where: { id },
-    });
+  async findOne(id: string) {
+    const lead = await this.prisma.lead.findUnique({ where: { id } });
     if (!lead) {
       throw new NotFoundException(`Lead with ID "${id}" not found.`);
-    }
-    const privilegedRoles: UserRole[] = [UserRole.ADMIN, UserRole.SECRETARY];
-    if (lead.subsidiaryId !== user.subsidiaryId || (!privilegedRoles.includes(user.userRole) && lead.salesRepId !== user.id)) {
-      throw new ForbiddenException('You are not allowed to view this lead.');
     }
     return lead;
   }
 
-async update(id: string, updateLeadDto: UpdateLeadDto, user: User) {
-  // 1. Vérifier que la piste existe et que l'utilisateur a le droit de la modifier.
-  await this.findOne(id, user);
+
+async update(id: string, updateLeadDto: UpdateLeadDto) {
+  const lead = await this.findOne(id);
 
   if (updateLeadDto.email) {
     const existingLead = await this.prisma.lead.findUnique({
       where: { email: updateLeadDto.email },
     });
     if (existingLead && existingLead.id !== id) {
-      throw new ConflictException(`Une piste avec l'email "${updateLeadDto.email}" existe déjà.`);
+      throw new ConflictException(`A lead with email "${updateLeadDto.email}" already exists.`);
     }
   }
 
-  // 4. Effectuer la mise à jour
   return this.prisma.lead.update({
     where: { id },
     data: updateLeadDto,
@@ -119,23 +112,13 @@ async update(id: string, updateLeadDto: UpdateLeadDto, user: User) {
 
 
 
-  async remove(id: string, user: User) {
-  // Vérifie simplement que la lead existe
-  const lead = await this.prisma.lead.findUnique({ where: { id } });
-  if (!lead) {
-    throw new NotFoundException(`Lead with ID "${id}" not found.`);
-    // 1. Vérifier que la piste existe et que l'utilisateur a le droit de la supprimer.
-    // findOne gère déjà les erreurs NotFoundException et ForbiddenException.
-    await this.findOne(id, user);
 
-    // 2. Effectuer la suppression
-    return this.prisma.lead.delete({ where: { id } });
-  }
-
-  // Supprime la lead sans aucune vérification de rôle ou d'appartenance
+  async remove(id: string) {
+  await this.findOne(id); // juste vérifier que ça existe
   await this.prisma.lead.delete({ where: { id } });
   return { message: `Lead with ID "${id}" deleted successfully.` };
 }
+
 
 
   /**

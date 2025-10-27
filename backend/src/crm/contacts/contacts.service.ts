@@ -124,6 +124,11 @@ export class ContactsService {
 
     // 4. Construire l'objet de données pour la mise à jour Prisma.
     const data: Prisma.ContactUpdateInput = { ...otherData };
+    // Correction: S'assurer que le champ 'since' est un objet Date si fourni.
+    if (data.since && typeof data.since === 'string') {
+      data.since = new Date(data.since);
+    }
+
     if (accountId !== undefined) {
       data.account = accountId ? { connect: { id: accountId } } : { disconnect: true };
     }

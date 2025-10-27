@@ -96,11 +96,16 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ leads, onSave, onDele
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-center space-x-1">
-                                    {lead.status !== LeadStatus.QUALIFIED && lead.status !== LeadStatus.LOST && (
-                                    <button onClick={() => onConvertLead(lead.id)} className="p-2 text-green-600 hover:bg-green-100 rounded-full transition-colors" title={t('crm.leads.convert')}>
-                                        <IconCheckCircle className="h-5 w-5" />
-                                    </button>
+                                    {lead.status === LeadStatus.QUALIFIED && (
+                                        <button
+                                            onClick={() => onConvertLead(lead.id)}
+                                            className="p-2 text-green-600 hover:bg-green-100 rounded-full transition-colors"
+                                            title={t('crm.leads.convert')}
+                                        >
+                                            <IconCheckCircle className="h-5 w-5" />
+                                        </button>
                                     )}
+
                                     <button onClick={() => handleOpenEditModal(lead)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
                                         <IconEdit className="h-5 w-5" />
                                     </button>

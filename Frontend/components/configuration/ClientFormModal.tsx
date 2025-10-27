@@ -51,7 +51,7 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ isOpen, onClose, onSa
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave({ ...formData, id: client?.id, password: '' }); // Ajout d'un password vide pour satisfaire le type
+        onSave({ ...formData, id: client?.id });   
     };
     
     if (!isOpen) return null;
