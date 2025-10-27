@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { PrismaService } from '../../src/common/utils/prisma/prisma.service';
 import { LoggerService } from '../../src/common/utils/logger/logger.service';
 import { UserRole, DocumentCategory, DocumentStatus, SecretariatTaskStatus } from '@prisma/client';
+import { CreateCompanyDocumentDto } from './dto/create-company-document.dto'; // Import DTO
 
 @Injectable()
 export class SecretariatService {
@@ -12,52 +14,68 @@ export class SecretariatService {
 
   // CRUD for CompanyDocument
 
-  async createCompanyDocument(
-    data: {
-      documentName: string;
-      category: DocumentCategory;
-      status: DocumentStatus;
-      fileUrl: string;
-      subsidiaryId: string;
-    },
-    currentUser: { id: string; role: UserRole; subsidiaryId: string },
-  ) {
-    // Vérifier les autorisations (SECRETARY ou ADMIN)
-        const allowedRoles: UserRole[] = [UserRole.SECRETARY, UserRole.ADMIN];
-    if (!allowedRoles.includes(currentUser.role)) {
-      this.logger.error(`User ${currentUser.id} is not authorized to create a company document`, 'SecretariatService');
-      throw new ForbiddenException('You are not authorized to create a company document');
-    }
 
-    // Vérifier si la filiale existe et appartient au user
-    const subsidiary = await this.prisma.subsidiary.findUnique({ where: { id: data.subsidiaryId } });
-    if (!subsidiary) {
-      this.logger.error(`Subsidiary with ID ${data.subsidiaryId} not found`, 'SecretariatService');
-      throw new NotFoundException('Subsidiary not found');
-    }
-    if (currentUser.role !== UserRole.ADMIN && currentUser.subsidiaryId !== data.subsidiaryId) {
-      this.logger.error(`User ${currentUser.id} cannot create document for subsidiary ${data.subsidiaryId}`, 'SecretariatService');
-      throw new ForbiddenException('You cannot create a document for another subsidiary');
-    }
+//1-Creation de document pour la company
+async createCompanyDocument(
+  dto: CreateCompanyDocumentDto, // DTO sans fileUrl
+  currentUser: { id: string; role: UserRole; subsidiaryId: string },
+  file: Express.Multer.File, // Le fichier est passé directement
+) {
+  this.logger.log(`Attempting to create document "${dto.documentName}" for subsidiary ${dto.subsidiaryId}`, 'createCompanyDocument');
 
-    // Créer le document
-    const document = await this.prisma.companyDocument.create({
-      data,
-    });
-
-    this.logger.log(`Company document ${document.documentName} created successfully`, 'SecretariatService');
-    return document;
+  // Guard : Vérifier que data est valide
+  if (!dto || !dto.subsidiaryId) { // file is now a separate parameter
+    this.logger.error('Invalid or missing data provided (subsidiaryId are required)', 'createCompanyDocument');
+    throw new BadRequestException('Données invalides ou manquantes (subsidiaryId requis)');
   }
+  if (!file) { // File is mandatory for creation
+    this.logger.error('File is missing for document creation', 'createCompanyDocument');
+    throw new BadRequestException('Un fichier est requis pour créer le document');
+  }
+
+  // Vérifier si la filiale existe ET appartient au user (complète le commentaire)
+  const subsidiary = await this.prisma.subsidiary.findUnique({ 
+    where: { id: dto.subsidiaryId } 
+  });
+  if (!subsidiary) {
+    this.logger.error(`Subsidiary with ID ${dto.subsidiaryId} not found`, 'createCompanyDocument');
+    throw new NotFoundException('Filiale non trouvée');
+  }
+
+  // Un ADMIN peut créer pour n'importe quelle filiale, un SECRETARY uniquement pour la sienne.
+  if (currentUser.role !== UserRole.ADMIN && subsidiary.id !== currentUser.subsidiaryId) {
+    this.logger.warn(`User ${currentUser.id} (role: ${currentUser.role}) tried to create document for foreign subsidiary ${dto.subsidiaryId}`, 'createCompanyDocument');
+    throw new ForbiddenException('Accès non autorisé : cette filiale ne vous appartient pas');
+  }
+
+  // Construire le fileUrl ici, similaire à orders.service.ts
+  const fileUrl = `/api-caapsaas/uploads/secretariat/${file.filename}`; // Assurez-vous que votre serveur sert ce chemin statiquement
+
+  // Créer le document (Prisma gérera subsidiaryId via data)
+  const document = await this.prisma.companyDocument.create({
+    data: {
+      documentName: dto.documentName,
+      category: dto.category,
+      status: dto.status,
+      fileUrl: fileUrl, // fileUrl est maintenant construit dans le service
+      subsidiaryId: dto.subsidiaryId,
+    },
+  });
+
+  this.logger.log(`Company document ${document.documentName} created successfully for subsidiary ${dto.subsidiaryId}`, 'createCompanyDocument');
+  return document;
+}
 
   async updateCompanyDocument(
     id: string,
-    data: {
+    dto: { // Renommé data en dto pour clarté
       documentName?: string;
       category?: DocumentCategory;
       status?: DocumentStatus;
-      fileUrl?: string;
+      // fileUrl ne doit pas être dans le DTO pour update, il est géré par le fichier
     },
     currentUser: { id: string; role: UserRole; subsidiaryId: string },
+    file?: Express.Multer.File, // Le fichier est optionnel pour la mise à jour
   ) {
     // Vérifier si le document existe
     const document = await this.prisma.companyDocument.findUnique({ where: { id } });
@@ -77,15 +95,20 @@ export class SecretariatService {
       throw new ForbiddenException('You cannot update a document from another subsidiary');
     }
 
-    // Vérifier si des données de mise à jour sont fournies
-    if (!data || Object.keys(data).length === 0) {
+    // Construire les données de mise à jour
+    const updateData: Prisma.CompanyDocumentUpdateInput = { ...dto };
+    if (file) {
+      updateData.fileUrl = `/api-caapsaas/uploads/secretariat/${file.filename}`; // Construire l'URL si un nouveau fichier est fourni
+    }
+
+    // Vérifier si des données de mise à jour sont fournies (dto + file)
+    if (Object.keys(updateData).length === 0) {
       return document;
     }
 
-    // Mettre à jour le document
     const updatedDocument = await this.prisma.companyDocument.update({
       where: { id },
-      data,
+      data: updateData,
     });
 
     this.logger.log(`Company document ${id} updated successfully`, 'SecretariatService');

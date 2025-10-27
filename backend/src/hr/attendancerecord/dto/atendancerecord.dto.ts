@@ -13,7 +13,7 @@ export class CreateAttendanceRecordDto {
 
   @IsDate()
   @Transform(({ value }) => new Date(value))
-  attendanceDate: Date;
+  attendanceDate: string;
 
   @IsOptional()
   @IsDate()

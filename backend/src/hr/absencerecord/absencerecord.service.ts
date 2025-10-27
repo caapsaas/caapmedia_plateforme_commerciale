@@ -11,7 +11,7 @@ export class AbsenceRecordService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateAbsenceRecordDto, employeeId: string, subsidiaryId: string): Promise<AbsenceRecord> {
-    this.logger.log(`Creating absence record for employee ${employeeId}`);
+    this.logger.log(`Creating absence record for employee ${employeeId} with data: ${JSON.stringify(dto)}`);
     return this.prisma.absenceRecord.create({
       data: {
         employeeName: dto.employeeName,
