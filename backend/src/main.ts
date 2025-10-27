@@ -14,14 +14,14 @@ async function bootstrap() {
   });
 
  
-  app.setGlobalPrefix('api-caapmedia');
-  app.useStaticAssets(join(__dirname, '..', 'public'), {
-    prefix: '/api-caapmedia',
+  app.useStaticAssets(join(__dirname, '..', '..', 'public'), {
+    prefix: '/public',
   });
 
   app.enableShutdownHooks();
   
-  // 🔧 Ajoute ce préfixe global
+  // Ajoute ce préfixe global
+  // Il est important de le définir APRÈS useStaticAssets pour éviter les conflits.
   app.setGlobalPrefix('api-caapmedia');
 
   // Démarre l'application

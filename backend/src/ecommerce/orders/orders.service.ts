@@ -249,9 +249,9 @@ export class OrdersService {
                 const file = designFiles?.[index];
                 return {
                   quantity: item.quantity,
-                  unitPrice: item.unitPrice,
-                  designFileName: file?.originalname ? file.originalname : item.designFileName,
-                  designFileUrl: file ? `/api-caapsaas/order_item_img/${file.filename}` : item.designFileUrl,
+                  unitPrice: item.unitPrice, 
+                  designFileName: file?.originalname ? file.originalname : item.designFileName, 
+                  designFileUrl: file ? `/public/order_item_img/${file.filename}` : item.designFileUrl,
                   productId: item.productId,
                   productOptions: item.options
                     ? {
@@ -496,8 +496,8 @@ export class OrdersService {
                 return {
                   quantity: item.quantity,
                   unitPrice: item.unitPrice,
-                  designFileName: file?.originalname,
-                  designFileUrl: file ? `/api-caapsaas/order_item_img/${file.filename}` : undefined,
+                  designFileName: file?.originalname, 
+                  designFileUrl: file ? `/public/order_item_img/${file.filename}` : undefined,
                   productId: item.productId,
                   productOptions: item.options
                     ? { create: item.options.map((opt) => ({ optionType: opt.optionType, optionValue: opt.optionValue })) }

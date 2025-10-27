@@ -1,5 +1,6 @@
 import React from 'react';
-import { Subsidiary, Contact, Opportunity, Interaction, CrmTask, User, OpportunityStage, Kpi, CrmTaskStatus } from '../../types';
+import { Subsidiary, Contact, Interaction, CrmTask, User, Kpi, CrmTaskStatus } from '../../types';
+import { CrmAnalysis } from '../../services/apiStatistic/apiFinanceStats';
 import { useI18n } from '../../i18n';
 import KpiCard from '../../Pages/KpiCard';
 import IconCurrency from '../icons/IconCurrency';
@@ -13,32 +14,27 @@ import IconShoppingCart from '../icons/IconShoppingCart';
 interface CrmDashboardProps {
     subsidiary: Subsidiary;
     currentUser: User;
+    crmAnalysis?: CrmAnalysis ;
     contacts: Contact[];
-    opportunities: Opportunity[];
     interactions: Interaction[];
     crmTasks: CrmTask[];
     onUpdateTaskStatus: (taskId: string, status: CrmTaskStatus) => void;
 }
 
-const CrmDashboard: React.FC<CrmDashboardProps> = ({ opportunities, crmTasks, interactions, contacts, onUpdateTaskStatus }) => {
+const CrmDashboard: React.FC<CrmDashboardProps> = ({ crmAnalysis, crmTasks, interactions, contacts, onUpdateTaskStatus }) => {
     const { t, formatCurrency } = useI18n();
 
-    const pipelineValue = opportunities
-        .filter(o => o.stage !== OpportunityStage.WON && o.stage !== OpportunityStage.LOST)
-        .reduce((sum, o) => sum + o.opportunityValue, 0);
-    
-    const wonOpportunities = opportunities.filter(o => o.stage === OpportunityStage.WON);
-    const totalClosedOpportunities = opportunities.filter(o => o.stage === OpportunityStage.WON || o.stage === OpportunityStage.LOST);
-    const conversionRate = totalClosedOpportunities.length > 0 ? (wonOpportunities.length / totalClosedOpportunities.length) * 100 : 0;
-
-    const newOpportunitiesThisMonth = opportunities.filter(o => new Date(o.closeDate).getMonth() === new Date().getMonth()).length;
-    const newWebOpportunities = opportunities.filter(o => o.source === 'web_order' || o.source === 'quote_request').length;
+    // Utiliser les données du backend si elles sont disponibles, sinon afficher 0.
+    const pipelineValue = crmAnalysis?.pipelineValue ?? 0;
+    const conversionRate = crmAnalysis?.conversionRate ?? 0;
+    const newOpportunities = crmAnalysis?.newOpportunities ?? 0;
+    const webOpportunities = crmAnalysis?.webOpportunities ?? 0;
 
     const kpis: Kpi[] = [
-        { titleKey: 'crm.dashboard.pipelineValue', value: formatCurrency(pipelineValue), change: '+5%', changeType: 'increase', icon: <IconCurrency className="h-8 w-8 text-blue-500" /> },
+        { titleKey: 'crm.dashboard.pipelineValue', value: formatCurrency(pipelineValue), change: '', changeType: 'increase', icon: <IconCurrency className="h-8 w-8 text-blue-500" /> },
         { titleKey: 'crm.dashboard.conversionRate', value: `${conversionRate.toFixed(1)}%`, change: '+1.2%', changeType: 'increase', icon: <IconFunnel className="h-8 w-8 text-green-500" /> },
-        { titleKey: 'crm.dashboard.newOpportunities', value: newOpportunitiesThisMonth.toString(), change: `+${newOpportunitiesThisMonth}`, changeType: 'increase', icon: <IconBullhorn className="h-8 w-8 text-indigo-500" /> },
-        { titleKey: 'crm.dashboard.newWebOpportunities', value: newWebOpportunities.toString(), change: `+${newWebOpportunities}`, changeType: 'increase', icon: <IconShoppingCart className="h-8 w-8 text-purple-500" /> },
+        { titleKey: 'crm.dashboard.newOpportunities', value: newOpportunities.toString(), change: `+${newOpportunities}`, changeType: 'increase', icon: <IconBullhorn className="h-8 w-8 text-indigo-500" /> },
+        { titleKey: 'crm.dashboard.newWebOpportunities', value: webOpportunities.toString(), change: `+${webOpportunities}`, changeType: 'increase', icon: <IconShoppingCart className="h-8 w-8 text-purple-500" /> },
     ];
 
     const myTasks = crmTasks.filter(t => t.status !== CrmTaskStatus.DONE);

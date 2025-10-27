@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Product, Contact } from '../../types';
+import { Product } from '../../types';
 import { useI18n } from '../../i18n';
 import ECommerceHeader from './ECommerceHeader';
 import ProductCard from './ProductCard';
@@ -12,7 +12,6 @@ import HeroBanner from './HeroBanner';
 import QuoteRequestModal from './QuoteRequestModal';
 import ECommerceFooter from './ECommerceFooter';
 import CategoryShowcase from './CategoryShowcase';
-import { useAppContext } from '../../context/AppContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProducts } from '../../services/apiE-commerce/apiProducts';
 import { createOrder } from '../../services/apiE-commerce/apiOrders';

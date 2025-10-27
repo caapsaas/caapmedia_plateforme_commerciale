@@ -161,6 +161,7 @@ export class FinancesStatsService {
       receivables,
       inventoryValue,
       fixedAssets,
+      equipments,
       supplierDebts,
       subsidiary,
       pnl
@@ -169,6 +170,7 @@ export class FinancesStatsService {
       this.getCustomerReceivables(user, { period: PeriodFilter.ALL_TIME }),
       this.prisma.product.findMany({ where: { subsidiaryId, stock: { gt: 0 } }, select: { stock: true, price: true } }),
       this.prisma.fixedAsset.aggregate({ _sum: { acquisitionCost: true }, where: { subsidiaryId } }),
+      this.prisma.equipment.aggregate({ _sum: { acquisitionValue: true}, where: { subsidiaryId}}),
       this.getSupplierDebts(user, { period: PeriodFilter.ALL_TIME }),
       this.prisma.subsidiary.findUnique({ where: { id: subsidiaryId } }),
       this.getPnlStatement(user, { period: PeriodFilter.THIS_YEAR }) // Résultat de l'exercice en cours
@@ -180,6 +182,7 @@ export class FinancesStatsService {
       treasury: treasury._sum.balance?.toNumber() ?? 0,
       customerReceivables: receivables.totalReceivables,
       inventory: inventory.toNumber(),
+      equipments: equipments._sum.acquisitionValue?.toNumber() ?? 0,
       fixedAssets: fixedAssets._sum.acquisitionCost?.toNumber() ?? 0,
     };
     const totalAssets = Object.values(assets).reduce((sum, val) => sum + val, 0);

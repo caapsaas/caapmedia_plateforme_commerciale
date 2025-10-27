@@ -77,7 +77,7 @@ export class ProductsService {
           ? {
             create: files.map((file) => ({
               imageName: file.originalname,
-              imageUrl: `/api-caapsaas/products/${file.filename}`,
+              imageUrl: `/public/products/${file.filename}`,
             })),
           }
           : undefined,
@@ -232,7 +232,7 @@ export class ProductsService {
         await tx.productImage.createMany({
           data: files.map((file) => ({
             imageName: file.originalname,
-            imageUrl: `/api-caapsaas/products/${file.filename}`,
+            imageUrl: `/public/products/${file.filename}`,
             productId: id,
           })),
         });

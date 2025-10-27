@@ -109,8 +109,6 @@ export class AnalyticsService {
       FROM "sale"
       WHERE "subsidiary_id" = ${subsidiaryId}::uuid
         AND status = 'PAID'
-        AND "sale_date" >= ${dateFilter.gte}
-        AND "sale_date" <= ${dateFilter.lte}
         AND (${dateFilter.gte}::timestamp IS NULL OR "sale_date" >= ${dateFilter.gte}::timestamp)
         AND (${dateFilter.lte}::timestamp IS NULL OR "sale_date" <= ${dateFilter.lte}::timestamp)
       GROUP BY date
@@ -198,8 +196,8 @@ export class AnalyticsService {
       FROM "sale" s -- Utilisation de LOWER() pour une jointure insensible à la casse
       JOIN "products" p ON LOWER(s.product_name) = LOWER(p.product_name) AND s.subsidiary_id = p.subsidiary_id
       WHERE s.subsidiary_id = ${subsidiaryId}::uuid
-        AND s.sale_date >= ${dateFilter.gte}
-        AND s.sale_date <= ${dateFilter.lte}
+        AND (${dateFilter.gte}::timestamp IS NULL OR s.sale_date >= ${dateFilter.gte}::timestamp)
+        AND (${dateFilter.lte}::timestamp IS NULL OR s.sale_date <= ${dateFilter.lte}::timestamp)
       GROUP BY p.category
       ORDER BY total DESC;
     `;

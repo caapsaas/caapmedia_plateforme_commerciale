@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Contact, Opportunity, Interaction, CrmTask, User, OpportunityStage, Lead, Account, Contract, CrmTaskStatus, Product } from '../types';
+import { Contact, Opportunity, Interaction, CrmTask, User, Lead, Account, Contract, Product } from '../types';
 import { useAppContext } from '../context/AppContext';
 import { useI18n } from '../i18n';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -11,7 +11,8 @@ import {
     getContracts, saveContract, deleteContract,
     getCrmTasks, saveTask, updateTaskStatus, 
     getInteractions, logInteraction 
-} from '../services/apiCrm/apiCrm';
+} from '../services/apiCrm/apiCrm'; // Assurez-vous que apiCrm exporte bien tout ça
+import { getCrmAnalysis, CrmAnalysis } from '../services/apiStatistic/apiFinanceStats';
 import { getProducts } from '../services/apiE-commerce/apiProducts';
 import { getAllUsers } from '../services/apiCommon/apiUserAuth';
 import CrmDashboard from '../components/crm/CrmDashboard';
@@ -49,8 +50,14 @@ const Crm: React.FC = () => {
     const { data: users = [], isLoading: l8 } = useQuery<User[]>({ queryKey: ['users', subsidiary.id], queryFn: () => getAllUsers() });
     const { data: products = [], isLoading: l9 } = useQuery<Product[]>({ queryKey: queryKey('products'), queryFn: () => getProducts() });
 
-    const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9;
+    // Ajout de la récupération des données pour le dashboard CRM
+    const { data: crmAnalysisData, isLoading: l10 } = useQuery<CrmAnalysis>({
+        queryKey: queryKey('crmAnalysis'), 
+        queryFn: () => getCrmAnalysis({ period: 'ALL_TIME' }),
+        enabled: activeTab === 'dashboard',
+    });
 
+    const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9 || l10;
     // --- Mutations avec React Query ---
     const invalidateCrmQueries = () => {
         queryClient.invalidateQueries({ queryKey: queryKey('contacts') });
@@ -60,6 +67,7 @@ const Crm: React.FC = () => {
         queryClient.invalidateQueries({ queryKey: queryKey('contracts') });
         queryClient.invalidateQueries({ queryKey: queryKey('crmTasks') });
         queryClient.invalidateQueries({ queryKey: queryKey('interactions') });
+        queryClient.invalidateQueries({ queryKey: queryKey('crmAnalysis') }); // Invalider aussi les stats
     };
 
     const { mutate: onSaveContact } = useMutation({ mutationFn: saveContact, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('contacts') }) });
@@ -107,7 +115,7 @@ const Crm: React.FC = () => {
 
         switch (activeTab) {
             case 'dashboard':
-                return <CrmDashboard {...baseProps} {...userFilteredData} onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })} />;
+                return <CrmDashboard {...baseProps} {...userFilteredData} crmAnalysis={crmAnalysisData} onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })} />;
             case 'leads':
                 return <LeadsManagement 
                            {...baseProps}
@@ -164,7 +172,7 @@ const Crm: React.FC = () => {
                             onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })}
                         />;
             default:
-                return <CrmDashboard {...baseProps} {...userFilteredData} onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })} />;
+                return <CrmDashboard {...baseProps} {...userFilteredData} crmAnalysis={crmAnalysisData} onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })} />;
         }
     };
 

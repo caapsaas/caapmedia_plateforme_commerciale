@@ -12,22 +12,28 @@ import BalanceSheet from '../components/finance/BalanceSheet';
 import IconScale from '../components/icons/IconScale';
 import { useQuery } from '@tanstack/react-query';
 
-// Importez vos types de données réels et vos fonctions d'API
-import { Order, Product, ExpenseRecord, Sale, Equipment, SupplierDebt, FinancialTransaction, TreasuryAccount } from '../types';
+// Importez vos types de données et fonctions d'API
+import { Order, Product, ExpenseRecord, Sale, Equipment, SupplierDebt, FinancialTransaction, TreasuryAccount, PnlStatement, BalanceSheet as BalanceSheetType } from '../types';
 import { getOrders } from '../services/apiE-commerce/apiOrders';
 import { getProductsBySubsidiary as getProducts } from '../services/apiE-commerce/apiProducts';
 import { getSales } from '../services/apiE-commerce/apiSales'; // à créer
 import { getExpenses } from '../services/apiFinance/apiExpense'; // à créer
-import { getSupplierDebts } from '../services/apiFinance/apiDebts'; // à créer
+import { getPnlStatement, getBalanceSheet } from '../services/apiStatistic/apiFinanceStats';
+import { getSupplierDebts } from '../services/apiFinance/apiDebts';
 import { getFinancialTransactions, getTreasuryAccounts } from '../services/apiFinance/apiTreasury'; // à créer
 import { getEquipments } from '../services/apiMaintenance/apiEquipment'; // à créer
-import TransactionFormModal from '../components/finance/TransactionFormModal';
+
 
 const Finance: React.FC = () => {
     const { t } = useI18n();
     const { state } = useAppContext();
     const { currentSubsidiary: subsidiary } = state;
     const [activeTab, setActiveTab] = useState<FinanceView>(FinanceView.CREDIT);
+    
+    // Centralisation de la gestion des filtres de période
+    const [period, setPeriod] = useState<string>('this_month');
+    const [startDate, setStartDate] = useState<string>('');
+    const [endDate, setEndDate] = useState<string>('');
 
     if (!subsidiary) {
         return <div className="p-6 text-center">{t('common.loading')}</div>;
@@ -45,7 +51,27 @@ const Finance: React.FC = () => {
     const { data: financialTransactions = [], isLoading: l7 } = useQuery<FinancialTransaction[]>({ queryKey: queryKey('financialTransactions'), queryFn: () => getFinancialTransactions() });
     const { data: treasuryAccounts = [], isLoading: l8 } = useQuery<TreasuryAccount[]>({ queryKey: queryKey('treasuryAccounts'), queryFn: getTreasuryAccounts });
 
-    const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8;
+    const queryParams = useMemo(() => ({
+        period: period,
+        startDate: period === 'custom' ? startDate : undefined,
+        endDate: period === 'custom' ? endDate : undefined,
+    }), [period, startDate, endDate]);
+
+    // Appel à l'API pour le P&L, activé seulement si l'onglet est visible
+    const { data: pnlData, isLoading: isLoadingPnl } = useQuery<PnlStatement>({
+        queryKey: ['pnlStatement', subsidiary.id, queryParams],
+        queryFn: () => getPnlStatement(queryParams),
+        enabled: activeTab === FinanceView.PNL,
+    });
+
+    // Appel à l'API pour le Bilan, activé seulement si l'onglet est visible
+    const { data: balanceSheetData, isLoading: isLoadingBalanceSheet } = useQuery<BalanceSheetType>({
+        queryKey: ['balanceSheet', subsidiary.id], // Le bilan n'a pas de filtre de date pour le moment
+        queryFn: getBalanceSheet,
+        enabled: activeTab === FinanceView.BILAN,
+    });
+
+    const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || (activeTab === FinanceView.PNL && isLoadingPnl) || (activeTab === FinanceView.BILAN && isLoadingBalanceSheet);
 
     const renderActiveView = () => {
         if (isLoading) {
@@ -62,19 +88,17 @@ const Finance: React.FC = () => {
             case FinanceView.EXPENSES:
                 return <ExpenseManagement subsidiary={subsidiary} expenseRecords={expenseRecords} />;
             case FinanceView.PNL:
-                return <ProfitAndLossStatement subsidiary={subsidiary} orders={orders} products={products} expenseRecords={expenseRecords} sales={sales} />;
-            case FinanceView.BILAN:
-                return <BalanceSheet 
+                return <ProfitAndLossStatement 
                             subsidiary={subsidiary} 
-                            orders={orders} 
-                            products={products} 
-                            expenseRecords={expenseRecords} 
-                            sales={sales} 
-                            equipment={equipment}
-                            supplierDebts={supplierDebts}
-                            financialTransactions={financialTransactions}
-                            treasuryAccounts={treasuryAccounts}
-                        />;
+                            pnlData={pnlData}
+                            period={period}
+                            onPeriodChange={(e) => setPeriod(e.target.value)}
+                            startDate={startDate}
+                            onStartDateChange={(e) => setStartDate(e.target.value)}
+                            endDate={endDate}
+                            onEndDateChange={(e) => setEndDate(e.target.value)} />;
+            case FinanceView.BILAN:
+                return <BalanceSheet subsidiary={subsidiary} balanceSheetData={balanceSheetData} />;
             default:
                 return <CreditManagement subsidiary={subsidiary} />;
         }

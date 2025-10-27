@@ -49,7 +49,7 @@ async createCompanyDocument(
   }
 
   // Construire le fileUrl ici, similaire à orders.service.ts
-  const fileUrl = `/api-caapsaas/uploads/secretariat/${file.filename}`; // Assurez-vous que votre serveur sert ce chemin statiquement
+  const fileUrl = `/public/uploads/secretariat/${file.filename}`; // Assurez-vous que votre serveur sert ce chemin statiquement
 
   // Créer le document (Prisma gérera subsidiaryId via data)
   const document = await this.prisma.companyDocument.create({
@@ -98,7 +98,7 @@ async createCompanyDocument(
     // Construire les données de mise à jour
     const updateData: Prisma.CompanyDocumentUpdateInput = { ...dto };
     if (file) {
-      updateData.fileUrl = `/api-caapsaas/uploads/secretariat/${file.filename}`; // Construire l'URL si un nouveau fichier est fourni
+      updateData.fileUrl = `/public/uploads/secretariat/${file.filename}`; // Construire l'URL si un nouveau fichier est fourni
     }
 
     // Vérifier si des données de mise à jour sont fournies (dto + file)
