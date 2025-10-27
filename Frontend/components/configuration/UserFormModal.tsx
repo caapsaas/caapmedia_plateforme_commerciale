@@ -14,12 +14,16 @@ interface UserFormModalProps {
 const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, user, subsidiaries, currentSubsidiaryId }) => {
     const { t } = useI18n();
     const initialFormState = {
-        name: '',
+        userName: '', // Changed from 'name' to 'userName'
         email: '',
-        role: UserRole.COMMERCIAL,
+        userRole: UserRole.COMMERCIAL, // Changed from 'role' to 'userRole'
         subsidiaryId: currentSubsidiaryId,
     };
-    const [formData, setFormData] = useState<Omit<User, 'id' | 'password'>>(initialFormState);
+    // Le type de l'état est ajusté pour correspondre à la structure de `initialFormState`.
+    // L'erreur TypeScript provient du décalage entre `Omit<User, 'id' | 'password'>` (qui attend `name` et `rolet`)
+    // et `initialFormState` (qui utilise `userName` et `userRole`).
+    const [formData, setFormData] = useState(initialFormState);
+
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPasswordFields, setShowPasswordFields] = useState(!user);
@@ -28,9 +32,9 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
     useEffect(() => {
         if (user) {
             setFormData({
-                name: user.name,
+                userName: user.userName,
                 email: user.email,
-                role: user.role,
+                userRole: user.userRole,
                 subsidiaryId: user.subsidiaryId,
             });
         } else {
@@ -66,8 +70,16 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
                 saveData.password = password;
             }
         }
-        
-        onSave(saveData);
+                
+        const formattedData = {
+        userName: formData.userName, // Use formData.userName
+        email: formData.email,
+        userRole: formData.userRole, // Use formData.userRole
+        subsidiaryId: formData.subsidiaryId,
+        ...(password ? { password } : {})
+        };
+
+        onSave(formattedData);
     };
     
     if (!isOpen) return null;
@@ -82,17 +94,17 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
                         </h3>
                         <div className="mt-4 space-y-4">
                             <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
-                                <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <label htmlFor="userName" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
+                                <input type="text" name="userName" id="userName" value={formData.userName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
                                 <label htmlFor="email" className="block text-sm font-medium text-slate-700">{t('configuration.form.email')}</label>
                                 <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label htmlFor="role" className="block text-sm font-medium text-slate-700">{t('configuration.form.role')}</label>
-                                    <select name="role" id="role" value={formData.role} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                <div> 
+                                    <label htmlFor="userRole" className="block text-sm font-medium text-slate-700">{t('configuration.form.role')}</label>
+                                    <select name="userRole" id="userRole" value={formData.userRole} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                         {Object.values(UserRole).map(roleValue => (
                                             <option key={roleValue} value={roleValue}>{t(`roles.${roleValue}`)}</option>
                                         ))}

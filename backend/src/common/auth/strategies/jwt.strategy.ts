@@ -1,40 +1,33 @@
-// Dans src/auth/strategies/jwt.strategy.ts
-
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { AuthService } from '../../auth/auth/auth.service'; // Assurez-vous que le chemin est correct
-
-type JwtPayload = {
-  sub: string;
-  email: string;
-  role: string;
-  subsidiaryId: string;
-  type?: 'user'; // Ajout optionnel pour différencier des contacts
-};
+import { PrismaService } from '../../utils/prisma/prisma.service';
+import { LoggerService } from '../../utils/logger/logger.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly authService: AuthService) {
+  constructor(private prisma: PrismaService, private logger: LoggerService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET ? process.env.JWT_SECRET : 'your-secure-secret-key',
+      secretOrKey: process.env.JWT_SECRET || 'your-secret-key',
     });
   }
 
-  async validate(payload: JwtPayload) {
-    // `payload` contient le JWT décodé (ex: { email: '...', sub: '...' })
-    // On utilise l'ID (sub) pour retrouver l'utilisateur complet.
-    const user = await this.authService.findOneById(payload.sub);
-    
-    // Passport.js attachera l'objet `user` retourné à la propriété `req.user`.
-    // Excluez le mot de passe pour des raisons de sécurité.
-    if (user) {
-      const { passwordHash, ...result } = user;
-      return result;
+  async validate(payload: any) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      include: { subsidiary: true },
+    });
+    if (!user) {
+      this.logger.error(`User with ID ${payload.sub} not found`, 'JwtStrategy');
+      return null;
     }
-    
-    return null; // Ou lancez une UnauthorizedException si l'utilisateur n'est pas trouvé
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.userRole,
+      subsidiaryId: user.subsidiaryId,
+    };
   }
 }

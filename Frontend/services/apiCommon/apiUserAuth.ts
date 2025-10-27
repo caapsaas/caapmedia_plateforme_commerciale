@@ -21,7 +21,14 @@ export interface UserRegisterResponse {
   userId: string;
 }
 
-export type UserRegisterData = Omit<User, 'id'>;
+export interface UserRegisterData {
+  userName: string;
+  email: string;
+  password: string;
+  userRole: UserRole;
+  subsidiaryId: string;
+}
+
 
 export interface UserUpdateData {
   userName?: string;

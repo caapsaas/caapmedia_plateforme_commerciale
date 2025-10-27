@@ -1,5 +1,5 @@
 
-import { Injectable, UnauthorizedException, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, NotFoundException, ConflictException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../utils/prisma/prisma.service';
 import { LoggerService } from '../../utils/logger/logger.service';
@@ -38,6 +38,12 @@ export class AuthService {
     if (existingUser) {
       this.logger.error(`User with email ${email} already exists`, 'AuthService');
       throw new ConflictException('Email already in use');
+    }
+
+    // Defensive check: Ensure password is not undefined or null before hashing
+    if (!password) {
+      this.logger.error('Password is required for registration', 'AuthService');
+      throw new BadRequestException('Password is required');
     }
 
     // Hacher le mot de passe
@@ -260,6 +266,7 @@ export class AuthService {
       where.userName = { contains: query.userName, mode: 'insensitive' };
     }
     if (query.userRole) {
+      where.userRole = query.userRole;   
       where.userRole = query.userRole;
     }
 
