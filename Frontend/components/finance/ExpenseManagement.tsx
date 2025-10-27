@@ -147,9 +147,9 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
     return (
         <div className="space-y-6">
              <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                     <h3 className="text-xl font-semibold text-slate-800">{t('expenses.title')}</h3>
-                    <div className="flex items-center space-x-2 no-print">
+                    <div className="flex items-center flex-wrap gap-2 no-print self-start md:self-center">
                         <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
                             <IconPlus className="h-4 w-4" />
                             <span>{t('expenses.addExpense')}</span>

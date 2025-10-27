@@ -6,7 +6,7 @@ import SignaturePad from '../common/SignaturePad';
 interface AttendanceActionModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (record: AttendanceRecord) => void;
+    onSave: (record: Partial<AttendanceRecord>) => void;
     employees: Employee[];
     subsidiary: Subsidiary;
 }
@@ -29,20 +29,24 @@ const AttendanceActionModal: React.FC<AttendanceActionModalProps> = ({ isOpen, o
         setTimes(prev => ({ ...prev, [name]: value }));
     };
 
+    const combineDateTime = (dateStr: string, timeStr: string): string | null => {
+        if (!dateStr || !timeStr) return null;
+        return new Date(`${dateStr}T${timeStr}`).toISOString();
+    };
+
     const handleSaveSignature = (signature: string) => {
         const selectedEmployee = employees.find(e => e.id === selectedEmployeeId);
         if (!selectedEmployee) return;
 
-        const newRecord: AttendanceRecord = {
-            id: `ATT-${Date.now()}`,
+        const newRecord: Partial<AttendanceRecord> = {
             employeeId: selectedEmployeeId,
             employeeName: `${selectedEmployee.firstName} ${selectedEmployee.lastName}`,
-            date,
+            attendanceDate: new Date(date).toISOString(),
             status,
-            arrivalTime: times.arrivalTime || null,
-            breakStartTime: times.breakStartTime || null,
-            breakEndTime: times.breakEndTime || null,
-            departureTime: times.departureTime || null,
+            arrivalTime: combineDateTime(date, times.arrivalTime),
+            breakStartTime: combineDateTime(date, times.breakStartTime),
+            breakEndTime: combineDateTime(date, times.breakEndTime),
+            departureTime: combineDateTime(date, times.departureTime),
             signature,
             subsidiaryId: subsidiary.id,
         };
@@ -78,8 +82,8 @@ const AttendanceActionModal: React.FC<AttendanceActionModalProps> = ({ isOpen, o
                                         </select>
                                     </div>
                                     <div>
-                                        <label htmlFor="date" className="block text-sm font-medium text-slate-700">{t('hr.attendance.date')}</label>
-                                        <input type="date" name="date" id="date" value={date} onChange={e => setDate(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                        <label htmlFor="attendanceDate" className="block text-sm font-medium text-slate-700">{t('hr.attendance.date')}</label>
+                                        <input type="date" name="attendanceDate" id="attendanceDate" value={date} onChange={e => setDate(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                     </div>
                                 </div>
                                 <div>

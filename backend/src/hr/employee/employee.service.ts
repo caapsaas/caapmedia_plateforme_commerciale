@@ -4,6 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import {
@@ -42,12 +43,38 @@ export class EmployeeService {
       throw new BadRequestException(`Subsidiary with ID ${subsidiaryId} not found.`);
     }
 
-    
+    // Vérifier si un employé avec cet e-mail existe déjà
+    const existingEmployee = await this.prisma.employee.findUnique({
+      where: { email: createEmployeeDto.email },
+    });
+    if (existingEmployee) {
+      throw new ConflictException(`An employee with the email ${createEmployeeDto.email} already exists.`);
+    }
 
     try {
       const employee = await this.prisma.employee.create({
         data: {
-          ...createEmployeeDto,
+          // Map all fields from the DTO to the Prisma model explicitly
+          lastName: createEmployeeDto.lastName,
+          firstName: createEmployeeDto.firstName,
+          birthDate: new Date(createEmployeeDto.birthDate),
+          gender: createEmployeeDto.gender,
+          address: createEmployeeDto.address,
+          phone: createEmployeeDto.phone,
+          email: createEmployeeDto.email,
+          nationality: createEmployeeDto.nationality,
+          socialSecurityNumber: createEmployeeDto.socialSecurityNumber,
+          department: createEmployeeDto.department,
+          hireDate: new Date(createEmployeeDto.hireDate),
+          contractType: createEmployeeDto.contractType,
+          status: createEmployeeDto.status,
+          managerId: createEmployeeDto.managerId,
+          workLocation: createEmployeeDto.workLocation,
+          baseSalary: createEmployeeDto.baseSalary,
+          bonus: createEmployeeDto.bonus,
+          benefits: createEmployeeDto.benefits,
+          paymentMethod: createEmployeeDto.paymentMethod,
+          positions: createEmployeeDto.positions,
           subsidiaryId,
           leaveBalance: 0,
         },
@@ -62,11 +89,20 @@ export class EmployeeService {
     } catch (error) {
       this.logger.error(`Failed to create employee: ${error.message}`, error.stack);
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2003') {
-          throw new BadRequestException(
-            `Foreign key constraint failed. Ensure subsidiary and manager (if provided) exist.`,
-          );
+        if (error.code === 'P2002') {
+          throw new ConflictException(`An employee with this email already exists.`);
         }
+        if (error.code === 'P2003') {
+          throw new BadRequestException(`Foreign key constraint failed. Ensure subsidiary and manager (if provided) exist.`);
+        }
+        // Add more specific error handling for date parsing issues from Prisma
+        if (error.code === 'P2000' && error.message.includes('birthDate')) {
+          throw new BadRequestException('Invalid birthDate format. Expected a valid date string (e.g., YYYY-MM-DD).');
+        }
+        if (error.code === 'P2000' && error.message.includes('hireDate')) {
+          throw new BadRequestException('Invalid hireDate format. Expected a valid date string (e.g., YYYY-MM-DD).');
+        }
+
       }
       throw new InternalServerErrorException('Could not create employee.');
     }
@@ -129,9 +165,27 @@ export class EmployeeService {
    */
   async update(id: string, updateEmployeeDto: UpdateEmployeeDto): Promise<Employee> {
     try {
+      const dataToUpdate: Prisma.EmployeeUpdateInput = {};
+
+      // Explicitly convert date fields to Date objects if they are provided
+      if (updateEmployeeDto.birthDate !== undefined) {
+        dataToUpdate.birthDate = new Date(updateEmployeeDto.birthDate);
+      }
+      if (updateEmployeeDto.hireDate !== undefined) {
+        dataToUpdate.hireDate = new Date(updateEmployeeDto.hireDate);
+      }
+
+      // Separate 'positions' from the rest of the DTO to avoid conflicts
+      const { positions, ...restOfUpdateDto } = updateEmployeeDto;
+      Object.assign(dataToUpdate, restOfUpdateDto);
+
+      if (positions !== undefined) {
+        dataToUpdate.positions = positions;
+      }
+
       const employee = await this.prisma.employee.update({
         where: { id },
-        data: updateEmployeeDto,
+        data: dataToUpdate,
         include: { manager: true, subsidiary: true },
       });
       this.logger.log(`Employee ${id} updated successfully`);
@@ -141,6 +195,15 @@ export class EmployeeService {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
           throw new NotFoundException(`Employee with ID ${id} not found`);
+        }
+        if (error.code === 'P2003') {
+          throw new BadRequestException(`Foreign key constraint failed. Ensure manager (if provided) exists.`);
+        }
+        if (error.code === 'P2000' && error.message.includes('birthDate')) {
+          throw new BadRequestException('Invalid birthDate format. Expected a valid date string (e.g., YYYY-MM-DD).');
+        }
+        if (error.code === 'P2000' && error.message.includes('hireDate')) {
+          throw new BadRequestException('Invalid hireDate format. Expected a valid date string (e.g., YYYY-MM-DD).');
         }
       }
       throw new InternalServerErrorException(`Could not update employee ${id}`);

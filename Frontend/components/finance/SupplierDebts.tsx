@@ -15,7 +15,7 @@ interface SupplierDebtsProps {
 const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts: allSupplierDebts }) => {
     const { t, formatCurrency } = useI18n();
     const supplierDebts = allSupplierDebts.filter(d => d.subsidiaryId === subsidiary.id);
-    const totalDebts = supplierDebts.filter(d => d.status !== 'Payé').reduce((acc, debt) => acc + debt.amount, 0);
+    const totalDebts = supplierDebts.filter(d => d.status !== 'Payé').reduce((acc, debt) => acc + Number(debt.amount), 0);
     
     const getStatusClass = (status: SupplierDebt['status']) => {
         switch (status) {
@@ -79,9 +79,9 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                     <h3 className="text-xl font-semibold text-slate-800">{t('supplierDebts.trackingTitle')}</h3>
-                    <div className="flex space-x-2 no-print">
+                    <div className="flex flex-wrap gap-2 no-print self-start md:self-center">
                         <button onClick={handlePrint} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
                             <IconPrint className="h-4 w-4" />
                             <span>{t('common.print')}</span>

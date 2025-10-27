@@ -3,7 +3,11 @@ import { CompanyDocument, Meeting, SecretariatTask, DocumentCategory, DocumentSt
 
 // --- Types ---
 
-export type CompanyDocumentCreationData = Omit<CompanyDocument, 'id' | 'uploadDate'> & { file: File };
+// Renommé 'name' en 'documentName' pour correspondre au DTO du backend.
+// Supprimé 'fileUrl' car il est généré par le backend.
+export type CompanyDocumentCreationData = Omit<CompanyDocument, 'id' | 'uploadDate' | 'fileUrl' | 'name'> 
+  & { documentName: string; }; // file is now passed separately in FormData
+
 export type CompanyDocumentUpdateData = Partial<Omit<CompanyDocument, 'id' | 'uploadDate' | 'subsidiaryId'>> & { file?: File };
 export interface CompanyDocumentSearchQuery {
   documentName?: string;

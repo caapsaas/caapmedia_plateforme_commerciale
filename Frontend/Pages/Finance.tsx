@@ -13,14 +13,15 @@ import IconScale from '../components/icons/IconScale';
 import { useQuery } from '@tanstack/react-query';
 
 // Importez vos types de données réels et vos fonctions d'API
-import { Order, Product, ExpenseRecord, Sale, Equipment, SupplierDebt, FinancialTransaction } from '../types';
+import { Order, Product, ExpenseRecord, Sale, Equipment, SupplierDebt, FinancialTransaction, TreasuryAccount } from '../types';
 import { getOrders } from '../services/apiE-commerce/apiOrders';
 import { getProductsBySubsidiary as getProducts } from '../services/apiE-commerce/apiProducts';
 import { getSales } from '../services/apiE-commerce/apiSales'; // à créer
 import { getExpenses } from '../services/apiFinance/apiExpense'; // à créer
 import { getSupplierDebts } from '../services/apiFinance/apiDebts'; // à créer
-import { getFinancialTransactions } from '../services/apiFinance/apiTreasury'; // à créer
+import { getFinancialTransactions, getTreasuryAccounts } from '../services/apiFinance/apiTreasury'; // à créer
 import { getEquipments } from '../services/apiMaintenance/apiEquipment'; // à créer
+import TransactionFormModal from '../components/finance/TransactionFormModal';
 
 const Finance: React.FC = () => {
     const { t } = useI18n();
@@ -42,8 +43,9 @@ const Finance: React.FC = () => {
     const { data: supplierDebts = [], isLoading: l5 } = useQuery<SupplierDebt[]>({ queryKey: queryKey('supplierDebts'), queryFn: () => getSupplierDebts() });
     const { data: equipment = [], isLoading: l6 } = useQuery<Equipment[]>({ queryKey: queryKey('equipment'), queryFn: () => getEquipments() });
     const { data: financialTransactions = [], isLoading: l7 } = useQuery<FinancialTransaction[]>({ queryKey: queryKey('financialTransactions'), queryFn: () => getFinancialTransactions() });
+    const { data: treasuryAccounts = [], isLoading: l8 } = useQuery<TreasuryAccount[]>({ queryKey: queryKey('treasuryAccounts'), queryFn: getTreasuryAccounts });
 
-    const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7;
+    const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8;
 
     const renderActiveView = () => {
         if (isLoading) {
@@ -71,6 +73,7 @@ const Finance: React.FC = () => {
                             equipment={equipment}
                             supplierDebts={supplierDebts}
                             financialTransactions={financialTransactions}
+                            treasuryAccounts={treasuryAccounts}
                         />;
             default:
                 return <CreditManagement subsidiary={subsidiary} />;

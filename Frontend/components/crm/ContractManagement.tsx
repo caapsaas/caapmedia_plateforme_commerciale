@@ -14,7 +14,7 @@ interface ContractManagementProps {
     onDelete: (id: string) => void;
 }
 
-const ContractManagement: React.FC<ContractManagementProps> = ({ contracts, contacts, onSave, onDelete }) => {
+const ContractManagement: React.FC<ContractManagementProps> = ({ contracts = [], contacts, onSave, onDelete }) => {
     const { t, formatCurrency } = useI18n();
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingContract, setEditingContract] = useState<Contract | null>(null);

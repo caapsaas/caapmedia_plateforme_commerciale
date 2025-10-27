@@ -259,7 +259,7 @@ model Contact {
   phone         String         @map("phone") @db.VarChar(255)
   since         DateTime       @map("since")
   address       String         @map("address")
-  passwordHash  String         @map("password_hash")
+  passwordHash  String?         @map("password_hash")
   isVerified    Boolean        @default(false) @map("is_verified")
   accountId     String?        @map("account_id") @db.Uuid
   salesRepId    String?        @map("sales_rep_id") @db.Uuid

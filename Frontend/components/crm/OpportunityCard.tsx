@@ -33,11 +33,11 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({ opportunity, clientNa
             className="bg-white rounded-md shadow p-4 border-l-4 border-[#c6e911] cursor-pointer hover:shadow-lg transition-shadow"
         >
             <div className="flex justify-between items-start">
-                <h4 className="font-bold text-slate-800 pr-2">{opportunity.name}</h4>
+                <h4 className="font-bold text-slate-800 pr-2">{opportunity.opportunityName}</h4>
                 {getSourceIcon()}
             </div>
             <p className="text-sm text-slate-600">{clientName}</p>
-            <p className="text-lg font-bold text-slate-900 mt-2">{formatCurrency(opportunity.value)}</p>
+            <p className="text-lg font-bold text-slate-900 mt-2">{formatCurrency(opportunity.opportunityValue)}</p>
             <p className="text-xs text-slate-500 mt-1">Date de clôture: {opportunity.closeDate}</p>
         </div>
     );

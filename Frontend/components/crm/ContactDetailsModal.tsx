@@ -72,8 +72,8 @@ const ContactDetailsModal: React.FC<ContactDetailsModalProps> = ({
                      <ul className="space-y-2">
                         {opportunities.map(opp => (
                             <li key={opp.id} className="p-2 border rounded-md">
-                                <p className="font-semibold">{opp.name}</p>
-                                <p className="text-sm">{t(`crm.opportunity.stages.${opp.stage}`)} - {formatCurrency(opp.value)}</p>
+                                <p className="font-semibold">{opp.opportunityName}</p>
+                                <p className="text-sm">{t(`crm.opportunity.stages.${opp.stage}`)} - {formatCurrency(opp.opportunityValue)}</p>
                             </li>
                         ))}
                     </ul>

@@ -116,25 +116,24 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({ contacts, interactions,
             <div className="bg-white p-6 rounded-xl shadow-md">
                 <form onSubmit={handleNewTaskSubmit} className="space-y-3">
                     <h3 className="text-lg font-semibold text-slate-800">{t('crm.activities.addTask')}</h3>
-                    <div className="flex flex-col md:flex-row gap-3">
-                        <select name="title" value={newTask.title} onChange={handleNewTaskChange} className="flex-grow border-slate-300 rounded-md shadow-sm" required>
+                    {/* Remplacer Flexbox par Grid pour un meilleur contrôle du responsive */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 items-center">
+                        <select name="title" value={newTask.title} onChange={handleNewTaskChange} className="lg:col-span-2 border-slate-300 rounded-md shadow-sm w-full" required>
                             {TASK_TITLE_KEYS.map(key => (
                                 <option key={key} value={t(`crm.taskTitles.${key}`)}>{t(`crm.taskTitles.${key}`)}</option>
                             ))}
                         </select>
-                        <select name="contactId" value={newTask.contactId} onChange={handleNewTaskChange} className="border-slate-300 rounded-md shadow-sm" required>
+                        <select name="contactId" value={newTask.contactId} onChange={handleNewTaskChange} className="border-slate-300 rounded-md shadow-sm w-full" required>
                             <option value="">{t('crm.activities.selectContact')}</option>
                             {contacts.map(c => <option key={c.id} value={c.id}>{c.contactName}</option>)}
                         </select>
-                         <div>
-                            <select name="priority" id="priority" value={newTask.priority} onChange={handleNewTaskChange} className="border-slate-300 rounded-md shadow-sm h-full">
-                                {Object.values(CrmTaskPriority).map(p => (
-                                    <option key={p} value={p}>{t(`crm.tasks.priority_${p}`)}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <input type="date" name="dueDate" value={newTask.dueDate} onChange={handleNewTaskChange} className="border-slate-300 rounded-md shadow-sm" required/>
-                        <button type="submit" className="px-4 py-2 bg-[#c6e911] text-slate-800 font-semibold rounded-md hover:bg-[#adc40f] flex items-center justify-center gap-2">
+                        <select name="priority" id="priority" value={newTask.priority} onChange={handleNewTaskChange} className="border-slate-300 rounded-md shadow-sm w-full">
+                            {Object.values(CrmTaskPriority).map(p => (
+                                <option key={p} value={p}>{t(`crm.tasks.priority_${p}`)}</option>
+                            ))}
+                        </select>
+                        <input type="date" name="dueDate" value={newTask.dueDate} onChange={handleNewTaskChange} className="border-slate-300 rounded-md shadow-sm w-full" required/>
+                        <button type="submit" className="px-4 py-2 bg-[#c6e911] text-slate-800 font-semibold rounded-md hover:bg-[#adc40f] flex items-center justify-center gap-2 w-full">
                            <IconPlus className="h-5 w-5" />
                            {t('common.add')}
                         </button>

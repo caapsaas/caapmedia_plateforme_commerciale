@@ -1,344 +1,220 @@
-import { Controller, Post, Body, Patch, Delete, Get, Param, Request, UseGuards, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Patch,
+  Delete,
+  Get,
+  Param,
+  Req,
+  UseGuards,
+  Query,
+  UsePipes,
+  ValidationPipe,
+  UseInterceptors,
+  BadRequestException,
+  UploadedFile,
+  
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express'; // Changed to FileInterceptor
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 import { SecretariatService } from './secretariat.service';
 import { JwtAuthGuard } from '../../src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from '../common/auth/role/role.guard';
 import { SetMetadata } from '@nestjs/common';
-import { IsString, IsEnum, IsOptional, IsUUID, IsDateString,IsArray } from 'class-validator';
-import { UserRole, DocumentCategory, DocumentStatus, SecretariatTaskStatus } from '@prisma/client';
-import { Type } from 'class-transformer';
-import { IsDate } from 'class-validator';
-
-
-class CreateCompanyDocumentDto {
-  @IsString()
-  documentName: string;
-
-  @IsEnum(DocumentCategory)
-  category: DocumentCategory;
-
-  @IsEnum(DocumentStatus)
-  status: DocumentStatus;
-
-  @IsString()
-  fileUrl: string;
-
-  @IsUUID()
-  subsidiaryId: string;
-}
-
-class UpdateCompanyDocumentDto {
-  @IsOptional()
-  @IsString()
-  documentName?: string;
-
-  @IsOptional()
-  @IsEnum(DocumentCategory)
-  category?: DocumentCategory;
-
-  @IsOptional()
-  @IsEnum(DocumentStatus)
-  status?: DocumentStatus;
-
-  @IsOptional()
-  @IsString()
-  fileUrl?: string;
-}
-
-class SearchCompanyDocumentsDto {
-  @IsOptional()
-  @IsString()
-  documentName?: string;
-
-  @IsOptional()
-  @IsEnum(DocumentCategory)
-  category?: DocumentCategory;
-
-  @IsOptional()
-  @IsEnum(DocumentStatus)
-  status?: DocumentStatus;
-}
-export class CreateMeetingDto {
-  @IsString()
-  // @ApiProperty({ description: 'Titre de la réunion' })
-  title: string;
-
-  @Type(() => Date)  // Convertit string ISO en Date
-  @IsDate({ message: 'meetingDate must be a valid date' })
-  // @ApiProperty({ description: 'Date de la réunion' })
-  meetingDate: Date;
-
-  @Type(() => Date)  // Convertit string ISO en Date
-  @IsDate({ message: 'meetingTime must be a valid date' })
-  // @ApiProperty({ description: 'Heure de la réunion' })
-  meetingTime: Date;
-
-  @IsOptional()
-  @IsString()
-  // @ApiPropertyOptional({ description: 'Lieu de la réunion' })
-  meetingLocation?: string;
-
-  @IsOptional()
-  @IsString()
-  // @ApiPropertyOptional({ description: 'Ordre du jour' })
-  agenda?: string;
-
-  @IsOptional()
-  @IsString()
-  // @ApiPropertyOptional({ description: 'Compte-rendu' })
-  minutes?: string;
-
-  @IsUUID('all')  // Plus précis : valide tous les types UUID
-  // @ApiProperty({ description: 'ID de la filiale' })
-  subsidiaryId: string;
-
-  @IsOptional()  // Rendu optionnel : tableau vide OK
-  @IsArray()
-  @IsUUID('all', { each: true })
-  // @ApiPropertyOptional({ description: 'IDs des participants (employés)', type: [String] })
-  participantIds?: string[];
-}
-
-export class UpdateMeetingDto {
-  @IsOptional()
-  @IsString()
-  // @ApiPropertyOptional({ description: 'Nouveau titre' })
-  title?: string;
-
-  @IsOptional()
-  @Type(() => Date)
-  @IsDate()
-  // @ApiPropertyOptional({ description: 'Nouvelle date' })
-  meetingDate?: Date;
-
-  @IsOptional()
-  @Type(() => Date)
-  @IsDate()
-  // @ApiPropertyOptional({ description: 'Nouvelle heure' })
-  meetingTime?: Date;
-
-  @IsOptional()
-  @IsString()
-  // @ApiPropertyOptional({ description: 'Nouveau lieu' })
-  meetingLocation?: string;
-
-  @IsOptional()
-  @IsString()
-  // @ApiPropertyOptional({ description: 'Nouveau ordre du jour' })
-  agenda?: string;
-
-  @IsOptional()
-  @IsString()
-  // @ApiPropertyOptional({ description: 'Nouveau compte-rendu' })
-  minutes?: string;
-
-  @IsOptional()  // Rendu optionnel : ne force pas l'update des participants
-  @IsArray()
-  @IsUUID('all', { each: true })
-  // @ApiPropertyOptional({ description: 'Nouveaux IDs des participants', type: [String] })
-  participantIds?: string[];
-}
-
-export class SearchMeetingsDto {
-  @IsOptional()
-  @IsString()
-  // @ApiPropertyOptional({ description: 'Titre à rechercher' })
-  title?: string;
-
-  @IsOptional()
-  @Type(() => Date)
-  @IsDate()
-  // @ApiPropertyOptional({ description: 'Date à rechercher' })
-  meetingDate?: Date;
-}
-
-class CreateSecretariatTaskDto {
-  @IsString()
-  title: string;
-
-  @IsString()
-  description: string;
-
-  @IsDateString()
-  dueDate: Date;
-
-  @IsEnum(SecretariatTaskStatus)
-  status: SecretariatTaskStatus;
-
-  @IsOptional()
-  @IsUUID()
-  assignedToId?: string;
-
-  @IsUUID()
-  subsidiaryId: string;
-}
-
-class UpdateSecretariatTaskDto {
-  @IsOptional()
-  @IsString()
-  title?: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @IsOptional()
-  @IsDateString()
-  dueDate?: Date;
-
-  @IsOptional()
-  @IsEnum(SecretariatTaskStatus)
-  status?: SecretariatTaskStatus;
-
-  @IsOptional()
-  @IsUUID()
-  assignedToId?: string;
-}
-
-class SearchSecretariatTasksDto {
-  @IsOptional()
-  @IsString()
-  title?: string;
-
-  @IsOptional()
-  @IsEnum(SecretariatTaskStatus)
-  status?: SecretariatTaskStatus;
-
-  @IsOptional()
-  @IsDateString()
-  dueDate?: Date;
-}
+import { UserRole } from '@prisma/client';
+import { CreateCompanyDocumentDto } from './dto/create-company-document.dto';
+import { UpdateCompanyDocumentDto } from './dto/update-company-document.dto';
+import { SearchCompanyDocumentsDto } from './dto/search-company-documents.dto';
+import { CreateMeetingDto, UpdateMeetingDto, SearchMeetingsDto } from './dto/meeting.dto';
+import { CreateSecretariatTaskDto, UpdateSecretariatTaskDto, SearchSecretariatTasksDto } from './dto/task.dto';
 
 @Controller('secretariat')
+@UseGuards(JwtAuthGuard, RoleGuard) // Appliquer les gardes à tout le contrôleur
 export class SecretariatController {
-  constructor(private secretariatService: SecretariatService) {}
+  constructor(private readonly secretariatService: SecretariatService) {}
 
-  // Endpoints for CompanyDocument
-  @UseGuards(JwtAuthGuard, RoleGuard)
+  // Endpoints pour CompanyDocument
   @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
   @Post('documents')
-  async createCompanyDocument(@Body() dto: CreateCompanyDocumentDto, @Request() req) {
-    return this.secretariatService.createCompanyDocument(dto, req.user);
+  @UsePipes(new ValidationPipe({ transform: true })) // Validation auto du DTO
+  @UseInterceptors(
+    FileInterceptor('file', { // 'file' = nom du champ fichier dans le FormData frontend
+    storage: diskStorage({
+      destination: './public/uploads/secretariat', // Consistent path with orders module
+      filename: (_req, file, cb) => {
+        const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join(''); // Random name from orders module
+        cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
+      },
+    }),
+    fileFilter: (_req, file, cb) => {
+      if (!file.originalname.match(/\.(pdf|doc|docx|xlsx|xls|jpg|png|txt)$/)) {
+        return cb(new BadRequestException('Seuls les fichiers PDF, DOC, DOCX, XLSX, XLS, JPG, PNG, TXT sont autorisés.'), false);
+      }
+      cb(null, true);
+    },
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  }),
+  )
+  async createCompanyDocument(
+    @UploadedFile() file: Express.Multer.File, // Capture le fichier uploadé
+    @Body() dto: CreateCompanyDocumentDto, // Parse les champs texte (subsidiaryId, etc.)
+    @Req() req,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Un fichier est requis pour créer le document');
+    }
+    // Passer le fichier et le DTO au service
+    return this.secretariatService.createCompanyDocument(dto, req.user, file);
   }
 
-  @UseGuards(JwtAuthGuard, RoleGuard)
   @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
   @Patch('documents/:id')
-  async updateCompanyDocument(@Param('id') id: string, @Body() dto: UpdateCompanyDocumentDto, @Request() req) {
-    return this.secretariatService.updateCompanyDocument(id, dto, req.user);
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @UseInterceptors(
+    FileInterceptor('file', { // Permet la mise à jour optionnelle du fichier
+      storage: diskStorage({
+        destination: './public/uploads/secretariat', // Consistent path
+        filename: (_req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
+        },
+      }),
+      fileFilter: (_req, file, cb) => {
+        if (!file.originalname.match(/\.(pdf|doc|docx|xlsx|xls|jpg|png|txt)$/)) {
+          return cb(new BadRequestException('Seuls PDF, DOC, DOCX, JPG, PNG, TXT autorisés'), false);
+        }
+        cb(null, true);
+      },
+      limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+    }),
+  )
+  async updateCompanyDocument(
+    @Param('id') id: string,
+    @Body() dto: UpdateCompanyDocumentDto,
+    @Req() req,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    // Passer le DTO et le fichier (s'il existe) au service
+    return this.secretariatService.updateCompanyDocument(id, dto, req.user, file);
   }
 
-  @UseGuards(JwtAuthGuard, RoleGuard)
   @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
   @Delete('documents/:id')
-  async deleteCompanyDocument(@Param('id') id: string, @Request() req) {
+  async deleteCompanyDocument(@Param('id') id: string, @Req() req) {
     return this.secretariatService.deleteCompanyDocument(id, req.user);
   }
 
-  @UseGuards(JwtAuthGuard, RoleGuard)
   @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
   @Get('documents')
-  async getAllCompanyDocuments(@Request() req) {
+  async getAllCompanyDocuments(@Req() req) {
     return this.secretariatService.getAllCompanyDocuments(req.user);
   }
 
-  @UseGuards(JwtAuthGuard, RoleGuard)
   @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
   @Get('documents/search')
-  async searchCompanyDocuments(@Query() query: SearchCompanyDocumentsDto, @Request() req) {
+  async searchCompanyDocuments(@Query() query: SearchCompanyDocumentsDto, @Req() req) {
     return this.secretariatService.searchCompanyDocuments(query, req.user);
   }
 
- // Endpoints for Meeting
-@UseGuards(JwtAuthGuard, RoleGuard)
-@SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
-@Post('meetings')
-async createMeeting(@Body() dto: CreateMeetingDto, @Request() req) {
-  return this.secretariatService.createMeeting(dto, req.user);
-}
+  // Endpoints for Meeting
+  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Post('meetings')
+  @UsePipes(new ValidationPipe({ transform: true })) // Validation auto du DTO (ex. subsidiaryId requis, participantIds array optionnel)
+  async createMeeting(@Body() dto: CreateMeetingDto, @Req() req) {
+    return this.secretariatService.createMeeting(dto, req.user);
+  }
 
-@UseGuards(JwtAuthGuard, RoleGuard)
-@SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
-@Patch('meetings/:id')
-async updateMeeting(@Param('id') id: string, @Body() dto: UpdateMeetingDto, @Request() req) {
-  return this.secretariatService.updateMeeting(id, dto, req.user);
-}
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Patch('meetings/:id')
+  @UsePipes(new ValidationPipe({ transform: true })) // Validation auto du DTO (participantIds optionnel pour mise à jour)
+  async updateMeeting(@Param('id') id: string, @Body() dto: UpdateMeetingDto, @Req() req) {
+    return this.secretariatService.updateMeeting(id, dto, req.user);
+  }
 
-@UseGuards(JwtAuthGuard, RoleGuard)
-@SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
-@Delete('meetings/:id')
-async deleteMeeting(@Param('id') id: string, @Request() req) {
-  return this.secretariatService.deleteMeeting(id, req.user);
-}
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Delete('meetings/:id')
+  async deleteMeeting(@Param('id') id: string, @Req() req) {
+    return this.secretariatService.deleteMeeting(id, req.user);
+  }
 
-@UseGuards(JwtAuthGuard, RoleGuard)
-@SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
-@Get('meetings')
-async getAllMeetings(@Request() req) {
-  return this.secretariatService.getAllMeetings(req.user);
-}
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Get('meetings')
+  async getAllMeetings(@Req() req) {
+    return this.secretariatService.getAllMeetings(req.user);
+  }
 
-@UseGuards(JwtAuthGuard, RoleGuard)
-@SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
-@Get('meetings/search')
-async searchMeetings(@Query() query: SearchMeetingsDto, @Request() req) {
-  return this.secretariatService.searchMeetings(query, req.user);
-}
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Get('meetings/search')
+  @UsePipes(new ValidationPipe({ transform: true })) // Validation auto du DTO (title, meetingDate optionnels)
+  async searchMeetings(@Query() query: SearchMeetingsDto, @Req() req) {
+    return this.secretariatService.searchMeetings(query, req.user);
+  }
 
-// Nouveaux endpoints pour gérer les participants individuellement
-@UseGuards(JwtAuthGuard, RoleGuard)
-@SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
-@Post('meetings/:id/participants/:employeeId')
-async addParticipantToMeeting(
-  @Param('id') id: string,
-  @Param('employeeId') employeeId: string,
-  @Request() req,
-) {
-  return this.secretariatService.addParticipantToMeeting(id, employeeId, req.user);
-}
+  // Nouveaux endpoints pour gérer les participants individuellement
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Post('meetings/:id/participants/:employeeId')
+  async addParticipantToMeeting(
+    @Param('id') id: string,
+    @Param('employeeId') employeeId: string,
+    @Req() req,
+  ) {
+    return this.secretariatService.addParticipantToMeeting(id, employeeId, req.user);
+  }
 
-@UseGuards(JwtAuthGuard, RoleGuard)
-@SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
-@Delete('meetings/:id/participants/:employeeId')
-async removeParticipantFromMeeting(
-  @Param('id') id: string,
-  @Param('employeeId') employeeId: string,
-  @Request() req,
-) {
-  return this.secretariatService.removeParticipantFromMeeting(id, employeeId, req.user);
-}
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Delete('meetings/:id/participants/:employeeId')
+  async removeParticipantFromMeeting(
+    @Param('id') id: string,
+    @Param('employeeId') employeeId: string,
+    @Req() req,
+  ) {
+    return this.secretariatService.removeParticipantFromMeeting(id, employeeId, req.user);
+  }
+
   // Endpoints for SecretariatTask
   @UseGuards(JwtAuthGuard, RoleGuard)
   @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
   @Post('tasks')
-  async createSecretariatTask(@Body() dto: CreateSecretariatTaskDto, @Request() req) {
+  @UsePipes(new ValidationPipe({ transform: true })) // Validation auto du DTO (ex. subsidiaryId requis, assignedToId optionnel)
+  async createSecretariatTask(@Body() dto: CreateSecretariatTaskDto, @Req() req) {
     return this.secretariatService.createSecretariatTask(dto, req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
   @Patch('tasks/:id')
-  async updateSecretariatTask(@Param('id') id: string, @Body() dto: UpdateSecretariatTaskDto, @Request() req) {
+  @UsePipes(new ValidationPipe({ transform: true })) // Validation auto du DTO (assignedToId optionnel pour mise à jour)
+  async updateSecretariatTask(@Param('id') id: string, @Body() dto: UpdateSecretariatTaskDto, @Req() req) {
     return this.secretariatService.updateSecretariatTask(id, dto, req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
   @Delete('tasks/:id')
-  async deleteSecretariatTask(@Param('id') id: string, @Request() req) {
+  async deleteSecretariatTask(@Param('id') id: string, @Req() req) {
     return this.secretariatService.deleteSecretariatTask(id, req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
   @Get('tasks')
-  async getAllSecretariatTasks(@Request() req) {
+  async getAllSecretariatTasks(@Req() req) {
     return this.secretariatService.getAllSecretariatTasks(req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
   @Get('tasks/search')
-  async searchSecretariatTasks(@Query() query: SearchSecretariatTasksDto, @Request() req) {
+  @UsePipes(new ValidationPipe({ transform: true })) // Validation auto du DTO (title, status, dueDate optionnels)
+  async searchSecretariatTasks(@Query() query: SearchSecretariatTasksDto, @Req() req) {
     return this.secretariatService.searchSecretariatTasks(query, req.user);
   }
 }

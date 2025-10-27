@@ -44,9 +44,22 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
 
     useEffect(() => {
         if (employee) {
-            const { id, subsidiaryId, documents, positionHistory, trainings, performanceReviews, leaveBalance, leaveRecords, ...editableData } = employee;
-            setFormData(editableData);
-            setBenefitsString(employee.benefits.join(', '));
+            // Destructure pour isoler les champs qui nécessitent une transformation
+            const { id, subsidiaryId, documents, positionHistory, trainings, performanceReviews, leaveBalance, leaveRecords, position, birthDate, hireDate, ...restOfEmployee } = employee;
+            
+            // Prépare les données pour le formulaire en s'assurant que les types correspondent
+            const formattedData: EmployeeFormData = {
+                ...initialFormState, // Assure que tous les champs sont initialisés
+                ...restOfEmployee,
+                position: position, // Map `positions` (modèle) vers `position` (formulaire)
+                // Formate les dates en chaîne 'YYYY-MM-DD' pour les inputs de type 'date'
+                birthDate: new Date(birthDate).toISOString().split('T')[0],
+                hireDate: new Date(hireDate).toISOString().split('T')[0],
+                lastSalaryAdjustmentDate: employee.lastSalaryAdjustmentDate ? new Date(employee.lastSalaryAdjustmentDate).toISOString().split('T')[0] : null,
+            };
+
+            setFormData(formattedData);
+            setBenefitsString(employee.benefits?.join(', ') || '');
         } else {
             setFormData(initialFormState);
             setBenefitsString('');

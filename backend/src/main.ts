@@ -13,6 +13,7 @@ async function bootstrap() {
     credentials: true,
   });
 
+ 
   app.setGlobalPrefix('api-caapmedia');
   app.useStaticAssets(join(__dirname, '..', 'public'), {
     prefix: '/api-caapmedia',

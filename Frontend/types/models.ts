@@ -246,7 +246,7 @@ export interface Contact {
   subsidiaryId: string;
   address: string;
   salesRepId?: string;
-  password: string; // Rendu obligatoire pour l'inscription et la connexion
+  password?: string; // Rendu obligatoire pour l'inscription et la connexion
   status?: ContactStatus;
   isVerified: boolean;
   accountId?: string;
@@ -537,7 +537,7 @@ export interface AttendanceRecord {
     id: string;
     employeeId: string;
     employeeName: string;
-    date: string;
+    attendanceDate: string;
     status: AttendanceStatus;
     arrivalTime: string | null;
     departureTime: string | null;
@@ -648,15 +648,16 @@ export enum OpportunityStage {
 
 export interface Opportunity {
     id: string;
-    name: string;
+    opportunityName: string;
     contactId: string;
     accountId: string;
-    value: number;
+    opportunityValue: number;
     stage: OpportunityStage;
     products: Product[];
     closeDate: string;
     userId: string;
     subsidiaryId: string;
+     productIds: string[];
     source?: 'manual' | 'web_order' | 'quote_request';
 }
 
@@ -721,7 +722,7 @@ export interface Lead {
 
 export interface Account {
     id: string;
-    name: string;
+    accountName: string;
     industry: string;
     phone: string;
     address: string;

@@ -8,7 +8,7 @@ import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
 import { useQuery } from '@tanstack/react-query';
 import { getOrders } from '../../services/apiE-commerce/apiOrders';
-import { getContacts } from '../../services/apiCrm/apicontacts';
+import { getContacts } from '../../services/apiCrm/apiCrm';
 import KpiCard from '../../Pages/KpiCard';
 import IconCreditCard from '../icons/IconCreditCard';
 
@@ -22,7 +22,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
 
     // 1. Récupération des données réelles depuis le backend
     const { data: orders = [], isLoading: isLoadingOrders } = useQuery<Order[]>({ queryKey: ['orders', subsidiary.id], queryFn: () => getOrders({}) });
-    const { data: contacts = [], isLoading: isLoadingContacts } = useQuery({ queryKey: ['contacts', subsidiary.id], queryFn: () => getContacts() });
+    const { data: contacts = [], isLoading: isLoadingContacts } = useQuery<Contact[]>({ queryKey: ['contacts', subsidiary.id], queryFn: () => getContacts(subsidiary.id) });
 
     // 2. Calcul des créances clients à partir des commandes non payées
     const unpaidOrders = useMemo(() => {
@@ -113,19 +113,19 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-                 <div className="flex justify-between items-center mb-4">
+                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                     <h3 className="text-xl font-semibold text-slate-800">{t('credit.customerCreditTracking')}</h3>
-                    <div className="relative">
+                    <div className="relative w-full md:w-auto">
                         <input
                             type="search"
                             placeholder={t('common.searchPlaceholder')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full sm:w-64 pl-10 pr-4 py-2 border border-slate-300 rounded-full bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
+                            className="w-full md:w-64 pl-10 pr-4 py-2 border border-slate-300 rounded-full bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
                         />
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg className="h-5 w-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg></div>
                     </div>
-                    <div className="flex space-x-2 no-print">
+                    <div className="flex flex-wrap gap-2 no-print">
                         <button onClick={handlePrint} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
                             <IconPrint className="h-4 w-4" />
                             <span>{t('common.print')}</span>

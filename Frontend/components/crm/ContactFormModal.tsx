@@ -11,7 +11,7 @@ interface ContactFormModalProps {
 
 const ContactFormModal: React.FC<ContactFormModalProps> = ({ isOpen, onClose, onSave, contact }) => {
     const { t } = useI18n();
-    const initialFormState = {
+    const initialFormState = { 
         contactName: '',
         company: '',
         email: '',
@@ -22,7 +22,7 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({ isOpen, onClose, on
         status: ContactStatus.PROSPECT,
         accountId: '',
         salesRepId: '',
-        password: '' // Ajout de la propriété manquante
+       // password: '' // Ajout de la propriété manquante
     };
     const [formData, setFormData] = useState<Omit<Contact, 'id' | 'subsidiaryId'>>(initialFormState);
 

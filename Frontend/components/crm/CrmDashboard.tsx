@@ -25,7 +25,7 @@ const CrmDashboard: React.FC<CrmDashboardProps> = ({ opportunities, crmTasks, in
 
     const pipelineValue = opportunities
         .filter(o => o.stage !== OpportunityStage.WON && o.stage !== OpportunityStage.LOST)
-        .reduce((sum, o) => sum + o.value, 0);
+        .reduce((sum, o) => sum + o.opportunityValue, 0);
     
     const wonOpportunities = opportunities.filter(o => o.stage === OpportunityStage.WON);
     const totalClosedOpportunities = opportunities.filter(o => o.stage === OpportunityStage.WON || o.stage === OpportunityStage.LOST);

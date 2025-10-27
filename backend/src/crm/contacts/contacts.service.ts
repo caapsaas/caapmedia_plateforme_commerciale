@@ -33,16 +33,19 @@ export class ContactsService {
     }
 
     // Générer un mot de passe temporaire pour le portail client
-    const tempPassword = Math.random().toString(36).slice(-8);
-    const passwordHash = await bcrypt.hash(tempPassword, 10);
-
+   // const tempPassword = Math.random().toString(36).slice(-8);
+    //const passwordHash = await bcrypt.hash(tempPassword, 10);
+    //const passwordHash = null
     return this.prisma.contact.create({
       data: {
         ...createContactDto,
+        // Si accountId est une chaîne vide, on le remplace par undefined
+        // pour que Prisma ne tente pas de créer une relation invalide.
+        accountId: createContactDto.accountId || undefined,
         subsidiaryId: user.subsidiaryId,
         salesRepId: user.id,
         since: createContactDto.since ? new Date(createContactDto.since) : new Date(),
-        passwordHash,
+        passwordHash: '', // Fournir une chaîne vide comme valeur par défaut
       },
     });
   }
@@ -96,18 +99,42 @@ export class ContactsService {
   }
 
   async update(id: string, updateContactDto: UpdateContactDto, user: User) {
-    await this.findOne(id, user); // Vérifie l'existence et les droits
+    // 1. Vérifier l'existence et les droits d'accès au contact.
+    await this.findOne(id, user);
 
-    if (updateContactDto.email) {
+    // 2. Séparer les clés relationnelles et les champs non modifiables des autres données.
+    const {
+      accountId,
+      salesRepId,
+      id: dtoId, // Renommer pour éviter le conflit avec le paramètre 'id'
+      _count,
+      account,
+      salesRep,
+      subsidiaryId,
+      ...otherData
+    } = updateContactDto as any;
+
+    // 3. Vérifier l'unicité de l'email si celui-ci est modifié.
+    if (otherData.email) {
       const existing = await this.prisma.contact.findFirst({
-        where: { email: updateContactDto.email, id: { not: id }, subsidiaryId: user.subsidiaryId },
+        where: { email: otherData.email, id: { not: id }, subsidiaryId: user.subsidiaryId },
       });
       if (existing) throw new ConflictException('This email is already in use by another contact.');
     }
 
+    // 4. Construire l'objet de données pour la mise à jour Prisma.
+    const data: Prisma.ContactUpdateInput = { ...otherData };
+    if (accountId !== undefined) {
+      data.account = accountId ? { connect: { id: accountId } } : { disconnect: true };
+    }
+    if (salesRepId !== undefined) {
+      data.salesRep = salesRepId ? { connect: { id: salesRepId } } : { disconnect: true };
+    }
+
+    // 5. Effectuer la mise à jour.
     return this.prisma.contact.update({
       where: { id },
-      data: updateContactDto,
+      data,
     });
   }
 

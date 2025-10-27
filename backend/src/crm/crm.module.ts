@@ -8,8 +8,24 @@ import { InteractionsModule } from './interactions/interactions.module';
 import { ContractsModule } from './contracts/contracts.module';
 
 @Module({
-  imports: [LeadsModule, AccountsModule, ContactsModule, OpportunitiesModule, CrmtasksModule, ContractsModule, InteractionsModule],
-  // En exportant ces modules, leurs contrôleurs et services deviennent disponibles pour le reste de l'application.
-  exports: [LeadsModule, AccountsModule, ContactsModule, OpportunitiesModule, CrmtasksModule, ContractsModule, InteractionsModule],
+  imports: [
+    LeadsModule,
+    AccountsModule,
+    ContactsModule,
+    OpportunitiesModule,
+    CrmtasksModule,
+    ContractsModule,
+    InteractionsModule,
+  ],
+ 
+  exports: [
+    LeadsModule,
+    AccountsModule,
+    ContactsModule,
+    OpportunitiesModule,
+    CrmtasksModule,
+    ContractsModule,
+    InteractionsModule,
+  ],
 })
 export class CrmModule {}

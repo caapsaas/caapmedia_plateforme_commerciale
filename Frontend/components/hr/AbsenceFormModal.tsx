@@ -16,7 +16,7 @@ const AbsenceFormModal: React.FC<AbsenceFormModalProps> = ({ isOpen, onClose, on
     
     const initialFormState = {
         employeeId: '',
-        type: AbsenceType.JUSTIFIED,
+        typeAbsence: AbsenceType.JUSTIFIED,
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date().toISOString().split('T')[0],
         reason: '',
@@ -29,7 +29,7 @@ const AbsenceFormModal: React.FC<AbsenceFormModalProps> = ({ isOpen, onClose, on
         if (absence) {
             setFormData({
                 employeeId: absence.employeeId,
-                type: absence.type,
+                typeAbsence: absence.type,
                 startDate: absence.startDate,
                 endDate: absence.endDate,
                 reason: absence.reason,
@@ -81,8 +81,8 @@ const AbsenceFormModal: React.FC<AbsenceFormModalProps> = ({ isOpen, onClose, on
                                 </select>
                             </div>
                             <div>
-                                <label htmlFor="type" className="block text-sm font-medium text-slate-700">{t('configuration.form.absenceType')}</label>
-                                <select name="type" id="type" value={formData.type} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                <label htmlFor="typeAbsence" className="block text-sm font-medium text-slate-700">{t('configuration.form.absenceType')}</label>
+                                <select name="typeAbsence" id="typeAbsence" value={formData.typeAbsence} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                     <option value={AbsenceType.JUSTIFIED}>{t('hr.absenceType.JUSTIFIED')}</option>
                                     <option value={AbsenceType.UNJUSTIFIED}>{t('hr.absenceType.UNJUSTIFIED')}</option>
                                 </select>

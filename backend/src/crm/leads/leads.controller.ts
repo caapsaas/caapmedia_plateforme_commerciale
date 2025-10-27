@@ -45,7 +45,7 @@ export class LeadsController {
 
   @Post(':id/convert')
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
-  convert(@Param('id') id: string, @CurrentUser() user: User) {
+  convert(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     return this.leadsService.convert(id, user);
   }
 }

@@ -56,7 +56,7 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onC
                                 <label htmlFor="description" className="block text-sm font-medium text-slate-700">{t('treasury.description')}</label>
                                 <input type="text" name="description" id="description" value={formData.description} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="amount" className="block text-sm font-medium text-slate-700">{t('treasury.amount')}</label>
                                     <input type="number" step="any" name="amount" id="amount" value={formData.amount} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />
@@ -68,8 +68,8 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onC
                             </div>
                             <div>
                                 <label htmlFor="treasuryAccountId" className="block text-sm font-medium text-slate-700">{t('treasury.account')}</label>
-                                    <select name="treasuryAccountId" id="treasuryAccountId" value={formData.treasuryAccountId} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" disabled={accounts.length === 0}>
-                                        {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                    <select name="treasuryAccountId" id="treasuryAccountId" value={formData.treasuryAccountId} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm " disabled={accounts.length === 0}>
+                                        {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}  
                                     </select>
                             </div>
                         </div>
