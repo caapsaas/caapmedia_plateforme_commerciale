@@ -3,7 +3,8 @@ import { Logger } from '@nestjs/common';
 import { PrismaService } from '../../src/common/utils/prisma/prisma.service';
 import { LoggerService } from '../../src/common/utils/logger/logger.service';
 import { UserRole, DocumentCategory, DocumentStatus, SecretariatTaskStatus, Prisma } from '@prisma/client';
-import { CreateCompanyDocumentDto } from './dto/create-company-document.dto'; // Import DTO
+import { CreateCompanyDocumentDto } from './dto/create-company-document.dto';
+import { CreateSecretariatTaskDto, UpdateSecretariatTaskDto } from './dto/task.dto';
 
 @Injectable()
 export class SecretariatService {
@@ -521,14 +522,7 @@ async removeParticipantFromMeeting(
   // CRUD for SecretariatTask
 
   async createSecretariatTask(
-    data: {
-      title: string;
-      description: string;
-      dueDate: Date;
-      status: SecretariatTaskStatus;
-      assignedToId?: string;
-      subsidiaryId: string;
-    },
+    dto: CreateSecretariatTaskDto,
     currentUser: { id: string; role: UserRole; subsidiaryId: string },
   ) {
     // Vérifier les autorisations (SECRETARY ou ADMIN)
@@ -538,29 +532,32 @@ async removeParticipantFromMeeting(
       throw new ForbiddenException('You are not authorized to create a secretariat task');
     }
 
-    // Vérifier si la filiale existe et appartient au user
-    const subsidiary = await this.prisma.subsidiary.findUnique({ where: { id: data.subsidiaryId } });
+    // Vérifier si la filiale existe et appartient à l'utilisateur
+    const subsidiary = await this.prisma.subsidiary.findUnique({ where: { id: dto.subsidiaryId } });
     if (!subsidiary) {
-      this.logger.error(`Subsidiary with ID ${data.subsidiaryId} not found`, 'SecretariatService');
+      this.logger.error(`Subsidiary with ID ${dto.subsidiaryId} not found`, 'SecretariatService');
       throw new NotFoundException('Subsidiary not found');
     }
-    if (currentUser.role !== UserRole.ADMIN && currentUser.subsidiaryId !== data.subsidiaryId) {
-      this.logger.error(`User ${currentUser.id} cannot create task for subsidiary ${data.subsidiaryId}`, 'SecretariatService');
+    if (currentUser.role !== UserRole.ADMIN && currentUser.subsidiaryId !== dto.subsidiaryId) {
+      this.logger.error(`User ${currentUser.id} cannot create task for subsidiary ${dto.subsidiaryId}`, 'SecretariatService');
       throw new ForbiddenException('You cannot create a task for another subsidiary');
     }
 
     // Vérifier si l'assigné existe (si fourni)
-    if (data.assignedToId) {
-      const employee = await this.prisma.employee.findUnique({ where: { id: data.assignedToId } });
+    if (dto.assignedToId) {
+      const employee = await this.prisma.employee.findUnique({ where: { id: dto.assignedToId } });
       if (!employee) {
-        this.logger.error(`Employee with ID ${data.assignedToId} not found`, 'SecretariatService');
+        this.logger.error(`Employee with ID ${dto.assignedToId} not found`, 'SecretariatService');
         throw new NotFoundException('Assigned employee not found');
       }
     }
 
     // Créer la tâche
     const task = await this.prisma.secretariatTask.create({
-      data,
+      data: {
+        ...dto,
+        dueDate: new Date(dto.dueDate), // S'assurer que c'est un objet Date
+      },
       include: { subsidiary: true, assignedTo: true },
     });
 
@@ -570,13 +567,7 @@ async removeParticipantFromMeeting(
 
   async updateSecretariatTask(
     id: string,
-    data: {
-      title?: string;
-      description?: string;
-      dueDate?: Date;
-      status?: SecretariatTaskStatus;
-      assignedToId?: string;
-    },
+    dto: UpdateSecretariatTaskDto,
     currentUser: { id: string; role: UserRole; subsidiaryId: string },
   ) {
     // Vérifier si la tâche existe
@@ -598,15 +589,15 @@ async removeParticipantFromMeeting(
     }
 
     // Vérifier si des données de mise à jour sont fournies
-    if (!data || Object.keys(data).length === 0) {
+    if (!dto || Object.keys(dto).length === 0) {
       return task;
     }
 
     // Vérifier si le nouvel assigné existe (si fourni)
-    if (data.assignedToId) {
-      const employee = await this.prisma.employee.findUnique({ where: { id: data.assignedToId } });
+    if (dto.assignedToId) {
+      const employee = await this.prisma.employee.findUnique({ where: { id: dto.assignedToId } });
       if (!employee) {
-        this.logger.error(`Employee with ID ${data.assignedToId} not found`, 'SecretariatService');
+        this.logger.error(`Employee with ID ${dto.assignedToId} not found`, 'SecretariatService');
         throw new NotFoundException('Assigned employee not found');
       }
     }
@@ -614,7 +605,10 @@ async removeParticipantFromMeeting(
     // Mettre à jour la tâche
     const updatedTask = await this.prisma.secretariatTask.update({
       where: { id },
-      data,
+      data: {
+        ...dto,
+        ...(dto.dueDate && { dueDate: new Date(dto.dueDate) }), // Convertir en objet Date si fourni
+      },
       include: { subsidiary: true, assignedTo: true },
     });
 

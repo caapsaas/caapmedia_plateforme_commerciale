@@ -8,7 +8,7 @@ interface TaskFormModalProps {
     onClose: () => void;
     onSave: (data: SaveSecretariatTaskDto) => void;
     task: SecretariatTask | null;
-    subsidiary: Subsidiary;
+    subsidiary: Subsidiary; 
     employees: Employee[];
 }
 
@@ -45,7 +45,7 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({ isOpen, onClose, onSave, 
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave({ id: task?.id, ...formData });
+        onSave({ id: task?.id, subsidiaryId: subsidiary.id, ...formData });
     };
 
     if (!isOpen) return null;
