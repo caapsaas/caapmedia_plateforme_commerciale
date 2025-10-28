@@ -28,19 +28,19 @@ export class LeadsController {
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
   findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
-    return this.leadsService.findOne(id, user);
+    return this.leadsService.findOne(id);
   }
 
   @Patch(':id')
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
   update(@Param('id', ParseUUIDPipe) id: string, @Body() updateLeadDto: UpdateLeadDto, @CurrentUser() user: User) {
-    return this.leadsService.update(id, updateLeadDto, user);
+    return this.leadsService.update(id, updateLeadDto);
   }
 
   @Delete(':id')
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
   remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
-    return this.leadsService.remove(id, user);
+    return this.leadsService.remove(id);
   }
 
   @Post(':id/convert')

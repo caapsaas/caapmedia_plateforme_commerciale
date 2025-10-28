@@ -13,6 +13,8 @@ import {
 } from 'class-validator';
 import { OrderSource } from '@prisma/client';
 import { OrderStatus, CustomerPaymentMethod } from '@prisma/client';
+import { ProductionStatus } from '@prisma/client';
+
 
 class CreateProductOptionDto {
   @IsString()
@@ -119,4 +121,10 @@ export class UpdateOrderStatusDto {
   @IsEnum(OrderStatus)
   @IsNotEmpty()
   status: OrderStatus;
+}
+
+export class updateProductionStatusDto {
+  @IsEnum(ProductionStatus)
+  @IsNotEmpty()
+  productionStatus: ProductionStatus
 }

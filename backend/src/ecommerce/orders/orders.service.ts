@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
-import { CreateOrderDto, CreateOrderBySalesRepDto, RecordPaymentDto, UpdateOrderStatusDto } from './dto/create-order.dto';
+import { CreateOrderDto, CreateOrderBySalesRepDto, RecordPaymentDto, UpdateOrderStatusDto, updateProductionStatusDto } from './dto/create-order.dto';
 import { Order, OrderGroup, OrderStatus, PaymentStatus, Prisma, ProductionStatus, CustomerPaymentMethod, SaleStatus } from '@prisma/client';
 import { FindAllOrdersDto, OrderPeriod } from './dto/find-all-orders.dto';
 import { sub, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
@@ -76,9 +76,6 @@ export class OrdersService {
       });
     }
   }
-
-
-
 
   /**
    * 
@@ -626,7 +623,7 @@ export class OrdersService {
   /**
    * 
    * @param id // ID de la commande
-   * @param updateDto // DTO contenant le statut de production à mettre à jour
+   * @param updateDto // DTO contenant le statut de la commande à mettre à jour
    * @param user // Utilisateur connecté
    * @returns // Commande mise à jour
    */
@@ -640,15 +637,35 @@ export class OrdersService {
         data: { status: updateDto.status },
       });
 
-      // await tx.orderProductionHistory.create({
-      //   data: {
-      //     orderId: id,
-      //     status: updateDto.status,
-      //   },
-      // });
-
       return updatedOrder;
     });
+  }
+
+  /**
+   * 
+   * @param id  ID de la commande
+   * @param updateDto DTO contenant le statut de production a mettre a jour
+   * @param user Utilisateur connecte
+   * @returns Commande mise a jour
+   */
+  async updateProductionStatus(id: string, updateDto: updateProductionStatusDto, user: any){
+    await this.findOne(id, user);
+
+    return this.prisma.$transaction(async (tx) => {
+      const updateProduction = await tx.order.update({
+        where: { id },
+        data: { productionStatus: updateDto.productionStatus},
+      });
+
+      await tx.orderProductionHistory.create({
+        data: {
+          orderId: id,
+          status: updateDto.productionStatus,
+        },
+      });
+
+      return updateProduction;
+    })
   }
 
   /**

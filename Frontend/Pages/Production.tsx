@@ -1,18 +1,39 @@
 import React, { useState } from 'react';
 import { useI18n } from '../i18n';
 import { useAppContext } from '../context/AppContext';
-import { ProductionStatus, Order, OrderStatus } from '../types';
+import { ProductionStatus, Order } from '../types';
 import ProductionOrderCard from '../components/production/ProductionOrderCard';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getOrders, updateProductionStatus } from '../services/apiE-commerce/apiOrders';
 
 const Production: React.FC = () => {
     const { t } = useI18n();
-    const { state, dispatch } = useAppContext();
-    const { orders, contacts, currentSubsidiary } = state;
+    const { state } = useAppContext();
+    const { currentSubsidiary } = state;
+    const queryClient = useQueryClient();
     const [draggedOverColumn, setDraggedOverColumn] = useState<ProductionStatus | null>(null);
 
-    if (!currentSubsidiary) return null;
+    const queryKey = ['productionOrders', currentSubsidiary?.id];
 
-    const productionOrders = orders.filter(o => o.subsidiaryId === currentSubsidiary.id && o.status !== OrderStatus.CANCELLED && o.status !== OrderStatus.COMPLETED);
+    const { data: productionOrders = [], isLoading } = useQuery<Order[]>({
+        queryKey: queryKey,
+        queryFn: () => getOrders({
+            // Le backend devrait être adapté pour exclure certains statuts si nécessaire
+            // ou on filtre côté client comme avant.
+        }),
+        enabled: !!currentSubsidiary,
+        // Filtrage côté client pour ne garder que les commandes pertinentes pour la production
+        select: (orders) => orders.filter(o => 
+            o.productionStatus && o.productionStatus !== ProductionStatus.READY_FOR_DELIVERY
+        ),
+    });
+
+    const { mutate: updateStatusMutation } = useMutation({
+        mutationFn: updateProductionStatus,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: queryKey });
+        },
+    });
 
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>, orderId: string) => {
         e.dataTransfer.setData("orderId", orderId);
@@ -21,16 +42,16 @@ const Production: React.FC = () => {
     const handleDrop = (e: React.DragEvent<HTMLDivElement>, newStatus: ProductionStatus) => {
         e.preventDefault();
         const orderId = e.dataTransfer.getData("orderId");
-        const order = orders.find(o => o.id === orderId);
+        const order = productionOrders.find(o => o.id === orderId);
         if (order && order.productionStatus !== newStatus) {
-            dispatch({ type: 'UPDATE_ORDER_PRODUCTION_STATUS', payload: { orderId, newStatus } });
+            updateStatusMutation({ orderId, productionStatus: newStatus });
         }
         setDraggedOverColumn(null);
     };
 
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>, status: ProductionStatus) => {
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>, productionStatus: ProductionStatus) => {
         e.preventDefault();
-        setDraggedOverColumn(status);
+        setDraggedOverColumn(productionStatus);
     };
     
     const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
@@ -44,6 +65,10 @@ const Production: React.FC = () => {
         ProductionStatus.FINISHING,
         ProductionStatus.READY_FOR_DELIVERY,
     ];
+
+    if (isLoading) {
+        return <div className="p-6 text-center">{t('common.loading')}</div>;
+    }
 
     return (
         <div className="space-y-6">

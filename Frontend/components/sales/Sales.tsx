@@ -17,7 +17,7 @@ import IconCheckCircle from '../icons/IconCheckCircle';
 import IconExclamationTriangle from '../icons/IconExclamationTriangle';
 import NewOrder from '../../Pages/NewOrder';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getOrders, recordOrderPayment, updateProductionStatus, createOrderBySalesRep, validateOrderForProduction, FindAllOrdersDto, getTopSellingProducts } from '../../services/apiE-commerce/apiOrders';
+import { getOrders, recordOrderPayment, updateOrderStatus, createOrderBySalesRep, validateOrderForProduction, FindAllOrdersDto, getTopSellingProducts } from '../../services/apiE-commerce/apiOrders';
 import { getProductsBySubsidiary } from '../../services/apiE-commerce/apiProducts';
 import { getContacts } from '../../services/apiCrm/apiContacts';
 
@@ -73,7 +73,7 @@ const Sales: React.FC = () => {
     });
 
     const { mutate: updateOrderStatusMutate } = useMutation({
-        mutationFn: (payload: { orderId: string; status: OrderStatus }) => updateProductionStatus(payload),
+        mutationFn: (payload: { orderId: string; status: OrderStatus }) => updateOrderStatus(payload),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orders'] }),
     });
 

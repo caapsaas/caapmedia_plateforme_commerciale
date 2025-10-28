@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, Query, Req, UploadedFiles, U
 import { OrdersService } from './orders.service';
 import { ContactJwtAuthGuard } from 'src/common/auth/jwt/contact-jwt.guard';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
-import { CreateOrderDto, CreateOrderBySalesRepDto, RecordPaymentDto, UpdateOrderStatusDto } from './dto/create-order.dto';
+import { CreateOrderDto, CreateOrderBySalesRepDto, RecordPaymentDto, UpdateOrderStatusDto, updateProductionStatusDto } from './dto/create-order.dto';
 import { FindAllOrdersDto } from './dto/find-all-orders.dto';
 import { SetMetadata } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
@@ -121,6 +121,20 @@ export class OrdersController {
     }
 
     /**
+     * Endpoint pour mettre à jour le statut d'une commande
+     * Exemple d'URL : /ecommerce/orders/:id/order-status
+     */
+    @Patch('/order-status/:id')
+    @UseGuards(JwtAuthGuard)
+    @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
+    updateOrderStatus(
+        @Param('id') id: string,
+        @Body() updateOrderStatusDto: UpdateOrderStatusDto,
+        @Req() req) {
+        return this.ordersService.updateOrderStatus(id, updateOrderStatusDto, req.user);
+    }
+
+    /**
      * Endpoint pour mettre à jour le statut de production d'une commande
      * Exemple d'URL : /ecommerce/orders/:id/production-status
      */
@@ -129,9 +143,9 @@ export class OrdersController {
     @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
     updateProductionStatus(
         @Param('id') id: string,
-        @Body() updateProductionStatusDto: UpdateOrderStatusDto,
+        @Body() updateProductionStatusDto: updateProductionStatusDto,
         @Req() req) {
-        return this.ordersService.updateOrderStatus(id, updateProductionStatusDto, req.user);
+        return this.ordersService.updateProductionStatus(id, updateProductionStatusDto, req.user);
     }
 
     /**

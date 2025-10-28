@@ -8,7 +8,7 @@ interface ProductionOrderCardProps {
 
 const ProductionOrderCard: React.FC<ProductionOrderCardProps> = ({ order, onDragStart }) => {
     
-    const itemSummary = order.items.map(item => `${item.quantity}x ${item.product.name}`).join(', ');
+    const itemSummary = order.orderItems.map(item => `${item.quantity}x ${item.product.productName}`).join(', ');
 
     return (
         <div
