@@ -1,12 +1,17 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { User, Contact, Subsidiary} from '../types';
+import { User, Contact, Subsidiary, UserRole} from '../types';
 import { api } from '../services/api';
+
+const SIDEBAR_OPEN_KEY = 'caap-isSidebarOpen';
+const SIDEBAR_COLLAPSED_KEY = 'caap-isSidebarCollapsed';
 
 interface AuthContextType {
   user: User | null;
   contact: Contact | null;
   token: string | null;
+  contactToken: string | null;
   subsidiary: Subsidiary | null, 
+  updateUserRole: (newRole: UserRole) => void;
   login: (data: { user: User; token: string, subsidiary: Subsidiary}) => void;
   logout: () => void;
   logoutCustomer: () => void;
@@ -31,8 +36,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       try {
-        const response = await api.get('/auth/Userprofile');
-        setUser(response.data);
+        // On suppose que l'API renvoie maintenant l'utilisateur ET sa filiale
+        const response = await api.get<{ user: User, subsidiary: Subsidiary }>('/auth/Userprofile');
+        setUser(response.data.user);
+        setSubsidiary(response.data.subsidiary);
       } catch (error) {
         console.error("Failed to fetch user profile, logging out.", error);
         // Si l'appel échoue (ex: token expiré -> 401), on déconnecte l'utilisateur.
@@ -70,6 +77,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setContact(contact.contact);
   };
 
+  const updateUserRole = (newRole: UserRole) => {
+    if (user) {
+      setUser({ ...user, role: newRole });
+    }
+  };
+
   const logoutCustomer = () => {
     localStorage.removeItem('contactToken');
     setContactToken(null);
@@ -81,10 +94,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
+    setSubsidiary(null);
+    // On nettoie aussi le localStorage de l'UI ici
+    localStorage.removeItem(SIDEBAR_OPEN_KEY);
+    localStorage.removeItem(SIDEBAR_COLLAPSED_KEY);
   };
 
   return (
-    <AuthContext.Provider value={{ user, contact, token, subsidiary, login, logout, loginCustomer, logoutCustomer }}>
+    <AuthContext.Provider value={{ user, contact, token, contactToken, subsidiary, login, logout, loginCustomer, logoutCustomer, updateUserRole }}>
       {children}
     </AuthContext.Provider>
   );

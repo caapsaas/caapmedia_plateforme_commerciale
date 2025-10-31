@@ -7,13 +7,13 @@ import { useI18n } from '../../i18n';
 import ClientFormModal from './ClientFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { getContacts, saveContact, deleteContact } from '../../services/apiCrm/apiCrm';
+
 
 const ClientManagement: React.FC = () => {
     const { t } = useI18n();
-    const { state } = useAppContext();
-    const { currentSubsidiary: subsidiary } = state;
+    const { subsidiary } = useAuth();
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingContact, setEditingContact] = useState<Contact | null>(null);

@@ -1,24 +1,45 @@
 import React, { useState } from 'react';
-import { UserRole } from '../types';
+import { UserRole, View } from '../types';
 import IconLogout from '../components/icons/IconLogout';
 import { useI18n } from '../i18n';
 import IconGlobe from '../components/icons/IconGlobe';
 import IconMenu from '../components/icons/IconMenu';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import { useRouter } from '@tanstack/react-router';
 
 const Header: React.FC = () => {
   const { t, language, setLanguage } = useI18n();
-  const { state, dispatch } = useAppContext();
-  const { logout: authLogout } = useAuth();
-  const { currentUser, currentSubsidiary } = state;
+  const { dispatch } = useAppContext();
+  const { user, subsidiary, logout: authLogout, updateUserRole } = useAuth();
+  const router = useRouter();
   const roles = Object.values(UserRole);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
 
-  if (!currentUser || !currentSubsidiary) return null;
+  if (!user || !subsidiary) return null;
   
-  const handleRoleChange = (role: UserRole) => dispatch({ type: 'CHANGE_ROLE', payload: role });
+  const getDefaultViewForRole = (role: UserRole): string => {
+    switch (role) {
+        case UserRole.CAISSIER: return '/dashboard/caisse';
+        case UserRole.COMMERCIAL: return '/dashboard/crm';
+        case UserRole.PURCHASING_MANAGER: return '/dashboard/purchasing';
+        case UserRole.SECRETARY: return '/dashboard/secretariat';
+        case UserRole.HR_MANAGER: return '/dashboard/hr';
+        case UserRole.PRODUCTION_DIRECTOR: return '/dashboard/production';
+        default: return '/dashboard';
+    }
+  };
+
+  const handleRoleChange = (newRole: UserRole) => {
+    // 1. Mettre à jour l'état dans AuthContext
+    updateUserRole(newRole);
+
+    // 2. Naviguer vers la nouvelle vue par défaut
+    const destination = getDefaultViewForRole(newRole);
+    router.navigate({ to: destination });
+  };
+
   const onMenuButtonClick = () => dispatch({ type: 'SET_SIDEBAR_OPEN', payload: true });
 
   return (
@@ -86,8 +107,8 @@ const Header: React.FC = () => {
                 className="h-10 w-10 rounded-full border-2 border-[#c6e911]"
               />
               <div className="text-left hidden md:block">
-                <div className="font-semibold text-sm text-slate-700">{t('header.profileUser', { role: t(`roles.${currentUser.role}`) })}</div>
-                <div className="text-xs text-slate-500">{currentSubsidiary.name}</div>
+                <div className="font-semibold text-sm text-slate-700">{t('header.profileUser', { role: t(`roles.${user.role}`) })}</div>
+                <div className="text-xs text-slate-500">{subsidiary.subsidiaryName}</div>
               </div>
             </button>
             {isProfileMenuOpen && (
@@ -122,11 +143,11 @@ const Header: React.FC = () => {
                 key={role}
                 onClick={() => handleRoleChange(role)}
                 className={`${
-                  currentUser.role === role
+                  user.role === role
                     ? 'border-[#c6e911] text-[#c6e911]'
                     : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors focus:outline-none`}
-                aria-current={currentUser.role === role ? 'page' : undefined}
+                aria-current={user.role === role ? 'page' : undefined}
               >
                 {t(`roles.${role}`)}
               </button>

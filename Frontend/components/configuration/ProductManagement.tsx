@@ -15,11 +15,11 @@ import ProductImportModal from './ProductImportModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProductsBySubsidiary, createProduct, updateProduct, deleteProduct, generateProductImage } from '../../services/apiE-commerce/apiProducts'; 
 import { getImageUrl } from '../../utils/imageUtils';
+import { useAuth } from '../../context/AuthContext';
 
 const ProductManagement: React.FC = () => {
     const { t, formatCurrency } = useI18n();
-    const { state } = useAppContext();
-    const { currentSubsidiary: subsidiary } = state;
+    const { subsidiary } = useAuth();
     const queryClient = useQueryClient();
 
     const [isModalOpen, setIsModalOpen] = useState(false);

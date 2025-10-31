@@ -4,7 +4,6 @@ import { CrmAnalysis } from '../../services/apiStatistic/apiFinanceStats';
 import { useI18n } from '../../i18n';
 import KpiCard from '../../Pages/KpiCard';
 import IconCurrency from '../icons/IconCurrency';
-//import IconTrendingUp from '../icons/IconTrendingUp';
 import IconBullhorn from '../icons/IconBullhorn';
 import IconFunnel from '../icons/IconFunnel';
 import IconClipboardCheck from '../icons/IconClipboardCheck';
@@ -13,7 +12,6 @@ import IconShoppingCart from '../icons/IconShoppingCart';
 
 interface CrmDashboardProps {
     subsidiary: Subsidiary;
-    currentUser: User;
     crmAnalysis?: CrmAnalysis ;
     contacts: Contact[];
     interactions: Interaction[];

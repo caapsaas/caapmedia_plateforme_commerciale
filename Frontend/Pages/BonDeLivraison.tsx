@@ -51,7 +51,7 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
                     <div className="flex justify-between items-start mb-8">
                         <div>
                             {LogoComponent && <LogoComponent className="h-20 w-auto" />}
-                            <p className="font-bold text-lg mt-2">{subsidiary.name}</p>
+                            <p className="font-bold text-lg mt-2">{subsidiary.subsidiaryName}</p>
                         </div>
                         <div className="text-right">
                             <h4 className="font-bold text-lg">{t('bonDeLivraison.title')}</h4>

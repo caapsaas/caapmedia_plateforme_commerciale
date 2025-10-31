@@ -298,11 +298,16 @@ export class AuthService {
   }
 
   async getProfileUser(user: { id: string; email: string; role: UserRole; subsidiaryId: string }) {
+    const subsidiary = await this.prisma.subsidiary.findUnique({ where: { id: user.subsidiaryId } });
+    
     // Les informations de l'utilisateur sont déjà dans le payload du token JWT.
     // On peut les retourner directement.
     // Si on voulait des informations plus à jour, on pourrait faire une requête à la base de données.
     this.logger.log(`Profile retrieved for user ${user.email}`, 'AuthService');
-    return user;
+    return {
+      user: user,
+      subsidiary:subsidiary
+    };
   }
 
   async getProfile(userId: string) {

@@ -11,7 +11,6 @@ import IconPdf from '../components/icons/IconPdf';
 import IconPlus from '../components/icons/IconPlus';
 import IconEdit from '../components/icons/IconEdit';
 import IconDelete from '../components/icons/IconDelete';
-import { useAppContext } from '../context/AppContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProductsBySubsidiary, createProduct, deleteProduct, updateProductSellingAndPrice } from '../services/apiE-commerce/apiProducts';
 import ConfirmationModal from '../components/common/ConfirmationModal';
@@ -19,12 +18,12 @@ import ProductFormModal from '../components/configuration/ProductFormModal';
 import IconSaveCheck from '../components/icons/IconSaveCheck';
 import IconCancelX from '../components/icons/IconCancelX';
 import IconSearch from '../components/icons/IconSearch';
+import { useAuth } from '../context/AuthContext';
 
 const Stock: React.FC = () => {
     const { t, formatCurrency, formatNumber } = useI18n();
-    const { state } = useAppContext();
     const queryClient = useQueryClient();
-    const { currentSubsidiary: subsidiary } = state;
+    const { subsidiary } = useAuth();
     
     const [editingProductId, setEditingProductId] = useState<string | null>(null);
     const [editedPrices, setEditedPrices] = useState<{ cost: number; selling: number }>({ cost: 0, selling: 0 });

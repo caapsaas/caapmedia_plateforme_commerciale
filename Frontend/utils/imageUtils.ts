@@ -3,7 +3,7 @@
  * En développement, cela pointe vers votre serveur local.
  * En production, cela devrait être l'URL de votre API déployée.
  */
-const BACKEND_URL = process.env.NEST_PUBLIC_API_URL || 'http://localhost:3000';
+const BACKEND_URL = process.env.NEST_PUBLIC_API_URL || 'https://www.caapmedia.com';
 
 /**
  * Construit l'URL complète pour une ressource image du backend.

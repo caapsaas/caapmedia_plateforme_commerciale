@@ -3,7 +3,6 @@ import { Order, PaymentStatus, OrderStatus, Product, Contact, CustomerPaymentMet
 import { useI18n } from '../../i18n';
 import SelectFilter from '../filters/SelectFilter';
 import PeriodFilter from '../filters/PeriodFilter';
-import { useAppContext } from '../../context/AppContext';
 import IconDocumentText from '../icons/IconDocumentText';
 import BonDeLivraison from '../../Pages/BonDeLivraison';
 import IconInvoice from '../icons/IconInvoice';
@@ -20,15 +19,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getOrders, recordOrderPayment, updateOrderStatus, createOrderBySalesRep, validateOrderForProduction, FindAllOrdersDto, getTopSellingProducts } from '../../services/apiE-commerce/apiOrders';
 import { getProductsBySubsidiary } from '../../services/apiE-commerce/apiProducts';
 import { getContacts } from '../../services/apiCrm/apiContacts';
+import { useAuth } from '../../context/AuthContext';
 
 const initialFilterState: FindAllOrdersDto = { period: 'ALL_TIME' };
 
 const Sales: React.FC = () => {
-    const { state } = useAppContext();
+    const { user, subsidiary } = useAuth();
     const { t, formatCurrency } = useI18n();
     const queryClient = useQueryClient();
-
-    const { currentSubsidiary: subsidiary, currentUser } = state;
 
     const [activeTab, setActiveTab] = useState<'history' | 'new'>('history');
 
@@ -61,7 +59,7 @@ const Sales: React.FC = () => {
         enabled: !!subsidiary,
     });
 
-    if (!subsidiary || !currentUser) {
+    if (!subsidiary || !user) {
         // This should ideally be handled by a protected route, but this is a safeguard.
         return <div>Chargement ou erreur d'authentification...</div>;
     }

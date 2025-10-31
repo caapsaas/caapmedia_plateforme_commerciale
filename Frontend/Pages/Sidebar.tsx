@@ -59,17 +59,17 @@ const NavLink: React.FC<{
 const Sidebar: React.FC = () => {
   const { t } = useI18n();
   const { state, dispatch } = useAppContext();
-  const { logout: authLogout } = useAuth();
-  const { currentUser, currentSubsidiary, isSidebarOpen, isSidebarCollapsed } = state; // Gardez isSidebarOpen et isSidebarCollapsed
+  const { user, subsidiary, logout: authLogout } = useAuth();
+  const { isSidebarOpen, isSidebarCollapsed } = state;
 
-  if (!currentUser || !currentSubsidiary) return null;
+  if (!user || !subsidiary) return null;
 
   const onLogout = () => authLogout();
   const setIsSidebarOpen = (isOpen: boolean) => dispatch({ type: 'SET_SIDEBAR_OPEN', payload: isOpen });
   const setIsSidebarCollapsed = (isCollapsed: boolean) => dispatch({ type: 'SET_SIDEBAR_COLLAPSED', payload: isCollapsed });
 
   const getNavItems = () => {
-    switch (currentUser.role) {
+    switch (user.role) {
       case UserRole.ADMIN:
         return [ // Le `exact: true` sera appliqué automatiquement par la nouvelle logique dans NavLink
           { to: '/dashboard/', label: t('sidebar.analytics'), icon: <IconAnalytics className="h-6 w-6 shrink-0" /> },
@@ -136,7 +136,7 @@ const Sidebar: React.FC = () => {
   // Logique pour sélectionner le bon composant de logo
   const getLogoComponent = () => {
     // Remplacez 'GMO' par la valeur réelle du nom de la filiale si nécessaire
-    if (currentSubsidiary?.name?.includes('Douala')) {
+    if (subsidiary?.subsidiaryName?.includes('Douala')) {
       return IconGmoLogo;
     }
     // Ajoutez d'autres conditions pour d'autres filiales
@@ -159,7 +159,7 @@ const Sidebar: React.FC = () => {
             <div className={`w-auto transition-all duration-300 ${isSidebarCollapsed ? 'h-10' : 'h-16'}`}>
                 <LogoComponent className="w-full h-full" />
             </div>
-            <span className={`font-bold text-lg mt-2 transition-opacity duration-200 ${isSidebarCollapsed ? 'opacity-0 h-0 hidden' : 'opacity-100 block'}`}>{currentSubsidiary.name}</span>
+            <span className={`font-bold text-lg mt-2 transition-opacity duration-200 ${isSidebarCollapsed ? 'opacity-0 h-0 hidden' : 'opacity-100 block'}`}>{subsidiary.subsidiaryName}</span>
         </div>
 
         <div className="flex-1 flex flex-col justify-between overflow-y-auto overflow-x-hidden">

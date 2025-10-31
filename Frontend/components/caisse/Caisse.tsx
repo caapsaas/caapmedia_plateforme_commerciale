@@ -17,16 +17,15 @@ import { CartItem } from '../ecommerce/ShoppingCart';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProductsBySubsidiary } from '../../services/apiE-commerce/apiProducts';
 import { getContacts, createContactByEmployee, ContactCreationData } from '../../services/apiCrm/apiContacts';
-import { useAppContext } from '../../context/AppContext'; // Assurez-vous que ce chemin est correct
 import { getOrders, recordOrderPayment, FindAllOrdersDto } from '../../services/apiE-commerce/apiOrders';
 import { createDirectSale, CreateDirectSaleDto } from '../../services/apiE-commerce/apiSales';
 import { getImageUrl } from '../../utils/imageUtils';
+import { useAuth } from '../../context/AuthContext';
 
 type CaisseMode = 'new_sale' | 'payment';
 
 const Caisse: React.FC = () => {
-    const { state } = useAppContext();
-    const { currentSubsidiary: subsidiary } = state;
+    const { subsidiary } = useAuth();
     const { t, formatCurrency } = useI18n();
     const queryClient = useQueryClient();
     

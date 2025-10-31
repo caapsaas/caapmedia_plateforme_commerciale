@@ -6,14 +6,13 @@ import SupplierManagement from '../components/configuration/SupplierManagement';
 import ClientManagement from '../components/configuration/ClientManagement'; // Importer ClientManagement
 import { useI18n } from '../i18n';
 import TaxManagement from '../components/configuration/TaxManagement';
-import { useAppContext } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 
 type ConfigView = 'products' | 'users' | 'suppliers' | 'taxes' | 'clients';
 
 const Configuration: React.FC = () => {
     const { t } = useI18n();
-    const { state } = useAppContext();
-    const { currentSubsidiary: subsidiary } = state;
+    const { subsidiary } = useAuth();
     const [activeTab, setActiveTab] = useState<ConfigView>('products');
 
     const renderActiveView = () => {

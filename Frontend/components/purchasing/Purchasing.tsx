@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Subsidiary, PurchaseOrder, PurchaseOrderStatus, PaymentStatus, Product, Supplier } from '../../types/models';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '../../i18n';
-import { useAppContext } from '../../context/AppContext'; 
 import { getPurchaseOrders, createPurchaseOrder, receivePurchaseOrderItems, recordPurchaseOrderPayment } from '../../services/apiPurchasing/apiPurchase_order';
 import { getSuppliers } from '../../services/apiPurchasing/apiSupplier';
 import { getProductsBySubsidiary } from '../../services/apiE-commerce/apiProducts';
@@ -17,11 +16,11 @@ import ConfirmationModal from '../common/ConfirmationModal';
 import ReceiveItemsModal from './ReceiveItemsModal';
 import RecordPaymentModal from './RecordPaymentModal';
 import IconCoins from '../icons/IconCoins';
+import { useAuth } from '../../context/AuthContext';
 
 const Purchasing: React.FC = () => {
     const { t, formatCurrency } = useI18n();
-    const { state } = useAppContext();
-    const { currentSubsidiary: subsidiary } = state;
+    const { subsidiary } = useAuth();
     const queryClient = useQueryClient();
     
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);

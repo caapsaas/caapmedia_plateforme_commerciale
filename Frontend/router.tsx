@@ -56,34 +56,35 @@ const customerAccountRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/account',
   component: CustomerAccountPage,
-  // TODO: Ajouter une logique de redirection si le client n'est pas connecté
+  beforeLoad: ({ context, location }) => {
+    // Si le client n'est PAS authentifié (pas de contactToken), on le redirige
+    if (!context.auth.contactToken) {
+      throw redirect({
+        to: '/', // Ou une page de login client spécifique si vous en avez une
+        search: {
+          redirect: location.href,
+        },
+      });
+    }
+  },
 });
 
 // 4. Route "layout" pour le tableau de bord
 const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/dashboard',
-  // Le composant est maintenant un simple Outlet, car le chargement est géré par `loader`.
   component: Outlet, 
-  // ✅ Étape 2 : Protéger la route avec beforeLoad
   beforeLoad: ({ context, location }) => {
-    // Si l'utilisateur n'est PAS authentifié (pas de token), on le redirige
     if (!context.auth.token) {
       throw redirect({
         to: '/login',
         search: {
-          // On garde en mémoire la page où il voulait aller pour le rediriger après connexion
           redirect: location.href,
         },
       });
     }
   },
-  // ✅ NOUVEAU : Utiliser un `loader` pour attendre les données essentielles.
-  // Cette fonction s'exécutera après `beforeLoad` et avant le rendu du composant.
-  // Elle mettra en pause le rendu jusqu'à ce que la promesse soit résolue.
   loader: async ({ context }) => {
-    // On attend que l'état soit restauré depuis le localStorage.
-    // Si ce n'est pas déjà fait, on attend que ça le soit.
     if (!context.app.state.isRestored) {
       await new Promise<void>(resolve => {
         const check = () => {
@@ -162,7 +163,7 @@ declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router;
   }
-  // ✅ Déclarer la forme du contexte pour l'autocomplétion et la sécurité de type
+  // Déclarer la forme du contexte pour l'autocomplétion et la sécurité de type
   interface RouterContext {
     auth: ReturnType<typeof useAuth>;
   }

@@ -4,22 +4,22 @@ import Header from './Pages/Header';
 import useIdleTimer from './hooks/useIdleTimer';
 import IdleTimeoutModal from './components/common/IdleTimeoutModal';
 import { useAppContext } from './context/AppContext';
+import { useAuth } from './context/AuthContext';
 import { Outlet, useRouterState } from '@tanstack/react-router';
 
 const App: React.FC = () => {
   const { state, dispatch } = useAppContext();
-  const { 
-    currentSubsidiary, showIdleModal
-  } = state;
+  const { showIdleModal } = state;
+  const { logout, token } = useAuth(); // Utiliser le token de AuthContext
   const routerState = useRouterState();
   const isDashboard = routerState.location.pathname.startsWith('/dashboard');
 
   const handleLogout = () => {
-    dispatch({ type: 'LOGOUT' });
+    logout();
   };
 
   const handleIdle = () => {
-    if (isDashboard && currentSubsidiary) {
+    if (isDashboard && token) { // Vérifier si un utilisateur est connecté via le token
       dispatch({ type: 'SET_IDLE_MODAL', payload: true });
     }
   };

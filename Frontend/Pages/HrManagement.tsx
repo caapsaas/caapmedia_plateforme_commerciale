@@ -11,14 +11,14 @@ import { getAttendanceRecords, saveAttendanceRecord } from '../services/apihr/ap
 import { getAbsenceRecords, saveAbsenceRecord, deleteAbsenceRecord } from '../services/apihr/apiAbsences';
 import { getPayrollRecords, processPayroll } from '../services/apihr/apiPayroll';
 import { getEmployees, saveEmployee, deleteEmployee } from '../services/apihr/apiEmployees';
+import { useAuth } from '../context/AuthContext';
 
 type HrView = 'employees' | 'attendance' | 'payroll' | 'absences';
 
 const HrManagement: React.FC = () => {
     const { t } = useI18n();
     const queryClient = useQueryClient();
-    const { state } = useAppContext();
-    const { currentSubsidiary: subsidiary } = state;
+    const { subsidiary } = useAuth();
     const [activeTab, setActiveTab] = useState<HrView>('employees');
 
     if (!subsidiary) {

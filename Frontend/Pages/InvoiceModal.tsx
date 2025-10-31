@@ -44,7 +44,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, order, subsidiary, 
                 <div>
                     {LogoComponent && <LogoComponent className="h-20 w-auto" />}
                     <div className="mt-4 text-slate-700">
-                        <p className="font-bold text-base">{subsidiary.name}</p>
+                        <p className="font-bold text-base">{subsidiary.subsidiaryName}</p>
                         <p>{subsidiary.address}</p>
                         <p>{t('invoice.phone')}: {subsidiary.phone}</p>
                         <p>{t('invoice.email')}: {subsidiary.email}</p>

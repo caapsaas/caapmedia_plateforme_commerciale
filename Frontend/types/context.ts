@@ -30,20 +30,10 @@ import {
 } from './models';
 
 export interface AppState {
-    currentSubsidiary: Subsidiary | null;
-    currentUser: User | null;
-    currentCustomer: Contact | null;
     isSidebarOpen: boolean;
     isSidebarCollapsed: boolean;
     isRestored: boolean;
     showIdleModal: boolean;
-    currentView: View;
-    products?: Product[];
-    sales?: Sale[];
-    orders?: Order[];
-    contacts?: Contact[]; // Existing state for contacts
-    accounts?: Account[]; // Add state for accounts
-    purchaseOrders?: PurchaseOrder[];
 }
 
 export type AppAction =

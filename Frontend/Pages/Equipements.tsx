@@ -8,14 +8,13 @@ import IconEdit from '../components/icons/IconEdit';
 import IconDelete from '../components/icons/IconDelete';
 import EquipmentFormModal from '../components/maintenance/EquipmentFormModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
-import { useAppContext } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 
 type SaveEquipmentDto = Omit<Equipment, 'id' | 'subsidiaryId' | 'maintenanceHistory'> & { id?: string };
 
 const Equipements: React.FC = () => {
     const { t, formatCurrency } = useI18n();
-    const { state } = useAppContext();
-    const { currentSubsidiary: subsidiary } = state;
+    const { subsidiary } = useAuth();
     const queryClient = useQueryClient();
 
     const { data: equipment = [], isLoading } = useQuery({ 

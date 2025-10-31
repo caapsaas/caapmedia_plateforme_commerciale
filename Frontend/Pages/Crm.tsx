@@ -22,18 +22,17 @@ import ActivitiesView from '../components/crm/ActivitiesView';
 import LeadsManagement from '../components/crm/LeadsManagement';
 import AccountManagement from '../components/crm/AccountManagement';
 import ContractManagement from '../components/crm/ContractManagement';
+import { useAuth } from '../context/AuthContext';
 
 type CrmView = 'dashboard' | 'leads' | 'accounts' | 'contacts' | 'pipeline' | 'activities' | 'contracts';
 
 const Crm: React.FC = () => {
     const { t } = useI18n();
-    const { state } = useAppContext();
+    const { user, subsidiary } = useAuth();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState<CrmView>('leads');
     
-    const { currentUser, currentSubsidiary: subsidiary } = state;
-
-    if (!currentUser || !subsidiary) {
+    if (!user || !subsidiary) {
         return <div>{t('common.loading')}</div>;
     }
 
@@ -87,16 +86,16 @@ const Crm: React.FC = () => {
     const { mutate: onLogInteraction } = useMutation({ mutationFn: logInteraction, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('interactions') }) });
 
     const userFilteredData = useMemo(() => {
-        const isFullAccess = currentUser.role === 'ADMIN' || currentUser.role === 'FINANCIAL_DIRECTOR';
+        const isFullAccess = user.role === 'ADMIN' || user.role === 'FINANCIAL_DIRECTOR';
 
         const filterBySubsidiary = <T extends { subsidiaryId: string }>(items: T[]) => items.filter(i => i.subsidiaryId === subsidiary.id);
-        const filterByUser = <T extends { salesRepId?: string }>(items: T[]) => items.filter(i => i.salesRepId === currentUser.id);
-        const filterTaskByUser = <T extends { userId?: string }>(items: T[]) => items.filter(i => i.userId === currentUser.id);
+        const filterByUser = <T extends { salesRepId?: string }>(items: T[]) => items.filter(i => i.salesRepId === user.id);
+        const filterTaskByUser = <T extends { userId?: string }>(items: T[]) => items.filter(i => i.userId === user.id);
 
         const filteredContacts = isFullAccess ? contacts : filterByUser(contacts);
         const filteredLeads = leads; // Le backend fait déjà le bon filtrage
         const filteredAccounts = isFullAccess ? filterBySubsidiary(accounts) : filterByUser(filterBySubsidiary(accounts));
-        const filteredOpportunities = isFullAccess ? filterBySubsidiary(opportunities) : opportunities.filter(o => o.userId === currentUser.id && o.subsidiaryId === subsidiary.id);
+        const filteredOpportunities = isFullAccess ? filterBySubsidiary(opportunities) : opportunities.filter(o => o.userId === user.id && o.subsidiaryId === subsidiary.id);
         const filteredContracts = filterBySubsidiary(contracts);
 
         const contactIds = new Set(filteredContacts.map(c => c.id));
@@ -104,10 +103,10 @@ const Crm: React.FC = () => {
         const filteredCrmTasks = isFullAccess ? crmTasks : filterTaskByUser(crmTasks);
 
         return { contacts: filteredContacts, leads: filteredLeads, accounts: filteredAccounts, opportunities: filteredOpportunities, interactions: filteredInteractions, crmTasks: filteredCrmTasks, contracts: filteredContracts };
-    }, [contacts, opportunities, leads, accounts, contracts, crmTasks, interactions, currentUser, subsidiary.id]);
+    }, [contacts, opportunities, leads, accounts, contracts, crmTasks, interactions, user, subsidiary.id]);
 
     const renderActiveView = () => {
-        const baseProps = { subsidiary, currentUser };
+        const baseProps = { subsidiary, user };
 
         if (isLoading) {
             return <div className="p-6 text-center">{t('common.loading')}</div>;

@@ -15,7 +15,6 @@ interface ContactManagementProps {
     interactions: Interaction[];
     crmTasks: CrmTask[];
     contracts: Contract[];
-    currentUser: User;
     onLogInteraction: (data: Omit<Interaction, 'id' | 'date' | 'userId'>) => void;
     onSave: (data: Omit<Contact, 'id' | 'subsidiaryId'> & { id?: string }) => void;
     onDelete: (id: string) => void;

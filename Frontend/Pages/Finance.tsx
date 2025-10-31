@@ -23,12 +23,12 @@ import { getPnlStatement, getBalanceSheet } from '../services/apiStatistic/apiFi
 import { getSupplierDebts } from '../services/apiFinance/apiDebts';
 import { getFinancialTransactions, getTreasuryAccounts } from '../services/apiFinance/apiTreasury'; // à créer
 import { getEquipments } from '../services/apiMaintenance/apiEquipment'; // à créer
+import { useAuth } from '../context/AuthContext';
 
 
 const Finance: React.FC = () => {
     const { t } = useI18n();
-    const { state } = useAppContext();
-    const { currentSubsidiary: subsidiary } = state;
+    const { subsidiary } = useAuth();
     const [activeTab, setActiveTab] = useState<FinanceView>(FinanceView.CREDIT);
     
     // Centralisation de la gestion des filtres de période

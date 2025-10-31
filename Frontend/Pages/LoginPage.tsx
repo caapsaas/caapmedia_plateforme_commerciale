@@ -5,15 +5,14 @@ import IconLock from '../components/icons/IconLock';
 import IconBuilding from '../components/icons/IconBuilding';
 import { useI18n } from '../i18n';
 import { useAppContext } from '../context/AppContext';
-import { useAuth } from '../context/AuthContext';
 import { loginUser as apiLogin, forgotPassword as apiForgotPassword } from '../services/apiCommon/apiUserAuth';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { getSubsidiaries } from '../services/apiCommon/apiSubsidiaries'; // Importation depuis le nouveau fichier
 import { Subsidiary } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 const LoginPage: React.FC = () => {
   const { t } = useI18n();
-  const { dispatch } = useAppContext();
   const { login, user: authUser } = useAuth();
   const navigate = useNavigate();
   const { redirect } = useSearch({ from: '/login' }); // Récupère le paramètre 'redirect' de l'URL
@@ -65,9 +64,6 @@ const LoginPage: React.FC = () => {
 
     // 2️⃣ Mise à jour complète du contexte Auth (token + user)
     login({ user, token: access_token, subsidiary });
-
-    // 3️⃣ Mise à jour du store global si nécessaire
-    dispatch({ type: 'LOGIN_SUCCESS', payload: { user, subsidiary } });
 
   } catch (err: any) {
     setError(err.message || t('login.errorIncorrectCredentials'));

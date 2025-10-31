@@ -21,14 +21,14 @@ import {
 } from '../services/apisecretariat/apiSecretariat';
 import { getEmployees } from '../services/apihr/apiEmployees';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../context/AuthContext';
 
 type SecretariatView = 'documents' | 'meetings' | 'tasks';
 
 const Secretariat: React.FC = () => {
     const { t } = useI18n();
     const queryClient = useQueryClient();
-    const { state } = useAppContext();
-    const { currentSubsidiary: subsidiary } = state;
+    const { subsidiary } = useAuth();
     const [activeTab, setActiveTab] = useState<SecretariatView>('documents');
 
     if (!subsidiary) {

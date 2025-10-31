@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
 import { useI18n } from '../i18n';
-import { useAppContext } from '../context/AppContext';
 import { ProductionStatus, Order } from '../types';
 import ProductionOrderCard from '../components/production/ProductionOrderCard';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getOrders, updateProductionStatus } from '../services/apiE-commerce/apiOrders';
+import { useAuth } from '../context/AuthContext';
 
 const Production: React.FC = () => {
     const { t } = useI18n();
-    const { state } = useAppContext();
-    const { currentSubsidiary } = state;
+    const { subsidiary } = useAuth();
     const queryClient = useQueryClient();
     const [draggedOverColumn, setDraggedOverColumn] = useState<ProductionStatus | null>(null);
 
-    const queryKey = ['productionOrders', currentSubsidiary?.id];
+    const queryKey = ['productionOrders', subsidiary?.id];
 
     const { data: productionOrders = [], isLoading } = useQuery<Order[]>({
         queryKey: queryKey,
@@ -21,7 +20,7 @@ const Production: React.FC = () => {
             // Le backend devrait être adapté pour exclure certains statuts si nécessaire
             // ou on filtre côté client comme avant.
         }),
-        enabled: !!currentSubsidiary,
+        enabled: !!subsidiary,
         // Filtrage côté client pour ne garder que les commandes pertinentes pour la production
         select: (orders) => orders.filter(o => 
             o.productionStatus && o.productionStatus !== ProductionStatus.READY_FOR_DELIVERY

@@ -11,14 +11,12 @@ import MaintenanceLogModal from './MaintenanceLogModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getEquipments, createEquipment, updateEquipment, deleteEquipment, CreateEquipmentDto } from '../../services/apiMaintenance/apiEquipment';
 import { createMaintenanceRecord, CreateMaintenanceRecordDto } from '../../services/apiMaintenance/apiMaintenance_record';
-import { useAppContext } from '../../context/AppContext';
-
+import { useAuth } from '../../context/AuthContext';
 type SaveEquipmentDto = CreateEquipmentDto & { id?: string };
 
 const Maintenance: React.FC = () => {
     const { t } = useI18n();
-    const { state } = useAppContext();
-    const { currentSubsidiary: subsidiary } = state;
+    const { subsidiary } = useAuth();
     const queryClient = useQueryClient();
 
     // --- Data Fetching & Mutations ---
