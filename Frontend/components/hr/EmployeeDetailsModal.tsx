@@ -81,10 +81,10 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({ isOpen, onC
 
                      {/* Documents */}
                     <Section title={t('hr.details.documents')}>
-                        <DetailItem label={t('hr.details.contract')} value={employee.documents.contract?.name || t('hr.details.noDocument')} />
-                        <DetailItem label={t('hr.details.idCard')} value={employee.documents.idCard?.name || t('hr.details.noDocument')} />
-                        <DetailItem label={t('hr.details.workPermit')} value={employee.documents.workPermit?.name || t('hr.details.notApplicable')} />
-                        <DetailItem label={t('hr.details.diplomas')} value={employee.documents.diplomas.map(d => d.name).join(', ') || t('hr.details.none')} />
+                        <DetailItem label={t('hr.details.contract')} value={employee.documents?.contract?.name || t('hr.details.noDocument')} />
+                        <DetailItem label={t('hr.details.idCard')} value={employee.documents?.idCard?.name || t('hr.details.noDocument')} />
+                        <DetailItem label={t('hr.details.workPermit')} value={employee.documents?.workPermit?.name || t('hr.details.notApplicable')} />
+                        <DetailItem label={t('hr.details.diplomas')} value={employee.documents?.diplomas?.map(d => d.name).join(', ') || t('hr.details.none')} />
                     </Section>
 
                      {/* Leave Info */}

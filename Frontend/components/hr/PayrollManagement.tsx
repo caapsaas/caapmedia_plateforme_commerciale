@@ -145,7 +145,6 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary, emplo
                                     </button>
                                     {record.status === PayrollStatus.PENDING && (
                                     <button onClick={() => setPayingRecord(record)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-100 rounded-full transition-colors" aria-label={t('hr.payroll.payAction')}>
-                                        <IconCreditCard className="h-5 w-5" />
                                     </button>
                                     )}
                                 </td>
@@ -178,15 +177,6 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary, emplo
                     isOpen={!!viewingDetails}
                     onClose={() => setViewingDetails(null)}
                     record={viewingDetails}
-                />
-            )}
-
-            {payingRecord && (
-                <RecordPaymentModal
-                    isOpen={!!payingRecord}
-                    onClose={() => setPayingRecord(null)}
-                    onConfirm={handleConfirmPayment}
-                    record={payingRecord}
                 />
             )}
         </div>
