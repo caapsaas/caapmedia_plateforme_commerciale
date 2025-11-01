@@ -121,8 +121,8 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
         ];
         const data = filteredExpenses.map(e => ({
             ...e,
-            category: t(`expenses.categories.${e.category}`),
-            type: t(`expenses.types.${e.type}`),
+            category: t(`expenses.categories.${e.category || 'OTHER'}`),
+            type: t(`expenses.types.${e.type || 'VARIABLE'}`),
         }));
         exportToCsv('liste_charges', headers, data);
     };
@@ -137,8 +137,8 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
         ];
         const data = filteredExpenses.map(e => ({
             ...e,
-            category: t(`expenses.categories.${e.category}`),
-            type: t(`expenses.types.${e.type}`),
+            category: t(`expenses.categories.${e.category || 'OTHER'}`),
+            type: t(`expenses.types.${e.type || 'VARIABLE'}`),
             amount: formatCurrency(e.amount),
         }));
         exportToPdf(t('expenses.title'), headers, data, 'charges', 'l');
@@ -193,8 +193,8 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
                                 <tr key={exp.id} className="bg-white border-b hover:bg-slate-50">
                                     <td className="px-6 py-4">{exp.date}</td>
                                     <td className="px-6 py-4 font-medium">{exp.description}</td>
-                                    <td className="px-6 py-4">{t(`expenses.categories.${exp.category}`)}</td>
-                                    <td className="px-6 py-4">{t(`expenses.types.${exp.type}`)}</td>
+                                    <td className="px-6 py-4">{t(`expenses.categories.${exp.category || 'OTHER'}`)}</td>
+                                    <td className="px-6 py-4">{t(`expenses.types.${exp.type || 'VARIABLE'}`)}</td>
                                     <td className="px-6 py-4 text-right font-semibold">{formatCurrency(exp.amount)}</td>
                                     <td className="px-6 py-4 text-center space-x-1 no-print">
                                         <button onClick={() => handleOpenEditModal(exp)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors"><IconEdit className="h-5 w-5" /></button>

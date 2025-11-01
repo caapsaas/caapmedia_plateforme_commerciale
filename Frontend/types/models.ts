@@ -336,7 +336,7 @@ export type TransactionType = 'RECETTE' | 'DEPENSE';
 
 export interface FinancialTransaction {
   id: string;
-  date: string;
+  transactionDate: string;
   description: string;
   amount: number;
   treasuryAccountId: string;

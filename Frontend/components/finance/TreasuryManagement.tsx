@@ -22,14 +22,22 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
 
     const queryKey = (key: string) => [key, subsidiary.id];
 
-    const { data: treasuryAccounts = [], isLoading: l1 } = useQuery<TreasuryAccount[]>({ queryKey: queryKey('treasuryAccounts'), queryFn: getTreasuryAccounts });
-    const { data: transactions = [], isLoading: l2 } = useQuery<FinancialTransaction[]>({ queryKey: queryKey('financialTransactions'), queryFn: getFinancialTransactions });
+    const { data: treasuryAccounts = [], isLoading: l1 } = useQuery<TreasuryAccount[]>({ 
+        queryKey: queryKey('treasuryAccounts'), 
+        queryFn: getTreasuryAccounts,
+        enabled: !!subsidiary.id // N'exécute la requête que si subsidiary.id existe
+    });
+    const { data: transactions = [], isLoading: l2 } = useQuery<FinancialTransaction[]>({ 
+        queryKey: queryKey('financialTransactions'), 
+        queryFn: getFinancialTransactions,
+        enabled: !!subsidiary.id // N'exécute la requête que si subsidiary.id existe
+    });
 
     const { mutate: saveTransaction } = useMutation({
         mutationFn: (data: { formData: TransactionFormData; type: TransactionType }) => {
             const transactionData = {
                 ...data.formData,
-                transactionDate: data.formData.date, // Map date to transactionDate
+                transactionDate: data.formData.transactionDate, // Map date to transactionDate
                 status: TransactionStatus.PENDING,
             };
             return data.type === 'RECETTE' ? createIncomeTransaction(transactionData) : createExpenseTransaction(transactionData);
@@ -160,9 +168,9 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
                         <tbody>
                             {transactions.map((tx) => (
                                 <tr key={tx.id} className="bg-white border-b hover:bg-slate-50">
-                                    <td className="px-6 py-4">{new Date(tx.date).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4 font-medium text-slate-900">{tx.description}</td>
-                                    <td className="px-6 py-4">{treasuryAccounts.find(a => a.id === tx.treasuryAccountId)?.name}</td>
+                                    <td className="px-6 py-4">{new Date(tx.transactionDate).toLocaleDateString()}</td>
+                                    <td className="px-6 py-4 font-medium text-slate-800">{tx.description}</td>
+                                    <td className="px-6 py-4 text-slate-800">{treasuryAccounts.find(a => a.id === tx.treasuryAccountId)?.name}</td>
                                     <td className={`px-6 py-4 font-semibold ${tx.financialTransactionType === 'RECETTE' ? 'text-green-600' : 'text-red-600'}`}>{getTranslatedType(tx.financialTransactionType)}</td>
                                     <td className={`px-6 py-4 text-right font-bold ${tx.financialTransactionType === 'RECETTE' ? 'text-green-700' : 'text-red-700'}`}>
                                         {tx.financialTransactionType === 'RECETTE' ? '+' : '-'}{formatCurrency(tx.amount)}

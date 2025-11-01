@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TreasuryAccount, FinancialTransaction, TransactionType } from '../../types';
 import { useI18n } from '../../i18n';
 
-export type TransactionFormData = Omit<FinancialTransaction, 'id' | 'subsidiaryId' | 'financialTransactionType' | 'status' | 'date'> & { date: string; description: string };
+export type TransactionFormData = Omit<FinancialTransaction, 'id' | 'subsidiaryId' | 'financialTransactionType' | 'status' | 'date'> & { transactionDate: string; description: string };
 
 interface TransactionFormModalProps {
     isOpen: boolean;
@@ -15,7 +15,7 @@ interface TransactionFormModalProps {
 const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onClose, onSave, transactionType, accounts }) => {
     const { t } = useI18n();
     const initialFormState: TransactionFormData = {
-        date: new Date().toISOString().split('T')[0],
+        transactionDate: new Date().toISOString().split('T')[0],
         description: '',
         amount: 0,
         treasuryAccountId: accounts[0]?.id ?? '',
@@ -50,7 +50,7 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onC
             <div className="bg-white rounded-lg shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
                 <form onSubmit={handleSubmit}>
                     <div className="p-6">
-                        <h3 className="text-lg font-bold text-slate-900">{title}</h3>
+                        <h3 className="text-lg font-bold text-slate-800">{title}</h3>
                         <div className="mt-4 space-y-4">
                             <div>
                                 <label htmlFor="description" className="block text-sm font-medium text-slate-700">{t('treasury.description')}</label>
@@ -63,7 +63,7 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onC
                                 </div>
                                 <div>
                                     <label htmlFor="transactionDate" className="block text-sm font-medium text-slate-700">{t('treasury.date')}</label>
-                                    <input type="date" name="date" id="date" value={formData.date} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />
+                                    <input type="date" name="date" id="date" value={formData.transactionDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />
                                 </div>
                             </div>
                             <div>

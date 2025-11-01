@@ -59,7 +59,7 @@ const ContactDetailsModal: React.FC<ContactDetailsModalProps> = ({
                         <div className="space-y-3">
                         {interactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(interaction => (
                             <div key={interaction.id} className="text-sm border-l-4 border-slate-200 pl-4">
-                                <p className="font-semibold">{t(`crm.interactions.types.${interaction.type}`)} - <span className="text-xs text-slate-500">{new Date(interaction.date).toLocaleString()}</span></p>
+                                <p className="font-semibold">{t(`crm.interactions.types.${interaction.type || 'OTHER'}`)} - <span className="text-xs text-slate-500">{new Date(interaction.date).toLocaleString()}</span></p>
                                 <p className="text-slate-600">{interaction.notes}</p>
                             </div>
                         ))}

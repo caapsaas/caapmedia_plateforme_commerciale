@@ -26,7 +26,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
         queryFn: () => getCredit()
     });
 
-    const { data: totalReceivables = 0, isLoading: isLoadingReceivable } = useQuery<CustomerReceivablesStats>({
+    const { data: totalReceivablesData = { totalReceivables: 0 }, isLoading: isLoadingReceivable } = useQuery<CustomerReceivablesStats>({
         queryKey: ['totalReceivables'],
         queryFn: () => getCustomerReceivables({
             period: 'ALL_TIME',
@@ -68,7 +68,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
 
     const kpiData = {
         titleKey: 'credit.totalReceivables',
-        value: formatCurrency(totalReceivables.totalReceivables),
+        value: formatCurrency(totalReceivablesData.totalReceivables),
         change: '', // Ajout de la propriété 'change' manquante
         icon: <IconCreditCard className="h-6 w-6 text-slate-500" />,
         changeType: 'increase' as const,
@@ -131,7 +131,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
                                 <tr key={account.id} className="bg-white border-b hover:bg-slate-50">
                                     <td className="px-6 py-4 font-medium text-slate-900">{account.clientName}</td>
                                     <td className="px-6 py-4">{account.companyName}</td>
-                                    <td className="px-6 py-4">{new Date(account.lastPaymentDate).toLocaleDateString('fr-FR')}</td>
+                                    <td className="px-6 py-4">{account.lastPaymentDate ? new Date(account.lastPaymentDate).toLocaleDateString('fr-FR') : t('common.notAvailable')}</td>
                                     <td className="px-6 py-4 text-right font-bold text-red-600">{formatCurrency(account.balance)}</td>
                                     <td className="px-6 py-4 text-center no-print">
                                         <button className="font-medium text-[#c6e911] hover:text-[#adc40f] mr-4">{t('credit.viewDetails')}</button>

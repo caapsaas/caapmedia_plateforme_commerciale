@@ -54,7 +54,7 @@ const CrmDashboard: React.FC<CrmDashboardProps> = ({ crmAnalysis, crmTasks, inte
                             <li key={task.id} className="flex items-center justify-between p-2 bg-slate-50 rounded-md">
                                 <div>
                                     <p className="font-semibold">{task.title}</p>
-                                    <p className="text-xs text-slate-500">{contacts.find(c=> c.id === task.contactId)?.contactName || ''} - {task.dueDate}</p>
+                                    <p className="text-xs text-slate-500">{contacts.find(c=> c.id === task.contactId)?.contactName || t('common.notAvailable')} - {task.dueDate}</p>
                                 </div>
                                 <button 
                                     onClick={() => onUpdateTaskStatus(task.id, CrmTaskStatus.DONE)}
@@ -73,7 +73,7 @@ const CrmDashboard: React.FC<CrmDashboardProps> = ({ crmAnalysis, crmTasks, inte
                      <ul className="space-y-3">
                         {recentInteractions.map(interaction => (
                             <li key={interaction.id} className="text-sm border-l-4 border-slate-200 pl-4">
-                                <p className="font-semibold">{t(`crm.interactions.types.${interaction.type}`)} avec {contacts.find(c=> c.id === interaction.contactId)?.contactName || ''}</p>
+                                <p className="font-semibold">{t(`crm.interactions.types.${interaction.type || 'OTHER'}`)} avec {contacts.find(c=> c.id === interaction.contactId)?.contactName || ''}</p>
                                 <p className="text-slate-600 truncate">{interaction.notes}</p>
                                 <p className="text-xs text-slate-400">{new Date(interaction.date).toLocaleString()}</p>
                             </li>

@@ -74,7 +74,7 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({ contacts, interactions,
     }, [interactions]);
 
 
-    const getContactName = (contactId: string) => contacts.find(c => c.id === contactId)?.contactName || 'N/A';
+    const getContactName = (contactId: string) => contacts.find(c => c.id === contactId)?.contactName || t('common.notAvailable');
     
     const handleNewTaskChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setNewTask(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -197,7 +197,7 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({ contacts, interactions,
                  <ul className="space-y-3">
                     {recentInteractions.map(interaction => (
                         <li key={interaction.id} className="text-sm border-l-4 border-slate-200 pl-4">
-                            <p className="font-semibold">{t(`crm.interactions.types.${interaction.type}`)} avec {getContactName(interaction.contactId)}</p>
+                            <p className="font-semibold">{t(`crm.interactions.types.${interaction.type || 'OTHER'}`)} avec {getContactName(interaction.contactId)}</p>
                             <p className="text-slate-600 truncate">{interaction.notes}</p>
                             <p className="text-xs text-slate-400">{new Date(interaction.date).toLocaleString()}</p>
                         </li>
