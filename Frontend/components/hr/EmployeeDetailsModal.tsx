@@ -61,7 +61,7 @@ const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({ isOpen, onC
                     
                     {/* Professional Info */}
                     <Section title={t('hr.details.professionalInfo')}>
-                        <DetailItem label={t('hr.details.position')} value={employee.position} />
+                        <DetailItem label={t('hr.details.position')} value={employee.positions} />
                         <DetailItem label={t('hr.details.department')} value={employee.department} />
                         <DetailItem label={t('hr.details.hireDate')} value={employee.hireDate} />
                         <DetailItem label={t('hr.details.contractType')} value={t(`hr.contractType.${employee.contractType}`)} />

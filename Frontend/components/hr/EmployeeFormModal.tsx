@@ -25,7 +25,7 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
         email: '',
         nationality: '',
         socialSecurityNumber: '',
-        position: '',
+        positions: '',
         department: '',
         hireDate: new Date().toISOString().split('T')[0],
         contractType: ContractType.CDI,
@@ -45,13 +45,13 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
     useEffect(() => {
         if (employee) {
             // Destructure pour isoler les champs qui nécessitent une transformation
-            const { id, subsidiaryId, documents, positionHistory, trainings, performanceReviews, leaveBalance, leaveRecords, position, birthDate, hireDate, ...restOfEmployee } = employee;
+            const { id, subsidiaryId, documents, positionHistory, trainings, performanceReviews, leaveBalance, leaveRecords, positions, birthDate, hireDate, ...restOfEmployee } = employee;
             
             // Prépare les données pour le formulaire en s'assurant que les types correspondent
             const formattedData: EmployeeFormData = {
                 ...initialFormState, // Assure que tous les champs sont initialisés
                 ...restOfEmployee,
-                position: position, // Map `positions` (modèle) vers `position` (formulaire)
+                positions: positions, // Map `positions` (modèle) vers `position` (formulaire)
                 // Formate les dates en chaîne 'YYYY-MM-DD' pour les inputs de type 'date'
                 birthDate: new Date(birthDate).toISOString().split('T')[0],
                 hireDate: new Date(hireDate).toISOString().split('T')[0],
@@ -174,8 +174,8 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                             <div className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label htmlFor="position" className="block text-sm font-medium text-slate-700">{t('configuration.form.position')}</label>
-                                        <input type="text" name="position" id="position" value={formData.position} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                        <label htmlFor="positions" className="block text-sm font-medium text-slate-700">{t('configuration.form.position')}</label>
+                                        <input type="text" name="positions" id="positions" value={formData.positions} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                     </div>
                                     <div>
                                         <label htmlFor="department" className="block text-sm font-medium text-slate-700">{t('configuration.form.department')}</label>

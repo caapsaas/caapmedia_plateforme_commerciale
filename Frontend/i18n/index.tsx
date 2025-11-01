@@ -838,7 +838,15 @@ const frTranslations = {
       "signature": "Signature",
       "status_PENDING": "En attente",
       "status_PAID": "Payé",
-      "sign": "Signer"
+      "sign": "Signer",
+      "payAction": "Enregistrer le paiement",
+      "detailsTitle": "Détails de la Paie - {{period}}",
+      "recordPaymentTitle": "Enregistrer un Paiement",
+      "recordPaymentSubtitle": "Confirmer le paiement pour {{employeeName}} d'un montant de {{amount}}.",
+      "deductions": "Déductions",
+      "socialDeductions": "Cotisations Sociales",
+      "taxDeductions": "Prélèvements Fiscaux",
+      "absenceDeductions": "Déductions pour Absences"
     },
     "modals": {
       "sign": {
@@ -2140,7 +2148,15 @@ const enTranslations: Translations = {
             "signature": "Signature",
             "status_PENDING": "Pending",
             "status_PAID": "Paid",
-            "sign": "Sign"
+            "sign": "Sign",
+            "payAction": "Record Payment",
+            "detailsTitle": "Payroll Details - {{period}}",
+            "recordPaymentTitle": "Record a Payment",
+            "recordPaymentSubtitle": "Confirm payment for {{employeeName}} of {{amount}}.",
+            "deductions": "Deductions",
+            "socialDeductions": "Social Contributions",
+            "taxDeductions": "Tax Deductions",
+            "absenceDeductions": "Absence Deductions"
         },
         "modals": {
             "sign": {

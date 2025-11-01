@@ -73,7 +73,7 @@ const EmployeeDatabase: React.FC<EmployeeDatabaseProps> = ({ subsidiary, employe
         const headers = [
             { key: 'id', label: t('hr.employees.id') },
             { key: 'fullName', label: t('hr.employees.fullName') },
-            { key: 'position', label: t('hr.employees.position') },
+            { key: 'positions', label: t('hr.employees.position') },
             { key: 'department', label: t('hr.employees.department') },
             { key: 'contractType', label: t('hr.employees.contractType') },
             { key: 'status', label: t('hr.employees.status') },
@@ -93,7 +93,7 @@ const EmployeeDatabase: React.FC<EmployeeDatabaseProps> = ({ subsidiary, employe
     const handleExportPdf = () => {
         const headers = [
             { key: 'fullName', label: t('hr.employees.fullName') },
-            { key: 'position', label: t('hr.employees.position') },
+            { key: 'positions', label: t('hr.employees.position') },
             { key: 'department', label: t('hr.employees.department') },
             { key: 'email', label: t('configuration.form.email') },
             { key: 'phone', label: t('configuration.form.phone') },
@@ -166,7 +166,7 @@ const EmployeeDatabase: React.FC<EmployeeDatabaseProps> = ({ subsidiary, employe
                             <tr key={employee.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{employee.id}</td>
                                 <td className="px-6 py-4 font-semibold">{`${employee.firstName} ${employee.lastName}`}</td>
-                                <td className="px-6 py-4">{employee.position}</td>
+                                <td className="px-6 py-4">{employee.positions}</td>
                                 <td className="px-6 py-4">{employee.department}</td>
                                 <td className="px-6 py-4">
                                     <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getContractTypeClass(employee.contractType)}`}>

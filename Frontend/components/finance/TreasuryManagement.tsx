@@ -124,14 +124,14 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 no-print">
+            {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 no-print">
                 {treasuryAccounts.map(account => (
-                    <div key={account.id} className="bg-white p-6 rounded-xl shadow-md">
+                    <div key={account.id} className="bg-white p-6 rounded-xl shadow-md flex flex-col">
                         <h4 className="font-semibold text-slate-500">{account.name}</h4>
-                        <p className="text-3xl font-bold text-slate-800 mt-2">{formatCurrency(account.balance)}</p>
+                        <div className="flex-grow flex items-end mt-2"><p className="text-3xl font-bold text-slate-800 whitespace-nowrap">{formatCurrency(account.balance)}</p></div>
                     </div>
                 ))}
-            </div>
+            </div>*/}
 
             <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">

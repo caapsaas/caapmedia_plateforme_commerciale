@@ -468,7 +468,7 @@ export interface Employee {
     nationality: string;
     socialSecurityNumber: string;
     // Professional Info
-    position: string;
+    positions: string;
     department: string;
     hireDate: string;
     contractType: ContractType;
@@ -556,14 +556,22 @@ export interface PayrollRecord {
     id: string;
     employeeId: string;
     employeeName: string;
+    subsidiaryId: string;
     period: string; // e.g. "2024-07"
+    baseSalary: number;
     grossSalary: number;
-    deductions: number;
+    bonus: number;
+    deductions: {
+        social: number;
+        tax: number;
+        absences: number;
+    };
     netSalary: number;
     paymentDate: string | null;
     status: PayrollStatus;
     signature: string | null;
-    subsidiaryId: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export enum AbsenceType {
@@ -575,7 +583,7 @@ export interface AbsenceRecord {
     id: string;
     employeeId: string;
     employeeName: string;
-    type: AbsenceType;
+    typeAbsence: AbsenceType;
     startDate: string;
     endDate: string;
     reason: string;

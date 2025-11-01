@@ -11,19 +11,21 @@ interface AbsenceFormModalProps {
     subsidiary: Subsidiary;
 }
 
+type AbsenceFormData = Omit<Partial<AbsenceRecord>, 'employeeName' | 'subsidiaryId'>;
+
 const AbsenceFormModal: React.FC<AbsenceFormModalProps> = ({ isOpen, onClose, onSave, absence, employees, subsidiary }) => {
     const { t } = useI18n();
     
-    const initialFormState = {
+    const initialFormState: AbsenceFormData = {
         employeeId: '',
-        typeAbsence: '',
+        typeAbsence: AbsenceType.JUSTIFIED,
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date().toISOString().split('T')[0],
         reason: '',
         documentUrl: '',
     };
     
-    const [formData, setFormData] = useState(initialFormState);
+    const [formData, setFormData] = useState<AbsenceFormData>(initialFormState);
 
     useEffect(() => {
         if (absence) {
