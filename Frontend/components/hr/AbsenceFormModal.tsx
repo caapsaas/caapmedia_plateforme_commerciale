@@ -11,7 +11,7 @@ interface AbsenceFormModalProps {
     subsidiary: Subsidiary;
 }
 
-type AbsenceFormData = Omit<Partial<AbsenceRecord>, 'employeeName' | 'subsidiaryId'>;
+type AbsenceFormData = Omit<Partial<AbsenceRecord>, 'employeeName' | 'subsidiaryId'> & { file?: File | null };
 
 const AbsenceFormModal: React.FC<AbsenceFormModalProps> = ({ isOpen, onClose, onSave, absence, employees, subsidiary }) => {
     const { t } = useI18n();
@@ -23,12 +23,14 @@ const AbsenceFormModal: React.FC<AbsenceFormModalProps> = ({ isOpen, onClose, on
         endDate: new Date().toISOString().split('T')[0],
         reason: '',
         documentUrl: '',
+        file: null, // Ajouter un champ pour le fichier
     };
     
     const [formData, setFormData] = useState<AbsenceFormData>(initialFormState);
 
     useEffect(() => {
         if (absence) {
+            // Note: le fichier existant n'est pas rechargé ici, seulement son URL.
             // When editing, populate form with existing absence data, formatting dates for input type="date"
             setFormData({
                 id: absence.id, // CRUCIAL: Ensure the ID is part of the form data for updates
@@ -38,6 +40,7 @@ const AbsenceFormModal: React.FC<AbsenceFormModalProps> = ({ isOpen, onClose, on
                 endDate: new Date(absence.endDate).toISOString().split('T')[0],     // Format date for input type="date"
                 reason: absence.reason,
                 documentUrl: absence.documentUrl || '',
+                file: null,
             });
         } else {
             setFormData(initialFormState);
@@ -51,21 +54,32 @@ const AbsenceFormModal: React.FC<AbsenceFormModalProps> = ({ isOpen, onClose, on
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            // In a real app, this would upload the file and return a URL
-            const fileName = e.target.files[0].name;
-            setFormData(prev => ({ ...prev, documentUrl: `/docs/justifications/${fileName}` }));
+            const file = e.target.files[0];
+            setFormData(prev => ({ ...prev, file: file, documentUrl: file.name }));
         }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const employee = employees.find(e => e.id === formData.employeeId);
-        onSave({
+        
+        // Transformer les données du formulaire en un objet simple pour la mutation
+        const dataToSave: Partial<AbsenceRecord> & { file?: File | null } = {
             ...formData,
             employeeName: employee ? `${employee.firstName} ${employee.lastName}` : '',
-        
             subsidiaryId: subsidiary.id,
-        });
+        };
+
+        // Si un fichier est présent, il faut envoyer en multipart/form-data
+        if (dataToSave.file) {
+            const submissionData = new FormData();
+            Object.entries(dataToSave).forEach(([key, value]) => {
+                submissionData.append(key, value as any);
+            });
+            onSave(submissionData as any);
+        } else {
+            onSave(dataToSave);
+        }
     };
 
     if (!isOpen) return null;
@@ -120,7 +134,7 @@ const AbsenceFormModal: React.FC<AbsenceFormModalProps> = ({ isOpen, onClose, on
                                                 <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleFileChange} />
                                             </label>
                                         </div>
-                                        {formData.documentUrl && <p className="text-xs text-slate-500">{formData.documentUrl.split('/').pop()}</p>}
+                                        {formData.documentUrl && <p className="text-xs text-slate-500">{formData.documentUrl}</p>}
                                     </div>
                                 </div>
                             </div>

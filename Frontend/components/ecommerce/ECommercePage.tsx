@@ -262,8 +262,9 @@ const ECommercePage: React.FC = () => {
                 onSelectMainCategory={handleSelectMainCategory}
                 onSelectSubcategory={handleSelectSubcategory}
             />
+               <HeroBanner realisationsPath="/realisations" onQuoteRequest={() => setIsQuoteModalOpen(true)} />
             <main className="container mx-auto px-4 pt-8 pb-8 flex-grow">
-                <HeroBanner realisationsPath="/realisations" onQuoteRequest={() => setIsQuoteModalOpen(true)} />
+             
 
                 <CategoryShowcase 
                     productHierarchy={PRODUCT_HIERARCHY.filter(cat => cat.category !== 'Matières Premières')}

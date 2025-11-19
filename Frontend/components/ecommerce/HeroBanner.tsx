@@ -79,7 +79,7 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ realisationsPath, onQuoteReques
     }, [nextSlide]);
 
     return (
-        <div className="relative w-full h-[125px] sm:h-[150px] md:h-[175px] lg:h-[200px] overflow-hidden rounded-2xl shadow-xl mb-12">
+        <div className="relative w-full h-[125px] sm:h-[150px] md:h-[175px] lg:h-[200px] overflow-hidden  shadow-xl mb-12">
             {slides.map((slide, index) => (
                 <div
                     key={index}
@@ -88,18 +88,18 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ realisationsPath, onQuoteReques
                     <img src={slide.image} alt={slide.title} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                         <div className="text-center text-white p-4 max-w-2xl">
-                            <h2 className="text-xl md:text-2xl lg:text-3xl font-extrabold leading-tight">
+                            <h2 className="text-md md:text-xl lg:text-2xl font-extrabold leading-tight">
                                 {slide.title}
                             </h2>
                             <p className="mt-2 text-xs md:text-sm">
                                 {slide.subtitle}
                             </p>
                             {'to' in slide.cta ? (
-                                <Link to={slide.cta.to} className="mt-4 inline-block px-4 py-2 md:mt-6 md:px-5 md:py-2.5 bg-[#c6e911] text-slate-800 font-bold rounded-full hover:bg-[#adc40f] transition-colors text-xs md:text-sm">
+                                <Link to={slide.cta.to} className="mt-2 inline-block px-2 py-2 md:mt-4 md:px-3 md:py-2.5 bg-[#c6e911] text-slate-800 font-bold rounded-full hover:bg-[#adc40f] transition-colors text-xs md:text-sm">
                                     {slide.cta.text}
                                 </Link>
                             ) : (
-                                <button onClick={slide.cta.action} className="mt-4 px-4 py-2 md:mt-6 md:px-5 md:py-2.5 bg-[#c6e911] text-slate-800 font-bold rounded-full hover:bg-[#adc40f] transition-colors text-xs md:text-sm">
+                                <button onClick={slide.cta.action} className="mt-2 px-2 py-2 md:mt-4 md:px-3 md:py-2.5 bg-[#c6e911] text-slate-800 font-bold rounded-full hover:bg-[#adc40f] transition-colors text-xs md:text-sm">
                                     {slide.cta.text}
                                 </button>
                             )}
