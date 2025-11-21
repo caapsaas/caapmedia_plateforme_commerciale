@@ -23,7 +23,22 @@ const frTranslations = {
     "print": "Imprimer",
     "export": "Exporter en CSV",
     "exportPdf": "Exporter en PDF",
+    "send": "Envoyer",
     "notAvailable": "Non défini"
+  },
+   "contactModal": {
+    "title": "Contactez-nous",
+    "subtitle": "Une question ? Un projet ? L'équipe CaapMedia est là pour vous.",
+    "name": "Nom complet",
+    "email": "Adresse e-mail",
+    "phone": "Téléphone",
+    "subject": "Sujet",
+    "message": "Votre message",
+    "send": "Envoyer",
+    "sending": "Envoi en cours...",
+    "successTitle": "Message envoyé !",
+    "successMessage": "Merci de nous avoir contactés. Notre équipe reviendra vers vous dans les plus brefs délais.",
+    "securityNote": "Vos informations sont sécurisées et ne seront jamais partagées."
   },
   "idleModal": {
     "title": "Vous êtes toujours là ?",
@@ -77,7 +92,7 @@ const frTranslations = {
     "contactUs": "Contactez-nous",
     "address": "Akwa, Douala, Cameroun",
     "phone": "+237 233 42 00 00",
-    "email": "contact.douala@caap.cm",
+    "email": "contact@caapmedia.com",
     "copyright": "© 2024 CaapMedia. Tous droits réservés."
   },
   "roles": {
@@ -1332,9 +1347,24 @@ const enTranslations: Translations = {
         "view": "Details",
         "print": "Print",
         "export": "Export to CSV",
+        "send": "Envoyer",
         "exportPdf": "Export to PDF",
         "notAvailable": "Not defined"
     },
+    "contactModal": {
+    "title": "Contactez-nous",
+    "subtitle": "Une question ? Un projet ? L'équipe CaapMedia est là pour vous.",
+    "name": "Nom complet",
+    "email": "Adresse e-mail",
+    "phone": "Téléphone",
+    "subject": "Sujet",
+    "message": "Votre message",
+    "send": "Envoyer",
+    "sending": "Envoi en cours...",
+    "successTitle": "Message envoyé !",
+    "successMessage": "Merci de nous avoir contactés. Notre équipe reviendra vers vous dans les plus brefs délais.",
+    "securityNote": "Vos informations sont sécurisées et ne seront jamais partagées."
+  },
     "idleModal": {
       "title": "Are you still there?",
       "message": "You will be logged out due to inactivity in {{countdown}} seconds.",

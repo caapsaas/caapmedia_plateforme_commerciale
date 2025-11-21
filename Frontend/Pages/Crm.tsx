@@ -49,15 +49,20 @@ const Crm: React.FC = () => {
     const { data: users = [], isLoading: l8 } = useQuery<User[]>({ queryKey: ['users', subsidiary.id], queryFn: () => getAllUsers() });
     const { data: products = [], isLoading: l9 } = useQuery<Product[]>({ queryKey: queryKey('products'), queryFn: () => getProducts() });
 
-    // Ajout de la récupération des données pour le dashboard CRM
+    // Récupération des données d'analyse pour le tableau de bord CRM.
+    // 'enabled: activeTab === 'dashboard'' signifie que cette requête ne sera exécutée que si l'onglet du tableau de bord est actif.
     const { data: crmAnalysisData, isLoading: l10 } = useQuery<CrmAnalysis>({
         queryKey: queryKey('crmAnalysis'), 
         queryFn: () => getCrmAnalysis({ period: 'ALL_TIME' }),
         enabled: activeTab === 'dashboard',
     });
 
+    // Indicateur de chargement global pour toutes les requêtes.
     const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9 || l10;
-    // --- Mutations avec React Query ---
+
+    // --- ÉTAPE 3: Définition des mutations pour la modification des données ---
+    // Chaque 'useMutation' gère une opération d'écriture (création, mise à jour, suppression).
+    // 'onSuccess' est utilisé pour invalider les requêtes ('queries') pertinentes, ce qui déclenche un re-fetch automatique et met l'interface à jour.
     const invalidateCrmQueries = () => {
         queryClient.invalidateQueries({ queryKey: queryKey('contacts') });
         queryClient.invalidateQueries({ queryKey: queryKey('opportunities') });
@@ -85,6 +90,9 @@ const Crm: React.FC = () => {
     const { mutate: onUpdateTaskStatus } = useMutation({ mutationFn: updateTaskStatus, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('crmTasks') }) });
     const { mutate: onLogInteraction } = useMutation({ mutationFn: logInteraction, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('interactions') }) });
 
+    // --- ÉTAPE 4: Filtrage des données en fonction du rôle de l'utilisateur ---
+    // 'useMemo' est utilisé pour calculer les données filtrées uniquement lorsque les données brutes ou l'utilisateur changent.
+    // Cela optimise les performances en évitant des recalculs inutiles à chaque rendu.
     const userFilteredData = useMemo(() => {
         const isFullAccess = user.role === 'ADMIN' || user.role === 'FINANCIAL_DIRECTOR';
 
@@ -92,12 +100,14 @@ const Crm: React.FC = () => {
         const filterByUser = <T extends { salesRepId?: string }>(items: T[]) => items.filter(i => i.salesRepId === user.id);
         const filterTaskByUser = <T extends { userId?: string }>(items: T[]) => items.filter(i => i.userId === user.id);
 
+        // Si l'utilisateur est Admin ou Directeur Financier, il voit tout. Sinon, il ne voit que les données qui lui sont assignées.
         const filteredContacts = isFullAccess ? contacts : filterByUser(contacts);
         const filteredLeads = leads; // Le backend fait déjà le bon filtrage
         const filteredAccounts = isFullAccess ? filterBySubsidiary(accounts) : filterByUser(filterBySubsidiary(accounts));
         const filteredOpportunities = isFullAccess ? filterBySubsidiary(opportunities) : opportunities.filter(o => o.userId === user.id && o.subsidiaryId === subsidiary.id);
         const filteredContracts = filterBySubsidiary(contracts);
 
+        // Les interactions et les tâches sont également filtrées pour correspondre aux données visibles par l'utilisateur.
         const contactIds = new Set(filteredContacts.map(c => c.id));
         const filteredInteractions = interactions.filter(i => contactIds.has(i.contactId));
         const filteredCrmTasks = isFullAccess ? crmTasks : filterTaskByUser(crmTasks);
@@ -105,6 +115,9 @@ const Crm: React.FC = () => {
         return { contacts: filteredContacts, leads: filteredLeads, accounts: filteredAccounts, opportunities: filteredOpportunities, interactions: filteredInteractions, crmTasks: filteredCrmTasks, contracts: filteredContracts };
     }, [contacts, opportunities, leads, accounts, contracts, crmTasks, interactions, user, subsidiary.id]);
 
+    // --- ÉTAPE 5: Rendu de la vue active ---
+    // Cette fonction agit comme un routeur interne au composant CRM.
+    // En fonction de l'état 'activeTab', elle rend le composant approprié en lui passant les données et les fonctions de mutation nécessaires.
     const renderActiveView = () => {
         const baseProps = { subsidiary, user };
 
@@ -159,6 +172,8 @@ const Crm: React.FC = () => {
                             produits={products}
                             allProducts={products}
                             onSaveOpportunity={(data) => onSaveOpportunity(data)}
+                            accounts={userFilteredData.accounts}
+                            currentUser={user}
                             onUpdateOpportunityStage={(oppId, newStage) => onUpdateOpportunityStage({ oppId, newStage })}
                             onWinOpportunity={(data) => onWinOpportunity(data)}
                         />;
@@ -175,6 +190,8 @@ const Crm: React.FC = () => {
         }
     };
 
+    // Sous-composant réutilisable pour les boutons d'onglets.
+    // Il gère son propre style en fonction de s'il est l'onglet actif ou non.
     const TabButton: React.FC<{ view: CrmView; label: string }> = ({ view, label }) => (
         <button
             onClick={() => setActiveTab(view)}
@@ -188,6 +205,7 @@ const Crm: React.FC = () => {
         </button>
     );
 
+    // --- ÉTAPE 6: Rendu principal du composant ---
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
@@ -203,6 +221,7 @@ const Crm: React.FC = () => {
                 </div>
             </div>
             
+            {/* Affiche la vue (l'onglet) sélectionnée. */}
             <div>
                 {renderActiveView()}
             </div>

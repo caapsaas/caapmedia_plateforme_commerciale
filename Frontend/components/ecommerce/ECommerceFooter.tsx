@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useI18n } from '../../i18n';
 import IconGmoLogo from '../icons/IconGmoLogo';
@@ -8,15 +9,16 @@ import IconMail from '../icons/IconMail';
 import IconFacebook from '../icons/IconFacebook';
 import IconInstagram from '../icons/IconInstagram';
 import IconLinkedIn from '../icons/IconLinkedIn';
-import { Link } from '@tanstack/react-router';
 
 interface ECommerceFooterProps {
-    realisationsPath?: string;
+    onNavigateToRealisations?: () => void;
     onSelectMainCategory?: (category: string) => void;
     onBackToShop?: () => void;
+    onContactClick?: () => void; // Ajout de la prop pour gérer le clic sur Contact
 }
 
-const ECommerceFooter: React.FC<ECommerceFooterProps> = ({ realisationsPath, onSelectMainCategory, onBackToShop }) => {
+
+const ECommerceFooter: React.FC<ECommerceFooterProps> = ({ onNavigateToRealisations, onSelectMainCategory, onBackToShop, onContactClick }) => {
     const { t } = useI18n();
 
     const handleServiceClick = (category: string) => {
@@ -29,6 +31,12 @@ const ECommerceFooter: React.FC<ECommerceFooterProps> = ({ realisationsPath, onS
             onBackToShop();
         } else {
              window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    };
+    
+    const handleRealisationsClick = () => {
+        if(onNavigateToRealisations) {
+            onNavigateToRealisations();
         }
     };
 
@@ -58,23 +66,32 @@ const ECommerceFooter: React.FC<ECommerceFooterProps> = ({ realisationsPath, onS
                     <div>
                         <h3 className="font-bold text-white uppercase mb-4">{t('footer.usefulLinks')}</h3>
                          <ul className="space-y-2 text-sm">
-                            {realisationsPath ? (
-                                <>
-                                    <li><Link to={realisationsPath} className="hover:text-[#c6e911] transition-colors">{t('footer.about')}</Link></li>
-                                    <li><Link to={realisationsPath} className="hover:text-[#c6e911] transition-colors">{t('footer.realisations')}</Link></li>
-                                </>
-                            ) : null}
-                            <li><a href="#contact-section" className="hover:text-[#c6e911] transition-colors">{t('footer.contact')}</a></li>
+                            <li><button onClick={handleRealisationsClick} disabled={!onNavigateToRealisations} className="hover:text-[#c6e911] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">{t('footer.about')}</button></li>
+                            <li><button onClick={handleRealisationsClick} disabled={!onNavigateToRealisations} className="hover:text-[#c6e911] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">{t('footer.realisations')}</button></li>
+                            <li>
+                                <button onClick={onContactClick} className="hover:text-[#c6e911] transition-colors text-left">
+                                    {t('footer.contact')}
+                                </button>
+                            </li>
                         </ul>
                     </div>
 
                     {/* Column 4: Contact */}
                     <div>
-                        <h3 className="font-bold text-white uppercase mb-4">{t('footer.contactUs')}</h3>
+                        <button onClick={onContactClick} className="font-bold text-white uppercase mb-4 hover:text-[#c6e911] transition-colors text-left">
+                            {t('footer.contactUs')}
+                        </button>
                         <ul className="space-y-3 text-sm">
                             <li className="flex items-start gap-3">
                                 <IconMapPin className="h-5 w-5 mt-0.5 text-[#c6e911] flex-shrink-0" />
-                                <span>{t('footer.address')}</span>
+                                <a 
+                                    href="https://www.google.com/maps/search/?api=1&query=4.046204,9.706662" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="hover:text-[#c6e911] transition-colors"
+                                >
+                                    {t('footer.address')}
+                                </a>
                             </li>
                              <li className="flex items-center gap-3">
                                 <IconPhone className="h-5 w-5 text-[#c6e911] flex-shrink-0" />
@@ -97,7 +114,7 @@ const ECommerceFooter: React.FC<ECommerceFooterProps> = ({ realisationsPath, onS
                         <a href="https://www.facebook.com/caapmedia" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="text-slate-400 hover:text-[#c6e911] transition-colors">
                             <IconFacebook className="h-6 w-6" />
                         </a>
-                        <a href="https://www.instagram.com/caapmedia" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-slate-400 hover:text-[#c6e911] transition-colors">
+                        <a href="https://www.instagram.com/caap.media2024" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-slate-400 hover:text-[#c6e911] transition-colors">
                             <IconInstagram className="h-6 w-6" />
                         </a>
                         <a href="https://www.linkedin.com/company/caapmedia" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="text-slate-400 hover:text-[#c6e911] transition-colors">
