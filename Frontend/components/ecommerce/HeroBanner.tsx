@@ -101,23 +101,10 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ onNavigateToRealisations, onQuo
                     key={index}
                     className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}
                 >
-<<<<<<< HEAD
-                    <LazyLoadImage
-                        src={slide.image}
-                        alt={slide.title}
-                        effect="blur"
-                        wrapperClassName="w-full h-full"
-                        className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                        <div className="text-center text-white p-4 max-w-2xl">
-                            <h2 className="text-xl md:text-2xl lg:text-3xl font-extrabold leading-tight">
-=======
                     <img src={slide.image} alt={slide.title} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                         <div className="text-center text-white p-4 max-w-4xl">
                             <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold leading-tight drop-shadow-md">
->>>>>>> 4cb056116140c7563ff8aa2873a0f5069b890097
                                 {slide.title}
                             </h2>
                             <p className="mt-2 text-sm md:text-base drop-shadow-md font-medium">
