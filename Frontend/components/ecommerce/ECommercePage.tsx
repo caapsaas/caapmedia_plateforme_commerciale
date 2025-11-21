@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Product } from '../../types';
 import { useI18n } from '../../i18n';
 import ECommerceHeader from './ECommerceHeader';
@@ -19,7 +19,6 @@ import { createQuoteRequest } from '../../services/apiCrm/apiLeads';
 import { loginContact, registerContact, ContactRegisterData, logoutContact } from '../../services/apiCrm/apiContacts';
 import { useNavigate } from '@tanstack/react-router';
 import { useAuth } from '../../context/AuthContext';
-// Le type de données reçu du formulaire d'inscription, correspondant à celui de AuthModal
 type SignupFormData = Omit<ContactRegisterData, 'subsidiaryId' | 'since' | 'isVerified'>;
 
 const ECommercePage: React.FC = () => {
@@ -30,13 +29,24 @@ const ECommercePage: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedMainCategory, setSelectedMainCategory] = useState('');
     const [selectedSubcategory, setSelectedSubcategory] = useState('');
-    const [cart, setCart] = useState<CartItem[]>([]);
+    const [cart, setCart] = useState<CartItem[]>(() => {
+        try {
+            const localCart = window.localStorage.getItem('shoppingCart');
+            return localCart ? JSON.parse(localCart) : [];
+        } catch (error) {
+            return [];
+        }
+    });
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [configuringProduct, setConfiguringProduct] = useState<Product | null>(null);
-    const [isCheckoutFlow, setIsCheckoutFlow] = useState(false); // <-- AJOUTER CET ÉTAT
     const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
+
+    // Sauvegarder le panier dans le localStorage à chaque mise à jour
+    useEffect(() => {
+        window.localStorage.setItem('shoppingCart', JSON.stringify(cart));
+    }, [cart]);
 
     // --- TanStack Query ---
     const { data: allProducts = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
@@ -48,6 +58,7 @@ const ECommercePage: React.FC = () => {
         mutationFn: createOrder,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['orders'] });
+            window.localStorage.removeItem('shoppingCart'); // Vider le panier local après la commande
             setCart([]);
         }
     });
@@ -73,7 +84,10 @@ const ECommercePage: React.FC = () => {
     // --- Fin TanStack Query ---
 
     const products = useMemo(() =>
-        allProducts.filter((p: Product) => p.mainCategory !== 'Matières Premières'),
+        allProducts.filter((p: Product) => 
+            p.mainCategory !== 'Matières Premières' &&
+            p.category !== 'Prestations Externes'
+        ),
         [allProducts]
     );
 
@@ -168,7 +182,7 @@ const ECommercePage: React.FC = () => {
 
     const handleInitiateCheckout = () => {
         setIsCartOpen(false);
-        setIsCheckoutFlow(true);
+        localStorage.setItem('isCheckoutFlow', 'true');
         if (contact) {
             setIsCheckoutOpen(true);
         } else {
@@ -178,9 +192,6 @@ const ECommercePage: React.FC = () => {
     
     const handleConfirmOrder = (customerInfo: { name: string; email: string; address: string; }, paymentMethod: string) => {
         const formData = new FormData();
-        
-        // 1. Préparer les données des articles pour la sérialisation JSON
-        // Le backend s'attend à recevoir les fichiers dans le même ordre que les articles.
         const orderItemsForJson = cart.map(item => {
             // Transformer l'objet options en tableau [{optionType, optionValue}]
             const optionsArray = Object.entries(item.options || {})
@@ -217,10 +228,12 @@ const ECommercePage: React.FC = () => {
     
     const handleAuthSuccess = () => {
         setIsAuthModalOpen(false);
-        if(isCheckoutFlow){
+        const wasInCheckoutFlow = localStorage.getItem('isCheckoutFlow');
+    
+        if(wasInCheckoutFlow){
             setIsCheckoutOpen(true);
-            setIsCheckoutFlow(false);
-        } else {
+            localStorage.removeItem('isCheckoutFlow');
+        } else if (contact) {
             navigate({ to: '/account' });
         }
     };
@@ -247,7 +260,7 @@ const ECommercePage: React.FC = () => {
                 dashboardPath="/dashboard"
                 currentCustomer={contact}
                 onLogin={() => {
-                    setIsCheckoutFlow(false); // L'utilisateur se connecte depuis l'en-tête, pas pour payer
+                    localStorage.removeItem('isCheckoutFlow');
                     setIsAuthModalOpen(true);
                 }}
                 onLogout={onLogout}
@@ -258,7 +271,7 @@ const ECommercePage: React.FC = () => {
                 onSearchTermChange={setSearchTerm}
                 onQuoteRequest={() => setIsQuoteModalOpen(true)}
                 onSelectAllCategories={handleSelectAllCategories}
-                productHierarchy={PRODUCT_HIERARCHY}
+                productHierarchy={PRODUCT_HIERARCHY.filter(cat => cat.category !== 'Matières Premières')}
                 onSelectMainCategory={handleSelectMainCategory}
                 onSelectSubcategory={handleSelectSubcategory}
             />

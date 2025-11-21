@@ -7,6 +7,7 @@ import IconUpload from '../icons/IconUpload';
 import IconFile from '../icons/IconFile';
 import IconDelete from '../icons/IconDelete';
 import { getImageUrl } from '../../utils/imageUtils';
+import { LazyLoadImage } from 'react-lazy-load-image-component';
 
 interface PriceCalculatorModalProps {
     isOpen: boolean;
@@ -140,8 +141,14 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* Image Column */}
                         <div>
-                             <div className="w-full aspect-[4/3] rounded-lg overflow-hidden bg-slate-100 mb-2">
-                                <img src={activeImageUrl} alt={product.productName} className="w-full h-full object-cover" />
+                            <div className="w-full aspect-[4/3] rounded-lg overflow-hidden bg-slate-100 mb-2">
+                                <LazyLoadImage
+                                    alt={product.productName}
+                                    src={activeImageUrl}
+                                    effect="blur"
+                                    wrapperClassName="w-full h-full"
+                                    className="w-full h-full object-cover"
+                                />
                             </div>
                             {hasImages && product.productImages && product.productImages.length > 1 && (
                                 <div className="grid grid-cols-5 gap-2">
@@ -152,7 +159,13 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
                                             className={`aspect-square rounded-md overflow-hidden focus:outline-none ring-2 ring-offset-1 ${activeImageIndex === index ? 'ring-[#c6e911]' : 'ring-transparent'}`}
                                             aria-label={`View image ${index + 1}`}
                                         >
-                                            <img src={getImageUrl(image.imageUrl)} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover"/>
+                                            <LazyLoadImage
+                                                alt={`Thumbnail ${index + 1}`}
+                                                src={getImageUrl(image.imageUrl)}
+                                                effect="blur"
+                                                wrapperClassName="w-full h-full"
+                                                className="w-full h-full object-cover"
+                                            />
                                         </button>
                                     ))}
                                 </div>

@@ -3,6 +3,8 @@ import { useI18n } from '../../i18n';
 import { Link } from '@tanstack/react-router';
 import IconChevronLeft from '../icons/IconChevronLeft';
 import IconChevronRight from '../icons/IconChevronRight';
+import { LazyLoadImage } from 'react-lazy-load-image-component';
+import 'react-lazy-load-image-component/src/effects/blur.css';
 
 interface HeroBannerProps {
     realisationsPath: string;
@@ -52,7 +54,7 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ realisationsPath, onQuoteReques
         cta: { text: 'Demander un devis', action: onQuoteRequest },
       },
       {
-        image: 'https://images.unsplash.com/photo-1502691851195-6e43a9c75d69?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3',
+        image: 'https://unsplash.com/fr/photos/poudres-bleues-et-rouges-tkWMJLj9ipc?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3',
         title: "Une explosion de couleurs pour vos projets",
         subtitle: "Laissez votre créativité s'exprimer, nous nous occupons de la technique.",
         cta: { text: 'Demander un devis', action: onQuoteRequest },
@@ -85,7 +87,13 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ realisationsPath, onQuoteReques
                     key={index}
                     className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}
                 >
-                    <img src={slide.image} alt={slide.title} className="w-full h-full object-cover" />
+                    <LazyLoadImage
+                        src={slide.image}
+                        alt={slide.title}
+                        effect="blur"
+                        wrapperClassName="w-full h-full"
+                        className="w-full h-full object-cover"
+                    />
                     <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                         <div className="text-center text-white p-4 max-w-2xl">
                             <h2 className="text-xl md:text-2xl lg:text-3xl font-extrabold leading-tight">

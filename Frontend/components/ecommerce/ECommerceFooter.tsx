@@ -46,7 +46,7 @@ const ECommerceFooter: React.FC<ECommerceFooterProps> = ({ realisationsPath, onS
                     <div>
                         <h3 className="font-bold text-white uppercase mb-4">{t('footer.services')}</h3>
                         <ul className="space-y-2 text-sm">
-                            {PRODUCT_HIERARCHY.map(cat => (
+                            {PRODUCT_HIERARCHY.filter(c => c.category !== 'Matières Premières').map(cat => (
                                 <li key={cat.slug}>
                                     <button onClick={() => handleServiceClick(cat.category)} className="hover:text-[#c6e911] transition-colors text-left">{cat.category}</button>
                                 </li>

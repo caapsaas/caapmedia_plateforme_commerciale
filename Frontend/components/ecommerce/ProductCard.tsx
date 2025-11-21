@@ -5,6 +5,8 @@ import IconHeart from '../icons/IconHeart';
 import IconSearch from '../icons/IconSearch';
 import ImageZoomModal from './ImageZoomModal';
 import { getImageUrl } from '../../utils/imageUtils';
+import { LazyLoadImage } from 'react-lazy-load-image-component';
+import 'react-lazy-load-image-component/src/effects/blur.css';
 
 interface ProductCardProps {
     product: Product;
@@ -34,7 +36,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
         <div className="bg-white rounded-xl shadow-md overflow-hidden group transition-all duration-300 hover:shadow-xl flex flex-col">
             <div className="relative">
                 <div className="relative w-full aspect-[4/3] bg-gray-200">
-                    <img src={activeImageUrl} alt={product.productName} className="w-full h-full object-cover" />
+                    <LazyLoadImage
+                        alt={product.productName}
+                        src={activeImageUrl}
+                        effect="blur"
+                        wrapperClassName="w-full h-full"
+                        className="w-full h-full object-cover"
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     
                     {/* Overlay for icons */}
@@ -73,7 +81,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
                                 className={`aspect-square rounded-md overflow-hidden focus:outline-none ring-2 ring-offset-1 ${activeImageIndex === index ? 'ring-[#c6e911]' : 'ring-transparent'}`}
                                 aria-label={`View image ${index + 1}`}
                             >
-                                <img src={getImageUrl(image.imageUrl)} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover"/>
+                                <LazyLoadImage
+                                    alt={`Thumbnail ${index + 1}`}
+                                    src={getImageUrl(image.imageUrl)}
+                                    effect="blur"
+                                    wrapperClassName="w-full h-full"
+                                    className="w-full h-full object-cover"
+                                />
                             </button>
                         ))}
                     </div>

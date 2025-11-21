@@ -80,6 +80,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, onConfir
         }, 2000); // Délai de 2 secondes pour simuler l'appel API
     };
 
+    console.log(customer, isOpen);
+
     if (!isOpen) return null;
 
     return (

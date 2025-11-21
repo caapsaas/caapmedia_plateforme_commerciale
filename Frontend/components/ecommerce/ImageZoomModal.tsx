@@ -3,6 +3,8 @@ import { ProductImage } from '../../types/models';
 import { getImageUrl } from '../../utils/imageUtils';
 import IconChevronLeft from '../icons/IconChevronLeft';
 import IconChevronRight from '../icons/IconChevronRight';
+import { LazyLoadImage } from 'react-lazy-load-image-component';
+import 'react-lazy-load-image-component/src/effects/blur.css';
 
 interface ImageZoomModalProps {
     isOpen: boolean;
@@ -54,11 +56,15 @@ const ImageZoomModal: React.FC<ImageZoomModalProps> = ({ isOpen, onClose, images
             </button>
             
             <div className="flex-grow flex items-center justify-center p-4 relative group" onClick={e => e.stopPropagation()}>
-                <img 
-                    src={getImageUrl(images[currentIndex].imageUrl)} 
-                    alt={images[currentIndex].imageName || `Vue zoomée ${currentIndex + 1}`} 
-                    className="max-h-full max-w-full object-contain transition-all duration-300"
-                />
+                <div className='w-[500px] h-[500px]'>
+                    <LazyLoadImage
+                        src={getImageUrl(images[currentIndex].imageUrl)}
+                        alt={images[currentIndex].imageName || `Vue zoomée ${currentIndex + 1}`}
+                        effect="blur"
+                        wrapperClassName="h-full w-full"
+                        className="h-full w-full object-contain transition-all duration-300"
+                    />
+                </div>
                 {images.length > 1 && (
                     <>
                         <button onClick={prevImage} className="absolute top-1/2 left-4 -translate-y-1/2 p-3 bg-white/20 rounded-full text-white hover:bg-white/40 transition-all opacity-50 group-hover:opacity-100" aria-label="Previous image">
@@ -80,7 +86,12 @@ const ImageZoomModal: React.FC<ImageZoomModalProps> = ({ isOpen, onClose, images
                             className={`h-20 w-20 rounded-md overflow-hidden transition-all duration-200 focus:outline-none ring-2 ring-offset-2 ring-offset-black ${currentIndex === index ? 'ring-[#c6e911]' : 'ring-transparent opacity-60 hover:opacity-100'}`}
                             aria-label={`Go to slide ${index + 1}`}
                         >
-                            <img src={getImageUrl(image.imageUrl)} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
+                            <LazyLoadImage
+                                src={getImageUrl(image.imageUrl)}
+                                alt={`Thumbnail ${index + 1}`}
+                                effect="blur"
+                                className="w-full h-full object-cover"
+                            />
                         </button>
                     ))}
                 </div>

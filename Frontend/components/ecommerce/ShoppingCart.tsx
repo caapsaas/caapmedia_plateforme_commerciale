@@ -5,6 +5,8 @@ import IconDelete from '../icons/IconDelete';
 import IconMinus from '../icons/IconMinus';
 import IconPlus from '../icons/IconPlus';
 import { getImageUrl } from '../../utils/imageUtils';
+import { LazyLoadImage } from 'react-lazy-load-image-component';
+import 'react-lazy-load-image-component/src/effects/blur.css';
 
 export type CartItem = {
     id: string;
@@ -62,10 +64,13 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ cartItems, onClose, onUpdat
                             {cartItems.map(item => (
                                 <li key={item.id} className="flex items-start gap-4">
                                     <div className="w-16 h-16 bg-slate-100 rounded-md flex-shrink-0 overflow-hidden">
-                                        <img 
+                                        <LazyLoadImage
                                             src={item.product.productImages && item.product.productImages.length > 0 ? getImageUrl(item.product.productImages[0].imageUrl) : 'https://via.placeholder.com/100'} 
                                             alt={item.product.productName} 
-                                            className="h-full w-full object-cover" />
+                                            effect="blur"
+                                            wrapperClassName="w-full h-full"
+                                            className="h-full w-full object-cover"
+                                        />
                                     </div>
                                     <div className="flex-grow">
                                         <p className="font-semibold text-slate-800">{item.product.productName}</p>
