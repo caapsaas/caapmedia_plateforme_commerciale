@@ -22,14 +22,22 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
 
     const queryKey = (key: string) => [key, subsidiary.id];
 
-    const { data: treasuryAccounts = [], isLoading: l1 } = useQuery<TreasuryAccount[]>({ queryKey: queryKey('treasuryAccounts'), queryFn: getTreasuryAccounts });
-    const { data: transactions = [], isLoading: l2 } = useQuery<FinancialTransaction[]>({ queryKey: queryKey('financialTransactions'), queryFn: getFinancialTransactions });
+    const { data: treasuryAccounts = [], isLoading: l1 } = useQuery<TreasuryAccount[]>({ 
+        queryKey: queryKey('treasuryAccounts'), 
+        queryFn: getTreasuryAccounts,
+        enabled: !!subsidiary.id // N'exécute la requête que si subsidiary.id existe
+    });
+    const { data: transactions = [], isLoading: l2 } = useQuery<FinancialTransaction[]>({ 
+        queryKey: queryKey('financialTransactions'), 
+        queryFn: getFinancialTransactions,
+        enabled: !!subsidiary.id // N'exécute la requête que si subsidiary.id existe
+    });
 
     const { mutate: saveTransaction } = useMutation({
         mutationFn: (data: { formData: TransactionFormData; type: TransactionType }) => {
             const transactionData = {
                 ...data.formData,
-                transactionDate: data.formData.date, // Map date to transactionDate
+                transactionDate: data.formData.transactionDate, // Map date to transactionDate
                 status: TransactionStatus.PENDING,
             };
             return data.type === 'RECETTE' ? createIncomeTransaction(transactionData) : createExpenseTransaction(transactionData);
@@ -116,14 +124,14 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 no-print">
+            {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 no-print">
                 {treasuryAccounts.map(account => (
-                    <div key={account.id} className="bg-white p-6 rounded-xl shadow-md">
+                    <div key={account.id} className="bg-white p-6 rounded-xl shadow-md flex flex-col">
                         <h4 className="font-semibold text-slate-500">{account.name}</h4>
-                        <p className="text-3xl font-bold text-slate-800 mt-2">{formatCurrency(account.balance)}</p>
+                        <div className="flex-grow flex items-end mt-2"><p className="text-3xl font-bold text-slate-800 whitespace-nowrap">{formatCurrency(account.balance)}</p></div>
                     </div>
                 ))}
-            </div>
+            </div>*/}
 
             <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
@@ -160,9 +168,9 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
                         <tbody>
                             {transactions.map((tx) => (
                                 <tr key={tx.id} className="bg-white border-b hover:bg-slate-50">
-                                    <td className="px-6 py-4">{new Date(tx.date).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4 font-medium text-slate-900">{tx.description}</td>
-                                    <td className="px-6 py-4">{treasuryAccounts.find(a => a.id === tx.treasuryAccountId)?.name}</td>
+                                    <td className="px-6 py-4">{new Date(tx.transactionDate).toLocaleDateString()}</td>
+                                    <td className="px-6 py-4 font-medium text-slate-800">{tx.description}</td>
+                                    <td className="px-6 py-4 text-slate-800">{treasuryAccounts.find(a => a.id === tx.treasuryAccountId)?.name}</td>
                                     <td className={`px-6 py-4 font-semibold ${tx.financialTransactionType === 'RECETTE' ? 'text-green-600' : 'text-red-600'}`}>{getTranslatedType(tx.financialTransactionType)}</td>
                                     <td className={`px-6 py-4 text-right font-bold ${tx.financialTransactionType === 'RECETTE' ? 'text-green-700' : 'text-red-700'}`}>
                                         {tx.financialTransactionType === 'RECETTE' ? '+' : '-'}{formatCurrency(tx.amount)}

@@ -53,7 +53,7 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({ isOpen, onClose, on
             <div className="bg-white rounded-lg shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
                 <form onSubmit={handleSubmit}>
                     <div className="p-6">
-                        <h3 className="text-lg font-bold text-slate-900">
+                        <h3 className="text-lg font-bold text-slate-800">
                             {expense ? t('expenses.modal.editTitle') : t('expenses.modal.addTitle')}
                         </h3>
                         <div className="mt-4 space-y-4">

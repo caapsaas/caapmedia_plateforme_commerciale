@@ -38,7 +38,7 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({ opportunity, clientNa
             </div>
             <p className="text-sm text-slate-600">{clientName}</p>
             <p className="text-lg font-bold text-slate-900 mt-2">{formatCurrency(opportunity.opportunityValue)}</p>
-            <p className="text-xs text-slate-500 mt-1">Date de clôture: {opportunity.closeDate}</p>
+            <p className="text-xs text-slate-500 mt-1">{t('crm.opportunity.form.closeDate')}: {opportunity.closeDate ? new Date(opportunity.closeDate).toLocaleDateString() : t('common.notAvailable')}</p>
         </div>
     );
 };

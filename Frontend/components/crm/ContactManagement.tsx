@@ -109,7 +109,7 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
                                     <td className="px-6 py-4">{client.email}</td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(client.status)}`}>
-                                            {client.status ? t(`crm.contacts.statuses.${client.status}`) : 'N/A'}
+                                            {client.status ? t(`crm.contacts.statuses.${client.status}`) : t('common.notAvailable')}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-center">

@@ -22,7 +22,23 @@ const frTranslations = {
     "view": "Détails",
     "print": "Imprimer",
     "export": "Exporter en CSV",
-    "exportPdf": "Exporter en PDF"
+    "exportPdf": "Exporter en PDF",
+    "send": "Envoyer",
+    "notAvailable": "Non défini"
+  },
+   "contactModal": {
+    "title": "Contactez-nous",
+    "subtitle": "Une question ? Un projet ? L'équipe CaapMedia est là pour vous.",
+    "name": "Nom complet",
+    "email": "Adresse e-mail",
+    "phone": "Téléphone",
+    "subject": "Sujet",
+    "message": "Votre message",
+    "send": "Envoyer",
+    "sending": "Envoi en cours...",
+    "successTitle": "Message envoyé !",
+    "successMessage": "Merci de nous avoir contactés. Notre équipe reviendra vers vous dans les plus brefs délais.",
+    "securityNote": "Vos informations sont sécurisées et ne seront jamais partagées."
   },
   "idleModal": {
     "title": "Vous êtes toujours là ?",
@@ -76,7 +92,7 @@ const frTranslations = {
     "contactUs": "Contactez-nous",
     "address": "Akwa, Douala, Cameroun",
     "phone": "+237 233 42 00 00",
-    "email": "contact.douala@caap.cm",
+    "email": "contact@caapmedia.com",
     "copyright": "© 2024 CaapMedia. Tous droits réservés."
   },
   "roles": {
@@ -614,7 +630,11 @@ const frTranslations = {
     "statusValidated": "Validé",
     "statusPending": "En attente",
     "typeIncome": "Recette",
-    "typeExpense": "Dépense"
+    "typeExpense": "Dépense",
+    "modal": {
+      "addIncome": "Ajouter une nouvelle recette",
+      "addExpense": "Ajouter une nouvelle dépense"
+    }
   },
   "supplierDebts": {
     "totalDebts": "Total Dettes Fournisseurs",
@@ -833,7 +853,15 @@ const frTranslations = {
       "signature": "Signature",
       "status_PENDING": "En attente",
       "status_PAID": "Payé",
-      "sign": "Signer"
+      "sign": "Signer",
+      "payAction": "Enregistrer le paiement",
+      "detailsTitle": "Détails de la Paie - {{period}}",
+      "recordPaymentTitle": "Enregistrer un Paiement",
+      "recordPaymentSubtitle": "Confirmer le paiement pour {{employeeName}} d'un montant de {{amount}}.",
+      "deductions": "Déductions",
+      "socialDeductions": "Cotisations Sociales",
+      "taxDeductions": "Prélèvements Fiscaux",
+      "absenceDeductions": "Déductions pour Absences"
     },
     "modals": {
       "sign": {
@@ -1029,7 +1057,8 @@ const frTranslations = {
       "priority_MEDIUM": "Moyenne",
       "priority_HIGH": "Haute",
       "filterByPriority": "Filtrer par priorité",
-      "allPriorities": "Toutes les priorités"
+      "allPriorities": "Toutes les priorités",
+      "complete": "completée",
     },
     "taskModal": {
       "addTitle": "Ajouter une nouvelle tâche",
@@ -1104,7 +1133,7 @@ const frTranslations = {
       "newWebOpportunities": "Nouvelles Opportunités (Web)",
       "salesFunnel": "Entonnoir des Ventes",
       "myTasks": "Mes Tâches",
-      "recentActivity": "Activité Récente"
+      "recentActivity": "Activité Récente",
     },
     "pipeline": {
       "addOpportunity": "Ajouter une Opportunité"
@@ -1174,6 +1203,25 @@ const frTranslations = {
       "status_ACTIVE": "Actif",
       "status_EXPIRED": "Expiré",
       "status_CANCELLED": "Annulé",
+      "modal": {
+        "addTitle": "Ajouter un nouveau contrat",
+        "editTitle": "Modifier le contrat",
+        "deleteTitle": "Supprimer le contrat"
+      }
+    },
+    "interactions": {
+      "types": {
+        "CALL": "Appel",
+        "EMAIL": "Email",
+        "MEETING": "Réunion",
+        "OTHER": "Autre"
+      },
+      "form": {
+        "type": "Type d'interaction",
+        "notes": "Notes",
+        "notesPlaceholder": "Entrez les détails de l'interaction...",
+        "log": "Enregistrer"
+      },
       "modal": {
         "addTitle": "Ajouter un nouveau contrat",
         "editTitle": "Modifier le contrat",
@@ -1299,8 +1347,24 @@ const enTranslations: Translations = {
         "view": "Details",
         "print": "Print",
         "export": "Export to CSV",
-        "exportPdf": "Export to PDF"
+        "send": "Envoyer",
+        "exportPdf": "Export to PDF",
+        "notAvailable": "Not defined"
     },
+    "contactModal": {
+    "title": "Contactez-nous",
+    "subtitle": "Une question ? Un projet ? L'équipe CaapMedia est là pour vous.",
+    "name": "Nom complet",
+    "email": "Adresse e-mail",
+    "phone": "Téléphone",
+    "subject": "Sujet",
+    "message": "Votre message",
+    "send": "Envoyer",
+    "sending": "Envoi en cours...",
+    "successTitle": "Message envoyé !",
+    "successMessage": "Merci de nous avoir contactés. Notre équipe reviendra vers vous dans les plus brefs délais.",
+    "securityNote": "Vos informations sont sécurisées et ne seront jamais partagées."
+  },
     "idleModal": {
       "title": "Are you still there?",
       "message": "You will be logged out due to inactivity in {{countdown}} seconds.",
@@ -1891,7 +1955,11 @@ const enTranslations: Translations = {
         "statusValidated": "Validated",
         "statusPending": "Pending",
         "typeIncome": "Income",
-        "typeExpense": "Expense"
+        "typeExpense": "Expense",
+        "modal": {
+            "addIncome": "Add New Income",
+            "addExpense": "Add New Expense"
+        }
     },
     "supplierDebts": {
         "totalDebts": "Total Supplier Debts",
@@ -2110,7 +2178,15 @@ const enTranslations: Translations = {
             "signature": "Signature",
             "status_PENDING": "Pending",
             "status_PAID": "Paid",
-            "sign": "Sign"
+            "sign": "Sign",
+            "payAction": "Record Payment",
+            "detailsTitle": "Payroll Details - {{period}}",
+            "recordPaymentTitle": "Record a Payment",
+            "recordPaymentSubtitle": "Confirm payment for {{employeeName}} of {{amount}}.",
+            "deductions": "Deductions",
+            "socialDeductions": "Social Contributions",
+            "taxDeductions": "Tax Deductions",
+            "absenceDeductions": "Absence Deductions"
         },
         "modals": {
             "sign": {
@@ -2306,7 +2382,9 @@ const enTranslations: Translations = {
             "priority_MEDIUM": "Medium",
             "priority_HIGH": "High",
             "filterByPriority": "Filter by priority",
-            "allPriorities": "All priorities"
+            "allPriorities": "All priorities",
+            "complete": "completed",
+  
         },
         "taskModal": {
             "addTitle": "Add New Task",
@@ -2386,6 +2464,7 @@ const enTranslations: Translations = {
         "pipeline": {
             "addOpportunity": "Add Opportunity"
         },
+     
         "opportunity": {
             "stages": {
                 "QUALIFICATION": "Qualification",
@@ -2456,6 +2535,25 @@ const enTranslations: Translations = {
                 "editTitle": "Edit Contract",
                 "deleteTitle": "Delete Contract"
             }
+        },
+        "interactions": {
+            "types": {
+                "CALL": "Call",
+                "EMAIL": "Email",
+                "MEETING": "Meeting",
+                "OTHER": "Other"
+            },
+            "form": {
+                "type": "Interaction Type",
+                "notes": "Notes",
+                "notesPlaceholder": "Enter interaction details...",
+                "log": "Enregistrer"
+            },
+            "modal": {
+                "addTitle": "Add New Contract",
+                "editTitle": "Edit Contract",
+                "deleteTitle": "Delete Contract"
+            }
         }
     },
     "interactions": {
@@ -2469,7 +2567,7 @@ const enTranslations: Translations = {
             "type": "Interaction Type",
             "notes": "Notes",
             "notesPlaceholder": "Enter interaction details...",
-            "log": "Log"
+            "log": "Enregistrer"
         }
     },
     "product": {
@@ -2575,7 +2673,9 @@ const I18nContext = createContext<{
 
 export const useI18n = () => useContext(I18nContext);
 
-export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+type I18nProviderProps = { children: React.ReactNode };
+
+export const I18nProvider: React.FC<I18nProviderProps> = ({ children }) => {
     const [language, setLanguage] = useState('fr');
 
     const t = useCallback((key: string, params?: { [key: string]: any }) => {

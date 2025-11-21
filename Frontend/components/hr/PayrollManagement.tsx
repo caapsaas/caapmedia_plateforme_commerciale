@@ -3,12 +3,16 @@ import { Subsidiary, PayrollRecord, PayrollStatus, Employee } from '../../types'
 import { useI18n } from '../../i18n';
 import IconSignature from '../icons/IconSignature';
 import ViewSignatureModal from './ViewSignatureModal';
+import PayrollDetailsModal from './PayrollDetailsModal'; // Importer la nouvelle modale
+import RecordPaymentModal from './RecordPaymentModal';
 import PayrollSignatureModal from './PayrollSignatureModal';
 import { exportToCsv } from '../../utils/csvExporter';
 import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
+import IconEye from '../icons/IconEye'; // Importer l'icône pour le bouton "Détails"
+import IconCreditCard from '../icons/IconCreditCard';
 import { UseMutateFunction } from '@tanstack/react-query';
 
 interface PayrollManagementProps {
@@ -16,21 +20,29 @@ interface PayrollManagementProps {
     employees: Employee[];
     payrolls: PayrollRecord[];
     onProcessPayroll: UseMutateFunction<{ count: number; }, Error, { period: string; }, unknown>;
+    onRecordPayment: UseMutateFunction<PayrollRecord, Error, { payrollId: string; paymentDate: string; }, unknown>;
+    onSaveSignature: UseMutateFunction<PayrollRecord, Error, { payrollId: string; signature: string; }, unknown>;
 }
 
-const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary, employees, payrolls, onProcessPayroll }) => {
+const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary, employees, payrolls, onProcessPayroll, onRecordPayment, onSaveSignature }) => {
     const { t, formatCurrency } = useI18n();
     const [viewingSignature, setViewingSignature] = useState<{name: string, signature: string} | null>(null);
     const [signingRecord, setSigningRecord] = useState<PayrollRecord | null>(null);
+    const [payingRecord, setPayingRecord] = useState<PayrollRecord | null>(null);
+    const [viewingDetails, setViewingDetails] = useState<PayrollRecord | null>(null);
 
     const handleSign = (record: PayrollRecord) => {
         setSigningRecord(record);
     };
 
-    const handleSaveSignature = (recordId: string, signature: string) => {
-        // This would be handled by a mutation in a real app
-        console.log(`Signature for ${recordId}:`, signature);
+    const handleSaveSignature = (payrollId: string, signature: string) => {
+        onSaveSignature({ payrollId, signature });
         setSigningRecord(null);
+    };
+
+    const handleConfirmPayment = (payrollId: string, paymentDate: string) => {
+        onRecordPayment({ payrollId, paymentDate });
+        setPayingRecord(null);
     };
     
     const handleProcessPayroll = () => {
@@ -100,6 +112,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary, emplo
                             <th scope="col" className="px-6 py-3">{t('hr.payroll.paymentDate')}</th>
                             <th scope="col" className="px-6 py-3 text-center">{t('hr.payroll.status')}</th>
                             <th scope="col" className="px-6 py-3 text-center no-print">{t('hr.payroll.signature')}</th>
+                            <th scope="col" className="px-6 py-3 text-center no-print">{t('common.actions')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -126,6 +139,15 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary, emplo
                                         </button>
                                     )}
                                 </td>
+                                <td className="px-6 py-4 text-center space-x-1 no-print">
+                                    <button onClick={() => setViewingDetails(record)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-100 rounded-full transition-colors" aria-label={t('common.view')}>
+                                        <IconEye className="h-5 w-5" />
+                                    </button>
+                                    {record.status === PayrollStatus.PENDING && (
+                                    <button onClick={() => setPayingRecord(record)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-100 rounded-full transition-colors" aria-label={t('hr.payroll.payAction')}>
+                                    </button>
+                                    )}
+                                </td>
                             </tr>
                         ))}
                     </tbody>
@@ -147,6 +169,14 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary, emplo
                     onClose={() => setSigningRecord(null)}
                     onSaveSignature={handleSaveSignature}
                     record={signingRecord}
+                />
+            )}
+
+            {viewingDetails && (
+                <PayrollDetailsModal
+                    isOpen={!!viewingDetails}
+                    onClose={() => setViewingDetails(null)}
+                    record={viewingDetails}
                 />
             )}
         </div>
