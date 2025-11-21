@@ -868,6 +868,14 @@ model ExpenseRecord {
   @@map("expense_records")
 }
 
+model Newsletter {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("newsletters")
+}
+
 enum CustomerPaymentMethod {
   CARD
   ORANGE_MONEY

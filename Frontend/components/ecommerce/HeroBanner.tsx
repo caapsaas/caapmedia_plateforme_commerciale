@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useI18n } from '../../i18n';
 import IconChevronLeft from '../icons/IconChevronLeft';
 import IconChevronRight from '../icons/IconChevronRight';
-import { LazyLoadImage } from 'react-lazy-load-image-component';
 import 'react-lazy-load-image-component/src/effects/blur.css';
 
 interface HeroBannerProps {

@@ -17,6 +17,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProducts } from '../../services/apiE-commerce/apiProducts';
 import { createOrder } from '../../services/apiE-commerce/apiOrders';
 import { createQuoteRequest } from '../../services/apiCrm/apiLeads';
+import { subscribeToNewsletter } from '../../services/apiE-commerce/apiNewsletter';
 import ContactModal from './ContactModal';
 import { loginContact, registerContact, ContactRegisterData, logoutContact } from '../../services/apiCrm/apiContacts';
 import { useNavigate } from '@tanstack/react-router';
@@ -95,6 +96,21 @@ const ECommercePage: React.FC = () => {
         mutationFn: createQuoteRequest,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['leads'] });
+        }
+    });
+
+    const { mutate: subscribeMutation, isPending: isSubscribing } = useMutation({
+        mutationFn: subscribeToNewsletter,
+        onSuccess: () => {
+            setNewsletterSuccess("Merci ! Vous êtes bien inscrit à notre newsletter.");
+            setNewsletterEmail('');
+            setNewsletterConsent(false);
+            queryClient.invalidateQueries({ queryKey: ['newsletter_subscribers'] }); // Optionnel: si vous avez une liste d'inscrits
+        },
+        onError: (err: any) => {
+            // Affiche l'erreur venant du backend (ex: "Cet e-mail est déjà inscrit...")
+            const errorMessage = err.response?.data?.message || "Une erreur est survenue lors de l'inscription.";
+            setNewsletterError(errorMessage);
         }
     });
 
@@ -274,9 +290,10 @@ const ECommercePage: React.FC = () => {
         setSelectedSubcategory('');
     };
 
-    const handleNewsletterSubmit = () => {
+    const handleNewsletterSubmit = (e: React.FormEvent) => {
         setNewsletterError('');
         setNewsletterSuccess('');
+        e.preventDefault();
 
         if (!newsletterEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newsletterEmail)) {
             setNewsletterError("Veuillez fournir une adresse e-mail valide.");
@@ -287,13 +304,7 @@ const ECommercePage: React.FC = () => {
             return;
         }
         
-        const subject = "Nouvelle inscription à la newsletter";
-        const body = `L'adresse e-mail suivante souhaite s'inscrire à la newsletter : ${newsletterEmail}`;
-        window.location.href = `mailto:contact@caapmedia.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-        setNewsletterSuccess("Merci ! Votre application de messagerie va s'ouvrir pour finaliser l'envoi.");
-        setNewsletterEmail('');
-        setNewsletterConsent(false);
+        subscribeMutation({ email: newsletterEmail });
     };
 
     return (
@@ -523,11 +534,12 @@ const ECommercePage: React.FC = () => {
                                             Oui, je souhaite recevoir des offres spéciales par e-mail de la part de CaapMedia, ainsi que des informations sur les produits, les services et mes créations en cours.
                                         </label>
                                     </div>
-                                    <button 
+                                    <button
                                         onClick={handleNewsletterSubmit}
-                                        className="px-8 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-md transition-colors w-full sm:w-auto"
+                                        disabled={isSubscribing}
+                                        className="px-8 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-md transition-colors w-full sm:w-auto disabled:bg-slate-300 disabled:cursor-not-allowed"
                                     >
-                                        Envoyer
+                                        {isSubscribing ? 'Envoi en cours...' : 'Envoyer'}
                                     </button>
                                     {newsletterError && <p className="text-sm text-red-600 font-semibold">{newsletterError}</p>}
                                     {newsletterSuccess && <p className="text-sm text-green-600 font-semibold">{newsletterSuccess}</p>}
