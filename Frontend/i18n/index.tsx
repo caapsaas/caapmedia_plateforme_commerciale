@@ -91,7 +91,7 @@ const frTranslations = {
     "contact": "Contact",
     "contactUs": "Contactez-nous",
     "address": "Akwa, Douala, Cameroun",
-    "phone": "+237 233 42 00 00",
+   "phone": "+237 6 75 86 43 54 & +237 6 73 42 35 04",
     "email": "contact@caapmedia.com",
     "copyright": "© 2024 CaapMedia. Tous droits réservés."
   },
@@ -1416,7 +1416,7 @@ const enTranslations: Translations = {
       "contact": "Contact",
       "contactUs": "Contact Us",
       "address": "Akwa, Douala, Cameroon",
-      "phone": "+237 233 42 00 00",
+      "phone": "+237 6 75 86 43 54 & +237 6 73 42 35 04",
       "email": "contact.douala@caap.cm",
       "copyright": "© 2024 CaapMedia. All rights reserved."
     },

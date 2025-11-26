@@ -4,7 +4,13 @@ import { useI18n } from '../../i18n';
 import IconChevronLeft from '../icons/IconChevronLeft';
 import IconChevronRight from '../icons/IconChevronRight';
 import 'react-lazy-load-image-component/src/effects/blur.css';
-
+import slide1 from '../../assets/slide1.jpg';
+import slide2 from '../../assets/slide2.jpg';
+import slide3 from '../../assets/slide3.jpg';
+import slide4 from '../../assets/slide4.jpg';
+import slide5 from '../../assets/slide5.jpg';
+import slide6 from '../../assets/slide6.jpg';
+import slide7 from '../../assets/slide7.jpg';
 interface HeroBannerProps {
     onNavigateToRealisations: () => void;
     onQuoteRequest: () => void;
@@ -24,7 +30,7 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ onNavigateToRealisations, onQuo
     const slides = [
       {
         // Creative/Design - Vibrant colors, artistic, evokes creation
-        image: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2670&auto=format&fit=crop', 
+        image: slide1,
         title: "Donnez Vie à Vos Idées",
         subtitle: 'Du concept créatif à la réalisation impeccable, notre équipe de designers vous accompagne.',
         cta: 'Découvrir nos services de design',
@@ -32,7 +38,7 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ onNavigateToRealisations, onQuo
       },
       {
         // Printing Press - High tech, quality, professional
-        image: 'https://images.unsplash.com/photo-1562577309-4932fdd64cd1?q=80&w=2574&auto=format&fit=crop',
+        image: slide2,
         title: "La Qualité d'Impression qui Fait la Différence",
         subtitle: 'Brochures, dépliants, et catalogues avec des couleurs riches et une finition parfaite.',
         cta: 'Voir nos produits imprimés',
@@ -40,7 +46,7 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ onNavigateToRealisations, onQuo
       },
       {
         // Large Format - Urban, impactful, visibility
-        image: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?q=80&w=2629&auto=format&fit=crop',
+        image: slide3,
         title: "Voyez les Choses en Grand",
         subtitle: 'Bâches, panneaux, et habillages de véhicules pour une visibilité maximale.',
         cta: 'Explorer le grand format',
@@ -48,7 +54,7 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ onNavigateToRealisations, onQuo
       },
       {
         // Textile/Fashion - African context, stylish, vivid yellow
-        image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=2574&auto=format&fit=crop',
+        image: slide4,
         title: "Votre Marque, Partout",
         subtitle: 'Textiles et objets publicitaires personnalisés pour marquer les esprits.',
         cta: 'Personnaliser mes objets',
@@ -56,7 +62,7 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ onNavigateToRealisations, onQuo
       },
       {
         // Strategy/Team - Diverse group, collaboration, professional environment
-        image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2671&auto=format&fit=crop',
+        image: slide5,
         title: "Une Stratégie de Communication Intégrée",
         subtitle: 'Du marketing digital à la campagne print, nous orchestrons votre succès.',
         cta: 'Demander un devis',
@@ -64,7 +70,7 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ onNavigateToRealisations, onQuo
       },
       {
         // Packaging - Colorful, boxes, product presentation
-        image: 'https://images.unsplash.com/photo-1632925369197-303b2c630591?q=80&w=2670&auto=format&fit=crop',
+        image: slide6,
         title: "Un Packaging Qui Fait Vendre",
         subtitle: 'Des emballages sur mesure qui subliment vos produits et captivent vos clients.',
         cta: 'Créer mon packaging',
@@ -72,7 +78,7 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ onNavigateToRealisations, onQuo
       },
       {
         // Branding/Workspace - Clean, colorful stationery
-        image: 'https://images.unsplash.com/photo-1511174511562-5f7f18b874f8?q=80&w=2670&auto=format&fit=crop',
+        image: slide7,
         title: "Matériel de Bureau & Goodies",
         subtitle: "Equipez vos bureaux et remerciez vos clients avec nos objets personnalisés.",
         cta: 'Voir le catalogue',
