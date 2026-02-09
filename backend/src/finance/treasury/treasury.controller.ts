@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, UseGuards, Delete, Query } from '@nestjs/common';
 import { TreasuryService } from './treasury.service';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { CurrentUser } from 'src/common/auth/role/role.decorator';
 import type { User } from '@prisma/client';
 import { CreateTreasuryAccountDto } from './dto/create-treasury-account.dto';
+import { UpdateTreasuryAccountDto } from './dto/update-treasury-account.dto';
 import { CreateFinancialTransactionDto } from './dto/create-financial-transaction.dto';
 import { UpdateFinancialTransactionDto } from './dto/update-financial-transaction.dto';
 
@@ -19,8 +20,23 @@ export class TreasuryController {
   }
 
   @Get('accounts')
-  findAllAccounts(@CurrentUser() user: User) {
-    return this.treasuryService.findAllAccounts(user);
+  findAllAccounts(@CurrentUser() user: User, @Query('subsidiaryId') subsidiaryId?: string) {
+    return this.treasuryService.findAllAccounts(user, subsidiaryId);
+  }
+
+  @Get('accounts/:id')
+  findOneAccount(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.treasuryService.findOneAccount(id, user);
+  }
+
+  @Patch('accounts/:id')
+  updateAccount(@Param('id') id: string, @Body() updateDto: UpdateTreasuryAccountDto, @CurrentUser() user: User) {
+    return this.treasuryService.updateAccount(id, updateDto, user);
+  }
+
+  @Delete('accounts/:id')
+  deleteAccount(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.treasuryService.deleteAccount(id, user);
   }
 
   // --- Income and Expense Transaction Routes ---
@@ -35,8 +51,8 @@ export class TreasuryController {
   }
 
   @Get('transactions')
-  findAllTransactions(@CurrentUser() user: User) {
-    return this.treasuryService.findAllTransactions(user);
+  findAllTransactions(@CurrentUser() user: User, @Query('subsidiaryId') subsidiaryId?: string) {
+    return this.treasuryService.findAllTransactions(user, subsidiaryId);
   }
 
   @Patch('transactions/:id/status')

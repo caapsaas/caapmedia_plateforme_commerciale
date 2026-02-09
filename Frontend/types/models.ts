@@ -321,7 +321,7 @@ export interface CreditAccount {
 
 export interface TreasuryAccount {
   id: string;
-  name: string;
+  accountName: string;
   balance: number;
   currency: string;
   subsidiaryId: string;

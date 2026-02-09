@@ -4,6 +4,7 @@ import { User, UserRole, TransactionType, Prisma, TransactionStatus } from '@pri
 import { CreateTreasuryAccountDto } from './dto/create-treasury-account.dto';
 import { CreateFinancialTransactionDto } from './dto/create-financial-transaction.dto'; 
 import { UpdateFinancialTransactionDto } from './dto/update-financial-transaction.dto';
+import { UpdateTreasuryAccountDto } from './dto/update-treasury-account.dto';
 
 @Injectable()
 export class TreasuryService {
@@ -46,12 +47,68 @@ export class TreasuryService {
     });
   }
 
-  async findAllAccounts(user: User) {
+  async findAllAccounts(user: User, subsidiaryId?: string) {
+    const userRole = (user as any).role || user.userRole;
+    const targetSubsidiaryId = (userRole === UserRole.ADMIN && subsidiaryId) ? subsidiaryId : user.subsidiaryId;
+
     return this.prisma.treasuryAccount.findMany({
-      where: { subsidiaryId: user.subsidiaryId },
+      where: { subsidiaryId: targetSubsidiaryId },
       orderBy: { accountName: 'asc' },
     });
   }
+
+  async findOneAccount(id: string, user: User) {
+    const account = await this.prisma.treasuryAccount.findFirst({
+      where: {
+        id,
+        subsidiaryId: user.subsidiaryId,
+      },
+    });
+
+    if (!account) {
+      throw new NotFoundException(`Treasury account with ID "${id}" not found.`);
+    }
+    return account;
+  }
+
+  async updateAccount(id: string, dto: UpdateTreasuryAccountDto, user: User) {
+    const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR];
+    this.checkPermissions(user, allowedRoles, 'Permission denied to update treasury accounts.');
+
+    await this.findOneAccount(id, user); // Check for existence and permissions
+
+    return this.prisma.treasuryAccount.update({
+      where: { id },
+      data: dto,
+    });
+  }
+
+  async deleteAccount(id: string, user: User) {
+    const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR];
+    this.checkPermissions(user, allowedRoles, 'Permission denied to delete treasury accounts.');
+
+    const account = await this.prisma.treasuryAccount.findFirst({
+      where: { id, subsidiaryId: user.subsidiaryId },
+      include: { _count: { select: { financialTransactions: true } } },
+    });
+
+    if (!account) {
+      throw new NotFoundException(`Treasury account with ID "${id}" not found.`);
+    }
+
+    if (account.balance.comparedTo(0) !== 0) {
+      throw new BadRequestException('Cannot delete an account with a non-zero balance.');
+    }
+
+    if (account._count.financialTransactions > 0) {
+      throw new BadRequestException('Cannot delete an account with existing transactions.');
+    }
+
+    return this.prisma.treasuryAccount.delete({
+      where: { id },
+    });
+  }
+
 
   // ================================================================= //
   //                     FINANCIAL TRANSACTIONS                        //
@@ -131,12 +188,15 @@ export class TreasuryService {
     });
   }
 
-  async findAllTransactions(user: User) {
+  async findAllTransactions(user: User, subsidiaryId?: string) {
     const allowedRoles = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER];
     this.checkPermissions(user, allowedRoles, 'Permission denied to view transactions.');
 
+    const userRole = (user as any).role || user.userRole;
+    const targetSubsidiaryId = (userRole === UserRole.ADMIN && subsidiaryId) ? subsidiaryId : user.subsidiaryId;
+
     return this.prisma.financialTransaction.findMany({
-      where: { subsidiaryId: user.subsidiaryId },
+      where: { subsidiaryId: targetSubsidiaryId },
       orderBy: { transactionDate: 'desc' },
       include: { treasuryAccount: { select: { accountName: true } } },
     });

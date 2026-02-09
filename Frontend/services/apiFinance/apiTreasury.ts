@@ -11,6 +11,11 @@ export type TreasuryAccountCreationData = Omit<TreasuryAccount, 'id' | 'subsidia
   initialBalance: number;
 };
 
+/**
+ * Données pour la mise à jour d'un compte de trésorerie.
+ */
+export type TreasuryAccountUpdateData = Partial<Omit<TreasuryAccount, 'id' | 'subsidiaryId' | 'balance'>>;
+
 // --- Types pour les Transactions Financières ---
 
 /**
@@ -43,8 +48,41 @@ export const createTreasuryAccount = async (accountData: TreasuryAccountCreation
 /**
  * Récupère tous les comptes de trésorerie de la filiale.
  */
-export const getTreasuryAccounts = async (): Promise<TreasuryAccount[]> => {
-  const { data } = await api.get<TreasuryAccount[]>('/finance/treasury/accounts');
+export const getTreasuryAccounts = async (subsidiaryId?: string): Promise<TreasuryAccount[]> => {
+  const params = subsidiaryId ? { subsidiaryId } : {};
+  const { data } = await api.get<TreasuryAccount[]>('/finance/treasury/accounts', { params });
+  return data;
+};
+
+/**
+ * Récupère un compte de trésorerie spécifique par son ID.
+ * @param id - L'ID du compte à récupérer.
+ */
+export const getTreasuryAccountById = async (id: string): Promise<TreasuryAccount> => {
+  const { data } = await api.get<TreasuryAccount>(`/finance/treasury/accounts/${id}`);
+  return data;
+};
+
+/**
+ * Met à jour un compte de trésorerie.
+ * Protégé par rôle (ADMIN, FINANCIAL_DIRECTOR).
+ * @param id - L'ID du compte à mettre à jour.
+ * @param accountData - Les données à mettre à jour.
+ */
+export const updateTreasuryAccount = async (id: string, accountData: TreasuryAccountUpdateData): Promise<TreasuryAccount> => {
+  const { data } = await api.patch<TreasuryAccount>(`/finance/treasury/accounts/${id}`, accountData);
+  return data;
+};
+
+/**
+ * Supprime un compte de trésorerie.
+ * Protégé par rôle (ADMIN, FINANCIAL_DIRECTOR).
+ * La suppression n'est possible que si le solde est à zéro et qu'il n'y a pas de transactions.
+ * @param id - L'ID du compte à supprimer.
+ * @returns Le compte qui a été supprimé.
+ */
+export const deleteTreasuryAccount = async (id: string): Promise<TreasuryAccount> => {
+  const { data } = await api.delete<TreasuryAccount>(`/finance/treasury/accounts/${id}`);
   return data;
 };
 
@@ -75,8 +113,9 @@ export const createExpenseTransaction = async (expenseData: TransactionCreationD
 /**
  * Récupère toutes les transactions financières de la filiale.
  */
-export const getFinancialTransactions = async (): Promise<FinancialTransaction[]> => {
-  const { data } = await api.get<FinancialTransaction[]>('/finance/treasury/transactions');
+export const getFinancialTransactions = async (subsidiaryId?: string): Promise<FinancialTransaction[]> => {
+  const params = subsidiaryId ? { subsidiaryId } : {};
+  const { data } = await api.get<FinancialTransaction[]>('/finance/treasury/transactions', { params });
   return data;
 };
 

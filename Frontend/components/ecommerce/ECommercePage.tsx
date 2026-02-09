@@ -19,7 +19,7 @@ import { createOrder } from '../../services/apiE-commerce/apiOrders';
 import { createQuoteRequest } from '../../services/apiCrm/apiLeads';
 import { subscribeToNewsletter } from '../../services/apiE-commerce/apiNewsletter';
 import ContactModal from './ContactModal';
-import { loginContact, registerContact, ContactRegisterData, logoutContact } from '../../services/apiCrm/apiContacts';
+import { loginContact, registerContact, ContactRegisterData, logoutContact } from '../../services/apiCrm/apicontacts';
 import { useNavigate } from '@tanstack/react-router';
 import { useAuth } from '../../context/AuthContext';
 type SignupFormData = Omit<ContactRegisterData, 'subsidiaryId' | 'since' | 'isVerified'>;

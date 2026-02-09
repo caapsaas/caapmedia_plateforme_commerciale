@@ -6,6 +6,7 @@ import { runContactSeeder } from './seeders/contact.seeder';
 import { runEquipmentSeeder } from './seeders/equipement.seeder';
 import { runTaxRateSeeder } from './seeders/tax_rate.seeder';
 import { runOrdersSeeder } from './seeders/order.seeder';
+import { seedTreasuryAccounts } from './seeders/treasury.seeder';
 
 
 const prisma = new PrismaClient()
@@ -18,6 +19,7 @@ async function main() {
     await runEquipmentSeeder(prisma);
     await runTaxRateSeeder(prisma);
     await runOrdersSeeder(prisma);
+    await seedTreasuryAccounts();
 }
 
 main()

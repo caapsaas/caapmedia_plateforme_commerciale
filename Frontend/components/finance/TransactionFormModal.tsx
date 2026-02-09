@@ -63,13 +63,13 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onC
                                 </div>
                                 <div>
                                     <label htmlFor="transactionDate" className="block text-sm font-medium text-slate-700">{t('treasury.date')}</label>
-                                    <input type="date" name="date" id="date" value={formData.transactionDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />
+                                    <input type="date" name="transactionDate" id="transactionDate" value={formData.transactionDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />
                                 </div>
                             </div>
                             <div>
                                 <label htmlFor="treasuryAccountId" className="block text-sm font-medium text-slate-700">{t('treasury.account')}</label>
                                     <select name="treasuryAccountId" id="treasuryAccountId" value={formData.treasuryAccountId} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm " disabled={accounts.length === 0}>
-                                        {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}  
+                                        {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.accountName}</option>)}  
                                     </select>
                             </div>
                         </div>
