@@ -51,6 +51,15 @@ export const getCredit = async () => {
 }
 
 /**
+ * Récupère un compte de crédit client par son ID.
+ * @param id L'ID du compte de crédit.
+ */
+export const getCreditById = async (id: string) => {
+    const { data } = await api.get(`/ecommerce/orders/credit/${id}`);
+    return data;
+};
+
+/**
  * Récupère toutes les commandes.
  * Le backend devrait filtrer par filiale en se basant sur le token de l'utilisateur.
  * @param query - Les paramètres de filtrage des commandes.

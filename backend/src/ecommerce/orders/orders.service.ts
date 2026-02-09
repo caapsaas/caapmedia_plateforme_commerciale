@@ -863,4 +863,24 @@ export class OrdersService {
     return creditAccount;
   }
 
+  /**
+   * Récupère un compte de crédit client par son ID.
+   * @param id ID du compte de crédit
+   * @param user Utilisateur connecté
+   * @returns Le compte de crédit trouvé
+   */
+  async getOneCustomerCredit(id: string, user: any) {
+    const creditAccount = await this.prisma.creditAccount.findFirst({
+      where: {
+        id: id,
+        subsidiaryId: user.subsidiaryId,
+      },
+    });
+
+    if (!creditAccount) {
+      throw new NotFoundException(`Compte de crédit avec l'ID "${id}" non trouvé.`);
+    }
+
+    return creditAccount;
+  }
 }

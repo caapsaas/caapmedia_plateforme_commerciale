@@ -90,6 +90,17 @@ export class OrdersController {
     }
 
     /**
+     * Endpoint pour récupérer un crédit client par son ID
+     * Exemple d'URL : /ecommerce/orders/credit/:id
+     */
+    @Get('/credit/:id')
+    @UseGuards(JwtAuthGuard)
+    @SetMetadata('roles', [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR])
+    findOneCredit(@Param('id') id: string, @Req() req) {
+        return this.ordersService.getOneCustomerCredit(id, req.user);
+    }
+
+    /**
      * Endpoint pour récupérer une commande par son ID
      * Exemple d'URL : /ecommerce/orders/:id
      */

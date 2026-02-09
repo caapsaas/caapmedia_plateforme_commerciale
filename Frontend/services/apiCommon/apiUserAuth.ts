@@ -120,5 +120,27 @@ export const forgotPassword = async (email: string): Promise<{ message: string }
   return data;
 };
 
+/**
+ * Déconnecte l'utilisateur (côté serveur).
+ */
+export const logoutUser = async (): Promise<void> => {
+  await api.post('/auth/logout');
+};
 
-// La fonction de déconnexion est gérée globalement dans AuthContext.
+/**
+ * Récupère le profil de l'utilisateur connecté avec sa filiale.
+ * Endpoint: /auth/Userprofile
+ */
+export const getUserProfile = async (): Promise<{ user: User; subsidiary: Subsidiary }> => {
+  const { data } = await api.get<{ user: User; subsidiary: Subsidiary }>('/auth/Userprofile');
+  return data;
+};
+
+/**
+ * Récupère les détails complets du profil de l'utilisateur.
+ * Endpoint: /auth/profile
+ */
+export const getProfile = async (): Promise<User> => {
+  const { data } = await api.get<User>('/auth/profile');
+  return data;
+};

@@ -7,18 +7,26 @@ import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
+import IconCash from '../icons/IconCash';
+import IconEye from '../icons/IconEye';
+
 import { useQuery } from '@tanstack/react-query';
 import { getCredit } from '../../services/apiE-commerce/apiOrders';
 import KpiCard from '../../Pages/KpiCard';
 import IconCreditCard from '../icons/IconCreditCard';
-
+import CreditDetailsModal from './CreditDetailsModal';
+import CreditPaymentModal from './CreditPaymentModal';
 interface CreditManagementProps {
     subsidiary: Subsidiary;
 }
 
+
 const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
     const { t, formatCurrency } = useI18n();
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedAccount, setSelectedAccount] = useState<CreditAccount | null>(null);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
     // 1. Récupération des données réelles depuis le backend
     const { data: customerCredit = [], isLoading: isLoadingcredit } = useQuery<CreditAccount[]>({ 
@@ -35,9 +43,11 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
 
     // 3. Filtrage pour la barre de recherche
     const filteredCredits = useMemo(() => {
+        // On ne montre que les crédits avec un solde > 0
+        const activeCredits = customerCredit.filter(c => Math.round(c.balance) > 0);
         const lowercasedTerm = searchTerm.toLowerCase();
-        if (!lowercasedTerm) return customerCredit;
-        return customerCredit.filter(credit => 
+        if (!lowercasedTerm) return activeCredits;
+        return activeCredits.filter(credit => 
             credit.clientName.toLowerCase().includes(lowercasedTerm) ||
             (credit.companyName && credit.companyName.toLowerCase().includes(lowercasedTerm))
         );
@@ -66,6 +76,16 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
         exportToPdf(t('credit.customerCreditTracking'), headers, data, 'credits_clients');
     };
 
+    const handleViewDetails = (account: CreditAccount) => {
+        setSelectedAccount(account);
+        setIsDetailsModalOpen(true);
+    };
+
+    const handleRecordPayment = (account: CreditAccount) => {
+        setSelectedAccount(account);
+        setIsPaymentModalOpen(true);
+    };
+
     const kpiData = {
         titleKey: 'credit.totalReceivables',
         value: formatCurrency(totalReceivablesData.totalReceivables),
@@ -75,7 +95,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
         descriptionKey: 'credit.totalReceivablesDesc'
     };
 
-    if (isLoadingReceivable) {
+    if (isLoadingReceivable || isLoadingcredit) {
         return <div className="p-6 text-center">{t('common.loading')}</div>;
     }
 
@@ -126,23 +146,44 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredCredits.map((account) => (
-                                console.log(account),
-                                <tr key={account.id} className="bg-white border-b hover:bg-slate-50">
-                                    <td className="px-6 py-4 font-medium text-slate-900">{account.clientName}</td>
-                                    <td className="px-6 py-4">{account.companyName}</td>
-                                    <td className="px-6 py-4">{account.lastPaymentDate ? new Date(account.lastPaymentDate).toLocaleDateString('fr-FR') : t('common.notAvailable')}</td>
-                                    <td className="px-6 py-4 text-right font-bold text-red-600">{formatCurrency(account.balance)}</td>
-                                    <td className="px-6 py-4 text-center no-print">
-                                        <button className="font-medium text-[#c6e911] hover:text-[#adc40f] mr-4">{t('credit.viewDetails')}</button>
-                                        <button className="font-medium text-green-600 hover:text-green-800">{t('credit.recordPayment')}</button>
+                            {filteredCredits.length > 0 ? (
+                                filteredCredits.map((account) => (
+                                    <tr key={account.id} className="bg-white border-b hover:bg-slate-50">
+                                        <td className="px-6 py-4 font-medium text-slate-900">{account.clientName}</td>
+                                        <td className="px-6 py-4">{account.companyName}</td>
+                                        <td className="px-6 py-4">{account.lastPaymentDate ? new Date(account.lastPaymentDate).toLocaleDateString('fr-FR') : t('common.notAvailable')}</td>
+                                        <td className="px-6 py-4 text-right font-bold text-red-600">{formatCurrency(account.balance)}</td>
+                                        <td className="px-6 py-4 text-center no-print">
+                                            <button onClick={() => handleViewDetails(account)} className="font-medium text-[#c6e911] hover:text-[#adc40f] mr-4"><IconEye className="h-4 w-4" /></button>
+                                            <button onClick={() => handleRecordPayment(account)} className="font-medium text-green-600 hover:text-green-800"><IconCash className="h-4 w-4" /></button>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={5} className="text-center py-8 text-slate-500">
+                                        {searchTerm ? "Aucun crédit ne correspond à votre recherche." : "Aucun crédit client en cours."}
                                     </td>
                                 </tr>
-                            ))}
+                            )}
                         </tbody>
                     </table>
                 </div>
             </div>
+            {isDetailsModalOpen && selectedAccount && (
+                <CreditDetailsModal 
+                    isOpen={isDetailsModalOpen} 
+                    onClose={() => setIsDetailsModalOpen(false)} 
+                    account={selectedAccount} 
+                />
+            )}
+            {isPaymentModalOpen && selectedAccount && (
+                <CreditPaymentModal 
+                    isOpen={isPaymentModalOpen} 
+                    onClose={() => setIsPaymentModalOpen(false)} 
+                    account={selectedAccount} 
+                />
+            )}
         </div>
     );
 };
