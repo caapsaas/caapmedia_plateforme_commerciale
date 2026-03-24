@@ -49,4 +49,11 @@ export class PayrollrecordController {
     const subsidiaryId = req.user.subsidiaryId;
     return this.payrollRecordService.processPayroll(subsidiaryId, body.period);
   }
+
+  @Patch(':id/sign')
+  @Roles('HR_MANAGER', 'ADMIN')
+  @HttpCode(HttpStatus.OK)
+  signPayrollRecord(@Param('id', ParseUUIDPipe) id: string, @Body() body: { signature: string }) {
+    return this.payrollRecordService.signPayrollRecord(id, body.signature);
+  }
 }

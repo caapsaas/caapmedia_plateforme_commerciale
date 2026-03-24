@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, LeaveType } from '@prisma/client'
 import { runSubsidiarySeeder } from './seeders/subsidiary.seeder';
 import { runUserSeeder } from './seeders/user.seeder';
 import { runProductSeeder } from './seeders/product.seeder';
@@ -11,6 +11,44 @@ import { seedTreasuryAccounts } from './seeders/treasury.seeder';
 
 const prisma = new PrismaClient()
 
+async function seedEmployeeLeaveBalances() {
+    console.log('Seeding employee leave balances...');
+    
+    // Get all employees
+    const employees = await prisma.employee.findMany();
+    
+    // Define default leave balances
+    const defaultBalances = {
+        [LeaveType.ANNUAL]: 20,
+        [LeaveType.SICK]: 10,
+        [LeaveType.PERSONAL]: 5,
+        [LeaveType.MATERNITY]: 90,
+        [LeaveType.PATERNITY]: 15,
+        [LeaveType.OTHER]: 3,
+    };
+    
+    for (const employee of employees) {
+        for (const [leaveType, days] of Object.entries(defaultBalances)) {
+            await prisma.employeeLeaveBalance.upsert({
+                where: {
+                    employeeId_leaveType: {
+                        employeeId: employee.id,
+                        leaveType: leaveType as LeaveType,
+                    },
+                },
+                update: {},
+                create: {
+                    employeeId: employee.id,
+                    leaveType: leaveType as LeaveType,
+                    days: days,
+                },
+            });
+        }
+    }
+    
+    console.log(`Created leave balances for ${employees.length} employees`);
+}
+
 async function main() {
     await runSubsidiarySeeder(prisma);
     await runUserSeeder(prisma);
@@ -20,6 +58,7 @@ async function main() {
     await runTaxRateSeeder(prisma);
     await runOrdersSeeder(prisma);
     await seedTreasuryAccounts();
+    await seedEmployeeLeaveBalances();
 }
 
 main()

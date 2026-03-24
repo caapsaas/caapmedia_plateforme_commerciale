@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Subsidiary, PayrollRecord, PayrollStatus, Employee } from '../../types';
 import { useI18n } from '../../i18n';
+import { useToast } from '../../context/ToastContext';
 import IconSignature from '../icons/IconSignature';
 import ViewSignatureModal from './ViewSignatureModal';
 import PayrollDetailsModal from './PayrollDetailsModal'; // Importer la nouvelle modale
@@ -26,6 +27,7 @@ interface PayrollManagementProps {
 
 const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary, employees, payrolls, onProcessPayroll, onRecordPayment, onSaveSignature }) => {
     const { t, formatCurrency } = useI18n();
+    const toast = useToast();
     const [viewingSignature, setViewingSignature] = useState<{name: string, signature: string} | null>(null);
     const [signingRecord, setSigningRecord] = useState<PayrollRecord | null>(null);
     const [payingRecord, setPayingRecord] = useState<PayrollRecord | null>(null);
@@ -36,48 +38,76 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary, emplo
     };
 
     const handleSaveSignature = (payrollId: string, signature: string) => {
-        onSaveSignature({ payrollId, signature });
-        setSigningRecord(null);
+        try {
+            onSaveSignature({ payrollId, signature });
+            toast.success('Signature enregistrée!', 'La signature a été enregistrée avec succès.');
+            setSigningRecord(null);
+        } catch (error) {
+            toast.error('Erreur de signature', 'Une erreur est survenue lors de l\'enregistrement de la signature.');
+        }
     };
 
     const handleConfirmPayment = (payrollId: string, paymentDate: string) => {
-        onRecordPayment({ payrollId, paymentDate });
-        setPayingRecord(null);
+        try {
+            onRecordPayment({ payrollId, paymentDate });
+            toast.success('Paiement enregistré!', 'Le paiement a été enregistré avec succès.');
+            setPayingRecord(null);
+        } catch (error) {
+            toast.error('Erreur de paiement', 'Une erreur est survenue lors de l\'enregistrement du paiement.');
+        }
     };
     
     const handleProcessPayroll = () => {
-        const currentPeriod = new Date().toISOString().slice(0, 7); // e.g., "2024-07"
-        onProcessPayroll({ period: currentPeriod });
+        try {
+            const currentPeriod = new Date().toISOString().slice(0, 7); // e.g., "2024-07"
+            onProcessPayroll({ period: currentPeriod });
+            toast.info('Traitement en cours', 'Le traitement de la paie est en cours...');
+        } catch (error) {
+            toast.error('Erreur de traitement', 'Une erreur est survenue lors du traitement de la paie.');
+        }
     };
 
     const getStatusClass = (status: PayrollStatus) => {
         return status === PayrollStatus.PAID ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
     };
 
-    const handlePrint = () => window.print();
+    const handlePrint = () => {
+        window.print();
+        toast.info('Impression lancée', 'La page est en cours d\'impression.');
+    };
 
     const handleExportCsv = () => {
-        const headers = [
-            { key: 'employeeName', label: t('hr.payroll.employee') },
-            { key: 'period', label: t('hr.payroll.period') },
-            { key: 'netSalary', label: t('hr.payroll.netSalary') },
-            { key: 'paymentDate', label: t('hr.payroll.paymentDate') },
-            { key: 'status', label: t('hr.payroll.status') },
-        ];
-        const data = payrolls.map(r => ({ ...r, status: t(`hr.payroll.status_${r.status}`) }));
-        exportToCsv('registre_paie', headers, data);
+        try {
+            const headers = [
+                { key: 'employeeName', label: t('hr.payroll.employee') },
+                { key: 'period', label: t('hr.payroll.period') },
+                { key: 'netSalary', label: t('hr.payroll.netSalary') },
+                { key: 'paymentDate', label: t('hr.payroll.paymentDate') },
+                { key: 'status', label: t('hr.payroll.status') },
+            ];
+            const data = payrolls.map(r => ({ ...r, status: t(`hr.payroll.status_${r.status}`) }));
+            exportToCsv('registre_paie', headers, data);
+            toast.success('Export CSV réussi!', 'Les données ont été exportées au format CSV.');
+        } catch (error) {
+            toast.error('Erreur d\'export', 'Une erreur est survenue lors de l\'export CSV.');
+        }
     };
 
     const handleExportPdf = () => {
-        const headers = [
-            { key: 'employeeName', label: t('hr.payroll.employee') },
-            { key: 'period', label: t('hr.payroll.period') },
-            { key: 'netSalary', label: t('hr.payroll.netSalary') },
-            { key: 'paymentDate', label: t('hr.payroll.paymentDate') },
-            { key: 'status', label: t('hr.payroll.status') },
-        ];
-        const data = payrolls.map(r => ({ ...r, status: t(`hr.payroll.status_${r.status}`), netSalary: formatCurrency(r.netSalary) }));
-        exportToPdf(t('hr.payroll.title'), headers, data, 'paie');
+        try {
+            const headers = [
+                { key: 'employeeName', label: t('hr.payroll.employee') },
+                { key: 'period', label: t('hr.payroll.period') },
+                { key: 'netSalary', label: t('hr.payroll.netSalary') },
+                { key: 'paymentDate', label: t('hr.payroll.paymentDate') },
+                { key: 'status', label: t('hr.payroll.status') },
+            ];
+            const data = payrolls.map(r => ({ ...r, status: t(`hr.payroll.status_${r.status}`), netSalary: formatCurrency(r.netSalary) }));
+            exportToPdf(t('hr.payroll.title'), headers, data, 'paie');
+            toast.success('Export PDF réussi!', 'Les données ont été exportées au format PDF.');
+        } catch (error) {
+            toast.error('Erreur d\'export', 'Une erreur est survenue lors de l\'export PDF.');
+        }
     };
 
     return (

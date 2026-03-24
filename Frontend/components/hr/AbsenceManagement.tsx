@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Subsidiary, AbsenceRecord, AbsenceType, Employee } from '../../types';
 import { useI18n } from '../../i18n';
+import { useToast } from '../../context/ToastContext';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
@@ -24,6 +25,7 @@ interface AbsenceManagementProps {
 
 const AbsenceManagement: React.FC<AbsenceManagementProps> = ({ subsidiary, employees, absences, onSave, onDelete }) => {
     const { t } = useI18n();
+    const toast = useToast();
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingAbsence, setEditingAbsence] = useState<AbsenceRecord | null>(null);
     const [deletingAbsence, setDeletingAbsence] = useState<AbsenceRecord | null>(null);
@@ -49,21 +51,32 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({ subsidiary, emplo
     };
 
     const handleSaveAbsence = (absenceData: Partial<AbsenceRecord>) => {
-        onSave(absenceData);
-        handleCloseModals();
-    };
-
-    const handleDeleteAbsence = () => {
-        if (deletingAbsence) {
-            onDelete(deletingAbsence.id);
+        try {
+            onSave(absenceData);
+            const action = editingAbsence ? 'modifiée' : 'ajoutée';
+            toast.success('Absence enregistrée!', `L'absence a été ${action} avec succès.`);
             handleCloseModals();
+        } catch (error) {
+            toast.error('Erreur de sauvegarde', 'Une erreur est survenue lors de la sauvegarde de l\'absence.');
         }
     };
 
-        const getTypeClass = (type: AbsenceType) => {
+    const handleDeleteAbsence = () => {
+        try {
+            if (deletingAbsence) {
+                onDelete(deletingAbsence.id);
+                toast.success('Absence supprimée!', 'L\'absence a été supprimée avec succès.');
+                handleCloseModals();
+            }
+        } catch (error) {
+            toast.error('Erreur de suppression', 'Une erreur est survenue lors de la suppression de l\'absence.');
+        }
+    };
+
+    const getTypeClass = (type: AbsenceType) => {
         switch (type) {
             case AbsenceType.JUSTIFIED:
-            return 'bg-yellow-100 text-yellow-800';
+                return 'bg-yellow-100 text-yellow-800';
             case AbsenceType.UNJUSTIFIED:
             return 'bg-red-100 text-red-800';
             default:
@@ -71,30 +84,43 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({ subsidiary, emplo
         }
         };
 
-    const handlePrint = () => window.print();
+    const handlePrint = () => {
+        window.print();
+        toast.info('Impression lancée', 'La page est en cours d\'impression.');
+    };
 
     const handleExportCsv = () => {
-        const headers = [
-            { key: 'employeeName', label: t('hr.absences.table.employee') },
-            { key: 'typeAbsence', label: t('hr.absences.table.type') },
-            { key: 'startDate', label: t('hr.absences.table.startDate') },
-            { key: 'endDate', label: t('hr.absences.table.endDate') },
-            { key: 'reason', label: t('hr.absences.table.reason') },
-        ];
-        const data = absences.map(r => ({ ...r, typeAbsence: t(`hr.absenceType.${r.typeAbsence}`) }));
-        exportToCsv('registre_absences', headers, data);
+        try {
+            const headers = [
+                { key: 'employeeName', label: t('hr.absences.table.employee') },
+                { key: 'typeAbsence', label: t('hr.absences.table.type') },
+                { key: 'startDate', label: t('hr.absences.table.startDate') },
+                { key: 'endDate', label: t('hr.absences.table.endDate') },
+                { key: 'reason', label: t('hr.absences.table.reason') },
+            ];
+            const data = absences.map(r => ({ ...r, typeAbsence: t(`hr.absenceType.${r.typeAbsence}`) }));
+            exportToCsv('registre_absences', headers, data);
+            toast.success('Export CSV réussi!', 'Les données ont été exportées au format CSV.');
+        } catch (error) {
+            toast.error('Erreur d\'export', 'Une erreur est survenue lors de l\'export CSV.');
+        }
     };
 
     const handleExportPdf = () => {
-        const headers = [
-            { key: 'employeeName', label: t('hr.absences.table.employee') },
-            { key: 'typeAbsence', label: t('hr.absences.table.type') },
-            { key: 'startDate', label: t('hr.absences.table.startDate') },
-            { key: 'endDate', label: t('hr.absences.table.endDate') },
-            { key: 'reason', label: t('hr.absences.table.reason') },
-        ];
-        const data = absences.map(r => ({ ...r, typeAbsence: t(`hr.absenceType.${r.typeAbsence}`) }));
-        exportToPdf(t('hr.absences.title'), headers, data, 'absences');
+        try {
+            const headers = [
+                { key: 'employeeName', label: t('hr.absences.table.employee') },
+                { key: 'typeAbsence', label: t('hr.absences.table.type') },
+                { key: 'startDate', label: t('hr.absences.table.startDate') },
+                { key: 'endDate', label: t('hr.absences.table.endDate') },
+                { key: 'reason', label: t('hr.absences.table.reason') },
+            ];
+            const data = absences.map(r => ({ ...r, typeAbsence: t(`hr.absenceType.${r.typeAbsence}`) }));
+            exportToPdf(t('hr.absences.title'), headers, data, 'absences');
+            toast.success('Export PDF réussi!', 'Les données ont été exportées au format PDF.');
+        } catch (error) {
+            toast.error('Erreur d\'export', 'Une erreur est survenue lors de l\'export PDF.');
+        }
     };
 
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';

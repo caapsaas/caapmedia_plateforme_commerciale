@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Product } from '../../types';
 import { useI18n } from '../../i18n';
+import { useToast } from '../../context/ToastContext';
 import ECommerceHeader from './ECommerceHeader';
 import ProductCard from './ProductCard';
 import ShoppingCart, { CartItem } from './ShoppingCart';
@@ -28,6 +29,7 @@ const ECommercePage: React.FC = () => {
     const navigate = useNavigate();
     const { loginCustomer, logoutCustomer, contact } = useAuth();
     const { t } = useI18n();
+    const toast = useToast();
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedMainCategory, setSelectedMainCategory] = useState('');
@@ -46,9 +48,17 @@ const ECommercePage: React.FC = () => {
     const [configuringProduct, setConfiguringProduct] = useState<Product | null>(null);
     const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+    const [likedProducts, setLikedProducts] = useState<Set<string>>(() => {
+        try {
+            const savedLikes = window.localStorage.getItem('likedProducts');
+            return savedLikes ? new Set(JSON.parse(savedLikes)) : new Set();
+        } catch (error) {
+            return new Set();
+        }
+    });
+    const [showFavorites, setShowFavorites] = useState(false);
 
-
-     // State for SEO content expansion
+    // State for SEO content expansion
     const [isSeoExpanded, setIsSeoExpanded] = useState(false);
     // State for Newsletter Form
     const [newsletterEmail, setNewsletterEmail] = useState('');
@@ -78,6 +88,10 @@ const ECommercePage: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['orders'] });
             window.localStorage.removeItem('shoppingCart'); // Vider le panier local après la commande
             setCart([]);
+            toast.success('Commande confirmée!', 'Votre commande a été enregistrée avec succès.');
+        },
+        onError: () => {
+            toast.error('Erreur de commande', 'Une erreur est survenue lors de la confirmation de votre commande.');
         }
     });
 
@@ -170,7 +184,13 @@ const ECommercePage: React.FC = () => {
             return true;
         });
     }, [products, searchTerm, selectedMainCategory, selectedSubcategory]);
-    
+
+    const favoriteProducts = useMemo(() => {
+        return products.filter((product: Product) => likedProducts.has(product.id));
+    }, [products, likedProducts]);
+
+    const displayProducts = showFavorites ? favoriteProducts : filteredProducts;
+
     const cartItemCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
 
     const handleAddToCart = (item: CartItem) => {
@@ -290,6 +310,41 @@ const ECommercePage: React.FC = () => {
         setSelectedSubcategory('');
     };
 
+    const handleWishlistClick = () => {
+        setShowFavorites(!showFavorites);
+        if (!showFavorites) {
+            toast.info('Mes favoris', 'Affichage de vos produits favoris');
+        }
+    };
+
+    const handleLikeProduct = (productId: string) => {
+        setLikedProducts(prev => {
+            const newLikes = new Set(prev);
+            newLikes.add(productId);
+            try {
+                window.localStorage.setItem('likedProducts', JSON.stringify([...newLikes]));
+            } catch (error) {
+                console.error('Error saving liked products:', error);
+            }
+            return newLikes;
+        });
+        toast.success('Produit ajouté aux favoris!', 'Le produit a été ajouté à votre liste de souhaits.');
+    };
+
+    const handleUnlikeProduct = (productId: string) => {
+        setLikedProducts(prev => {
+            const newLikes = new Set(prev);
+            newLikes.delete(productId);
+            try {
+                window.localStorage.setItem('likedProducts', JSON.stringify([...newLikes]));
+            } catch (error) {
+                console.error('Error saving liked products:', error);
+            }
+            return newLikes;
+        });
+        toast.info('Produit retiré des favoris', 'Le produit a été retiré de votre liste de souhaits.');
+    };
+
     const handleNewsletterSubmit = (e: React.FormEvent) => {
         setNewsletterError('');
         setNewsletterSuccess('');
@@ -319,6 +374,8 @@ const ECommercePage: React.FC = () => {
                 onLogout={onLogout}
                 accountPath="/account"
                 cartItemCount={cartItemCount}
+                likedItemCount={likedProducts.size}
+                onWishlistClick={handleWishlistClick}
                 onCartClick={() => setIsCartOpen(true)}
                 searchTerm={searchTerm}
                 onSearchTermChange={setSearchTerm}
@@ -346,8 +403,15 @@ const ECommercePage: React.FC = () => {
 
                 {/* Products Grid */}
                 <div id="products-grid" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mt-12">
-                    {filteredProducts.map((product: Product) => (
-                        <ProductCard key={product.id} product={product} onAddToCart={handleProductClick} />
+                    {displayProducts.map((product: Product) => (
+                        <ProductCard 
+                            key={product.id} 
+                            product={product} 
+                            onAddToCart={handleProductClick}
+                            isLiked={likedProducts.has(product.id)}
+                            onLike={handleLikeProduct}
+                            onUnlike={handleUnlikeProduct}
+                        />
                     ))}
                 </div>
                       {/* Section Info & Conseils */}

@@ -1,0 +1,103 @@
+{
+  "configuration": {
+    "modal": {
+      "editEmployeeTitle": "Modifier l'employé",
+      "addEmployeeTitle": "Ajouter un employé"
+    },
+    "form": {
+      "formSection": {
+        "personal": "Informations personnelles",
+        "professional": "Informations professionnelles",
+        "salary": "Salaire et avantages",
+        "documents": "Documents",
+        "leaves": "Congés"
+      },
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "birthDate": "Date de naissance",
+      "gender": "Genre",
+      "address": "Adresse",
+      "phone": "Téléphone",
+      "email": "Email",
+      "nationality": "Nationalité",
+      "ssn": "Numéro de sécurité sociale",
+      "position": "Poste",
+      "department": "Département",
+      "hireDate": "Date d'embauche",
+      "contractType": "Type de contrat",
+      "employeeStatus": "Statut de l'employé",
+      "workLocation": "Lieu de travail",
+      "baseSalary": "Salaire de base",
+      "bonus": "Prime",
+      "benefits": "Avantages",
+      "paymentMethod": "Méthode de paiement"
+    }
+  },
+  "hr": {
+    "gender": {
+      "MALE": "Homme",
+      "FEMALE": "Femme",
+      "OTHER": "Autre"
+    },
+    "contractType": {
+      "CDI": "CDI",
+      "CDD": "CDD",
+      "FREELANCE": "Freelance",
+      "INTERNSHIP": "Stage"
+    },
+    "employeeStatus": {
+      "ACTIVE": "Actif",
+      "ON_LEAVE": "En congé",
+      "RESIGNED": "Démissionné",
+      "TERMINATED": "Licencié"
+    },
+    "paymentMethod": {
+      "BANK_TRANSFER": "Virement bancaire",
+      "CHECK": "Chèque",
+      "CASH": "Espèces"
+    },
+    "documents": {
+      "title": "Documents",
+      "addDocument": "Ajouter un document",
+      "document": "Document",
+      "name": "Nom du document",
+      "type": "Type de document",
+      "expiryDate": "Date d'expiration",
+      "status": "Statut",
+      "selectType": "Sélectionner un type",
+      "noDocuments": "Aucun document ajouté"
+    },
+    "documentType": {
+      "idCard": "Carte d'identité",
+      "passport": "Passeport",
+      "contract": "Contrat",
+      "cv": "CV",
+      "diploma": "Diplôme",
+      "other": "Autre"
+    },
+    "documentStatus": {
+      "valid": "Valide",
+      "expired": "Expiré",
+      "pending": "En attente"
+    },
+    "leaveType": {
+      "annual": "Congés annuels",
+      "sick": "Congés maladie",
+      "personal": "Congés personnels",
+      "maternity": "Congés maternité",
+      "paternity": "Congés paternité",
+      "other": "Autres congés"
+    },
+    "leaveBalance": {
+      "title": "Solde des congés",
+      "summary": "Résumé",
+      "totalDays": "Total des jours",
+      "days": "jours"
+    }
+  },
+  "common": {
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer"
+  }
+}

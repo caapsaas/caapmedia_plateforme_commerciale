@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Subsidiary, PurchaseOrder, PurchaseOrderStatus, PaymentStatus, Product, Supplier } from '../../types/models';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '../../i18n';
+import { useToast } from '../../context/ToastContext';
 import { getPurchaseOrders, createPurchaseOrder, receivePurchaseOrderItems, recordPurchaseOrderPayment } from '../../services/apiPurchasing/apiPurchase_order';
 import { getSuppliers } from '../../services/apiPurchasing/apiSupplier';
 import { getProductsBySubsidiary } from '../../services/apiE-commerce/apiProducts';
@@ -20,6 +21,7 @@ import { useAuth } from '../../context/AuthContext';
 
 const Purchasing: React.FC = () => {
     const { t, formatCurrency } = useI18n();
+    const toast = useToast();
     const { subsidiary } = useAuth();
     const queryClient = useQueryClient();
     
@@ -52,15 +54,33 @@ const Purchasing: React.FC = () => {
     // --- TanStack Query: Mutations ---
     const { mutate: createPurchaseOrderMutate } = useMutation({
         mutationFn: createPurchaseOrder,
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
+            toast.success('Commande créée!', 'La commande d\'achat a été créée avec succès.');
+        },
+        onError: () => {
+            toast.error('Erreur de création', 'Une erreur est survenue lors de la création de la commande.');
+        }
     });
     const { mutate: receiveItemsMutate } = useMutation({
         mutationFn: ({ id, data }: { id: string, data: ReceiveItemsDto }) => receivePurchaseOrderItems(id, data),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
+            toast.success('Articles reçus!', 'Les articles ont été reçus avec succès.');
+        },
+        onError: () => {
+            toast.error('Erreur de réception', 'Une erreur est survenue lors de la réception des articles.');
+        }
     });
     const { mutate: recordPaymentMutate } = useMutation({
         mutationFn: ({ id, data }: { id: string, data: { amount: number } }) => recordPurchaseOrderPayment(id, data),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
+            toast.success('Paiement enregistré!', 'Le paiement a été enregistré avec succès.');
+        },
+        onError: () => {
+            toast.error('Erreur de paiement', 'Une erreur est survenue lors de l\'enregistrement du paiement.');
+        }
     });
 
     const handleOpenAddModal = () => {

@@ -7,6 +7,7 @@ import IconSparkles from '../icons/IconSparkles';
 import { Product } from '../../types/models';
 import { ProductFormData } from '../../types/forms';
 import { useI18n } from '../../i18n';
+import { useToast } from '../../context/ToastContext';
 import ProductFormModal from './ProductFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
 import { useAppContext } from '../../context/AppContext';
@@ -21,6 +22,7 @@ const ProductManagement: React.FC = () => {
     const { t, formatCurrency } = useI18n();
     const { subsidiary } = useAuth();
     const queryClient = useQueryClient();
+    const toast = useToast();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -37,23 +39,38 @@ const ProductManagement: React.FC = () => {
     // --- TanStack Query: Mutations ---
     const { mutate: saveProductMutate } = useMutation({
         mutationFn: ({ id, data }: { id?: string, data: ProductFormData }) => id ? updateProduct(id, data) : createProduct(data),
-        onSuccess: () => {
+        onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['products', subsidiary?.id] });
+            const action = variables.id ? 'modifié' : 'ajouté';
+            toast.success('Produit sauvegardé!', `Le produit a été ${action} avec succès.`);
             handleCloseModals();
         },
+        onError: () => {
+            toast.error('Erreur de sauvegarde', 'Une erreur est survenue lors de la sauvegarde du produit.');
+        }
     });
 
     const { mutate: deleteProductMutate } = useMutation({
         mutationFn: deleteProduct,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['products', subsidiary?.id] });
+            toast.success('Produit supprimé!', 'Le produit a été supprimé avec succès.');
             handleCloseModals();
         },
+        onError: () => {
+            toast.error('Erreur de suppression', 'Une erreur est survenue lors de la suppression du produit.');
+        }
     });
 
     const { mutate: generateImageMutate, isPending: isGeneratingImage, variables: generatingImageId } = useMutation({
         mutationFn: generateProductImage,
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products', subsidiary?.id] }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products', subsidiary?.id] });
+            toast.success('Image générée!', 'L\'image a été générée avec succès par l\'IA.');
+        },
+        onError: () => {
+            toast.error('Erreur de génération', 'Une erreur est survenue lors de la génération de l\'image.');
+        }
     });
 
     const handleOpenAddModal = () => {

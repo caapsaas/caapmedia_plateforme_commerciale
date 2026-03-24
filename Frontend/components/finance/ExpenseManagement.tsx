@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Subsidiary, ExpenseRecord, ExpenseCategory, ExpenseType } from '../../types';
 import { useI18n } from '../../i18n';
+import { useToast } from '../../context/ToastContext';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
@@ -21,6 +22,7 @@ interface ExpenseManagementProps {
 
 const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expenseRecords: allExpenseRecords }) => {
     const { t, formatCurrency } = useI18n();
+    const toast = useToast();
     const [expenses, setExpenses] = useState(allExpenseRecords.filter(e => e.subsidiaryId === subsidiary.id));
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingExpense, setEditingExpense] = useState<ExpenseRecord | null>(null);
@@ -93,55 +95,79 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
     };
 
     const handleSaveExpense = (data: Omit<ExpenseRecord, 'id' | 'subsidiaryId'>) => {
-        if (editingExpense) {
-            setExpenses(prev => prev.map(e => e.id === editingExpense.id ? { ...editingExpense, ...data } : e));
-        } else {
-            const newExpense: ExpenseRecord = { ...data, id: `EXP${Date.now()}`, subsidiaryId: subsidiary.id };
-            setExpenses(prev => [newExpense, ...prev]);
+        try {
+            if (editingExpense) {
+                setExpenses(prev => prev.map(e => e.id === editingExpense.id ? { ...editingExpense, ...data } : e));
+                toast.success('Dépense modifiée!', 'La dépense a été modifiée avec succès.');
+            } else {
+                const newExpense: ExpenseRecord = { ...data, id: `EXP${Date.now()}`, subsidiaryId: subsidiary.id };
+                setExpenses(prev => [newExpense, ...prev]);
+                toast.success('Dépense ajoutée!', 'La dépense a été ajoutée avec succès.');
+            }
+            handleCloseModals();
+        } catch (error) {
+            toast.error('Erreur de sauvegarde', 'Une erreur est survenue lors de la sauvegarde de la dépense.');
         }
-        handleCloseModals();
     };
 
     const handleDeleteExpense = () => {
-        if (deletingExpense) {
-            setExpenses(prev => prev.filter(e => e.id !== deletingExpense.id));
-            handleCloseModals();
+        try {
+            if (deletingExpense) {
+                setExpenses(prev => prev.filter(e => e.id !== deletingExpense.id));
+                toast.success('Dépense supprimée!', 'La dépense a été supprimée avec succès.');
+                handleCloseModals();
+            }
+        } catch (error) {
+            toast.error('Erreur de suppression', 'Une erreur est survenue lors de la suppression de la dépense.');
         }
     };
 
-    const handlePrint = () => window.print();
+    const handlePrint = () => {
+        window.print();
+        toast.info('Impression lancée', 'La page est en cours d\'impression.');
+    };
 
     const handleExportCsv = () => {
-        const headers = [
-            { key: 'date', label: t('expenses.table.date') },
-            { key: 'description', label: t('expenses.table.description') },
-            { key: 'category', label: t('expenses.table.category') },
-            { key: 'type', label: t('expenses.table.type') },
-            { key: 'amount', label: t('expenses.table.amount') },
-        ];
-        const data = filteredExpenses.map(e => ({
-            ...e,
-            category: t(`expenses.categories.${e.category || 'OTHER'}`),
-            type: t(`expenses.types.${e.type || 'VARIABLE'}`),
-        }));
-        exportToCsv('liste_charges', headers, data);
+        try {
+            const headers = [
+                { key: 'date', label: t('expenses.table.date') },
+                { key: 'description', label: t('expenses.table.description') },
+                { key: 'category', label: t('expenses.table.category') },
+                { key: 'type', label: t('expenses.table.type') },
+                { key: 'amount', label: t('expenses.table.amount') },
+            ];
+            const data = filteredExpenses.map(e => ({
+                ...e,
+                category: t(`expenses.categories.${e.category || 'OTHER'}`),
+                type: t(`expenses.types.${e.type || 'VARIABLE'}`),
+            }));
+            exportToCsv('liste_charges', headers, data);
+            toast.success('Export CSV réussi!', 'Les données ont été exportées au format CSV.');
+        } catch (error) {
+            toast.error('Erreur d\'export', 'Une erreur est survenue lors de l\'export CSV.');
+        }
     };
     
     const handleExportPdf = () => {
-        const headers = [
-            { key: 'date', label: t('expenses.table.date') },
-            { key: 'description', label: t('expenses.table.description') },
-            { key: 'category', label: t('expenses.table.category') },
-            { key: 'type', label: t('expenses.table.type') },
-            { key: 'amount', label: t('expenses.table.amount') },
-        ];
-        const data = filteredExpenses.map(e => ({
-            ...e,
-            category: t(`expenses.categories.${e.category || 'OTHER'}`),
-            type: t(`expenses.types.${e.type || 'VARIABLE'}`),
-            amount: formatCurrency(e.amount),
-        }));
-        exportToPdf(t('expenses.title'), headers, data, 'charges', 'l');
+        try {
+            const headers = [
+                { key: 'date', label: t('expenses.table.date') },
+                { key: 'description', label: t('expenses.table.description') },
+                { key: 'category', label: t('expenses.table.category') },
+                { key: 'type', label: t('expenses.table.type') },
+                { key: 'amount', label: t('expenses.table.amount') },
+            ];
+            const data = filteredExpenses.map(e => ({
+                ...e,
+                category: t(`expenses.categories.${e.category || 'OTHER'}`),
+                type: t(`expenses.types.${e.type || 'VARIABLE'}`),
+                amount: formatCurrency(e.amount),
+            }));
+            exportToPdf(t('expenses.title'), headers, data, 'charges', 'l');
+            toast.success('Export PDF réussi!', 'Les données ont été exportées au format PDF.');
+        } catch (error) {
+            toast.error('Erreur d\'export', 'Une erreur est survenue lors de l\'export PDF.');
+        }
     };
 
     return (

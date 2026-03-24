@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Subsidiary, CreditAccount } from '../../types';
 import { getCustomerReceivables, CustomerReceivablesStats } from '../../services/apiStatistic/apiFinanceStats';
 import { useI18n } from '../../i18n';
+import { useToast } from '../../context/ToastContext';
 import { exportToCsv } from '../../utils/csvExporter';
 import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
@@ -10,8 +11,9 @@ import IconPdf from '../icons/IconPdf';
 import IconCash from '../icons/IconCash';
 import IconEye from '../icons/IconEye';
 
-import { useQuery } from '@tanstack/react-query';
-import { getCredit } from '../../services/apiE-commerce/apiOrders';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getCredit, recordOrderPayment } from '../../services/apiE-commerce/apiOrders';
+import { CustomerPaymentMethod } from '../../types';
 import KpiCard from '../../Pages/KpiCard';
 import IconCreditCard from '../icons/IconCreditCard';
 import CreditDetailsModal from './CreditDetailsModal';
@@ -23,6 +25,8 @@ interface CreditManagementProps {
 
 const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
     const { t, formatCurrency } = useI18n();
+    const toast = useToast();
+    const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedAccount, setSelectedAccount] = useState<CreditAccount | null>(null);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -53,27 +57,40 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
         );
     }, [customerCredit, searchTerm]);
 
-    const handlePrint = () => window.print();
+    const handlePrint = () => {
+        window.print();
+        toast.info('Impression lancée', 'La page est en cours d\'impression.');
+    };
 
     const handleExport = () => {
-        const headers = [
-            { key: 'clientName', label: t('credit.customerName') },
-            { key: 'companyName', label: t('credit.company') },
-            { key: 'balance', label: t('credit.balanceDue') },
-            { key: 'lastPaymentDate', label: t('credit.lastPaymentDate') },
-        ];
-        exportToCsv('comptes_credits', headers, filteredCredits);
+        try {
+            const headers = [
+                { key: 'clientName', label: t('credit.customerName') },
+                { key: 'companyName', label: t('credit.company') },
+                { key: 'balance', label: t('credit.balanceDue') },
+                { key: 'lastPaymentDate', label: t('credit.lastPaymentDate') },
+            ];
+            exportToCsv('comptes_credits', headers, filteredCredits);
+            toast.success('Export CSV réussi!', 'Les données ont été exportées au format CSV.');
+        } catch (error) {
+            toast.error('Erreur d\'export', 'Une erreur est survenue lors de l\'export CSV.');
+        }
     };
 
     const handleExportPdf = () => {
-        const headers = [
-            { key: 'clientName', label: t('credit.customerName') },
-            { key: 'companyName', label: t('credit.company') },
-            { key: 'lastPaymentDate', label: t('credit.lastPaymentDate') },
-            { key: 'balance', label: t('credit.balanceDue') },
-        ];
-        const data = filteredCredits.map(d => ({ ...d, balance: formatCurrency(d.balance) }));
-        exportToPdf(t('credit.customerCreditTracking'), headers, data, 'credits_clients');
+        try {
+            const headers = [
+                { key: 'clientName', label: t('credit.customerName') },
+                { key: 'companyName', label: t('credit.company') },
+                { key: 'lastPaymentDate', label: t('credit.lastPaymentDate') },
+                { key: 'balance', label: t('credit.balanceDue') },
+            ];
+            const data = filteredCredits.map(d => ({ ...d, balance: formatCurrency(d.balance) }));
+            exportToPdf(t('credit.customerCreditTracking'), headers, data, 'credits_clients');
+            toast.success('Export PDF réussi!', 'Les données ont été exportées au format PDF.');
+        } catch (error) {
+            toast.error('Erreur d\'export', 'Une erreur est survenue lors de l\'export PDF.');
+        }
     };
 
     const handleViewDetails = (account: CreditAccount) => {
@@ -84,6 +101,24 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
     const handleRecordPayment = (account: CreditAccount) => {
         setSelectedAccount(account);
         setIsPaymentModalOpen(true);
+    };
+
+    // Mutation pour enregistrer un paiement
+    const { mutate: recordPaymentMutate } = useMutation({
+        mutationFn: ({ orderId, amount, paymentMethod }: { orderId: string; amount: number; paymentMethod: CustomerPaymentMethod }) => 
+            recordOrderPayment({ orderId, amount, paymentMethod }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['credit'] });
+            toast.success('Paiement enregistré!', 'Le paiement a été enregistré avec succès.');
+            setIsPaymentModalOpen(false);
+        },
+        onError: () => {
+            toast.error('Erreur de paiement', 'Une erreur est survenue lors de l\'enregistrement du paiement.');
+        }
+    });
+
+    const handlePaymentSubmit = (orderId: string, amount: number, paymentMethod: CustomerPaymentMethod) => {
+        recordPaymentMutate({ orderId, amount, paymentMethod });
     };
 
     const kpiData = {

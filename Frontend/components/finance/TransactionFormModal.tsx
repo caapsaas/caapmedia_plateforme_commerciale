@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { TreasuryAccount, FinancialTransaction, TransactionType } from '../../types';
 import { useI18n } from '../../i18n';
-
+import {getTreasuryAccounts} from '../../services/apiFinance/apiTreasury';
 export type TransactionFormData = Omit<FinancialTransaction, 'id' | 'subsidiaryId' | 'financialTransactionType' | 'status' | 'date'> & { transactionDate: string; description: string };
 
 interface TransactionFormModalProps {
@@ -9,16 +10,24 @@ interface TransactionFormModalProps {
     onClose: () => void;
     onSave: (data: TransactionFormData, type: TransactionType) => void;
     transactionType: TransactionType;
-    accounts: TreasuryAccount[];
+    subsidiaryId: string;
 }
 
-const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onClose, onSave, transactionType, accounts }) => {
-    const { t } = useI18n();
+const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onClose, onSave, transactionType, subsidiaryId }) => {
+    const { t, formatCurrency } = useI18n();
+
+    const { data: accounts = [], isLoading: isLoadingAccounts } = useQuery<TreasuryAccount[]>({
+        queryKey: ['treasuryAccounts', subsidiaryId],
+        queryFn: () => getTreasuryAccounts(subsidiaryId),
+        enabled: isOpen && !!subsidiaryId,
+    });
+    
+
     const initialFormState: TransactionFormData = {
         transactionDate: new Date().toISOString().split('T')[0],
         description: '',
         amount: 0,
-        treasuryAccountId: accounts[0]?.id ?? '',
+        treasuryAccountId: '',
         relatedDocumentId: '',
     };
 
@@ -29,6 +38,13 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onC
             setFormData(initialFormState);
         }
     }, [isOpen]);
+
+    // Met à jour le compte sélectionné si la liste des comptes change (chargement asynchrone) et qu'aucun compte n'est sélectionné
+    useEffect(() => {
+        if (isOpen && accounts.length > 0 && !formData.treasuryAccountId) {
+            setFormData(prev => ({ ...prev, treasuryAccountId: accounts[0].id }));
+        }
+    }, [accounts, isOpen, formData.treasuryAccountId]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -68,8 +84,16 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onC
                             </div>
                             <div>
                                 <label htmlFor="treasuryAccountId" className="block text-sm font-medium text-slate-700">{t('treasury.account')}</label>
-                                    <select name="treasuryAccountId" id="treasuryAccountId" value={formData.treasuryAccountId} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm " disabled={accounts.length === 0}>
-                                        {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.accountName}</option>)}  
+                                    <select name="treasuryAccountId" id="treasuryAccountId" value={formData.treasuryAccountId} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm " disabled={isLoadingAccounts || accounts.length === 0}>
+                                        {isLoadingAccounts ? (
+                                            <option>{t('common.loading')}</option>
+                                        ) : (
+                                            accounts.map(acc => (
+                                                <option key={acc.id} value={acc.id}>
+                                                    {acc.accountName} - {formatCurrency(acc.balance)}
+                                                </option>
+                                            ))
+                                        )}
                                     </select>
                             </div>
                         </div>

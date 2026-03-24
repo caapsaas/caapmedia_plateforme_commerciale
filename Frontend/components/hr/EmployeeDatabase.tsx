@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Subsidiary, Employee, EmployeeFormData, ContractType, EmployeeStatus } from '../../types';
 import { UseMutateFunction } from '@tanstack/react-query';
 import { useI18n } from '../../i18n';
+import { useToast } from '../../context/ToastContext';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
@@ -24,7 +25,8 @@ interface EmployeeDatabaseProps {
 
 const EmployeeDatabase: React.FC<EmployeeDatabaseProps> = ({ subsidiary, employees, onSave, onDelete }) => {
     const { t } = useI18n();
-     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+    const toast = useToast();
+    const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
     const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
     const [viewingEmployee, setViewingEmployee] = useState<Employee | null>(null);
@@ -55,54 +57,78 @@ const EmployeeDatabase: React.FC<EmployeeDatabaseProps> = ({ subsidiary, employe
     };
 
     const handleSaveEmployee = (employeeData: Partial<Employee>) => {
-        // The onSave function is a react-query mutation that will handle the API call and data refetching.
-        onSave(employeeData);
-        handleCloseModals();
-    };
-
-    const handleDeleteEmployee = () => {
-        if (deletingEmployee) {
-            onDelete(deletingEmployee.id);
+        try {
+            // The onSave function is a react-query mutation that will handle the API call and data refetching.
+            onSave(employeeData);
+            const action = editingEmployee ? 'modifié' : 'ajouté';
+            toast.success('Employé enregistré!', `L'employé a été ${action} avec succès.`);
             handleCloseModals();
+        } catch (error) {
+            toast.error('Erreur de sauvegarde', 'Une erreur est survenue lors de la sauvegarde de l\'employé.');
         }
     };
 
-    const handlePrint = () => window.print();
+    const handleDeleteEmployee = () => {
+        try {
+            if (deletingEmployee) {
+                onDelete(deletingEmployee.id);
+                toast.success('Employé supprimé!', 'L\'employé a été supprimé avec succès.');
+                handleCloseModals();
+            }
+        } catch (error) {
+            toast.error('Erreur de suppression', 'Une erreur est survenue lors de la suppression de l\'employé.');
+        }
+    };
+
+    const handlePrint = () => {
+        window.print();
+        toast.info('Impression lancée', 'La page est en cours d\'impression.');
+    };
 
     const handleExport = () => {
-        const headers = [
-            { key: 'id', label: t('hr.employees.id') },
-            { key: 'fullName', label: t('hr.employees.fullName') },
-            { key: 'positions', label: t('hr.employees.position') },
-            { key: 'department', label: t('hr.employees.department') },
-            { key: 'contractType', label: t('hr.employees.contractType') },
-            { key: 'status', label: t('hr.employees.status') },
-            { key: 'email', label: t('configuration.form.email') },
-            { key: 'phone', label: t('configuration.form.phone') },
-            { key: 'hireDate', label: t('configuration.form.hireDate') },
-        ];
-        const data = employees.map(e => ({
-            ...e,
-            fullName: `${e.firstName} ${e.lastName}`,
-            contractType: t(`hr.contractType.${e.contractType}`),
-            status: t(`hr.employeeStatus.${e.status}`),
-        }));
-        exportToCsv('liste_employes', headers, data);
+        try {
+            const headers = [
+                { key: 'id', label: t('hr.employees.id') },
+                { key: 'fullName', label: t('hr.employees.fullName') },
+                { key: 'positions', label: t('hr.employees.position') },
+                { key: 'department', label: t('hr.employees.department') },
+                { key: 'contractType', label: t('hr.employees.contractType') },
+                { key: 'status', label: t('hr.employees.status') },
+                { key: 'email', label: t('configuration.form.email') },
+                { key: 'phone', label: t('configuration.form.phone') },
+                { key: 'hireDate', label: t('configuration.form.hireDate') },
+            ];
+            const data = employees.map(e => ({
+                ...e,
+                fullName: `${e.firstName} ${e.lastName}`,
+                contractType: t(`hr.contractType.${e.contractType}`),
+                status: t(`hr.employeeStatus.${e.status}`),
+            }));
+            exportToCsv('liste_employes', headers, data);
+            toast.success('Export CSV réussi!', 'Les données ont été exportées au format CSV.');
+        } catch (error) {
+            toast.error('Erreur d\'export', 'Une erreur est survenue lors de l\'export CSV.');
+        }
     };
 
     const handleExportPdf = () => {
-        const headers = [
-            { key: 'fullName', label: t('hr.employees.fullName') },
-            { key: 'positions', label: t('hr.employees.position') },
-            { key: 'department', label: t('hr.employees.department') },
-            { key: 'email', label: t('configuration.form.email') },
-            { key: 'phone', label: t('configuration.form.phone') },
-        ];
-        const data = employees.map(e => ({
-            ...e,
-            fullName: `${e.firstName} ${e.lastName}`,
-        }));
-        exportToPdf(t('hr.employees.title'), headers, data, 'employes');
+        try {
+            const headers = [
+                { key: 'fullName', label: t('hr.employees.fullName') },
+                { key: 'positions', label: t('hr.employees.position') },
+                { key: 'department', label: t('hr.employees.department') },
+                { key: 'email', label: t('configuration.form.email') },
+                { key: 'phone', label: t('configuration.form.phone') },
+            ];
+            const data = employees.map(e => ({
+                ...e,
+                fullName: `${e.firstName} ${e.lastName}`,
+            }));
+            exportToPdf(t('hr.employees.title'), headers, data, 'employes');
+            toast.success('Export PDF réussi!', 'Les données ont été exportées au format PDF.');
+        } catch (error) {
+            toast.error('Erreur d\'export', 'Une erreur est survenue lors de l\'export PDF.');
+        }
     };
     
     const getContractTypeClass = (type: ContractType) => {

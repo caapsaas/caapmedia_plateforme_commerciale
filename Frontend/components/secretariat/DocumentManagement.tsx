@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Subsidiary, CompanyDocument, DocumentStatus } from '../../types';
 import { useI18n } from '../../i18n';
+import { useToast } from '../../context/ToastContext';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
@@ -23,6 +24,7 @@ interface DocumentManagementProps {
 
 const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, documents, onSave, onDelete }) => {
     const { t } = useI18n();
+    const toast = useToast();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingDocument, setEditingDocument] = useState<CompanyDocument | null>(null);
     const [deletingDocument, setDeletingDocument] = useState<CompanyDocument | null>(null);
@@ -47,14 +49,25 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
     };
 
     const handleSaveDocument = (data: FormData) => {
-        onSave(data);
-        handleCloseModals();
+        try {
+            onSave(data);
+            const action = editingDocument ? 'modifié' : 'ajouté';
+            toast.success('Document enregistré!', `Le document a été ${action} avec succès.`);
+            handleCloseModals();
+        } catch (error) {
+            toast.error('Erreur de sauvegarde', 'Une erreur est survenue lors de la sauvegarde du document.');
+        }
     };
 
     const handleDeleteDocument = () => {
-        if (deletingDocument) {
-            onDelete(deletingDocument.id);
-            handleCloseModals();
+        try {
+            if (deletingDocument) {
+                onDelete(deletingDocument.id);
+                toast.success('Document supprimé!', 'Le document a été supprimé avec succès.');
+                handleCloseModals();
+            }
+        } catch (error) {
+            toast.error('Erreur de suppression', 'Une erreur est survenue lors de la suppression du document.');
         }
     };
 
@@ -67,36 +80,49 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
         }
     };
     
-    const handlePrint = () => window.print();
+    const handlePrint = () => {
+        window.print();
+        toast.info('Impression lancée', 'La page est en cours d\'impression.');
+    };
 
     const handleExportCsv = () => {
-        const headers = [
-            { key: 'documentName', label: t('secretariat.documents.table.name') },
-            { key: 'category', label: t('secretariat.documents.table.category') },
-            { key: 'uploadDate', label: t('secretariat.documents.table.uploadDate') },
-            { key: 'status', label: t('secretariat.documents.table.status') },
-        ];
-        const data = documents.map(d => ({
-            ...d,
-            category: t(`secretariat.documents.categories.${d.category}`),
-            status: t(`secretariat.documents.statuses.${d.status}`),
-        }));
-        exportToCsv('liste_documents', headers, data);
+        try {
+            const headers = [
+                { key: 'documentName', label: t('secretariat.documents.table.name') },
+                { key: 'category', label: t('secretariat.documents.table.category') },
+                { key: 'uploadDate', label: t('secretariat.documents.table.uploadDate') },
+                { key: 'status', label: t('secretariat.documents.table.status') },
+            ];
+            const data = documents.map(d => ({
+                ...d,
+                category: t(`secretariat.documents.categories.${d.category}`),
+                status: t(`secretariat.documents.statuses.${d.status}`),
+            }));
+            exportToCsv('liste_documents', headers, data);
+            toast.success('Export CSV réussi!', 'Les données ont été exportées au format CSV.');
+        } catch (error) {
+            toast.error('Erreur d\'export', 'Une erreur est survenue lors de l\'export CSV.');
+        }
     };
 
     const handleExportPdf = () => {
-        const headers = [
-            { key: 'documentName', label: t('secretariat.documents.table.name') },
-            { key: 'category', label: t('secretariat.documents.table.category') },
-            { key: 'uploadDate', label: t('secretariat.documents.table.uploadDate') },
-            { key: 'status', label: t('secretariat.documents.table.status') },
-        ];
-        const data = documents.map(d => ({
-            ...d,
-            category: t(`secretariat.documents.categories.${d.category}`),
-            status: t(`secretariat.documents.statuses.${d.status}`),
-        }));
-        exportToPdf(t('secretariat.documents.title'), headers, data, 'documents');
+        try {
+            const headers = [
+                { key: 'documentName', label: t('secretariat.documents.table.name') },
+                { key: 'category', label: t('secretariat.documents.table.category') },
+                { key: 'uploadDate', label: t('secretariat.documents.table.uploadDate') },
+                { key: 'status', label: t('secretariat.documents.table.status') },
+            ];
+            const data = documents.map(d => ({
+                ...d,
+                category: t(`secretariat.documents.categories.${d.category}`),
+                status: t(`secretariat.documents.statuses.${d.status}`),
+            }));
+            exportToPdf(t('secretariat.documents.title'), headers, data, 'documents');
+            toast.success('Export PDF réussi!', 'Les données ont été exportées au format PDF.');
+        } catch (error) {
+            toast.error('Erreur d\'export', 'Une erreur est survenue lors de l\'export PDF.');
+        }
     };
 
     return (

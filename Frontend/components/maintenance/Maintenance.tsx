@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useI18n } from '../../i18n';
+import { useToast } from '../../context/ToastContext';
 import { Equipment, EquipmentStatus } from '../../types';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
@@ -16,6 +17,7 @@ type SaveEquipmentDto = CreateEquipmentDto & { id?: string };
 
 const Maintenance: React.FC = () => {
     const { t } = useI18n();
+    const toast = useToast();
     const { subsidiary } = useAuth();
     const queryClient = useQueryClient();
 
@@ -27,16 +29,43 @@ const Maintenance: React.FC = () => {
     });
     const { mutate: createMutation } = useMutation({ 
         mutationFn: createEquipment, 
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] }) 
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['equipment'] });
+            toast.success('Équipement ajouté!', 'L\'équipement a été ajouté avec succès.');
+        },
+        onError: () => {
+            toast.error('Erreur d\'ajout', 'Une erreur est survenue lors de l\'ajout de l\'équipement.');
+        }
     });
     const { mutate: updateMutation } = useMutation({ 
         mutationFn: ({ id, data }: { id: string, data: Partial<CreateEquipmentDto> }) => updateEquipment(id, data), 
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] }) 
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['equipment'] });
+            toast.success('Équipement modifié!', 'L\'équipement a été modifié avec succès.');
+        },
+        onError: () => {
+            toast.error('Erreur de modification', 'Une erreur est survenue lors de la modification de l\'équipement.');
+        }
     });
-    const { mutate: deleteMutation } = useMutation({ mutationFn: deleteEquipment, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] }) });
+    const { mutate: deleteMutation } = useMutation({ 
+        mutationFn: deleteEquipment, 
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['equipment'] });
+            toast.success('Équipement supprimé!', 'L\'équipement a été supprimé avec succès.');
+        },
+        onError: () => {
+            toast.error('Erreur de suppression', 'Une erreur est survenue lors de la suppression de l\'équipement.');
+        }
+    });
     const { mutate: addLogMutation } = useMutation({ 
         mutationFn: (data: CreateMaintenanceRecordDto) => createMaintenanceRecord(data), 
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] }) 
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['equipment'] });
+            toast.success('Journal ajouté!', 'Le journal de maintenance a été ajouté avec succès.');
+        },
+        onError: () => {
+            toast.error('Erreur de journal', 'Une erreur est survenue lors de l\'ajout du journal de maintenance.');
+        }
     });
 
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);

@@ -29,11 +29,73 @@ export class EmployeeService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * CREATE employee
+   * Helper method to convert leave balances from database format to frontend format
+   */
+  private convertLeaveBalancesToFrontendFormat(leaveBalances: any[]): {
+    annual: number;
+    sick: number;
+    personal: number;
+    maternity: number;
+    paternity: number;
+    other: number;
+  } {
+    const leaveBalanceObj = {
+      annual: 0,
+      sick: 0,
+      personal: 0,
+      maternity: 0,
+      paternity: 0,
+      other: 0,
+    };
+
+    leaveBalances.forEach((balance) => {
+      const key = balance.leaveType.toLowerCase();
+      if (key in leaveBalanceObj) {
+        leaveBalanceObj[key] = Number(balance.days);
+      }
+    });
+
+    return leaveBalanceObj;
+  }
+
+  /**
+   * Helper method to convert leave balances from frontend format to database operations
+   */
+  private async updateLeaveBalancesFromFrontendFormat(
+    employeeId: string,
+    leaveBalance: {
+      annual: number;
+      sick: number;
+      personal: number;
+      maternity: number;
+      paternity: number;
+      other: number;
+    }
+  ) {
+    const leaveTypeMapping = {
+      annual: 'ANNUAL' as LeaveType,
+      sick: 'SICK' as LeaveType,
+      personal: 'PERSONAL' as LeaveType,
+      maternity: 'MATERNITY' as LeaveType,
+      paternity: 'PATERNITY' as LeaveType,
+      other: 'OTHER' as LeaveType,
+    };
+
+    for (const [key, days] of Object.entries(leaveBalance)) {
+      const leaveType = leaveTypeMapping[key];
+      if (leaveType) {
+        await this.updateLeaveBalance(employeeId, leaveType, days, 'set');
+      }
+    }
+  }
+
+  /**
+   * CREATE employee with leave balances
    */
   async create(
     createEmployeeDto: CreateEmployeeDto,
-    subsidiaryId: string
+    subsidiaryId: string,
+    employeeId?: string // Ajouter un paramètre optionnel pour l'ID de l'employé
   ): Promise<Employee> {
     this.logger.log(`Attempting to create employee for subsidiary ${subsidiaryId}`);
 
@@ -43,45 +105,75 @@ export class EmployeeService {
       throw new BadRequestException(`Subsidiary with ID ${subsidiaryId} not found.`);
     }
 
-    // Vérifier si un employé avec cet e-mail existe déjà
+    // Vérifier si un employé avec cet e-mail existe déjà (en excluant l'employé actuel si ID fourni)
+    this.logger.log(`Checking email existence for: ${createEmployeeDto.email}`);
     const existingEmployee = await this.prisma.employee.findUnique({
       where: { email: createEmployeeDto.email },
     });
-    if (existingEmployee) {
+    this.logger.log(`Existing employee found: ${JSON.stringify(existingEmployee)}`);
+    
+    if (existingEmployee && (!employeeId || existingEmployee.id !== employeeId)) {
+      this.logger.warn(`Email conflict detected for email: ${createEmployeeDto.email}`);
       throw new ConflictException(`An employee with the email ${createEmployeeDto.email} already exists.`);
     }
 
+    // Si un employeeId est fourni, c'est une mise à jour déguisée
+    if (employeeId) {
+      return this.update(employeeId, createEmployeeDto as any);
+    }
+
     try {
-      const employee = await this.prisma.employee.create({
-        data: {
-          // Map all fields from the DTO to the Prisma model explicitly
-          lastName: createEmployeeDto.lastName,
-          firstName: createEmployeeDto.firstName,
-          birthDate: new Date(createEmployeeDto.birthDate),
-          gender: createEmployeeDto.gender,
-          address: createEmployeeDto.address,
-          phone: createEmployeeDto.phone,
-          email: createEmployeeDto.email,
-          nationality: createEmployeeDto.nationality,
-          socialSecurityNumber: createEmployeeDto.socialSecurityNumber,
-          department: createEmployeeDto.department,
-          hireDate: new Date(createEmployeeDto.hireDate),
-          contractType: createEmployeeDto.contractType,
-          status: createEmployeeDto.status,
-          managerId: createEmployeeDto.managerId,
-          workLocation: createEmployeeDto.workLocation,
-          baseSalary: createEmployeeDto.baseSalary,
-          bonus: createEmployeeDto.bonus,
-          benefits: createEmployeeDto.benefits,
-          paymentMethod: createEmployeeDto.paymentMethod,
-          positions: createEmployeeDto.positions,
-          subsidiaryId,
-          leaveBalance: 0,
-        },
-        include: {
-          manager: true,
-          subsidiary: true,
-        },
+      const employee = await this.prisma.$transaction(async (prisma) => {
+        // Create employee
+        const newEmployee = await prisma.employee.create({
+          data: {
+            // Map all fields from the DTO to the Prisma model explicitly
+            lastName: createEmployeeDto.lastName,
+            firstName: createEmployeeDto.firstName,
+            birthDate: new Date(createEmployeeDto.birthDate),
+            gender: createEmployeeDto.gender,
+            address: createEmployeeDto.address,
+            phone: createEmployeeDto.phone,
+            email: createEmployeeDto.email,
+            nationality: createEmployeeDto.nationality,
+            socialSecurityNumber: createEmployeeDto.socialSecurityNumber,
+            department: createEmployeeDto.department,
+            hireDate: new Date(createEmployeeDto.hireDate),
+            contractType: createEmployeeDto.contractType,
+            status: createEmployeeDto.status,
+            managerId: createEmployeeDto.managerId,
+            workLocation: createEmployeeDto.workLocation,
+            baseSalary: createEmployeeDto.baseSalary,
+            bonus: createEmployeeDto.bonus,
+            benefits: createEmployeeDto.benefits,
+            paymentMethod: createEmployeeDto.paymentMethod,
+            positions: createEmployeeDto.positions,
+            subsidiaryId,
+            leaveBalance: 0,
+          },
+          include: {
+            manager: true,
+            subsidiary: true,
+          },
+        });
+
+        // Initialize leave balances for all leave types
+        const leaveTypes = ['ANNUAL', 'SICK', 'PERSONAL', 'MATERNITY', 'PATERNITY', 'OTHER'] as LeaveType[];
+        
+        for (const leaveType of leaveTypes) {
+          const balanceKey = leaveType.toLowerCase();
+          const days = createEmployeeDto.leaveBalance?.[balanceKey] || 0;
+          
+          await prisma.employeeLeaveBalance.create({
+            data: {
+              employeeId: newEmployee.id,
+              leaveType,
+              days: days,
+            },
+          });
+        }
+
+        return newEmployee;
       });
 
       this.logger.log(`Employee created with ID: ${employee.id}`);
@@ -122,6 +214,7 @@ export class EmployeeService {
           trainings: true,
           performanceReviews: true,
           leaveRecords: true,
+          leaveBalances: true,
         }
       : {};
 
@@ -146,6 +239,7 @@ export class EmployeeService {
           trainings: true,
           performanceReviews: true,
           leaveRecords: true,
+          leaveBalances: true,
         }
       : {};
 
@@ -161,27 +255,161 @@ export class EmployeeService {
   }
 
   /**
+   * Get employee leave balances
+   */
+  async getLeaveBalances(employeeId: string) {
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      include: { leaveBalances: true },
+    });
+
+    if (!employee) {
+      throw new NotFoundException(`Employee with ID ${employeeId} not found`);
+    }
+
+    return this.convertLeaveBalancesToFrontendFormat(employee.leaveBalances);
+  }
+
+  /**
+   * Update employee leave balance
+   */
+  async updateLeaveBalance(
+    employeeId: string,
+    leaveType: LeaveType,
+    days: number,
+    operation: 'set' | 'add' | 'subtract' = 'set'
+  ) {
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+    });
+
+    if (!employee) {
+      throw new NotFoundException(`Employee with ID ${employeeId} not found`);
+    }
+
+    return this.prisma.employeeLeaveBalance.upsert({
+      where: {
+        employeeId_leaveType: {
+          employeeId,
+          leaveType,
+        },
+      },
+      update: {
+        days: operation === 'set' ? days : operation === 'add' ? { increment: days } : { decrement: days },
+        lastUpdated: new Date(),
+      },
+      create: {
+        employeeId,
+        leaveType,
+        days: days,
+      },
+    });
+  }
+
+  /**
+   * Update all employee leave balances at once
+   */
+  async updateAllLeaveBalances(
+    employeeId: string,
+    leaveBalance: {
+      annual: number;
+      sick: number;
+      personal: number;
+      maternity: number;
+      paternity: number;
+      other: number;
+    }
+  ) {
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+    });
+
+    if (!employee) {
+      throw new NotFoundException(`Employee with ID ${employeeId} not found`);
+    }
+
+    return this.prisma.$transaction(async (prisma) => {
+      await this.updateLeaveBalancesFromFrontendFormat(employeeId, leaveBalance);
+      
+      // Return updated balances
+      const updatedEmployee = await prisma.employee.findUnique({
+        where: { id: employeeId },
+        include: { leaveBalances: true },
+      });
+
+      if (!updatedEmployee) {
+        throw new Error(`Employee with ID ${employeeId} not found`);
+      }
+
+      return this.convertLeaveBalancesToFrontendFormat(updatedEmployee.leaveBalances);
+    });
+  }
+
+  /**
+   * ADD LEAVE RECORD (with transaction for balance decrement)
+   */
+  async addLeaveRecord(
+    employeeId: string,
+    leaveData: { startDate: Date; endDate: Date; days?: number; leaveRecordType: LeaveType },
+  ): Promise<any> {
+    const days =
+      leaveData.days ||
+      Math.ceil((leaveData.endDate.getTime() - leaveData.startDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    return this.prisma.$transaction(async (prisma) => {
+      const leaveRecord = await prisma.employeeLeaveRecord.create({
+        data: { ...leaveData, days, employeeId },
+      });
+
+      // Update specific leave balance instead of general balance
+      await this.updateLeaveBalance(employeeId, leaveData.leaveRecordType, days, 'subtract');
+
+      return leaveRecord;
+    });
+  }
+
+  /**
    * UPDATE employee
    */
   async update(id: string, updateEmployeeDto: UpdateEmployeeDto): Promise<Employee> {
     try {
+      // Vérifier si l'email est en cours de modification et si il est déjà utilisé par un autre employé
+      if (updateEmployeeDto.email) {
+        const existingEmployee = await this.prisma.employee.findUnique({
+          where: { email: updateEmployeeDto.email },
+        });
+        
+        if (existingEmployee && existingEmployee.id !== id) {
+          throw new ConflictException(`An employee with the email ${updateEmployeeDto.email} already exists.`);
+        }
+      }
+
       const dataToUpdate: Prisma.EmployeeUpdateInput = {};
 
-      // Explicitly convert date fields to Date objects if they are provided
-      if (updateEmployeeDto.birthDate !== undefined) {
-        dataToUpdate.birthDate = new Date(updateEmployeeDto.birthDate);
-      }
-      if (updateEmployeeDto.hireDate !== undefined) {
-        dataToUpdate.hireDate = new Date(updateEmployeeDto.hireDate);
-      }
+      // Filtrer les champs valides uniquement
+      const validFields = [
+        'lastName', 'firstName', 'address', 'phone', 'email', 'nationality', 
+        'socialSecurityNumber', 'department', 'workLocation', 'positions',
+        'gender', 'contractType', 'status', 'paymentMethod', 'managerId',
+        'baseSalary', 'bonus', 'benefits', 'lastSalaryAdjustmentDate'
+      ];
 
-      // Separate 'positions' from the rest of the DTO to avoid conflicts
-      const { positions, ...restOfUpdateDto } = updateEmployeeDto;
-      Object.assign(dataToUpdate, restOfUpdateDto);
-
-      if (positions !== undefined) {
-        dataToUpdate.positions = positions;
-      }
+      // Copier uniquement les champs valides
+      Object.keys(updateEmployeeDto).forEach(key => {
+        if (validFields.includes(key) && updateEmployeeDto[key] !== undefined) {
+          if (key === 'baseSalary' || key === 'bonus') {
+            // Convertir les nombres en type number si nécessaire
+            dataToUpdate[key] = Number(updateEmployeeDto[key]);
+          } else if (key === 'birthDate' || key === 'hireDate' || key === 'lastSalaryAdjustmentDate') {
+            // Convertir les dates en objets Date
+            if (updateEmployeeDto[key]) {
+              dataToUpdate[key] = new Date(updateEmployeeDto[key]);
+            }
+          } else {
+            dataToUpdate[key] = updateEmployeeDto[key];
+          }
+        }
+      });
 
       const employee = await this.prisma.employee.update({
         where: { id },
@@ -284,29 +512,6 @@ export class EmployeeService {
   ): Promise<any> {
     return this.prisma.employeePerformanceReview.create({
       data: { ...reviewData, employeeId },
-    });
-  }
-
-  /**
-   * ADD LEAVE RECORD (with transaction for balance decrement)
-   */
-  async addLeaveRecord(
-    employeeId: string,
-    leaveData: { startDate: Date; endDate: Date; days?: number; leaveRecordType: LeaveType },
-  ): Promise<any> {
-    const days =
-      leaveData.days ||
-      Math.ceil((leaveData.endDate.getTime() - leaveData.startDate.getTime()) / (1000 * 60 * 60 * 24));
-
-    return this.prisma.$transaction(async (prisma) => {
-      const leaveRecord = await prisma.employeeLeaveRecord.create({
-        data: { ...leaveData, days, employeeId },
-      });
-      await prisma.employee.update({
-        where: { id: employeeId },
-        data: { leaveBalance: { decrement: days } },
-      });
-      return leaveRecord;
     });
   }
 }

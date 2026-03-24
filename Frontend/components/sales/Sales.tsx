@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Order, PaymentStatus, OrderStatus, Product, Contact, CustomerPaymentMethod } from '../../types';
 import { useI18n } from '../../i18n';
+import { useToast } from '../../context/ToastContext';
 import SelectFilter from '../filters/SelectFilter';
 import PeriodFilter from '../filters/PeriodFilter';
 import IconDocumentText from '../icons/IconDocumentText';
@@ -26,6 +27,7 @@ const initialFilterState: FindAllOrdersDto = { period: 'ALL_TIME' };
 const Sales: React.FC = () => {
     const { user, subsidiary } = useAuth();
     const { t, formatCurrency } = useI18n();
+    const toast = useToast();
     const queryClient = useQueryClient();
 
     const [activeTab, setActiveTab] = useState<'history' | 'new'>('history');
@@ -67,20 +69,36 @@ const Sales: React.FC = () => {
     // --- TanStack Query Mutations ---
     const { mutate: recordPaymentMutate } = useMutation({
         mutationFn: (payload: { orderId: string; amount: number; paymentMethod: CustomerPaymentMethod }) => recordOrderPayment(payload),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orders'] }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
+            toast.success('Paiement enregistré!', 'Le paiement a été enregistré avec succès.');
+        },
+        onError: () => {
+            toast.error('Erreur de paiement', 'Une erreur est survenue lors de l\'enregistrement du paiement.');
+        }
     });
 
     const { mutate: updateOrderStatusMutate } = useMutation({
         mutationFn: (payload: { orderId: string; status: OrderStatus }) => updateOrderStatus(payload),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orders'] }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
+            toast.success('Statut mis à jour!', 'Le statut de la commande a été mis à jour avec succès.');
+        },
+        onError: () => {
+            toast.error('Erreur de mise à jour', 'Une erreur est survenue lors de la mise à jour du statut.');
+        }
     });
 
     const { mutate: createOrderMutate } = useMutation({
         mutationFn: createOrderBySalesRep,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['orders'] });
+            toast.success('Commande créée!', 'La commande a été créée avec succès.');
             setActiveTab('history');
         },
+        onError: () => {
+            toast.error('Erreur de création', 'Une erreur est survenue lors de la création de la commande.');
+        }
     });
 
     const handlePlaceOrder = (newOrderData: Omit<Order, 'id' | 'subsidiaryId'>) => {

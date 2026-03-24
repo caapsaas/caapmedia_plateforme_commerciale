@@ -4,6 +4,7 @@ import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
 import { Subsidiary, User, UserRole } from '../../types';
 import { useI18n } from '../../i18n';
+import { useToast } from '../../context/ToastContext';
 import UserFormModal from './UserFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -14,6 +15,7 @@ import { getSubsidiaries } from '../../services/apiCommon/apiSubsidiaries';
 
 const UserManagement: React.FC = () => {
     const { t } = useI18n();
+    const toast = useToast();
     const { subsidiary } = useAuth();
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,13 +36,37 @@ const UserManagement: React.FC = () => {
     // --- Mutations ---
     const { mutate: createUser } = useMutation({
         mutationFn: (data: UserRegisterData) => registerUser(data),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users', subsidiary?.id] })
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['users', subsidiary?.id] });
+            toast.success('Utilisateur créé!', 'L\'utilisateur a été créé avec succès.');
+            handleCloseModals();
+        },
+        onError: () => {
+            toast.error('Erreur de création', 'Une erreur est survenue lors de la création de l\'utilisateur.');
+        }
     });
     const { mutate: editUser } = useMutation({
         mutationFn: ({ id, data }: { id: string, data: UserUpdateData }) => updateUser(id, data),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users', subsidiary?.id] })
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['users', subsidiary?.id] });
+            toast.success('Utilisateur modifié!', 'L\'utilisateur a été modifié avec succès.');
+            handleCloseModals();
+        },
+        onError: () => {
+            toast.error('Erreur de modification', 'Une erreur est survenue lors de la modification de l\'utilisateur.');
+        }
     });
-    const { mutate: onDelete } = useMutation({ mutationFn: deleteUser, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users', subsidiary?.id] }) });
+    const { mutate: onDelete } = useMutation({ 
+        mutationFn: deleteUser, 
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['users', subsidiary?.id] });
+            toast.success('Utilisateur supprimé!', 'L\'utilisateur a été supprimé avec succès.');
+            handleCloseModals();
+        },
+        onError: () => {
+            toast.error('Erreur de suppression', 'Une erreur est survenue lors de la suppression de l\'utilisateur.');
+        }
+    });
 
     // Le filtrage se fait maintenant sur les données récupérées localement
     const subsidiaryUsers = users.filter(u => u.subsidiaryId === subsidiary?.id);
@@ -72,13 +98,11 @@ const UserManagement: React.FC = () => {
         } else {
             createUser(data as UserRegisterData);
         }
-        handleCloseModals();
     };
 
     const handleDeleteUser = () => {
         if (deletingUser) {
             onDelete(deletingUser.id);
-            handleCloseModals();
         }
     };
 

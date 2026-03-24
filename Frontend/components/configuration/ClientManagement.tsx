@@ -4,6 +4,7 @@ import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
 import { Contact } from '../../types';
 import { useI18n } from '../../i18n';
+import { useToast } from '../../context/ToastContext';
 import ClientFormModal from './ClientFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -13,6 +14,7 @@ import { getContacts, saveContact, deleteContact } from '../../services/apiCrm/a
 
 const ClientManagement: React.FC = () => {
     const { t } = useI18n();
+    const toast = useToast();
     const { subsidiary } = useAuth();
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -28,11 +30,26 @@ const ClientManagement: React.FC = () => {
 
     const { mutate: onSave } = useMutation<Contact, Error, Omit<Contact, 'id'> & { id?: string }>({ 
         mutationFn: saveContact, 
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contacts', subsidiary?.id] }) 
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['contacts', subsidiary?.id] });
+            const action = variables.id ? 'modifié' : 'ajouté';
+            toast.success('Client sauvegardé!', `Le client a été ${action} avec succès.`);
+            handleCloseModals();
+        },
+        onError: () => {
+            toast.error('Erreur de sauvegarde', 'Une erreur est survenue lors de la sauvegarde du client.');
+        }
     });
     const { mutate: onDelete } = useMutation<void, Error, string>({ 
         mutationFn: deleteContact, 
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contacts', subsidiary?.id] }) 
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['contacts', subsidiary?.id] });
+            toast.success('Client supprimé!', 'Le client a été supprimé avec succès.');
+            handleCloseModals();
+        },
+        onError: () => {
+            toast.error('Erreur de suppression', 'Une erreur est survenue lors de la suppression du client.');
+        }
     });
 
     const handleOpenAddModal = () => {
@@ -57,13 +74,11 @@ const ClientManagement: React.FC = () => {
 
     const handleSaveContact = (contactData: Omit<Contact, 'id' | 'subsidiaryId'> & { id?: string }) => {
         onSave({ ...contactData, subsidiaryId: subsidiary!.id });
-        handleCloseModals();
     };
 
     const handleDeleteContact = () => {
         if (deletingContact) {
             onDelete(deletingContact.id);
-            handleCloseModals();
         }
     };
 

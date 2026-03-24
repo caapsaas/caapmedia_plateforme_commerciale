@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Subsidiary, AttendanceRecord, AttendanceStatus, Employee } from '../../types';
 import { useI18n } from '../../i18n';
+import { useToast } from '../../context/ToastContext';
 import IconPlus from '../icons/IconPlus';
 import IconSignature from '../icons/IconSignature';
 import ViewSignatureModal from './ViewSignatureModal';
@@ -21,6 +22,7 @@ interface AttendanceManagementProps {
 
 const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary, employees, attendances, onSave }) => {
     const { t } = useI18n();
+    const toast = useToast();
     const [viewingSignature, setViewingSignature] = useState<{name: string, signature: string} | null>(null);
     const [isActionModalOpen, setIsActionModalOpen] = useState(false);
 
@@ -35,34 +37,52 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary,
     };
     
     const handleSaveAttendance = (record: Partial<AttendanceRecord>) => {
-        onSave(record);
-        setIsActionModalOpen(false);
+        try {
+            onSave(record);
+            toast.success('Présence enregistrée!', 'La présence a été enregistrée avec succès.');
+            setIsActionModalOpen(false);
+        } catch (error) {
+            toast.error('Erreur de sauvegarde', 'Une erreur est survenue lors de la sauvegarde de la présence.');
+        }
     };
 
-    const handlePrint = () => window.print();
+    const handlePrint = () => {
+        window.print();
+        toast.info('Impression lancée', 'La page est en cours d\'impression.');
+    };
 
     const handleExportCsv = () => {
-        const headers = [
-            { key: 'employeeName', label: t('hr.attendance.employee') },
-            { key: 'date', label: t('hr.attendance.date') },
-            { key: 'status', label: t('hr.attendance.status') },
-            { key: 'arrivalTime', label: t('hr.attendance.arrivalTime') },
-            { key: 'departureTime', label: t('hr.attendance.departureTime') },
-        ];
-        const data = attendances.map(r => ({ ...r, status: t(`hr.attendance.status_${r.status}`) }));
-        exportToCsv('registre_presences', headers, data);
+        try {
+            const headers = [
+                { key: 'employeeName', label: t('hr.attendance.employee') },
+                { key: 'date', label: t('hr.attendance.date') },
+                { key: 'status', label: t('hr.attendance.status') },
+                { key: 'arrivalTime', label: t('hr.attendance.arrivalTime') },
+                { key: 'departureTime', label: t('hr.attendance.departureTime') },
+            ];
+            const data = attendances.map(r => ({ ...r, status: t(`hr.attendance.status_${r.status}`) }));
+            exportToCsv('registre_presences', headers, data);
+            toast.success('Export CSV réussi!', 'Les données ont été exportées au format CSV.');
+        } catch (error) {
+            toast.error('Erreur d\'export', 'Une erreur est survenue lors de l\'export CSV.');
+        }
     };
 
     const handleExportPdf = () => {
-        const headers = [
-            { key: 'employeeName', label: t('hr.attendance.employee') },
-            { key: 'date', label: t('hr.attendance.date') },
-            { key: 'status', label: t('hr.attendance.status') },
-            { key: 'arrivalTime', label: t('hr.attendance.arrivalTime') },
-            { key: 'departureTime', label: t('hr.attendance.departureTime') },
-        ];
-        const data = attendances.map(r => ({ ...r, status: t(`hr.attendance.status_${r.status}`) }));
-        exportToPdf(t('hr.attendance.title'), headers, data, 'presences');
+        try {
+            const headers = [
+                { key: 'employeeName', label: t('hr.attendance.employee') },
+                { key: 'date', label: t('hr.attendance.date') },
+                { key: 'status', label: t('hr.attendance.status') },
+                { key: 'arrivalTime', label: t('hr.attendance.arrivalTime') },
+                { key: 'departureTime', label: t('hr.attendance.departureTime') },
+            ];
+            const data = attendances.map(r => ({ ...r, status: t(`hr.attendance.status_${r.status}`) }));
+            exportToPdf(t('hr.attendance.title'), headers, data, 'presences');
+            toast.success('Export PDF réussi!', 'Les données ont été exportées au format PDF.');
+        } catch (error) {
+            toast.error('Erreur d\'export', 'Une erreur est survenue lors de l\'export PDF.');
+        }
     };
 
     return (
@@ -105,7 +125,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary,
                         {attendances.map((record) => (
                             <tr key={record.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{record.employeeName}</td>
-                                <td className="px-6 py-4">{record.date}</td>
+                                <td className="px-6 py-4">{record.attendanceDate}</td>
                                 <td className="px-6 py-4">
                                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(record.status)}`}>
                                         {t(`hr.attendance.status_${record.status}`)}

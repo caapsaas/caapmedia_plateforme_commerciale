@@ -746,6 +746,8 @@ const frTranslations = {
       "deleteUserTitle": "Supprimer l'utilisateur",
       "deleteSupplierTitle": "Supprimer le fournisseur",
       "deleteEmployeeTitle": "Supprimer l'employé",
+      "editEmployeeTitle": "Modifier l'employé",
+      "addEmployeeTitle": "Ajouter un employé",
       "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer {{itemName}} ? Cette action est irréversible.",
       "recordAttendanceTitle": "Signature de {{employeeName}}",
       "viewSignatureTitle": "Signature de {{name}}",
@@ -776,9 +778,11 @@ const frTranslations = {
       "role": "Rôle",
       "address": "Adresse",
       "formSection": {
-        "personal": "Personnel",
-        "professional": "Professionnel",
-        "salary": "Salarial"
+        "personal": "Informations personnelles",
+        "professional": "Informations professionnelles",
+        "salary": "Salaire et avantages",
+        "documents": "Documents",
+        "leaves": "Congés"
       },
       "firstName": "Prénom",
       "lastName": "Nom de famille",
@@ -891,6 +895,48 @@ const frTranslations = {
       "BANK_TRANSFER": "Virement bancaire",
       "CHECK": "Chèque",
       "CASH": "Espèces"
+    },
+    "documents": {
+      "title": "Documents",
+      "addDocument": "Ajouter un document",
+      "document": "Document",
+      "name": "Nom du document",
+      "type": "Type de document",
+      "expiryDate": "Date d'expiration",
+      "status": "Statut",
+      "selectType": "Sélectionner un type",
+      "noDocuments": "Aucun document ajouté",
+      "file": "Fichier",
+      "selectFile": "Sélectionner un fichier",
+      "fileSelected": "Fichier sélectionné",
+      "noFileSelected": "Aucun fichier sélectionné"
+    },
+    "documentType": {
+      "idCard": "Carte d'identité",
+      "passport": "Passeport",
+      "contract": "Contrat",
+      "cv": "CV",
+      "diploma": "Diplôme",
+      "other": "Autre"
+    },
+    "documentStatus": {
+      "valid": "Valide",
+      "expired": "Expiré",
+      "pending": "En attente"
+    },
+    "leaveType": {
+      "annual": "Congés annuels",
+      "sick": "Congés maladie",
+      "personal": "Congés personnels",
+      "maternity": "Congés maternité",
+      "paternity": "Congés paternité",
+      "other": "Autres congés"
+    },
+    "leaveBalance": {
+      "title": "Solde des congés",
+      "summary": "Résumé",
+      "totalDays": "Total des jours",
+      "days": "jours"
     },
     "details": {
       "personalInfo": "Informations personnelles",
@@ -2071,6 +2117,8 @@ const enTranslations: Translations = {
             "deleteUserTitle": "Delete User",
             "deleteSupplierTitle": "Delete Supplier",
             "deleteEmployeeTitle": "Delete Employee",
+            "editEmployeeTitle": "Edit Employee",
+            "addEmployeeTitle": "Add Employee",
             "deleteConfirmMessage": "Are you sure you want to delete {{itemName}}? This action cannot be undone.",
             "recordAttendanceTitle": "Signature for {{employeeName}}",
             "viewSignatureTitle": "Signature of {{name}}",
@@ -2101,9 +2149,11 @@ const enTranslations: Translations = {
             "role": "Role",
             "address": "Address",
             "formSection": {
-                "personal": "Personal",
-                "professional": "Professional",
-                "salary": "Salary"
+                "personal": "Personal Information",
+                "professional": "Professional Information",
+                "salary": "Salary & Benefits",
+                "documents": "Documents",
+                "leaves": "Leaves"
             },
             "firstName": "First Name",
             "lastName": "Last Name",
@@ -2216,6 +2266,48 @@ const enTranslations: Translations = {
             "BANK_TRANSFER": "Bank Transfer",
             "CHECK": "Check",
             "CASH": "Cash"
+        },
+        "documents": {
+            "title": "Documents",
+            "addDocument": "Add Document",
+            "document": "Document",
+            "name": "Document Name",
+            "type": "Document Type",
+            "expiryDate": "Expiry Date",
+            "status": "Status",
+            "selectType": "Select a type",
+            "noDocuments": "No documents added",
+            "file": "File",
+            "selectFile": "Select a file",
+            "fileSelected": "File selected",
+            "noFileSelected": "No file selected"
+        },
+        "documentType": {
+            "idCard": "ID Card",
+            "passport": "Passport",
+            "contract": "Contract",
+            "cv": "CV",
+            "diploma": "Diploma",
+            "other": "Other"
+        },
+        "documentStatus": {
+            "valid": "Valid",
+            "expired": "Expired",
+            "pending": "Pending"
+        },
+        "leaveType": {
+            "annual": "Annual Leave",
+            "sick": "Sick Leave",
+            "personal": "Personal Leave",
+            "maternity": "Maternity Leave",
+            "paternity": "Paternity Leave",
+            "other": "Other Leave"
+        },
+        "leaveBalance": {
+            "title": "Leave Balance",
+            "summary": "Summary",
+            "totalDays": "Total Days",
+            "days": "days"
         },
         "details": {
             "personalInfo": "Personal Information",

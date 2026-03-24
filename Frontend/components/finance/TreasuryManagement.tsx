@@ -9,6 +9,7 @@ import IconPdf from '../icons/IconPdf';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTreasuryAccounts, getFinancialTransactions, createIncomeTransaction, createExpenseTransaction } from '../../services/apiFinance/apiTreasury';
 import TransactionFormModal, { TransactionFormData } from './TransactionFormModal';
+import { useToast } from '../../context/ToastContext';
 
 interface TreasuryManagementProps {
     subsidiary: Subsidiary;
@@ -17,6 +18,7 @@ interface TreasuryManagementProps {
 const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) => {
     const { t, formatCurrency } = useI18n();
     const queryClient = useQueryClient();
+    const toast = useToast();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalType, setModalType] = useState<TransactionType>('DEPENSE');
 
@@ -45,6 +47,16 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKey('financialTransactions') });
             queryClient.invalidateQueries({ queryKey: queryKey('treasuryAccounts') });
+            toast.success(
+                t('treasury.transactionCreated'),
+                t('treasury.transactionCreatedSuccess')
+            );
+        },
+        onError: (error: any) => {
+            toast.error(
+                t('treasury.transactionError'),
+                error.message || t('treasury.transactionErrorMessage')
+            );
         },
     });
 
@@ -75,38 +87,60 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
     const handlePrint = () => window.print();
 
     const handleExport = () => {
-        const headers = [
-            { key: 'transactionDate', label: t('treasury.date') },
-            { key: 'description', label: t('treasury.description') },
-            { key: 'treasuryAccountName', label: t('treasury.account') },
-            { key: 'financialTransactionType', label: t('treasury.type') },
-            { key: 'amount', label: t('treasury.amount') },
-            { key: 'status', label: t('treasury.status') },
-        ];
-        const data = transactions.map(tx => ({
-            ...tx,
-            financialTransactionType: getTranslatedType(tx.financialTransactionType),
-            status: getTranslatedStatus(tx.status),
-        }));
-        exportToCsv('transactions_tresorerie', headers, data);
+        try {
+            const headers = [
+                { key: 'transactionDate', label: t('treasury.date') },
+                { key: 'description', label: t('treasury.description') },
+                { key: 'treasuryAccountName', label: t('treasury.account') },
+                { key: 'financialTransactionType', label: t('treasury.type') },
+                { key: 'amount', label: t('treasury.amount') },
+                { key: 'status', label: t('treasury.status') },
+            ];
+            const data = transactions.map(tx => ({
+                ...tx,
+                financialTransactionType: getTranslatedType(tx.financialTransactionType),
+                status: getTranslatedStatus(tx.status),
+            }));
+            exportToCsv('transactions_tresorerie', headers, data);
+            toast.success(
+                t('common.exportSuccess'),
+                t('treasury.csvExportSuccess')
+            );
+        } catch (error) {
+            toast.error(
+                t('common.exportError'),
+                t('treasury.csvExportError')
+            );
+        }
     };
 
     const handleExportPdf = () => {
-        const headers = [
-            { key: 'transactionDate', label: t('treasury.date') },
-            { key: 'description', label: t('treasury.description') },
-            { key: 'treasuryAccountName', label: t('treasury.account') },
-            { key: 'financialTransactionType', label: t('treasury.type') },
-            { key: 'amount', label: t('treasury.amount') },
-            { key: 'status', label: t('treasury.status') },
-        ];
-        const data = transactions.map(tx => ({
-            ...tx,
-            financialTransactionType: getTranslatedType(tx.financialTransactionType),
-            status: getTranslatedStatus(tx.status),
-            amount: `${tx.financialTransactionType === 'RECETTE' ? '+' : '-'}${formatCurrency(tx.amount)}`
-        }));
-        exportToPdf(t('treasury.recentTransactions'), headers, data, 'tresorerie');
+        try {
+            const headers = [
+                { key: 'transactionDate', label: t('treasury.date') },
+                { key: 'description', label: t('treasury.description') },
+                { key: 'treasuryAccountName', label: t('treasury.account') },
+                { key: 'financialTransactionType', label: t('treasury.type') },
+                { key: 'amount', label: t('treasury.amount') },
+                { key: 'status', label: t('treasury.status') },
+            ];
+            const data = transactions.map(tx => ({
+                ...tx,
+                financialTransactionType: getTranslatedType(tx.financialTransactionType),
+                status: getTranslatedStatus(tx.status),
+                amount: `${tx.financialTransactionType === 'RECETTE' ? '+' : '-'}${formatCurrency(tx.amount)}`
+            }));
+            exportToPdf(t('treasury.recentTransactions'), headers, data, 'tresorerie');
+            toast.success(
+                t('common.exportSuccess'),
+                t('treasury.pdfExportSuccess')
+            );
+        } catch (error) {
+            toast.error(
+                t('common.exportError'),
+                t('treasury.pdfExportError')
+            );
+        }
     };
 
     const handleOpenModal = (type: TransactionType) => {
@@ -117,6 +151,10 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
     const handleSaveTransaction = (formData: TransactionFormData, type: TransactionType) => {
         saveTransaction({ formData, type });
         setIsModalOpen(false);
+        toast.info(
+            t('treasury.transactionProcessing'),
+            t('treasury.transactionProcessingMessage')
+        );
     };
 
     const isLoading = l1 || l2;
@@ -194,7 +232,7 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
                 onClose={() => setIsModalOpen(false)}
                 onSave={handleSaveTransaction}
                 transactionType={modalType}
-                accounts={treasuryAccounts}
+                subsidiaryId={subsidiary.id}
             />
         </div>
     );

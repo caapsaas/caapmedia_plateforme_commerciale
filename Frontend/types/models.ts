@@ -506,8 +506,15 @@ export interface Employee {
         rating: number; // 1-5
         comments: string;
     }[];
-    leaveBalance: number;
-  leaveRecords: LeaveRecord[];
+    leaveBalance: {
+        annual: number;
+        sick: number;
+        personal: number;
+        maternity: number;
+        paternity: number;
+        other: number;
+    };
+    leaveRecords: LeaveRecord[];
 }
 
 export enum LeaveType {
@@ -523,7 +530,23 @@ export interface LeaveRecord {
   days: number;
 }
 
-export type EmployeeFormData = Omit<Employee, 'id' | 'subsidiaryId' | 'documents' | 'positionHistory' | 'trainings' | 'performanceReviews' | 'leaveBalance' | 'leaveRecords'>;
+export type EmployeeFormData = Omit<Employee, 'id' | 'subsidiaryId' | 'positionHistory' | 'trainings' | 'performanceReviews'> & {
+    documents: {
+        contract: {name: string, url: string, file: File | null} | null;
+        idCard: {name: string, url: string, file: File | null} | null;
+        workPermit: {name: string, url: string, file: File | null} | null;
+        diplomas: {name: string, url: string, file: File | null}[];
+    };
+    leaveBalance: {
+        annual: number;
+        sick: number;
+        personal: number;
+        maternity: number;
+        paternity: number;
+        other: number;
+    };
+    leaveRecords: LeaveRecord[];
+};
 
 
 export enum AttendanceStatus {
@@ -789,7 +812,7 @@ export interface MaintenanceRecord {
 }
 export interface Equipment {
     id: string; 
-    name: string;
+    equipmentName: string;
     status: EquipmentStatus;
     lastMaintenanceDate: string;
     nextMaintenanceDate: string;

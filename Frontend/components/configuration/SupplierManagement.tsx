@@ -4,6 +4,7 @@ import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
 import { Supplier } from '../../types';
 import { useI18n } from '../../i18n';
+import { useToast } from '../../context/ToastContext';
 import SupplierFormModal from './SupplierFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -11,6 +12,7 @@ import { getSuppliers, createSupplier, updateSupplier, deleteSupplier } from '..
 
 const SupplierManagement: React.FC = () => {
     const { t } = useI18n();
+    const toast = useToast();
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
@@ -24,18 +26,27 @@ const SupplierManagement: React.FC = () => {
     const { mutate: saveSupplierMutate } = useMutation({
         mutationFn: (supplierData: Omit<Supplier, 'id' | 'subsidiaryId'> & { id?: string }) =>
             supplierData.id ? updateSupplier(supplierData.id, supplierData) : createSupplier(supplierData),
-        onSuccess: () => {
+        onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+            const action = variables.id ? 'modifié' : 'ajouté';
+            toast.success('Fournisseur sauvegardé!', `Le fournisseur a été ${action} avec succès.`);
             handleCloseModals();
         },
+        onError: () => {
+            toast.error('Erreur de sauvegarde', 'Une erreur est survenue lors de la sauvegarde du fournisseur.');
+        }
     });
 
     const { mutate: deleteSupplierMutate } = useMutation({
         mutationFn: deleteSupplier,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+            toast.success('Fournisseur supprimé!', 'Le fournisseur a été supprimé avec succès.');
             handleCloseModals();
         },
+        onError: () => {
+            toast.error('Erreur de suppression', 'Une erreur est survenue lors de la suppression du fournisseur.');
+        }
     });
 
     const handleOpenAddModal = () => {

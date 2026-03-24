@@ -100,7 +100,6 @@ model Product {
 
   @@index([subsidiaryId])
   @@index([subsidiaryId, stock])
-
   @@map("products")
 }
 
@@ -154,6 +153,7 @@ model Employee {
   attendanceRecords        AttendanceRecord[]
   documents                EmployeeDocument[]
   leaveRecords             EmployeeLeaveRecord[]
+  leaveBalances            EmployeeLeaveBalance[]
   performanceReviews       EmployeePerformanceReview[]
   positionHistory          EmployeePositionHistory[]
   trainings                EmployeeTraining[]
@@ -168,7 +168,6 @@ model Employee {
   @@index([subsidiaryId, lastName])
   @@index([status])
   @@index([department])
-
   @@map("employees")
 }
 
@@ -230,6 +229,19 @@ model EmployeeLeaveRecord {
   @@map("employee_leave_records")
 }
 
+model EmployeeLeaveBalance {
+  id          String    @id @default(uuid()) @map("id") @db.Uuid
+  employeeId  String    @map("employee_id") @db.Uuid
+  leaveType   LeaveType @map("leave_type")
+  days        Decimal   @default(0) @map("days") @db.Decimal(5, 2)
+  lastUpdated DateTime  @default(now()) @map("last_updated")
+  employee    Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, leaveType])
+  @@index([employeeId])
+  @@map("employee_leave_balances")
+}
+
 model Account {
   id            String        @id @default(uuid()) @map("id") @db.Uuid
   accountName   String        @map("account_name") @db.VarChar(255)
@@ -243,11 +255,10 @@ model Account {
   contacts      Contact[]
   opportunities Opportunity[]
 
-  @@index([subsidiaryId, salesRepId, accountName])
-  @@index([subsidiaryId, accountName])             
-  @@index([industry]) 
-
   @@unique([accountName, subsidiaryId])
+  @@index([subsidiaryId, salesRepId, accountName])
+  @@index([subsidiaryId, accountName])
+  @@index([industry])
   @@map("accounts")
 }
 
@@ -259,7 +270,7 @@ model Contact {
   phone         String         @map("phone") @db.VarChar(255)
   since         DateTime       @map("since")
   address       String         @map("address")
-  passwordHash  String?         @map("password_hash")
+  passwordHash  String?        @map("password_hash")
   isVerified    Boolean        @default(false) @map("is_verified")
   accountId     String?        @map("account_id") @db.Uuid
   salesRepId    String?        @map("sales_rep_id") @db.Uuid
@@ -277,12 +288,10 @@ model Contact {
   sales         Sale[]
 
   @@index([subsidiaryId, since])
-
   @@index([subsidiaryId, salesRepId, contactName])
-  @@index([subsidiaryId, contactName])             
-  @@index([status])                                
+  @@index([subsidiaryId, contactName])
+  @@index([status])
   @@index([accountId])
-
   @@map("contacts")
 }
 
@@ -309,7 +318,6 @@ model Sale {
   @@index([subsidiaryId, customerId])
   @@index([subsidiaryId, salesRepId])
   @@index([subsidiaryId, status, saleDate])
-
   @@map("sale")
 }
 
@@ -322,7 +330,6 @@ model TaxRate {
   orders       Order[]
 
   @@index([isDefault])
-
   @@map("tax_rates")
 }
 
@@ -367,7 +374,6 @@ model OrderGroup {
   orders      Order[]
 
   @@index([customerId])
-
   @@map("order_group")
 }
 
@@ -405,7 +411,6 @@ model Order {
   @@index([subsidiaryId, customerId, orderDate(sort: Desc)])
   @@index([subsidiaryId, status])
   @@index([subsidiaryId, paymentStatus])
-
   @@map("orders")
 }
 
@@ -433,7 +438,6 @@ model OrderItem {
 
   @@index([productId])
   @@index([orderId])
-
   @@map("order_item")
 }
 
@@ -469,7 +473,6 @@ model Supplier {
   subsidiary     Subsidiary      @relation(fields: [subsidiaryId], references: [id])
 
   @@unique([supplierName, subsidiaryId])
-
   @@map("suppliers")
 }
 
@@ -495,7 +498,6 @@ model PurchaseOrder {
   @@index([subsidiaryId, supplierId])
   @@index([subsidiaryId, status])
   @@index([subsidiaryId, paymentStatus])
-
   @@map("purchase_orders")
 }
 
@@ -511,7 +513,6 @@ model PurchaseOrderItem {
   purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
 
   @@index([productId])
-
   @@map("purchase_order_items")
 }
 
@@ -549,7 +550,6 @@ model TreasuryAccount {
   subsidiary            Subsidiary             @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
   @@index([subsidiaryId, accountName])
-
   @@map("treasury_accounts")
 }
 
@@ -570,7 +570,6 @@ model FinancialTransaction {
   @@index([financialTransactionType])
   @@index([status])
   @@index([treasuryAccountId])
-
   @@map("financial_transactions")
 }
 
@@ -583,11 +582,10 @@ model CompanyDocument {
   category     DocumentCategory @map("category")
   status       DocumentStatus   @map("status")
   subsidiary   Subsidiary       @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
   @@index([subsidiaryId, uploadDate])
   @@index([category])
   @@index([status])
-
-
   @@map("company_documents")
 }
 
@@ -604,7 +602,6 @@ model Meeting {
   subsidiary      Subsidiary           @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
   @@index([subsidiaryId, meetingDate])
-
   @@map("meetings")
 }
 
@@ -629,10 +626,10 @@ model SecretariatTask {
   status       SecretariatTaskStatus @map("status")
   assignedTo   Employee?             @relation(fields: [assignedToId], references: [id])
   subsidiary   Subsidiary            @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
   @@index([subsidiaryId, dueDate])
   @@index([status])
   @@index([assignedToId])
-
   @@map("secretariat_tasks")
 }
 
@@ -680,9 +677,8 @@ model Lead {
   subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id])
 
   @@index([subsidiaryId, leadName])
-  @@index([status])                 
+  @@index([status])
   @@index([salesRepId])
-
   @@map("leads")
 }
 
@@ -710,9 +706,7 @@ model FixedAsset {
   subsidiaryId     String     @map("subsidiary_id") @db.Uuid
   subsidiary       Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
-    @@index([subsidiaryId, acquisitionDate])
-
-
+  @@index([subsidiaryId, acquisitionDate])
   @@map("fixed_assets")
 }
 
@@ -727,7 +721,6 @@ model LongTermDebt {
   subsidiary     Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
   @@index([subsidiaryId, maturityDate])
-
   @@map("long_term_debts")
 }
 
@@ -747,7 +740,6 @@ model Equipment {
   @@index([subsidiaryId, status])
   @@index([subsidiaryId, nextMaintenanceDate])
   @@index([subsidiaryId, acquisitionDate])
-
   @@map("equipment")
 }
 
@@ -762,7 +754,6 @@ model MaintenanceRecord {
 
   @@index([equipmentId])
   @@index([equipmentId, maintenanceDate])
-
   @@map("maintenance_records")
 }
 
@@ -782,7 +773,6 @@ model AbsenceRecord {
   @@index([subsidiaryId, startDate])
   @@index([employeeId])
   @@index([typeAbsence])
-
   @@map("absence_records")
 }
 
@@ -804,7 +794,6 @@ model AttendanceRecord {
   @@index([subsidiaryId, attendanceDate])
   @@index([employeeId])
   @@index([status])
-
   @@map("attendance_records")
 }
 
@@ -826,8 +815,6 @@ model PayrollRecord {
   @@index([subsidiaryId, payrollPeriod])
   @@index([employeeId])
   @@index([status])
-
-
   @@map("payroll_records")
 }
 
@@ -847,7 +834,6 @@ model SupplierDebt {
   @@index([subsidiaryId, dueDate])
   @@index([status])
   @@index([purchaseOrderId])
-
   @@map("supplier_debts")
 }
 
@@ -864,7 +850,6 @@ model ExpenseRecord {
   @@index([subsidiaryId, expenseDate])
   @@index([category])
   @@index([expenseRecordType])
-  
   @@map("expense_records")
 }
 
@@ -996,6 +981,7 @@ enum AttendanceStatus {
 
 enum PayrollStatus {
   PENDING
+  SIGNED
   PAID
 }
 
@@ -1135,6 +1121,10 @@ enum ChangeType {
 enum LeaveType {
   ANNUAL
   SICK
+  PERSONAL
+  MATERNITY
+  PATERNITY
+  OTHER
   UNPAID
 }
 

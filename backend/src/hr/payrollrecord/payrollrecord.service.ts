@@ -64,6 +64,28 @@ export class PayrollRecordService {
   }
 
   /**
+   * Signe une fiche de paie
+   * @param id L'ID de la fiche de paie
+   * @param signature La signature (texte ou base64)
+   */
+  async signPayrollRecord(id: string, signature: string): Promise<PayrollRecord> {
+    this.logger.log(`Signing payroll record ${id}`);
+    
+    await this.findOne(id); // Vérifie l'existence
+    
+    const updatedRecord = await this.prisma.payrollRecord.update({
+      where: { id },
+      data: { 
+        signature,
+        status: PayrollStatus.PAID
+      },
+    });
+    
+    this.logger.log(`Payroll record ${id} signed successfully`);
+    return updatedRecord;
+  }
+
+  /**
    * Traite la paie pour une filiale et une période données.
    * Crée des fiches de paie pour tous les employés actifs qui n'en ont pas encore pour cette période.
    * @param subsidiaryId L'ID de la filiale.

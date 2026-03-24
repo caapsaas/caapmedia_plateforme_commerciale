@@ -18,6 +18,8 @@ interface ECommerceHeaderProps {
     accountPath: string;
     cartItemCount: number;
     onCartClick: () => void;
+    likedItemCount?: number;
+    onWishlistClick?: () => void;
     searchTerm: string;
     onSearchTermChange: (term: string) => void;
     onQuoteRequest: () => void;
@@ -146,14 +148,16 @@ const ECommerceHeader: React.FC<ECommerceHeaderProps> = (props) => {
                         )}
                     </div>
                     <button 
-                        onClick={() => alert('Wishlist feature coming soon!')}
+                        onClick={props.onWishlistClick || (() => alert('Wishlist feature coming soon!'))}
                         className="relative p-2.5 rounded-full hover:bg-slate-100 transition-colors"
-                        aria-label={`Wishlist with 0 items`}
+                        aria-label={`Wishlist with ${props.likedItemCount || 0} items`}
                     >
                         <IconHeart className="h-9 w-9 text-slate-700" />
-                        <span className="absolute top-0 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-slate-800 text-white text-base font-bold">
-                            0
-                        </span>
+                        {(props.likedItemCount || 0) > 0 && (
+                            <span className="absolute top-0 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-slate-800 text-white text-base font-bold">
+                                {props.likedItemCount}
+                            </span>
+                        )}
                     </button>
                     <button 
                         onClick={props.onCartClick}

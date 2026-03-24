@@ -1,7 +1,33 @@
-import { IsString, IsDate, IsEmail, IsEnum, IsDecimal, IsOptional, IsArray, Min, Max, Length, IsUUID } from 'class-validator';
+import { IsString, IsDate, IsEmail, IsEnum, IsDecimal, IsOptional, IsArray, Min, Max, Length, IsUUID, IsNumber } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
 import { Gender, ContractType, EmployeeStatus, PaymentMethod } from '@prisma/client'; // Assumons que ces enums sont générés par Prisma
+
+export class LeaveBalanceDto {
+  @IsNumber()
+  @Min(0)
+  annual: number;
+
+  @IsNumber()
+  @Min(0)
+  sick: number;
+
+  @IsNumber()
+  @Min(0)
+  personal: number;
+
+  @IsNumber()
+  @Min(0)
+  maternity: number;
+
+  @IsNumber()
+  @Min(0)
+  paternity: number;
+
+  @IsNumber()
+  @Min(0)
+  other: number;
+}
 
 export class CreateEmployeeDto {
   @IsString()
@@ -85,8 +111,10 @@ export class CreateEmployeeDto {
   @IsUUID()
   subsidiaryId?: string;
 
+  @IsOptional()
+  leaveBalance?: LeaveBalanceDto;
+
   // Champs omis : id, subsidiaryId (géré par auth/subsidiary), managerId (optionnel, à setter via update), etc.
-  // leaveBalance est omis, géré automatiquement.
 }
 
 export class UpdateEmployeeDto extends PartialType(CreateEmployeeDto) {} // Pour les mises à jour partielles

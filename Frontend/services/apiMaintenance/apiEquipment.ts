@@ -6,7 +6,7 @@ import { Equipment, EquipmentStatus } from "../../types";
  * Correspond à CreateEquipmentDto du backend.
  */
 export interface CreateEquipmentDto {
-    name: string;
+    equipmentName: string;
     acquisitionDate: string;
     acquisitionValue: number;
     status: EquipmentStatus;

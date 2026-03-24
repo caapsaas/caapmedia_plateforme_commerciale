@@ -10,10 +10,11 @@ import {
   Request,
   Query,
   ParseBoolPipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { EmployeeService } from './employee.service';
-import { CreateEmployeeDto, UpdateEmployeeDto } from './dto/employee.dto';
+import { CreateEmployeeDto, UpdateEmployeeDto, LeaveBalanceDto } from './dto/employee.dto';
 import { DocumentType, LeaveType } from '@prisma/client';
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles } from '../../common/auth/role/role.decorator';
@@ -37,11 +38,24 @@ export class EmployeeController {
   async create(@Body() createEmployeeDto: CreateEmployeeDto, @Request() req) {
     const subsidiaryId = req.user.subsidiaryId;
     this.logger.log(`Creating employee in subsidiary ${subsidiaryId}`);
+    
+    // Log pour déboguer
+    this.logger.log(`Received DTO: ${JSON.stringify(createEmployeeDto)}`);
+    
+    // Extraire l'ID des données si présent (pour gérer les mises à jour déguisées)
+    const dtoAsAny = createEmployeeDto as any;
+    const employeeId = dtoAsAny.id;
+    
+    this.logger.log(`Extracted employeeId: ${employeeId}`);
+    
+    if (employeeId) {
+      this.logger.log(`Redirecting to update for employee ${employeeId}`);
+      return this.employeeService.update(employeeId, dtoAsAny);
+    }
+    
     return this.employeeService.create(
       createEmployeeDto,
-      //      createEmployeeDto.managerId
-
-      subsidiaryId,
+      subsidiaryId
     );
   }
 
@@ -163,5 +177,38 @@ export class EmployeeController {
       startDate: new Date(body.startDate),
       endDate: new Date(body.endDate),
     });
+  }
+
+  @Get(':id/leave-balances')
+  @Roles('HR_MANAGER', 'ADMIN')
+  @ApiOperation({ summary: 'Get employee leave balances' })
+  async getLeaveBalances(@Param('id') id: string) {
+    return this.employeeService.getLeaveBalances(id);
+  }
+
+  @Patch(':id/leave-balances/:leaveType')
+  @Roles('HR_MANAGER', 'ADMIN')
+  @ApiOperation({ summary: 'Update employee leave balance' })
+  async updateLeaveBalance(
+    @Param('id') id: string,
+    @Param('leaveType') leaveType: LeaveType,
+    @Body() body: { days: number; operation?: 'set' | 'add' | 'subtract' },
+  ) {
+    return this.employeeService.updateLeaveBalance(
+      id,
+      leaveType,
+      body.days,
+      body.operation || 'set'
+    );
+  }
+
+  @Patch(':id/leave-balances')
+  @Roles('HR_MANAGER', 'ADMIN')
+  @ApiOperation({ summary: 'Update all employee leave balances' })
+  async updateAllLeaveBalances(
+    @Param('id') id: string,
+    @Body() leaveBalance: LeaveBalanceDto,
+  ) {
+    return this.employeeService.updateAllLeaveBalances(id, leaveBalance);
   }
 }

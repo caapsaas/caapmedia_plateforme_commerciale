@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useI18n } from '../../i18n';
+import { useToast } from '../../context/ToastContext';
 import { ContactRegisterData } from '../../services/apiCrm/apicontacts';
 
 // Le type de données que le formulaire envoie vers le haut.
@@ -16,6 +17,7 @@ interface AuthModalProps {
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegister, onAuthSuccess, onVerifyAccount }) => {
     const { t } = useI18n();
+    const toast = useToast();
     const [view, setView] = useState<'login' | 'signup' | 'forgotPassword'>('login');
     const [error, setError] = useState('');
     const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
@@ -46,11 +48,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegis
         setShowVerificationPrompt(false);
         const result = await onLogin(loginData.email, loginData.password);
         if (result === 'SUCCESS') {
+            toast.success('Connexion réussie!', 'Bienvenue sur votre compte.');
             onAuthSuccess();
         } else if (result === 'NOT_VERIFIED') {
+            toast.warning('Compte non vérifié', 'Veuillez vérifier votre compte avant de vous connecter.');
             setShowVerificationPrompt(true);
         } else {
-            setError('Email ou mot de passe incorrect.');
+            toast.error('Erreur de connexion', 'Email ou mot de passe incorrect.');
         }
     };
     
@@ -58,14 +62,15 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegis
         e.preventDefault();
         setError('');
         if (signupData.password !== (document.getElementById('confirmPassword') as HTMLInputElement).value) {
-            setError('Les mots de passe ne correspondent pas.');
+            toast.error('Erreur de validation', 'Les mots de passe ne correspondent pas.');
             return;
         }
         const result = await onRegister(signupData);
         if (result === 'SUCCESS') {
+            toast.success('Inscription réussie!', 'Votre compte a été créé avec succès.');
             onAuthSuccess();
         } else {
-            setError("Une erreur est survenue lors de l'inscription. Veuillez réessayer.");
+            toast.error('Erreur d\'inscription', 'Une erreur est survenue lors de l\'inscription. Veuillez réessayer.');
         }
     };
     
@@ -73,7 +78,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegis
         if (onVerifyAccount) {
             onVerifyAccount(loginData.email);
             setShowVerificationPrompt(false);
-            setError("Compte vérifié ! Vous pouvez maintenant vous connecter.");
+            toast.success('Compte vérifié!', 'Vous pouvez maintenant vous connecter.');
         }
     };
 
@@ -90,6 +95,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegis
         // Simulate API call
         console.log(`Password reset requested for ${resetEmail}`);
         setResetSent(true);
+        toast.info('Email envoyé', 'Un email de réinitialisation a été envoyé à votre adresse.');
     };
 
     const switchView = (newView: 'login' | 'signup') => {

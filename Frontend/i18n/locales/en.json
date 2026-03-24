@@ -1,0 +1,103 @@
+{
+  "configuration": {
+    "modal": {
+      "editEmployeeTitle": "Edit Employee",
+      "addEmployeeTitle": "Add Employee"
+    },
+    "form": {
+      "formSection": {
+        "personal": "Personal Information",
+        "professional": "Professional Information",
+        "salary": "Salary & Benefits",
+        "documents": "Documents",
+        "leaves": "Leaves"
+      },
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "birthDate": "Birth Date",
+      "gender": "Gender",
+      "address": "Address",
+      "phone": "Phone",
+      "email": "Email",
+      "nationality": "Nationality",
+      "ssn": "Social Security Number",
+      "position": "Position",
+      "department": "Department",
+      "hireDate": "Hire Date",
+      "contractType": "Contract Type",
+      "employeeStatus": "Employee Status",
+      "workLocation": "Work Location",
+      "baseSalary": "Base Salary",
+      "bonus": "Bonus",
+      "benefits": "Benefits",
+      "paymentMethod": "Payment Method"
+    }
+  },
+  "hr": {
+    "gender": {
+      "MALE": "Male",
+      "FEMALE": "Female",
+      "OTHER": "Other"
+    },
+    "contractType": {
+      "CDI": "Permanent Contract",
+      "CDD": "Fixed-term Contract",
+      "FREELANCE": "Freelance",
+      "INTERNSHIP": "Internship"
+    },
+    "employeeStatus": {
+      "ACTIVE": "Active",
+      "ON_LEAVE": "On Leave",
+      "RESIGNED": "Resigned",
+      "TERMINATED": "Terminated"
+    },
+    "paymentMethod": {
+      "BANK_TRANSFER": "Bank Transfer",
+      "CHECK": "Check",
+      "CASH": "Cash"
+    },
+    "documents": {
+      "title": "Documents",
+      "addDocument": "Add Document",
+      "document": "Document",
+      "name": "Document Name",
+      "type": "Document Type",
+      "expiryDate": "Expiry Date",
+      "status": "Status",
+      "selectType": "Select a type",
+      "noDocuments": "No documents added"
+    },
+    "documentType": {
+      "idCard": "ID Card",
+      "passport": "Passport",
+      "contract": "Contract",
+      "cv": "CV",
+      "diploma": "Diploma",
+      "other": "Other"
+    },
+    "documentStatus": {
+      "valid": "Valid",
+      "expired": "Expired",
+      "pending": "Pending"
+    },
+    "leaveType": {
+      "annual": "Annual Leave",
+      "sick": "Sick Leave",
+      "personal": "Personal Leave",
+      "maternity": "Maternity Leave",
+      "paternity": "Paternity Leave",
+      "other": "Other Leave"
+    },
+    "leaveBalance": {
+      "title": "Leave Balance",
+      "summary": "Summary",
+      "totalDays": "Total Days",
+      "days": "days"
+    }
+  },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete"
+  }
+}
