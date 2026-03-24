@@ -57,7 +57,7 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ cartItems, onClose, onUpdat
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-60" onClick={onClose}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[999]" onClick={onClose}>
             <div 
                 className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-xl flex flex-col"
                 onClick={e => e.stopPropagation()}
