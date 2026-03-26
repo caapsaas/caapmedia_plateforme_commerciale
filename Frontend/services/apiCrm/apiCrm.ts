@@ -104,10 +104,10 @@ export const saveOpportunity = (
 };
 
 export const updateOpportunityStage = ({ oppId, newStage }: { oppId: string; newStage: OpportunityStage }): Promise<Opportunity> =>
-  api.patch(`/crm/opportunities/${oppId}/stage`, { stage: newStage }).then(res => res.data);
+  api.patch(`/crm/opportunities/${oppId}`, { stage: newStage }).then(res => res.data);
 
 export const winOpportunity = (opportunity: Opportunity): Promise<void> =>
-  api.post(`/crm/opportunities/${opportunity.id}/win`);
+  api.patch(`/crm/opportunities/${opportunity.id}`, { stage: 'WON' }).then(res => res.data);
 
 // --- TASKS ---
 export const getCrmTasks = (subsidiaryId: string): Promise<CrmTask[]> =>

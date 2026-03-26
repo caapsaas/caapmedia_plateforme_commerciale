@@ -29,6 +29,14 @@ const PayrollDetailsModal: React.FC<PayrollDetailsModalProps> = ({ isOpen, onClo
 
     if (!isOpen || !record) return null;
 
+    // Calculer les déductions si elles ne sont pas déjà un objet
+    const deductions = record.deductions as any;
+    const calculatedDeductions = typeof deductions === 'object' ? deductions : {
+        social: Number(deductions) * 0.2, // 20% pour cotisations sociales
+        tax: Number(deductions) * 0.1,   // 10% pour impôts
+        absences: 0
+    };
+
     return (
         <div 
             className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4"
@@ -53,9 +61,9 @@ const PayrollDetailsModal: React.FC<PayrollDetailsModalProps> = ({ isOpen, onClo
                     </Section>
 
                     <Section title={t('hr.payroll.deductions')}>
-                        <DetailItem label={t('hr.payroll.socialDeductions')} value={formatCurrency(record.deductions.social)} className="text-red-600" />
-                        <DetailItem label={t('hr.payroll.taxDeductions')} value={formatCurrency(record.deductions.tax)} className="text-red-600" />
-                        <DetailItem label={t('hr.payroll.absenceDeductions')} value={formatCurrency(record.deductions.absences)} className="text-red-600" />
+                        <DetailItem label={t('hr.payroll.socialDeductions')} value={formatCurrency(calculatedDeductions.social)} className="text-red-600" />
+                        <DetailItem label={t('hr.payroll.taxDeductions')} value={formatCurrency(calculatedDeductions.tax)} className="text-red-600" />
+                        <DetailItem label={t('hr.payroll.absenceDeductions')} value={formatCurrency(calculatedDeductions.absences)} className="text-red-600" />
                     </Section>
 
                     <Section title={t('hr.payroll.summary')}>

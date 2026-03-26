@@ -20,6 +20,16 @@ const ContractManagement: React.FC<ContractManagementProps> = ({ contracts = [],
     const [editingContract, setEditingContract] = useState<Contract | null>(null);
     const [deletingContract, setDeletingContract] = useState<Contract | null>(null);
 
+    const formatDate = (dateString: string) => {
+        if (!dateString) return 'Non définie';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    };
+
     const handleOpenAddModal = () => {
         setEditingContract(null);
         setIsFormModalOpen(true);
@@ -92,8 +102,8 @@ const ContractManagement: React.FC<ContractManagementProps> = ({ contracts = [],
                             <tr key={contract.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{contract.title}</td>
                                 <td className="px-6 py-4">{getClientName(contract.clientId)}</td>
-                                <td className="px-6 py-4">{contract.startDate}</td>
-                                <td className="px-6 py-4">{contract.endDate}</td>
+                                <td className="px-6 py-4">{formatDate(contract.startDate)}</td>
+                                <td className="px-6 py-4">{formatDate(contract.endDate)}</td>
                                 <td className="px-6 py-4 text-right font-medium">{formatCurrency(contract.amount)}</td>
                                 <td className="px-6 py-4 text-center">
                                     <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(contract.status)}`}>

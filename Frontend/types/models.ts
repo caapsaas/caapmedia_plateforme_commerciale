@@ -310,7 +310,7 @@ export interface PurchaseOrder {
 }
 
 
-export interface CreditAccount {
+export interface CreditAccount {  
   id: string;
   clientName: string;
   companyName: string;
@@ -585,6 +585,11 @@ export interface PayrollRecord {
     grossSalary: number;
     bonus: number;
     deductions: {
+        social: number;
+        tax: number;
+        absences: number;
+    };
+    calculatedDeductions?: {
         social: number;
         tax: number;
         absences: number;

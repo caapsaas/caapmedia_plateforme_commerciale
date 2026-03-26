@@ -17,7 +17,7 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
         userName: '', // Changed from 'name' to 'userName'
         email: '',
         userRole: UserRole.COMMERCIAL, // Changed from 'role' to 'userRole'
-        subsidiaryId: currentSubsidiaryId,
+        subsidiaryId: currentSubsidiaryId || (subsidiaries.length > 0 ? subsidiaries[0].id : ''),
     };
     // Le type de l'état est ajusté pour correspondre à la structure de `initialFormState`.
     // L'erreur TypeScript provient du décalage entre `Omit<User, 'id' | 'password'>` (qui attend `name` et `rolet`)
@@ -55,31 +55,60 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
         e.preventDefault();
         setPasswordError('');
 
-        let saveData: Omit<User, 'id'> & { password?: string } = { ...formData };
-
         if (showPasswordFields) {
             if (!user && !password) { // Password required for new user
-            setPasswordError(t('configuration.form.passwordRequired'));
+                setPasswordError(t('configuration.form.passwordRequired'));
                 return;
             }
             if (password !== confirmPassword) {
-            setPasswordError(t('configuration.form.passwordsDoNotMatch'));
+                setPasswordError(t('configuration.form.passwordsDoNotMatch'));
                 return;
             }
-            if (password) {
-                saveData.password = password;
+        }
+
+        // Validation pour les nouveaux utilisateurs
+        if (!user && (!formData.subsidiaryId || formData.subsidiaryId.trim() === '')) {
+            setPasswordError('La sélection d\'une filiale est requise');
+            return;
+        }
+
+        let saveData: any = {};
+        
+        // N'inclure que les champs qui ont changé
+        if (formData.userName !== user?.userName) {
+            saveData.userName = formData.userName;
+        }
+        if (formData.email !== user?.email) {
+            saveData.email = formData.email;
+        }
+        if (formData.userRole !== user?.userRole) {
+            saveData.userRole = formData.userRole;
+        }
+        if (showPasswordFields && password) {
+            saveData.password = password;
+        }
+
+        // Pour un nouvel utilisateur, inclure tous les champs
+        if (!user) {
+            saveData = {
+                userName: formData.userName,
+                email: formData.email,
+                userRole: formData.userRole,
+                subsidiaryId: formData.subsidiaryId,
+                ...(password ? { password } : {})
+            };
+        } else {
+            if (formData.subsidiaryId !== user?.subsidiaryId) {
+                saveData.subsidiaryId = formData.subsidiaryId;
             }
         }
-                
-        const formattedData = {
-        userName: formData.userName, // Use formData.userName
-        email: formData.email,
-        userRole: formData.userRole, // Use formData.userRole
-        subsidiaryId: formData.subsidiaryId,
-        ...(password ? { password } : {})
-        };
 
-        onSave(formattedData);
+        if (Object.keys(saveData).length === 0) {
+            // Si aucun champ n'a changé, ne rien envoyer
+            return;
+        }
+
+        onSave(saveData);
     };
     
     if (!isOpen) return null;

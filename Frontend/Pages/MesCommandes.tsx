@@ -6,16 +6,15 @@ import BonDeLivraison from './BonDeLivraison';
 import IconDocumentText from '../components/icons/IconDocumentText';
 import SelectFilter from '../components/filters/SelectFilter';
 import PeriodFilter from '../components/filters/PeriodFilter';
-import { useAppContext } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getOrders, createOrderBySalesRep, FindAllOrdersDto } from '../services/apiE-commerce/apiOrders';
 import { getProducts } from '../services/apiE-commerce/apiProducts';
-import { getContacts } from '../services/apiCrm/apiContacts';
+import { getContacts } from '../services/apiCrm/apicontacts';
 
 const MesCommandes: React.FC = () => {
     const { t, formatCurrency } = useI18n();
-    const { state } = useAppContext();
-    const { currentSubsidiary: subsidiary, currentUser } = state;
+    const { user: currentUser, subsidiary } = useAuth();
     const queryClient = useQueryClient();
 
     const [activeTab, setActiveTab] = useState<'history' | 'new'>('history');

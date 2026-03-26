@@ -86,6 +86,7 @@ const ECommercePage: React.FC = () => {
         mutationFn: createOrder,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['orders'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] }); // Rafraîchir les produits pour mettre à jour le stock
             window.localStorage.removeItem('shoppingCart'); // Vider le panier local après la commande
             setCart([]);
             toast.success('Commande confirmée!', 'Votre commande a été enregistrée avec succès.');
@@ -208,6 +209,12 @@ const ECommercePage: React.FC = () => {
     };
     
     const handleProductClick = (product: Product) => {
+        // Vérifier le stock avant d'ajouter au panier
+        if (product.stock <= 0) {
+            toast.error('Produit indisponible', 'Ce produit est en rupture de stock');
+            return;
+        }
+        
         if (product.configurableOptions) {
             setConfiguringProduct(product);
         } else {

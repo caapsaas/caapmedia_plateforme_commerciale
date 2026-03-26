@@ -26,7 +26,15 @@ const ContractFormModal: React.FC<ContractFormModalProps> = ({ isOpen, onClose, 
     useEffect(() => {
         if (contract) {
             const { id, subsidiaryId, ...editableData } = contract;
-            setFormData(editableData);
+            
+            // Convertir les dates du format ISO au format YYYY-MM-DD pour les inputs de type date
+            const formattedData = {
+                ...editableData,
+                startDate: contract.startDate ? contract.startDate.split('T')[0] : new Date().toISOString().split('T')[0],
+                endDate: contract.endDate ? contract.endDate.split('T')[0] : '',
+            };
+            
+            setFormData(formattedData);
         } else {
             setFormData(initialFormState);
         }

@@ -7,7 +7,9 @@ import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
 import ContactDetailsModal from './ContactDetailsModal';
 import ContactFormModal from './ContactFormModal';
+import ContactAccountActions from './ContactAccountActions';
 import ConfirmationModal from '../common/ConfirmationModal';
+import { LockIcon, MailIcon } from 'lucide-react';
 
 interface ContactManagementProps {
     clients: Contact[];
@@ -16,8 +18,10 @@ interface ContactManagementProps {
     crmTasks: CrmTask[];
     contracts: Contract[];
     onLogInteraction: (data: Omit<Interaction, 'id' | 'date' | 'userId'>) => void;
-    onSave: (data: Omit<Contact, 'id' | 'subsidiaryId'> & { id?: string }) => void;
+    onSave: (data: Omit<Contact, 'id' | 'subsidiaryId'> & { id?: string }) => Promise<{ tempPassword?: string; message?: string } | void>;
     onDelete: (id: string) => void;
+    onResetPassword?: (contactId: string) => Promise<{ tempPassword: string; message: string }>;
+    onEnablePortal?: (contactId: string) => Promise<{ tempPassword: string; message: string }>;
 }
 
 const ContactManagement: React.FC<ContactManagementProps> = ({ 
@@ -28,12 +32,16 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
     contracts = [], 
     onLogInteraction, 
     onSave, 
-    onDelete }) => {
+    onDelete,
+    onResetPassword,
+    onEnablePortal
+}) => {
     const { t } = useI18n();
     const [selectedClient, setSelectedClient] = useState<Contact | null>(null);
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingContact, setEditingContact] = useState<Contact | null>(null);
     const [deletingContact, setDeletingContact] = useState<Contact | null>(null);
+    const [accountActionsContact, setAccountActionsContact] = useState<Contact | null>(null);
 
 
     const handleOpenAddModal = () => {
@@ -54,11 +62,13 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
         setIsFormModalOpen(false);
         setDeletingContact(null);
         setSelectedClient(null);
+        setAccountActionsContact(null);
     };
 
-    const handleSaveContact = (data: Omit<Contact, 'id' | 'subsidiaryId'> & { id?: string }) => {
-        onSave({ id: editingContact?.id, ...data});
+    const handleSaveContact = async (data: Omit<Contact, 'id' | 'subsidiaryId'> & { id?: string }) => {
+        const result = await onSave({ id: editingContact?.id, ...data});
         handleCloseModals();
+        return result;
     };
 
     const handleDeleteContact = () => {
@@ -67,6 +77,10 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
             handleCloseModals();
         }
     }
+
+    const handleOpenAccountActions = (contact: Contact) => {
+        setAccountActionsContact(contact);
+    };
 
 
     const getStatusClass = (status?: ContactStatus) => {
@@ -95,6 +109,7 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
                             <th scope="col" className="px-6 py-3">{t('crm.contacts.company')}</th>
                             <th scope="col" className="px-6 py-3">{t('crm.contacts.email')}</th>
                             <th scope="col" className="px-6 py-3">{t('crm.contacts.status')}</th>
+                            <th scope="col" className="px-6 py-3 text-center">Compte</th>
                             <th scope="col" className="px-6 py-3 text-center">{t('crm.contacts.contracts')}</th>
                             <th scope="col" className="px-6 py-3 text-center">{t('common.actions')}</th>
                         </tr>
@@ -102,6 +117,7 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
                     <tbody>
                         {clients.map((client) => {
                             const contractCount = contracts.filter(c => c.clientId === client.id && c.status === ContractStatus.ACTIVE).length;
+                            const hasAccount = !!client.password;
                             return (
                                 <tr key={client.id} className="bg-white border-b hover:bg-slate-50">
                                     <td className="px-6 py-4 font-semibold">{client.contactName}</td>
@@ -113,12 +129,34 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-center">
+                                        {hasAccount ? (
+                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                <LockIcon className="w-3 h-3 mr-1" />
+                                                Activé
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                <LockIcon className="w-3 h-3 mr-1" />
+                                                Non activé
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
                                         {contractCount}
                                     </td>
                                     <td className="px-6 py-4 text-center space-x-1">
                                         <button onClick={() => setSelectedClient(client)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.view')}>
                                             <IconEye className="h-5 w-5" />
                                         </button>
+                                        {(onResetPassword || onEnablePortal) && (
+                                            <button 
+                                                onClick={() => handleOpenAccountActions(client)} 
+                                                className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-100 rounded-full transition-colors" 
+                                                aria-label="Gérer le compte"
+                                            >
+                                                <LockIcon className="h-5 w-5" />
+                                            </button>
+                                        )}
                                         <button onClick={() => handleOpenEditModal(client)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
                                             <IconEdit className="h-5 w-5" />
                                         </button>
@@ -150,6 +188,14 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
                     onClose={handleCloseModals}
                     onSave={handleSaveContact}
                     contact={editingContact}
+                    isCreating={!editingContact}
+                />
+            )}
+            {accountActionsContact && (
+                <ContactAccountActions
+                    contact={accountActionsContact}
+                    onResetPassword={onResetPassword || (() => Promise.reject('Non implémenté'))}
+                    onEnablePortal={onEnablePortal || (() => Promise.reject('Non implémenté'))}
                 />
             )}
              {deletingContact && (

@@ -9,7 +9,7 @@ import AbsenceManagement from '../components/hr/AbsenceManagement';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAttendanceRecords, saveAttendanceRecord } from '../services/apihr/apiAttendance';
 import { getAbsenceRecords, saveAbsenceRecord, deleteAbsenceRecord } from '../services/apihr/apiAbsences';
-import { getPayrollRecords, processPayroll } from '../services/apihr/apiPayroll';
+import { getPayrollRecords, processPayroll, signPayrollRecord } from '../services/apihr/apiPayroll';
 import { getEmployees, saveEmployee, deleteEmployee } from '../services/apihr/apiEmployees';
 import { useAuth } from '../context/AuthContext';
 
@@ -38,6 +38,7 @@ const HrManagement: React.FC = () => {
     const { mutate: onSaveAbsence } = useMutation({ mutationFn: saveAbsenceRecord, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['absences', subsidiary.id] }) });
     const { mutate: onDeleteAbsence } = useMutation({ mutationFn: deleteAbsenceRecord, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['absences', subsidiary.id] }) });
     const { mutate: onProcessPayroll } = useMutation({ mutationFn: processPayroll, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['payrolls', subsidiary.id] }) });
+    const { mutate: onSaveSignature } = useMutation({ mutationFn: signPayrollRecord, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['payrolls', subsidiary.id] }) });
 
     const isLoading = isLoadingEmployees || isLoadingAttendances || isLoadingAbsences || isLoadingPayrolls;
 
@@ -57,7 +58,14 @@ const HrManagement: React.FC = () => {
             case 'attendance':
                 return <AttendanceManagement subsidiary={subsidiary} employees={employees} attendances={attendances} onSave={onSaveAttendance} />;
             case 'payroll':
-                return <PayrollManagement subsidiary={subsidiary} employees={employees} payrolls={payrolls} onProcessPayroll={onProcessPayroll} />;
+                return <PayrollManagement 
+                            subsidiary={subsidiary} 
+                            employees={employees} 
+                            payrolls={payrolls} 
+                            onProcessPayroll={onProcessPayroll}
+                            onRecordPayment={() => {}} // TODO: Implémenter l'enregistrement de paiement
+                            onSaveSignature={onSaveSignature}
+                        />;
             case 'absences':
                 return <AbsenceManagement 
                             subsidiary={subsidiary} 

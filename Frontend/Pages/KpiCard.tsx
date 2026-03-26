@@ -14,7 +14,7 @@ const KpiCard: React.FC<Kpi> = ({ titleKey, value, change, changeType, icon }) =
         {icon}
       </div>
       <div>
-        <p className="text-3xl font-bold text-slate-800 mt-2">{value}</p>
+        <p className="text-2xl font-bold text-slate-800 mt-2 break-words overflow-wrap-anywhere">{value}</p>
         <div className={`text-sm font-semibold mt-1 inline-flex items-center px-2 py-1 rounded-full ${changeBgColor} ${changeColor}`}>
           {change}
         </div>

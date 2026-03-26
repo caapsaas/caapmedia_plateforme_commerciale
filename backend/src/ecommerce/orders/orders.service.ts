@@ -102,7 +102,7 @@ export class OrdersService {
     }
 
     // 1. Récupérer toutes les données de référence (Produits, Taxe par défaut)
-    const productIds = parsedItems.map((item) => item.productId);
+    const productIds = parsedItems.map((item) => item.productId).filter(id => id !== undefined);
     const [products, taxRate] = await Promise.all([
       this.prisma.product.findMany({ where: { id: { in: productIds } } }),
       this.prisma.taxRate.findFirstOrThrow({ where: { isDefault: true } }),
@@ -116,11 +116,13 @@ export class OrdersService {
 
     // 2. Regrouper les articles par filiale (subsidiaryId)
     const itemsBySubsidiary = new Map<string, any[]>();
-    for (const item of parsedItems) {
+    const validItems = parsedItems.filter(item => item.productId !== undefined);
+    
+    // Validation améliorée: vérifier que tous les produits existent
+    for (const item of validItems) {
       const product = productMap.get(item.productId);
       if (!product) {
-        // Cette erreur ne devrait pas se produire grâce à la validation précédente
-        continue;
+        throw new NotFoundException(`Produit avec l'ID ${item.productId} introuvable`);
       }
       const subsidiaryId = product.subsidiaryId;
       if (!itemsBySubsidiary.has(subsidiaryId)) {
@@ -130,7 +132,11 @@ export class OrdersService {
     }
 
     // Pré-charger tous les items d'options configurables nécessaires pour le calcul du prix
-    const allOptionValues = parsedItems.flatMap(item => item.options?.map(opt => opt.optionValue) || []);
+    const allOptionValues = validItems.flatMap(item => {
+      if (!item.options) return [];
+      // Transformer l'objet ProductOptions en tableau d'optionValues
+      return item.options.map(option => option.optionValue).filter(value => value !== undefined);
+    });
     const configurableOptionItems = await this.prisma.configurableOptionItem.findMany({
       where: { optionName: { in: allOptionValues } },
     });
@@ -143,13 +149,16 @@ export class OrdersService {
       let overallTotalAmount = new Decimal(0);
 
       // Calculer le montant total global pour le groupe de commandes
-      for (const item of parsedItems) {
-        const product = productMap.get(item.productId)!;
+      for (const item of validItems) {
+        const product = productMap.get(item.productId);
+        if (!product) {
+          throw new NotFoundException(`Produit avec l'ID ${item.productId} introuvable`);
+        }
         let unitPrice = new Decimal(product.sellingPrice);
 
         if (item.options) {
-          for (const opt of item.options) {
-            const optionItem = optionItemMap.get(opt.optionValue);
+          for (const option of item.options) {
+            const optionItem = optionItemMap.get(option.optionValue);
             if (optionItem) {
               unitPrice = unitPrice.mul(optionItem.multiplier);
             }
@@ -221,7 +230,7 @@ export class OrdersService {
         const initialPaymentStatus = isPaidImmediately ? PaymentStatus.PAID : PaymentStatus.UNPAID;
         const initialAmountPaid = isPaidImmediately ? totalAmount : 0;
         // Créer la commande
-        const newOrder = await tx.order.create({
+        const createdOrder = await tx.order.create({
           data: {
             customerName,
             paymentDueDate: paymentDue,
@@ -254,9 +263,9 @@ export class OrdersService {
                   productId: item.productId,
                   productOptions: item.options
                     ? {
-                      create: item.options.map((opt) => ({
-                        optionType: opt.optionType,
-                        optionValue: opt.optionValue,
+                      create: Object.entries(item.options).map(([optionType, optionValue]) => ({
+                        optionType,
+                        optionValue: String(optionValue),
                       })),
                     }
                     : undefined,
@@ -269,10 +278,19 @@ export class OrdersService {
               },
             },
           },
+        });
+
+        // Récupérer la commande avec ses articles pour le typage correct
+        const newOrder = await tx.order.findUnique({
+          where: { id: createdOrder.id },
           include: {
-            orderItems: true, // Inclure les articles de commande dans la réponse
+            orderItems: true,
           },
         });
+
+        if (!newOrder) {
+          throw new InternalServerErrorException('Erreur lors de la récupération de la commande créée');
+        }
 
         // Si la commande est payée immédiatement, décrémenter le stock et créer la vente
         if (isPaidImmediately) {
@@ -320,6 +338,10 @@ export class OrdersService {
           include: { orders: { include: { orderItems: true } } },
         });
       } else {
+        // Vérifier que des commandes ont été créées
+        if (createdOrders.length === 0) {
+          throw new InternalServerErrorException('Aucune commande n\'a pu être créée. Vérifiez que les produits existent et sont valides.');
+        }
         // S'il n'y a qu'une seule commande, on la retourne directement
         return tx.order.findUniqueOrThrow({
           where: { id: createdOrders[0].id },
@@ -349,7 +371,14 @@ export class OrdersService {
     }
 
     // 1. Récupérer toutes les données de référence (Produits, Taxe par défaut, Client)
-    const productIds = parsedItems.map((item) => item.productId);
+    const productIds = parsedItems.map((item) => item.productId).filter(id => id !== undefined);
+    
+    // Validation explicite: vérifier que tous les articles ont un productId
+    const itemsWithoutProductId = parsedItems.filter(item => !item.productId);
+    if (itemsWithoutProductId.length > 0) {
+      throw new BadRequestException('Tous les articles doivent avoir un productId. Articles invalides: ' + JSON.stringify(itemsWithoutProductId, null, 2));
+    }
+    
     const [products, taxRate, customer] = await Promise.all([
       this.prisma.product.findMany({ where: { id: { in: productIds } } }),
       this.prisma.taxRate.findFirstOrThrow({ where: { isDefault: true } }),
@@ -369,10 +398,13 @@ export class OrdersService {
 
     // 2. Regrouper les articles par filiale (subsidiaryId) du produit
     const itemsBySubsidiary = new Map<string, any[]>();
-    for (const item of parsedItems) {
+    const validItems = parsedItems.filter(item => item.productId !== undefined);
+    
+    // Validation améliorée: vérifier que tous les produits existent
+    for (const item of validItems) {
       const product = productMap.get(item.productId);
       if (!product) {
-        continue;
+        throw new NotFoundException(`Produit avec l'ID ${item.productId} introuvable`);
       }
       const productSubsidiaryId = product.subsidiaryId;
       if (!itemsBySubsidiary.has(productSubsidiaryId)) {
@@ -382,7 +414,11 @@ export class OrdersService {
     }
 
     // Pré-charger tous les items d'options configurables nécessaires pour le calcul du prix
-    const allOptionValues = parsedItems.flatMap(item => item.options?.map(opt => opt.optionValue) || []);
+    const allOptionValues = validItems.flatMap(item => {
+      if (!item.options) return [];
+      // Transformer l'objet ProductOptions en tableau d'optionValues
+      return item.options.map(option => option.optionValue).filter(value => value !== undefined);
+    });
     const configurableOptionItems = await this.prisma.configurableOptionItem.findMany({
       where: { optionName: { in: allOptionValues } },
     });
@@ -395,13 +431,16 @@ export class OrdersService {
       let overallTotalAmount = new Decimal(0);
 
       // Calculer le montant total global pour le groupe de commandes
-      for (const item of parsedItems) {
-        const product = productMap.get(item.productId)!;
+      for (const item of validItems) {
+        const product = productMap.get(item.productId);
+        if (!product) {
+          throw new NotFoundException(`Produit avec l'ID ${item.productId} introuvable`);
+        }
         let unitPrice = new Decimal(product.sellingPrice);
 
         if (item.options) {
-          for (const opt of item.options) {
-            const optionItem = optionItemMap.get(opt.optionValue);
+          for (const option of item.options) {
+            const optionItem = optionItemMap.get(option.optionValue);
             if (optionItem) {
               unitPrice = unitPrice.mul(optionItem.multiplier);
             }
@@ -499,7 +538,7 @@ export class OrdersService {
                   designFileUrl: file ? `/public/order_item_img/${file.filename}` : undefined,
                   productId: item.productId,
                   productOptions: item.options
-                    ? { create: item.options.map((opt) => ({ optionType: opt.optionType, optionValue: opt.optionValue })) }
+                    ? { create: Object.entries(item.options).map(([optionType, optionValue]) => ({ optionType, optionValue: String(optionValue) })) }
                     : undefined,
                 };
               }),
@@ -523,6 +562,10 @@ export class OrdersService {
           include: { orders: { include: { orderItems: true } } },
         });
       } else {
+        // Vérifier que des commandes ont été créées
+        if (createdOrders.length === 0) {
+          throw new InternalServerErrorException('Aucune commande n\'a pu être créée. Vérifiez que les produits existent et sont valides.');
+        }
         return tx.order.findUniqueOrThrow({
           where: { id: createdOrders[0].id },
           include: { orderItems: true },

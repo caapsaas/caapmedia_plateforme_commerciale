@@ -12,12 +12,14 @@ import IconCash from '../icons/IconCash';
 import IconEye from '../icons/IconEye';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getCredit, recordOrderPayment } from '../../services/apiE-commerce/apiOrders';
-import { CustomerPaymentMethod } from '../../types';
+import { getOrders, recordOrderPayment } from '../../services/apiE-commerce/apiOrders';
+import { getContactById } from '../../services/apiCrm/apicontacts';
+import { CustomerPaymentMethod, Order, PaymentStatus, Contact } from '../../types';
 import KpiCard from '../../Pages/KpiCard';
 import IconCreditCard from '../icons/IconCreditCard';
 import CreditDetailsModal from './CreditDetailsModal';
 import CreditPaymentModal from './CreditPaymentModal';
+
 interface CreditManagementProps {
     subsidiary: Subsidiary;
 }
@@ -32,11 +34,58 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
-    // 1. Récupération des données réelles depuis le backend
-    const { data: customerCredit = [], isLoading: isLoadingcredit } = useQuery<CreditAccount[]>({ 
-        queryKey: ['credit'], 
-        queryFn: () => getCredit()
+    // 1. Récupération des commandes avec statuts UNPAID et PARTIALLY_PAID
+    const { data: orders = [], isLoading: isLoadingOrders } = useQuery<Order[]>({ 
+        queryKey: ['orders', 'unpaid'], 
+        queryFn: () => getOrders({
+            paymentStatus: PaymentStatus.UNPAID
+        }).then(orders1 => 
+            getOrders({
+                paymentStatus: PaymentStatus.PARTIALLY_PAID
+            }).then(orders2 => [...orders1, ...orders2])
+        )
     });
+
+    // 2. Récupération des informations clients pour obtenir les noms de société
+    const { data: clients = {} } = useQuery<Record<string, Contact>>({
+        queryKey: ['clients'],
+        queryFn: async () => {
+            const uniqueCustomerIds = [...new Set(orders.map(order => order.customerId))];
+            const clientsData: Record<string, Contact> = {};
+            
+            await Promise.all(
+                uniqueCustomerIds.map(async (customerId) => {
+                    try {
+                        const client = await getContactById(customerId);
+                        clientsData[customerId] = client;
+                    } catch (error) {
+                        console.warn(`Impossible de récupérer le client ${customerId}:`, error);
+                    }
+                })
+            );
+            
+            return clientsData;
+        },
+        enabled: orders.length > 0
+    });
+
+    // 3. Transformation des commandes en format de crédit pour l'affichage
+    const transformedCredits = useMemo(() => {
+        return orders.map(order => {
+            const client = clients[order.customerId];
+            return {
+                id: order.orderId,
+                clientName: order.customerName,
+                companyName: client?.company || '',
+                balance: order.totalAmount - order.amountPaid, // Solde restant dû
+                lastPaymentDate: order.paymentStatus === PaymentStatus.PARTIALLY_PAID ? order.paymentDueDate : '', // Date d'échéance pour partiellement payées
+                orderDate: order.date, // Date de la commande
+                paymentDueDate: order.paymentDueDate, // Date d'échéance de paiement
+                subsidiaryId: order.subsidiaryId,
+                originalOrder: order // Conserver la commande originale pour les actions
+            };
+        });
+    }, [orders, clients]);
 
     const { data: totalReceivablesData = { totalReceivables: 0 }, isLoading: isLoadingReceivable } = useQuery<CustomerReceivablesStats>({
         queryKey: ['totalReceivables'],
@@ -45,17 +94,17 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
         })
     });
 
-    // 3. Filtrage pour la barre de recherche
+    // 4. Filtrage pour la barre de recherche
     const filteredCredits = useMemo(() => {
         // On ne montre que les crédits avec un solde > 0
-        const activeCredits = customerCredit.filter(c => Math.round(c.balance) > 0);
+        const activeCredits = transformedCredits.filter(c => Math.round(c.balance) > 0);
         const lowercasedTerm = searchTerm.toLowerCase();
         if (!lowercasedTerm) return activeCredits;
         return activeCredits.filter(credit => 
             credit.clientName.toLowerCase().includes(lowercasedTerm) ||
             (credit.companyName && credit.companyName.toLowerCase().includes(lowercasedTerm))
         );
-    }, [customerCredit, searchTerm]);
+    }, [transformedCredits, searchTerm]);
 
     const handlePrint = () => {
         window.print();
@@ -93,13 +142,37 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
         }
     };
 
-    const handleViewDetails = (account: CreditAccount) => {
-        setSelectedAccount(account);
+    const handleViewDetails = (account: any) => {
+        // Créer un objet compatible avec CreditAccount pour le modal
+        const creditAccount: CreditAccount = {
+            id: account.originalOrder.orderId,
+            clientName: account.clientName,
+            companyName: account.companyName,
+            balance: account.balance,
+            lastPaymentDate: account.lastPaymentDate,
+            subsidiaryId: account.subsidiaryId,
+            // Ajouter les propriétés attendues par le modal
+            ...(account.originalOrder.customerId && { contactId: account.originalOrder.customerId })
+        } as CreditAccount;
+        
+        setSelectedAccount(creditAccount);
         setIsDetailsModalOpen(true);
     };
 
-    const handleRecordPayment = (account: CreditAccount) => {
-        setSelectedAccount(account);
+    const handleRecordPayment = (account: any) => {
+        // Créer un objet compatible avec CreditAccount pour le modal
+        const creditAccount: CreditAccount = {
+            id: account.originalOrder.orderId,
+            clientName: account.clientName,
+            companyName: account.companyName,
+            balance: account.balance,
+            lastPaymentDate: account.lastPaymentDate,
+            subsidiaryId: account.subsidiaryId,
+            // Ajouter les propriétés attendues par le modal
+            ...(account.originalOrder.customerId && { contactId: account.originalOrder.customerId })
+        } as CreditAccount;
+        
+        setSelectedAccount(creditAccount);
         setIsPaymentModalOpen(true);
     };
 
@@ -108,7 +181,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
         mutationFn: ({ orderId, amount, paymentMethod }: { orderId: string; amount: number; paymentMethod: CustomerPaymentMethod }) => 
             recordOrderPayment({ orderId, amount, paymentMethod }),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['credit'] });
+            queryClient.invalidateQueries({ queryKey: ['orders', 'unpaid'] });
             toast.success('Paiement enregistré!', 'Le paiement a été enregistré avec succès.');
             setIsPaymentModalOpen(false);
         },
@@ -130,7 +203,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
         descriptionKey: 'credit.totalReceivablesDesc'
     };
 
-    if (isLoadingReceivable || isLoadingcredit) {
+    if (isLoadingReceivable || isLoadingOrders) {
         return <div className="p-6 text-center">{t('common.loading')}</div>;
     }
 

@@ -63,10 +63,17 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
 
         if (name === 'contactId') {
             const selectedClient = clients.find(c => c.id === value);
+            const accountId = selectedClient?.accountId || '';
+            
+            // Afficher un avertissement si le contact n'a pas de compte associé
+            if (value && !accountId) {
+                console.warn('Le contact sélectionné n\'a pas de compte associé. Veuillez manuellement entrer un ID de compte.');
+            }
+            
             setFormData(prev => ({
                 ...prev,
                 contactId: value,
-                accountId: selectedClient?.accountId || '',
+                accountId: accountId,
             }));
         } else {
             const numValue = name === 'opportunityValue' ? parseFloat(value) : value;
@@ -81,6 +88,25 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Validation des champs requis
+        if (!formData.contactId) {
+            alert('Veuillez sélectionner un contact');
+            return;
+        }
+        
+        if (!formData.opportunityName.trim()) {
+            alert('Veuillez saisir un nom pour l\'opportunité');
+            return;
+        }
+        
+        if (formData.opportunityValue <= 0) {
+            alert('Veuillez saisir une valeur d\'opportunité supérieure à 0');
+            return;
+        }
+        
+        // L'accountId est automatiquement récupéré depuis le contact sélectionné
+        // La filtration des contacts garantit qu'un accountId existe
         
         onSave(formData);
     };
@@ -134,12 +160,15 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
                                     <option value="" disabled>
                                         {t('crm.opportunity.form.selectClient')}
                                     </option>
-                                    {clients.map(c => (
+                                    {clients.filter(c => c.accountId).map(c => (
                                         <option key={c.id} value={c.id}>
                                             {c.contactName} - {c.company}
                                         </option>
                                     ))}
                                 </select>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Seuls les contacts avec un compte associé sont affichés
+                                </p>
                             </div>
 
                             <div>

@@ -2,6 +2,21 @@ import { Injectable, Logger, NotFoundException, ConflictException } from '@nestj
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { CreatePayrollRecordDto, UpdatePayrollRecordDto } from './dto/payrollrecord.dto';
 import { PayrollRecord, EmployeeStatus, PayrollStatus } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
+
+// Extended type for payroll records with employee data
+type PayrollRecordWithEmployee = PayrollRecord & {
+  employee: {
+    baseSalary: Decimal;
+    bonus: Decimal;
+  };
+};
+
+// Return type that includes baseSalary and bonus
+type PayrollRecordWithSalary = Omit<PayrollRecordWithEmployee, 'employee'> & {
+  baseSalary: Decimal;
+  bonus: Decimal;
+};
 
 @Injectable()
 export class PayrollRecordService {
@@ -31,15 +46,22 @@ export class PayrollRecordService {
     });
   }
 
-  async findAll(subsidiaryId: string) {
-    return this.prisma.payrollRecord.findMany({
+  async findAll(subsidiaryId: string): Promise<PayrollRecordWithSalary[]> {
+    const records = await this.prisma.payrollRecord.findMany({
       where: { subsidiaryId },
-      include: { employee: { select: { firstName: true, lastName: true } } },
+      include: { employee: { select: { firstName: true, lastName: true, baseSalary: true, bonus: true } } },
       orderBy: { payrollPeriod: 'desc' },
     });
+
+    // Transformer les données pour inclure baseSalary et bonus de l'employé
+    return records.map(record => ({
+      ...record,
+      baseSalary: record.employee.baseSalary,
+      bonus: record.employee.bonus,
+    }));
   }
 
-  async findOne(id: string): Promise<PayrollRecord> {
+  async findOne(id: string): Promise<PayrollRecordWithSalary> {
     const record = await this.prisma.payrollRecord.findUnique({
       where: { id },
       include: { employee: true },
@@ -47,7 +69,13 @@ export class PayrollRecordService {
     if (!record) {
       throw new NotFoundException(`Payroll record with ID ${id} not found.`);
     }
-    return record;
+
+    // Transformer les données pour inclure baseSalary et bonus de l'employé
+    return {
+      ...record,
+      baseSalary: record.employee.baseSalary,
+      bonus: record.employee.bonus,
+    };
   }
 
   async update(id: string, dto: UpdatePayrollRecordDto): Promise<PayrollRecord> {
@@ -68,10 +96,10 @@ export class PayrollRecordService {
    * @param id L'ID de la fiche de paie
    * @param signature La signature (texte ou base64)
    */
-  async signPayrollRecord(id: string, signature: string): Promise<PayrollRecord> {
+  async signPayrollRecord(id: string, signature: string): Promise<PayrollRecordWithSalary> {
     this.logger.log(`Signing payroll record ${id}`);
     
-    await this.findOne(id); // Vérifie l'existence
+    const record = await this.findOne(id); // Utilise findOne transformé
     
     const updatedRecord = await this.prisma.payrollRecord.update({
       where: { id },
@@ -79,10 +107,15 @@ export class PayrollRecordService {
         signature,
         status: PayrollStatus.PAID
       },
+      include: { employee: true },
     });
     
-    this.logger.log(`Payroll record ${id} signed successfully`);
-    return updatedRecord;
+    // Retourner les données transformées avec baseSalary et bonus
+    return {
+      ...updatedRecord,
+      baseSalary: updatedRecord.employee.baseSalary,
+      bonus: updatedRecord.employee.bonus,
+    };
   }
 
   /**

@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
+import { EmailService } from 'src/common/utils/email/email.service';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 import { Prisma, User, UserRole, ContactStatus } from '@prisma/client';
@@ -16,7 +17,11 @@ import { RegisterContactDto } from './dto/register-contact.dto';
 
 @Injectable()
 export class ContactsService {
-  constructor(private readonly prisma: PrismaService, private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly prisma: PrismaService, 
+    private readonly jwtService: JwtService,
+    private readonly emailService: EmailService
+  ) {}
 
   async create(createContactDto: CreateContactDto, user: User) {
     const existingContact = await this.prisma.contact.findFirst({
@@ -33,10 +38,10 @@ export class ContactsService {
     }
 
     // Générer un mot de passe temporaire pour le portail client
-   // const tempPassword = Math.random().toString(36).slice(-8);
-    //const passwordHash = await bcrypt.hash(tempPassword, 10);
-    //const passwordHash = null
-    return this.prisma.contact.create({
+    const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+    const newContact = await this.prisma.contact.create({
       data: {
         ...createContactDto,
         // Si accountId est une chaîne vide, on le remplace par undefined
@@ -45,9 +50,19 @@ export class ContactsService {
         subsidiaryId: user.subsidiaryId,
         salesRepId: user.id,
         since: createContactDto.since ? new Date(createContactDto.since) : new Date(),
-        passwordHash: '', // Fournir une chaîne vide comme valeur par défaut
+        passwordHash,
+        isVerified: true, // Le contact est vérifié automatiquement lors de la création
       },
     });
+
+    // Envoyer un email avec les identifiants de connexion
+    await this.emailService.sendWelcomeEmail(createContactDto.email, tempPassword, createContactDto.contactName);
+
+    return {
+      ...newContact,
+      tempPassword, // Retourner le mot de passe temporaire pour le développement
+      message: 'Contact créé avec succès. Un email avec les identifiants de connexion a été envoyé.'
+    };
   }
 
   async findAll(user: User) {
@@ -244,5 +259,72 @@ export class ContactsService {
     });
 
     return contactWithOrders?.orders || [];
+  }
+
+  async resetContactPassword(contactId: string, user: User) {
+    // Vérifier que le contact existe et que l'utilisateur a les droits
+    const contact = await this.findOne(contactId, user);
+
+    // Générer un nouveau mot de passe temporaire
+    const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+    // Mettre à jour le contact avec le nouveau mot de passe
+    const updatedContact = await this.prisma.contact.update({
+      where: { id: contactId },
+      data: {
+        passwordHash,
+        isVerified: true,
+      },
+    });
+
+    // Envoyer un email avec le nouveau mot de passe
+    await this.emailService.sendPasswordResetEmail(
+      contact.email, 
+      tempPassword, 
+      contact.contactName
+    );
+
+    return {
+      ...updatedContact,
+      tempPassword, // Retourner le mot de passe temporaire pour le développement
+      message: 'Mot de passe réinitialisé avec succès. Un email avec les nouveaux identifiants a été envoyé.'
+    };
+  }
+
+  async enablePortalAccess(contactId: string, user: User) {
+    // Vérifier que le contact existe et que l'utilisateur a les droits
+    const contact = await this.findOne(contactId, user);
+
+    if (contact.passwordHash) {
+      throw new ConflictException('Ce contact a déjà un accès au portail activé.');
+    }
+
+    // Générer un mot de passe temporaire
+    const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+    // Activer l'accès au portail
+    const updatedContact = await this.prisma.contact.update({
+      where: { id: contactId },
+      data: {
+        passwordHash,
+        isVerified: true,
+        status: ContactStatus.ACTIVE,
+      },
+    });
+
+    // Envoyer un email avec les identifiants
+    await this.emailService.sendWelcomeEmail(
+      contact.email, 
+      tempPassword, 
+      contact.contactName
+    );
+
+    return {
+      ...updatedContact,
+      tempPassword,
+      message: 'Accès au portail activé avec succès. Un email avec les identifiants de connexion a été envoyé.'
+    };
   }
 }

@@ -53,3 +53,13 @@ export const deletePayrollRecord = async (id: string): Promise<PayrollRecord> =>
 export const processPayroll = async (data: { period: string }): Promise<{ count: number }> => {
   return (await api.post('/hr/payroll-records/process', data)).data;
 };
+
+/**
+ * Signe une fiche de paie avec la signature de l'employé.
+ * Protégé par rôle (HR_MANAGER, ADMIN).
+ * @param payrollId - L'ID de la fiche de paie.
+ * @param signature - La signature (base64).
+ */
+export const signPayrollRecord = async (data: { payrollId: string; signature: string }): Promise<PayrollRecord> => {
+  return (await api.patch<PayrollRecord>(`/hr/payroll-records/${data.payrollId}/sign`, { signature: data.signature })).data;
+};

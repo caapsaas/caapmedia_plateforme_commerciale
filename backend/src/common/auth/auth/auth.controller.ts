@@ -4,7 +4,7 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from '../jwt/jwt.guard';
 import { RoleGuard } from '../role/role.guard';
 import { SetMetadata } from '@nestjs/common';
-import { IsString, IsEmail, IsOptional, IsUUID, IsEnum } from 'class-validator';
+import { IsString, IsEmail, IsOptional, IsUUID, IsEnum, IsNotEmpty } from 'class-validator';
 import { UserRole } from '@prisma/client';
 
 class RegisterDto {
@@ -21,6 +21,7 @@ class RegisterDto {
   userRole: UserRole;
 
   @IsUUID()
+  @IsNotEmpty()
   subsidiaryId: string;
 }
 

@@ -104,4 +104,20 @@ export class ContactsController {
   remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     return this.contactsService.remove(id, user);
   }
+
+  @Post(':id/reset-password')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
+  @HttpCode(HttpStatus.OK)
+  resetPassword(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+    return this.contactsService.resetContactPassword(id, user);
+  }
+
+  @Post(':id/enable-portal')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
+  @HttpCode(HttpStatus.OK)
+  enablePortalAccess(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+    return this.contactsService.enablePortalAccess(id, user);
+  }
 }

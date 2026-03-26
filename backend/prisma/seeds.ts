@@ -1,13 +1,14 @@
 import { PrismaClient, LeaveType } from '@prisma/client'
 import { runSubsidiarySeeder } from './seeders/subsidiary.seeder';
 import { runUserSeeder } from './seeders/user.seeder';
+import { seedEmployees } from './seeders/employee.seeder';
 import { runProductSeeder } from './seeders/product.seeder';
 import { runContactSeeder } from './seeders/contact.seeder';
 import { runEquipmentSeeder } from './seeders/equipement.seeder';
 import { runTaxRateSeeder } from './seeders/tax_rate.seeder';
 import { runOrdersSeeder } from './seeders/order.seeder';
 import { seedTreasuryAccounts } from './seeders/treasury.seeder';
-
+import { runSupplierSeeder } from './seeders/supplier.seeder';
 
 const prisma = new PrismaClient()
 
@@ -51,14 +52,16 @@ async function seedEmployeeLeaveBalances() {
 
 async function main() {
     await runSubsidiarySeeder(prisma);
+    await seedEmployees(); // Employees after subsidiary
     await runUserSeeder(prisma);
     await runProductSeeder(prisma);
     await runContactSeeder(prisma);
     await runEquipmentSeeder(prisma);
     await runTaxRateSeeder(prisma);
     await runOrdersSeeder(prisma);
+    await runSupplierSeeder(prisma);
     await seedTreasuryAccounts();
-    await seedEmployeeLeaveBalances();
+    // Note: seedEmployeeLeaveBalances is already called inside seedEmployees()
 }
 
 main()

@@ -3,6 +3,7 @@ import { ContactsService } from './contacts.service';
 import { ContactsController } from './contacts.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { ContactJwtStrategy } from 'src/common/auth/strategies/contact-jwt.strategy';
+import { EmailService } from 'src/common/utils/email/email.service';
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import { ContactJwtStrategy } from 'src/common/auth/strategies/contact-jwt.strat
     }),
   ],
   controllers: [ContactsController],
-  providers: [ContactsService, ContactJwtStrategy],
+  providers: [ContactsService, ContactJwtStrategy, EmailService],
   exports: [ContactsService], // Exporter le service pour qu'il soit utilisable par d'autres modules
 })
 export class ContactsModule {}

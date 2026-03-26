@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Subsidiary, Contact, Opportunity, User, OpportunityStage, Product, Account} from '../../types';
 import { useI18n } from '../../i18n';
+import { useToast } from '../../context/ToastContext';
 import IconPlus from '../icons/IconPlus';
 import OpportunityCard from './OpportunityCard';
 import OpportunityFormModal from './OpportunityFormModal';
@@ -69,6 +70,7 @@ const OpportunityPipeline: React.FC<OpportunityPipelineProps> = ({
 
    // console.log(allProducts);
     const { t } = useI18n();
+    const { success, error, warning } = useToast();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingOpportunity, setEditingOpportunity] = useState<Opportunity | null>(null);
 
@@ -83,7 +85,7 @@ const OpportunityPipeline: React.FC<OpportunityPipelineProps> = ({
     };
 
     // ✅ Correction ici : on adapte le type du paramètre pour correspondre à la modal
-    const handleSave = (data: Omit<Opportunity, 'id' | 'subsidiaryId' | 'userId' | 'products'> & {
+    const handleSave = async (data: Omit<Opportunity, 'id' | 'subsidiaryId' | 'userId' | 'products'> & {
         opportunityName: string;
         contactId: string;
         accountId: string;
@@ -92,41 +94,59 @@ const OpportunityPipeline: React.FC<OpportunityPipelineProps> = ({
         closeDate: string;
         productIds: string[];
     }) => {
-        // 1. Convertir la date 'YYYY-MM-DD' en format ISO-8601 complet que Prisma peut comprendre.
-        // Ensure the date is always a valid ISO string, even if it's already one.
-        const isoCloseDate = data.closeDate.includes('T')
-            ? data.closeDate
-            : new Date(data.closeDate).toISOString();
+        try {
+            // 1. Convertir la date 'YYYY-MM-DD' en format ISO-8601 complet que Prisma peut comprendre.
+            // Ensure the date is always a valid ISO string, even if it's already one.
+            const isoCloseDate = data.closeDate.includes('T')
+                ? data.closeDate
+                : new Date(data.closeDate).toISOString();
 
 
-        // 2. Construire l'objet à sauvegarder avec la date corrigée et les productIds.
-        // Le backend s'attend à recevoir `productIds`, pas `products`.
-        const saveData = {
-            ...data,
-            closeDate: isoCloseDate,
-            id: editingOpportunity?.id,
-        } as (Omit<Opportunity, 'id'> & { id?: string }) | (Partial<Opportunity> & { id: string });
+            // 2. Construire l'objet à sauvegarder avec la date corrigée et les productIds.
+            // Le backend s'attend à recevoir `productIds`, pas `products`.
+            const saveData = {
+                ...data,
+                closeDate: isoCloseDate,
+                id: editingOpportunity?.id,
+            } as (Omit<Opportunity, 'id'> & { id?: string }) | (Partial<Opportunity> & { id: string });
 
-        // Le type `Partial<Opportunity>` est utilisé pour la mutation, même si le payload final est un DTO.
-        // L'assertion de type ci-dessus garantit que nous envoyons la bonne structure.
-        props.onSaveOpportunity(saveData); 
-        setIsModalOpen(false);
+            // Le type `Partial<Opportunity>` est utilisé pour la mutation, même si le payload final est un DTO.
+            // L'assertion de type ci-dessus garantit que nous envoyons la bonne structure.
+            await props.onSaveOpportunity(saveData);
+            
+            // Afficher un toast de succès uniquement si la sauvegarde a réussi
+            if (editingOpportunity) {
+                success('Opportunité mise à jour', `${data.opportunityName} a été mise à jour avec succès`);
+            } else {
+                success('Opportunité créée', `${data.opportunityName} a été créée avec succès`);
+            }
+            
+            setIsModalOpen(false);
+        } catch (err) {
+            error('Erreur', 'Une erreur est survenue lors de la sauvegarde de l\'opportunité');
+        }
     };
 
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>, opportunityId: string) => {
         e.dataTransfer.setData("opportunityId", opportunityId);
     };
 
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>, newStage: OpportunityStage) => {
+    const handleDrop = async (e: React.DragEvent<HTMLDivElement>, newStage: OpportunityStage) => {
         e.preventDefault();
         const opportunityId = e.dataTransfer.getData("opportunityId");
         const opportunity = opportunities.find(o => o.id === opportunityId);
         
         if (opportunity && opportunity.stage !== newStage) {
-            if (newStage === OpportunityStage.WON) {
-                props.onWinOpportunity(opportunity);
-            } else {
-                props.onUpdateOpportunityStage(opportunityId, newStage);
+            try {
+                if (newStage === OpportunityStage.WON) {
+                    await props.onWinOpportunity(opportunity);
+                    success('Opportunité gagnée !', `${opportunity.opportunityName} a été marquée comme gagnée`);
+                } else {
+                    await props.onUpdateOpportunityStage(opportunityId, newStage);
+                    success('Statut mis à jour', `${opportunity.opportunityName} a été déplacée vers ${t(`crm.opportunity.stages.${newStage}`)}`);
+                }
+            } catch (err) {
+                error('Erreur', 'Une erreur est survenue lors de la mise à jour du statut');
             }
         }
         e.currentTarget.classList.remove('bg-slate-200');

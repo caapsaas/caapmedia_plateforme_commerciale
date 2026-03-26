@@ -125,6 +125,49 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
         }
     };
 
+    const handleDownloadDocument = (doc: CompanyDocument) => {
+        try {
+            const downloadUrl = getImageUrl(doc.fileUrl);
+            if (!downloadUrl) {
+                toast.error('Erreur de téléchargement', 'L\'URL du document n\'est pas disponible.');
+                return;
+            }
+            
+            // Vérifier si l'URL se termine par une extension de fichier valide
+            const validExtensions = ['.pdf', '.doc', '.docx', '.xlsx', '.xls', '.jpg', '.png', '.txt'];
+            const hasValidExtension = validExtensions.some(ext => doc.fileUrl.toLowerCase().endsWith(ext));
+            
+            if (!hasValidExtension) {
+                toast.error('Erreur de téléchargement', 'Le type de fichier n\'est pas supporté.');
+                return;
+            }
+            
+            // Créer un lien temporaire pour le téléchargement
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.target = '_blank';
+            
+            // Utiliser le nom du document avec l'extension correcte pour le téléchargement
+            const fileExtension = doc.fileUrl.split('.').pop();
+            const downloadName = doc.documentName.includes(`.${fileExtension}`) 
+                ? doc.documentName 
+                : `${doc.documentName}.${fileExtension}`;
+            
+            link.download = downloadName;
+            link.rel = 'noopener noreferrer';
+            
+            // Déclencher le téléchargement
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            toast.success('Téléchargement démarré', `Le document "${doc.documentName}" est en cours de téléchargement.`);
+        } catch (error) {
+            console.error('Erreur de téléchargement:', error);
+            toast.error('Erreur de téléchargement', 'Une erreur est survenue lors du téléchargement du document.');
+        }
+    };
+
     return (
         <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
             <div className="flex justify-between items-center mb-4">
@@ -171,9 +214,9 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-center space-x-1 no-print">
-                                    <a href={getImageUrl(doc.fileUrl)} target="_blank" rel="noopener noreferrer" className="inline-block p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-100 rounded-full transition-colors" aria-label={t('hr.absences.table.download')}>
+                                    <button onClick={() => handleDownloadDocument(doc)} className="p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-100 rounded-full transition-colors" aria-label={t('hr.absences.table.download')}>
                                         <IconDownload className="h-5 w-5" />
-                                    </a>
+                                    </button>
                                     <button onClick={() => handleOpenEditModal(doc)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
                                         <IconEdit className="h-5 w-5" />
                                     </button>

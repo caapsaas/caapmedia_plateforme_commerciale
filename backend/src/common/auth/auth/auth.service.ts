@@ -24,6 +24,12 @@ export class AuthService {
     role: UserRole,
     subsidiaryId: string,
   ) {
+    // Validation des paramètres requis
+    if (!subsidiaryId || subsidiaryId.trim() === '') {
+      this.logger.error('Subsidiary ID is required for registration', 'AuthService');
+      throw new BadRequestException('Subsidiary ID is required');
+    }
+
     // Vérifier si la filiale existe
     const subsidiary = await this.prisma.subsidiary.findUnique({
       where: { id: subsidiaryId },
@@ -166,8 +172,8 @@ export class AuthService {
       }
     }
 
-    // Vérifier si le nouvel email est déjà utilisé (si fourni)
-    if (data.email && data.email !== user.email) {
+    // Vérifier si le nouvel email est déjà utilisé (si fourni et différent)
+    if (data.email && data.email.trim() !== '' && data.email !== user.email) {
       const existingUser = await this.prisma.user.findUnique({ where: { email: data.email } });
       if (existingUser) {
         this.logger.error(`Email ${data.email} is already in use`, 'AuthService');

@@ -19,7 +19,7 @@ import NewOrder from '../../Pages/NewOrder';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getOrders, recordOrderPayment, updateOrderStatus, createOrderBySalesRep, validateOrderForProduction, FindAllOrdersDto, getTopSellingProducts } from '../../services/apiE-commerce/apiOrders';
 import { getProductsBySubsidiary } from '../../services/apiE-commerce/apiProducts';
-import { getContacts } from '../../services/apiCrm/apiContacts';
+import { getContacts } from '../../services/apiCrm/apicontacts';
 import { useAuth } from '../../context/AuthContext';
 
 const initialFilterState: FindAllOrdersDto = { period: 'ALL_TIME' };
@@ -104,7 +104,7 @@ const Sales: React.FC = () => {
     const handlePlaceOrder = (newOrderData: Omit<Order, 'id' | 'subsidiaryId'>) => {
         const formData = new FormData();
         const itemsForJson = newOrderData.items.map(item => ({
-            productId: item.productId,
+            productId: item.product.id,
             quantity: item.quantity,            
             options: item.options || [],
         }));
