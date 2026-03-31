@@ -108,7 +108,7 @@ const Header: React.FC = () => {
               />
               <div className="text-left hidden md:block">
                 <div className="font-semibold text-sm text-slate-700">{t('header.profileUser', { role: t(`roles.${user.role}`) })}</div>
-                <div className="text-xs text-slate-500">{subsidiary.subsidiaryName}</div>
+                <div className="text-xs text-slate-500">{subsidiary.name}</div>
               </div>
             </button>
             {isProfileMenuOpen && (
@@ -135,6 +135,7 @@ const Header: React.FC = () => {
 
         </div>
       </div>
+       {user.role === UserRole.ADMIN && (
        <div className="px-4">
         <div className="border-b border-slate-200">
           <nav className="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
@@ -155,6 +156,7 @@ const Header: React.FC = () => {
           </nav>
         </div>
       </div>
+      )}
     </header>
   );
 };

@@ -73,7 +73,7 @@ export class OrdersController {
      */
     @Get()
     @UseGuards(JwtAuthGuard)
-    @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
+    @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER])
     findAll(@Query() query: FindAllOrdersDto, @Req() req) {
         return this.ordersService.findAll(req.user, query);
     }
@@ -116,7 +116,7 @@ export class OrdersController {
      */
     @Get('analytics/top-selling')
     @UseGuards(JwtAuthGuard)
-    @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
+    @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER])
     findTopSellingProducts(@Req() req) {
         return this.ordersService.getBestSellingProducts(req.user);
     }
@@ -137,7 +137,7 @@ export class OrdersController {
      */
     @Patch('/order-status/:id')
     @UseGuards(JwtAuthGuard)
-    @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
+    @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER])
     updateOrderStatus(
         @Param('id') id: string,
         @Body() updateOrderStatusDto: UpdateOrderStatusDto,

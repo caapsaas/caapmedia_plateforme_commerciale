@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { User, Contact, Subsidiary, UserRole} from '../types';
 import { api } from '../services/api';
+import { useRouter } from '@tanstack/react-router';
 
 const SIDEBAR_OPEN_KEY = 'caap-isSidebarOpen';
 const SIDEBAR_COLLAPSED_KEY = 'caap-isSidebarCollapsed';
@@ -26,6 +27,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [subsidiary, setSubsidiary] = useState<AuthContextType['subsidiary']>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [contactToken, setContactToken] = useState<string | null>(localStorage.getItem('contactToken'));
+  const router = useRouter();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -98,6 +100,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // On nettoie aussi le localStorage de l'UI ici
     localStorage.removeItem(SIDEBAR_OPEN_KEY);
     localStorage.removeItem(SIDEBAR_COLLAPSED_KEY);
+    // Le routeur redirigera automatiquement vers /login via le beforeLoad
   };
 
   return (

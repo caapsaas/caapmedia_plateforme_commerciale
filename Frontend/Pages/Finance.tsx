@@ -6,15 +6,18 @@ import TreasuryManagement from '../components/finance/TreasuryManagement';
 import SupplierDebts from '../components/finance/SupplierDebts';
 import ExpenseManagement from '../components/finance/ExpenseManagement';
 import ProfitAndLossStatement from '../components/finance/ProfitAndLossStatement';
+import ExternalTransactions from '../components/finance/ExternalTransactions';
 import { useI18n } from '../i18n';
 import IconDocumentChartBar from '../components/icons/IconDocumentChartBar';
 import BalanceSheet from '../components/finance/BalanceSheet';
 import IconScale from '../components/icons/IconScale';
+import IconWallet from '../components/icons/IconWallet';
 import { useQuery } from '@tanstack/react-query';
 
 // Importez vos types de données et fonctions d'API
 import { Order, Product, ExpenseRecord, Sale, Equipment, SupplierDebt, FinancialTransaction, TreasuryAccount } from '../types';
 import { PnlStatement, BalanceSheet as BalanceSheetType } from '../services/apiStatistic/apiFinanceStats';
+import { PeriodFilterDto, PeriodFilter } from '../services/apiStatistic/apiAnalytics';
 import { getOrders } from '../services/apiE-commerce/apiOrders';
 import { getProductsBySubsidiary as getProducts } from '../services/apiE-commerce/apiProducts';
 import { getSales } from '../services/apiE-commerce/apiSales'; // à créer
@@ -32,7 +35,7 @@ const Finance: React.FC = () => {
     const [activeTab, setActiveTab] = useState<FinanceView>(FinanceView.CREDIT);
     
     // Centralisation de la gestion des filtres de période
-    const [period, setPeriod] = useState<string>('this_month');
+    const [period, setPeriod] = useState<PeriodFilter>('THIS_MONTH');
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
 
@@ -49,13 +52,13 @@ const Finance: React.FC = () => {
     const { data: expenseRecords = [], isLoading: l4 } = useQuery<ExpenseRecord[]>({ queryKey: queryKey('expenseRecords'), queryFn: () => getExpenses() });
     const { data: supplierDebts = [], isLoading: l5 } = useQuery<SupplierDebt[]>({ queryKey: queryKey('supplierDebts'), queryFn: () => getSupplierDebts() });
     const { data: equipment = [], isLoading: l6 } = useQuery<Equipment[]>({ queryKey: queryKey('equipment'), queryFn: () => getEquipments() });
-    const { data: financialTransactions = [], isLoading: l7 } = useQuery<FinancialTransaction[]>({ queryKey: queryKey('financialTransactions'), queryFn: () => getFinancialTransactions() });
-    const { data: treasuryAccounts = [], isLoading: l8 } = useQuery<TreasuryAccount[]>({ queryKey: queryKey('treasuryAccounts'), queryFn: getTreasuryAccounts });
+    const { data: financialTransactions = [], isLoading: l7 } = useQuery<FinancialTransaction[]>({ queryKey: queryKey('financialTransactions'), queryFn: () => getFinancialTransactions(subsidiary.id) });
+    const { data: treasuryAccounts = [], isLoading: l8 } = useQuery<TreasuryAccount[]>({ queryKey: queryKey('treasuryAccounts'), queryFn: () => getTreasuryAccounts(subsidiary.id) });
 
     const queryParams = useMemo(() => ({
         period: period,
-        startDate: period === 'custom' ? startDate : undefined,
-        endDate: period === 'custom' ? endDate : undefined,
+        startDate: period === 'CUSTOM' ? startDate : undefined,
+        endDate: period === 'CUSTOM' ? endDate : undefined,
     }), [period, startDate, endDate]);
 
     // Appel à l'API pour le P&L, activé seulement si l'onglet est visible
@@ -93,13 +96,15 @@ const Finance: React.FC = () => {
                             subsidiary={subsidiary} 
                             pnlData={pnlData}
                             period={period}
-                            onPeriodChange={(e) => setPeriod(e.target.value)}
+                            onPeriodChange={(e) => setPeriod(e.target.value as PeriodFilter)}
                             startDate={startDate}
                             onStartDateChange={(e) => setStartDate(e.target.value)}
                             endDate={endDate}
                             onEndDateChange={(e) => setEndDate(e.target.value)} />;
             case FinanceView.BILAN:
                 return <BalanceSheet subsidiary={subsidiary} balanceSheetData={balanceSheetData} />;
+            case FinanceView.EXTERNAL_TRANSACTIONS:
+                return <ExternalTransactions subsidiary={subsidiary} />;
             default:
                 return <CreditManagement subsidiary={subsidiary} />;
         }
@@ -130,6 +135,7 @@ const Finance: React.FC = () => {
                     <TabButton view={FinanceView.EXPENSES} label={t('finance.expenses')} />
                     <TabButton view={FinanceView.PNL} label={t('pnl.tabTitle')} icon={<IconDocumentChartBar className="h-4 w-4" />} />
                     <TabButton view={FinanceView.BILAN} label={t('finance.bilan.tabTitle')} icon={<IconScale className="h-4 w-4" />} />
+                    <TabButton view={FinanceView.EXTERNAL_TRANSACTIONS} label={t('finance.externalTransactions')} icon={<IconWallet className="h-4 w-4" />} />
                 </div>
             </div>
             

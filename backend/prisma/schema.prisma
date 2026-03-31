@@ -8,64 +8,66 @@ datasource db {
 }
 
 model Subsidiary {
-  id                    String                 @id @default(uuid()) @map("id") @db.Uuid
-  subsidiaryName        String                 @map("subsidiary_name") @db.VarChar(255)
-  logoSvg               String                 @map("logo_svg")
-  address               String                 @map("address")
-  phone                 String                 @map("phone") @db.VarChar(255)
-  email                 String                 @unique @map("email") @db.VarChar(255)
-  ifu                   String                 @map("ifu") @db.VarChar(255)
-  rccm                  String                 @map("rccm") @db.VarChar(255)
-  bankName              String                 @map("bank_name") @db.VarChar(255)
-  accountNumber         String                 @map("account_number") @db.VarChar(255)
-  swiftCode             String                 @map("swift_code") @db.VarChar(255)
-  shareCapital          Decimal                @map("share_capital") @db.Decimal(15, 2)
-  absenceRecords        AbsenceRecord[]
-  accounts              Account[]
-  attendanceRecords     AttendanceRecord[]
-  companyDocuments      CompanyDocument[]
-  contacts              Contact[]
-  contracts             Contract[]
-  creditAccounts        CreditAccount[]
-  employees             Employee[]
-  equipments            Equipment[]
-  expenseRecords        ExpenseRecord[]
-  financialTransactions FinancialTransaction[]
-  fixedAssets           FixedAsset[]
-  leads                 Lead[]
-  longTermDepts         LongTermDebt[]
-  meetings              Meeting[]
-  opportunities         Opportunity[]
-  orders                Order[]
-  payrollRecords        PayrollRecord[]
-  products              Product[]
-  purchaseOrders        PurchaseOrder[]
-  sales                 Sale[]
-  secretariatTasks      SecretariatTask[]
-  supplierDebts         SupplierDebt[]
-  suppliers             Supplier[]
-  treasuryAccounts      TreasuryAccount[]
-  users                 User[]
+  id                            String                         @id @default(uuid()) @map("id") @db.Uuid
+  subsidiaryName                String                         @map("subsidiary_name") @db.VarChar(255)
+  logoSvg                       String                         @map("logo_svg")
+  address                       String                         @map("address")
+  phone                         String                         @map("phone") @db.VarChar(255)
+  email                         String                         @unique @map("email") @db.VarChar(255)
+  ifu                           String                         @map("ifu") @db.VarChar(255)
+  rccm                          String                         @map("rccm") @db.VarChar(255)
+  bankName                      String                         @map("bank_name") @db.VarChar(255)
+  accountNumber                 String                         @map("account_number") @db.VarChar(255)
+  swiftCode                     String                         @map("swift_code") @db.VarChar(255)
+  shareCapital                  Decimal                        @map("share_capital") @db.Decimal(15, 2)
+  absenceRecords                AbsenceRecord[]
+  accounts                      Account[]
+  attendanceRecords             AttendanceRecord[]
+  companyDocuments              CompanyDocument[]
+  contacts                      Contact[]
+  contracts                     Contract[]
+  creditAccounts                CreditAccount[]
+  employees                     Employee[]
+  equipments                    Equipment[]
+  expenseRecords                ExpenseRecord[]
+  financialTransactions         FinancialTransaction[]
+  fixedAssets                   FixedAsset[]
+  leads                         Lead[]
+  longTermDepts                 LongTermDebt[]
+  meetings                      Meeting[]
+  opportunities                 Opportunity[]
+  orders                        Order[]
+  payrollRecords                PayrollRecord[]
+  products                      Product[]
+  purchaseOrders                PurchaseOrder[]
+  sales                         Sale[]
+  secretariatTasks              SecretariatTask[]
+  supplierDebts                 SupplierDebt[]
+  suppliers                     Supplier[]
+  treasuryAccounts              TreasuryAccount[]
+  users                         User[]
+  externalFinancialTransactions ExternalFinancialTransaction[]
 
   @@index([subsidiaryName]) // Ajout de cet index
   @@map("subsidiaries")
 }
 
 model User {
-  id            String        @id @default(uuid()) @map("id") @db.Uuid
-  userName      String        @map("user_name") @db.VarChar(255)
-  email         String        @unique @map("email") @db.VarChar(255)
-  passwordHash  String        @map("password_hash")
-  subsidiaryId  String        @map("subsidiary_id") @db.Uuid
-  userRole      UserRole      @map("user_role")
-  accounts      Account[]
-  contacts      Contact[]
-  crmTasks      CrmTask[]
-  interactions  Interaction[]
-  opportunities Opportunity[]
-  orders        Order[]
-  sales         Sale[]
-  subsidiary    Subsidiary    @relation(fields: [subsidiaryId], references: [id])
+  id                            String                         @id @default(uuid()) @map("id") @db.Uuid
+  userName                      String                         @map("user_name") @db.VarChar(255)
+  email                         String                         @unique @map("email") @db.VarChar(255)
+  passwordHash                  String                         @map("password_hash")
+  subsidiaryId                  String                         @map("subsidiary_id") @db.Uuid
+  userRole                      UserRole                       @map("user_role")
+  accounts                      Account[]
+  contacts                      Contact[]
+  crmTasks                      CrmTask[]
+  interactions                  Interaction[]
+  opportunities                 Opportunity[]
+  orders                        Order[]
+  sales                         Sale[]
+  subsidiary                    Subsidiary                     @relation(fields: [subsidiaryId], references: [id])
+  externalFinancialTransactions ExternalFinancialTransaction[]
 
   @@map("users")
 }
@@ -571,6 +573,31 @@ model FinancialTransaction {
   @@index([status])
   @@index([treasuryAccountId])
   @@map("financial_transactions")
+}
+
+model ExternalFinancialTransaction {
+  id                          String                      @id @default(uuid()) @map("id") @db.Uuid
+  transactionDate             DateTime                    @map("transaction_date")
+  description                 String                      @map("description")
+  amount                      Decimal                     @map("amount") @db.Decimal(15, 2)
+  externalTransactionType     ExternalTransactionType     @map("external_transaction_type")
+  externalTransactionCategory ExternalTransactionCategory @map("external_transaction_category")
+  status                      ExternalTransactionStatus   @map("status")
+  paymentMethod               PaymentMethod               @map("payment_method")
+  referenceNumber             String?                     @map("reference_number") @db.VarChar(100)
+  createdBy                   String                      @map("created_by") @db.Uuid
+  subsidiaryId                String                      @map("subsidiary_id") @db.Uuid
+  createdAt                   DateTime                    @default(now()) @map("created_at")
+  updatedAt                   DateTime                    @updatedAt @map("updated_at")
+  subsidiary                  Subsidiary                  @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  creator                     User                        @relation(fields: [createdBy], references: [id])
+
+  @@index([subsidiaryId, transactionDate])
+  @@index([externalTransactionType])
+  @@index([externalTransactionCategory])
+  @@index([status])
+  @@index([createdBy])
+  @@map("external_financial_transactions")
 }
 
 model CompanyDocument {
@@ -1149,4 +1176,41 @@ enum DocumentType {
   ID_CARD
   WORK_PERMIT
   DIPLOMA
+}
+
+enum ExternalTransactionType {
+  INVESTMENT
+  INVESTMENT_RETURN
+  LOAN
+  DONATION
+  PERSONAL_EXPENSE
+  PERSONAL_INCOME
+  TAX_REFUND
+  INSURANCE_PAYOUT
+  LEGAL_SETTLEMENT
+  OTHER_FINANCIAL
+}
+
+enum ExternalTransactionCategory {
+  REAL_ESTATE
+  VEHICLE
+  EQUIPMENT
+  EDUCATION
+  HEALTH
+  TRAVEL
+  ENTERTAINMENT
+  PERSONAL_SAVINGS
+  FAMILY_SUPPORT
+  CHARITY
+  INVESTMENT_RETURN
+  TAX_REFUND
+  INSURANCE_PAYOUT
+  LEGAL_SETTLEMENT
+  OTHER
+}
+
+enum ExternalTransactionStatus {
+  DRAFT
+  VALIDATED
+  CANCELLED
 }

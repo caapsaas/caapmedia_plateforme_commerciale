@@ -48,7 +48,83 @@ export enum FinanceView {
     SUPPLIERS = 'suppliers',
     EXPENSES = 'expenses',
     PNL = 'pnl',
-    BILAN = 'bilan'
+    BILAN = 'bilan',
+    EXTERNAL_TRANSACTIONS = 'external_transactions',
+    INVESTMENT = 'investment',
+    INVESTMENT_RETURN = 'investment_return',
+    LOAN = 'loan',
+    DONATION = 'donation',
+    PERSONAL_EXPENSE = 'personal_expense',
+    PERSONAL_INCOME = 'personal_income',
+    TAX_REFUND = 'tax_refund',
+    INSURANCE_PAYOUT = 'insurance_payout',
+    LEGAL_SETTLEMENT = 'legal_settlement',
+    OTHER_FINANCIAL = 'other_financial',
+    REAL_ESTATE = 'real_estate',
+    VEHICLE = 'vehicle',
+}
+
+export enum ExternalTransactionType {
+  INVESTMENT = 'INVESTMENT',
+  INVESTMENT_RETURN = 'INVESTMENT_RETURN',
+  LOAN = 'LOAN',
+  DONATION = 'DONATION',
+  PERSONAL_EXPENSE = 'PERSONAL_EXPENSE',
+  PERSONAL_INCOME = 'PERSONAL_INCOME',
+  TAX_REFUND = 'TAX_REFUND',
+  INSURANCE_PAYOUT = 'INSURANCE_PAYOUT',
+  LEGAL_SETTLEMENT = 'LEGAL_SETTLEMENT',
+  OTHER_FINANCIAL = 'OTHER_FINANCIAL'
+}
+
+export enum ExternalTransactionCategory {
+  REAL_ESTATE = 'REAL_ESTATE',
+  VEHICLE = 'VEHICLE',
+  EQUIPMENT = 'EQUIPMENT',
+  EDUCATION = 'EDUCATION',
+  HEALTH = 'HEALTH',
+  TRAVEL = 'TRAVEL',
+  ENTERTAINMENT = 'ENTERTAINMENT',
+  PERSONAL_SAVINGS = 'PERSONAL_SAVINGS',
+  FAMILY_SUPPORT = 'FAMILY_SUPPORT',
+  CHARITY = 'CHARITY',
+  INVESTMENT_RETURN = 'INVESTMENT_RETURN',
+  TAX_REFUND = 'TAX_REFUND',
+  INSURANCE_PAYOUT = 'INSURANCE_PAYOUT',
+  LEGAL_SETTLEMENT = 'LEGAL_SETTLEMENT',
+  OTHER = 'OTHER'
+}
+
+export enum ExternalTransactionStatus {
+  DRAFT = 'DRAFT',
+  VALIDATED = 'VALIDATED',
+  CANCELLED = 'CANCELLED'
+}
+
+export interface ExternalFinancialTransaction {
+  id: string;
+  transactionDate: string;
+  description: string;
+  amount: number;
+  externalTransactionType: ExternalTransactionType;
+  externalTransactionCategory: ExternalTransactionCategory;
+  status: ExternalTransactionStatus;
+  paymentMethod: PaymentMethod;
+  referenceNumber?: string;
+  relatedDocumentUrl?: string;
+  createdBy: string;
+  subsidiaryId: string;
+  createdAt: string;
+  updatedAt: string;
+  creator?: {
+    id: string;
+    userName: string;
+    email: string;
+  };
+  subsidiary?: {
+    id: string;
+    subsidiaryName: string;
+  };
 }
 
 export interface Subsidiary {

@@ -119,7 +119,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, isLiked
                   
                 </div>
                 <div className="flex justify-between items-center mt-4">
-                    <span className="text-xl font-extrabold text-[#231F20]">{formatCurrency(product.sellingPrice)}</span>
+                    
                     <button 
                         onClick={() => {
                             if (isOutOfStock) {
@@ -128,7 +128,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, isLiked
                             }
                             if (product.configurableOptions) {
                                 // Ouvrir WhatsApp pour les produits configurables
-                                const phoneNumber = "237656646446";
+                                const phoneNumber = "237671890184";
                                 const message = `Bonjour, je souhaite commander le produit suivant:\n\n${product.productName}\n\nPouvez-vous me donner plus d'informations sur les options de configuration ?`;
                                 const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
                                 window.open(whatsappUrl, '_blank');

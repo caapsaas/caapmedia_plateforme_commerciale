@@ -24,7 +24,9 @@ const frTranslations = {
     "export": "Exporter en CSV",
     "exportPdf": "Exporter en PDF",
     "send": "Envoyer",
-    "notAvailable": "Non défini"
+    "notAvailable": "Non défini",
+    "create": "Créer",
+    "update": "Mettre à jour"
   },
    "contactModal": {
     "title": "Contactez-nous",
@@ -221,6 +223,11 @@ const frTranslations = {
     "total": "Total",
     "status": "Statut",
     "backToShop": "Retour à la boutique"
+  },
+  "paymentMethods": {
+    "BANK_TRANSFER": "Virement bancaire",
+    "CHECK": "Chèque",
+    "CASH": "Espèces"
   },
   "analytics": {
     "title": "Analyses",
@@ -494,7 +501,10 @@ const frTranslations = {
       "cash": "Espèces",
       "card": "Carte",
       "check": "Chèque",
-      "mobile": "Mobile"
+      "mobile": "Mobile",
+      "BANK_TRANSFER": "Virement bancaire",
+      "CHECK": "Chèque",
+      "CASH": "Espèces"
     },
     "clientSection": {
       "title": "Client",
@@ -585,6 +595,7 @@ const frTranslations = {
     "treasury": "Trésorerie",
     "supplierDebts": "Dettes Fournisseurs",
     "expenses": "Charges",
+    "externalTransactions": "Transactions Externes",
     "bilan": {
       "tabTitle": "Bilan",
       "title": "Bilan Financier",
@@ -688,6 +699,115 @@ const frTranslations = {
       "allCategories": "Toutes les catégories",
       "type": "Type",
       "allTypes": "Tous les types"
+    }
+  },
+  "externalTransactions": {
+    "title": "Transactions Externes",
+    "noData": "Aucune transaction externe trouvée",
+    "error": {
+      "loading": "Erreur lors du chargement des transactions externes",
+      "create": "Erreur lors de la création de la transaction",
+      "update": "Erreur lors de la mise à jour de la transaction",
+      "validate": "Erreur lors de la validation de la transaction",
+      "cancel": "Erreur lors de l'annulation de la transaction",
+      "delete": "Erreur lors de la suppression de la transaction"
+    },
+    "success": {
+      "created": "Transaction créée avec succès",
+      "updated": "Transaction mise à jour avec succès",
+      "validated": "Transaction validée avec succès",
+      "cancelled": "Transaction annulée avec succès",
+      "deleted": "Transaction supprimée avec succès",
+      "exported": "Données exportées avec succès"
+    },
+    "confirm": {
+      "delete": "Êtes-vous sûr de vouloir supprimer cette transaction ? Cette action est irréversible."
+    },
+    "stats": {
+      "total": "Total des transactions",
+      "totalAmount": "Montant total",
+      "validated": "Transactions validées",
+      "pending": "Transactions en attente",
+      "summary": "Résumé",
+      "totalIncome": "Total des recettes",
+      "totalExpenses": "Total des dépenses",
+      "netAmount": "Montant net"
+    },
+    "filters": {
+      "allTypes": "Tous les types",
+      "allStatus": "Tous les statuts",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "search": "Rechercher..."
+    },
+    "actions": {
+      "create": "Nouvelle transaction",
+      "validate": "Valider",
+      "cancel": "Annuler",
+      "exportCSV": "Exporter CSV",
+      "exportPDF": "Exporter PDF",
+      "document": "Voir document"
+    },
+    "table": {
+      "date": "Date",
+      "description": "Description",
+      "amount": "Montant",
+      "type": "Type",
+      "category": "Catégorie",
+      "status": "Statut",
+      "actions": "Actions",
+      "reference": "Référence"
+    },
+    "create": {
+      "title": "Créer une transaction externe"
+    },
+    "edit": {
+      "title": "Modifier la transaction externe"
+    },
+    "form": {
+      "date": "Date de transaction",
+      "description": "Description",
+      "amount": "Montant",
+      "type": "Type de transaction",
+      "category": "Catégorie",
+      "paymentMethod": "Méthode de paiement",
+      "referenceNumber": "Numéro de référence",
+      "document": "Document",
+      "documentUrl": "URL du document"
+    },
+    "types": {
+      "INVESTMENT": "Investissement",
+      "INVESTMENT_RETURN": "Retour sur investissement",
+      "LOAN": "Prêt",
+      "DONATION": "Don",
+      "PERSONAL_EXPENSE": "Dépense personnelle",
+      "PERSONAL_INCOME": "Revenu personnel",
+      "TAX_REFUND": "Remboursement d'impôt",
+      "INSURANCE_PAYOUT": "Indemnité d'assurance",
+      "LEGAL_SETTLEMENT": "Règlement judiciaire",
+      "OTHER_FINANCIAL": "Autre transaction financière"
+    },
+    "categories": {
+      "REAL_ESTATE": "Immobilier",
+      "VEHICLE": "Véhicule",
+      "EQUIPMENT": "Équipement",
+      "EDUCATION": "Éducation",
+      "HEALTH": "Santé",
+      "TRAVEL": "Voyage",
+      "ENTERTAINMENT": "Loisirs",
+      "PERSONAL_SAVINGS": "Épargne personnelle",
+      "FAMILY_SUPPORT": "Soutien familial",
+      "CHARITY": "Carité",
+      "INVESTMENT_RETURN": "Retour sur investissement",
+      "TAX_REFUND": "Remboursement d'impôt",
+      "INSURANCE_PAYOUT": "Indemnité d'assurance",
+      "LEGAL_SETTLEMENT": "Règlement judiciaire",
+      "OTHER": "Autre"
+    },
+    "status": {
+      "DRAFT": "Brouillon",
+      "VALIDATED": "Validé",
+      "CANCELLED": "Annulé"
     }
   },
   "filter": {
@@ -1393,9 +1513,11 @@ const enTranslations: Translations = {
         "view": "Details",
         "print": "Print",
         "export": "Export to CSV",
-        "send": "Envoyer",
+        "send": "Send",
         "exportPdf": "Export to PDF",
-        "notAvailable": "Not defined"
+        "notAvailable": "Not defined",
+        "create": "Create",
+        "update": "Update"
     },
     "contactModal": {
     "title": "Contactez-nous",
@@ -1592,6 +1714,11 @@ const enTranslations: Translations = {
         "total": "Total",
         "status": "Status",
         "backToShop": "Back to Shop"
+    },
+    "paymentMethods": {
+        "BANK_TRANSFER": "Bank Transfer",
+        "CHECK": "Check",
+        "CASH": "Cash"
     },
     "analytics": {
         "title": "Analytics",
@@ -1865,7 +1992,10 @@ const enTranslations: Translations = {
             "cash": "Cash",
             "card": "Card",
             "check": "Check",
-            "mobile": "Mobile"
+            "mobile": "Mobile",
+            "BANK_TRANSFER": "Bank Transfer",
+            "CHECK": "Check",
+            "CASH": "Cash"
         },
         "clientSection": {
           "title": "Customer",
@@ -1956,6 +2086,7 @@ const enTranslations: Translations = {
         "treasury": "Treasury",
         "supplierDebts": "Supplier Debts",
         "expenses": "Expenses",
+        "externalTransactions": "External Transactions",
         "bilan": {
           "tabTitle": "Balance Sheet",
           "title": "Balance Sheet",
@@ -2059,6 +2190,115 @@ const enTranslations: Translations = {
             "allCategories": "All categories",
             "type": "Type",
             "allTypes": "All types"
+        }
+    },
+    "externalTransactions": {
+        "title": "External Transactions",
+        "noData": "No external transactions found",
+        "error": {
+            "loading": "Error loading external transactions",
+            "create": "Error creating transaction",
+            "update": "Error updating transaction",
+            "validate": "Error validating transaction",
+            "cancel": "Error cancelling transaction",
+            "delete": "Error deleting transaction"
+        },
+        "success": {
+            "created": "Transaction created successfully",
+            "updated": "Transaction updated successfully",
+            "validated": "Transaction validated successfully",
+            "cancelled": "Transaction cancelled successfully",
+            "deleted": "Transaction deleted successfully",
+            "exported": "Data exported successfully"
+        },
+        "confirm": {
+            "delete": "Are you sure you want to delete this transaction? This action is irreversible."
+        },
+        "stats": {
+            "total": "Total transactions",
+            "totalAmount": "Total amount",
+            "validated": "Validated transactions",
+            "pending": "Pending transactions",
+            "summary": "Summary",
+            "totalIncome": "Total income",
+            "totalExpenses": "Total expenses",
+            "netAmount": "Net amount"
+        },
+        "filters": {
+            "allTypes": "All types",
+            "allStatus": "All status",
+            "startDate": "Start date",
+            "endDate": "End date",
+            "search": "Search..."
+        },
+        "actions": {
+            "create": "New transaction",
+            "validate": "Validate",
+            "cancel": "Cancel",
+            "exportCSV": "Export CSV",
+            "exportPDF": "Export PDF",
+            "document": "View document"
+        },
+        "table": {
+            "date": "Date",
+            "description": "Description",
+            "amount": "Amount",
+            "type": "Type",
+            "category": "Category",
+            "status": "Status",
+            "actions": "Actions",
+            "reference": "Reference"
+        },
+        "create": {
+            "title": "Create external transaction"
+        },
+        "edit": {
+            "title": "Edit external transaction"
+        },
+        "form": {
+            "date": "Transaction date",
+            "description": "Description",
+            "amount": "Amount",
+            "type": "Transaction type",
+            "category": "Category",
+            "paymentMethod": "Payment method",
+            "referenceNumber": "Reference number",
+            "document": "Document",
+            "documentUrl": "Document URL"
+        },
+        "types": {
+            "INVESTMENT": "Investment",
+            "INVESTMENT_RETURN": "Investment return",
+            "LOAN": "Loan",
+            "DONATION": "Donation",
+            "PERSONAL_EXPENSE": "Personal expense",
+            "PERSONAL_INCOME": "Personal income",
+            "TAX_REFUND": "Tax refund",
+            "INSURANCE_PAYOUT": "Insurance payout",
+            "LEGAL_SETTLEMENT": "Legal settlement",
+            "OTHER_FINANCIAL": "Other financial transaction"
+        },
+        "categories": {
+            "REAL_ESTATE": "Real estate",
+            "VEHICLE": "Vehicle",
+            "EQUIPMENT": "Equipment",
+            "EDUCATION": "Education",
+            "HEALTH": "Health",
+            "TRAVEL": "Travel",
+            "ENTERTAINMENT": "Entertainment",
+            "PERSONAL_SAVINGS": "Personal savings",
+            "FAMILY_SUPPORT": "Family support",
+            "CHARITY": "Charity",
+            "INVESTMENT_RETURN": "Investment return",
+            "TAX_REFUND": "Tax refund",
+            "INSURANCE_PAYOUT": "Insurance payout",
+            "LEGAL_SETTLEMENT": "Legal settlement",
+            "OTHER": "Other"
+        },
+        "status": {
+            "DRAFT": "Draft",
+            "VALIDATED": "Validated",
+            "CANCELLED": "Cancelled"
         }
     },
     "filter": {

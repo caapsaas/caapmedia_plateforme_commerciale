@@ -44,7 +44,7 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ cartItems, onClose, onUpdat
     };
 
     const handleWhatsAppOrder = () => {
-        const phoneNumber = "237656646446"; // Numéro WhatsApp à configurer
+        const phoneNumber = "237671890184"; // Numéro WhatsApp à configurer
         const message = cartItems.map(item => 
             `${item.quantity}x ${item.product.productName} - ${formatCurrency(item.totalPrice)}`
         ).join('\n');
@@ -125,13 +125,20 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ cartItems, onClose, onUpdat
                                         </div>
                                     </div>
                                     <div className="flex flex-col items-end">
-                                        <p className="font-bold">{formatCurrency(item.totalPrice)}</p>
+                                       
                                         <p className="text-xs text-slate-500">({formatCurrency(item.unitPrice)}/u)</p>
                                         <button 
                                             onClick={() => {
-                                                const phoneNumber = "237656646446";
+                                                const phoneNumber = "237671890184";
                                                 const message = `Bonjour, je souhaite commander: ${item.quantity}x ${item.product.productName} - ${formatCurrency(item.totalPrice)}`;
-                                                const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+                                                
+                                                // Nettoyer le numéro (enlever les espaces et caractères spéciaux)
+                                                const cleanPhone = phoneNumber.replace(/[\s\-\(\)]/g, '');
+                                                
+                                                // Créer l'URL WhatsApp avec le bon format
+                                                const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+                                                
+                                                console.log('WhatsApp URL:', whatsappUrl); // Debug pour vérifier l'URL
                                                 
                                                 window.open(whatsappUrl, '_blank');
                                                 toast.success('Commande envoyée!', 'Votre commande a été envoyée via WhatsApp avec succès.');

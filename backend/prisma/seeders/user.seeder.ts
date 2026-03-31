@@ -39,6 +39,34 @@ export async function runUserSeeder(prisma: PrismaClient) {
             userRole: 'PRODUCTION_DIRECTOR',
             subsidiaryEmail: 'contact.douala@caap.cm',
         },
+         {
+            userName: 'Stephanie  Secretaire',
+            email: 'stephanie.secretaire@caap.cm',
+            password: 'password',
+            userRole: 'SECRETARY',
+            subsidiaryEmail: 'contact.douala@caap.cm',
+        },
+         {
+            userName: 'Richard Directeur Financier',
+            email: 'richard.finance@caap.cm',
+            password: 'password',
+            userRole: 'FINANCIAL_DIRECTOR',
+            subsidiaryEmail: 'contact.douala@caap.cm',
+        },
+         {
+            userName: 'Louis Bernard rh',
+            email: 'louis.rh@caap.cm',
+            password: 'password',
+            userRole: 'HR_MANAGER',
+            subsidiaryEmail: 'contact.douala@caap.cm',
+        },
+         {
+            userName: 'Richard Responsable Achats',
+            email: 'richard.achats@caap.cm',
+            password: 'password',
+            userRole: 'PURCHASING_MANAGER',
+            subsidiaryEmail: 'contact.douala@caap.cm',
+        },
     ];
 
     for (const u of users) {
