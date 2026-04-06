@@ -808,6 +808,28 @@ const frTranslations = {
       "DRAFT": "Brouillon",
       "VALIDATED": "Validé",
       "CANCELLED": "Annulé"
+    },
+    "notifications": {
+      "created": {
+        "title": "Nouvelle Transaction Externe Créée",
+        "message": "{{creator}} a créé une nouvelle transaction externe : {{description}} pour {{amount}}"
+      },
+      "updated": {
+        "title": "Transaction Externe Modifiée",
+        "message": "{{creator}} a modifié la transaction externe : {{description}} pour {{amount}}"
+      },
+      "validated": {
+        "title": "Transaction Externe Validée",
+        "message": "{{creator}} a validé la transaction externe : {{description}} pour {{amount}}"
+      },
+      "cancelled": {
+        "title": "Transaction Externe Annulée",
+        "message": "{{creator}} a annulé la transaction externe : {{description}} pour {{amount}}"
+      },
+      "deleted": {
+        "title": "Transaction Externe Supprimée",
+        "message": "{{creator}} a supprimé la transaction externe : {{description}} pour {{amount}}"
+      }
     }
   },
   "filter": {
@@ -1488,6 +1510,24 @@ const frTranslations = {
     "listTitle": "Liste des équipements",
     "acquisitionDate": "Date d'acquisition",
     "acquisitionValue": "Valeur d'acquisition"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllAsRead": "Tout marquer comme lu",
+    "markAsRead": "Marquer comme lu",
+    "noNotifications": "Aucune notification",
+    "error": {
+      "loading": "Erreur lors du chargement des notifications",
+      "markAsRead": "Erreur lors du marquage comme lu",
+      "markAllAsRead": "Erreur lors du marquage de toutes comme lues"
+    },
+    "types": {
+      "EXTERNAL_TRANSACTION_CREATED": "Transaction Externe Créée",
+      "EXTERNAL_TRANSACTION_UPDATED": "Transaction Externe Modifiée",
+      "EXTERNAL_TRANSACTION_VALIDATED": "Transaction Externe Validée",
+      "EXTERNAL_TRANSACTION_CANCELLED": "Transaction Externe Annulée",
+      "EXTERNAL_TRANSACTION_DELETED": "Transaction Externe Supprimée"
+    }
   }
 };
 
@@ -2299,6 +2339,28 @@ const enTranslations: Translations = {
             "DRAFT": "Draft",
             "VALIDATED": "Validated",
             "CANCELLED": "Cancelled"
+        },
+        "notifications": {
+            "created": {
+                "title": "New External Transaction Created",
+                "message": "{{creator}} created a new external transaction: {{description}} for {{amount}}"
+            },
+            "updated": {
+                "title": "External Transaction Updated",
+                "message": "{{creator}} updated the external transaction: {{description}} for {{amount}}"
+            },
+            "validated": {
+                "title": "External Transaction Validated",
+                "message": "{{creator}} validated the external transaction: {{description}} for {{amount}}"
+            },
+            "cancelled": {
+                "title": "External Transaction Cancelled",
+                "message": "{{creator}} cancelled the external transaction: {{description}} for {{amount}}"
+            },
+            "deleted": {
+                "title": "External Transaction Deleted",
+                "message": "{{creator}} deleted the external transaction: {{description}} for {{amount}}"
+            }
         }
     },
     "filter": {
@@ -2981,6 +3043,24 @@ const enTranslations: Translations = {
         "listTitle": "Equipment List",
         "acquisitionDate": "Acquisition Date",
         "acquisitionValue": "Acquisition Value"
+    },
+    "notifications": {
+        "title": "Notifications",
+        "markAllAsRead": "Mark all as read",
+        "markAsRead": "Mark as read",
+        "noNotifications": "No notifications",
+        "error": {
+            "loading": "Error loading notifications",
+            "markAsRead": "Error marking notification as read",
+            "markAllAsRead": "Error marking all notifications as read"
+        },
+        "types": {
+            "EXTERNAL_TRANSACTION_CREATED": "External Transaction Created",
+            "EXTERNAL_TRANSACTION_UPDATED": "External Transaction Updated",
+            "EXTERNAL_TRANSACTION_VALIDATED": "External Transaction Validated",
+            "EXTERNAL_TRANSACTION_CANCELLED": "External Transaction Cancelled",
+            "EXTERNAL_TRANSACTION_DELETED": "External Transaction Deleted"
+        }
     }
 };
 

@@ -68,8 +68,26 @@ model User {
   sales                         Sale[]
   subsidiary                    Subsidiary                     @relation(fields: [subsidiaryId], references: [id])
   externalFinancialTransactions ExternalFinancialTransaction[]
+  notifications                  Notification[]
 
   @@map("users")
+}
+
+model Notification {
+  id          String            @id @default(uuid()) @map("id") @db.Uuid
+  type        String            @map("type") @db.VarChar(100)
+  title       String            @map("title") @db.VarChar(255)
+  message     String            @map("message")
+  data        Json?             @map("data")
+  read        Boolean           @default(false) @map("read")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  userId      String            @map("user_id") @db.Uuid
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([createdAt])
+  @@map("notifications")
 }
 
 model ConfigurableOptionItem {

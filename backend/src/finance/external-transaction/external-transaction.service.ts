@@ -3,10 +3,24 @@ import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { CreateExternalTransactionDto } from './dto/create-external-transaction.dto';
 import { UpdateExternalTransactionDto } from './dto/update-external-transaction.dto';
 import { ExternalTransactionStatus } from '@prisma/client';
+import { NotificationsService } from '../../notifications/notifications.service';
 
 @Injectable()
 export class ExternalTransactionService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService
+  ) {}
+
+  // Utilitaire pour formater les montants
+  private formatAmount(amount: number): string {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'XOF',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  }
 
   async create(createDto: CreateExternalTransactionDto) {
     try {
@@ -31,6 +45,20 @@ export class ExternalTransactionService {
             },
           },
         },
+      });
+
+      // Envoyer une notification aux admins et directeurs financiers
+      await this.notificationsService.sendAdminNotification({
+        type: 'EXTERNAL_TRANSACTION_CREATED',
+        title: 'Nouvelle Transaction Externe Créée',
+        message: `${transaction.creator.userName || transaction.creator.email} a créé une nouvelle transaction externe : ${transaction.description} pour ${this.formatAmount(transaction.amount.toNumber())}`,
+        data: {
+          transactionId: transaction.id,
+          subsidiaryId: transaction.subsidiaryId,
+          createdBy: transaction.createdBy,
+          userName: transaction.creator.userName || transaction.creator.email,
+          action: 'created'
+        }
       });
 
       return transaction;
@@ -164,6 +192,20 @@ export class ExternalTransactionService {
       },
     });
 
+    // Envoyer une notification aux admins et directeurs financiers
+    await this.notificationsService.sendAdminNotification({
+      type: 'EXTERNAL_TRANSACTION_UPDATED',
+      title: 'Transaction Externe Modifiée',
+      message: `${updatedTransaction.creator.userName || updatedTransaction.creator.email} a modifié la transaction externe : ${updatedTransaction.description} pour ${this.formatAmount(updatedTransaction.amount.toNumber())}`,
+      data: {
+        transactionId: updatedTransaction.id,
+        subsidiaryId: updatedTransaction.subsidiaryId,
+        createdBy: updatedTransaction.createdBy,
+        userName: updatedTransaction.creator.userName || updatedTransaction.creator.email,
+        action: 'updated'
+      }
+    });
+
     return updatedTransaction;
   }
 
@@ -200,6 +242,20 @@ export class ExternalTransactionService {
       },
     });
 
+    // Envoyer une notification aux admins et directeurs financiers
+    await this.notificationsService.sendAdminNotification({
+      type: 'EXTERNAL_TRANSACTION_VALIDATED',
+      title: 'Transaction Externe Validée',
+      message: `${validatedTransaction.creator.userName || validatedTransaction.creator.email} a validé la transaction externe : ${validatedTransaction.description} pour ${this.formatAmount(validatedTransaction.amount.toNumber())}`,
+      data: {
+        transactionId: validatedTransaction.id,
+        subsidiaryId: validatedTransaction.subsidiaryId,
+        createdBy: validatedTransaction.createdBy,
+        userName: validatedTransaction.creator.userName || validatedTransaction.creator.email,
+        action: 'validated'
+      }
+    });
+
     return validatedTransaction;
   }
 
@@ -232,6 +288,20 @@ export class ExternalTransactionService {
       },
     });
 
+    // Envoyer une notification aux admins et directeurs financiers
+    await this.notificationsService.sendAdminNotification({
+      type: 'EXTERNAL_TRANSACTION_CANCELLED',
+      title: 'Transaction Externe Annulée',
+      message: `${cancelledTransaction.creator.userName || cancelledTransaction.creator.email} a annulé la transaction externe : ${cancelledTransaction.description} pour ${this.formatAmount(cancelledTransaction.amount.toNumber())}`,
+      data: {
+        transactionId: cancelledTransaction.id,
+        subsidiaryId: cancelledTransaction.subsidiaryId,
+        createdBy: cancelledTransaction.createdBy,
+        userName: cancelledTransaction.creator.userName || cancelledTransaction.creator.email,
+        action: 'cancelled'
+      }
+    });
+
     return cancelledTransaction;
   }
 
@@ -241,6 +311,20 @@ export class ExternalTransactionService {
     if (transaction.status === ExternalTransactionStatus.VALIDATED) {
       throw new BadRequestException('Impossible de supprimer une transaction validée');
     }
+
+    // Envoyer une notification avant la suppression
+    await this.notificationsService.sendAdminNotification({
+      type: 'EXTERNAL_TRANSACTION_DELETED',
+      title: 'Transaction Externe Supprimée',
+      message: `${transaction.creator.userName || transaction.creator.email} a supprimé la transaction externe : ${transaction.description} pour ${this.formatAmount(transaction.amount.toNumber())}`,
+      data: {
+        transactionId: transaction.id,
+        subsidiaryId: transaction.subsidiaryId,
+        createdBy: transaction.createdBy,
+        userName: transaction.creator.userName || transaction.creator.email,
+        action: 'deleted'
+      }
+    });
 
     await this.prisma.externalFinancialTransaction.delete({
       where: { id },
