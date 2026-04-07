@@ -41,4 +41,14 @@ export class NotificationsController {
   }) {
     return this.notificationsService.sendFinancialDirectorNotification(payload);
   }
+
+  @Post('email-nalobert')
+  async sendEmailToNalobert(@Body() payload: {
+    to: string;
+    subject: string;
+    message: string;
+    transactionData: any;
+  }) {
+    return this.notificationsService.sendEmailToNalobert(payload);
+  }
 }

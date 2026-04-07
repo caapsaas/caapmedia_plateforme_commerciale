@@ -86,7 +86,6 @@ if (!user || (!subsidiary && user.role !== UserRole.ADMIN)) return null;
           { to: '/dashboard/hr', label: t('sidebar.hrManagement'), icon: <IconBriefcase className="h-6 w-6 shrink-0" /> },
           { to: '/dashboard/secretariat', label: t('sidebar.secretariat'), icon: <IconClipboardList className="h-6 w-6 shrink-0" /> },
           { to: '/dashboard/configuration', label: t('sidebar.configuration'), icon: <IconSettings className="h-6 w-6 shrink-0" /> },
-          { to: '/dashboard/ai-marketing', label: t('sidebar.aiAssistant'), icon: <IconAi className="h-6 w-6 shrink-0" /> },
         ];
       case UserRole.COMMERCIAL:
         return [

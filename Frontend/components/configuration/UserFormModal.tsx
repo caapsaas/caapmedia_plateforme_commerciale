@@ -35,7 +35,7 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
                 userName: user.userName,
                 email: user.email,
                 userRole: user.userRole,
-                subsidiaryId: user.subsidiaryId,
+                subsidiaryId: user.subsidiaryId || currentSubsidiaryId || (subsidiaries.length > 0 ? subsidiaries[0].id : ''),
             });
         } else {
             setFormData(initialFormState);
@@ -66,9 +66,9 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
             }
         }
 
-        // Validation pour les nouveaux utilisateurs
+        // Validation pour les nouveaux utilisateurs uniquement
         if (!user && (!formData.subsidiaryId || formData.subsidiaryId.trim() === '')) {
-            setPasswordError('La sélection d\'une filiale est requise');
+            setPasswordError(t('login.errorSelectSubsidiary'));
             return;
         }
 
@@ -98,13 +98,30 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
                 ...(password ? { password } : {})
             };
         } else {
+            // Mode édition : toujours inclure l'ID
+            saveData.id = user.id;
+            
+            // Inclure uniquement les champs qui ont changé
+            if (formData.userName !== user?.userName) {
+                saveData.userName = formData.userName;
+            }
+            if (formData.email !== user?.email) {
+                saveData.email = formData.email;
+            }
+            if (formData.userRole !== user?.userRole) {
+                saveData.userRole = formData.userRole;
+            }
             if (formData.subsidiaryId !== user?.subsidiaryId) {
                 saveData.subsidiaryId = formData.subsidiaryId;
             }
+            if (showPasswordFields && password) {
+                saveData.password = password;
+            }
         }
 
-        if (Object.keys(saveData).length === 0) {
-            // Si aucun champ n'a changé, ne rien envoyer
+        // En mode édition, si seul l'ID est présent (aucun changement), fermer le modal
+        if (user && Object.keys(saveData).length === 1) { // Juste l'ID
+            onClose();
             return;
         }
 

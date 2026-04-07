@@ -11,7 +11,6 @@ import Sales from './components/sales/Sales';
 import Crm from './Pages/Crm';
 import Stock from './Pages/Stock';
 import Purchasing from './components/purchasing/Purchasing';
-import AiMarketing from './Pages/AiMarketing';
 import Caisse from './components/caisse/Caisse';
 import MesCommandes from './Pages/MesCommandes';
 import Finance from './Pages/Finance';
@@ -112,7 +111,6 @@ const salesRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/s
 const crmRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/crm', component: Crm });
 const stockRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/stock', component: Stock });
 const purchasingRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/purchasing', component: Purchasing });
-const aiMarketingRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/ai-marketing', component: AiMarketing });
 const caisseRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/caisse', component: Caisse });
 const maintenanceRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/maintenance', component: Maintenance });
 const equipementsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/equipements', component: Equipements });
@@ -143,7 +141,6 @@ const routeTree = rootRoute.addChildren([
     crmRoute,
     stockRoute,
     purchasingRoute,
-    aiMarketingRoute,
     caisseRoute,
     mesCommandesRoute,
     financeRoute,

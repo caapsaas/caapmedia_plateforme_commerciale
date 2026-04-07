@@ -115,7 +115,6 @@ const frTranslations = {
     "stockManagement": "Gestion de Stock",
     "finance": "Finance & Gestion",
     "configuration": "Configuration",
-    "aiAssistant": "Assistant IA",
     "mySales": "Mes Ventes",
     "crm": "CRM",
     "contacts": "Contacts",
@@ -475,18 +474,6 @@ const frTranslations = {
     "standard": "Standard",
     "premium": "Premium",
     "none": "Aucune"
-  },
-  "aiMarketing": {
-    "title": "Assistant Marketing IA",
-    "subtitle": "Décrivez votre produit et laissez Gemini créer des campagnes marketing pour vous.",
-    "productInfoLabel": "Informations sur le produit/service",
-    "productInfoPlaceholder": "Ex: 'Sucre blond de canne, sans additifs, vendu en sacs de 50kg pour les grossistes et en sachets de 1kg pour les détaillants.'",
-    "errorPrompt": "Veuillez décrire votre produit ou service.",
-    "generateButton": "Générer des Idées Marketing",
-    "generating": "Génération en cours...",
-    "suggestedCampaigns": "Idées de Campagnes Suggérées",
-    "geminiError": "La clé API Gemini n'est pas configurée. Veuillez la définir dans les variables d'environnement pour utiliser cette fonctionnalité.",
-    "geminiUnexpectedError": "Désolé, une erreur inattendue est survenue avec l'assistant IA."
   },
   "cashRegister": {
     "title": "Interface de Caisse",
@@ -1646,7 +1633,6 @@ const enTranslations: Translations = {
         "stockManagement": "Stock Management",
         "finance": "Finance & Management",
         "configuration": "Configuration",
-        "aiAssistant": "AI Assistant",
         "mySales": "My Sales",
         "crm": "CRM",
         "contacts": "Contacts",
@@ -2006,18 +1992,6 @@ const enTranslations: Translations = {
         "standard": "Standard",
         "premium": "Premium",
         "none": "None"
-    },
-    "aiMarketing": {
-        "title": "AI Marketing Assistant",
-        "subtitle": "Describe your product and let Gemini create marketing campaigns for you.",
-        "productInfoLabel": "Product/Service Information",
-        "productInfoPlaceholder": "e.g., 'Blond cane sugar, no additives, sold in 50kg bags for wholesalers and 1kg sachets for retailers.'",
-        "errorPrompt": "Please describe your product or service.",
-        "generateButton": "Generate Marketing Ideas",
-        "generating": "Generating...",
-        "suggestedCampaigns": "Suggested Campaigns Ideas",
-        "geminiError": "Gemini API key is not configured. Please set it in environment variables to use this feature.",
-        "geminiUnexpectedError": "Sorry, an unexpected error occurred with the AI assistant."
     },
     "cashRegister": {
         "title": "Cash Register Interface",

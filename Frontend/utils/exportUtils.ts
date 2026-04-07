@@ -1,4 +1,4 @@
-import { ExternalFinancialTransaction } from '../types/models';
+import { ExternalFinancialTransaction, ExternalTransactionType } from '../types/models';
 
 export const exportToCSV = (data: ExternalFinancialTransaction[], filename: string) => {
   // Define CSV headers
@@ -75,11 +75,20 @@ export const formatAmount = (amount: number, currency = 'FCFA'): string => {
 export const calculateTotals = (transactions: ExternalFinancialTransaction[]) => {
   const totals = transactions.reduce(
     (acc, transaction) => {
-      const incomeTypes = ['DONATION', 'PERSONAL_INCOME', 'INVESTMENT_RETURN', 'TAX_REFUND', 'INSURANCE_PAYOUT', 'LEGAL_SETTLEMENT'];
+      // Types de revenus (recettes)
+      const incomeTypes = [
+        ExternalTransactionType.DONATION,
+        ExternalTransactionType.PERSONAL_INCOME,
+        ExternalTransactionType.INVESTMENT_RETURN,
+        ExternalTransactionType.TAX_REFUND,
+        ExternalTransactionType.INSURANCE_PAYOUT,
+        ExternalTransactionType.LEGAL_SETTLEMENT
+      ];
       
       if (incomeTypes.includes(transaction.externalTransactionType)) {
         acc.totalIncome += transaction.amount;
       } else {
+        // Types de dépenses: INVESTMENT, LOAN, PERSONAL_EXPENSE, OTHER_FINANCIAL
         acc.totalExpenses += transaction.amount;
       }
       

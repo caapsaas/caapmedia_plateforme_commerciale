@@ -94,7 +94,7 @@ const UserManagement: React.FC = () => {
     const handleSaveUser = (userData: Omit<User, 'id'> & { id?: string }) => {
         const { id, ...data } = userData;
         
-        // Validation pour s'assurer que subsidiaryId est présent pour les nouveaux utilisateurs
+        // Validation pour s'assurer que subsidiaryId est présent pour les nouveaux utilisateurs uniquement
         if (!id && (!data.subsidiaryId || data.subsidiaryId.trim() === '')) {
             toast.error('Erreur de validation', 'Une filiale doit être sélectionnée pour créer un utilisateur.');
             return;
@@ -178,7 +178,7 @@ const UserManagement: React.FC = () => {
                     onClose={handleCloseModals}
                     onConfirm={handleDeleteUser}
                     title={t('configuration.modal.deleteUserTitle')}
-                    message={t('configuration.modal.deleteConfirmMessage', {itemName: deletingUser.name})}
+                    message={t('configuration.modal.deleteConfirmMessage', {itemName: deletingUser.userName})}
                 />
             )}
         </div>

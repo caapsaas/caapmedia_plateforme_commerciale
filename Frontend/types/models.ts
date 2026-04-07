@@ -25,7 +25,6 @@ export enum View {
   SALES = 'SALES',
   STOCK = 'STOCK',
   PURCHASING = 'PURCHASING',
-  AI_MARKETING = 'AI_MARKETING',
   FINANCE = 'FINANCE',
   CONFIGURATION = 'CONFIGURATION',
   HR_MANAGEMENT = 'HR_MANAGEMENT',
@@ -148,7 +147,7 @@ export interface User {
   id: string;
   userName: string;
   email: string;
-  role: UserRole;
+  userRole: UserRole;
   subsidiaryId: string;
   password?: string;
 }

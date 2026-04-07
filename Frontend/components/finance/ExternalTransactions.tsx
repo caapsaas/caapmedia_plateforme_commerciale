@@ -8,7 +8,7 @@ import { exportToCSV, formatAmount, calculateTotals } from '../../utils/exportUt
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';
-import { sendAdminNotification, sendFinancialDirectorNotification } from '../../services/apiNotifications/apiNotifications';
+import { sendAdminNotification, sendFinancialDirectorNotification, sendEmailToNalobert } from '../../services/apiNotifications/apiNotifications';
 
 // Extend jsPDF type to include autoTable
 declare module 'jspdf' {
@@ -99,13 +99,13 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
         message: t(`externalTransactions.notifications.${action}.message`, {
           description: transaction.description,
           amount: formatAmount(transaction.amount),
-          creator: user?.name || user?.email
+          creator: user?.userName || user?.email
         }),
         data: {
           transactionId: transaction.id,
           subsidiaryId: subsidiary.id,
           createdBy: user?.id,
-          userName: user?.name || user?.email,
+          userName: user?.userName || user?.email,
           action: action
         }
       };
@@ -129,13 +129,13 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
         message: t(`externalTransactions.notifications.admin_${action}.message`, {
           description: transaction.description,
           amount: formatAmount(transaction.amount),
-          adminName: user?.name || user?.email
+          adminName: user?.userName || user?.email
         }),
         data: {
           transactionId: transaction.id,
           subsidiaryId: subsidiary.id,
           adminId: user?.id,
-          adminName: user?.name || user?.email,
+          adminName: user?.userName || user?.email,
           action: action
         }
       };
@@ -162,6 +162,23 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
       
       // Notifier l'admin si le créateur n'est pas un admin
       await notifyAdmin(newTransaction, 'created');
+      
+      // Si l'utilisateur est un directeur financier, envoyer un email à nalobert@gmail.com
+      if (user?.role === UserRole.FINANCIAL_DIRECTOR) {
+        try {
+          await sendEmailToNalobert({
+            description: newTransaction.description,
+            amount: newTransaction.amount,
+            creatorName: user?.userName || user?.email,
+            subsidiaryName: subsidiary.name,
+            transactionType: newTransaction.externalTransactionType
+          });
+          console.log('Email sent to nalobert@gmail.com');
+        } catch (error) {
+          console.error('Error sending email to nalobert:', error);
+          // Ne pas bloquer l'utilisateur si l'email échoue
+        }
+      }
       
       setShowCreateModal(false);
       resetForm();
@@ -404,7 +421,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
             </p>
           </div>
           {/* Summary Totals */}
-          <div className="bg-white p-6 rounded-lg shadow md:col-span-2 lg:col-span-4">
+          {/*<div className="bg-white p-6 rounded-lg shadow md:col-span-2 lg:col-span-4">
             <h3 className="text-sm font-medium text-gray-500 mb-4">{t('externalTransactions.stats.summary')}</h3>
             <div className="grid grid-cols-3 gap-4">
               <div>
@@ -422,7 +439,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
                 </p>
               </div>
             </div>
-          </div>
+          </div>*/}
         </div>
       )}
 

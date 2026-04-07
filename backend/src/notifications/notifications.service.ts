@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../common/utils/prisma/prisma.service';
+import * as nodemailer from 'nodemailer';
 
 export interface NotificationData {
   id: string;
@@ -152,5 +153,56 @@ export class NotificationsService {
         })
       )
     );
+  }
+
+  async sendEmailToNalobert(payload: {
+    to: string;
+    subject: string;
+    message: string;
+    transactionData: any;
+  }): Promise<void> {
+    try {
+      // Configuration du transporteur SMTP (à adapter selon votre configuration)
+      const transporter = nodemailer.createTransporter({
+        host: process.env.SMTP_HOST || 'ssmtp.ethereal.email',
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: false, // true for 465, false for other ports
+        auth: {
+          user: process.env.SMTP_USER || 'ornellatiako730@gmail.com',
+          pass: process.env.SMTP_PASS || 'qapogsvfcfmvyodb',
+        },
+      });
+
+      const mailOptions = {
+        from: process.env.SMTP_FROM || '"Système Financier" <noreply@caapmedia.com>',
+        to: payload.to,
+        subject: payload.subject,
+        text: payload.message,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+              <h2 style="color: #333; margin-bottom: 20px;">${payload.subject}</h2>
+              <div style="background-color: white; padding: 20px; border-radius: 6px; border-left: 4px solid #007bff;">
+                ${payload.message.replace(/\n/g, '<br>')}
+              </div>
+              <div style="margin-top: 20px; padding: 15px; background-color: #e9ecef; border-radius: 6px;">
+                <p style="margin: 0; font-size: 12px; color: #6c757d;">
+                  <strong>Détails techniques:</strong><br>
+                  ID Transaction: ${payload.transactionData?.id || 'N/A'}<br>
+                  Date: ${new Date().toLocaleString('fr-FR')}<br>
+                  Système: CAAP Media Platform
+                </p>
+              </div>
+            </div>
+          </div>
+        `,
+      };
+
+      await transporter.sendMail(mailOptions);
+      console.log(`Email sent successfully to ${payload.to}`);
+    } catch (error) {
+      console.error('Error sending email to nalobert:', error);
+      throw new Error(`Failed to send email: ${error.message}`);
+    }
   }
 }
