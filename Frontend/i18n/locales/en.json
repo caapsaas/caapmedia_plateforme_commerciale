@@ -1,4 +1,45 @@
 {
+  "sidebar": {
+    "analytics": "Analytics",
+    "crm": "CRM",
+    "orders": "Orders",
+    "production": "Production",
+    "maintenance": "Maintenance",
+    "equipements": "Equipment",
+    "purchasing": "Purchasing",
+    "stockManagement": "Stock Management",
+    "finance": "Finance",
+    "hrManagement": "HR Management",
+    "secretariat": "Secretariat",
+    "configuration": "Configuration",
+    "cashRegister": "Cash Register",
+    "transactions": "Transactions",
+    "noViewForRole": "No view available for this role",
+    "adminView": "Admin View",
+    "collapse": "Collapse",
+    "expand": "Expand"
+  },
+  "roles": {
+    "ADMIN": "Administrator",
+    "COMMERCIAL": "Sales",
+    "CAISSIER": "Cashier",
+    "PURCHASING_MANAGER": "Purchasing Manager",
+    "FINANCIAL_DIRECTOR": "Financial Director",
+    "SECRETARY": "Secretary",
+    "HR_MANAGER": "HR Manager",
+    "PRODUCTION_DIRECTOR": "Production Director"
+  },
+  "header": {
+    "openMenu": "Open menu",
+    "changeRole": "Change role"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "logout": "Logout",
+    "version": "Version"
+  },
   "configuration": {
     "modal": {
       "editEmployeeTitle": "Edit Employee",
@@ -94,10 +135,5 @@
       "totalDays": "Total Days",
       "days": "days"
     }
-  },
-  "common": {
-    "cancel": "Cancel",
-    "save": "Save",
-    "delete": "Delete"
   }
 }

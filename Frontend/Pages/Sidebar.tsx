@@ -64,14 +64,14 @@ const Sidebar: React.FC = () => {
 
   // Pour l'admin, on ne cache jamais le sidebar même si subsidiary est temporairement null
 // car l'admin doit pouvoir voir tout le contenu de l'application
-if (!user || (!subsidiary && user.role !== UserRole.ADMIN)) return null;
+if (!user || (!subsidiary && user.userRole !== UserRole.ADMIN)) return null;
 
   const onLogout = () => authLogout();
   const setIsSidebarOpen = (isOpen: boolean) => dispatch({ type: 'SET_SIDEBAR_OPEN', payload: isOpen });
   const setIsSidebarCollapsed = (isCollapsed: boolean) => dispatch({ type: 'SET_SIDEBAR_COLLAPSED', payload: isCollapsed });
 
   const getNavItems = () => {
-    switch (user.role) {
+    switch (user.userRole) {
       case UserRole.ADMIN:
         return [ // Le `exact: true` sera appliqué automatiquement par la nouvelle logique dans NavLink
           { to: '/dashboard/', label: t('sidebar.analytics'), icon: <IconAnalytics className="h-6 w-6 shrink-0" /> },
@@ -160,7 +160,9 @@ if (!user || (!subsidiary && user.role !== UserRole.ADMIN)) return null;
             <div className={`w-auto transition-all duration-300 ${isSidebarCollapsed ? 'h-10' : 'h-16'}`}>
                 <LogoComponent className="w-full h-full" />
             </div>
-            <span className={`font-bold text-lg mt-2 transition-opacity duration-200 ${isSidebarCollapsed ? 'opacity-0 h-0 hidden' : 'opacity-100 block'}`}>{subsidiary?.name || t('sidebar.adminView')}</span>
+            <span className={`font-bold text-lg mt-2 transition-opacity duration-200 ${isSidebarCollapsed ? 'opacity-0 h-0 hidden' : 'opacity-100 block'}`}>
+              {subsidiary?.name || subsidiary?.subsidiaryName || (user.userRole === UserRole.ADMIN ? t('sidebar.adminView') : t('sidebar.noViewForRole'))}
+            </span>
         </div>
 
         <div className="flex-1 flex flex-col justify-between overflow-y-auto overflow-x-hidden">

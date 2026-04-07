@@ -6,16 +6,15 @@ import IconGlobe from '../components/icons/IconGlobe';
 import IconMenu from '../components/icons/IconMenu';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { useRouter } from '@tanstack/react-router';
 
 const Header: React.FC = () => {
   const { t, language, setLanguage } = useI18n();
   const { dispatch } = useAppContext();
   const { user, subsidiary, logout: authLogout, updateUserRole } = useAuth();
-  const router = useRouter();
   const roles = Object.values(UserRole);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const [roleSelected, setRoleSelected] = useState(false); // Track if role has been selected
 
   if (!user || !subsidiary) return null;
   
@@ -32,12 +31,23 @@ const Header: React.FC = () => {
   };
 
   const handleRoleChange = (newRole: UserRole) => {
-    // 1. Mettre à jour l'état dans AuthContext
+    // Vérifier si le rôle est déjà actif pour éviter une navigation inutile
+    if (user.userRole === newRole) {
+      setRoleSelected(true); // Still hide tabs even if same role
+      return;
+    }
+
+    // 1. Masquer immédiatement les tabs pour un feedback visuel instantané
+    setRoleSelected(true);
+
+    // 2. Mettre à jour l'état dans AuthContext
     updateUserRole(newRole);
 
-    // 2. Naviguer vers la nouvelle vue par défaut
+    // 3. Naviguer avec un léger délai pour permettre la mise à jour de l'UI
     const destination = getDefaultViewForRole(newRole);
-    router.navigate({ to: destination });
+    setTimeout(() => {
+      window.location.href = destination;
+    }, 100);
   };
 
   const onMenuButtonClick = () => dispatch({ type: 'SET_SIDEBAR_OPEN', payload: true });
@@ -115,7 +125,7 @@ const Header: React.FC = () => {
               />
               <div className="text-left hidden md:block">
                 <div className="font-semibold text-sm text-slate-700">{user?.userName}</div>
-                <div className="text-xs text-slate-400">{t(`roles.${user?.role}`)}</div>
+                <div className="text-xs text-slate-400">{t(`roles.${user?.userRole}`)}</div>
               </div>
             </button>
             {isProfileMenuOpen && (
@@ -125,6 +135,15 @@ const Header: React.FC = () => {
                 aria-orientation="vertical"
                 aria-labelledby="user-menu"
               >
+                {user.userRole === UserRole.ADMIN && roleSelected && (
+                  <button
+                    onClick={() => setRoleSelected(false)}
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center space-x-2"
+                    role="menuitem"
+                  >
+                    <span>{t('header.changeRole')}</span>
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     authLogout();
@@ -142,7 +161,7 @@ const Header: React.FC = () => {
 
         </div>
       </div>
-       {user.role === UserRole.ADMIN && (
+       {user.userRole === UserRole.ADMIN && !roleSelected && (
        <div className="px-4">
         <div className="border-b border-slate-200">
           <nav className="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
@@ -151,11 +170,11 @@ const Header: React.FC = () => {
                 key={role}
                 onClick={() => handleRoleChange(role)}
                 className={`${
-                  user.role === role
+                  user.userRole === role
                     ? 'border-[#c6e911] text-[#c6e911]'
                     : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors focus:outline-none`}
-                aria-current={user.role === role ? 'page' : undefined}
+                aria-current={user.userRole === role ? 'page' : undefined}
               >
                 {t(`roles.${role}`)}
               </button>

@@ -1,4 +1,45 @@
 {
+  "sidebar": {
+    "analytics": "Analytique",
+    "crm": "CRM",
+    "orders": "Commandes",
+    "production": "Production",
+    "maintenance": "Maintenance",
+    "equipements": "Équipements",
+    "purchasing": "Achats",
+    "stockManagement": "Gestion des stocks",
+    "finance": "Finance",
+    "hrManagement": "Gestion RH",
+    "secretariat": "Secrétariat",
+    "configuration": "Configuration",
+    "cashRegister": "Caisse",
+    "transactions": "Transactions",
+    "noViewForRole": "Aucune vue disponible pour ce rôle",
+    "adminView": "Vue Admin",
+    "collapse": "Réduire",
+    "expand": "Développer"
+  },
+  "roles": {
+    "ADMIN": "Administrateur",
+    "COMMERCIAL": "Commercial",
+    "CAISSIER": "Caissier",
+    "PURCHASING_MANAGER": "Gestionnaire des achats",
+    "FINANCIAL_DIRECTOR": "Directeur financier",
+    "SECRETARY": "Secrétaire",
+    "HR_MANAGER": "Gestionnaire RH",
+    "PRODUCTION_DIRECTOR": "Directeur de production"
+  },
+  "header": {
+    "openMenu": "Ouvrir le menu",
+    "changeRole": "Changer de rôle"
+  },
+  "common": {
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "logout": "Déconnexion",
+    "version": "Version"
+  },
   "configuration": {
     "modal": {
       "editEmployeeTitle": "Modifier l'employé",
@@ -94,10 +135,5 @@
       "totalDays": "Total des jours",
       "days": "jours"
     }
-  },
-  "common": {
-    "cancel": "Annuler",
-    "save": "Enregistrer",
-    "delete": "Supprimer"
   }
 }

@@ -60,15 +60,17 @@ const PurchaseAnalysisView: React.FC<PurchaseAnalysisViewProps> = ({ data }) => 
             </div>
             <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
                  <h3 className="font-semibold text-lg mb-4 text-slate-700">{t('purchaseAnalysis.spendingBySupplier')}</h3>
-                 <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                        <Pie data={spendingBySupplier} cx="50%" cy="50%" labelLine={false} outerRadius={100} fill="#8884d8" dataKey="value" nameKey="name">
-                            {spendingBySupplier.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                        </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.8)', borderRadius: '0.5rem' }}/>
-                        <Legend />
-                    </PieChart>
-                </ResponsiveContainer>
+                 <div style={{ width: '100%', height: 300, minWidth: 300 }}>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <PieChart>
+                            <Pie data={spendingBySupplier} cx="50%" cy="50%" labelLine={false} outerRadius={100} fill="#8884d8" dataKey="value" nameKey="name">
+                                {spendingBySupplier.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                            </Pie>
+                            <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.8)', borderRadius: '0.5rem' }}/>
+                            <Legend />
+                        </PieChart>
+                    </ResponsiveContainer>
+                 </div>
             </div>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-md">

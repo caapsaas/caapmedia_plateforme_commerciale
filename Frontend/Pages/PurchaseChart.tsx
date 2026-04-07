@@ -21,8 +21,8 @@ const PurchaseChart: React.FC<PurchaseChartProps> = ({ data }) => {
   }));
 
   return (
-    <div style={{ width: '100%', height: 300 }}>
-        <ResponsiveContainer minHeight={300}>
+    <div style={{ width: '100%', height: 300, minWidth: 300 }}>
+        <ResponsiveContainer width="100%" height={300}>
             <BarChart
                 data={translatedData}
                 margin={{ top: 5, right: 20, left: -10, bottom: 5 }}

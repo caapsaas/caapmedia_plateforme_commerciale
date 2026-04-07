@@ -129,6 +129,7 @@ export interface ExternalFinancialTransaction {
 export interface Subsidiary {
   id: string;
   name: string;
+  subsidiaryName: string;
   logo: React.FC<React.SVGProps<SVGSVGElement>>;
   address: string;
   phone: string;
@@ -141,6 +142,7 @@ export interface Subsidiary {
     swift: string;
   };
   shareCapital: number;
+  logoSvg?: string;
 }
 
 export interface User {
