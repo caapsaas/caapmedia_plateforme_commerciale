@@ -64,14 +64,14 @@ const Finance: React.FC = () => {
     // Appel à l'API pour le P&L, activé seulement si l'onglet est visible
     const { data: pnlData, isLoading: isLoadingPnl } = useQuery<PnlStatement>({
         queryKey: ['pnlStatement', subsidiary.id, queryParams],
-        queryFn: () => getPnlStatement(queryParams),
+        queryFn: () => getPnlStatement(queryParams, subsidiary.id),
         enabled: activeTab === FinanceView.PNL,
     });
 
     // Appel à l'API pour le Bilan, activé seulement si l'onglet est visible
     const { data: balanceSheetData, isLoading: isLoadingBalanceSheet } = useQuery<BalanceSheetType>({
         queryKey: ['balanceSheet', subsidiary.id], // Le bilan n'a pas de filtre de date pour le moment
-        queryFn: getBalanceSheet,
+        queryFn: () => getBalanceSheet(subsidiary.id),
         enabled: activeTab === FinanceView.BILAN,
     });
 

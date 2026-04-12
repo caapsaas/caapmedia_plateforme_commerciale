@@ -8,7 +8,7 @@ import { exportToCSV, formatAmount, calculateTotals } from '../../utils/exportUt
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';
-import { sendAdminNotification, sendFinancialDirectorNotification, sendEmailToNalobert } from '../../services/apiNotifications/apiNotifications';
+import { sendAdminNotification, sendFinancialDirectorNotification } from '../../services/apiNotifications/apiNotifications';
 
 // Extend jsPDF type to include autoTable
 declare module 'jspdf' {
@@ -27,8 +27,8 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
   const { toast } = useToast();
   
   // Vérifier les permissions
-  const canCreate = user?.role === UserRole.FINANCIAL_DIRECTOR;
-  const canValidate = user?.role === UserRole.ADMIN;
+  const canCreate = user?.userRole === UserRole.FINANCIAL_DIRECTOR;
+  const canValidate = user?.userRole === UserRole.ADMIN;
   
   if (!canCreate && !canValidate) {
     return (
@@ -64,6 +64,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
     referenceNumber: '',
   });
   const [customCategory, setCustomCategory] = useState('');
+  const [customTransactionType, setCustomTransactionType] = useState('');
   const [fileUpload, setFileUpload] = useState<File | null>(null);
 
   // Load data
@@ -90,7 +91,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
   // Fonction pour envoyer une notification à l'admin
   const notifyAdmin = async (transaction: ExternalFinancialTransaction, action: 'created' | 'updated' | 'validated' | 'cancelled' | 'deleted') => {
     // Si l'utilisateur courant est un admin, pas besoin de notifier
-    if (user?.role === UserRole.ADMIN) return;
+    if (user?.userRole === UserRole.ADMIN) return;
     
     try {
       const notificationData = {
@@ -120,7 +121,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
   // Fonction pour notifier le directeur financier
   const notifyFinancialDirector = async (transaction: ExternalFinancialTransaction, action: 'validated' | 'cancelled') => {
     // Si l'utilisateur courant est un directeur financier, pas besoin de notifier
-    if (user?.role === UserRole.FINANCIAL_DIRECTOR) return;
+    if (user?.userRole === UserRole.FINANCIAL_DIRECTOR) return;
     
     try {
       const notificationData = {
@@ -149,34 +150,79 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
 
   const handleCreate = async () => {
     try {
+      // Validation des données
+      const amountValue = parseFloat(formData.amount);
+      if (isNaN(amountValue) || amountValue <= 0) {
+        toast('error', t('externalTransactions.error.invalidAmount'));
+        return;
+      }
+      
+      if (!formData.transactionDate) {
+        toast('error', t('externalTransactions.error.invalidDate'));
+        return;
+      }
+      
+      // Vérifier que la date est valide
+      const dateObj = new Date(formData.transactionDate);
+      if (isNaN(dateObj.getTime())) {
+        toast('error', t('externalTransactions.error.invalidDate'));
+        return;
+      }
+      
+      if (!formData.description.trim()) {
+        toast('error', t('externalTransactions.error.invalidDescription'));
+        return;
+      }
+      
+      // Préparer la description avec le type personnalisé si applicable
+      let finalDescription = formData.description.trim();
+      if (formData.externalTransactionType === ExternalTransactionType.OTHER_FINANCIAL && customTransactionType.trim()) {
+        finalDescription = `[${customTransactionType.trim()}] ${finalDescription}`;
+      }
+
       const createData: CreateExternalTransactionData = {
-        ...formData,
-        amount: parseFloat(formData.amount),
+        transactionDate: formData.transactionDate, // Send as YYYY-MM-DD format
+        description: finalDescription,
+        amount: amountValue,
+        externalTransactionType: formData.externalTransactionType,
+        externalTransactionCategory: formData.externalTransactionCategory,
+        paymentMethod: formData.paymentMethod,
+        referenceNumber: formData.referenceNumber?.trim() || undefined,
         createdBy: user!.id,
         subsidiaryId: subsidiary.id,
       };
       
-      console.log('Creating transaction with data:', createData);
+      console.log('Creating transaction with data:', JSON.stringify(createData, null, 2));
+      console.log('User ID:', user!.id);
+      console.log('Subsidiary ID:', subsidiary.id);
+      console.log('User object:', user);
+      console.log('Subsidiary object:', subsidiary);
       
       const newTransaction = await createExternalTransaction(createData);
       
       // Notifier l'admin si le créateur n'est pas un admin
       await notifyAdmin(newTransaction, 'created');
       
-      // Si l'utilisateur est un directeur financier, envoyer un email à nalobert@gmail.com
-      if (user?.role === UserRole.FINANCIAL_DIRECTOR) {
+      // Si l'utilisateur est un directeur financier, envoyer une notification spéciale à l'admin
+      if (user?.userRole === UserRole.FINANCIAL_DIRECTOR) {
         try {
-          await sendEmailToNalobert({
-            description: newTransaction.description,
-            amount: newTransaction.amount,
-            creatorName: user?.userName || user?.email,
-            subsidiaryName: subsidiary.name,
-            transactionType: newTransaction.externalTransactionType
+          await sendAdminNotification({
+            type: 'EXTERNAL_TRANSACTION_CREATED',
+            title: 'Transaction créée par le Directeur Financier',
+            message: `Le Directeur Financier ${user?.userName || user?.email} a créé une nouvelle transaction : ${newTransaction.description} pour ${newTransaction.amount} XOF`,
+            data: {
+              transactionId: newTransaction.id,
+              subsidiaryId: subsidiary.id,
+              createdBy: user?.id,
+              userName: user?.userName || user?.email,
+              amount: newTransaction.amount,
+              transactionType: newTransaction.externalTransactionType
+            }
           });
-          console.log('Email sent to nalobert@gmail.com');
+          console.log('Admin notification sent for financial director transaction');
         } catch (error) {
-          console.error('Error sending email to nalobert:', error);
-          // Ne pas bloquer l'utilisateur si l'email échoue
+          console.error('Error sending admin notification:', error);
+          // Ne pas bloquer l'utilisateur si la notification échoue
         }
       }
       
@@ -184,9 +230,24 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
       resetForm();
       loadData();
       toast('success', t('externalTransactions.success.created'));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating transaction:', error);
-      toast('error', t('externalTransactions.error.create'));
+      
+      // Afficher les détails de l'erreur 400
+      if (error.response?.status === 400) {
+        console.error('Validation error details:', error.response.data);
+        const errorMessage = error.response.data?.message || error.response.data?.error || 'Données invalides';
+        
+        // Afficher les erreurs de validation spécifiques si disponibles
+        if (error.response.data?.message && Array.isArray(error.response.data.message)) {
+          const validationErrors = error.response.data.message.join(', ');
+          toast('error', `Erreur de validation: ${validationErrors}`);
+        } else {
+          toast('error', `Erreur: ${errorMessage}`);
+        }
+      } else {
+        toast('error', t('externalTransactions.error.create'));
+      }
     }
   };
 
@@ -194,9 +255,15 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
     if (!selectedTransaction) return;
     
     try {
+      // Préparer la description avec le type personnalisé si applicable
+      let finalDescription = formData.description.trim();
+      if (formData.externalTransactionType === ExternalTransactionType.OTHER_FINANCIAL && customTransactionType.trim()) {
+        finalDescription = `[${customTransactionType.trim()}] ${finalDescription}`;
+      }
+
       const updateData = {
         transactionDate: formData.transactionDate,
-        description: formData.description,
+        description: finalDescription,
         amount: parseFloat(formData.amount),
         externalTransactionType: formData.externalTransactionType,
         externalTransactionCategory: formData.externalTransactionCategory,
@@ -207,7 +274,14 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
       console.log('Updating transaction with data:', updateData);
       console.log('Transaction ID:', selectedTransaction.id);
       
-      await updateExternalTransaction(selectedTransaction.id, updateData);
+      // Utiliser la route admin si la transaction est validée et l'utilisateur est admin/directeur financier
+      if (selectedTransaction.status === ExternalTransactionStatus.VALIDATED && (user?.userRole === UserRole.ADMIN || user?.userRole === UserRole.FINANCIAL_DIRECTOR)) {
+        await updateExternalTransaction(selectedTransaction.id, updateData); // TODO: Remplacer par la route admin quand disponible
+        toast('success', t('externalTransactions.success.adminUpdated'));
+      } else {
+        await updateExternalTransaction(selectedTransaction.id, updateData);
+        toast('success', t('externalTransactions.success.updated'));
+      }
       
       // Notifier l'admin de la modification
       const updatedTransaction = { ...selectedTransaction, ...updateData };
@@ -216,7 +290,6 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
       setSelectedTransaction(null);
       resetForm();
       loadData();
-      toast('success', t('externalTransactions.success.updated'));
     } catch (error) {
       console.error('Error updating transaction:', error);
       toast('error', t('externalTransactions.error.update'));
@@ -233,7 +306,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
         await notifyAdmin(transaction, 'validated');
         
         // Notifier le directeur financier si l'action est faite par un admin
-        if (user?.role === UserRole.ADMIN) {
+        if (user?.userRole === UserRole.ADMIN) {
           await notifyFinancialDirector(transaction, 'validated');
         }
       }
@@ -254,7 +327,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
         await notifyAdmin(transaction, 'cancelled');
         
         // Notifier le directeur financier si l'action est faite par un admin
-        if (user?.role === UserRole.ADMIN) {
+        if (user?.userRole === UserRole.ADMIN) {
           await notifyFinancialDirector(transaction, 'cancelled');
         }
       }
@@ -283,6 +356,25 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
     }
   };
 
+  const handleAdminDelete = async (id: string) => {
+    if (window.confirm(t('externalTransactions.confirm.adminDelete'))) {
+      try {
+        // Utiliser la route admin pour supprimer une transaction validée
+        await deleteExternalTransaction(id); // TODO: Remplacer par la route admin quand disponible
+      
+      // Notifier l'admin de la suppression
+      const transaction = transactions.find(t => t.id === id);
+      if (transaction) {
+        await notifyAdmin(transaction, 'deleted');
+      }
+        loadData();
+        toast('success', t('externalTransactions.success.adminDeleted'));
+      } catch (error) {
+        toast('error', t('externalTransactions.error.adminDelete'));
+      }
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       transactionDate: '',
@@ -294,6 +386,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
       referenceNumber: '',
     });
     setCustomCategory('');
+    setCustomTransactionType('');
     setFileUpload(null);
   };
 
@@ -592,17 +685,6 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
-                      {canCreate && (
-                        <button
-                          onClick={() => openEditModal(transaction)}
-                          className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors"
-                          title={t('common.edit')}
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                      )}
                       {transaction.status === ExternalTransactionStatus.DRAFT && canValidate && (
                         <>
                           <button
@@ -624,17 +706,6 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
                             </svg>
                           </button>
                         </>
-                      )}
-                      {transaction.status !== ExternalTransactionStatus.VALIDATED && canCreate && (
-                        <button
-                          onClick={() => handleDelete(transaction.id)}
-                          className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors"
-                          title={t('common.delete')}
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
                       )}
                     </div>
                   </td>
@@ -715,6 +786,15 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
                           <option key={type} value={type}>{t(`externalTransactions.types.${type}`)}</option>
                         ))}
                       </select>
+                      {formData.externalTransactionType === ExternalTransactionType.OTHER_FINANCIAL && (
+                        <input
+                          type="text"
+                          value={customTransactionType}
+                          onChange={(e) => setCustomTransactionType(e.target.value)}
+                          className="mt-2 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c6e911] focus:border-[#c6e911] transition-colors"
+                          placeholder="Précisez le type de transaction..."
+                        />
+                      )}
                     </div>
                     
                     <div>

@@ -10,6 +10,7 @@ import {
   UseGuards,
   HttpStatus,
   HttpCode,
+  Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { ExternalTransactionService } from './external-transaction.service';
@@ -92,8 +93,9 @@ export class ExternalTransactionController {
   @ApiResponse({ status: 400, description: 'Transaction déjà validée ou annulée.' })
   @ApiResponse({ status: 404, description: 'Transaction non trouvée.' })
   @ApiParam({ name: 'id', description: 'ID de la transaction' })
-  async validate(@Param('id') id: string) {
-    return await this.externalTransactionService.validate(id);
+  async validate(@Param('id') id: string, @Request() req: any) {
+    const userId = req.user?.id;
+    return await this.externalTransactionService.validate(id, userId);
   }
 
   @Patch(':id/cancel')
@@ -116,5 +118,29 @@ export class ExternalTransactionController {
   @ApiParam({ name: 'id', description: 'ID de la transaction' })
   async remove(@Param('id') id: string) {
     return await this.externalTransactionService.remove(id);
+  }
+
+  @Patch(':id/admin-update')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Mettre à jour une transaction validée (Admin/Directeur Financier uniquement)' })
+  @ApiResponse({ status: 200, description: 'Transaction mise à jour avec succès.' })
+  @ApiResponse({ status: 400, description: 'Accès refusé ou transaction non trouvée.' })
+  @ApiResponse({ status: 404, description: 'Transaction non trouvée.' })
+  @ApiParam({ name: 'id', description: 'ID de la transaction' })
+  async adminUpdate(@Param('id') id: string, @Body() updateDto: UpdateExternalTransactionDto, @Request() req: any) {
+    const userId = req.user?.id;
+    return await this.externalTransactionService.adminUpdate(id, updateDto, userId);
+  }
+
+  @Delete(':id/admin-delete')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Supprimer une transaction validée (Admin/Directeur Financier uniquement)' })
+  @ApiResponse({ status: 200, description: 'Transaction supprimée avec succès.' })
+  @ApiResponse({ status: 400, description: 'Accès refusé ou transaction non trouvée.' })
+  @ApiResponse({ status: 404, description: 'Transaction non trouvée.' })
+  @ApiParam({ name: 'id', description: 'ID de la transaction' })
+  async adminRemove(@Param('id') id: string, @Request() req: any) {
+    const userId = req.user?.id;
+    return await this.externalTransactionService.adminRemove(id, userId);
   }
 }

@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import { getUserNotifications, markNotificationAsRead, getUnreadNotificationsCount, NotificationData } from '../../services/apiNotifications/apiNotifications';
+import { UserRole } from '../../types/models';
 import IconBell from '../icons/IconBell';
 import IconX from '../icons/IconX';
 
@@ -17,7 +18,7 @@ const NotificationCenter: React.FC<{ hideButton?: boolean }> = ({ hideButton = f
   const [loading, setLoading] = useState<boolean>(true);
 
   // Uniquement les administrateurs et directeurs financiers peuvent voir les notifications
-  const canViewNotifications = user?.role === 'ADMIN' || user?.role === 'FINANCIAL_DIRECTOR';
+  const canViewNotifications = user?.userRole === UserRole.ADMIN || user?.userRole === UserRole.FINANCIAL_DIRECTOR;
 
   useEffect(() => {
     if (!canViewNotifications) return;

@@ -73,24 +73,32 @@ export const getCustomerReceivables = async (query: PeriodFilterDto): Promise<Cu
  * @param query - Le filtre de période.
  */
 export const getSupplierDebts = async (query: PeriodFilterDto): Promise<SupplierDebtsStats> => {
-    const { data } = await api.get<SupplierDebtsStats>('/finances-stats/supplier-debts', { params: query });
+    const params: any = { ...query };
+    const { data } = await api.get<SupplierDebtsStats>('/finances-stats/supplier-debts', { params });
     return data;
 };
 
 /**
  * Récupère le compte de résultat (P&L).
  * @param query - Le filtre de période.
+ * @param subsidiaryId - ID de la filiale (optionnel)
  */
-export const getPnlStatement = async (query: PeriodFilterDto): Promise<PnlStatement> => {
-    const { data } = await api.get<PnlStatement>('/finances-stats/pnl-statement', { params: query });
+export const getPnlStatement = async (query: PeriodFilterDto, subsidiaryId?: string): Promise<PnlStatement> => {
+    const params: any = { ...query };
+    if (subsidiaryId) {
+        params.subsidiaryId = subsidiaryId;
+    }
+    const { data } = await api.get<PnlStatement>('/finances-stats/pnl-statement', { params });
     return data;
 };
 
 /**
  * Récupère le bilan comptable.
+ * @param subsidiaryId - ID de la filiale (optionnel)
  */
-export const getBalanceSheet = async (): Promise<BalanceSheet> => {
-    const { data } = await api.get<BalanceSheet>('/finances-stats/balance-sheet');
+export const getBalanceSheet = async (subsidiaryId?: string): Promise<BalanceSheet> => {
+    const params = subsidiaryId ? { subsidiaryId } : {};
+    const { data } = await api.get<BalanceSheet>('/finances-stats/balance-sheet', { params });
     return data;
 };
 

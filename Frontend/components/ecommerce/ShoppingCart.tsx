@@ -49,7 +49,7 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ cartItems, onClose, onUpdat
             `${item.quantity}x ${item.product.productName} - ${formatCurrency(item.totalPrice)}`
         ).join('\n');
         
-        const fullMessage = `Bonjour, je souhaite commander les produits suivants:\n\n${message}\n\nTotal: ${formatCurrency(total)}`;
+        const fullMessage = `Bonjour, je souhaite commander les produits  suivants:\n\n${message}\n\nTotal: ${formatCurrency(total)}`;
         const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(fullMessage)}`;
         
         window.open(whatsappUrl, '_blank');

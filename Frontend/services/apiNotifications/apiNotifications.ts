@@ -19,6 +19,8 @@ export interface AdminNotificationPayload {
     subsidiaryId?: string;
     createdBy?: string;
     userName?: string;
+    amount?: number;
+    transactionType?: string;
   };
 }
 
@@ -38,41 +40,6 @@ export const sendFinancialDirectorNotification = async (payload: AdminNotificati
     await api.post('/notifications/financial-director', payload);
   } catch (error) {
     console.error('Error sending financial director notification:', error);
-    throw error;
-  }
-};
-
-// Envoyer un email spécifique à nalobert@gmail.com lors de la création de transaction par le directeur financier
-export const sendEmailToNalobert = async (transactionData: {
-  description: string;
-  amount: number;
-  creatorName: string;
-  subsidiaryName: string;
-  transactionType: string;
-}): Promise<void> => {
-  try {
-    await api.post('/notifications/email-nalobert', {
-      to: 'nalobert@gmail.com',
-      subject: `Nouvelle transaction financière créée par ${transactionData.creatorName}`,
-      message: `
-        Bonjour,
-
-        Une nouvelle transaction financière a été créée par ${transactionData.creatorName} (Directeur Financier).
-
-        Détails de la transaction :
-        - Description : ${transactionData.description}
-        - Montant : ${transactionData.amount} €
-        - Type : ${transactionData.transactionType}
-        - Société : ${transactionData.subsidiaryName}
-        - Date de création : ${new Date().toLocaleString('fr-FR')}
-
-        Cordialement,
-        Système de gestion financière
-      `,
-      transactionData
-    });
-  } catch (error) {
-    console.error('Error sending email to nalobert:', error);
     throw error;
   }
 };

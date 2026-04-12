@@ -38,7 +38,9 @@
     "save": "Enregistrer",
     "delete": "Supprimer",
     "logout": "Déconnexion",
-    "version": "Version"
+    "version": "Version",
+    "print": "Imprimer",
+    "exportPdf": "Exporter en PDF"
   },
   "configuration": {
     "modal": {
@@ -134,6 +136,55 @@
       "summary": "Résumé",
       "totalDays": "Total des jours",
       "days": "jours"
+    }
+  },
+  "pnl": {
+    "title": "Compte de Résultat",
+    "revenue": "Revenus",
+    "expenses": "Dépenses",
+    "cogs": "Coût des marchandises vendues",
+    "operatingExpenses": "Frais d'exploitation",
+    "taxes": "Impôts",
+    "netIncome": "Résultat net"
+  },
+  "externalTransactions": {
+    "title": "Transactions Externes",
+    "accessDenied": "Accès refusé. Vous n'avez pas les permissions nécessaires pour accéder à cette page.",
+    "types": {
+      "INVESTMENT": "Investissement",
+      "INVESTMENT_RETURN": "Retour sur investissement",
+      "LOAN": "Prêt",
+      "DONATION": "Donation",
+      "PERSONAL_EXPENSE": "Dépense personnelle",
+      "PERSONAL_INCOME": "Revenu personnel",
+      "TAX_REFUND": "Remboursement d'impôt",
+      "INSURANCE_PAYOUT": "Indemnité d'assurance",
+      "LEGAL_SETTLEMENT": "Règlement légal",
+      "TRANSFER_PDG": "Transfert PDG",
+      "OTHER_FINANCIAL": "Autre opération financière"
+    },
+    "categories": {
+      "REAL_ESTATE": "Immobilier",
+      "VEHICLE": "Véhicule",
+      "EQUIPMENT": "Équipement",
+      "EDUCATION": "Éducation",
+      "HEALTH": "Santé",
+      "TRAVEL": "Voyage",
+      "ENTERTAINMENT": "Divertissement",
+      "PERSONAL_SAVINGS": "Épargne personnelle",
+      "FAMILY_SUPPORT": "Soutien familial",
+      "CHARITY": "Carité",
+      "INVESTMENT_RETURN": "Retour sur investissement",
+      "TAX_REFUND": "Remboursement d'impôt",
+      "INSURANCE_PAYOUT": "Indemnité d'assurance",
+      "LEGAL_SETTLEMENT": "Règlement légal",
+      "TRANSFER_PDG": "Transfert PDG",
+      "OTHER": "Autre"
+    },
+    "status": {
+      "DRAFT": "Brouillon",
+      "VALIDATED": "Validé",
+      "CANCELLED": "Annulé"
     }
   }
 }

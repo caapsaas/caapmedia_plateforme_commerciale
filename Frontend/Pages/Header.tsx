@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserRole, View } from '../types';
 import IconLogout from '../components/icons/IconLogout';
 import { useI18n } from '../i18n';
@@ -6,6 +6,7 @@ import IconGlobe from '../components/icons/IconGlobe';
 import IconMenu from '../components/icons/IconMenu';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import NotificationCenter from '../components/notifications/NotificationCenter';
 
 const Header: React.FC = () => {
   const { t, language, setLanguage } = useI18n();
@@ -15,6 +16,15 @@ const Header: React.FC = () => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [roleSelected, setRoleSelected] = useState(false); // Track if role has been selected
+  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null); // Track the currently selected role
+
+  // Synchroniser selectedRole avec user.userRole quand l'utilisateur change
+  useEffect(() => {
+    if (user?.userRole) {
+      setSelectedRole(user.userRole);
+      setRoleSelected(false); // Réinitialiser roleSelected quand le rôle utilisateur change
+    }
+  }, [user?.userRole]);
 
   if (!user || !subsidiary) return null;
   
@@ -33,17 +43,21 @@ const Header: React.FC = () => {
   const handleRoleChange = (newRole: UserRole) => {
     // Vérifier si le rôle est déjà actif pour éviter une navigation inutile
     if (user.userRole === newRole) {
+      setSelectedRole(newRole);
       setRoleSelected(true); // Still hide tabs even if same role
       return;
     }
 
-    // 1. Masquer immédiatement les tabs pour un feedback visuel instantané
+    // 1. Mettre à jour le rôle sélectionné pour le feedback visuel immédiat
+    setSelectedRole(newRole);
+    
+    // 2. Masquer immédiatement les tabs pour un feedback visuel instantané
     setRoleSelected(true);
 
-    // 2. Mettre à jour l'état dans AuthContext
+    // 3. Mettre à jour l'état dans AuthContext
     updateUserRole(newRole);
 
-    // 3. Naviguer avec un léger délai pour permettre la mise à jour de l'UI
+    // 4. Naviguer avec un léger délai pour permettre la mise à jour de l'UI
     const destination = getDefaultViewForRole(newRole);
     setTimeout(() => {
       window.location.href = destination;
@@ -82,11 +96,7 @@ const Header: React.FC = () => {
             <IconMenu className="h-6 w-6 text-slate-600" />
           </button>
           
-          {/*<button className="p-2 rounded-full hover:bg-slate-200 transition-colors">
-            <svg className="h-6 w-6 text-slate-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-          </button>*/}
+          <NotificationCenter />
           
           <div className="relative">
              <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="p-2 rounded-full hover:bg-slate-200 transition-colors focus:outline-none" aria-haspopup="true" aria-expanded={isLangMenuOpen}>
@@ -170,11 +180,11 @@ const Header: React.FC = () => {
                 key={role}
                 onClick={() => handleRoleChange(role)}
                 className={`${
-                  user.userRole === role
+                  selectedRole === role
                     ? 'border-[#c6e911] text-[#c6e911]'
                     : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors focus:outline-none`}
-                aria-current={user.userRole === role ? 'page' : undefined}
+                aria-current={selectedRole === role ? 'page' : undefined}
               >
                 {t(`roles.${role}`)}
               </button>

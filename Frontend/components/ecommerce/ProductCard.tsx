@@ -127,11 +127,68 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, isLiked
                                 return;
                             }
                             if (product.configurableOptions) {
-                                // Ouvrir WhatsApp pour les produits configurables
-                                const phoneNumber = "237671890184";
-                                const message = `Bonjour, je souhaite commander le produit suivant:\n\n${product.productName}\n\nPouvez-vous me donner plus d'informations sur les options de configuration ?`;
-                                const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-                                window.open(whatsappUrl, '_blank');
+                                console.log('Produit configurable détecté, début du partage');
+                                
+                                const shareProductWithImage = async () => {
+                                    const message = `Bonjour,\n\nJe suis intéressé par votre produit : ${product.productName}\n\nJe voudrais en savoir plus sur les options disponibles.\n\nMerci!`;
+                                    console.log('Message créé:', message);
+                                    
+                                    // Vérifier si Web Share API est disponible
+                                    if (!navigator.share) {
+                                        console.log('Web Share API non disponible, fallback vers WhatsApp URL');
+                                        const whatsappUrl = `https://wa.me/237671890184?text=${encodeURIComponent(message)}`;
+                                        console.log('URL WhatsApp:', whatsappUrl);
+                                        window.open(whatsappUrl, '_blank');
+                                        return;
+                                    }
+                                    
+                                    // Vérifier si le produit a des images
+                                    if (!product.productImages || product.productImages.length === 0) {
+                                        console.log('Aucune image trouvée, envoi du message texte uniquement');
+                                        const whatsappUrl = `https://wa.me/237671890184?text=${encodeURIComponent(message)}`;
+                                        window.open(whatsappUrl, '_blank');
+                                        return;
+                                    }
+                                    
+                                    try {
+                                        console.log('Tentative de partage avec image...');
+                                        const imageUrl = getImageUrl(product.productImages[0].imageUrl);
+                                        console.log('URL de l\'image:', imageUrl);
+                                        
+                                        // Convertir l'image en blob pour le partage
+                                        const response = await fetch(imageUrl);
+                                        console.log('Response fetch:', response);
+                                        
+                                        if (!response.ok) {
+                                            throw new Error(`Erreur HTTP: ${response.status}`);
+                                        }
+                                        
+                                        const blob = await response.blob();
+                                        console.log('Blob créé:', blob);
+                                        
+                                        const file = new File([blob], 'product.jpg', { type: blob.type });
+                                        console.log('Fichier créé:', file);
+                                        
+                                        await navigator.share({
+                                            title: product.productName,
+                                            text: message,
+                                            files: [file]
+                                        });
+                                        console.log('Partage réussi!');
+                                        
+                                    } catch (error) {
+                                        console.error('Erreur lors du partage:', error);
+                                        toast.error('Erreur de partage', 'Utilisation du mode fallback');
+                                        // Fallback vers WhatsApp URL si le partage échoue
+                                        const whatsappUrl = `https://wa.me/237671890184?text=${encodeURIComponent(message)}`;
+                                        window.open(whatsappUrl, '_blank');
+                                    }
+                                };
+                                
+                                shareProductWithImage().catch(error => {
+                                    console.error('Erreur dans shareProductWithImage:', error);
+                                    toast.error('Erreur', 'Une erreur est survenue lors du partage');
+                                });
                             } else {
                                 onAddToCart(product);
                             }

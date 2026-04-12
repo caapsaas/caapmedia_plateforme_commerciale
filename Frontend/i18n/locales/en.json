@@ -38,7 +38,9 @@
     "save": "Save",
     "delete": "Delete",
     "logout": "Logout",
-    "version": "Version"
+    "version": "Version",
+    "print": "Print",
+    "exportPdf": "Export PDF"
   },
   "configuration": {
     "modal": {
@@ -135,5 +137,14 @@
       "totalDays": "Total Days",
       "days": "days"
     }
+  },
+  "pnl": {
+    "title": "Profit & Loss Statement",
+    "revenue": "Revenue",
+    "expenses": "Expenses",
+    "cogs": "Cost of Goods Sold",
+    "operatingExpenses": "Operating Expenses",
+    "taxes": "Taxes",
+    "netIncome": "Net Income"
   }
 }

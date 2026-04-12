@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { join } from 'path';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe, BadRequestException } from '@nestjs/common';
 
 async function bootstrap() {
   // Crée une instance avec le logger activé
@@ -13,7 +13,26 @@ async function bootstrap() {
     credentials: true,
   });
 
- 
+  // Add global validation pipe
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    transform: true,
+    transformOptions: {
+      enableImplicitConversion: true,
+    },
+    exceptionFactory: (errors) => {
+      const errorMessages = errors.map(error => {
+        const constraints = Object.values(error.constraints || {});
+        return `${error.property}: ${constraints.join(', ')}`;
+      });
+      return new BadRequestException({
+        message: errorMessages,
+        error: 'Validation failed',
+        statusCode: 400,
+      });
+    },
+  }));
+
   app.useStaticAssets(join(__dirname, '..', '..', 'public'), {
     prefix: '/public',
   });
