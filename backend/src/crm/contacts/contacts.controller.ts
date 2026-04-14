@@ -80,6 +80,12 @@ export class ContactsController {
     return this.contactsService.findAll(user);
   }
 
+  @Get('public/:id')
+  // Endpoint public pour récupérer les informations de base d'un contact
+  findPublic(@Param('id', ParseUUIDPipe) id: string) {
+    return this.contactsService.findPublic(id);
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.HR_MANAGER, UserRole.PRODUCTION_DIRECTOR)

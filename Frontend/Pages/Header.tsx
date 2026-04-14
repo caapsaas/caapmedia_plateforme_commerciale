@@ -6,7 +6,6 @@ import IconGlobe from '../components/icons/IconGlobe';
 import IconMenu from '../components/icons/IconMenu';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import NotificationCenter from '../components/notifications/NotificationCenter';
 
 const Header: React.FC = () => {
   const { t, language, setLanguage } = useI18n();
@@ -95,8 +94,6 @@ const Header: React.FC = () => {
           >
             <IconMenu className="h-6 w-6 text-slate-600" />
           </button>
-          
-          <NotificationCenter />
           
           <div className="relative">
              <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="p-2 rounded-full hover:bg-slate-200 transition-colors focus:outline-none" aria-haspopup="true" aria-expanded={isLangMenuOpen}>

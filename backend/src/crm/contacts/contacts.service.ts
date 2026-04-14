@@ -327,4 +327,30 @@ export class ContactsService {
       message: 'Accès au portail activé avec succès. Un email avec les identifiants de connexion a été envoyé.'
     };
   }
+
+  /**
+   * Récupère les informations publiques d'un contact (sans authentification).
+   * @param id - L'ID du contact.
+   * @returns Les informations de base du contact.
+   */
+  async findPublic(id: string) {
+    const contact = await this.prisma.contact.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        contactName: true,
+        email: true,
+        phone: true,
+        address: true,
+        company: true,
+        status: true,
+      },
+    });
+
+    if (!contact) {
+      throw new NotFoundException(`Contact with ID "${id}" not found.`);
+    }
+
+    return contact;
+  }
 }

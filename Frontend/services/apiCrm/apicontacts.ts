@@ -69,6 +69,16 @@ export const getContactById = async (id: string): Promise<Contact> => {
 };
 
 /**
+ * Récupère les informations publiques d'un contact (sans authentification).
+ * @param id - L'ID du contact.
+ * @returns Les informations de base du contact.
+ */
+export const getPublicContact = async (id: string): Promise<Contact> => {
+  const { data } = await api.get<Contact>(`/crm/contacts/public/${id}`);
+  return data;
+};
+
+/**
  * Met à jour un contact existant (par un employé).
  * @param id - L'ID du contact à mettre à jour.
  * @param updateData - Les champs à mettre à jour.

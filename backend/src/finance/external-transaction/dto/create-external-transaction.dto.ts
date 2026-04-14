@@ -3,7 +3,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ExternalTransactionType, ExternalTransactionCategory, ExternalTransactionStatus, PaymentMethod } from '@prisma/client';
 
 export class CreateExternalTransactionDto {
-  @ApiProperty({ description: 'Date de la transaction' })
+  @ApiProperty({ description: 'Date de la transaction (YYYY-MM-DD)' })
   @IsDateString()
   transactionDate: string;
 

@@ -13,6 +13,7 @@ import IconEye from '../icons/IconEye';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getOrders, recordOrderPayment } from '../../services/apiE-commerce/apiOrders';
+import { getPublicContact } from '../../services/apiCrm/apicontacts';
 import { getContactById } from '../../services/apiCrm/apicontacts';
 import { CustomerPaymentMethod, Order, PaymentStatus, Contact } from '../../types';
 import KpiCard from '../../Pages/KpiCard';
@@ -56,7 +57,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
             await Promise.all(
                 uniqueCustomerIds.map(async (customerId) => {
                     try {
-                        const client = await getContactById(customerId);
+                        const client = await getPublicContact(customerId);
                         clientsData[customerId] = client;
                     } catch (error) {
                         console.warn(`Impossible de récupérer le client ${customerId}:`, error);

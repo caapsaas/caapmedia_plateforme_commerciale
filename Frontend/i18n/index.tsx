@@ -772,6 +772,7 @@ const frTranslations = {
       "TAX_REFUND": "Remboursement d'impôt",
       "INSURANCE_PAYOUT": "Indemnité d'assurance",
       "LEGAL_SETTLEMENT": "Règlement judiciaire",
+      "TRANSFER_PDG": "Transfert PDG",
       "OTHER_FINANCIAL": "Autre transaction financière"
     },
     "categories": {
@@ -789,6 +790,7 @@ const frTranslations = {
       "TAX_REFUND": "Remboursement d'impôt",
       "INSURANCE_PAYOUT": "Indemnité d'assurance",
       "LEGAL_SETTLEMENT": "Règlement judiciaire",
+      "TRANSFER_PDG": "Transfert PDG",
       "OTHER": "Autre"
     },
     "status": {
@@ -2290,6 +2292,7 @@ const enTranslations: Translations = {
             "TAX_REFUND": "Tax refund",
             "INSURANCE_PAYOUT": "Insurance payout",
             "LEGAL_SETTLEMENT": "Legal settlement",
+            "TRANSFER_PDG": "CEO Transfer",
             "OTHER_FINANCIAL": "Other financial transaction"
         },
         "categories": {
@@ -2307,6 +2310,7 @@ const enTranslations: Translations = {
             "TAX_REFUND": "Tax refund",
             "INSURANCE_PAYOUT": "Insurance payout",
             "LEGAL_SETTLEMENT": "Legal settlement",
+            "TRANSFER_PDG": "CEO Transfer",
             "OTHER": "Other"
         },
         "status": {

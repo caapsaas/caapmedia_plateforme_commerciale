@@ -8,7 +8,6 @@ import { exportToCSV, formatAmount, calculateTotals } from '../../utils/exportUt
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';
-import { sendAdminNotification, sendFinancialDirectorNotification } from '../../services/apiNotifications/apiNotifications';
 
 // Extend jsPDF type to include autoTable
 declare module 'jspdf' {
@@ -88,65 +87,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
     }
   };
 
-  // Fonction pour envoyer une notification à l'admin
-  const notifyAdmin = async (transaction: ExternalFinancialTransaction, action: 'created' | 'updated' | 'validated' | 'cancelled' | 'deleted') => {
-    // Si l'utilisateur courant est un admin, pas besoin de notifier
-    if (user?.userRole === UserRole.ADMIN) return;
-    
-    try {
-      const notificationData = {
-        type: `EXTERNAL_TRANSACTION_${action.toUpperCase()}`,
-        title: t(`externalTransactions.notifications.${action}.title`),
-        message: t(`externalTransactions.notifications.${action}.message`, {
-          description: transaction.description,
-          amount: formatAmount(transaction.amount),
-          creator: user?.userName || user?.email
-        }),
-        data: {
-          transactionId: transaction.id,
-          subsidiaryId: subsidiary.id,
-          createdBy: user?.id,
-          userName: user?.userName || user?.email,
-          action: action
-        }
-      };
-      
-      await sendAdminNotification(notificationData);
-    } catch (error) {
-      console.error('Error sending notification to admin:', error);
-      // Ne pas bloquer l'utilisateur si la notification échoue
-    }
-  };
-
-  // Fonction pour notifier le directeur financier
-  const notifyFinancialDirector = async (transaction: ExternalFinancialTransaction, action: 'validated' | 'cancelled') => {
-    // Si l'utilisateur courant est un directeur financier, pas besoin de notifier
-    if (user?.userRole === UserRole.FINANCIAL_DIRECTOR) return;
-    
-    try {
-      const notificationData = {
-        type: `EXTERNAL_TRANSACTION_${action.toUpperCase()}_BY_ADMIN`,
-        title: t(`externalTransactions.notifications.admin_${action}.title`),
-        message: t(`externalTransactions.notifications.admin_${action}.message`, {
-          description: transaction.description,
-          amount: formatAmount(transaction.amount),
-          adminName: user?.userName || user?.email
-        }),
-        data: {
-          transactionId: transaction.id,
-          subsidiaryId: subsidiary.id,
-          adminId: user?.id,
-          adminName: user?.userName || user?.email,
-          action: action
-        }
-      };
-      
-      await sendFinancialDirectorNotification(notificationData);
-    } catch (error) {
-      console.error('Error sending notification to financial director:', error);
-      // Ne pas bloquer l'utilisateur si la notification échoue
-    }
-  };
+  // Notifications supprimées
 
   const handleCreate = async () => {
     try {
@@ -181,7 +122,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
       }
 
       const createData: CreateExternalTransactionData = {
-        transactionDate: formData.transactionDate, // Send as YYYY-MM-DD format
+        transactionDate: new Date(formData.transactionDate).toISOString().split('T')[0], // Ensure YYYY-MM-DD format
         description: finalDescription,
         amount: amountValue,
         externalTransactionType: formData.externalTransactionType,
@@ -192,6 +133,19 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
         subsidiaryId: subsidiary.id,
       };
       
+      // Diagnostic pour production
+      if (window.location.hostname === 'caapmedia.com') {
+        console.log('🔍 PRODUCTION DIAGNOSTIC:');
+        console.log('Sending enum values:', {
+          type: formData.externalTransactionType,
+          category: formData.externalTransactionCategory,
+          payment: formData.paymentMethod
+        });
+        console.log('Available types:', Object.values(ExternalTransactionType));
+        console.log('Available categories:', Object.values(ExternalTransactionCategory));
+        console.log('Available payments:', Object.values(PaymentMethod));
+      }
+      
       console.log('Creating transaction with data:', JSON.stringify(createData, null, 2));
       console.log('User ID:', user!.id);
       console.log('Subsidiary ID:', subsidiary.id);
@@ -200,31 +154,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
       
       const newTransaction = await createExternalTransaction(createData);
       
-      // Notifier l'admin si le créateur n'est pas un admin
-      await notifyAdmin(newTransaction, 'created');
-      
-      // Si l'utilisateur est un directeur financier, envoyer une notification spéciale à l'admin
-      if (user?.userRole === UserRole.FINANCIAL_DIRECTOR) {
-        try {
-          await sendAdminNotification({
-            type: 'EXTERNAL_TRANSACTION_CREATED',
-            title: 'Transaction créée par le Directeur Financier',
-            message: `Le Directeur Financier ${user?.userName || user?.email} a créé une nouvelle transaction : ${newTransaction.description} pour ${newTransaction.amount} XOF`,
-            data: {
-              transactionId: newTransaction.id,
-              subsidiaryId: subsidiary.id,
-              createdBy: user?.id,
-              userName: user?.userName || user?.email,
-              amount: newTransaction.amount,
-              transactionType: newTransaction.externalTransactionType
-            }
-          });
-          console.log('Admin notification sent for financial director transaction');
-        } catch (error) {
-          console.error('Error sending admin notification:', error);
-          // Ne pas bloquer l'utilisateur si la notification échoue
-        }
-      }
+      // Notifications désactivées
       
       setShowCreateModal(false);
       resetForm();
@@ -236,14 +166,37 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
       // Afficher les détails de l'erreur 400
       if (error.response?.status === 400) {
         console.error('Validation error details:', error.response.data);
-        const errorMessage = error.response.data?.message || error.response.data?.error || 'Données invalides';
+        const errorData = error.response.data;
         
+        // Extraire le message d'erreur principal
+        let errorMessage = errorData?.message || errorData?.error || 'Données invalides';
+        
+        console.error('Complete error message:', errorMessage);
+        
+        // Si c'est une erreur Prisma, extraire les détails complets
+        if (typeof errorMessage === 'string' && errorMessage.includes('Invalid value')) {
+          console.error('Prisma validation error detected');
+          
+          // Extraire toutes les lignes pertinentes de l'erreur
+          const lines = errorMessage.split('\n').filter(line => line.trim());
+          const relevantLines = lines.filter(line => 
+            line.includes('Invalid value') || 
+            line.includes('Got') || 
+            line.includes('Expected') ||
+            line.includes('Argument')
+          );
+          
+          const displayError = relevantLines.length > 0 ? relevantLines.join(' | ') : errorMessage.split('\n')[0];
+          toast('error', `Erreur de validation: ${displayError}`);
+        } 
         // Afficher les erreurs de validation spécifiques si disponibles
-        if (error.response.data?.message && Array.isArray(error.response.data.message)) {
-          const validationErrors = error.response.data.message.join(', ');
+        else if (Array.isArray(errorData?.message)) {
+          const validationErrors = errorData.message.join(', ');
           toast('error', `Erreur de validation: ${validationErrors}`);
         } else {
-          toast('error', `Erreur: ${errorMessage}`);
+          // Afficher le message complet mais tronqué si trop long
+          const displayMessage = errorMessage.length > 200 ? errorMessage.substring(0, 200) + '...' : errorMessage;
+          toast('error', `Erreur: ${displayMessage}`);
         }
       } else {
         toast('error', t('externalTransactions.error.create'));
@@ -283,9 +236,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
         toast('success', t('externalTransactions.success.updated'));
       }
       
-      // Notifier l'admin de la modification
-      const updatedTransaction = { ...selectedTransaction, ...updateData };
-      await notifyAdmin(updatedTransaction, 'updated');
+      // Notifications désactivées
       setShowEditModal(false);
       setSelectedTransaction(null);
       resetForm();
@@ -300,16 +251,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
     try {
       await validateExternalTransaction(id);
       
-      // Notifier l'admin de la validation
-      const transaction = transactions.find(t => t.id === id);
-      if (transaction) {
-        await notifyAdmin(transaction, 'validated');
-        
-        // Notifier le directeur financier si l'action est faite par un admin
-        if (user?.userRole === UserRole.ADMIN) {
-          await notifyFinancialDirector(transaction, 'validated');
-        }
-      }
+      // Notifications désactivées
       loadData();
       toast('success', t('externalTransactions.success.validated'));
     } catch (error) {
@@ -321,16 +263,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
     try {
       await cancelExternalTransaction(id);
       
-      // Notifier l'admin de l'annulation
-      const transaction = transactions.find(t => t.id === id);
-      if (transaction) {
-        await notifyAdmin(transaction, 'cancelled');
-        
-        // Notifier le directeur financier si l'action est faite par un admin
-        if (user?.userRole === UserRole.ADMIN) {
-          await notifyFinancialDirector(transaction, 'cancelled');
-        }
-      }
+      // Notifications désactivées
       loadData();
       toast('success', t('externalTransactions.success.cancelled'));
     } catch (error) {
@@ -343,11 +276,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
       try {
         await deleteExternalTransaction(id);
       
-      // Notifier l'admin de la suppression
-      const transaction = transactions.find(t => t.id === id);
-      if (transaction) {
-        await notifyAdmin(transaction, 'deleted');
-      }
+      // Notifications désactivées
         loadData();
         toast('success', t('externalTransactions.success.deleted'));
       } catch (error) {
@@ -362,11 +291,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
         // Utiliser la route admin pour supprimer une transaction validée
         await deleteExternalTransaction(id); // TODO: Remplacer par la route admin quand disponible
       
-      // Notifier l'admin de la suppression
-      const transaction = transactions.find(t => t.id === id);
-      if (transaction) {
-        await notifyAdmin(transaction, 'deleted');
-      }
+      // Notifications désactivées
         loadData();
         toast('success', t('externalTransactions.success.adminDeleted'));
       } catch (error) {

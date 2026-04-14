@@ -3,12 +3,25 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { join } from 'path';
 import { Logger, ValidationPipe, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   // Crée une instance avec le logger activé
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: ['error', 'warn', 'log', 'debug', 'verbose'] });
+  
+  // Get config service
+  const configService = app.get(ConfigService);
+  
+  // Dynamic CORS configuration
+  const corsOrigins = configService.get('CORS_ORIGINS')?.split(',') || [
+    'http://localhost:5173',
+    'http://localhost:3001',
+    'https://www.caapmedia.com',
+    'https://caapmedia.com'
+  ];
+  
   app.enableCors({
-    origin: ['http://localhost:5173', 'https://www.caapmedia.com', 'https://caapmedia.com'],
+    origin: corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true,
   });
