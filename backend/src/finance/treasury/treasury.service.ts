@@ -96,9 +96,8 @@ export class TreasuryService {
       throw new NotFoundException(`Treasury account with ID "${id}" not found.`);
     }
 
-    if (account.balance.comparedTo(0) !== 0) {
-      throw new BadRequestException('Cannot delete an account with a non-zero balance.');
-    }
+    // Autoriser la suppression des comptes avec solde non nul
+    // La confirmation est gérée côté frontend
 
     if (account._count.financialTransactions > 0) {
       throw new BadRequestException('Cannot delete an account with existing transactions.');
@@ -231,6 +230,39 @@ export class TreasuryService {
     return this.prisma.financialTransaction.update({
       where: { id },
       data: { status: newPrismaStatus },
+    });
+  }
+
+  async deleteTransaction(id: string, user: User) {
+    const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR];
+    this.checkPermissions(user, allowedRoles, 'Permission denied to delete transactions.');
+
+    const transaction = await this.prisma.financialTransaction.findFirst({
+      where: { id, subsidiaryId: user.subsidiaryId },
+      include: { treasuryAccount: true },
+    });
+
+    if (!transaction) {
+      throw new NotFoundException(`Transaction with ID "${id}" not found.`);
+    }
+
+    // Utiliser une transaction Prisma pour garantir l'atomicité
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Ajuster le solde du compte en sens inverse
+      const balanceUpdateOperation =
+        transaction.financialTransactionType === TransactionType.RECETTE 
+          ? { decrement: transaction.amount } 
+          : { increment: transaction.amount };
+
+      await tx.treasuryAccount.update({
+        where: { id: transaction.treasuryAccountId },
+        data: { balance: balanceUpdateOperation },
+      });
+
+      // 2. Supprimer la transaction
+      return tx.financialTransaction.delete({
+        where: { id },
+      });
     });
   }
 }

@@ -40,9 +40,18 @@
     "logout": "Logout",
     "version": "Version",
     "print": "Print",
-    "exportPdf": "Export PDF"
+    "exportPdf": "Export PDF",
+    "loading": "Loading...",
+    "saving": "Saving..."
   },
   "configuration": {
+    "title": "Configuration",
+    "products": "Products",
+    "users": "Users",
+    "suppliers": "Suppliers",
+    "clientManagement": "Clients",
+    "taxes": "Taxes",
+    "treasury": "Treasury",
     "modal": {
       "editEmployeeTitle": "Edit Employee",
       "addEmployeeTitle": "Add Employee"
@@ -146,5 +155,58 @@
     "operatingExpenses": "Operating Expenses",
     "taxes": "Taxes",
     "netIncome": "Net Income"
+  },
+  "treasuryAccounts": {
+    "title": "Treasury Accounts",
+    "description": "Manage your company's bank and treasury accounts",
+    "accessDenied": "You don't have permission to manage treasury accounts",
+    "noData": "No treasury accounts found",
+    "stats": {
+      "totalAccounts": "Total Accounts",
+      "totalBalance": "Total Balance",
+      "averageBalance": "Average Balance"
+    },
+    "table": {
+      "accountName": "Account Name",
+      "balance": "Balance",
+      "currency": "Currency",
+      "actions": "Actions"
+    },
+    "actions": {
+      "create": "Create Account",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "create": {
+      "title": "Create Treasury Account"
+    },
+    "edit": {
+      "title": "Edit Treasury Account"
+    },
+    "form": {
+      "accountName": "Account Name",
+      "accountNamePlaceholder": "Ex: Main BNP Account",
+      "balance": "Initial Balance",
+      "currency": "Currency",
+      "subsidiary": "Subsidiary"
+    },
+    "validation": {
+      "accountNameRequired": "Account name is required",
+      "validBalance": "Please enter a valid balance"
+    },
+    "confirm": {
+      "delete": "Are you sure you want to delete this treasury account?"
+    },
+    "success": {
+      "created": "Treasury account created successfully",
+      "updated": "Treasury account updated successfully",
+      "deleted": "Treasury account deleted successfully"
+    },
+    "error": {
+      "loading": "Error loading treasury accounts",
+      "create": "Error creating treasury account",
+      "update": "Error updating treasury account",
+      "delete": "Error deleting treasury account"
+    }
   }
 }

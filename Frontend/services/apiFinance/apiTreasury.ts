@@ -96,7 +96,12 @@ export const deleteTreasuryAccount = async (id: string): Promise<TreasuryAccount
  * @param incomeData - Les données de la recette.
  */
 export const createIncomeTransaction = async (incomeData: TransactionCreationData): Promise<FinancialTransaction> => {
-  const { data } = await api.post<FinancialTransaction>('/finance/treasury/incomes', incomeData);
+  // Envoyer le montant comme nombre tel qu'attendu par le backend
+  const processedData = {
+    ...incomeData,
+    amount: incomeData.amount
+  };
+  const { data } = await api.post<FinancialTransaction>('/finance/treasury/incomes', processedData);
   return data;
 };
 
@@ -106,7 +111,12 @@ export const createIncomeTransaction = async (incomeData: TransactionCreationDat
  * @param expenseData - Les données de la dépense.
  */
 export const createExpenseTransaction = async (expenseData: TransactionCreationData): Promise<FinancialTransaction> => {
-  const { data } = await api.post<FinancialTransaction>('/finance/treasury/expenses', expenseData);
+  // Envoyer le montant comme nombre tel qu'attendu par le backend
+  const processedData = {
+    ...expenseData,
+    amount: expenseData.amount
+  };
+  const { data } = await api.post<FinancialTransaction>('/finance/treasury/expenses', processedData);
   return data;
 };
 
@@ -116,6 +126,17 @@ export const createExpenseTransaction = async (expenseData: TransactionCreationD
 export const getFinancialTransactions = async (subsidiaryId?: string): Promise<FinancialTransaction[]> => {
   const params = subsidiaryId ? { subsidiaryId } : {};
   const { data } = await api.get<FinancialTransaction[]>('/finance/treasury/transactions', { params });
+  return data;
+};
+
+/**
+ * Supprime une transaction financière.
+ * Protégé par rôle (ADMIN, FINANCIAL_DIRECTOR).
+ * @param id - L'ID de la transaction à supprimer.
+ * @returns La transaction qui a été supprimée.
+ */
+export const deleteTransaction = async (id: string): Promise<FinancialTransaction> => {
+  const { data } = await api.delete<FinancialTransaction>(`/finance/treasury/transactions/${id}`);
   return data;
 };
 

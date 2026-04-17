@@ -86,8 +86,8 @@ export class ExternalTransactionService {
       // Gérer les erreurs de validation de données
       if (error.code === 'P2003' || error.code === 'P2004') {
         throw new BadRequestException('Erreur de clé étrangère: vérifiez que l\'utilisateur et la filiale existent.');
-      }
-      
+      }   
+        
       // Erreur de validation - capturer le message complet
       if (error.message) {
         const fullMessage = error.message;

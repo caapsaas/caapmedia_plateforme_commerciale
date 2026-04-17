@@ -342,9 +342,13 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
     }
   };
 
-  const getTypeColor = (type: ExternalTransactionType) => {
-    const incomeTypes = [ExternalTransactionType.DONATION, ExternalTransactionType.PERSONAL_INCOME, ExternalTransactionType.INVESTMENT_RETURN, ExternalTransactionType.TAX_REFUND, ExternalTransactionType.INSURANCE_PAYOUT, ExternalTransactionType.LEGAL_SETTLEMENT];
-    return incomeTypes.includes(type) ? 'text-green-600' : 'text-red-600';
+  const getTypeColor = (type: ExternalTransactionType, category?: ExternalTransactionCategory) => {
+    // Vert uniquement pour TRANSFERT_PDG avec catégorie TRANSFERT_PDG
+    if (type === ExternalTransactionType.TRANSFER_PDG && category === ExternalTransactionCategory.TRANSFER_PDG) {
+      return 'text-green-600';
+    }
+    // Rouge pour tout le reste
+    return 'text-red-600';
   };
 
   const handleExportCSV = () => {
@@ -593,7 +597,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className={`font-medium ${getTypeColor(transaction.externalTransactionType)}`}>
+                    <span className={`font-medium ${getTypeColor(transaction.externalTransactionType, transaction.externalTransactionCategory)}`}>
                       {formatAmount(transaction.amount)}
                     </span>
                   </td>
@@ -630,6 +634,31 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                           </button>
+                        </>
+                      )}
+                      {user?.userRole === UserRole.ADMIN && (
+                        <>
+                          {transaction.status === ExternalTransactionStatus.DRAFT ? (
+                            <button
+                              onClick={() => handleDelete(transaction.id)}
+                              className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors"
+                              title={t('externalTransactions.actions.delete')}
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleAdminDelete(transaction.id)}
+                              className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors"
+                              title={t('externalTransactions.actions.adminDelete')}
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          )}
                         </>
                       )}
                     </div>

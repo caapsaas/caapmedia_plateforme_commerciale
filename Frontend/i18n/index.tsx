@@ -634,6 +634,65 @@ const frTranslations = {
       "addExpense": "Ajouter une nouvelle dépense"
     }
   },
+  "treasuryAccounts": {
+    "title": "Comptes de trésorerie",
+    "description": "Gérez les comptes bancaires et de trésorerie de votre entreprise",
+    "accessDenied": "Vous n'avez pas les permissions pour gérer les comptes de trésorerie",
+    "noData": "Aucun compte de trésorerie trouvé",
+    "stats": {
+      "totalAccounts": "Total des comptes",
+      "totalBalance": "Solde total",
+      "averageBalance": "Solde moyen"
+    },
+    "table": {
+      "accountName": "Nom du compte",
+      "balance": "Solde",
+      "currency": "Devise",
+      "actions": "Actions"
+    },
+    "actions": {
+      "create": "Créer un compte",
+      "edit": "Modifier",
+      "delete": "Supprimer"
+    },
+    "create": {
+      "title": "Créer un compte de trésorerie"
+    },
+    "edit": {
+      "title": "Modifier le compte de trésorerie"
+    },
+    "form": {
+      "accountName": "Nom du compte",
+      "accountNamePlaceholder": "Ex: Compte principal BNP",
+      "balance": "Solde initial",
+      "currency": "Devise",
+      "subsidiary": "Filiale"
+    },
+    "validation": {
+      "accountNameRequired": "Le nom du compte est requis",
+      "validBalance": "Veuillez entrer un solde valide"
+    },
+    "confirm": {
+      "delete": "Êtes-vous sûr de vouloir supprimer ce compte de trésorerie ?",
+      "deleteWithBalance": "ATTENTION : Le compte '{{accountName}}' a un solde de {{balance}}. Êtes-vous sûr de vouloir le supprimer ? Cette action est irréversible.",
+      "forceDelete": "Le serveur a refusé la suppression du compte '{{accountName}}' (solde: {{balance}}). Voulez-vous forcer la suppression malgré tout ?"
+    },
+    "success": {
+      "created": "Compte de trésorerie créé avec succès",
+      "updated": "Compte de trésorerie mis à jour avec succès",
+      "deleted": "Compte de trésorerie supprimé avec succès"
+    },
+    "error": {
+      "loading": "Erreur lors du chargement des comptes de trésorerie",
+      "create": "Erreur lors de la création du compte de trésorerie",
+      "update": "Erreur lors de la mise à jour du compte de trésorerie",
+      "delete": "Erreur lors de la suppression du compte de trésorerie",
+      "deleteNonZeroBalance": "Impossible de supprimer le compte '{{accountName}}' car son solde est de {{balance}}. Veuillez d'abord ramener le solde à zéro.",
+      "deleteWithTransactions": "Impossible de supprimer ce compte car il contient des transactions financières.",
+      "cannotDeleteNonZero": "Suppression impossible : solde de {{balance}}",
+      "forceDeleteFailed": "La suppression forcée a échoué. Le serveur refuse toujours de supprimer ce compte."
+    }
+  },
   "supplierDebts": {
     "totalDebts": "Total Dettes Fournisseurs",
     "totalDebtsDesc": "Montant total dû aux fournisseurs.",
@@ -844,6 +903,7 @@ const frTranslations = {
     "users": "Utilisateurs",
     "suppliers": "Fournisseurs",
     "taxes": "Taxes",
+    "treasury": "Trésorerie",
     "productManagement": "Gestion des Produits",
     "addProduct": "Ajouter un produit",
     "addTax": "Ajouter une taxe",
@@ -2154,6 +2214,65 @@ const enTranslations: Translations = {
             "addExpense": "Add New Expense"
         }
     },
+    "treasuryAccounts": {
+        "title": "Treasury Accounts",
+        "description": "Manage your company's bank and treasury accounts",
+        "accessDenied": "You don't have permission to manage treasury accounts",
+        "noData": "No treasury accounts found",
+        "stats": {
+            "totalAccounts": "Total Accounts",
+            "totalBalance": "Total Balance",
+            "averageBalance": "Average Balance"
+        },
+        "table": {
+            "accountName": "Account Name",
+            "balance": "Balance",
+            "currency": "Currency",
+            "actions": "Actions"
+        },
+        "actions": {
+            "create": "Create Account",
+            "edit": "Edit",
+            "delete": "Delete"
+        },
+        "create": {
+            "title": "Create Treasury Account"
+        },
+        "edit": {
+            "title": "Edit Treasury Account"
+        },
+        "form": {
+            "accountName": "Account Name",
+            "accountNamePlaceholder": "Ex: Main BNP Account",
+            "balance": "Initial Balance",
+            "currency": "Currency",
+            "subsidiary": "Subsidiary"
+        },
+        "validation": {
+            "accountNameRequired": "Account name is required",
+            "validBalance": "Please enter a valid balance"
+        },
+        "confirm": {
+            "delete": "Are you sure you want to delete this treasury account?",
+            "deleteWithBalance": "WARNING: Account '{{accountName}}' has a balance of {{balance}}. Are you sure you want to delete it? This action is irreversible.",
+            "forceDelete": "Server refused to delete account '{{accountName}}' (balance: {{balance}}). Do you want to force delete anyway?"
+        },
+        "success": {
+            "created": "Treasury account created successfully",
+            "updated": "Treasury account updated successfully",
+            "deleted": "Treasury account deleted successfully"
+        },
+        "error": {
+            "loading": "Error loading treasury accounts",
+            "create": "Error creating treasury account",
+            "update": "Error updating treasury account",
+            "delete": "Error deleting treasury account",
+            "deleteNonZeroBalance": "Cannot delete account '{{accountName}}' with balance {{balance}}. Please first bring the balance to zero.",
+            "deleteWithTransactions": "Cannot delete this account as it contains financial transactions.",
+            "cannotDeleteNonZero": "Cannot delete: balance {{balance}}",
+            "forceDeleteFailed": "Force delete failed. Server still refuses to delete this account."
+        }
+    },
     "supplierDebts": {
         "totalDebts": "Total Supplier Debts",
         "totalDebtsDesc": "Total amount owed to suppliers.",
@@ -2364,6 +2483,7 @@ const enTranslations: Translations = {
         "users": "Users",
         "suppliers": "Suppliers",
         "taxes": "Taxes",
+        "treasury": "Treasury",
         "productManagement": "Product Management",
         "addProduct": "Add Product",
         "addTax": "Add Tax",

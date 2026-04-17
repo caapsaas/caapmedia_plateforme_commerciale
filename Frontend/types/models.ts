@@ -407,8 +407,8 @@ export interface TreasuryAccount {
 }
 
 export enum TransactionStatus {
-  VALIDATED = 'Validé',
-  PENDING = 'En attente',
+  VALIDATED = 'VALIDE',
+  PENDING = 'EN_ATTENTE',
 }
 
 export type TransactionType = 'RECETTE' | 'DEPENSE';

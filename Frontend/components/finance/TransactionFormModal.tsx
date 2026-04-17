@@ -54,6 +54,13 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onC
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Valider que le montant est positif
+        if (formData.amount <= 0) {
+            alert('Le montant doit être un nombre positif');
+            return;
+        }
+        
         onSave(formData, transactionType);
     };
 
@@ -75,7 +82,7 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onC
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="amount" className="block text-sm font-medium text-slate-700">{t('treasury.amount')}</label>
-                                    <input type="number" step="any" name="amount" id="amount" value={formData.amount} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />
+                                    <input type="number" step="any" min="0.01" name="amount" id="amount" value={formData.amount} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />
                                 </div>
                                 <div>
                                     <label htmlFor="transactionDate" className="block text-sm font-medium text-slate-700">{t('treasury.date')}</label>

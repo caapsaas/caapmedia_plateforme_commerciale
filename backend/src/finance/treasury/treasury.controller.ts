@@ -63,4 +63,9 @@ export class TreasuryController {
   ) {
     return this.treasuryService.updateTransactionStatus(id, updateDto, user);
   }
+
+  @Delete('transactions/:id')
+  deleteTransaction(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.treasuryService.deleteTransaction(id, user);
+  }
 }

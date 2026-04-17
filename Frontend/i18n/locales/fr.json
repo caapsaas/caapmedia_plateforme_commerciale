@@ -40,9 +40,18 @@
     "logout": "Déconnexion",
     "version": "Version",
     "print": "Imprimer",
-    "exportPdf": "Exporter en PDF"
+    "exportPdf": "Exporter en PDF",
+    "loading": "Chargement...",
+    "saving": "Enregistrement..."
   },
   "configuration": {
+    "title": "Configuration",
+    "products": "Produits",
+    "users": "Utilisateurs",
+    "suppliers": "Fournisseurs",
+    "clientManagement": "Clients",
+    "taxes": "Taxes",
+    "treasury": "Trésorerie",
     "modal": {
       "editEmployeeTitle": "Modifier l'employé",
       "addEmployeeTitle": "Ajouter un employé"
@@ -185,6 +194,59 @@
       "DRAFT": "Brouillon",
       "VALIDATED": "Validé",
       "CANCELLED": "Annulé"
+    }
+  },
+  "treasuryAccounts": {
+    "title": "Comptes de trésorerie",
+    "description": "Gérez les comptes bancaires et de trésorerie de votre entreprise",
+    "accessDenied": "Vous n'avez pas les permissions pour gérer les comptes de trésorerie",
+    "noData": "Aucun compte de trésorerie trouvé",
+    "stats": {
+      "totalAccounts": "Total des comptes",
+      "totalBalance": "Solde total",
+      "averageBalance": "Solde moyen"
+    },
+    "table": {
+      "accountName": "Nom du compte",
+      "balance": "Solde",
+      "currency": "Devise",
+      "actions": "Actions"
+    },
+    "actions": {
+      "create": "Créer un compte",
+      "edit": "Modifier",
+      "delete": "Supprimer"
+    },
+    "create": {
+      "title": "Créer un compte de trésorerie"
+    },
+    "edit": {
+      "title": "Modifier le compte de trésorerie"
+    },
+    "form": {
+      "accountName": "Nom du compte",
+      "accountNamePlaceholder": "Ex: Compte principal BNP",
+      "balance": "Solde initial",
+      "currency": "Devise",
+      "subsidiary": "Filiale"
+    },
+    "validation": {
+      "accountNameRequired": "Le nom du compte est requis",
+      "validBalance": "Veuillez entrer un solde valide"
+    },
+    "confirm": {
+      "delete": "Êtes-vous sûr de vouloir supprimer ce compte de trésorerie ?"
+    },
+    "success": {
+      "created": "Compte de trésorerie créé avec succès",
+      "updated": "Compte de trésorerie mis à jour avec succès",
+      "deleted": "Compte de trésorerie supprimé avec succès"
+    },
+    "error": {
+      "loading": "Erreur lors du chargement des comptes de trésorerie",
+      "create": "Erreur lors de la création du compte de trésorerie",
+      "update": "Erreur lors de la mise à jour du compte de trésorerie",
+      "delete": "Erreur lors de la suppression du compte de trésorerie"
     }
   }
 }

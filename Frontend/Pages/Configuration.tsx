@@ -6,9 +6,10 @@ import SupplierManagement from '../components/configuration/SupplierManagement';
 import ClientManagement from '../components/configuration/ClientManagement'; // Importer ClientManagement
 import { useI18n } from '../i18n';
 import TaxManagement from '../components/configuration/TaxManagement';
+import TreasuryAccountManagement from '../components/configuration/TreasuryAccountManagement';
 import { useAuth } from '../context/AuthContext';
 
-type ConfigView = 'products' | 'users' | 'suppliers' | 'taxes' | 'clients';
+type ConfigView = 'products' | 'users' | 'suppliers' | 'taxes' | 'clients' | 'treasury';
 
 const Configuration: React.FC = () => {
     const { t } = useI18n();
@@ -29,6 +30,8 @@ const Configuration: React.FC = () => {
                 return <ClientManagement />;
             case 'taxes':
                 return <TaxManagement />;
+            case 'treasury':
+                return <TreasuryAccountManagement subsidiary={subsidiary} />;
             default:
                 return <ProductManagement />;
         }
@@ -57,6 +60,7 @@ const Configuration: React.FC = () => {
                     <TabButton view="suppliers" label={t('configuration.suppliers')} />
                     <TabButton view="clients" label={t('configuration.clientManagement')} />
                     <TabButton view="taxes" label={t('configuration.taxes')} />
+                    <TabButton view="treasury" label={t('configuration.treasury')} />
                 </div>
             </div>
             
