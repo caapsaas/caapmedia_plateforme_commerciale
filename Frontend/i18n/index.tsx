@@ -666,7 +666,13 @@ const frTranslations = {
       "accountNamePlaceholder": "Ex: Compte principal BNP",
       "balance": "Solde initial",
       "currency": "Devise",
+      "accountType": "Type de compte",
       "subsidiary": "Filiale"
+    },
+    "accountTypes": {
+      "bank": "Banque",
+      "cash": "Caisse",
+      "prefinancement": "Compte de préfinancement"
     },
     "validation": {
       "accountNameRequired": "Le nom du compte est requis",
@@ -2246,7 +2252,13 @@ const enTranslations: Translations = {
             "accountNamePlaceholder": "Ex: Main BNP Account",
             "balance": "Initial Balance",
             "currency": "Currency",
+            "accountType": "Account Type",
             "subsidiary": "Subsidiary"
+        },
+        "accountTypes": {
+            "bank": "Bank",
+            "cash": "Cash",
+            "prefinancement": "Prefinancement Account"
         },
         "validation": {
             "accountNameRequired": "Account name is required",

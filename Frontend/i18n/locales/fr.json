@@ -228,7 +228,13 @@
       "accountNamePlaceholder": "Ex: Compte principal BNP",
       "balance": "Solde initial",
       "currency": "Devise",
+      "accountType": "Type de compte",
       "subsidiary": "Filiale"
+    },
+    "accountTypes": {
+      "bank": "Banque",
+      "cash": "Caisse",
+      "prefinancement": "Compte de préfinancement"
     },
     "validation": {
       "accountNameRequired": "Le nom du compte est requis",

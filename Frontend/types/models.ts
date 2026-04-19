@@ -49,6 +49,7 @@ export enum FinanceView {
     PNL = 'pnl',
     BILAN = 'bilan',
     EXTERNAL_TRANSACTIONS = 'external_transactions',
+    PREFINANCEMENT = 'prefinancement',
     INVESTMENT = 'investment',
     INVESTMENT_RETURN = 'investment_return',
     LOAN = 'loan',
@@ -398,11 +399,18 @@ export interface CreditAccount {
   subsidiaryId: string;
 }
 
+export enum AccountType {
+  BANQUE = 'BANQUE',
+  CAISSE = 'CAISSE',
+  COMPTE_PREFINANCEMENT = 'COMPTE_PREFINANCEMENT',
+}
+
 export interface TreasuryAccount {
   id: string;
   accountName: string;
   balance: number;
   currency: string;
+  accountType: AccountType;
   subsidiaryId: string;
 }
 

@@ -6,8 +6,9 @@ import { AssetsModule } from './assets/assets.module';
 import { ExternalTransactionModule } from './external-transaction/external-transaction.module';
 import { BalancesheetModule } from './balancesheet/balancesheet.module';
 import { IncomestatementModule } from './incomestatement/incomestatement.module';
+import { PrefinancementModule } from './prefinancement/prefinancement.module';
 
 @Module({
-  imports: [ExpenseModule, TreasuryModule, DebtsModule, AssetsModule, ExternalTransactionModule, BalancesheetModule, IncomestatementModule]
+    imports: [ExpenseModule, TreasuryModule, DebtsModule, AssetsModule, ExternalTransactionModule, BalancesheetModule, IncomestatementModule, PrefinancementModule]
 })
 export class FinanceModule {}

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, AccountType } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -20,16 +20,19 @@ export async function seedTreasuryAccounts() {
       accountName: 'Caisse Principale',
       balance:50000,
       currency: 'XOF', // Franc CFA par défaut, à adapter selon vos besoins
+      accountType: AccountType.CAISSE,
     },
     {
       accountName: 'Compte Bancaire BOA',
       balance: 160000,
       currency: 'XOF',
+      accountType: AccountType.BANQUE,
     },
     {
       accountName: 'Compte Mobile Money',
       balance: 150000,
       currency: 'XOF',
+      accountType: AccountType.BANQUE,
     },
   ];
 
@@ -50,6 +53,7 @@ export async function seedTreasuryAccounts() {
             accountName: acc.accountName,
             balance: acc.balance,
             currency: acc.currency,
+            accountType: acc.accountType,
             subsidiaryId: subsidiary.id,
           },
         });

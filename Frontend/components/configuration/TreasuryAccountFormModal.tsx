@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TreasuryAccount, Subsidiary } from '../../types/models';
+import { TreasuryAccount, Subsidiary, AccountType } from '../../types/models';
 import { useI18n } from '../../i18n';
 import { CreateTreasuryAccountData, UpdateTreasuryAccountData } from '../../services/apiFinance/apiTreasuryAccounts';
 
@@ -22,6 +22,7 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
     accountName: '',
     balance: '',
     currency: 'XOF',
+    accountType: AccountType.BANQUE,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -33,12 +34,14 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
         accountName: account.accountName,
         balance: account.balance.toString(),
         currency: account.currency,
+        accountType: account.accountType,
       });
     } else {
       setFormData({
         accountName: '',
         balance: '0',
         currency: 'XOF',
+        accountType: AccountType.BANQUE,
       });
     }
   }, [account]);
@@ -73,6 +76,7 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
         accountName: formData.accountName.trim(),
         balance: parseFloat(formData.balance),
         currency: formData.currency,
+        accountType: formData.accountType,
         subsidiaryId: subsidiary.id,
       };
 
@@ -161,6 +165,26 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
               {errors.balance && (
                 <p className="mt-1 text-sm text-red-600">{errors.balance}</p>
               )}
+            </div>
+
+            {/* Account Type */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                {t('treasuryAccounts.form.accountType')}
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+              <select
+                name="accountType"
+                value={formData.accountType}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c6e911] focus:border-[#c6e911] transition-colors"
+                required
+              >
+                <option value={AccountType.BANQUE}>{t('treasuryAccounts.accountTypes.bank')}</option>
+                <option value={AccountType.CAISSE}>{t('treasuryAccounts.accountTypes.cash')}</option>
+                <option value={AccountType.COMPTE_PREFINANCEMENT}>{t('treasuryAccounts.accountTypes.prefinancement')}</option>
+              </select>
+              {formData.accountType === AccountType.COMPTE_PREFINANCEMENT }
             </div>
 
             {/* Currency */}

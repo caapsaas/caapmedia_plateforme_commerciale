@@ -1,14 +1,16 @@
-import { TreasuryAccount } from '../../types/models';
+import { TreasuryAccount, AccountType } from '../../types/models';
 import { api } from '../api';
 
 export interface CreateTreasuryAccountData {
   accountName: string;
   initialBalance: number;
   currency: string;
+  accountType: AccountType;
 }
 
 export interface UpdateTreasuryAccountData {
-  accountName: string;
+  accountName?: string;
+  accountType?: AccountType;
 }
 
 // Get all treasury accounts for a subsidiary
@@ -20,6 +22,7 @@ export const getTreasuryAccounts = async (subsidiaryId: string): Promise<Treasur
       accountName: account.accountName,
       balance: parseFloat(account.balance.toString()),
       currency: account.currency,
+      accountType: account.accountType,
       subsidiaryId: account.subsidiaryId,
     }));
   } catch (error) {
@@ -38,6 +41,7 @@ export const getTreasuryAccount = async (id: string): Promise<TreasuryAccount> =
       accountName: account.accountName,
       balance: parseFloat(account.balance.toString()),
       currency: account.currency,
+      accountType: account.accountType,
       subsidiaryId: account.subsidiaryId,
     };
   } catch (error) {
@@ -56,6 +60,7 @@ export const createTreasuryAccount = async (data: CreateTreasuryAccountData): Pr
       accountName: account.accountName,
       balance: parseFloat(account.balance.toString()),
       currency: account.currency,
+      accountType: account.accountType,
       subsidiaryId: account.subsidiaryId,
     };
   } catch (error) {
@@ -74,6 +79,7 @@ export const updateTreasuryAccount = async (id: string, data: UpdateTreasuryAcco
       accountName: account.accountName,
       balance: parseFloat(account.balance.toString()),
       currency: account.currency,
+      accountType: account.accountType,
       subsidiaryId: account.subsidiaryId,
     };
   } catch (error) {

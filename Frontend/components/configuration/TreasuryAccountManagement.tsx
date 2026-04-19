@@ -3,6 +3,7 @@ import { TreasuryAccount, Subsidiary } from '../../types/models';
 import { useAuth } from '../../context/AuthContext';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
+import { useQueryClient } from '@tanstack/react-query';
 import TreasuryAccountFormModal from './TreasuryAccountFormModal';
 import { getTreasuryAccounts, createTreasuryAccount, updateTreasuryAccount, deleteTreasuryAccount, CreateTreasuryAccountData, UpdateTreasuryAccountData } from '../../services/apiFinance/apiTreasuryAccounts';
 
@@ -14,6 +15,7 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
   const { t } = useI18n();
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const [accounts, setAccounts] = useState<TreasuryAccount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,16 +120,33 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
         };
         const updatedAccount = await updateTreasuryAccount(editingAccount.id, updateData);
         setAccounts(accounts.map(acc => acc.id === updatedAccount.id ? updatedAccount : acc));
+        
+        // Si c'est un compte de préfinancement, invalider le cache de l'API préfinancement
+        if (accountData.accountType === 'COMPTE_PREFINANCEMENT' || updateData.accountType === 'COMPTE_PREFINANCEMENT') {
+          queryClient.invalidateQueries({ queryKey: ['prefinancementAccount', subsidiary.id] });
+          queryClient.invalidateQueries({ queryKey: ['prefinancementTransactions', subsidiary.id] });
+          queryClient.invalidateQueries({ queryKey: ['prefinancementStatistics', subsidiary.id] });
+        }
+        
         toast('success', t('treasuryAccounts.success.updated'));
       } else {
         // Création
         const createData: CreateTreasuryAccountData = {
           accountName: accountData.accountName,
           initialBalance: accountData.balance,
-          currency: accountData.currency
+          currency: accountData.currency,
+          accountType: accountData.accountType
         };
         const newAccount = await createTreasuryAccount(createData);
         setAccounts([...accounts, newAccount]);
+        
+        // Si c'est un compte de préfinancement, invalider le cache de l'API préfinancement
+        if (accountData.accountType === 'COMPTE_PREFINANCEMENT') {
+          queryClient.invalidateQueries({ queryKey: ['prefinancementAccount', subsidiary.id] });
+          queryClient.invalidateQueries({ queryKey: ['prefinancementTransactions', subsidiary.id] });
+          queryClient.invalidateQueries({ queryKey: ['prefinancementStatistics', subsidiary.id] });
+        }
+        
         toast('success', t('treasuryAccounts.success.created'));
       }
       handleModalClose();

@@ -7,6 +7,7 @@ import ExpenseManagement from '../components/finance/ExpenseManagement';
 import TreasuryManagement from '../components/finance/TreasuryManagement';
 import ProfitAndLossStatement from '../components/finance/ProfitAndLossStatement';
 import ExternalTransactions from '../components/finance/ExternalTransactions';
+import PrefinancementManagement from '../components/finance/PrefinancementManagement';
 import { useI18n } from '../i18n';
 import IconDocumentChartBar from '../components/icons/IconDocumentChartBar';
 import BalanceSheet from '../components/finance/BalanceSheet';
@@ -87,6 +88,8 @@ const Finance: React.FC = () => {
                 return <CreditManagement subsidiary={subsidiary} />;
             case FinanceView.TREASURY:
                 return <TreasuryManagement subsidiary={subsidiary} />;
+            case FinanceView.PREFINANCEMENT:
+                return <PrefinancementManagement subsidiary={subsidiary} />;
             case FinanceView.SUPPLIERS:
                 return <SupplierDebts subsidiary={subsidiary} supplierDebts={supplierDebts} />;
             case FinanceView.EXPENSES:
@@ -131,6 +134,7 @@ const Finance: React.FC = () => {
                 <div className="flex items-center flex-wrap gap-2 p-1 bg-slate-200 rounded-lg self-start sm:self-center">
                     <TabButton view={FinanceView.CREDIT} label={t('finance.creditManagement')} />
                     <TabButton view={FinanceView.TREASURY} label={t('finance.treasury')} />
+                    <TabButton view={FinanceView.PREFINANCEMENT} label="Préfinancement" />
                     <TabButton view={FinanceView.SUPPLIERS} label={t('finance.supplierDebts')} />
                     <TabButton view={FinanceView.EXPENSES} label={t('finance.expenses')} />
                     <TabButton view={FinanceView.PNL} label={t('pnl.tabTitle')} icon={<IconDocumentChartBar className="h-4 w-4" />} />

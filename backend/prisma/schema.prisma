@@ -47,6 +47,8 @@ model Subsidiary {
   treasuryAccounts              TreasuryAccount[]
   users                         User[]
   externalFinancialTransactions ExternalFinancialTransaction[]
+  PrefinancementAccount         PrefinancementAccount[]
+  PrefinancementTransaction     PrefinancementTransaction[]
 
   @@index([subsidiaryName]) // Ajout de cet index
   @@map("subsidiaries")
@@ -69,6 +71,8 @@ model User {
   subsidiary                    Subsidiary                     @relation(fields: [subsidiaryId], references: [id])
   externalFinancialTransactions ExternalFinancialTransaction[]
   notifications                 Notification[]
+  prefinancementAccounts        PrefinancementAccount[]
+  prefinancementTransactions    PrefinancementTransaction[]
 
   @@map("users")
 }
@@ -570,6 +574,7 @@ model TreasuryAccount {
   accountName           String                 @map("account_name") @db.VarChar(255)
   balance               Decimal                @map("balance") @db.Decimal(15, 2)
   currency              String                 @map("currency") @db.VarChar(10)
+  accountType           AccountType            @map("account_type")
   subsidiaryId          String                 @map("subsidiary_id") @db.Uuid
   financialTransactions FinancialTransaction[]
   subsidiary            Subsidiary             @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
@@ -1188,6 +1193,12 @@ enum TransactionStatus {
   EN_ATTENTE
 }
 
+enum AccountType {
+  BANQUE
+  CAISSE
+  COMPTE_PREFINANCEMENT
+}
+
 enum DebtStatus {
   A_PAYER
   PAYER
@@ -1254,4 +1265,56 @@ enum NotificationType {
 enum RecipientType {
   USER
   CLIENT
+}
+
+model PrefinancementAccount {
+  id           String     @id @default(uuid()) @map("prefinancement_accounts")
+  accountName  String     @map("account_name") @db.VarChar(255)
+  balance      Decimal    @map("balance") @db.Decimal(15, 2)
+  currency     String     @default("XOF") @map("currency") @db.VarChar(10)
+  lastUpdated  DateTime   @default(now()) @map("last_updated") @db.Timestamp
+  subsidiaryId String     @map("subsidiary_id") @db.Uuid
+  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id])
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamp
+  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamp
+  User         User?      @relation(fields: [userId], references: [id])
+  userId       String?    @db.Uuid
+}
+
+model PrefinancementTransaction {
+  id              String                        @id @default(uuid()) @map("prefinancement_transactions")
+  date            DateTime                      @map("date") @db.Timestamp
+  description     String                        @map("description") @db.Text
+  amount          Decimal                       @map("amount") @db.Decimal(15, 2)
+  type            PrefinancementTransactionType @map("type")
+  category        PrefinancementCategory        @map("category")
+  status          PrefinancementStatus          @map("status")
+  referenceNumber String?                       @map("reference_number") @db.VarChar(100)
+  relatedOrderId  String?                       @map("related_order_id") @db.VarChar(255)
+  notes           String?                       @map("notes") @db.Text
+  subsidiaryId    String                        @map("subsidiary_id") @db.Uuid
+  createdBy       String                        @map("created_by") @db.Uuid
+  createdAt       DateTime                      @default(now()) @map("created_at") @db.Timestamp
+  updatedAt       DateTime                      @updatedAt @map("updated_at") @db.Timestamp
+  creator         User?                         @relation(fields: [createdBy], references: [id])
+  subsidiary      Subsidiary                    @relation(fields: [subsidiaryId], references: [id])
+}
+
+enum PrefinancementTransactionType {
+  CREDIT
+  DEBIT
+}
+
+enum PrefinancementCategory {
+  MATERIELS_PREMIER
+  MAIN_D_OEUVRE
+  ENERGIE
+  TRANSPORT
+  AUTRE
+}
+
+enum PrefinancementStatus {
+  EN_ATTENTE
+  VALIDE
+  ANNULE
 }

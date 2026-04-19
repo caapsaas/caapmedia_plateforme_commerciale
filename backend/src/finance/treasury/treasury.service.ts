@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
-import { User, UserRole, TransactionType, Prisma, TransactionStatus } from '@prisma/client';
+import { User, UserRole, TransactionType, Prisma, TransactionStatus, AccountType } from '@prisma/client';
 import { CreateTreasuryAccountDto } from './dto/create-treasury-account.dto';
 import { CreateFinancialTransactionDto } from './dto/create-financial-transaction.dto'; 
 import { UpdateFinancialTransactionDto } from './dto/update-financial-transaction.dto';
@@ -37,11 +37,28 @@ export class TreasuryService {
     // Le `user` vient du token JWT, la propriété est `role`, pas `userRole`.
     this.checkPermissions(user, allowedRoles, 'Permission denied to create treasury accounts.');
 
+    // Vérifier s'il existe déjà un compte de préfinancement pour cette filiale
+    if (dto.accountType === AccountType.COMPTE_PREFINANCEMENT) {
+      const existingPrefinancementAccount = await this.prisma.treasuryAccount.findFirst({
+        where: {
+          subsidiaryId: user.subsidiaryId,
+          accountType: AccountType.COMPTE_PREFINANCEMENT,
+        },
+      });
+
+      if (existingPrefinancementAccount) {
+        throw new BadRequestException(
+          `Un compte de préfinancement existe déjà pour cette filiale (${existingPrefinancementAccount.accountName}). Une filiale ne peut avoir qu'un seul compte de préfinancement.`
+        );
+      }
+    }
+
     return this.prisma.treasuryAccount.create({
       data: {
         accountName: dto.accountName,
         balance: new Prisma.Decimal(dto.initialBalance),
         currency: dto.currency,
+        accountType: dto.accountType,
         subsidiaryId: user.subsidiaryId,
       },
     });
@@ -105,6 +122,42 @@ export class TreasuryService {
 
     return this.prisma.treasuryAccount.delete({
       where: { id },
+    });
+  }
+
+  // ================================================================= //
+  //              GESTION DES COMPTES DE PRÉFINANCEMENT               //
+  // ================================================================= //
+
+  async findPrefinancementAccount(subsidiaryId: string) {
+    return this.prisma.treasuryAccount.findFirst({
+      where: {
+        subsidiaryId,
+        accountType: AccountType.COMPTE_PREFINANCEMENT,
+      },
+    });
+  }
+
+  async getOrCreatePrefinancementAccount(subsidiaryId: string, user: User) {
+    // D'abord, essayer de trouver un compte existant
+    const existingAccount = await this.findPrefinancementAccount(subsidiaryId);
+    
+    if (existingAccount) {
+      return existingAccount;
+    }
+
+    // Si aucun compte n'existe, en créer un automatiquement
+    const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR];
+    this.checkPermissions(user, allowedRoles, 'Permission denied to create prefinancement accounts.');
+
+    return this.prisma.treasuryAccount.create({
+      data: {
+        accountName: 'Compte de Préfinancement',
+        balance: new Prisma.Decimal(0),
+        currency: 'XOF',
+        accountType: AccountType.COMPTE_PREFINANCEMENT,
+        subsidiaryId,
+      },
     });
   }
 
