@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ExternalFinancialTransaction, ExternalTransactionType, ExternalTransactionCategory, ExternalTransactionStatus, PaymentMethod, Subsidiary, UserRole } from '../../types/models';
 import { getExternalTransactions, createExternalTransaction, updateExternalTransaction, validateExternalTransaction, cancelExternalTransaction, deleteExternalTransaction, getExternalTransactionStatistics, ExternalTransactionFilters, ExternalTransactionStatistics, CreateExternalTransactionData } from '../../services/apiFinance/apiExternalTransactions';
+import { getPrefinancementAccount, getPrefinancementStatistics } from '../../services/apiFinance/apiPrefinancement';
 import { useAuth } from '../../context/AuthContext';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
@@ -46,6 +47,8 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
   
   const [transactions, setTransactions] = useState<ExternalFinancialTransaction[]>([]);
   const [statistics, setStatistics] = useState<ExternalTransactionStatistics | null>(null);
+  const [financingAccount, setFinancingAccount] = useState<any>(null);
+  const [financingStats, setFinancingStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -78,8 +81,39 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
         getExternalTransactions(subsidiary.id, filters),
         getExternalTransactionStatistics(subsidiary.id)
       ]);
+      
+      // Gérer le compte de financement séparément pour créer si nécessaire
+      let accountData = null;
+      let statsData = null;
+      
+      try {
+        accountData = await getPrefinancementAccount(subsidiary.id);
+        statsData = await getPrefinancementStatistics(subsidiary.id);
+      } catch (error) {
+        // Si le compte n'existe pas, créer un compte par défaut
+        console.log('Le compte de financement n\'existe pas, utilisation d\'un compte par défaut');
+        accountData = {
+          id: 'default',
+          accountName: `Compte Financement ${subsidiary.name}`,
+          balance: 0,
+          currency: 'XOF',
+          lastUpdated: new Date().toISOString(),
+          subsidiaryId: subsidiary.id
+        };
+        statsData = {
+          totalBalance: 0,
+          totalCredits: 0,
+          totalDebits: 0,
+          transactionCount: 0,
+          creditsByCategory: [],
+          debitsByCategory: []
+        };
+      }
+      
       setTransactions(transactionsData);
       setStatistics(statisticsData);
+      setFinancingAccount(accountData);
+      setFinancingStats(statsData);
     } catch (error) {
       toast('error', t('externalTransactions.error.loading'));
     } finally {
@@ -413,6 +447,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
 
   const totals = calculateTotals(transactions);
 
+ 
   if (loading) {
     return <div className="p-6 text-center">{t('common.loading')}</div>;
   }
@@ -421,7 +456,9 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
     <div className="space-y-6">
       {/* Statistics Cards */}
       {statistics && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+         
+          
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-sm font-medium text-gray-500">{t('externalTransactions.stats.total')}</h3>
             <p className="text-2xl font-bold text-gray-900">{statistics.totalTransactions}</p>
@@ -464,6 +501,8 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
           </div>*/}
         </div>
       )}
+
+     
 
       {/* Filters and Actions */}
       <div className="bg-white p-4 rounded-lg shadow">

@@ -22,7 +22,7 @@ import { getProductsBySubsidiary } from '../../services/apiE-commerce/apiProduct
 import { getContacts } from '../../services/apiCrm/apicontacts';
 import { useAuth } from '../../context/AuthContext';
 
-const initialFilterState: FindAllOrdersDto = { period: 'ALL_TIME' };
+const initialFilterState: FindAllOrdersDto = { period: 'all_time' };
 
 const Sales: React.FC = () => {
     const { user, subsidiary } = useAuth();
@@ -214,12 +214,12 @@ const Sales: React.FC = () => {
                                         <SelectFilter name="paymentStatus" label={t('filter.paymentStatus')} value={filters.paymentStatus || ''} onChange={e => setFilters(prev => ({ ...prev, paymentStatus: e.target.value as PaymentStatus }))} options={paymentStatusOptions} placeholder={t('filter.allPaymentStatuses')} />
                                         <div className="md:col-span-2 lg:col-span-4">
                                             <PeriodFilter
-                                                period={filters.period || 'ALL_TIME'}
+                                                period={filters.period || 'all_time'}
                                                 onPeriodChange={e => setFilters(prev => ({ ...prev, period: e.target.value as FindAllOrdersDto['period'], startDate: '', endDate: '' }))}
                                                 startDate={filters.startDate || ''}
-                                                onStartDateChange={e => setFilters(prev => ({ ...prev, startDate: e.target.value, period: 'CUSTOM' }))}
+                                                onStartDateChange={e => setFilters(prev => ({ ...prev, startDate: e.target.value, period: 'custom' }))}
                                                 endDate={filters.endDate || ''}
-                                                onEndDateChange={e => setFilters(prev => ({ ...prev, endDate: e.target.value, period: 'CUSTOM' }))}
+                                                onEndDateChange={e => setFilters(prev => ({ ...prev, endDate: e.target.value, period: 'custom' }))}
                                             />
                                         </div>
                                         <div className="md:col-span-2 lg:col-span-4 flex justify-end items-center gap-2 mt-2">

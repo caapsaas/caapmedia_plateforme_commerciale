@@ -85,7 +85,7 @@ export class DebtsService {
         transactionDate: new Date(dto.paymentDate).toISOString(),
         description: `Paiement facture fournisseur: ${debt.supplierName} - Facture N°${debt.invoiceId}`,
         financialTransactionType: TransactionType.DEPENSE,
-        amount: debt.amount, // Prisma.Decimal est déjà le bon type ici, pas de changement nécessaire.
+        amount: debt.amount.toNumber(), // Convertir Decimal en number
         treasuryAccountId: dto.treasuryAccountId,
         relatedDocumentId: debt.id,
       }, user);

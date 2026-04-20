@@ -96,7 +96,7 @@ export const deleteTreasuryAccount = async (id: string): Promise<TreasuryAccount
  * @param incomeData - Les données de la recette.
  */
 export const createIncomeTransaction = async (incomeData: TransactionCreationData): Promise<FinancialTransaction> => {
-  // Envoyer le montant comme nombre tel qu'attendu par le backend
+  // Envoyer les données sans transformation - le backend gérera la conversion
   const processedData = {
     ...incomeData,
     amount: incomeData.amount
@@ -111,7 +111,7 @@ export const createIncomeTransaction = async (incomeData: TransactionCreationDat
  * @param expenseData - Les données de la dépense.
  */
 export const createExpenseTransaction = async (expenseData: TransactionCreationData): Promise<FinancialTransaction> => {
-  // Envoyer le montant comme nombre tel qu'attendu par le backend
+  // Envoyer les données sans transformation - le backend gérera la conversion
   const processedData = {
     ...expenseData,
     amount: expenseData.amount

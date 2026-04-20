@@ -37,8 +37,7 @@ export class AssetsService {
       await this.treasuryService.createExpenseTransaction({
         transactionDate: new Date(dto.acquisitionDate).toISOString(),
         description: `Achat immobilisation: ${asset.fixedAssetsName}`,
-        financialTransactionType: TransactionType.DEPENSE,
-        amount: new Prisma.Decimal(dto.acquisitionCost),
+        amount: dto.acquisitionCost,
         treasuryAccountId: treasuryAccountId,
         relatedDocumentId: asset.id,
         // status est optionnel et sera géré par TreasuryService

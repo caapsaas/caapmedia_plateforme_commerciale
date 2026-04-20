@@ -11,13 +11,13 @@ export class CreateFinancialTransactionDto {
   description: string;
 
   @IsEnum(TransactionType)
-  @IsNotEmpty()
-  financialTransactionType: TransactionType;
+  @IsOptional()
+  financialTransactionType?: TransactionType;
 
   @IsNumber()
   @IsPositive()
   @IsNotEmpty()
-  amount: Prisma.Decimal;
+  amount: number;
 
   @IsUUID()
   @IsNotEmpty()

@@ -298,6 +298,7 @@ export interface Order {
   paymentDueDate: string;
   salesRepId?: string;
   opportunityId?: string;
+  paymentMethod: CustomerPaymentMethod;
   // FIX: Add optional 'source' property to track order origin and resolve type error.
   source?: 'manual' | 'web_order' | 'quote_request';
 }

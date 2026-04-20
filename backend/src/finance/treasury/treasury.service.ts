@@ -168,14 +168,12 @@ export class TreasuryService {
 
   async createIncomeTransaction(dto: CreateFinancialTransactionDto, user: User) {
     // Forcer le type pour s'assurer que c'est bien une recette
-    dto.financialTransactionType = TransactionType.RECETTE;
-    return this.createTransaction(dto, user);
+    return this.createTransaction(dto, user, TransactionType.RECETTE);
   }
 
   async createExpenseTransaction(dto: CreateFinancialTransactionDto, user: User) {
     // Forcer le type pour s'assurer que c'est bien une dépense
-    dto.financialTransactionType = TransactionType.DEPENSE;
-    return this.createTransaction(dto, user);
+    return this.createTransaction(dto, user, TransactionType.DEPENSE);
   }
 
   /**
@@ -183,12 +181,16 @@ export class TreasuryService {
    * Gère la mise à jour du solde et l'enregistrement de la transaction.
    * @param dto Les données de la transaction
    * @param user L'utilisateur effectuant l'action
+   * @param financialTransactionType Le type de transaction (RECETTE ou DEPENSE)
    */
-  private async createTransaction(dto: CreateFinancialTransactionDto, user: User) {
+  private async createTransaction(dto: CreateFinancialTransactionDto, user: User, financialTransactionType: TransactionType) {
     const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER];
     this.checkPermissions(user, allowedRoles, 'Permission denied to create transactions.');
 
-    const { treasuryAccountId, amount, financialTransactionType, transactionDate } = dto;
+    const { treasuryAccountId, amount, transactionDate } = dto;
+    
+    // Convertir le montant en Prisma.Decimal
+    const decimalAmount = new Prisma.Decimal(amount);
     
     const account = await this.prisma.treasuryAccount.findFirst({
       where: { id: treasuryAccountId, subsidiaryId: user.subsidiaryId },
@@ -200,8 +202,8 @@ export class TreasuryService {
 
     // Vérification du solde pour les dépenses
     if (financialTransactionType === TransactionType.DEPENSE) {
-      if (account.balance.comparedTo(amount) < 0) {
-        throw new BadRequestException(`Solde insuffisant sur le compte "${account.accountName}". Solde actuel: ${account.balance}, Montant de la dépense: ${amount}.`);
+      if (account.balance.comparedTo(decimalAmount) < 0) {
+        throw new BadRequestException(`Solde insuffisant sur le compte "${account.accountName}". Solde actuel: ${account.balance}, Montant de la dépense: ${decimalAmount}.`);
       }
     }
 
@@ -211,8 +213,8 @@ export class TreasuryService {
     // Utiliser increment/decrement pour la mise à jour atomique du solde
     const balanceUpdateOperation =
       financialTransactionType === TransactionType.RECETTE 
-        ? { increment: amount } 
-        : { decrement: amount };
+        ? { increment: decimalAmount } 
+        : { decrement: decimalAmount };
 
     // Utiliser une transaction Prisma pour garantir l'atomicité
     return this.prisma.$transaction(async (tx) => {
@@ -227,7 +229,7 @@ export class TreasuryService {
         data: {
           description: dto.description,
           relatedDocumentId: dto.relatedDocumentId,
-          amount,
+          amount: decimalAmount,
           financialTransactionType,
           status: prismaStatus, // Use the mapped status
           treasuryAccountId,

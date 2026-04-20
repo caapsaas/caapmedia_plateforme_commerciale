@@ -8,7 +8,7 @@ import SelectFilter from '../components/filters/SelectFilter';
 import PeriodFilter from '../components/filters/PeriodFilter';
 import { useAuth } from '../context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getOrders, createOrderBySalesRep, FindAllOrdersDto } from '../services/apiE-commerce/apiOrders';
+import { getOrders, createOrderBySalesRep, createOrderBySalesRepJson, FindAllOrdersDto } from '../services/apiE-commerce/apiOrders';
 import { getProducts } from '../services/apiE-commerce/apiProducts';
 import { getContacts } from '../services/apiCrm/apicontacts';
 
@@ -20,7 +20,7 @@ const MesCommandes: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'history' | 'new'>('history');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [isBlModalOpen, setIsBlModalOpen] = useState(false);
-    const [filters, setFilters] = useState<FindAllOrdersDto>({ period: 'ALL_TIME' });
+    const [filters, setFilters] = useState<FindAllOrdersDto>({ period: 'all_time' });
     
     // --- TanStack Query Data Fetching ---
     const { data: contacts = [] } = useQuery<Contact[]>({
@@ -54,7 +54,7 @@ const MesCommandes: React.FC = () => {
     });
 
     const { mutate: placeOrderMutation } = useMutation({
-        mutationFn: createOrderBySalesRep,
+        mutationFn: createOrderBySalesRepJson,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['customerOrders', currentCustomer?.id] });
             setActiveTab('history');
@@ -76,7 +76,7 @@ const MesCommandes: React.FC = () => {
     };
 
     const handleResetFilters = () => {
-        setFilters({ customerId: currentCustomer?.id, period: 'ALL_TIME' });
+        setFilters({ customerId: currentCustomer?.id, period: 'all_time' });
     };
 
     const productOptions = products
@@ -84,24 +84,30 @@ const MesCommandes: React.FC = () => {
         .map(p => ({ value: p.id, label: p.productName }));
 
     const handlePlaceOrder = (newOrderData: Omit<Order, 'id' | 'subsidiaryId'>) => {
-        const formData = new FormData();
+        // Préparer les données selon la structure attendue par CreateOrderBySalesRepDto
+        const orderPayload = {
+            customerId: newOrderData.customerId,
+            customerName: newOrderData.customerName,
+            paymentDueDate: newOrderData.paymentDueDate,
+            paymentMethod: newOrderData.paymentMethod || 'PAY_ON_DELIVERY',
+            source: 'MANUAL',
+            items: newOrderData.items.map(item => ({
+                productId: item.product.id,
+                quantity: item.quantity,
+                price: item.price,
+                options: item.options ? Object.entries(item.options).map(([key, value]) => ({
+                    optionType: key,
+                    optionValue: value
+                })) : [],
+            })),
+            opportunityId: newOrderData.opportunityId || undefined
+        };
         
-        // Le backend attend les items sous forme de chaîne JSON
-        const itemsForJson = newOrderData.items.map(item => ({
-            productId: item.product.id,
-            quantity: item.quantity,
-            price: item.price,
-            options: item.options || {},
-        }));
-        formData.append('items', JSON.stringify(itemsForJson));
+        // Debug: Afficher les données dans la console
+        console.log('Données envoyées au backend:');
+        console.log('Payload:', JSON.stringify(orderPayload, null, 2));
 
-        // Ajouter les autres champs
-        formData.append('customerId', newOrderData.customerId);
-        formData.append('customerName', newOrderData.customerName);
-        formData.append('totalAmount', String(newOrderData.totalAmount));
-        formData.append('paymentDueDate', newOrderData.paymentDueDate);
-
-        placeOrderMutation(formData);
+        placeOrderMutation(orderPayload);
     };
 
     const handleViewBL = (order: Order) => {
@@ -165,12 +171,12 @@ const MesCommandes: React.FC = () => {
                             />
                             
                             <PeriodFilter 
-                                period={filters.period || 'ALL_TIME'}
+                                period={filters.period || 'all_time'}
                                 onPeriodChange={handlePeriodChange}
                                 startDate={filters.startDate || ''}
-                                onStartDateChange={e => setFilters(prev => ({ ...prev, startDate: e.target.value, period: 'CUSTOM' }))}
+                                onStartDateChange={e => setFilters(prev => ({ ...prev, startDate: e.target.value, period: 'custom' }))}
                                 endDate={filters.endDate || ''}
-                                onEndDateChange={e => setFilters(prev => ({ ...prev, endDate: e.target.value, period: 'CUSTOM' }))}
+                                onEndDateChange={e => setFilters(prev => ({ ...prev, endDate: e.target.value, period: 'custom' }))}
                             />
                             <button
                                 onClick={handleResetFilters}

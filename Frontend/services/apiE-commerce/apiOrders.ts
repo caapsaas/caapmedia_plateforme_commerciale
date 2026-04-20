@@ -9,7 +9,7 @@ export interface FindAllOrdersDto {
     productId?: string;
     orderStatus?: OrderStatus;
     paymentStatus?: PaymentStatus;
-    period?: 'ALL_TIME' | 'THIS_MONTH' | 'LAST_MONTH' | 'LAST_7_DAYS' | 'LAST_30_DAYS' | 'LAST_90_DAYS' | 'THIS_YEAR' | 'CUSTOM';
+    period?: 'all_time' | 'this_month' | 'last_month' | 'last_7_days' | 'last_30_days' | 'last_90_days' | 'this_year' | 'custom';
     startDate?: string;
     endDate?: string;
 }
@@ -37,6 +37,19 @@ export const createOrderBySalesRep = async (orderData: FormData) => {
     const { data } = await api.post('/ecommerce/orders/by-salesrep', orderData, {
         headers: {
             'Content-Type': 'multipart/form-data',
+        },
+    });
+    return data;
+};
+
+/**
+ * Crée une nouvelle commande (pour un commercial) en JSON.
+ * @param orderData - Les données de la commande à créer.
+ */
+export const createOrderBySalesRepJson = async (orderData: any) => {
+    const { data } = await api.post('/ecommerce/orders/by-salesrep/json', orderData, {
+        headers: {
+            'Content-Type': 'application/json',
         },
     });
     return data;

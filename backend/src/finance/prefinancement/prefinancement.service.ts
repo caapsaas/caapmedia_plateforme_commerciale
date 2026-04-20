@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { PrefinancementTransactionType, PrefinancementCategory, PrefinancementStatus } from '@prisma/client';
+import { TreasuryService } from '../treasury/treasury.service';
 
 @Injectable()
 export class PrefinancementService {
-    constructor(private readonly prisma: PrismaService) {}
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly treasuryService: TreasuryService
+    ) {}
 
     // --- Account Methods ---
     async createAccount(createDto: {
@@ -22,9 +26,26 @@ export class PrefinancementService {
     }
 
     async findAccount(subsidiaryId?: string) {
-        return this.prisma.prefinancementAccount.findFirst({
-            where: subsidiaryId ? { subsidiaryId } : {},
-        });
+        // Récupérer le compte de trésorerie de type préfinancement
+        if (!subsidiaryId) {
+            return null;
+        }
+        
+        const treasuryAccount = await this.treasuryService.findPrefinancementAccount(subsidiaryId);
+        
+        if (!treasuryAccount) {
+            return null;
+        }
+
+        // Retourner les données au format attendu par le frontend
+        return {
+            id: treasuryAccount.id,
+            accountName: treasuryAccount.accountName,
+            balance: Number(treasuryAccount.balance),
+            currency: treasuryAccount.currency,
+            lastUpdated: new Date().toISOString(), // Utiliser la date actuelle car updatedAt n'existe pas sur TreasuryAccount
+            subsidiaryId: treasuryAccount.subsidiaryId,
+        };
     }
 
     async updateAccount(accountId: string, updateDto: {
@@ -173,13 +194,42 @@ export class PrefinancementService {
             .filter(t => t.type === PrefinancementTransactionType.DEBIT && t.status === PrefinancementStatus.VALIDE)
             .reduce((sum, t) => sum + Number(t.amount), 0);
 
+        const transactionCount = transactions.length;
         const pendingTransactions = transactions.filter(t => t.status === PrefinancementStatus.EN_ATTENTE).length;
 
+        // Regrouper par catégorie pour les crédits
+        const creditsByCategory = transactions
+            .filter(t => t.type === PrefinancementTransactionType.CREDIT && t.status === PrefinancementStatus.VALIDE)
+            .reduce((acc, t) => {
+                const category = t.category;
+                if (!acc[category]) {
+                    acc[category] = { category, amount: 0, count: 0 };
+                }
+                acc[category].amount += Number(t.amount);
+                acc[category].count += 1;
+                return acc;
+            }, {} as Record<string, { category: string; amount: number; count: number }>);
+
+        // Regrouper par catégorie pour les débits
+        const debitsByCategory = transactions
+            .filter(t => t.type === PrefinancementTransactionType.DEBIT && t.status === PrefinancementStatus.VALIDE)
+            .reduce((acc, t) => {
+                const category = t.category;
+                if (!acc[category]) {
+                    acc[category] = { category, amount: 0, count: 0 };
+                }
+                acc[category].amount += Number(t.amount);
+                acc[category].count += 1;
+                return acc;
+            }, {} as Record<string, { category: string; amount: number; count: number }>);
+
         return {
+            totalBalance: totalCredits - totalDebits,
             totalCredits,
             totalDebits,
-            balance: totalCredits - totalDebits,
-            pendingTransactions,
+            transactionCount,
+            creditsByCategory: Object.values(creditsByCategory),
+            debitsByCategory: Object.values(debitsByCategory),
         };
     }
 }

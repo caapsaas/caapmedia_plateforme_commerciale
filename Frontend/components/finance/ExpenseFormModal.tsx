@@ -24,7 +24,7 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({ isOpen, onClose, on
     useEffect(() => {
         if (expense) {
             setFormData({
-                date: expense.date,
+                date: expense.date ? new Date(expense.date).toISOString().split('T')[0] : '',
                 description: expense.description,
                 category: expense.category,
                 type: expense.type,

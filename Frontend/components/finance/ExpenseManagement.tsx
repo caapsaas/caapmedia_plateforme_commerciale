@@ -14,6 +14,7 @@ import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
 import PeriodFilter from '../filters/PeriodFilter';
 import SelectFilter from '../filters/SelectFilter';
+import { saveExpense, deleteExpense } from '../../services/apiFinance/apiExpense';
 
 interface ExpenseManagementProps {
     subsidiary: Subsidiary;
@@ -94,13 +95,14 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
         setDeletingExpense(null);
     };
 
-    const handleSaveExpense = (data: Omit<ExpenseRecord, 'id' | 'subsidiaryId'>) => {
+    const handleSaveExpense = async (data: Omit<ExpenseRecord, 'id' | 'subsidiaryId'>) => {
         try {
             if (editingExpense) {
-                setExpenses(prev => prev.map(e => e.id === editingExpense.id ? { ...editingExpense, ...data } : e));
+                const updatedExpense = await saveExpense({ ...data, id: editingExpense.id });
+                setExpenses(prev => prev.map(e => e.id === editingExpense.id ? updatedExpense : e));
                 toast.success('Dépense modifiée!', 'La dépense a été modifiée avec succès.');
             } else {
-                const newExpense: ExpenseRecord = { ...data, id: `EXP${Date.now()}`, subsidiaryId: subsidiary.id };
+                const newExpense = await saveExpense(data);
                 setExpenses(prev => [newExpense, ...prev]);
                 toast.success('Dépense ajoutée!', 'La dépense a été ajoutée avec succès.');
             }
@@ -110,9 +112,10 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
         }
     };
 
-    const handleDeleteExpense = () => {
+    const handleDeleteExpense = async () => {
         try {
             if (deletingExpense) {
+                await deleteExpense(deletingExpense.id);
                 setExpenses(prev => prev.filter(e => e.id !== deletingExpense.id));
                 toast.success('Dépense supprimée!', 'La dépense a été supprimée avec succès.');
                 handleCloseModals();
@@ -217,7 +220,7 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
                         <tbody>
                             {filteredExpenses.map((exp) => (
                                 <tr key={exp.id} className="bg-white border-b hover:bg-slate-50">
-                                    <td className="px-6 py-4">{exp.date}</td>
+                                    <td className="px-6 py-4">{exp.date ? new Date(exp.date).toLocaleDateString('fr-FR') : ''}</td>
                                     <td className="px-6 py-4 font-medium">{exp.description}</td>
                                     <td className="px-6 py-4">{t(`expenses.categories.${exp.category || 'OTHER'}`)}</td>
                                     <td className="px-6 py-4">{t(`expenses.types.${exp.type || 'VARIABLE'}`)}</td>

@@ -61,8 +61,8 @@ const Caisse: React.FC = () => {
     });
 
     const { data: orders = [], isLoading: isLoadingOrders } = useQuery<Order[]>({
-        queryKey: ['orders', subsidiary?.id, { period: 'ALL_TIME' } as FindAllOrdersDto],
-        queryFn: () => getOrders({ period: 'ALL_TIME' }),
+        queryKey: ['orders', subsidiary?.id, { period: 'all_time' } as FindAllOrdersDto],
+        queryFn: () => getOrders({ period: 'all_time' }),
         enabled: !!subsidiary,
     });
 

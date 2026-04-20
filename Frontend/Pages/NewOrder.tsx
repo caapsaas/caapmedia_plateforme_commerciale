@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 
-import { Subsidiary, Product, Order, Contact, TaxRate, OrderStatus, ProductionStatus, PaymentStatus, ConfigurableOptionItem } from '../types';
+import { Subsidiary, Product, Order, Contact, TaxRate, OrderStatus, ProductionStatus, PaymentStatus, ConfigurableOptionItem, CustomerPaymentMethod, ProductOptions } from '../types';
 
 import IconMinus from '../components/icons/IconMinus';
 
@@ -55,6 +55,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
     const [quantities, setQuantities] = useState<Record<string, number>>({});
 
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>(selectedCustomer?.id || '');
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CustomerPaymentMethod>(CustomerPaymentMethod.PAY_ON_DELIVERY);
 
 
 
@@ -250,15 +251,17 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
                 // Extrait les options du produit pour les envoyer au backend.
 
-                const options = item.product.configurableOptions 
+                const options: Partial<ProductOptions> = item.product.configurableOptions 
 
-                    ? Object.entries(item.product.configurableOptions).flatMap(([optionType, optionItems]) => 
+                    ? Object.entries(item.product.configurableOptions).reduce((acc, [optionType, optionItems]) => {
+                        if (optionItems && optionItems.length > 0) {
+                            // Prendre la première option de chaque type
+                            acc[optionType.toLowerCase() as keyof ProductOptions] = optionItems[0].optionName;
+                        }
+                        return acc;
+                    }, {} as Partial<ProductOptions>)
 
-                        optionItems.map((optionValue: ConfigurableOptionItem) => ({ optionType, optionValue: optionValue.optionName }))
-
-                      )
-
-                    : [];
+                    : {};
 
                 return {
 
@@ -276,15 +279,17 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
                 // Extrait les options du produit pour les envoyer au backend.
 
-                const options = item.product.configurableOptions 
+                const options: Partial<ProductOptions> = item.product.configurableOptions 
 
-                    ? Object.entries(item.product.configurableOptions).flatMap(([optionType, optionItems]) => 
+                    ? Object.entries(item.product.configurableOptions).reduce((acc, [optionType, optionItems]) => {
+                        if (optionItems && optionItems.length > 0) {
+                            // Prendre la première option de chaque type
+                            acc[optionType.toLowerCase() as keyof ProductOptions] = optionItems[0].optionName;
+                        }
+                        return acc;
+                    }, {} as Partial<ProductOptions>)
 
-                        optionItems.map((optionValue: ConfigurableOptionItem) => ({ optionType, optionValue: optionValue.optionName }))
-
-                      )
-
-                    : [];
+                    : {};
 
                 return {
 
@@ -321,6 +326,8 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
             amountPaid: 0,
 
             productionHistory: [{ status: ProductionStatus.PREPRESS, date: new Date().toISOString() }],
+
+            paymentMethod: selectedPaymentMethod,
 
         };
 
@@ -630,6 +637,25 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
                         <span>{formatCurrency(totalAmount)}</span>
 
+                    </div>
+
+                    <div className="mt-4">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Méthode de paiement
+                        </label>
+                        <select
+                            value={selectedPaymentMethod}
+                            onChange={(e) => setSelectedPaymentMethod(e.target.value as CustomerPaymentMethod)}
+                            className="w-full p-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
+                        >
+                            <option value={CustomerPaymentMethod.PAY_ON_DELIVERY}>Paiement à la livraison</option>
+                            <option value={CustomerPaymentMethod.CARD}>Carte bancaire</option>
+                            <option value={CustomerPaymentMethod.ORANGE_MONEY}>Orange Money</option>
+                            <option value={CustomerPaymentMethod.WAVE}>Wave</option>
+                            <option value={CustomerPaymentMethod.MOBILE_MONEY}>Mobile Money</option>
+                            <option value={CustomerPaymentMethod.PAYCAAP}>PayCaap</option>
+                            <option value={CustomerPaymentMethod.CUSTOMER_CREDIT}>Crédit client</option>
+                        </select>
                     </div>
 
                     <button

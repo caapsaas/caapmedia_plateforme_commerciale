@@ -42,7 +42,7 @@ export class OrdersController {
     }
 
     /**
-     * Endpoint pour créer une commande par un commercial
+     * Endpoint pour créer une commande par un commercial (avec fichiers)
      * Exemple d'URL : /ecommerce/orders/by-salesrep
      */
     @Post('by-salesrep')
@@ -65,6 +65,20 @@ export class OrdersController {
         @Req() req
     ) {
         return this.ordersService.createBySalesRep(createOrderDto, req.user, files.designFiles);
+    }
+
+    /**
+     * Endpoint pour créer une commande par un commercial (JSON pur, sans fichiers)
+     * Exemple d'URL : /ecommerce/orders/by-salesrep/json
+     */
+    @Post('by-salesrep/json')
+    @UseGuards(JwtAuthGuard)
+    @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL])
+    createBySalesRepJson(
+        @Body() createOrderDto: CreateOrderBySalesRepDto,
+        @Req() req
+    ) {
+        return this.ordersService.createBySalesRep(createOrderDto, req.user, []);
     }
 
     /**
