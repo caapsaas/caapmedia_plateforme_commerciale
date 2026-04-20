@@ -262,7 +262,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                     }, {} as Partial<ProductOptions>)
 
                     : {};
-
+  
                 return {
 
                     product: item.product,

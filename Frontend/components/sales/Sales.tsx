@@ -17,7 +17,7 @@ import IconCheckCircle from '../icons/IconCheckCircle';
 import IconExclamationTriangle from '../icons/IconExclamationTriangle';
 import NewOrder from '../../Pages/NewOrder';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getOrders, recordOrderPayment, updateOrderStatus, createOrderBySalesRep, validateOrderForProduction, FindAllOrdersDto, getTopSellingProducts } from '../../services/apiE-commerce/apiOrders';
+import { getOrders, recordOrderPayment, updateOrderStatus, createOrderBySalesRep, createOrderBySalesRepJson, validateOrderForProduction, FindAllOrdersDto, getTopSellingProducts } from '../../services/apiE-commerce/apiOrders';
 import { getProductsBySubsidiary } from '../../services/apiE-commerce/apiProducts';
 import { getContacts } from '../../services/apiCrm/apicontacts';
 import { useAuth } from '../../context/AuthContext';
@@ -90,7 +90,7 @@ const Sales: React.FC = () => {
     });
 
     const { mutate: createOrderMutate } = useMutation({
-        mutationFn: createOrderBySalesRep,
+        mutationFn: createOrderBySalesRepJson,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['orders'] });
             toast.success('Commande créée!', 'La commande a été créée avec succès.');
@@ -102,19 +102,36 @@ const Sales: React.FC = () => {
     });
 
     const handlePlaceOrder = (newOrderData: Omit<Order, 'id' | 'subsidiaryId'>) => {
-        const formData = new FormData();
-        const itemsForJson = newOrderData.items.map(item => ({
-            productId: item.product.id,
-            quantity: item.quantity,            
-            options: item.options || [],
-        }));
-        formData.append('items', JSON.stringify(itemsForJson));
-        formData.append('customerId', newOrderData.customerId);
-        formData.append('customerName', newOrderData.customerName);
-        formData.append('source', 'MANUAL');
-        formData.append('paymentDueDate', newOrderData.paymentDueDate);
-
-        createOrderMutate(formData);
+        const itemsForJson = newOrderData.items.map(item => {
+            // Convertir les options en tableau d'objets {optionType, optionValue}
+            const optionsArray = item.options 
+                ? Object.entries(item.options).map(([optionType, optionValue]) => ({
+                    optionType,
+                    optionValue: String(optionValue)
+                }))
+                : [];
+            
+            return {
+                productId: item.product.id,
+                quantity: item.quantity,            
+                options: optionsArray,
+            };
+        });
+        
+        // Créer l'objet de commande pour l'endpoint JSON
+        const orderData = {
+            customerId: newOrderData.customerId,
+            customerName: newOrderData.customerName,
+            paymentDueDate: newOrderData.paymentDueDate,
+            paymentMethod: 'PAY_ON_DELIVERY' as CustomerPaymentMethod,
+            source: 'MANUAL' as any, // TODO: utiliser OrderSource.MANUAL quand disponible
+            items: itemsForJson
+        };
+        
+        // Logs pour débogage
+        console.log('Order data being sent:', orderData);
+        
+        createOrderMutate(orderData);
     };
 
     // State for modals

@@ -58,16 +58,33 @@ export class FinancesStatsService {
    */
   async getCustomerReceivables(user: User, periodFilterDto: PeriodFilterDto) {
     const { subsidiaryId } = user;
-    // Le filtre de date s'applique à la date de dernière mise à jour du crédit.
-    const dateFilter = this.getDateFilter(periodFilterDto, 'lastPaymentDate');
+    // Le filtre de date s'applique à la date de la commande.
+    const dateFilter = this.getDateFilter(periodFilterDto, 'date');
 
-    const result = await this.prisma.creditAccount.aggregate({
-      _sum: { balance: true },
-      where: { subsidiaryId, ...dateFilter },
+    // Calculer les créances clients à partir des commandes impayées et partiellement payées
+    const orders = await this.prisma.order.findMany({
+      where: {
+        subsidiaryId,
+        OR: [
+          { paymentStatus: 'UNPAID' },
+          { paymentStatus: 'PARTIALLY_PAID' }
+        ],
+        ...dateFilter
+      },
+      select: {
+        totalAmount: true,
+        amountPaid: true
+      }
     });
 
+    // Calculer le solde total dû (totalAmount - amountPaid)
+    const totalReceivables = orders.reduce((sum, order) => {
+      const balance = order.totalAmount.sub(order.amountPaid);
+      return sum.add(balance);
+    }, new Prisma.Decimal(0));
+
     return {
-      totalReceivables: result._sum.balance?.toNumber() ?? 0,
+      totalReceivables: totalReceivables.toNumber(),
     };
   }
 

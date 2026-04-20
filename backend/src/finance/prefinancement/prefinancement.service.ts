@@ -161,22 +161,119 @@ export class PrefinancementService {
     }
 
     async validateTransaction(id: string) {
-        return this.prisma.prefinancementTransaction.update({
-            where: { id },
-            data: { status: PrefinancementStatus.VALIDE },
+        // Utiliser une transaction Prisma pour garantir l'atomicité
+        return this.prisma.$transaction(async (tx) => {
+            // 1. Récupérer la transaction à valider
+            const transaction = await tx.prefinancementTransaction.findUnique({
+                where: { id },
+            });
+
+            if (!transaction) {
+                throw new Error('Transaction not found');
+            }
+
+            if (transaction.status !== PrefinancementStatus.EN_ATTENTE) {
+                throw new Error('Only pending transactions can be validated');
+            }
+
+            // 2. Mettre à jour le statut de la transaction
+            const updatedTransaction = await tx.prefinancementTransaction.update({
+                where: { id },
+                data: { status: PrefinancementStatus.VALIDE },
+            });
+
+            // 3. Mettre à jour le solde du compte de préfinancement
+            const prefinancementAccount = await this.treasuryService.findPrefinancementAccount(transaction.subsidiaryId);
+            
+            if (prefinancementAccount) {
+                const balanceUpdateOperation = transaction.type === PrefinancementTransactionType.CREDIT 
+                    ? { increment: transaction.amount } 
+                    : { decrement: transaction.amount };
+
+                await tx.treasuryAccount.update({
+                    where: { id: prefinancementAccount.id },
+                    data: { balance: balanceUpdateOperation },
+                });
+            }
+
+            return updatedTransaction;
         });
     }
 
     async cancelTransaction(id: string) {
-        return this.prisma.prefinancementTransaction.update({
-            where: { id },
-            data: { status: PrefinancementStatus.ANNULE },
+        // Utiliser une transaction Prisma pour garantir l'atomicité
+        return this.prisma.$transaction(async (tx) => {
+            // 1. Récupérer la transaction à annuler
+            const transaction = await tx.prefinancementTransaction.findUnique({
+                where: { id },
+            });
+
+            if (!transaction) {
+                throw new Error('Transaction not found');
+            }
+
+            if (transaction.status === PrefinancementStatus.ANNULE) {
+                throw new Error('Transaction is already cancelled');
+            }
+
+            // 2. Si la transaction était validée, réinitialiser le solde du compte
+            if (transaction.status === PrefinancementStatus.VALIDE) {
+                const prefinancementAccount = await this.treasuryService.findPrefinancementAccount(transaction.subsidiaryId);
+                
+                if (prefinancementAccount) {
+                    // Inverser l'opération de solde
+                    const balanceUpdateOperation = transaction.type === PrefinancementTransactionType.CREDIT 
+                        ? { decrement: transaction.amount } 
+                        : { increment: transaction.amount };
+
+                    await tx.treasuryAccount.update({
+                        where: { id: prefinancementAccount.id },
+                        data: { balance: balanceUpdateOperation },
+                    });
+                }
+            }
+
+            // 3. Mettre à jour le statut de la transaction
+            return await tx.prefinancementTransaction.update({
+                where: { id },
+                data: { status: PrefinancementStatus.ANNULE },
+            });
         });
     }
 
     async deleteTransaction(id: string) {
-        return this.prisma.prefinancementTransaction.delete({
-            where: { id },
+        // Utiliser une transaction Prisma pour garantir l'atomicité
+        return this.prisma.$transaction(async (tx) => {
+            // 1. Récupérer la transaction à supprimer
+            const transaction = await tx.prefinancementTransaction.findUnique({
+                where: { id },
+            });
+
+            if (!transaction) {
+                throw new Error('Transaction not found');
+            }
+
+            // 2. Si la transaction était validée, réinitialiser le solde du compte
+            if (transaction.status === PrefinancementStatus.VALIDE) {
+                const prefinancementAccount = await this.treasuryService.findPrefinancementAccount(transaction.subsidiaryId);
+                
+                if (prefinancementAccount) {
+                    // Inverser l'opération de solde
+                    const balanceUpdateOperation = transaction.type === PrefinancementTransactionType.CREDIT 
+                        ? { decrement: transaction.amount } 
+                        : { increment: transaction.amount };
+
+                    await tx.treasuryAccount.update({
+                        where: { id: prefinancementAccount.id },
+                        data: { balance: balanceUpdateOperation },
+                    });
+                }
+            }
+
+            // 3. Supprimer la transaction
+            return await tx.prefinancementTransaction.delete({
+                where: { id },
+            });
         });
     }
 

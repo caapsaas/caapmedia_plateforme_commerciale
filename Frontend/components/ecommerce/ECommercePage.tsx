@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Product } from '../../types';
+import { Product, CustomerPaymentMethod } from '../../types';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import ECommerceHeader from './ECommerceHeader';
@@ -91,8 +91,35 @@ const ECommercePage: React.FC = () => {
             setCart([]);
             toast.success('Commande confirmée!', 'Votre commande a été enregistrée avec succès.');
         },
-        onError: () => {
-            toast.error('Erreur de commande', 'Une erreur est survenue lors de la confirmation de votre commande.');
+        onError: (error: any) => {
+            console.error('Order creation error:', error);
+
+            // Extraire les messages d'erreur spécifiques du backend
+            let errorMessage = 'Une erreur est survenue lors de la confirmation de votre commande.';
+            let errorTitle = 'Erreur de commande';
+
+            if (error.response?.data) {
+                const errorData = error.response.data;
+
+                if (errorData.message && Array.isArray(errorData.message)) {
+                    // Erreur de validation du backend
+                    errorMessage = errorData.message.join(', ');
+                    errorTitle = 'Erreur de validation';
+
+                    // Messages d'erreur plus spécifiques
+                    if (errorMessage.includes('paymentMethod')) {
+                        errorTitle = 'Méthode de paiement invalide';
+                        errorMessage = 'Veuillez sélectionner une méthode de paiement valide.';
+                    } else if (errorMessage.includes('items')) {
+                        errorTitle = 'Erreur dans les articles';
+                        errorMessage = 'Veuillez vérifier les articles de votre panier.';
+                    }
+                } else if (errorData.message) {
+                    errorMessage = errorData.message;
+                }
+            }
+
+            toast.error(errorTitle, errorMessage);
         }
     });
 
@@ -254,31 +281,36 @@ const ECommercePage: React.FC = () => {
         }
     };
     
-    const handleConfirmOrder = (customerInfo: { name: string; email: string; address: string; }, paymentMethod: string) => {
+    const handleConfirmOrder = (customerInfo: { name: string; email: string; address: string; }, paymentMethod: CustomerPaymentMethod) => {
+        // Validation du paymentMethod - comparer avec les valeurs string
+        const validPaymentMethods = [
+            'CARD', 'ORANGE_MONEY', 'WAVE', 'MOBILE_MONEY', 
+            'PAYCAAP', 'PAY_ON_DELIVERY', 'CUSTOMER_CREDIT'
+        ];
+        
+        if (!validPaymentMethods.includes(paymentMethod)) {
+            toast.error('Méthode de paiement invalide', 'Veuillez sélectionner une méthode de paiement valide.');
+            return;
+        }
+
         const formData = new FormData();
         const orderItemsForJson = cart.map(item => {
             // Transformer l'objet options en tableau [{optionType, optionValue}]
             const optionsArray = Object.entries(item.options || {})
-                .filter(([, value]) => value) // S'assurer que la valeur de l'option n'est pas vide
-                .map(([key, value]) => ({
-                    optionType: key.toUpperCase() + 'S', // ex: 'size' -> 'SIZES'
-                    optionValue: value as string,
-                }));
-
+                .filter(([, value]) => value); // S'assurer que la valeur de l'option n'est pas vide
+            
             return {
-                productId: item.product.id,
+                productId: item.id,
                 quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                options: optionsArray,
-                designFileName: item.designFileObject?.name,
+                options: optionsArray.map(([optionType, optionValue]) => ({ optionType, optionValue }))
             };
-        });
+        })
 
         // 2. Ajouter les champs textuels au FormData
         formData.append('customerName', customerInfo.name); // Le backend utilise `customerName`
         formData.append('paymentMethod', paymentMethod);
         formData.append('paymentDueDate', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()); // Exemple: paiement dans 30 jours
-        formData.append('source', 'WEB_ORDER');
+        formData.append('source', 'web_order');
         formData.append('items', JSON.stringify(orderItemsForJson)); // Envoyer les articles en tant que chaîne JSON
 
         // 3. Ajouter tous les fichiers de design sous la même clé 'designFiles'
@@ -287,6 +319,21 @@ const ECommercePage: React.FC = () => {
                 formData.append('designFiles', item.designFileObject);
             }
         });
+        
+        // Log pour debugging
+        console.log('Order data being sent:', {
+            customerName: customerInfo.name,
+            paymentMethod,
+            source: 'web_order',
+            items: orderItemsForJson
+        });
+        
+        // Log FormData contents
+        console.log('FormData contents:');
+        for (let [key, value] of formData.entries()) {
+            console.log(`${key}:`, value);
+        }
+        
         placeOrderMutation(formData);
     };
     
