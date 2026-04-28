@@ -1,5 +1,5 @@
-import { IsString, IsNotEmpty, IsNumber, IsEnum, IsDateString, IsOptional, IsUUID, IsPositive } from 'class-validator';
-import { TransactionStatus, TransactionType, Prisma } from '@prisma/client';
+import { IsString, IsNotEmpty, IsNumber, IsEnum, IsDateString, IsOptional, IsUUID, IsPositive, MaxLength } from 'class-validator';
+import { TransactionType, Prisma } from '@prisma/client';
 
 export class CreateFinancialTransactionDto {
   @IsDateString()
@@ -23,11 +23,17 @@ export class CreateFinancialTransactionDto {
   @IsNotEmpty()
   treasuryAccountId: string;
 
-  @IsEnum(TransactionStatus)
-  @IsOptional()
-  status?: TransactionStatus;
-
   @IsString()
   @IsOptional()
   relatedDocumentId?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  providerName?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(20)
+  providerPhone?: string;
 }

@@ -1,5 +1,5 @@
 import { api } from '../api';
-import { TreasuryAccount, FinancialTransaction, TransactionStatus } from '../../types';
+import { TreasuryAccount, FinancialTransaction } from '../../types';
 
 // --- Types pour les Comptes de Trésorerie ---
 
@@ -24,12 +24,6 @@ export type TreasuryAccountUpdateData = Partial<Omit<TreasuryAccount, 'id' | 'su
  */
 export type TransactionCreationData = Omit<FinancialTransaction, 'id' | 'subsidiaryId' | 'financialTransactionType'>;
 
-/**
- * Données pour la mise à jour du statut d'une transaction.
- */
-export interface TransactionStatusUpdateData {
-  status: TransactionStatus;
-}
 
 // ================================================================= //
 //                       COMPTES DE TRÉSORERIE                       //
@@ -96,11 +90,19 @@ export const deleteTreasuryAccount = async (id: string): Promise<TreasuryAccount
  * @param incomeData - Les données de la recette.
  */
 export const createIncomeTransaction = async (incomeData: TransactionCreationData): Promise<FinancialTransaction> => {
-  // Envoyer les données sans transformation - le backend gérera la conversion
+  // S'assurer que les données sont correctement formatées pour le backend
   const processedData = {
-    ...incomeData,
-    amount: incomeData.amount
+    transactionDate: incomeData.transactionDate,
+    description: incomeData.description,
+    amount: Number(incomeData.amount), // S'assurer que c'est un nombre
+    treasuryAccountId: incomeData.treasuryAccountId,
+    relatedDocumentId: incomeData.relatedDocumentId || undefined,
+    providerName: incomeData.providerName || undefined,
+    providerPhone: incomeData.providerPhone || undefined
   };
+  
+  console.log('Données envoyées pour recette:', processedData);
+  
   const { data } = await api.post<FinancialTransaction>('/finance/treasury/incomes', processedData);
   return data;
 };
@@ -111,11 +113,19 @@ export const createIncomeTransaction = async (incomeData: TransactionCreationDat
  * @param expenseData - Les données de la dépense.
  */
 export const createExpenseTransaction = async (expenseData: TransactionCreationData): Promise<FinancialTransaction> => {
-  // Envoyer les données sans transformation - le backend gérera la conversion
+  // S'assurer que les données sont correctement formatées pour le backend
   const processedData = {
-    ...expenseData,
-    amount: expenseData.amount
+    transactionDate: expenseData.transactionDate,
+    description: expenseData.description,
+    amount: Number(expenseData.amount), // S'assurer que c'est un nombre
+    treasuryAccountId: expenseData.treasuryAccountId,
+    relatedDocumentId: expenseData.relatedDocumentId || undefined,
+    providerName: expenseData.providerName || undefined,
+    providerPhone: expenseData.providerPhone || undefined
   };
+  
+  console.log('Données envoyées pour dépense:', processedData);
+  
   const { data } = await api.post<FinancialTransaction>('/finance/treasury/expenses', processedData);
   return data;
 };
@@ -140,13 +150,3 @@ export const deleteTransaction = async (id: string): Promise<FinancialTransactio
   return data;
 };
 
-/**
- * Met à jour le statut d'une transaction.
- * Protégé par rôle (ADMIN, FINANCIAL_DIRECTOR).
- * @param id - L'ID de la transaction.
- * @param statusData - Le nouveau statut.
- */
-export const updateTransactionStatus = async (id: string, statusData: TransactionStatusUpdateData): Promise<FinancialTransaction> => {
-  const { data } = await api.patch<FinancialTransaction>(`/finance/treasury/transactions/${id}/status`, statusData);
-  return data;
-};

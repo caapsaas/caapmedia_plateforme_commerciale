@@ -6,7 +6,7 @@ import type { User } from '@prisma/client';
 import { CreateTreasuryAccountDto } from './dto/create-treasury-account.dto';
 import { UpdateTreasuryAccountDto } from './dto/update-treasury-account.dto';
 import { CreateFinancialTransactionDto } from './dto/create-financial-transaction.dto';
-import { UpdateFinancialTransactionDto } from './dto/update-financial-transaction.dto';
+
 
 @UseGuards(JwtAuthGuard)
 @Controller('finance/treasury')
@@ -55,14 +55,6 @@ export class TreasuryController {
     return this.treasuryService.findAllTransactions(user, subsidiaryId);
   }
 
-  @Patch('transactions/:id/status')
-  updateTransactionStatus(
-    @Param('id') id: string,
-    @Body() updateDto: UpdateFinancialTransactionDto,
-    @CurrentUser() user: User,
-  ) {
-    return this.treasuryService.updateTransactionStatus(id, updateDto, user);
-  }
 
   @Delete('transactions/:id')
   deleteTransaction(@Param('id') id: string, @CurrentUser() user: User) {

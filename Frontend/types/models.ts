@@ -428,10 +428,11 @@ export interface FinancialTransaction {
   description: string;
   amount: number;
   treasuryAccountId: string;
-  status: TransactionStatus;
   subsidiaryId: string;
   relatedDocumentId?: string; // e.g., PO-2024-001 or CMD-001
   financialTransactionType: TransactionType;
+  providerName?: string; // Nom du prestataire
+  providerPhone?: string; // Téléphone du prestataire
 }
 
 export interface SupplierDebt {

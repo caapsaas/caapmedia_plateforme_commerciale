@@ -653,10 +653,7 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
                                                 </DangerIconButton>
                                             )}
                                             
-                                            {/* Message informatif si aucune action disponible */}
-                                            {!canManagePrefinancement && (
-                                                <span className="text-xs text-slate-400 italic">Admin uniquement</span>
-                                            )}
+                                         
                                         </div>
                                     </td>
                                 </tr>

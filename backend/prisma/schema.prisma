@@ -591,14 +591,14 @@ model FinancialTransaction {
   relatedDocumentId        String?           @map("related_document_id") @db.VarChar(50)
   subsidiaryId             String            @map("subsidiary_id") @db.Uuid
   financialTransactionType TransactionType   @map("financial_transaction_type")
-  status                   TransactionStatus @map("status")
   treasuryAccountId        String            @map("treasury_account_id") @db.Uuid
+  providerName             String?           @map("provider_name") @db.VarChar(255)
+  providerPhone            String?           @map("provider_phone") @db.VarChar(20)
   subsidiary               Subsidiary        @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
   treasuryAccount          TreasuryAccount   @relation(fields: [treasuryAccountId], references: [id], onDelete: Cascade)
 
   @@index([subsidiaryId, transactionDate])
   @@index([financialTransactionType])
-  @@index([status])
   @@index([treasuryAccountId])
   @@map("financial_transactions")
 }

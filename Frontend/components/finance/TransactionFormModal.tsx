@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { TreasuryAccount, FinancialTransaction, TransactionType } from '../../types';
 import { useI18n } from '../../i18n';
 import {getTreasuryAccounts} from '../../services/apiFinance/apiTreasury';
-export type TransactionFormData = Omit<FinancialTransaction, 'id' | 'subsidiaryId' | 'financialTransactionType' | 'status' | 'date'> & { transactionDate: string; description: string };
+export type TransactionFormData = Omit<FinancialTransaction, 'id' | 'subsidiaryId' | 'financialTransactionType' | 'date'> & { transactionDate: string; description: string; providerName?: string; providerPhone?: string };
 
 interface TransactionFormModalProps {
     isOpen: boolean;
@@ -29,6 +29,8 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onC
         amount: 0,
         treasuryAccountId: '',
         relatedDocumentId: '',
+        providerName: '',
+        providerPhone: '',
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -48,20 +50,34 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onC
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        const finalValue = name === 'amount' ? parseFloat(value) : value;
+        let finalValue: any = value;
+        
+        // Gérer la conversion du montant en nombre
+        if (name === 'amount') {
+            const numValue = parseFloat(value);
+            finalValue = isNaN(numValue) ? 0 : numValue;
+        }
+        
         setFormData(prev => ({ ...prev, [name]: finalValue }));
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
-        // Valider que le montant est positif
-        if (formData.amount <= 0) {
-            alert('Le montant doit être un nombre positif');
+        // Valider que le montant est un nombre positif
+        const amount = Number(formData.amount);
+        if (isNaN(amount) || amount <= 0) {
+            alert('Le montant doit être un nombre positif valide');
             return;
         }
         
-        onSave(formData, transactionType);
+        // S'assurer que le montant est bien un nombre
+        const finalFormData = {
+            ...formData,
+            amount: amount
+        };
+        
+        onSave(finalFormData, transactionType);
     };
 
     if (!isOpen) return null;
@@ -82,11 +98,48 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onC
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="amount" className="block text-sm font-medium text-slate-700">{t('treasury.amount')}</label>
-                                    <input type="number" step="any" min="0.01" name="amount" id="amount" value={formData.amount} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />
+                                    <input 
+                                    type="number" 
+                                    step="0.01" 
+                                    min="0.01" 
+                                    name="amount" 
+                                    id="amount" 
+                                    value={formData.amount !== undefined && formData.amount !== null ? formData.amount : ''} 
+                                    onChange={handleChange} 
+                                    required 
+                                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"
+                                    placeholder="0.00"
+                                />
                                 </div>
                                 <div>
                                     <label htmlFor="transactionDate" className="block text-sm font-medium text-slate-700">{t('treasury.date')}</label>
                                     <input type="date" name="transactionDate" id="transactionDate" value={formData.transactionDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="providerName" className="block text-sm font-medium text-slate-700">Nom du prestataire</label>
+                                    <input 
+                                        type="text" 
+                                        name="providerName" 
+                                        id="providerName" 
+                                        value={formData.providerName || ''} 
+                                        onChange={handleChange} 
+                                        className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"
+                                        placeholder="Nom du prestataire"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="providerPhone" className="block text-sm font-medium text-slate-700">Téléphone du prestataire</label>
+                                    <input 
+                                        type="tel" 
+                                        name="providerPhone" 
+                                        id="providerPhone" 
+                                        value={formData.providerPhone || ''} 
+                                        onChange={handleChange} 
+                                        className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"
+                                        placeholder="Numéro de téléphone"
+                                    />
                                 </div>
                             </div>
                             <div>

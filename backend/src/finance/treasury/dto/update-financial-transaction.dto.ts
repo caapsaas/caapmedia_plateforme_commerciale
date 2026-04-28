@@ -1,8 +1,2 @@
-import { IsEnum, IsNotEmpty } from 'class-validator';
-import { TransactionStatus } from '@prisma/client';
-
-export class UpdateFinancialTransactionDto {
-  @IsEnum(TransactionStatus)
-  @IsNotEmpty()
-  status: TransactionStatus;
-}
+// Ce fichier est maintenant vide car le statut a été supprimé des transactions
+// Le DTO de mise à jour n'est plus nécessaire

@@ -1,26 +1,15 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
-import { User, UserRole, TransactionType, Prisma, TransactionStatus, AccountType } from '@prisma/client';
+import { User, UserRole, TransactionType, Prisma, AccountType } from '@prisma/client';
 import { CreateTreasuryAccountDto } from './dto/create-treasury-account.dto';
 import { CreateFinancialTransactionDto } from './dto/create-financial-transaction.dto'; 
-import { UpdateFinancialTransactionDto } from './dto/update-financial-transaction.dto';
 import { UpdateTreasuryAccountDto } from './dto/update-treasury-account.dto';
 
 @Injectable()
 export class TreasuryService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // Helper function to map frontend status strings to Prisma TransactionStatus enum
-  private mapFrontendStatusToPrismaStatus(frontendStatus: string | undefined | null): TransactionStatus {
-    if (frontendStatus === 'Validé') {
-      return TransactionStatus.VALIDE;
-    }
-    if (frontendStatus === 'En attente') {
-      return TransactionStatus.EN_ATTENTE;
-    }
-    return TransactionStatus.EN_ATTENTE; // Default to EN_ATTENTE if not recognized or provided
-  }
-
+  
   private checkPermissions(user: User, allowedRoles: UserRole[], message: string) {
     const userRole = (user as any).role || user.userRole;
     if (!allowedRoles.includes(userRole)) {
@@ -68,10 +57,39 @@ export class TreasuryService {
     const userRole = (user as any).role || user.userRole;
     const targetSubsidiaryId = (userRole === UserRole.ADMIN && subsidiaryId) ? subsidiaryId : user.subsidiaryId;
 
-    return this.prisma.treasuryAccount.findMany({
+    // Récupérer tous les comptes de trésorerie
+    const accounts = await this.prisma.treasuryAccount.findMany({
       where: { subsidiaryId: targetSubsidiaryId },
       orderBy: { accountName: 'asc' },
     });
+
+    // Calculer le solde réel pour chaque compte en fonction des transactions validées
+    const accountsWithRealBalance = await Promise.all(
+      accounts.map(async (account) => {
+        // Récupérer toutes les transactions pour ce compte
+        const transactions = await this.prisma.financialTransaction.findMany({
+          where: {
+            treasuryAccountId: account.id,
+          },
+        });
+
+        // Calculer le solde: solde initial + recettes - dépenses
+        const realBalance = transactions.reduce((balance, transaction) => {
+          if (transaction.financialTransactionType === TransactionType.RECETTE) {
+            return balance + Number(transaction.amount);
+          } else {
+            return balance - Number(transaction.amount);
+          }
+        }, Number(account.balance)); // Partir du solde initial
+
+        return {
+          ...account,
+          balance: realBalance,
+        };
+      })
+    );
+
+    return accountsWithRealBalance;
   }
 
   async findOneAccount(id: string, user: User) {
@@ -85,7 +103,27 @@ export class TreasuryService {
     if (!account) {
       throw new NotFoundException(`Treasury account with ID "${id}" not found.`);
     }
-    return account;
+
+    // Récupérer toutes les transactions pour ce compte
+    const transactions = await this.prisma.financialTransaction.findMany({
+      where: {
+        treasuryAccountId: account.id,
+      },
+    });
+
+    // Calculer le solde réel: solde initial + recettes - dépenses
+    const realBalance = transactions.reduce((balance, transaction) => {
+      if (transaction.financialTransactionType === TransactionType.RECETTE) {
+        return balance + Number(transaction.amount);
+      } else {
+        return balance - Number(transaction.amount);
+      }
+    }, Number(account.balance));
+
+    return {
+      ...account,
+      balance: realBalance,
+    };
   }
 
   async updateAccount(id: string, dto: UpdateTreasuryAccountDto, user: User) {
@@ -207,9 +245,6 @@ export class TreasuryService {
       }
     }
 
-    // Map the incoming status from DTO to Prisma's TransactionStatus enum
-    const prismaStatus = this.mapFrontendStatusToPrismaStatus(dto.status);
-
     // Utiliser increment/decrement pour la mise à jour atomique du solde
     const balanceUpdateOperation =
       financialTransactionType === TransactionType.RECETTE 
@@ -231,10 +266,11 @@ export class TreasuryService {
           relatedDocumentId: dto.relatedDocumentId,
           amount: decimalAmount,
           financialTransactionType,
-          status: prismaStatus, // Use the mapped status
           treasuryAccountId,
           subsidiaryId: user.subsidiaryId,
           transactionDate: new Date(transactionDate),
+          providerName: dto.providerName,
+          providerPhone: dto.providerPhone,
         },
       });
 
@@ -256,38 +292,7 @@ export class TreasuryService {
     });
   }
 
-  async updateTransactionStatus(id: string, dto: UpdateFinancialTransactionDto, user: User) {
-    const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR];
-    this.checkPermissions(user, allowedRoles, 'Permission denied to update transaction status.');
-
-    const transaction = await this.prisma.financialTransaction.findFirst({
-      where: { id, subsidiaryId: user.subsidiaryId },
-    });
-
-    if (!transaction) {
-      throw new NotFoundException(`Transaction with ID "${id}" not found.`);
-    }
-    
-    // Map the incoming status from DTO to Prisma's TransactionStatus enum for update
-    const newPrismaStatus = this.mapFrontendStatusToPrismaStatus(dto.status);
-
-    if (transaction.status === newPrismaStatus) {
-        return transaction; // Pas de changement
-    }
-
-    // Logique métier : on ne peut pas annuler une transaction qui a déjà affecté un solde.
-    // Pour cela, il faudrait une transaction de contre-passation.
-    // Ici, nous permettons seulement de passer de "EN_ATTENTE" à "VALIDE".
-    if (transaction.status !== TransactionStatus.EN_ATTENTE || newPrismaStatus !== TransactionStatus.VALIDE) {
-        throw new BadRequestException('Invalid status transition for transaction.');
-    }
-
-    return this.prisma.financialTransaction.update({
-      where: { id },
-      data: { status: newPrismaStatus },
-    });
-  }
-
+  
   async deleteTransaction(id: string, user: User) {
     const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR];
     this.checkPermissions(user, allowedRoles, 'Permission denied to delete transactions.');

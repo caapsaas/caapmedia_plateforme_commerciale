@@ -1,18 +1,18 @@
-import React, { useState, useMemo } from 'react';
-import { FinancialTransaction, Subsidiary, TreasuryAccount, TransactionType, TransactionStatus } from '../../types';
+import React, { useState } from 'react';
+import { FinancialTransaction, Subsidiary, TreasuryAccount, TransactionType, UserRole } from '../../types';
 import { useI18n } from '../../i18n';
+import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import { exportToCsv } from '../../utils/csvExporter';
 import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
 import IconDelete from '../icons/IconDelete';
-import IconCheckCircle from '../icons/IconCheckCircle';
-import IconX from '../icons/IconX';
+import IconEye from '../icons/IconEye';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getTreasuryAccounts, getFinancialTransactions, createIncomeTransaction, createExpenseTransaction, deleteTransaction, updateTransactionStatus } from '../../services/apiFinance/apiTreasury';
+import { getTreasuryAccounts, getFinancialTransactions, createIncomeTransaction, createExpenseTransaction, deleteTransaction } from '../../services/apiFinance/apiTreasury';
 import TransactionFormModal, { TransactionFormData } from './TransactionFormModal';
-import { useToast } from '../../context/ToastContext';
 
 interface TreasuryManagementProps {
     subsidiary: Subsidiary;
@@ -22,29 +22,81 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
     const { t, formatCurrency } = useI18n();
     const queryClient = useQueryClient();
     const toast = useToast();
+    const { user } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalType, setModalType] = useState<TransactionType>('DEPENSE');
+    const [selectedTransaction, setSelectedTransaction] = useState<FinancialTransaction | null>(null);
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+
+    // Vérification des permissions
+    const canDeleteTransactions = user?.userRole === UserRole.ADMIN; // Seul l'admin peut supprimer
+    const canCreateTransactions = user?.userRole === UserRole.FINANCIAL_DIRECTOR; // Seul le directeur financier peut créer
+
+    // État pour la boîte de dialogue de confirmation
+    const [confirmDialog, setConfirmDialog] = useState<{
+        show: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        onCancel: () => void;
+    }>({
+        show: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+        onCancel: () => {}
+    });
+
+    // Fonction pour afficher la boîte de dialogue de confirmation
+    const showConfirmDialog = (title: string, message: string, onConfirm: () => void) => {
+        setConfirmDialog({
+            show: true,
+            title,
+            message,
+            onConfirm: () => {
+                onConfirm();
+                setConfirmDialog(prev => ({ ...prev, show: false }));
+            },
+            onCancel: () => {
+                setConfirmDialog(prev => ({ ...prev, show: false }));
+            }
+        });
+    };
 
     const queryKey = (key: string) => [key, subsidiary.id];
 
     const { data: treasuryAccounts = [], isLoading: l1 } = useQuery<TreasuryAccount[]>({ 
         queryKey: queryKey('treasuryAccounts'), 
         queryFn: () => getTreasuryAccounts(subsidiary.id),
-        enabled: !!subsidiary.id // N'exécute la requête que si subsidiary.id existe
+        enabled: !!subsidiary.id
     });
+    
     const { data: transactions = [], isLoading: l2 } = useQuery<FinancialTransaction[]>({ 
         queryKey: queryKey('financialTransactions'), 
-        queryFn: () => getFinancialTransactions(subsidiary.id),
-        enabled: !!subsidiary.id // N'exécute la requête que si subsidiary.id existe
+        queryFn: async () => {
+            const result = await getFinancialTransactions(subsidiary.id);
+            console.log('Transactions récupérées:', result);
+            result.forEach((tx, index) => {
+                console.log(`Transaction ${index}:`, {
+                    id: tx.id,
+                    description: tx.description,
+                    amount: tx.amount,
+                    amountType: typeof tx.amount,
+                    financialTransactionType: tx.financialTransactionType
+                });
+            });
+            return result;
+        },
+        enabled: !!subsidiary.id
     });
 
     const { mutate: saveTransaction } = useMutation({
         mutationFn: (data: { formData: TransactionFormData; type: TransactionType }) => {
             const transactionData = {
                 ...data.formData,
-                transactionDate: data.formData.transactionDate, // Map date to transactionDate
-                status: TransactionStatus.PENDING,
+                transactionDate: data.formData.transactionDate,
             };
+            console.log('Données de transaction à sauvegarder:', transactionData);
             return data.type === 'RECETTE' ? createIncomeTransaction(transactionData) : createExpenseTransaction(transactionData);
         },
         onSuccess: () => {
@@ -63,7 +115,6 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
         },
     });
 
-    // Mutation pour supprimer une transaction
     const { mutate: deleteTransactionMutation } = useMutation({
         mutationFn: deleteTransaction,
         onSuccess: () => {
@@ -77,65 +128,14 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
         onError: (error: any) => {
             toast.error(
                 t('treasury.transactionDeleteError'),
-                error.message || t('treasury.transactionDeleteErrorMessage')
+                error.message || t('treasury.transactionDeleteError')
             );
         },
     });
 
-    // Mutation pour valider une transaction
-    const { mutate: validateTransaction } = useMutation({
-        mutationFn: (transactionId: string) => updateTransactionStatus(transactionId, { status: TransactionStatus.VALIDATED }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: queryKey('financialTransactions') });
-            queryClient.invalidateQueries({ queryKey: queryKey('treasuryAccounts') });
-            toast.success(
-                t('treasury.transactionValidated'),
-                t('treasury.transactionValidatedSuccess')
-            );
-        },
-        onError: (error: any) => {
-            toast.error(
-                t('treasury.transactionValidateError'),
-                error.message || t('treasury.transactionValidateErrorMessage')
-            );
-        },
-    });
-
-    // Mutation pour rejeter une transaction
-    const { mutate: rejectTransaction } = useMutation({
-        mutationFn: (transactionId: string) => updateTransactionStatus(transactionId, { status: TransactionStatus.PENDING }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: queryKey('financialTransactions') });
-            queryClient.invalidateQueries({ queryKey: queryKey('treasuryAccounts') });
-            toast.success(
-                t('treasury.transactionRejected'),
-                t('treasury.transactionRejectedSuccess')
-            );
-        },
-        onError: (error: any) => {
-            toast.error(
-                t('treasury.transactionRejectError'),
-                error.message || t('treasury.transactionRejectErrorMessage')
-            );
-        },
-    });
-
-    const getStatusClass = (status: TransactionStatus) => {
-        switch (status) {
-            case TransactionStatus.VALIDATED: return 'bg-green-100 text-green-800';
-            case TransactionStatus.PENDING: return 'bg-yellow-100 text-yellow-800';
-            default: return 'bg-slate-100 text-slate-800';
-        }
-    }
     
-    const getTranslatedStatus = (status: TransactionStatus) => {
-        switch (status) {
-            case TransactionStatus.VALIDATED: return t('treasury.statusValidated');
-            case TransactionStatus.PENDING: return t('treasury.statusPending');
-            default: return status;
-        }
-    }
     
+        
     const getTranslatedType = (type: TransactionType) => {
         switch (type) {
             case 'RECETTE': return t('treasury.typeIncome');
@@ -151,15 +151,15 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
             const headers = [
                 { key: 'transactionDate', label: t('treasury.date') },
                 { key: 'description', label: t('treasury.description') },
+                { key: 'providerName', label: 'Nom du prestataire' },
+                { key: 'providerPhone', label: 'Téléphone du prestataire' },
                 { key: 'treasuryAccountName', label: t('treasury.account') },
                 { key: 'financialTransactionType', label: t('treasury.type') },
                 { key: 'amount', label: t('treasury.amount') },
-                { key: 'status', label: t('treasury.status') },
-            ];
+                            ];
             const data = transactions.map(tx => ({
                 ...tx,
                 financialTransactionType: getTranslatedType(tx.financialTransactionType),
-                status: getTranslatedStatus(tx.status),
             }));
             exportToCsv('transactions_tresorerie', headers, data);
             toast.success(
@@ -179,16 +179,16 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
             const headers = [
                 { key: 'transactionDate', label: t('treasury.date') },
                 { key: 'description', label: t('treasury.description') },
+                { key: 'providerName', label: 'Nom du prestataire' },
+                { key: 'providerPhone', label: 'Téléphone du prestataire' },
                 { key: 'treasuryAccountName', label: t('treasury.account') },
                 { key: 'financialTransactionType', label: t('treasury.type') },
                 { key: 'amount', label: t('treasury.amount') },
-                { key: 'status', label: t('treasury.status') },
-            ];
+                            ];
             const data = transactions.map(tx => ({
                 ...tx,
                 financialTransactionType: getTranslatedType(tx.financialTransactionType),
-                status: getTranslatedStatus(tx.status),
-                amount: `${tx.financialTransactionType === 'RECETTE' ? '+' : '-'}${formatCurrency(tx.amount)}`
+                amount: `${tx.financialTransactionType === 'RECETTE' ? '+' : '-'}${formatCurrency(Number(tx.amount))}`
             }));
             exportToPdf(t('treasury.recentTransactions'), headers, data, 'tresorerie');
             toast.success(
@@ -217,25 +217,25 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
         );
     };
 
-    // Handlers pour les actions d'administration
     const handleDeleteTransaction = (transactionId: string) => {
-        if (window.confirm(t('treasury.confirmDelete'))) {
-            deleteTransactionMutation(transactionId);
-        }
+        showConfirmDialog(
+            t('treasury.confirmDelete'),
+            t('treasury.confirmDeleteMessage'),
+            () => deleteTransactionMutation(transactionId)
+        );
     };
 
-    const handleValidateTransaction = (transactionId: string) => {
-        if (window.confirm(t('treasury.confirmValidate'))) {
-            validateTransaction(transactionId);
-        }
+    const handleShowDetails = (transaction: FinancialTransaction) => {
+        setSelectedTransaction(transaction);
+        setIsDetailsModalOpen(true);
     };
 
-    const handleRejectTransaction = (transactionId: string) => {
-        if (window.confirm(t('treasury.confirmReject'))) {
-            rejectTransaction(transactionId);
-        }
+    const handleCloseDetails = () => {
+        setSelectedTransaction(null);
+        setIsDetailsModalOpen(false);
     };
 
+    
     const isLoading = l1 || l2;
 
     if (isLoading) {
@@ -249,7 +249,9 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
                     {treasuryAccounts.map(account => (
                         <div key={account.id} className="bg-white p-6 rounded-xl shadow-md flex flex-col">
                             <h4 className="font-semibold text-slate-500">{account.accountName}</h4>
-                            <div className="flex-grow flex items-end mt-2"><p className="text-3xl font-bold text-slate-800 whitespace-nowrap">{formatCurrency(account.balance)}</p></div>
+                            <div className="flex-grow flex items-end mt-2">
+                                <p className="text-3xl font-bold text-slate-800 whitespace-nowrap">{formatCurrency(account.balance)}</p>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -258,8 +260,16 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                         <h3 className="text-xl font-semibold text-slate-800">{t('treasury.recentTransactions')}</h3>
                         <div className="flex flex-wrap items-center gap-2 no-print self-start md:self-center">
-                            <button onClick={() => handleOpenModal('DEPENSE')} className="px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-md hover:bg-red-600 transition-colors">{t('treasury.addExpense')}</button>
-                            <button onClick={() => handleOpenModal('RECETTE')} className="px-4 py-2 bg-green-500 text-white text-sm font-semibold rounded-md hover:bg-green-600 transition-colors">{t('treasury.addIncome')}</button>
+                            {canCreateTransactions && (
+                                <>
+                                    <button onClick={() => handleOpenModal('DEPENSE')} className="px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-md hover:bg-red-600 transition-colors">
+                                        {t('treasury.addExpense')}
+                                    </button>
+                                    <button onClick={() => handleOpenModal('RECETTE')} className="px-4 py-2 bg-green-500 text-white text-sm font-semibold rounded-md hover:bg-green-600 transition-colors">
+                                        {t('treasury.addIncome')}
+                                    </button>
+                                </>
+                            )}
                             <button onClick={handlePrint} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
                                 <IconPrint className="h-4 w-4" />
                                 <span>{t('common.print')}</span>
@@ -280,10 +290,11 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
                                 <tr>
                                     <th scope="col" className="px-6 py-3">{t('treasury.date')}</th>
                                     <th scope="col" className="px-6 py-3">{t('treasury.description')}</th>
+                                    <th scope="col" className="px-6 py-3">Nom du prestataire</th>
+                                    <th scope="col" className="px-6 py-3">Téléphone</th>
                                     <th scope="col" className="px-6 py-3">{t('treasury.account')}</th>
                                     <th scope="col" className="px-6 py-3">{t('treasury.type')}</th>
                                     <th scope="col" className="px-6 py-3 text-right">{t('treasury.amount')}</th>
-                                    <th scope="col" className="px-6 py-3 text-center">{t('treasury.status')}</th>
                                     <th scope="col" className="px-6 py-3 text-center no-print">{t('common.actions')}</th>
                                 </tr>
                             </thead>
@@ -292,48 +303,37 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
                                     <tr key={tx.id} className="bg-white border-b hover:bg-slate-50">
                                         <td className="px-6 py-4">{new Date(tx.transactionDate).toLocaleDateString()}</td>
                                         <td className="px-6 py-4 font-medium text-slate-800">{tx.description}</td>
+                                        <td className="px-6 py-4 text-slate-800">{tx.providerName || '-'}</td>
+                                        <td className="px-6 py-4 text-slate-800">{tx.providerPhone || '-'}</td>
                                         <td className="px-6 py-4 text-slate-800">{treasuryAccounts.find(a => a.id === tx.treasuryAccountId)?.accountName}</td>
-                                        <td className={`px-6 py-4 font-semibold ${tx.financialTransactionType === 'RECETTE' ? 'text-green-600' : 'text-red-600'}`}>{getTranslatedType(tx.financialTransactionType)}</td>
-                                        <td className={`px-6 py-4 text-right font-bold ${tx.financialTransactionType === 'RECETTE' ? 'text-green-700' : 'text-red-700'}`}>
-                                            {tx.financialTransactionType === 'RECETTE' ? '+' : '-'}{formatCurrency(tx.amount)}
+                                        <td className={`px-6 py-4 font-semibold ${tx.financialTransactionType === 'RECETTE' ? 'text-green-600' : 'text-red-600'}`}>
+                                            {getTranslatedType(tx.financialTransactionType)}
                                         </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(tx.status)}`}>
-                                                {getTranslatedStatus(tx.status)}
-                                            </span>
+                                        <td className={`px-6 py-4 text-right font-bold ${tx.financialTransactionType === 'RECETTE' ? 'text-green-700' : 'text-red-700'}`}>
+                                            {tx.financialTransactionType === 'RECETTE' ? '+' : '-'}{formatCurrency(Number(tx.amount))}
                                         </td>
                                         <td className="px-6 py-4 text-center no-print">
                                             <div className="flex items-center justify-center gap-2">
-                                                {/* Bouton Valider - seulement si status est EN_ATTENTE */}
-                                                {tx.status === TransactionStatus.PENDING && (
-                                                    <button
-                                                        onClick={() => handleValidateTransaction(tx.id)}
-                                                        className="p-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
-                                                        title={t('treasury.validate')}
-                                                    >
-                                                        <IconCheckCircle className="h-4 w-4" />
-                                                    </button>
-                                                )}
-                                                
-                                                {/* Bouton Rejeter - seulement si status est VALIDATED */}
-                                                {tx.status === TransactionStatus.VALIDATED && (
-                                                    <button
-                                                        onClick={() => handleRejectTransaction(tx.id)}
-                                                        className="p-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
-                                                        title={t('treasury.reject')}
-                                                    >
-                                                        <IconX className="h-4 w-4" />
-                                                    </button>
-                                                )}
-                                                
-                                                {/* Bouton Supprimer - toujours visible pour l'admin */}
+                                                {/* Bouton Détails - disponible pour tous */}
                                                 <button
-                                                    onClick={() => handleDeleteTransaction(tx.id)}
-                                                    className="p-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-                                                    title={t('common.delete')}
+                                                    onClick={() => handleShowDetails(tx)}
+                                                    className="p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                                                    title={t('common.details')}
                                                 >
-                                                    <IconDelete className="h-4 w-4" />
+                                                    <IconEye className="h-4 w-4" />
                                                 </button>
+                                                
+                                                {/* Bouton Supprimer - uniquement pour l'admin */}
+                                                {canDeleteTransactions && (
+                                                    <button
+                                                        onClick={() => handleDeleteTransaction(tx.id)}
+                                                        className="p-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                                                        title={t('common.delete')}
+                                                    >
+                                                        <IconDelete className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                               
                                             </div>
                                         </td>
                                     </tr>
@@ -343,6 +343,7 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
                     </div>
                 </div>
             </div>
+            
             <TransactionFormModal 
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
@@ -350,6 +351,110 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
                 transactionType={modalType}
                 subsidiaryId={subsidiary.id}
             />
+            
+            {/* Modal pour afficher les détails d'une transaction */}
+            {isDetailsModalOpen && selectedTransaction && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 shadow-xl max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-start mb-4">
+                            <h3 className="text-xl font-semibold text-slate-800">{t('treasury.transactionDetails')}</h3>
+                            <button
+                                onClick={handleCloseDetails}
+                                className="p-2 hover:bg-slate-100 rounded-md transition-colors"
+                            >
+                                <svg className="h-5 w-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm font-medium text-slate-500">{t('treasury.date')}</label>
+                                    <p className="text-slate-800">{new Date(selectedTransaction.transactionDate).toLocaleDateString()}</p>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-slate-500">{t('treasury.type')}</label>
+                                    <p className={`font-semibold ${selectedTransaction.financialTransactionType === 'RECETTE' ? 'text-green-600' : 'text-red-600'}`}>
+                                        {getTranslatedType(selectedTransaction.financialTransactionType)}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label className="text-sm font-medium text-slate-500">{t('treasury.description')}</label>
+                                <p className="text-slate-800">{selectedTransaction.description}</p>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm font-medium text-slate-500">Nom du prestataire</label>
+                                    <p className="text-slate-800">{selectedTransaction.providerName || '-'}</p>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-slate-500">Téléphone du prestataire</label>
+                                    <p className="text-slate-800">{selectedTransaction.providerPhone || '-'}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm font-medium text-slate-500">{t('treasury.account')}</label>
+                                    <p className="text-slate-800">{treasuryAccounts.find(a => a.id === selectedTransaction.treasuryAccountId)?.accountName}</p>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-slate-500">{t('treasury.amount')}</label>
+                                    <p className={`text-xl font-bold ${selectedTransaction.financialTransactionType === 'RECETTE' ? 'text-green-700' : 'text-red-700'}`}>
+                                        {selectedTransaction.financialTransactionType === 'RECETTE' ? '+' : '-'}{formatCurrency(Number(selectedTransaction.amount))}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                                                        
+                            {selectedTransaction.relatedDocumentId && (
+                                <div>
+                                    <label className="text-sm font-medium text-slate-500">{t('treasury.relatedDocument')}</label>
+                                    <p className="text-slate-800">{selectedTransaction.relatedDocumentId}</p>
+                                </div>
+                            )}
+                        </div>
+                        
+                        <div className="flex gap-3 justify-end mt-6">
+                            <button
+                                onClick={handleCloseDetails}
+                                className="px-4 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors"
+                            >
+                                {t('common.close')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {/* Boîte de dialogue de confirmation personnalisée */}
+            {confirmDialog.show && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
+                        <h3 className="text-lg font-semibold text-slate-800 mb-2">{confirmDialog.title}</h3>
+                        <p className="text-slate-600 mb-6">{confirmDialog.message}</p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={confirmDialog.onCancel}
+                                className="px-4 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors"
+                            >
+                                {t('common.cancel')}
+                            </button>
+                            <button
+                                onClick={confirmDialog.onConfirm}
+                                className="px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-md hover:bg-red-600 transition-colors"
+                            >
+                                {t('common.confirm')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 };

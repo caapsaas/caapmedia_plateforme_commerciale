@@ -88,13 +88,6 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
         });
     }, [orders, clients]);
 
-    const { data: totalReceivablesData = { totalReceivables: 0 }, isLoading: isLoadingReceivable } = useQuery<CustomerReceivablesStats>({
-        queryKey: ['totalReceivables'],
-        queryFn: () => getCustomerReceivables({
-            period: 'ALL_TIME',
-        })
-    });
-
     // 4. Filtrage pour la barre de recherche
     const filteredCredits = useMemo(() => {
         // On ne montre que les crédits avec un solde > 0
@@ -106,6 +99,21 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
             (credit.companyName && credit.companyName.toLowerCase().includes(lowercasedTerm))
         );
     }, [transformedCredits, searchTerm]);
+
+    // Calcul du total des dettes clients à partir des commandes filtrées
+    const totalCustomerDebts = useMemo(() => {
+        return filteredCredits.reduce((total, credit) => {
+            const balance = Number(credit.balance) || 0;
+            return total + balance;
+        }, 0);
+    }, [filteredCredits]);
+
+    const { data: totalReceivablesData = { totalReceivables: 0 }, isLoading: isLoadingReceivable } = useQuery<CustomerReceivablesStats>({
+        queryKey: ['totalReceivables'],
+        queryFn: () => getCustomerReceivables({
+            period: 'ALL_TIME',
+        })
+    });
 
     const handlePrint = () => {
         window.print();
@@ -197,7 +205,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
 
     const kpiData = {
         titleKey: 'credit.totalReceivables',
-        value: formatCurrency(totalReceivablesData.totalReceivables),
+        value: formatCurrency(isNaN(totalCustomerDebts) ? 0 : totalCustomerDebts),
         change: '', // Ajout de la propriété 'change' manquante
         icon: <IconCreditCard className="h-6 w-6 text-slate-500" />,
         changeType: 'increase' as const,
@@ -217,16 +225,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
             <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                     <h3 className="text-xl font-semibold text-slate-800">{t('credit.customerCreditTracking')}</h3>
-                    <div className="relative w-full md:w-auto">
-                        <input
-                            type="search"
-                            placeholder={t('common.searchPlaceholder')}
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full md:w-64 pl-10 pr-4 py-2 border border-slate-300 rounded-full bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
-                        />
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg className="h-5 w-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg></div>
-                    </div>
+                  
                     <div className="flex flex-wrap gap-2 no-print">
                         <button onClick={handlePrint} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
                             <IconPrint className="h-4 w-4" />
@@ -257,7 +256,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
                         <tbody>
                             {filteredCredits.length > 0 ? (
                                 filteredCredits.map((account) => (
-                                    <tr key={account.id} className="bg-white border-b hover:bg-slate-50">
+                                    <tr key={`credit-${account.id}-${account.clientName}`} className="bg-white border-b hover:bg-slate-50">
                                         <td className="px-6 py-4 font-medium text-slate-900">{account.clientName}</td>
                                         <td className="px-6 py-4">{account.companyName}</td>
                                         <td className="px-6 py-4">{account.lastPaymentDate ? new Date(account.lastPaymentDate).toLocaleDateString('fr-FR') : t('common.notAvailable')}</td>
@@ -269,7 +268,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
                                     </tr>
                                 ))
                             ) : (
-                                <tr>
+                                <tr key="no-credits-row">
                                     <td colSpan={5} className="text-center py-8 text-slate-500">
                                         {searchTerm ? "Aucun crédit ne correspond à votre recherche." : "Aucun crédit client en cours."}
                                     </td>

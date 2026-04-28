@@ -74,7 +74,7 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
         return filtered;
     }, [expenses, category, type, period, startDate, endDate]);
 
-    const totalExpenses = useMemo(() => filteredExpenses.reduce((acc, exp) => acc + exp.amount, 0), [filteredExpenses]);
+    const totalExpenses = useMemo(() => filteredExpenses.reduce((acc, exp) => acc + Number(exp.amount), 0), [filteredExpenses]);
 
     const handleOpenAddModal = () => {
         setEditingExpense(null);
@@ -224,7 +224,7 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
                                     <td className="px-6 py-4 font-medium">{exp.description}</td>
                                     <td className="px-6 py-4">{t(`expenses.categories.${exp.category || 'OTHER'}`)}</td>
                                     <td className="px-6 py-4">{t(`expenses.types.${exp.type || 'VARIABLE'}`)}</td>
-                                    <td className="px-6 py-4 text-right font-semibold">{formatCurrency(exp.amount)}</td>
+                                    <td className="px-6 py-4 text-right font-semibold">{formatCurrency(Number(exp.amount))}</td>
                                     <td className="px-6 py-4 text-center space-x-1 no-print">
                                         <button onClick={() => handleOpenEditModal(exp)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors"><IconEdit className="h-5 w-5" /></button>
                                         <button onClick={() => handleOpenDeleteModal(exp)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors"><IconDelete className="h-5 w-5" /></button>

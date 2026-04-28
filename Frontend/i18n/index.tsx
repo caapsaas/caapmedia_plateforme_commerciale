@@ -629,6 +629,13 @@ const frTranslations = {
     "statusPending": "En attente",
     "typeIncome": "Recette",
     "typeExpense": "Dépense",
+    "confirmDelete": "Supprimer la transaction",
+    "confirmDeleteMessage": "Êtes-vous sûr de vouloir supprimer cette transaction ? Cette action est irréversible.",
+    "validate": "Valider",
+    "reject": "Rejeter",
+    "confirmValidate": "Valider la transaction",
+    "confirmReject": "Rejeter la transaction",
+    "noCreatePermission": "Seul le Directeur Financier peut créer des transactions",
     "modal": {
       "addIncome": "Ajouter une nouvelle recette",
       "addExpense": "Ajouter une nouvelle dépense"
@@ -2215,6 +2222,13 @@ const enTranslations: Translations = {
         "statusPending": "Pending",
         "typeIncome": "Income",
         "typeExpense": "Expense",
+        "confirmDelete": "Delete Transaction",
+        "confirmDeleteMessage": "Are you sure you want to delete this transaction? This action is irreversible.",
+        "validate": "Validate",
+        "reject": "Reject",
+        "confirmValidate": "Validate Transaction",
+        "confirmReject": "Reject Transaction",
+        "noCreatePermission": "Only the Financial Director can create transactions",
         "modal": {
             "addIncome": "Add New Income",
             "addExpense": "Add New Expense"
@@ -3219,10 +3233,17 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({ children }) => {
     }, [language]);
 
     const formatCurrency = useCallback((amount: number) => {
+        // Gérer les valeurs NaN, null, undefined ou non numériques
+        if (isNaN(amount) || amount === null || amount === undefined || typeof amount !== 'number') {
+            return new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US', {
+                style: 'currency',
+                currency: 'XOF', // CFA Franc
+            }).format(0);
+        }
+        
         return new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US', {
             style: 'currency',
             currency: 'XOF', // CFA Franc
-            minimumFractionDigits: 0,
         }).format(amount);
     }, [language]);
 
