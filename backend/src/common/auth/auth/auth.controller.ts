@@ -1,10 +1,27 @@
-
-import { Controller, Post, Body, Patch, Delete, Get, Query, Request, UseGuards, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Patch,
+  Delete,
+  Get,
+  Query,
+  Request,
+  UseGuards,
+  Param,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from '../jwt/jwt.guard';
 import { RoleGuard } from '../role/role.guard';
 import { SetMetadata } from '@nestjs/common';
-import { IsString, IsEmail, IsOptional, IsUUID, IsEnum, IsNotEmpty } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  IsOptional,
+  IsUUID,
+  IsEnum,
+  IsNotEmpty,
+} from 'class-validator';
 import { UserRole } from '@prisma/client';
 
 class RegisterDto {
@@ -80,9 +97,14 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto.userName, dto.email, dto.password, dto.userRole, dto.subsidiaryId);
+    return this.authService.register(
+      dto.userName,
+      dto.email,
+      dto.password,
+      dto.userRole,
+      dto.subsidiaryId,
+    );
   }
-
 
   @Post('login')
   async login(@Body() dto: LoginDto) {
@@ -101,31 +123,58 @@ export class AuthController {
     // Nous passons cet objet directement à notre nouvelle méthode de service.
     return this.authService.getProfileUser(req.user);
   }
-  
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR])
+  @SetMetadata('roles', [
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.SECRETARY,
+    UserRole.HR_MANAGER,
+    UserRole.FINANCIAL_DIRECTOR,
+  ])
   @Patch('users/:id')
-  async updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto, @Request() req) {
+  async updateUser(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+    @Request() req,
+  ) {
     return this.authService.updateUser(id, dto, req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR])
+  @SetMetadata('roles', [
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.SECRETARY,
+    UserRole.HR_MANAGER,
+    UserRole.FINANCIAL_DIRECTOR,
+  ])
   @Delete('users/:id')
   async deleteUser(@Param('id') id: string, @Request() req) {
     return this.authService.deleteUser(id, req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR])
+  @SetMetadata('roles', [
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.SECRETARY,
+    UserRole.HR_MANAGER,
+    UserRole.FINANCIAL_DIRECTOR,
+  ])
   @Get('users')
   async getAllUsers(@Request() req) {
     return this.authService.getAllUsers(req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR])
+  @SetMetadata('roles', [
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.SECRETARY,
+    UserRole.HR_MANAGER,
+    UserRole.FINANCIAL_DIRECTOR,
+  ])
   @Get('users/search')
   async searchUsers(@Query() query: SearchUsersDto, @Request() req) {
     return this.authService.searchUsers(query, req.user);
