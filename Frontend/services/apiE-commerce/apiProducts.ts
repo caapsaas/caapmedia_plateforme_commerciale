@@ -14,6 +14,14 @@ export const getProducts = async (page: number) => {
     const { data } = await api.get(`/products/get-all-products?page=${page}`);
     return data;
 };
+
+export const getFavoriteProducts = async (ids: string[]) => {
+  const { data } = await api.post('/products/favorites', {
+    ids,
+  });
+
+  return data;
+};
 export const getProduitsSearch = async (searchTerm: string) => {
     const { data } = await api.get(`/products/search-products?query=${searchTerm}`);
     return data;

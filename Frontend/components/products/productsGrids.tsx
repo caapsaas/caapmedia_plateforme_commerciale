@@ -1,7 +1,8 @@
 // ProductsGrid.tsx
-import { useState, useMemo, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
+  getFavoriteProducts,
   getProducts,
   getProduitsSearch,
 } from "../../services/apiE-commerce/apiProducts";
@@ -34,9 +35,6 @@ export default function ProductsGrid({
   const [page, setPage] = useState(1);
   const [allLoaded, setAllLoaded] = useState<Product[]>([]); // Stocke tous les produits chargés jusqu'à présent
 
-  // On accumule tous les produits chargés
-  const queryClient = useQueryClient();
-
   const {
     isLoading,
     isFetching,
@@ -45,9 +43,15 @@ export default function ProductsGrid({
     queryKey: ["products", page],
     queryFn: () => getProducts(page),
   });
-  const { data: searchData } = useQuery<Product[]>({
+  const { data: searchData, isLoading: searchLoading } = useQuery<Product[]>({
     queryKey: ["productsSearch", searchTerm],
     queryFn: () => getProduitsSearch(searchTerm),
+  });
+
+  const { data: favoriteProducts = [] } = useQuery<Product[]>({
+    queryKey: ["favorites", [...likedProducts]],
+    queryFn: () => getFavoriteProducts([...likedProducts]),
+    enabled: showFavorites && likedProducts.size > 0,
   });
 
   // ✅ Remplace onSuccess par useEffect
@@ -69,11 +73,14 @@ export default function ProductsGrid({
   // Filtre sur les produits déjà chargés
 
   console.log("taille searchTerm:", searchTerm.length);
-  if (searchTerm.length == 0) {
+  if (searchTerm.length == 0 && !showFavorites) {
     filtered = allLoaded;
+  } else if (showFavorites) {
+    filtered = (favoriteProducts ?? []).filter((p) => {
+      return true;
+    });
   } else {
     filtered = (searchData ?? []).filter((p) => {
-      if (showFavorites) return likedProducts.has(p.id);
       if (selectedSubcategory) return p.category === selectedSubcategory;
       if (selectedMainCategory) return p.mainCategory === selectedMainCategory;
       return true;
@@ -88,7 +95,7 @@ export default function ProductsGrid({
     <div className="mt-12">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
         {/* Skeleton premier chargement */}
-        {isLoadingFirst &&
+        {(isLoadingFirst || searchLoading) &&
           Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
@@ -133,7 +140,7 @@ export default function ProductsGrid({
           ))}
 
         {/* Empty state */}
-        {!isLoadingFirst && filtered.length === 0 && (
+        {!isLoadingFirst && filtered.length === 0  && (
           <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
             <div className="text-6xl mb-4">📦</div>
             <h3 className="text-xl font-bold text-slate-700 mb-2">
@@ -143,17 +150,9 @@ export default function ProductsGrid({
             </h3>
             <p className="text-slate-500 max-w-sm">
               {showFavorites
-                ? "Ajoutez des produits à vos favoris en cliquant sur le ❤️"
+                ? "Ajoutez des produits à vos favoris en cliquant sur le "
                 : "Essayez de modifier vos filtres ou votre recherche."}
             </p>
-            {!showFavorites && (searchTerm || selectedMainCategory) && (
-              <button
-                onClick={onResetFilters}
-                className="mt-4 px-6 py-2 bg-slate-800 text-white rounded-full font-semibold hover:bg-slate-700 transition-colors"
-              >
-                Réinitialiser les filtres
-              </button>
-            )}
           </div>
         )}
       </div>
@@ -161,23 +160,13 @@ export default function ProductsGrid({
       {/* Pagination footer */}
       {!isLoadingFirst && filtered.length > 0 && (
         <div className="mt-14 flex flex-col items-center gap-4">
-          {/* Barre de progression visuelle */}
-          {!showFavorites && (
-            <div className="w-full max-w-xs bg-slate-200 rounded-full h-1.5">
-              <div
-                className="bg-slate-800 h-1.5 rounded-full transition-all duration-500"
-                style={{ width: hasMore ? "60%" : "100%" }}
-              />
-            </div>
-          )}
-
           {hasMore && !showFavorites && !searchTerm ? (
             <button
               onClick={handleLoadMore}
               disabled={isFetching}
-              className="group relative inline-flex items-center gap-3 px-10 py-3.5 bg-slate-900 text-white font-semibold rounded-full hover:bg-slate-700 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg hover:-translate-y-0.5"
+              className="group relative bg-[#c6e911] inline-flex items-center gap-3 px-10 py-2 text-black font-semibold rounded-full hover:bg-[#c6e000] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg hover:-translate-y-0.5"
             >
-              {isFetching ? (
+              {isFetching && !searchTerm ? (
                 <>
                   <svg
                     className="animate-spin h-4 w-4"

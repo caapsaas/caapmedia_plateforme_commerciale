@@ -3,7 +3,6 @@ import { Product, CustomerPaymentMethod } from "../../types";
 import { useI18n } from "../../i18n";
 import { useToast } from "../../context/ToastContext";
 import ECommerceHeader from "./ECommerceHeader";
-import ProductCard from "./ProductCard";
 import ShoppingCart, { CartItem } from "./ShoppingCart";
 import CheckoutModal from "./CheckoutModal";
 import { PRODUCT_HIERARCHY } from "../../constants";
