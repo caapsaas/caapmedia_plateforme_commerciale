@@ -100,6 +100,11 @@ export class ProductsController {
     return this.productsService.searchProducts(query);
   }
 
+  @Post('favorites')
+  getFavorites(@Body() body: { ids: string[] }) {
+    return this.productsService.getFavorites(body.ids);
+  }
+
   /**
    * Endpoint pour récupérer un produit par son ID
    * Exemple d'URL : /products/:id

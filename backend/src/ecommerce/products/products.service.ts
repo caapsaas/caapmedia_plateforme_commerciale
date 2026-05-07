@@ -135,9 +135,20 @@ export class ProductsService {
           { productName: { contains: query, mode: 'insensitive' } },
         ],
       },
+      take: 8,
       include: this.includeAll,
     });
     return products.map((p) => this.mapDecimals(p));
+  }
+
+  async getFavorites(ids: string[]) {
+    return this.prisma.product.findMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+    });
   }
 
   /**
