@@ -18,13 +18,16 @@ const StockChart: React.FC<StockChartProps> = ({ data }) => {
   }));
 
   return (
-    <div style={{ width: '100%', height: 300, minWidth: 300 }}>
-        <ResponsiveContainer width="100%" height={300}>
+    <div  className="flex text-xs w-full h-full flex-1 ">
+        <ResponsiveContainer width="100%"  >
+           
             <PieChart>
+               
                 <Pie
+                
                     data={translatedData}
-                    cx="50%"
-                    cy="50%"
+                    cx="20%"
+                    cy="10%"
                     labelLine={false}
                     outerRadius={100}
                     fill="#8884d8"

@@ -164,7 +164,7 @@ export default function ProductsGrid({
             <button
               onClick={handleLoadMore}
               disabled={isFetching}
-              className="group relative bg-[#c6e911] inline-flex items-center gap-3 px-10 py-2 text-black font-semibold rounded-full hover:bg-[#c6e000] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg hover:-translate-y-0.5"
+              className="group relative bg-[#c6e911] inline-flex items-center gap-3 px-10 py-2 text-gray-800 font-semibold rounded-full hover:bg-[#c6e000] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg hover:-translate-y-0.5"
             >
               {isFetching && !searchTerm ? (
                 <>
@@ -209,13 +209,7 @@ export default function ProductsGrid({
                 </>
               )}
             </button>
-          ) : (
-            !showFavorites && (
-              <p className="text-sm text-slate-400 font-medium tracking-wide">
-                ✓ Tous les produits ont été chargés
-              </p>
-            )
-          )}
+          ) : null}
         </div>
       )}
     </div>

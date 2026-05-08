@@ -56,7 +56,6 @@ const App: React.FC = () => {
     );
   }
 
-  // Pour les autres routes (publiques), on affiche juste le contenu de la route
   return (
     <ToastProvider>
       <Outlet />
