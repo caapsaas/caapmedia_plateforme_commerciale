@@ -67,32 +67,32 @@ const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({ isOpen, onClose
                         <div className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                             <div>
                                 <label htmlFor="equipmentName" className="block text-sm font-medium text-slate-700">{t('maintenance.form.name')}</label>
-                                <input type="text" name="equipmentName" id="equipmentName" value={formData.equipmentName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <input type="text" name="equipmentName" id="equipmentName" value={formData.equipmentName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
                                 <label htmlFor="status" className="block text-sm font-medium text-slate-700">{t('maintenance.form.status')}</label>
-                                <select name="status" id="status" value={formData.status} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                <select name="status" id="status" value={formData.status} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                     {Object.values(EquipmentStatus).map(s => <option key={s} value={s}>{t(`maintenance.status_${s}`)}</option>)}
                                 </select>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="acquisitionDate" className="block text-sm font-medium text-slate-700">{t('maintenance.form.acquisitionDate')}</label>
-                                    <input type="date" name="acquisitionDate" id="acquisitionDate" value={formData.acquisitionDate ? new Date(formData.acquisitionDate).toISOString().split('T')[0] : ''} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                    <input type="date" name="acquisitionDate" id="acquisitionDate" value={formData.acquisitionDate ? new Date(formData.acquisitionDate).toISOString().split('T')[0] : ''} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
                                 <div>
                                     <label htmlFor="acquisitionValue" className="block text-sm font-medium text-slate-700">{t('maintenance.form.acquisitionValue')}</label>
-                                    <input type="number" name="acquisitionValue" id="acquisitionValue" value={formData.acquisitionValue} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                    <input type="number" name="acquisitionValue" id="acquisitionValue" value={formData.acquisitionValue} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="lastMaintenanceDate" className="block text-sm font-medium text-slate-700">{t('maintenance.form.lastMaintenanceDate')}</label>
-                                    <input type="date" name="lastMaintenanceDate" id="lastMaintenanceDate" value={formData.lastMaintenanceDate ? new Date(formData.lastMaintenanceDate).toISOString().split('T')[0] : ''} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                    <input type="date" name="lastMaintenanceDate" id="lastMaintenanceDate" value={formData.lastMaintenanceDate ? new Date(formData.lastMaintenanceDate).toISOString().split('T')[0] : ''} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
                                 <div>
                                     <label htmlFor="nextMaintenanceDate" className="block text-sm font-medium text-slate-700">{t('maintenance.form.nextMaintenanceDate')}</label>
-                                    <input type="date" name="nextMaintenanceDate" id="nextMaintenanceDate" value={formData.nextMaintenanceDate ? new Date(formData.nextMaintenanceDate).toISOString().split('T')[0] : ''} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                    <input type="date" name="nextMaintenanceDate" id="nextMaintenanceDate" value={formData.nextMaintenanceDate ? new Date(formData.nextMaintenanceDate).toISOString().split('T')[0] : ''} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
                             </div>
                         </div>

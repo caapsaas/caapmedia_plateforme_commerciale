@@ -64,11 +64,11 @@ const ContractFormModal: React.FC<ContractFormModalProps> = ({ isOpen, onClose, 
                         <div className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                             <div>
                                 <label htmlFor="title" className="block text-sm font-medium text-slate-700">{t('crm.contracts.table.title')}</label>
-                                <input type="text" name="title" id="title" value={formData.title} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <input type="text" name="title" id="title" value={formData.title} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                              <div>
                                 <label htmlFor="clientId" className="block text-sm font-medium text-slate-700">{t('crm.contracts.table.client')}</label>
-                                <select name="clientId" id="clientId" value={formData.clientId} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                <select name="clientId" id="clientId" value={formData.clientId} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                     <option value="" disabled>Select a client</option>
                                     {contacts.map(c => <option key={c.id} value={c.id}>{c.contactName}</option>)}
                                 </select>
@@ -76,20 +76,20 @@ const ContractFormModal: React.FC<ContractFormModalProps> = ({ isOpen, onClose, 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="startDate" className="block text-sm font-medium text-slate-700">{t('crm.contracts.table.startDate')}</label>
-                                    <input type="date" name="startDate" id="startDate" value={formData.startDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                    <input type="date" name="startDate" id="startDate" value={formData.startDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
                                 <div>
                                     <label htmlFor="endDate" className="block text-sm font-medium text-slate-700">{t('crm.contracts.table.endDate')}</label>
-                                    <input type="date" name="endDate" id="endDate" value={formData.endDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                    <input type="date" name="endDate" id="endDate" value={formData.endDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
                             </div>
                             <div>
                                 <label htmlFor="amount" className="block text-sm font-medium text-slate-700">{t('crm.contracts.table.amount')}</label>
-                                <input type="number" name="amount" id="amount" value={formData.amount} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <input type="number" name="amount" id="amount" value={formData.amount} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
                                 <label htmlFor="status" className="block text-sm font-medium text-slate-700">{t('crm.contracts.table.status')}</label>
-                                <select name="status" id="status" value={formData.status} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                <select name="status" id="status" value={formData.status} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                     {Object.values(ContractStatus).map(s => <option key={s} value={s}>{t(`crm.contracts.status_${s}`)}</option>)}
                                 </select>
                             </div>

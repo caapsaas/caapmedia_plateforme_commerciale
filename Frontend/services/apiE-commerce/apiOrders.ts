@@ -14,6 +14,8 @@ export interface FindAllOrdersDto {
     endDate?: string;
 }
 
+
+
 /**
  * Crée une nouvelle commande (pour un client).
  * Utilise FormData pour gérer l'upload de fichiers.

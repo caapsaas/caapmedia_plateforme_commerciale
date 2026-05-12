@@ -72,7 +72,6 @@ export default function ProductsGrid({
 
   // Filtre sur les produits déjà chargés
 
-  console.log("taille searchTerm:", searchTerm.length);
   if (searchTerm.length == 0 && !showFavorites) {
     filtered = allLoaded;
   } else if (showFavorites) {

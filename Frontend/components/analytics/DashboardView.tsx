@@ -55,12 +55,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ data }) => {
                     <h3 className="font-semibold text-lg mb-4 text-slate-700">{t('analytics.dashboard.weeklySalesPerformance')}</h3>                    
                     <SalesChart data={subsidiarySalesChartData} />
                 </div>
-                <div className="lg:col-span-1  bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-                   <div className='w-full  h-full'>
-                     <h3 className="font-semibold text-lg mb-4 text-slate-700">{t('analytics.dashboard.stockDistributionByCategory')}</h3>
-                    <StockChart data={subsidiaryStockChartData} />
-                   </div>
-                </div>
+              <div className="h-96 bg-white rounded-lg">  {/* ou h-[400px] ou h-full si le parent a une hauteur */}
+  <StockChart data={stockValueDistributionChartData} />
+</div>
             </div>
         </div>
     );
