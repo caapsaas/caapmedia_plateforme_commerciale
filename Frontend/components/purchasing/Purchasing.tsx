@@ -163,11 +163,12 @@ const Purchasing: React.FC = () => {
                         </thead>
                         <tbody>
                             {purchaseOrders.map(po => (
+                                console.log('Rendering PO:', po.totalAmount), // Debug log to check PO data
                                 <tr key={po.id} className="bg-white border-b hover:bg-slate-50">
                                     <td className="px-6 py-4 font-semibold">{po.id}</td>
                                     <td className="px-6 py-4">{po.supplierName}</td>
-                                    <td className="px-6 py-4">{po.orderDate}</td>
-                                    <td className="px-6 py-4 text-right font-bold">{formatCurrency(po.totalAmount)}</td>
+                                    <td className="px-6 py-4">{po.orderDate.split("T")[0]}</td>
+                                    <td className="px-6 py-4 text-right font-bold">{formatCurrency(parseFloat(po.totalAmount))}</td>
                                     <td className="px-6 py-4 text-center">
                                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(po.status)}`}>
                                             {t(`purchasing.status_${po.status}`)}

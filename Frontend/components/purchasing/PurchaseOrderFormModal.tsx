@@ -140,8 +140,8 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
                                             <tr key={item.productId}>
                                                 <td className="px-4 py-2 font-medium">{item.productName}</td>
                                                 <td className="px-4 py-2 text-center">{item.quantity}</td>
-                                                <td className="px-4 py-2 text-right">{formatCurrency(item.purchasePrice)}</td>
-                                                <td className="px-4 py-2 text-right font-semibold">{formatCurrency(item.quantity * item.purchasePrice)}</td>
+                                                <td className="px-4 py-2 text-right">{formatCurrency(parseFloat(item.purchasePrice))}</td>
+                                                <td className="px-4 py-2 text-right font-semibold">{formatCurrency(item.quantity * parseFloat(item.purchasePrice))}</td>
                                                 <td className="px-4 py-2 text-center">
                                                     <button type="button" onClick={() => handleRemoveItem(item.productId)}>
                                                         <IconDelete className="h-4 w-4 text-red-500 hover:text-red-700" />

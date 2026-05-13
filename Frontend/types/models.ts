@@ -908,11 +908,11 @@ export interface Equipment {
     id: string; 
     equipmentName: string;
     status: EquipmentStatus;
-    lastMaintenanceDate: string;
-    nextMaintenanceDate: string;
+    lastMaintenanceDate: Date;
+    nextMaintenanceDate: Date;
     maintenanceHistory: MaintenanceRecord[];
     subsidiaryId: string;
-    acquisitionDate: string;
+    acquisitionDate: Date;
     acquisitionValue: number;
 }
 

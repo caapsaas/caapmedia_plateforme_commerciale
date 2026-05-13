@@ -25,7 +25,6 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({ isOpen, onClose, on
         address: '',
         isVerified: true,
         status: ContactStatus.PROSPECT,
-        accountId: '',
         salesRepId: '',
     };
     const [formData, setFormData] = useState<Omit<Contact, 'id' | 'subsidiaryId'>>(initialFormState);

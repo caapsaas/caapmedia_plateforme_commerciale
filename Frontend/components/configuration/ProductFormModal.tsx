@@ -182,12 +182,12 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ isOpen, onClose, on
                             {/* Form fields */}
                             <div>
                                 <label htmlFor="productName" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
-                                <input type="text" name="productName" id="productName" value={formData.productName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <input type="text" name="productName" id="productName" value={formData.productName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="category" className="block text-sm font-medium text-slate-700">{t('configuration.form.category')}</label>
-                                    <select name="category" id="category" value={formData.category} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                    <select name="category" id="category" value={formData.category} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                         {Object.keys(categoryToKeyMap).map(cat => (
                                             <option key={cat} value={cat}>{t(categoryToKeyMap[cat])}</option>
                                         ))}
@@ -195,7 +195,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ isOpen, onClose, on
                                 </div>
                                 <div>
                                     <label htmlFor="productRange" className="block text-sm font-medium text-slate-700">{t('configuration.form.range')}</label>
-                                    <select name="productRange" id="productRange" value={formData.productRange || ''} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                    <select name="productRange" id="productRange" value={formData.productRange || ''} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                         <option value="">{t('productRange.none')}</option>
                                         {Object.keys(rangeToKeyMap).map(rangeKey => (
                                             <option key={rangeKey} value={rangeKey}>{t(rangeToKeyMap[rangeKey])}</option>
@@ -206,7 +206,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ isOpen, onClose, on
                             <div>
                                 <label htmlFor="description" className="block text-sm font-medium text-slate-700">{t('configuration.form.description')}</label>
                                 <div className="mt-1 relative">
-                                    <textarea name="description" id="description" value={formData.description} onChange={handleChange} rows={3} className="block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm pr-10"></textarea>
+                                    <textarea name="description" id="description" value={formData.description} onChange={handleChange} rows={3} className="block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm pr-10"></textarea>
                                     <button
                                         type="button"
                                         onClick={handleGenerateDescription}
@@ -226,21 +226,21 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ isOpen, onClose, on
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="price" className="block text-sm font-medium text-slate-700">{t('configuration.form.costPrice')}</label>
-                                    <input type="number" step="0.01" name="price" id="price" value={formData.price} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                    <input type="number" step="0.01" name="price" id="price" value={formData.price} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
                                 <div>
                                     <label htmlFor="sellingPrice" className="block text-sm font-medium text-slate-700">{t('configuration.form.sellingPrice')}</label>
-                                    <input type="number" step="0.01" name="sellingPrice" id="sellingPrice" value={formData.sellingPrice} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                    <input type="number" step="0.01" name="sellingPrice" id="sellingPrice" value={formData.sellingPrice} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="stock" className="block text-sm font-medium text-slate-700">{t('configuration.form.stock')}</label>
-                                    <input type="number" name="stock" id="stock" value={formData.stock} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                    <input type="number" name="stock" id="stock" value={formData.stock} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
                                 <div>
                                     <label htmlFor="warehouse" className="block text-sm font-medium text-slate-700">{t('configuration.form.warehouse')}</label>
-                                    <input type="text" name="warehouse" id="warehouse" value={formData.warehouse} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                    <input type="text" name="warehouse" id="warehouse" value={formData.warehouse} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
                             </div>
                             {/* Champ pour les images */}
@@ -280,10 +280,10 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ isOpen, onClose, on
                                             {formOptions[optionType]?.map((item, index) => (
                                                 <div key={index} className="grid grid-cols-12 gap-2 items-center">
                                                     <div className="col-span-6">
-                                                        <input type="text" placeholder={t('configuration.form.name')} value={item.optionName} onChange={(e) => handleOptionItemChange(optionType, index, 'optionName', e.target.value)} className="w-full border-slate-300 rounded-md shadow-sm text-sm" />
+                                                        <input type="text" placeholder={t('configuration.form.name')} value={item.optionName} onChange={(e) => handleOptionItemChange(optionType, index, 'optionName', e.target.value)} className="w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border text-sm" />
                                                     </div>
                                                     <div className="col-span-5">
-                                                        <input type="number" step="0.01" placeholder="Multiplicateur" value={String(item.multiplier)} onChange={(e) => handleOptionItemChange(optionType, index, 'multiplier', e.target.value)} className="w-full border-slate-300 rounded-md shadow-sm text-sm" />
+                                                        <input type="number" step="0.01" placeholder="Multiplicateur" value={String(item.multiplier)} onChange={(e) => handleOptionItemChange(optionType, index, 'multiplier', e.target.value)} className="w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border text-sm" />
                                                     </div>
                                                     <div className="col-span-1 text-right">
                                                         <button type="button" onClick={() => handleRemoveOptionItem(optionType, index)} className="p-1 text-red-500 hover:bg-red-100 rounded-full">
