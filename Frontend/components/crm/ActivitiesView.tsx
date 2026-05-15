@@ -118,21 +118,21 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({ contacts, interactions,
                     <h3 className="text-lg font-semibold text-slate-800">{t('crm.activities.addTask')}</h3>
                     {/* Remplacer Flexbox par Grid pour un meilleur contrôle du responsive */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 items-center">
-                        <select name="title" value={newTask.title} onChange={handleNewTaskChange} className="lg:col-span-2 border-slate-300 rounded-md shadow-sm w-full" required>
+                        <select name="title" value={newTask.title} onChange={handleNewTaskChange} className="lg:col-span-2 border-slate-300  rounded-md shadow-sm py-2 px-4 border w-full" required>
                             {TASK_TITLE_KEYS.map(key => (
                                 <option key={key} value={t(`crm.taskTitles.${key}`)}>{t(`crm.taskTitles.${key}`)}</option>
                             ))}
                         </select>
-                        <select name="contactId" value={newTask.contactId} onChange={handleNewTaskChange} className="border-slate-300 rounded-md shadow-sm w-full" required>
+                        <select name="contactId" value={newTask.contactId} onChange={handleNewTaskChange} className="border-slate-300 rounded-md shadow-sm py-2 px-4 border w-full" required>
                             <option value="">{t('crm.activities.selectContact')}</option>
                             {contacts.map(c => <option key={c.id} value={c.id}>{c.contactName}</option>)}
                         </select>
-                        <select name="priority" id="priority" value={newTask.priority} onChange={handleNewTaskChange} className="border-slate-300 rounded-md shadow-sm w-full">
+                        <select name="priority" id="priority" value={newTask.priority} onChange={handleNewTaskChange} className="border-slate-300 rounded-md shadow-sm py-2 px-4 border w-full">
                             {Object.values(CrmTaskPriority).map(p => (
                                 <option key={p} value={p}>{t(`crm.tasks.priority_${p}`)}</option>
                             ))}
                         </select>
-                        <input type="date" name="dueDate" value={newTask.dueDate} onChange={handleNewTaskChange} className="border-slate-300 rounded-md shadow-sm w-full" required/>
+                        <input type="date" name="dueDate" value={newTask.dueDate} onChange={handleNewTaskChange} className="border-slate-300 rounded-md shadow-sm py-2 px-4 border w-full" required/>
                         <button type="submit" className="px-4 py-2 bg-[#c6e911] text-slate-800 font-semibold rounded-md hover:bg-[#adc40f] flex items-center justify-center gap-2 w-full">
                            <IconPlus className="h-5 w-5" />
                            {t('common.add')}
@@ -146,7 +146,7 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({ contacts, interactions,
                     <h3 className="text-xl font-semibold text-slate-800">{t('crm.tabs.tasks')}</h3>
                     <div>
                         <label htmlFor="priority-filter" className="sr-only">{t('crm.tasks.filterByPriority')}</label>
-                        <select id="priority-filter" value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} className="border-slate-300 rounded-md shadow-sm text-sm">
+                        <select id="priority-filter" value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} className="border-slate-300 rounded-md shadow-sm py-2 px-4 border text-sm">
                              <option value="">{t('crm.tasks.allPriorities')}</option>
                              {Object.values(CrmTaskPriority).map(p => (
                                 <option key={p} value={p}>{t(`crm.tasks.priority_${p}`)}</option>

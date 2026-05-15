@@ -46,7 +46,7 @@ export class ContactsService {
         ...createContactDto,
         // Si accountId est une chaîne vide, on le remplace par undefined
         // pour que Prisma ne tente pas de créer une relation invalide.
-        accountId: createContactDto.accountId || undefined,
+        accountId: createContactDto.accountId || null,
         subsidiaryId: user.subsidiaryId,
         salesRepId: user.id,
         since: createContactDto.since ? new Date(createContactDto.since) : new Date(),

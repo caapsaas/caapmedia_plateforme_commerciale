@@ -61,28 +61,28 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({ isOpen, onClose, onSave, 
                         <div className="mt-4 space-y-4">
                             <div>
                                 <label htmlFor="title" className="block text-sm font-medium text-slate-700">{t('secretariat.tasks.table.title')}</label>
-                                <input type="text" name="title" id="title" value={formData.title} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <input type="text" name="title" id="title" value={formData.title} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                              <div>
                                 <label htmlFor="description" className="block text-sm font-medium text-slate-700">{t('configuration.form.description')}</label>
-                                <textarea name="description" id="description" value={formData.description} onChange={handleChange} rows={3} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"></textarea>
+                                <textarea name="description" id="description" value={formData.description} onChange={handleChange} rows={3} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"></textarea>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="assignedToId" className="block text-sm font-medium text-slate-700">{t('secretariat.tasks.table.assignedTo')}</label>
-                                    <select name="assignedToId" id="assignedToId" value={formData.assignedToId} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                    <select name="assignedToId" id="assignedToId" value={formData.assignedToId} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                         <option value="" disabled>Select an employee</option>
                                         {employees.map(emp => <option key={emp.id} value={emp.id}>{`${emp.firstName} ${emp.lastName}`}</option>)}
                                     </select>
                                 </div>
                                 <div>
                                     <label htmlFor="dueDate" className="block text-sm font-medium text-slate-700">{t('secretariat.tasks.table.dueDate')}</label>
-                                    <input type="date" name="dueDate" id="dueDate" value={formData.dueDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                    <input type="date" name="dueDate" id="dueDate" value={formData.dueDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
                             </div>
                             <div>
                                 <label htmlFor="status" className="block text-sm font-medium text-slate-700">{t('secretariat.tasks.table.status')}</label>
-                                <select name="status" id="status" value={formData.status} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                <select name="status" id="status" value={formData.status} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                     {Object.values(SecretariatTaskStatus).map(s => <option key={s} value={s}>{t(`secretariat.tasks.statuses.${s}`)}</option>)}
                                 </select>
                             </div>

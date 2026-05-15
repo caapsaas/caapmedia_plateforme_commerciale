@@ -262,47 +262,47 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label htmlFor="firstName" className="block text-sm font-medium text-slate-700">{t('configuration.form.firstName')}</label>
-                                            <input type="text" name="firstName" id="firstName" value={formData.firstName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                            <input type="text" name="firstName" id="firstName" value={formData.firstName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                         <div>
                                             <label htmlFor="lastName" className="block text-sm font-medium text-slate-700">{t('configuration.form.lastName')}</label>
-                                            <input type="text" name="lastName" id="lastName" value={formData.lastName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                            <input type="text" name="lastName" id="lastName" value={formData.lastName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label htmlFor="birthDate" className="block text-sm font-medium text-slate-700">{t('configuration.form.birthDate')}</label>
-                                            <input type="date" name="birthDate" id="birthDate" value={formData.birthDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                            <input type="date" name="birthDate" id="birthDate" value={formData.birthDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                         <div>
                                             <label htmlFor="gender" className="block text-sm font-medium text-slate-700">{t('configuration.form.gender')}</label>
-                                            <select name="gender" id="gender" value={formData.gender} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                            <select name="gender" id="gender" value={formData.gender} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                                 {Object.values(Gender).map(g => <option key={g} value={g}>{t(`hr.gender.${g}`)}</option>)}
                                             </select>
                                         </div>
                                     </div>
                                     <div>
                                         <label htmlFor="address" className="block text-sm font-medium text-slate-700">{t('configuration.form.address')}</label>
-                                        <input type="text" name="address" id="address" value={formData.address} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                        <input type="text" name="address" id="address" value={formData.address} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label htmlFor="phone" className="block text-sm font-medium text-slate-700">{t('configuration.form.phone')}</label>
-                                            <input type="tel" name="phone" id="phone" value={formData.phone} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                            <input type="tel" name="phone" id="phone" value={formData.phone} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                         <div>
                                             <label htmlFor="email" className="block text-sm font-medium text-slate-700">{t('configuration.form.email')}</label>
-                                            <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                            <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label htmlFor="nationality" className="block text-sm font-medium text-slate-700">{t('configuration.form.nationality')}</label>
-                                            <input type="text" name="nationality" id="nationality" value={formData.nationality} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                            <input type="text" name="nationality" id="nationality" value={formData.nationality} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                         <div>
                                             <label htmlFor="socialSecurityNumber" className="block text-sm font-medium text-slate-700">{t('configuration.form.ssn')}</label>
-                                            <input type="text" name="socialSecurityNumber" id="socialSecurityNumber" value={formData.socialSecurityNumber} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                            <input type="text" name="socialSecurityNumber" id="socialSecurityNumber" value={formData.socialSecurityNumber} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                     </div>
                                 </div>
@@ -312,34 +312,34 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label htmlFor="positions" className="block text-sm font-medium text-slate-700">{t('configuration.form.position')}</label>
-                                            <input type="text" name="positions" id="positions" value={formData.positions} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                            <input type="text" name="positions" id="positions" value={formData.positions} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                         <div>
                                             <label htmlFor="department" className="block text-sm font-medium text-slate-700">{t('configuration.form.department')}</label>
-                                            <input type="text" name="department" id="department" value={formData.department} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                            <input type="text" name="department" id="department" value={formData.department} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label htmlFor="hireDate" className="block text-sm font-medium text-slate-700">{t('configuration.form.hireDate')}</label>
-                                            <input type="date" name="hireDate" id="hireDate" value={formData.hireDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                            <input type="date" name="hireDate" id="hireDate" value={formData.hireDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                         <div>
                                             <label htmlFor="contractType" className="block text-sm font-medium text-slate-700">{t('configuration.form.contractType')}</label>
-                                            <select name="contractType" id="contractType" value={formData.contractType} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                            <select name="contractType" id="contractType" value={formData.contractType} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                                 {Object.values(ContractType).map(ct => <option key={ct} value={ct}>{t(`hr.contractType.${ct}`)}</option>)}
                                             </select>
                                         </div>
                                     </div>
                                     <div>
                                         <label htmlFor="status" className="block text-sm font-medium text-slate-700">{t('configuration.form.employeeStatus')}</label>
-                                        <select name="status" id="status" value={formData.status} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                        <select name="status" id="status" value={formData.status} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                             {Object.values(EmployeeStatus).map(es => <option key={es} value={es}>{t(`hr.employeeStatus.${es}`)}</option>)}
                                         </select>
                                     </div>
                                     <div>
                                         <label htmlFor="workLocation" className="block text-sm font-medium text-slate-700">{t('configuration.form.workLocation')}</label>
-                                        <input type="text" name="workLocation" id="workLocation" value={formData.workLocation} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                        <input type="text" name="workLocation" id="workLocation" value={formData.workLocation} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                     </div>
                                 </div>
                             )}
@@ -348,21 +348,21 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label htmlFor="baseSalary" className="block text-sm font-medium text-slate-700">{t('configuration.form.baseSalary')}</label>
-                                            <input type="number" name="baseSalary" id="baseSalary" value={formData.baseSalary} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                            <input type="number" name="baseSalary" id="baseSalary" value={formData.baseSalary} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                         <div>
                                             <label htmlFor="bonus" className="block text-sm font-medium text-slate-700">{t('configuration.form.bonus')}</label>
-                                            <input type="number" name="bonus" id="bonus" value={formData.bonus} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                            <input type="number" name="bonus" id="bonus" value={formData.bonus} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                     </div>
                                     <div>
                                         <label htmlFor="benefits" className="block text-sm font-medium text-slate-700">{t('configuration.form.benefits')}</label>
-                                        <input type="text" name="benefits" id="benefits" value={benefitsString} onChange={handleBenefitsChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                        <input type="text" name="benefits" id="benefits" value={benefitsString} onChange={handleBenefitsChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label htmlFor="paymentMethod" className="block text-sm font-medium text-slate-700">{t('configuration.form.paymentMethod')}</label>
-                                            <select name="paymentMethod" id="paymentMethod" value={formData.paymentMethod} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                            <select name="paymentMethod" id="paymentMethod" value={formData.paymentMethod} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                                 {Object.values(PaymentMethod).map(pm => <option key={pm} value={pm}>{t(`hr.paymentMethod.${pm}`)}</option>)}
                                             </select>
                                         </div>
@@ -400,7 +400,7 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                                         type="text"
                                                         value={doc.name}
                                                         onChange={(e) => handleDocumentChange(index, 'name', e.target.value)}
-                                                        className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                                                        className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                                                     />
                                                 </div>
                                                 <div>
@@ -408,7 +408,7 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                                     <select
                                                         value={doc.type}
                                                         onChange={(e) => handleDocumentChange(index, 'type', e.target.value)}
-                                                        className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                                                        className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                                                     >
                                                         <option value="">{t('hr.documents.selectType')}</option>
                                                         <option value="ID_CARD">{t('hr.documentType.idCard')}</option>
@@ -427,7 +427,7 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                                         type="date"
                                                         value={doc.expiryDate}
                                                         onChange={(e) => handleDocumentChange(index, 'expiryDate', e.target.value)}
-                                                        className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                                                        className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                                                     />
                                                 </div>
                                                 <div>
@@ -435,7 +435,7 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                                     <select
                                                         value={doc.status}
                                                         onChange={(e) => handleDocumentChange(index, 'status', e.target.value)}
-                                                        className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                                                        className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                                                     >
                                                         <option value="VALID">{t('hr.documentStatus.valid')}</option>
                                                         <option value="EXPIRED">{t('hr.documentStatus.expired')}</option>
@@ -448,7 +448,7 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                                 <input
                                                     type="file"
                                                     onChange={(e) => handleDocumentFileChange(index, e.target.files?.[0] || null)}
-                                                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#c6e911] file:text-slate-800 hover:file:bg-[#adc40f]"
+                                                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#c6e911] file:text-slate-800 hover:file:bg-[#adc40f]"
                                                     accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                                                 />
                                                 {doc.file && (
@@ -477,7 +477,7 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                                 id="annualLeave"
                                                 value={formData.leaveBalance?.annual || 0}
                                                 onChange={(e) => handleLeaveBalanceChange('annual', parseFloat(e.target.value) || 0)}
-                                                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                                                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                                             />
                                         </div>
                                         <div>
@@ -487,7 +487,7 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                                 id="sickLeave"
                                                 value={formData.leaveBalance?.sick || 0}
                                                 onChange={(e) => handleLeaveBalanceChange('sick', parseFloat(e.target.value) || 0)}
-                                                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                                                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                                             />
                                         </div>
                                         <div>
@@ -497,7 +497,7 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                                 id="personalLeave"
                                                 value={formData.leaveBalance?.personal || 0}
                                                 onChange={(e) => handleLeaveBalanceChange('personal', parseFloat(e.target.value) || 0)}
-                                                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                                                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                                             />
                                         </div>
                                         <div>
@@ -507,7 +507,7 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                                 id="maternityLeave"
                                                 value={formData.leaveBalance?.maternity || 0}
                                                 onChange={(e) => handleLeaveBalanceChange('maternity', parseFloat(e.target.value) || 0)}
-                                                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                                                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                                             />
                                         </div>
                                         <div>
@@ -517,7 +517,7 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                                 id="paternityLeave"
                                                 value={formData.leaveBalance?.paternity || 0}
                                                 onChange={(e) => handleLeaveBalanceChange('paternity', parseFloat(e.target.value) || 0)}
-                                                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                                                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                                             />
                                         </div>
                                         <div>
@@ -527,7 +527,7 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                                 id="otherLeave"
                                                 value={formData.leaveBalance?.other || 0}
                                                 onChange={(e) => handleLeaveBalanceChange('other', parseFloat(e.target.value) || 0)}
-                                                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                                                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                                             />
                                         </div>
                                     </div>

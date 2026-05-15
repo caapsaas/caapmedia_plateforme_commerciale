@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
 import { UseInterceptors } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -10,11 +21,15 @@ import { UseGuards } from '@nestjs/common';
 import { SetMetadata } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { extname } from 'path';
-import { CreateProductDto, UpdateProductDto, UpdateProductPriceDto} from './dto/create-product.dto';
+import {
+  CreateProductDto,
+  UpdateProductDto,
+  UpdateProductPriceDto,
+} from './dto/create-product.dto';
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) { }
+  constructor(private readonly productsService: ProductsService) {}
 
   /**
    * Endpoint pour créer un nouveau produit
@@ -26,15 +41,29 @@ export class ProductsController {
       storage: diskStorage({
         destination: './public/products',
         filename: (req, file, cb) => {
-          const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
+          const randomName = Array(32)
+            .fill(null)
+            .map(() => Math.round(Math.random() * 16).toString(16))
+            .join('');
           cb(null, `${randomName}${extname(file.originalname)}`);
         },
       }),
     }),
   )
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
-  create(@Body() createProductDto: CreateProductDto, @UploadedFiles() files: Express.Multer.File[], @Req() req: any) {
+  @SetMetadata('roles', [
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+    UserRole.FINANCIAL_DIRECTOR,
+  ])
+  create(
+    @Body() createProductDto: CreateProductDto,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Req() req: any,
+  ) {
     return this.productsService.create(createProductDto, req.user, files);
   }
 
@@ -44,7 +73,14 @@ export class ProductsController {
    */
   @Get()
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
+  @SetMetadata('roles', [
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+    UserRole.FINANCIAL_DIRECTOR,
+  ])
   findAll(@Req() req: any) {
     return this.productsService.findAll(req.user);
   }
@@ -54,8 +90,19 @@ export class ProductsController {
    * Exemple d'URL : /products/get-all-products
    */
   @Get('get-all-products')
-  findAllProducts() {
-    return this.productsService.findMany();
+  findAllProducts(@Query('page') page: string) {
+    const pageNumber = parseInt(page) || 1;
+    return this.productsService.findMany(pageNumber);
+  }
+
+  @Get('search-products')
+  searchProducts(@Query('query') query: string) {
+    return this.productsService.searchProducts(query);
+  }
+
+  @Post('favorites')
+  getFavorites(@Body() body: { ids: string[] }) {
+    return this.productsService.getFavorites(body.ids);
   }
 
   /**
@@ -64,7 +111,14 @@ export class ProductsController {
    */
   @Get(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
+  @SetMetadata('roles', [
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+    UserRole.FINANCIAL_DIRECTOR,
+  ])
   findOne(@Param('id', new ParseUUIDPipe()) id: string, @Req() req: any) {
     return this.productsService.findOne(id, req.user);
   }
@@ -75,9 +129,24 @@ export class ProductsController {
    */
   @Patch(':id/update-price')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
-  updatePrice(@Param('id', new ParseUUIDPipe()) id: string, @Body() updateProductPriceDto: UpdateProductPriceDto, @Req() req: any) {
-    return this.productsService.updatePrice(id, updateProductPriceDto, req.user);
+  @SetMetadata('roles', [
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+    UserRole.FINANCIAL_DIRECTOR,
+  ])
+  updatePrice(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() updateProductPriceDto: UpdateProductPriceDto,
+    @Req() req: any,
+  ) {
+    return this.productsService.updatePrice(
+      id,
+      updateProductPriceDto,
+      req.user,
+    );
   }
 
   /**
@@ -90,14 +159,24 @@ export class ProductsController {
       storage: diskStorage({
         destination: './public/products',
         filename: (req, file, cb) => {
-          const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
+          const randomName = Array(32)
+            .fill(null)
+            .map(() => Math.round(Math.random() * 16).toString(16))
+            .join('');
           cb(null, `${randomName}${extname(file.originalname)}`);
         },
       }),
     }),
   )
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
+  @SetMetadata('roles', [
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+    UserRole.FINANCIAL_DIRECTOR,
+  ])
   update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateProductDto: UpdateProductDto,
@@ -113,8 +192,24 @@ export class ProductsController {
    */
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
+  @SetMetadata('roles', [
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+    UserRole.FINANCIAL_DIRECTOR,
+  ])
   remove(@Param('id', new ParseUUIDPipe()) id: string, @Req() req: any) {
     return this.productsService.remove(id, req.user);
   }
+}
+function query(
+  arg0: string,
+): (
+  target: ProductsController,
+  propertyKey: 'findAllProducts',
+  parameterIndex: 0,
+) => void {
+  throw new Error('Function not implemented.');
 }

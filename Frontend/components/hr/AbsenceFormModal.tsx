@@ -95,14 +95,14 @@ const AbsenceFormModal: React.FC<AbsenceFormModalProps> = ({ isOpen, onClose, on
                         <div className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                             <div>
                                 <label htmlFor="employeeId" className="block text-sm font-medium text-slate-700">{t('hr.absences.table.employee')}</label>
-                                <select name="employeeId" id="employeeId" value={formData.employeeId} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                <select name="employeeId" id="employeeId" value={formData.employeeId} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                     <option value="" disabled>{t('login.selectSubsidiary')}</option>
                                     {employees.map(emp => <option key={emp.id} value={emp.id}>{`${emp.firstName} ${emp.lastName}`}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label htmlFor="typeAbsence" className="block text-sm font-medium text-slate-700">{t('configuration.form.absenceType')}</label>
-                                <select name="typeAbsence" id="typeAbsence" value={formData.typeAbsence} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                <select name="typeAbsence" id="typeAbsence" value={formData.typeAbsence} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                     <option value={AbsenceType.JUSTIFIED}>{t('hr.absenceType.JUSTIFIED')}</option>
                                     <option value={AbsenceType.UNJUSTIFIED}>{t('hr.absenceType.UNJUSTIFIED')}</option>
                                 </select>
@@ -110,16 +110,16 @@ const AbsenceFormModal: React.FC<AbsenceFormModalProps> = ({ isOpen, onClose, on
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="startDate" className="block text-sm font-medium text-slate-700">{t('configuration.form.startDate')}</label>
-                                    <input type="date" name="startDate" id="startDate" value={formData.startDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                    <input type="date" name="startDate" id="startDate" value={formData.startDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
                                 <div>
                                     <label htmlFor="endDate" className="block text-sm font-medium text-slate-700">{t('configuration.form.endDate')}</label>
-                                    <input type="date" name="endDate" id="endDate" value={formData.endDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                    <input type="date" name="endDate" id="endDate" value={formData.endDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
                             </div>
                             <div>
                                 <label htmlFor="reason" className="block text-sm font-medium text-slate-700">{t('configuration.form.reason')}</label>
-                                <textarea name="reason" id="reason" value={formData.reason} onChange={handleChange} required rows={3} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <textarea name="reason" id="reason" value={formData.reason} onChange={handleChange} required rows={3} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700">{t('configuration.form.document')}</label>

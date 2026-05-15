@@ -91,21 +91,21 @@ const MeetingFormModal: React.FC<MeetingFormModalProps> = ({ isOpen, onClose, on
                         <div className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                             <div>
                                 <label htmlFor="title" className="block text-sm font-medium text-slate-700">{t('secretariat.meetings.table.title')}</label>
-                                <input type="text" name="title" id="title" value={formData.title} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <input type="text" name="title" id="title" value={formData.title} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="date" className="block text-sm font-medium text-slate-700">{t('common.date')}</label>
-                                    <input type="date" name="date" id="date" value={formData.date} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                    <input type="date" name="date" id="date" value={formData.date} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
                                 <div>
                                     <label htmlFor="time" className="block text-sm font-medium text-slate-700">Heure</label>
-                                    <input type="time" name="time" id="time" value={formData.time} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                    <input type="time" name="time" id="time" value={formData.time} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
                             </div>
                              <div>
                                 <label htmlFor="location" className="block text-sm font-medium text-slate-700">{t('secretariat.meetings.table.location')}</label>
-                                <input type="text" name="location" id="location" value={formData.location} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <input type="text" name="location" id="location" value={formData.location} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                              <div>
                                 <label htmlFor="participants" className="block text-sm font-medium text-slate-700">{t('secretariat.meetings.table.participants')}</label>
@@ -115,14 +115,14 @@ const MeetingFormModal: React.FC<MeetingFormModalProps> = ({ isOpen, onClose, on
                                     id="participants" 
                                     value={formData.participants} 
                                     onChange={handleParticipantsChange} 
-                                    className="mt-1 block w-full h-32 border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                                    className="mt-1 block w-full h-32 border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                                 >
                                     {employees.map(emp => <option key={emp.id} value={emp.id}>{`${emp.firstName} ${emp.lastName}`}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label htmlFor="agenda" className="block text-sm font-medium text-slate-700">{t('secretariat.meetings.details.agenda')}</label>
-                                <textarea name="agenda" id="agenda" value={formData.agenda} onChange={handleChange} rows={4} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"></textarea>
+                                <textarea name="agenda" id="agenda" value={formData.agenda} onChange={handleChange} rows={4} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"></textarea>
                             </div>
                         </div>
                     </div>

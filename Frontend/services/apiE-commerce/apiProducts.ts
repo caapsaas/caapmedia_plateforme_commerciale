@@ -10,8 +10,20 @@ export type UpdateProductSellingAndPriceData = {
 /**
  * Récupère tous les produits peut importe la filiale pour la partie e-commerce
  */
-export const getProducts = async () => {
-    const { data } = await api.get('/products/get-all-products');
+export const getProducts = async (page: number) => {
+    const { data } = await api.get(`/products/get-all-products?page=${page}`);
+    return data;
+};
+
+export const getFavoriteProducts = async (ids: string[]) => {
+  const { data } = await api.post('/products/favorites', {
+    ids,
+  });
+
+  return data;
+};
+export const getProduitsSearch = async (searchTerm: string) => {
+    const { data } = await api.get(`/products/search-products?query=${searchTerm}`);
     return data;
 };
 

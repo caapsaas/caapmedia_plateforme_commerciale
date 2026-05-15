@@ -10,11 +10,15 @@ import {
 import { ContactStatus } from '@prisma/client';
 
 export class CreateContactDto {
-  @IsString({ message: 'Le nom du contact doit être une chaîne de caractères.' })
+  @IsString({
+    message: 'Le nom du contact doit être une chaîne de caractères.',
+  })
   @IsNotEmpty({ message: 'Le nom du contact est obligatoire.' })
   contactName: string;
 
-  @IsString({ message: 'Le nom de l’entreprise doit être une chaîne de caractères.' })
+  @IsString({
+    message: 'Le nom de l’entreprise doit être une chaîne de caractères.',
+  })
   @IsNotEmpty({ message: 'Le nom de l’entreprise est obligatoire.' })
   company: string;
 
@@ -22,7 +26,9 @@ export class CreateContactDto {
   @IsNotEmpty({ message: 'L’adresse e-mail est obligatoire.' })
   email: string;
 
-  @IsString({ message: 'Le numéro de téléphone doit être une chaîne de caractères.' })
+  @IsString({
+    message: 'Le numéro de téléphone doit être une chaîne de caractères.',
+  })
   @IsNotEmpty({ message: 'Le numéro de téléphone est obligatoire.' })
   phone: string;
 
@@ -31,7 +37,8 @@ export class CreateContactDto {
   address: string;
 
   @IsEnum(ContactStatus, {
-    message: 'Le statut du contact doit être une valeur valide de ContactStatus.',
+    message:
+      'Le statut du contact doit être une valeur valide de ContactStatus.',
   })
   @IsOptional()
   status?: ContactStatus;
@@ -44,7 +51,6 @@ export class CreateContactDto {
   @IsOptional()
   subsidiaryId?: string;
 
-  @IsDateString({}, { message: 'Le champ "since" doit être une date ISO valide (ex: 2025-10-23T12:00:00.000Z).' })
   @IsOptional()
   since?: Date;
 }

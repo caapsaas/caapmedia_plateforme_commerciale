@@ -1,4 +1,4 @@
-import { IsString, IsDateString, IsEnum, IsNumber, IsOptional } from 'class-validator';
+import { IsString, IsEnum, IsNumber, IsOptional, IsDate } from 'class-validator';
 import { EquipmentStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
@@ -8,17 +8,17 @@ export class CreateEquipmentDto {
   @IsString()
   equipmentName: string;
 
-  @IsDateString()
+  @IsDate()
   lastMaintenanceDate: Date;
 
-  @IsDateString()
+  @IsDate()
   nextMaintenanceDate: Date;
 
-  @IsDateString()
+  @IsDate()
   acquisitionDate: Date;
-
+  
   @IsNumber({ maxDecimalPlaces: 2 })
-  @Type(() => Number) 
+  @Type(() => Number)
   acquisitionValue: number;
 
   @IsEnum(EquipmentStatus)
@@ -27,13 +27,13 @@ export class CreateEquipmentDto {
 
 // DTO de mise à jour (hérite de Create et rend tout optionnel)
 export class UpdateEquipmentDto extends PartialType(CreateEquipmentDto) {
-  @IsDateString()
+  @IsDate()
   lastMaintenanceDate: Date;
 
-  @IsDateString()
+  @IsDate()
   nextMaintenanceDate: Date;
 
-  @IsDateString()
+  @IsDate()
   acquisitionDate: Date;
 }
 
@@ -49,29 +49,28 @@ export class SearchEquipmentDto {
 
   // Plage de dates pour date d’acquisition
   @IsOptional()
-  @IsDateString()
-  acquisitionFromDate?: string;
+  @IsDate()
+  acquisitionFromDate?: Date;
 
   @IsOptional()
-  @IsDateString()
-  acquisitionToDate?: string;
+  @IsDate()
+  acquisitionToDate?: Date;
 
   // Plage de dates pour dernière maintenance
   @IsOptional()
-  @IsDateString()
-  lastMaintenanceFromDate?: string;
+  @IsDate()
+  lastMaintenanceFromDate?: Date;
 
   @IsOptional()
-  @IsDateString()
-  lastMaintenanceToDate?: string;
+  @IsDate()
+  lastMaintenanceToDate?: Date;
 
   // Plage de dates pour prochaine maintenance
   @IsOptional()
-  @IsDateString()
+  @IsString()
   nextMaintenanceFromDate?: string;
 
   @IsOptional()
-  @IsDateString()
+  @IsString()
   nextMaintenanceToDate?: string;
 }
-

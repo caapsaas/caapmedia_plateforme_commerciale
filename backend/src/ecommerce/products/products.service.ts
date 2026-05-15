@@ -1,10 +1,18 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
-import { CreateProductDto, UpdateProductDto, UpdateProductPriceDto } from './dto/create-product.dto';
+import {
+  CreateProductDto,
+  UpdateProductDto,
+  UpdateProductPriceDto,
+} from './dto/create-product.dto';
 
 @Injectable()
 export class ProductsService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   private includeAll = {
     configurableOptions: {
@@ -18,19 +26,20 @@ export class ProductsService {
     if (!product) return null;
 
     // Regrouper configurableOptions par optionType
-    const groupedOptions = product.configurableOptions?.reduce((acc: any, co: any) => {
-      const type = co.optionType || 'Autre';
-      if (!acc[type]) acc[type] = [];
+    const groupedOptions =
+      product.configurableOptions?.reduce((acc: any, co: any) => {
+        const type = co.optionType || 'Autre';
+        if (!acc[type]) acc[type] = [];
 
-      if (co.item) {
-        acc[type].push({
-          ...co.item,
-          multiplier: co.item.multiplier?.toString(),
-        });
-      }
+        if (co.item) {
+          acc[type].push({
+            ...co.item,
+            multiplier: co.item.multiplier?.toString(),
+          });
+        }
 
-      return acc;
-    }, {}) || {};
+        return acc;
+      }, {}) || {};
 
     return {
       ...product,
@@ -42,15 +51,18 @@ export class ProductsService {
     };
   }
 
-
   /**
-   * 
+   *
    * @param createProductDto // DTO contenant les données du produit à créer
    * @param user // Utilisateur connecté
    * @param files // Fichiers uploadés
    * @returns // Produit créé
    */
-  async create(createProductDto: CreateProductDto, user: any, files: Express.Multer.File[]) {
+  async create(
+    createProductDto: CreateProductDto,
+    user: any,
+    files: Express.Multer.File[],
+  ) {
     const { configurableOptions, ...productData } = createProductDto;
 
     const product = await this.prisma.product.create({
@@ -62,24 +74,24 @@ export class ProductsService {
         subsidiaryId: user.subsidiaryId,
         configurableOptions: configurableOptions
           ? {
-            create: configurableOptions.map((opt) => ({
-              optionType: opt.optionType,
-              item: {
-                connectOrCreate: {
-                  where: { optionName: opt.item.optionName },
-                  create: opt.item,
+              create: configurableOptions.map((opt) => ({
+                optionType: opt.optionType,
+                item: {
+                  connectOrCreate: {
+                    where: { optionName: opt.item.optionName },
+                    create: opt.item,
+                  },
                 },
-              },
-            })),
-          }
+              })),
+            }
           : undefined,
         productImages: files?.length
           ? {
-            create: files.map((file) => ({
-              imageName: file.originalname,
-              imageUrl: `/public/products/${file.filename}`,
-            })),
-          }
+              create: files.map((file) => ({
+                imageName: file.originalname,
+                imageUrl: `/public/products/${file.filename}`,
+              })),
+            }
           : undefined,
       },
       include: this.includeAll,
@@ -88,9 +100,8 @@ export class ProductsService {
     return this.mapDecimals(product);
   }
 
-
   /**
-   * 
+   *
    * @param subsidiaryId // ID de la filiale
    * @returns // Liste des produits de la filiale
    */
@@ -103,18 +114,45 @@ export class ProductsService {
   }
 
   /**
-   * 
+   *
    * @returns // Liste des produits
    */
-  async findMany() {
+  async findMany(page: number) {
+    const TAKE = 9; // on prend 9 pour détecter s'il y a une suite
     const products = await this.prisma.product.findMany({
+      skip: (page - 1) * 8, // on saute par 8
+      take: TAKE,
       include: this.includeAll,
     });
     return products.map((p) => this.mapDecimals(p));
   }
 
+  async searchProducts(query: string) {
+    const products = await this.prisma.product.findMany({
+      where: {
+        OR: [
+          { category: { contains: query, mode: 'insensitive' } },
+          { productName: { contains: query, mode: 'insensitive' } },
+        ],
+      },
+      take: 8,
+      include: this.includeAll,
+    });
+    return products.map((p) => this.mapDecimals(p));
+  }
+
+  async getFavorites(ids: string[]) {
+    return this.prisma.product.findMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+    });
+  }
+
   /**
-   * 
+   *
    * @param id // ID du produit
    * @returns // Produit trouvé
    */
@@ -137,11 +175,17 @@ export class ProductsService {
    * @param user Utilisateur authentifié
    * @returns Le produit mis à jour
    */
-  async updatePrice(id: string, updateProductPriceDto: UpdateProductPriceDto, user: any) {
+  async updatePrice(
+    id: string,
+    updateProductPriceDto: UpdateProductPriceDto,
+    user: any,
+  ) {
     const { price, sellingPrice } = updateProductPriceDto;
 
     if (price === undefined || sellingPrice === undefined) {
-      throw new BadRequestException('Le prix de revient et le prix de vente sont requis.');
+      throw new BadRequestException(
+        'Le prix de revient et le prix de vente sont requis.',
+      );
     }
 
     // Vérifie que le produit existe et appartient à la bonne filiale
@@ -163,14 +207,19 @@ export class ProductsService {
   }
 
   /**
-   * 
+   *
    * @param id // ID du produit
    * @param updateProductDto // DTO contenant les données du produit à mettre à jour
    * @param user // Utilisateur connecté
    * @param files // Fichiers uploadés
    * @returns // Produit mis à jour
    */
-  async update(id: string, updateProductDto: UpdateProductDto, user: any, files: Express.Multer.File[]) {
+  async update(
+    id: string,
+    updateProductDto: UpdateProductDto,
+    user: any,
+    files: Express.Multer.File[],
+  ) {
     const { configurableOptions, productImages, ...productData } =
       updateProductDto;
 
@@ -249,7 +298,7 @@ export class ProductsService {
   }
 
   /**
-   * 
+   *
    * @param id // ID du produit
    * @returns // Produit supprimé
    */

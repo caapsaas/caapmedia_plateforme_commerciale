@@ -40,8 +40,8 @@ const NavLink: React.FC<{
       className={`w-full flex items-center space-x-3 py-3 rounded-lg transition-all duration-200 group ${
         isCollapsed ? 'justify-center px-3' : 'px-4'
       }`}
-      activeProps={{ className: 'bg-[#c6e911] text-slate-800 shadow-lg' }}
-      inactiveProps={{ className: 'text-gray-300 hover:bg-gray-700 hover:text-white' }}
+      activeProps={{ className: 'bg-[#c6e911] text-gray-800  shadow-lg' }}
+      inactiveProps={{ className: 'text-[#C6E911] hover:bg-gray-700 hover:text-white' }}
       activeOptions={{ exact: to === '/dashboard/' }} // ✅ Utiliser `exact: true` uniquement pour la racine du dashboard
     >
       {icon}
@@ -60,8 +60,9 @@ const Sidebar: React.FC = () => {
   const { t } = useI18n();
   const { state, dispatch } = useAppContext();
   const { user, subsidiary, logout: authLogout } = useAuth();
-  const { isSidebarOpen, isSidebarCollapsed } = state;
-
+  const { isSidebarOpen, isSidebarCollapsed , previewRole } = state;
+  const activeRole = previewRole ?? user?.userRole;
+ 
   // Pour l'admin, on ne cache jamais le sidebar même si subsidiary est temporairement null
 // car l'admin doit pouvoir voir tout le contenu de l'application
 if (!user || (!subsidiary && user.userRole !== UserRole.ADMIN)) return null;
@@ -71,10 +72,10 @@ if (!user || (!subsidiary && user.userRole !== UserRole.ADMIN)) return null;
   const setIsSidebarCollapsed = (isCollapsed: boolean) => dispatch({ type: 'SET_SIDEBAR_COLLAPSED', payload: isCollapsed });
 
   const getNavItems = () => {
-    switch (user.userRole) {
+    switch (activeRole) {
       case UserRole.ADMIN:
         return [ // Le `exact: true` sera appliqué automatiquement par la nouvelle logique dans NavLink
-          { to: '/dashboard/', label: t('sidebar.analytics'), icon: <IconAnalytics className="h-6 w-6 shrink-0" /> },
+          { to: '/dashboard/', label: t('sidebar.analytics'), icon: <IconAnalytics className="h-6 w-6 shrink-0 " /> },
           { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-6 w-6 shrink-0" /> },
           { to: '/dashboard/sales', label: t('sidebar.orders'), icon: <IconSales className="h-6 w-6 shrink-0" /> },
           { to: '/dashboard/production', label: t('sidebar.production'), icon: <IconFactory className="h-6 w-6 shrink-0" /> },
