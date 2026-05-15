@@ -204,6 +204,13 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
         return labels[category] || category;
     };
 
+    // Fonction utilitaire pour afficher les montants de manière sécurisée
+    const formatAmountDisplay = (amount: number | null | undefined, type: 'CREDIT' | 'DEBIT') => {
+        const validAmount = (amount !== null && amount !== undefined && !isNaN(amount)) ? amount : 0;
+        const prefix = type === 'CREDIT' ? '+' : '-';
+        return `${prefix}${formatCurrency(Number(validAmount))}`;
+    };
+
     // Handlers
     const resetForm = () => {
         setFormData({
@@ -219,10 +226,14 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
     };
 
     const handleCreateTransaction = () => {
+        // Validation du montant pour éviter NaN
+        const amount = formData.amount;
+        const validAmount = (amount !== null && amount !== undefined && !isNaN(amount) && amount > 0) ? amount : 0;
+        
         const transactionData: PrefinancementTransactionCreationWithSubsidiaryData = {
             ...formData,
             date: formData.date,
-            amount: parseFloat(formData.amount.toString()),
+            amount: validAmount,
             subsidiaryId: subsidiary.id
         };
         createTransaction(transactionData);
@@ -252,7 +263,7 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
                 category: getCategoryLabel(tx.category),
                 type: tx.type === 'CREDIT' ? 'Crédit' : 'Débit',
                 status: getTranslatedStatus(tx.status),
-                amount: `${tx.type === 'CREDIT' ? '+' : '-'}${formatCurrency(tx.amount)}`
+                amount: formatAmountDisplay(tx.amount, tx.type)
             }));
             exportToCsv('prefinancement_transactions', headers, data);
             toast.success('Export CSV réussi!', 'Les données ont été exportées au format CSV.');
@@ -278,7 +289,7 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
                 category: getCategoryLabel(tx.category),
                 type: tx.type === 'CREDIT' ? 'Crédit' : 'Débit',
                 status: getTranslatedStatus(tx.status),
-                amount: `${tx.type === 'CREDIT' ? '+' : '-'}${formatCurrency(tx.amount)}`
+                amount: formatAmountDisplay(tx.amount, tx.type)
             }));
             exportToPdf('Transactions Préfinancement', headers, data, 'prefinancement');
             toast.success('Export PDF réussi!', 'Les données ont été exportées au format PDF.');
@@ -367,7 +378,7 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
                         <h4 className="font-semibold text-slate-500">Total Débits</h4>
                         <div className="flex-grow flex items-end mt-2">
                             <p className="text-3xl font-bold text-red-600 whitespace-nowrap">
-                                {statistics ? formatCurrency(statistics.totalDebits) : formatCurrency(0)}
+                                {formatCurrency(statistics?.totalDebits ?? 0)}
                             </p>
                         </div>
                     </div>
@@ -442,7 +453,13 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
                                 <input 
                                     type="number" 
                                     value={formData.amount}
-                                    onChange={(e) => setFormData({...formData, amount: parseFloat(e.target.value) || 0})}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        const parsedValue = parseFloat(value);
+                                        setFormData({...formData, amount: isNaN(parsedValue) ? 0 : parsedValue});
+                                    }}
+                                    min="0"
+                                    step="0.01"
                                     className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-[#c6e911] focus:border-transparent" 
                                 />
                             </div>
@@ -603,7 +620,7 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
                                         {transaction.type === 'CREDIT' ? 'Crédit' : 'Débit'}
                                     </td>
                                     <td className={`px-6 py-4 text-right font-bold ${transaction.type === 'CREDIT' ? 'text-green-700' : 'text-red-700'}`}>
-                                        {transaction.type === 'CREDIT' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                                        {transaction.type === 'CREDIT' ? '+' : '-'}{formatCurrency(Number(transaction.amount || 0))}
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(transaction.status)}`}>

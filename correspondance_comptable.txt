@@ -1,0 +1,159 @@
+================================================================================
+CORRESPONDANCE REF / COMPTES COMPTABLES
+================================================================================
+
+--------------------------------------------------------------------------------
+TABLEAU 1 : BILAN COMPTABLE
+--------------------------------------------------------------------------------
+REF    | LIBELLE REF                      | COMPTES CORRESPONDANTS (CODE - LIBELLE)
+-------+----------------------------------+----------------------------------------------------
+AH     | Autres immobilisations incorporelles | 211000 - Immobilisations incorporelles
+AJ     | Terrains                         | 221000 - Terrains
+AK     | Bâtiments                        | 231000 - Bâtiments
+AM     | Matériel, mobilier et actifs biologiques | 241000 - Matériel et outillage
+                                         | 245000 - Mobilier de bureau
+                                         | 281000 - Amortissements (amortissement)
+AN     | Matériel de transport            | 244000 - Matériel de transport
+BB     | STOCKS ET ENCOURS                | 311100 - Cigarettes Hamilton Classic
+                                         | 311200 - Cigarettes Hamilton light
+                                         | 311300 - Cigarette Excellence
+                                         | 311400 - Cigarette Duhnil Classic
+                                         | 311500 - Cigarette Duhnil light
+                                         | 312100 - Farine boulangère de blé
+                                         | 312200 - Son de blé
+                                         | 313100 - Aliment de bétail Citec
+                                         | 313200 - Huile Savor Coton 20L
+                                         | 313300 - Huile Savor Coton 4X5L
+                                         | 313400 - Huile Savor Soja 20L
+                                         | 313500 - Huile Savor Soja 4X5L
+                                         | 313600 - Savon Citec N°1
+                                         | 313700 - Savon Citec N°2
+                                         | 314100 - Sucre morceaux blond
+                                         | 314200 - Sucre en poudre
+                                         | 315100 - Bonbon axe
+                                         | 315200 - Chewingum
+BH     | Fournisseurs, avances versées    | 409000 - Fournisseurs Avances versées
+BI     | Clients                          | 411100 - Clients locaux
+                                         | 411200 - Clients Etrangers
+                                         | 418000 - Clients Produits à recevoir
+BS     | Banques, chèques postaux, caisse | 521100 - Coris Bank International
+                                         | 521200 - Ecobank
+                                         | 521300 - Société Générale
+                                         | 521400 - Bank Of Africa
+                                         | 531000 - Chèques postaux (CCP)
+                                         | 551000 - Mobile money
+                                         | 571000 - Caisse principale
+                                         | 585000 - Virement interne
+CA     | Capital                          | 101000 - Capital social
+CG     | Réserves libres                  | 106000 - Réserves
+CH     | Report à nouveau                 | 110000 - Report à nouveau
+CJ     | Résultat net de l'exercice       | (Lien avec compte de résultat - ref XI)
+DA     | Emprunts et dettes financières diverses | 161000 - Emprunts bancaires
+                                         | 165000 - Dépôts et cautionnements reçus
+DI     | Clients, avances reçues          | 419000 - Clients Avances recues
+DJ     | Fournisseurs d'exploitation      | 401110 - Fournisseurs MABUCIG SA
+                                         | 401120 - Fournisseurs MINOR SA
+                                         | 401130 - Fournisseurs GMF
+                                         | 401140 - Fournisseurs SN CITEC
+                                         | 401150 - Fournisseurs SOSUCO
+                                         | 401160 - Fournisseurs COBIFA
+                                         | 401171 - SONABEL
+                                         | 401172 - ONEA
+                                         | 401173 - ONATEL
+                                         | 401174 - ORANGE
+                                         | 401175 - Autres Fournisseurs de biens et services
+                                         | 401200 - Fournisseurs Etrangers
+                                         | 408000 - Fournisseurs Factures non parvenues
+DK     | Dettes fiscales et sociales      | 421000 - Personnel Avance et Acompte
+                                         | 422000 - Personnel remuneration due
+                                         | 431000 - CNSS
+                                         | 442100 - Etat, impot sur les sociétés (IS)
+                                         | 443000 - Etat, TVA facturée
+                                         | 444000 - Etat, TVA due ou crédit de TVA
+                                         | 445000 - Etat, TVA récupérable
+                                         | 446000 - Etat, autres impôts sur chiffre d'affaires
+                                         | 447000 - Etat, impôt retenu à la source
+DM     | Autres dettes                    | 461000 - Associés, compte courant
+
+--------------------------------------------------------------------------------
+TABLEAU 2 : COMPTE DE RÉSULTAT
+--------------------------------------------------------------------------------
+REF    | LIBELLE REF                      | COMPTES CORRESPONDANTS (CODE - LIBELLE)
+-------+----------------------------------+----------------------------------------------------
+TA     | Ventes de marchandises           | 701100 - Ventes locales
+                                         | 701200 - Ventes export
+RA     | Achats de marchandises           | 601110 - Achats de produits MABUCIG
+                                         | 601120 - Achats de produits MINOR
+                                         | 601130 - Achats de produits GMF
+                                         | 601140 - Achats de produits SN CITEC
+                                         | 601150 - Achats de produits SOSUCO
+                                         | 601160 - Achats de produits COBIFA
+                                         | 601200 - Achats importés
+RB     | Variation de stocks de marchandises | 603100 - Variation de stocks de marchandises
+TB     | Vente de produits fabriqués     | (Non configuré)
+TC     | Travaux, services vendus         | (Non configuré)
+TD     | Produits accessoires            | 707000 - Produits accessoires
+TE     | Production stockée               | (Non configuré)
+TF     | Production immobilisée           | (Non configuré)
+TG     | Subvention d'exploitation        | (Non configuré)
+TH     | Autres produits                  | 758100 - Autres produits
+TI     | Transferts de charges d'exploitation | (Non configuré)
+RC     | Achats matières premières        | (Non configuré)
+RD     | Variations stocks matières premières | (Non configuré)
+RE     | Autres achats                    | 605100 - Eau
+                                         | 605200 - Electricité
+                                         | 605300 - Carburant
+                                         | 605400 - Fournitures d'entretien
+                                         | 605500 - Fournitures de bureau
+                                         | 605600 - Petit matériel
+RF     | Variations des autres approvisionnements | (Non configuré)
+RG     | Transport                        | 611000 - Transport
+                                         | 612000 - Transport sur vente
+                                         | 616000 - Transport de plis
+                                         | 618100 - Autres frais de transport
+RH     | Services extérieurs              | 622200 - Location
+                                         | 624100 - Entretien immeubles
+                                         | 624200 - Entretien mobilier
+                                         | 624300 - Maintenance
+                                         | 624800 - Entretien matériel roulant
+                                         | 625100 - Assurance
+                                         | 627100 - Publicité
+                                         | 627600 - Cadeaux clients
+                                         | 628100 - Télécommunication
+                                         | 631800 - Frais bancaires
+                                         | 632100 - Honoraires
+                                         | 633100 - Formation
+                                         | 638100 - Autres charges externes
+RI     | Impôts et taxes                  | 641200 - Patente
+                                         | 641300 - TPA
+                                         | 646200 - Droit de timbre
+                                         | 646400 - Taxe véhicules
+                                         | 647100 - Pénalités fiscales
+RJ     | Autres charges                   | 657100 - Pénalités pénales
+                                         | 658100 - Indemnités
+                                         | 658200 - Dons
+RK     | Charges de personnel             | 661100 - Salaires
+                                         | 661300 - Congés payés
+                                         | 661400 - Indemnités licenciement
+                                         | 663000 - Indemnités forfaitaires
+                                         | 664100 - Charges sociales
+                                         | 666100 - Rémunération exploitant
+                                         | 666200 - Charges sociales diverses
+TJ     | Reprises amortissements, Provisions et depreciations | (Non configuré)
+RL     | Dotations aux amortissements, aux provisions et depreciations | 681300 - Dotation amortissements
+TK     | Revenus financiers et assimiles  | (Non configuré)
+TL     | Reprises de provision financieres | (Non configuré)
+TM     | Transferts de charges financieres | (Non configuré)
+RM     | Frais financiers et charges assimiles | 671000 - Intérêts emprunts
+                                         | 671200 - Emprunts crédit
+RN     | Dotations aux provisions financieres | (Non configuré)
+TN     | Produits des cessions d'immobilisations | (Non configuré)
+TO     | Autres produits H.A.O            | (Non configuré)
+RO     | Valeur comptables des cessions d'immobilisations | (Non configuré)
+RP     | Autres charges H.A.O             | (Non configuré)
+RQ     | Participations des travailleurs  | (Non configuré)
+RS     | Impot sur le resultat            | (Non configuré)
+
+================================================================================
+NOTE : Les refs marquées "(Non configuré)" n'ont pas de comptes associés dans le code actuel.
+================================================================================

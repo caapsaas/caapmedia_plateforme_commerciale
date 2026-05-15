@@ -23,6 +23,7 @@ import { EcommerceModule } from './ecommerce/ecommerce.module';
 import { AnalyticsModule } from './statistics/analytics/analytics.module';
 import { StatisticsModule } from './statistics/statistics.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
+import { AccountingModule } from './accounting/accounting.module';
 
 @Module({
   imports: [
@@ -56,7 +57,8 @@ import { NewsletterModule } from './newsletter/newsletter.module';
     PurchaseModule,
     AnalyticsModule,
     StatisticsModule,
-    NewsletterModule
+    NewsletterModule,
+    AccountingModule
 
   ],
   controllers: [AppController],

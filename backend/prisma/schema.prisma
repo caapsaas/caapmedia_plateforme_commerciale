@@ -49,6 +49,9 @@ model Subsidiary {
   externalFinancialTransactions ExternalFinancialTransaction[]
   PrefinancementAccount         PrefinancementAccount[]
   PrefinancementTransaction     PrefinancementTransaction[]
+  accountingAccounts            AccountingAccount[]
+  fiscalYears                   FiscalYear[]
+  journalEntries                JournalEntry[]
 
   @@index([subsidiaryName]) // Ajout de cet index
   @@map("subsidiaries")
@@ -73,6 +76,7 @@ model User {
   notifications                 Notification[]
   prefinancementAccounts        PrefinancementAccount[]
   prefinancementTransactions    PrefinancementTransaction[]
+  journalEntries                JournalEntry[]
 
   @@map("users")
 }
@@ -584,18 +588,18 @@ model TreasuryAccount {
 }
 
 model FinancialTransaction {
-  id                       String            @id @default(uuid()) @map("id") @db.Uuid
-  transactionDate          DateTime          @map("transaction_date")
-  description              String?           @map("description")
-  amount                   Decimal           @map("amount") @db.Decimal(15, 2)
-  relatedDocumentId        String?           @map("related_document_id") @db.VarChar(50)
-  subsidiaryId             String            @map("subsidiary_id") @db.Uuid
-  financialTransactionType TransactionType   @map("financial_transaction_type")
-  treasuryAccountId        String            @map("treasury_account_id") @db.Uuid
-  providerName             String?           @map("provider_name") @db.VarChar(255)
-  providerPhone            String?           @map("provider_phone") @db.VarChar(20)
-  subsidiary               Subsidiary        @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-  treasuryAccount          TreasuryAccount   @relation(fields: [treasuryAccountId], references: [id], onDelete: Cascade)
+  id                       String          @id @default(uuid()) @map("id") @db.Uuid
+  transactionDate          DateTime        @map("transaction_date")
+  description              String?         @map("description")
+  amount                   Decimal         @map("amount") @db.Decimal(15, 2)
+  relatedDocumentId        String?         @map("related_document_id") @db.VarChar(50)
+  subsidiaryId             String          @map("subsidiary_id") @db.Uuid
+  financialTransactionType TransactionType @map("financial_transaction_type")
+  treasuryAccountId        String          @map("treasury_account_id") @db.Uuid
+  providerName             String?         @map("provider_name") @db.VarChar(255)
+  providerPhone            String?         @map("provider_phone") @db.VarChar(20)
+  subsidiary               Subsidiary      @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  treasuryAccount          TreasuryAccount @relation(fields: [treasuryAccountId], references: [id], onDelete: Cascade)
 
   @@index([subsidiaryId, transactionDate])
   @@index([financialTransactionType])
@@ -906,6 +910,105 @@ model ExpenseRecord {
   @@index([category])
   @@index([expenseRecordType])
   @@map("expense_records")
+}
+
+// Plan comptable
+model AccountingAccount {
+  id              String                @id @default(uuid()) @map("id") @db.Uuid
+  accountNumber   String                @unique @map("account_number") @db.VarChar(10)
+  accountName     String                @map("account_name") @db.VarChar(255)
+  accountType     AccountingAccountType @map("account_type")
+  parentAccountId String?               @map("parent_account_id") @db.Uuid
+  isActive        Boolean               @default(true) @map("is_active")
+  subsidiaryId    String                @map("subsidiary_id") @db.Uuid
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+
+  parentAccount AccountingAccount?  @relation("AccountHierarchy", fields: [parentAccountId], references: [id])
+  childAccounts AccountingAccount[] @relation("AccountHierarchy")
+  subsidiary    Subsidiary          @relation(fields: [subsidiaryId], references: [id])
+  journalLines  JournalEntryLine[]
+
+  @@index([subsidiaryId, accountNumber])
+  @@map("accounting_accounts")
+}
+
+// Exercices fiscaux
+model FiscalYear {
+  id           String   @id @default(uuid()) @map("id") @db.Uuid
+  name         String   @map("name") @db.VarChar(100)
+  startDate    DateTime @map("start_date")
+  endDate      DateTime @map("end_date")
+  isActive     Boolean  @default(true) @map("is_active")
+  isClosed     Boolean  @default(false) @map("is_closed")
+  subsidiaryId String   @map("subsidiary_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  subsidiary     Subsidiary     @relation(fields: [subsidiaryId], references: [id])
+  journalEntries JournalEntry[]
+
+  @@unique([subsidiaryId, name])
+  @@index([subsidiaryId, isActive])
+  @@map("fiscal_years")
+}
+
+// Écritures comptables
+model JournalEntry {
+  id           String             @id @default(uuid()) @map("id") @db.Uuid
+  entryNumber  String             @unique @map("entry_number") @db.VarChar(50)
+  entryDate    DateTime           @map("entry_date")
+  description  String             @map("description")
+  status       JournalEntryStatus @default(DRAFT) @map("status")
+  totalAmount  Decimal            @map("total_amount") @db.Decimal(15, 2)
+  fiscalYearId String             @map("fiscal_year_id") @db.Uuid
+  subsidiaryId String             @map("subsidiary_id") @db.Uuid
+  createdBy    String             @map("created_by") @db.Uuid
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+
+  fiscalYear FiscalYear         @relation(fields: [fiscalYearId], references: [id])
+  subsidiary Subsidiary         @relation(fields: [subsidiaryId], references: [id])
+  creator    User               @relation(fields: [createdBy], references: [id])
+  lines      JournalEntryLine[]
+
+  @@index([subsidiaryId, entryDate])
+  @@index([status])
+  @@index([fiscalYearId])
+  @@map("journal_entries")
+}
+
+// Lignes d'écriture comptable
+model JournalEntryLine {
+  id             String  @id @default(uuid()) @map("id") @db.Uuid
+  journalEntryId String  @map("journal_entry_id") @db.Uuid
+  accountId      String  @map("account_id") @db.Uuid
+  description    String  @map("description")
+  debitAmount    Decimal @default(0) @map("debit_amount") @db.Decimal(15, 2)
+  creditAmount   Decimal @default(0) @map("credit_amount") @db.Decimal(15, 2)
+  balance        Decimal @default(0) @map("balance") @db.Decimal(15, 2)
+
+  journalEntry JournalEntry      @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  account      AccountingAccount @relation(fields: [accountId], references: [id])
+
+  @@index([journalEntryId])
+  @@index([accountId])
+  @@map("journal_entry_lines")
+}
+
+// Énumérations comptables
+enum AccountingAccountType {
+  ASSET // Actif (Classe 1-5)
+  LIABILITY // Passif (Classe 1-4, 16)
+  EQUITY // Capitaux propres (Classe 1)
+  REVENUE // Produits (Classe 7)
+  EXPENSE // Charges (Classe 6)
+}
+
+enum JournalEntryStatus {
+  DRAFT // Brouillon
+  POSTED // Validé/Comptabilisé
+  CANCELLED // Annulé
 }
 
 model Newsletter {

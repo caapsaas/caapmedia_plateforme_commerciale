@@ -57,39 +57,18 @@ export class TreasuryService {
     const userRole = (user as any).role || user.userRole;
     const targetSubsidiaryId = (userRole === UserRole.ADMIN && subsidiaryId) ? subsidiaryId : user.subsidiaryId;
 
-    // Récupérer tous les comptes de trésorerie
+    // Récupérer tous les comptes de trésorerie avec leur solde actuel
+    // Le solde est déjà maintenu à jour par les mises à jour atomiques lors des transactions
     const accounts = await this.prisma.treasuryAccount.findMany({
       where: { subsidiaryId: targetSubsidiaryId },
       orderBy: { accountName: 'asc' },
     });
 
-    // Calculer le solde réel pour chaque compte en fonction des transactions validées
-    const accountsWithRealBalance = await Promise.all(
-      accounts.map(async (account) => {
-        // Récupérer toutes les transactions pour ce compte
-        const transactions = await this.prisma.financialTransaction.findMany({
-          where: {
-            treasuryAccountId: account.id,
-          },
-        });
-
-        // Calculer le solde: solde initial + recettes - dépenses
-        const realBalance = transactions.reduce((balance, transaction) => {
-          if (transaction.financialTransactionType === TransactionType.RECETTE) {
-            return balance + Number(transaction.amount);
-          } else {
-            return balance - Number(transaction.amount);
-          }
-        }, Number(account.balance)); // Partir du solde initial
-
-        return {
-          ...account,
-          balance: realBalance,
-        };
-      })
-    );
-
-    return accountsWithRealBalance;
+    // Retourner les comptes avec leur solde actuel (pas de recalcul nécessaire)
+    return accounts.map(account => ({
+      ...account,
+      balance: Number(account.balance), // Convertir Decimal en number pour le frontend
+    }));
   }
 
   async findOneAccount(id: string, user: User) {
@@ -104,25 +83,10 @@ export class TreasuryService {
       throw new NotFoundException(`Treasury account with ID "${id}" not found.`);
     }
 
-    // Récupérer toutes les transactions pour ce compte
-    const transactions = await this.prisma.financialTransaction.findMany({
-      where: {
-        treasuryAccountId: account.id,
-      },
-    });
-
-    // Calculer le solde réel: solde initial + recettes - dépenses
-    const realBalance = transactions.reduce((balance, transaction) => {
-      if (transaction.financialTransactionType === TransactionType.RECETTE) {
-        return balance + Number(transaction.amount);
-      } else {
-        return balance - Number(transaction.amount);
-      }
-    }, Number(account.balance));
-
+    // Retourner le compte avec son solde actuel (déjà maintenu à jour par les transactions atomiques)
     return {
       ...account,
-      balance: realBalance,
+      balance: Number(account.balance), // Convertir Decimal en number pour le frontend
     };
   }
 

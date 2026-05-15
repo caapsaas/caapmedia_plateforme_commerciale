@@ -284,11 +284,11 @@ export class PrefinancementService {
         });
 
         const totalCredits = transactions
-            .filter(t => t.type === PrefinancementTransactionType.CREDIT && t.status === PrefinancementStatus.VALIDE)
+            .filter(t => t.type === PrefinancementTransactionType.CREDIT && t.status === PrefinancementStatus.VALIDE || t.status === PrefinancementStatus.EN_ATTENTE)
             .reduce((sum, t) => sum + Number(t.amount), 0);
 
         const totalDebits = transactions
-            .filter(t => t.type === PrefinancementTransactionType.DEBIT && t.status === PrefinancementStatus.VALIDE)
+            .filter(t => t.type === PrefinancementTransactionType.DEBIT && (t.status === PrefinancementStatus.VALIDE || t.status === PrefinancementStatus.EN_ATTENTE))
             .reduce((sum, t) => sum + Number(t.amount), 0);
 
         const transactionCount = transactions.length;
@@ -296,7 +296,7 @@ export class PrefinancementService {
 
         // Regrouper par catégorie pour les crédits
         const creditsByCategory = transactions
-            .filter(t => t.type === PrefinancementTransactionType.CREDIT && t.status === PrefinancementStatus.VALIDE)
+            .filter(t => t.type === PrefinancementTransactionType.CREDIT && t.status === PrefinancementStatus.VALIDE || t.status === PrefinancementStatus.EN_ATTENTE)
             .reduce((acc, t) => {
                 const category = t.category;
                 if (!acc[category]) {
@@ -309,7 +309,7 @@ export class PrefinancementService {
 
         // Regrouper par catégorie pour les débits
         const debitsByCategory = transactions
-            .filter(t => t.type === PrefinancementTransactionType.DEBIT && t.status === PrefinancementStatus.VALIDE)
+            .filter(t => t.type === PrefinancementTransactionType.DEBIT && (t.status === PrefinancementStatus.VALIDE || t.status === PrefinancementStatus.EN_ATTENTE))
             .reduce((acc, t) => {
                 const category = t.category;
                 if (!acc[category]) {

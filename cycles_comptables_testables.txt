@@ -1,0 +1,252 @@
+================================================================================
+CYCLES COMPTABLES TESTABLES DANS L'APPLICATION
+================================================================================
+
+Basé sur l'analyse du fichier accounting-integration.service.ts
+
+--------------------------------------------------------------------------------
+1. CYCLE DE VENTE
+--------------------------------------------------------------------------------
+Méthode : autoGenerateSaleEntry(orderId)
+Déclencheur : Commande livrée (status = DELIVERED)
+
+Écriture comptable générée :
+  - Débit  : 411100 - Clients (totalAmount)
+  - Crédit : 701100 - Ventes (subtotal)
+  - Crédit : 443000 - TVA collectée (taxAmount)
+  - Crédit : 446000 - BIC collecté (totalBic)
+  Journal : VT (Ventes)
+
+Étapes du cycle :
+  1. Création de commande (Order)
+  2. Livraison (status → DELIVERED)
+  3. Génération automatique de l'écriture comptable de vente
+  4. Sortie de stock (autoGenerateStockExitEntry)
+
+--------------------------------------------------------------------------------
+2. CYCLE D'ACHAT
+--------------------------------------------------------------------------------
+Méthode : autoGeneratePurchaseEntry(purchaseOrderId)
+Déclencheur : Bon de commande créé
+
+Écriture comptable générée :
+  - Débit  : 601200 - Achats HT (amountExclTax)
+  - Débit  : 445000 - TVA récupérable (taxAmount)
+  - Crédit : 401175 - Dette fournisseur (totalAmount)
+  - Crédit : 447000 - Retenue TVA (taxRetentionAmount)
+  Journal : AC (Achats)
+
+Étapes du cycle :
+  1. Création du bon de commande (PurchaseOrder)
+  2. Génération automatique de l'écriture comptable d'achat
+  3. Réception des marchandises (GoodsReceipt)
+  4. Entrée de stock (autoGeneratePurchaseStockEntry)
+  5. Paiement fournisseur (FinancialTransaction)
+
+--------------------------------------------------------------------------------
+3. CYCLE DE STOCK (ENTRÉE)
+--------------------------------------------------------------------------------
+Méthode : autoGeneratePurchaseStockEntry(goodsReceiptId)
+Déclencheur : Bon de réception créé
+
+Écriture comptable générée :
+  - Débit  : 311xxx - Stock (par produit)
+  - Crédit : 603100 - Variation de stock (totalStockValue)
+  Journal : OD (Opérations Diverses)
+
+Étapes du cycle :
+  1. Bon de commande (PurchaseOrder)
+  2. Réception des marchandises (GoodsReceipt)
+  3. Génération automatique de l'écriture comptable d'entrée de stock
+
+--------------------------------------------------------------------------------
+4. CYCLE DE STOCK (SORTIE)
+--------------------------------------------------------------------------------
+Méthode : autoGenerateStockExitEntry(orderId)
+Déclencheur : Commande livrée (status = DELIVERED)
+
+Écriture comptable générée :
+  - Débit  : 603100 - Variation de stock (totalCost)
+  - Crédit : 311xxx - Stock (par produit)
+  Journal : OD (Opérations Diverses)
+
+Étapes du cycle :
+  1. Commande client (Order)
+  2. Livraison (status → DELIVERED)
+  3. Génération automatique de l'écriture comptable de sortie de stock
+
+--------------------------------------------------------------------------------
+5. CYCLE DE TRÉSORERIE
+--------------------------------------------------------------------------------
+Méthode : autoGenerateTreasuryEntry(transactionId)
+Déclencheur : Transaction financière validée (status = VALIDATED)
+
+Types de transactions supportés :
+
+A. Versements fiscaux :
+   - VAT_SALES_SETTLEMENT : Versement TVA sur ventes
+   - VAT_PURCHASE_WITHHOLDING_REMITTANCE : Versement TVA retenue sur achats
+   - BIC_SALES_SETTLEMENT : Versement BIC sur ventes
+
+B. Paiements de paie :
+   - IUTS_PAYMENT : Paiement IUTS
+   - CNSS_PAYMENT : Paiement CNSS
+   - TPA_PAYMENT : Paiement TPA
+   - ROSALAIRE_PAYMENT : Paiement Rosalaire
+   - SALARY_PAYMENT : Paiement salaires
+
+C. Transferts internes :
+   - BANK_WITHDRAWAL : Transfert coffre fort vers banque
+   - CASH_REFILL : Approvisionnement caisse depuis coffre fort
+
+D. Paiements fournisseurs :
+   - SUPPLIER_PAYMENT : Paiement fournisseur
+
+E. Dépenses diverses :
+   - TAX_PAYMENT : Paiement impôts et taxes
+   - HAO_EXPENSE : Dépense HAO
+   - RENT : Loyer
+   - UTILITIES : Factures (Eau/Élec/Internet)
+   - MARKETING : Marketing et publicité
+   - SUPPLIES : Fournitures de bureau
+   - PURCHASE_COST : Achats divers
+   - NEED_EXPRESSION : Expression de besoin
+
+Écriture comptable générée :
+  - Débit  : Compte de charge/dette selon le type
+  - Crédit : Compte de trésorerie (banque, caisse, coffre fort)
+  Journal : BQ (Banque), CA (Caisse), ou OD (Opérations Diverses)
+
+Étapes du cycle :
+  1. Engagement de dépense (ExpenseRecord / NeedExpression / Transport)
+  2. Validation de la dépense (status → APPROVED)
+  3. Génération automatique de l'écriture d'engagement
+  4. Transaction financière (FinancialTransaction)
+  5. Validation de la transaction (status → VALIDATED)
+  6. Génération automatique de l'écriture comptable de paiement
+
+--------------------------------------------------------------------------------
+6. CYCLE DE PAIE
+--------------------------------------------------------------------------------
+Méthode : autoGeneratePayrollEntry(payrollPeriodId)
+Déclencheur : Période de paie générée
+
+Écriture comptable générée :
+
+Charges (Débit) :
+  - 661100 - Salaires
+  - 661300 - Congés payés
+  - 661400 - Indemnités licenciement
+  - 663000 - Indemnités forfaitaires
+  - 664100 - Charges sociales
+  - 666100 - Rémunération exploitant
+  - 666200 - Charges sociales diverses
+  - 671000 - Intérêts emprunts
+
+Produits (Crédit) :
+  - 421000 - Personnel Avance et Acompte
+  - 422000 - Personnel rémunération due
+  - 431000 - CNSS (part employeur)
+  - 442100 - Etat, impôt sur les sociétés (IUTS)
+  - 446000 - Etat, autres impôts (TPA, Rosalaire)
+  - 447000 - Etat, impôt retenu à la source
+
+Journal : AC (Achats)
+
+Étapes du cycle :
+  1. Création des fiches de paie (PayrollRecord)
+  2. Génération de la période de paie (PayrollPeriod)
+  3. Génération automatique de l'écriture comptable de paie
+  4. Paiement des salaires (FinancialTransaction - SALARY_PAYMENT)
+  5. Paiement des cotisations sociales (FinancialTransaction - CNSS_PAYMENT, etc.)
+
+--------------------------------------------------------------------------------
+7. CYCLE D'ENGAGEMENT DE DÉPENSE
+--------------------------------------------------------------------------------
+Méthode : autoGenerateExpenseAccrual(expenseId)
+Déclencheur : Dépense approuvée (status = APPROVED)
+
+Catégories de dépenses supportées :
+  - RENT : Loyer
+  - UTILITIES : Eau/Électricité/Internet
+  - MARKETING : Marketing et publicité
+  - SUPPLIES : Fournitures de bureau
+  - PURCHASE_COST : Achats divers
+  - TAXES : Impôts et taxes
+  - OTHER : Autres dépenses
+
+Écriture comptable générée :
+  - Débit  : Compte de charge (selon catégorie)
+  - Crédit : 401175 - Dette sur frais
+  Journal : AC (Achats)
+
+Étapes du cycle :
+  1. Création de la dépense (ExpenseRecord)
+  2. Approbation de la dépense (status → APPROVED)
+  3. Génération automatique de l'écriture comptable d'engagement
+  4. Paiement de la dépense (FinancialTransaction)
+
+--------------------------------------------------------------------------------
+8. CYCLE D'EXPRESSION DE BESOIN
+--------------------------------------------------------------------------------
+Méthode : autoGenerateNeedExpressionAccrual(needExpressionId)
+Déclencheur : Expression de besoin approuvée (status = APPROVED)
+
+Écriture comptable générée :
+  - Débit  : 605600 - Petit matériel
+  - Crédit : 401175 - Dette sur frais
+  Journal : AC (Achats)
+
+Étapes du cycle :
+  1. Création de l'expression de besoin (NeedExpression)
+  2. Approbation (status → APPROVED)
+  3. Génération automatique de l'écriture comptable d'engagement
+  4. Paiement (FinancialTransaction - NEED_EXPRESSION)
+
+--------------------------------------------------------------------------------
+9. CYCLE DE TRANSPORT
+--------------------------------------------------------------------------------
+Méthode : autoGenerateTransportAccrual(transportId)
+Déclencheur : Transport approuvé (status = APPROVED)
+
+Écriture comptable générée :
+  - Débit  : 611000 - Transport
+  - Crédit : 401175 - Dette sur frais
+  Journal : AC (Achats)
+
+Étapes du cycle :
+  1. Création du transport (Transport)
+  2. Approbation (status → APPROVED)
+  3. Génération automatique de l'écriture comptable d'engagement
+  4. Paiement (FinancialTransaction)
+
+--------------------------------------------------------------------------------
+10. CYCLE DE VENTE FOURNISSEUR
+--------------------------------------------------------------------------------
+Méthode : autoGenerateVendorSaleEntry(saleIds)
+Déclencheur : Ventes fournisseurs
+
+Écriture comptable générée :
+  - Débit  : 411100 - Clients
+  - Crédit : 701100 - Ventes
+  Journal : VT (Ventes)
+
+--------------------------------------------------------------------------------
+RÉSUMÉ DES CYCLES TESTABLES
+--------------------------------------------------------------------------------
+
+1. ✓ Cycle de Vente (engagement + encaissement)
+2. ✓ Cycle d'Achat (engagement + paiement)
+3. ✓ Cycle de Stock (entrées et sorties)
+4. ✓ Cycle de Trésorerie (tous types de transactions)
+5. ✓ Cycle de Paie (salaires + cotisations sociales)
+6. ✓ Cycle d'Engagement de Dépense (toutes catégories)
+7. ✓ Cycle d'Expression de Besoin
+8. ✓ Cycle de Transport
+9. ✓ Cycle de Vente Fournisseur
+
+================================================================================
+NOTE : Tous ces cycles génèrent automatiquement des écritures comptables
+via le service AccountingIntegrationService lorsque les conditions sont
+remplies (statut, validation, etc.).
+================================================================================
