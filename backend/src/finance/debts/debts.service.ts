@@ -1,18 +1,19 @@
-import { Injectable, NotFoundException, ForbiddenException, Inject, forwardRef, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
-import { User, UserRole, DebtStatus, TransactionType } from '@prisma/client';
+import { UserRole, DebtStatus, TransactionType, Prisma } from '@prisma/client';
 import { CreateSupplierDebtDto } from './dto/create-supplier-debt.dto';
 import { PaySupplierDebtDto } from './dto/pay-supplier-debt.dto';
 import { TreasuryService } from '../treasury/treasury.service';
 import { CreateLongTermDebtDto } from './dto/create-long-term-debt.dto';
 import { UpdateLongTermDebtDto } from './dto/update-long-term-debt.dto';
 import { validate as isUUID } from 'uuid';
+import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
+import { checkRole } from 'src/common/auth/role/check-role.util';
 
 @Injectable()
 export class DebtsService {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(forwardRef(() => TreasuryService))
     private readonly treasuryService: TreasuryService,
   ) {}
 
@@ -26,14 +27,12 @@ export class DebtsService {
   //                         SUPPLIER DEBTS                            //
   // ================================================================= //
 
-  async createSupplierDebt(dto: CreateSupplierDebtDto, user: User) {
-    const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.PURCHASING_MANAGER];
-    // Le `user` vient du token JWT, la propriété est `role`, pas `userRole`.
-    const userRole = (user as any).role || user.userRole;
-    if (!allowedRoles.includes(userRole)) {
-      throw new ForbiddenException('Permission denied to create supplier debts.');
-    }
-
+  async createSupplierDebt(dto: CreateSupplierDebtDto, user: JwtUser) {
+    checkRole(
+      user,
+      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.PURCHASING_MANAGER],
+      'Permission denied to create supplier debts.',
+    );
     this.validateSubsidiaryId(user.subsidiaryId);
 
     return this.prisma.supplierDebt.create({
@@ -46,7 +45,7 @@ export class DebtsService {
     });
   }
 
-  async findAllSupplierDebts(user: User) {
+  async findAllSupplierDebts(user: JwtUser) {
     this.validateSubsidiaryId(user.subsidiaryId);
     return this.prisma.supplierDebt.findMany({
       where: { subsidiaryId: user.subsidiaryId },
@@ -54,14 +53,17 @@ export class DebtsService {
     });
   }
 
-  async paySupplierDebt(id: string, dto: PaySupplierDebtDto, user: User) {
-    const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER];
-    // Le `user` vient du token JWT, la propriété est `role`, pas `userRole`.
-    const userRole = (user as any).role || user.userRole;
-    if (!allowedRoles.includes(userRole)) {
-      throw new ForbiddenException('Permission denied to pay supplier debts.');
-    }
-
+  /**
+   * Paiement d'une dette fournisseur — les deux opérations (mise à jour statut +
+   * création transaction trésorerie) sont dans la MÊME transaction Prisma via
+   * createExpenseTransactionWithTx, garantissant l'atomicité.
+   */
+  async paySupplierDebt(id: string, dto: PaySupplierDebtDto, user: JwtUser) {
+    checkRole(
+      user,
+      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER],
+      'Permission denied to pay supplier debts.',
+    );
     this.validateSubsidiaryId(user.subsidiaryId);
 
     const debt = await this.prisma.supplierDebt.findFirst({
@@ -72,23 +74,29 @@ export class DebtsService {
       throw new NotFoundException(`Supplier debt with ID "${id}" not found.`);
     }
 
-    // Utilisation d'une transaction Prisma pour garantir l'atomicité
+    if (debt.status === DebtStatus.PAYER) {
+      throw new BadRequestException('Cette dette est déjà payée.');
+    }
+
     return this.prisma.$transaction(async (tx) => {
-      // 1. Mettre à jour le statut de la dette
       const updatedDebt = await tx.supplierDebt.update({
         where: { id },
         data: { status: DebtStatus.PAYER },
       });
 
-      // 2. Créer la transaction financière correspondante
-      await this.treasuryService.createExpenseTransaction({
-        transactionDate: new Date(dto.paymentDate).toISOString(),
-        description: `Paiement facture fournisseur: ${debt.supplierName} - Facture N°${debt.invoiceId}`,
-        financialTransactionType: TransactionType.DEPENSE,
-        amount: debt.amount.toNumber(), // Convertir Decimal en number
-        treasuryAccountId: dto.treasuryAccountId,
-        relatedDocumentId: debt.id,
-      }, user);
+      // Utilise la méthode qui accepte le contexte tx pour rester dans la même transaction
+      await this.treasuryService.createExpenseTransactionWithTx(
+        tx,
+        {
+          transactionDate: new Date(dto.paymentDate).toISOString(),
+          description: `Paiement facture fournisseur: ${debt.supplierName} - Facture N°${debt.invoiceId}`,
+          financialTransactionType: TransactionType.DEPENSE,
+          amount: debt.amount.toNumber(),
+          treasuryAccountId: dto.treasuryAccountId,
+          relatedDocumentId: debt.id,
+        },
+        user.subsidiaryId,
+      );
 
       return updatedDebt;
     });
@@ -98,14 +106,8 @@ export class DebtsService {
   //                         LONG-TERM DEBTS                           //
   // ================================================================= //
 
-  async createLongTermDebt(dto: CreateLongTermDebtDto, user: User) {
-    const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR];
-    // Le `user` vient du token JWT, la propriété est `role`, pas `userRole`.
-    const userRole = (user as any).role || user.userRole;
-    if (!allowedRoles.includes(userRole)) {
-      throw new ForbiddenException('Permission denied to create long-term debts.');
-    }
-
+  async createLongTermDebt(dto: CreateLongTermDebtDto, user: JwtUser) {
+    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR], 'Permission denied to create long-term debts.');
     this.validateSubsidiaryId(user.subsidiaryId);
 
     return this.prisma.longTermDebt.create({
@@ -118,7 +120,7 @@ export class DebtsService {
     });
   }
 
-  async findAllLongTermDebts(user: User) {
+  async findAllLongTermDebts(user: JwtUser) {
     this.validateSubsidiaryId(user.subsidiaryId);
     return this.prisma.longTermDebt.findMany({
       where: { subsidiaryId: user.subsidiaryId },
@@ -126,27 +128,18 @@ export class DebtsService {
     });
   }
 
-  async updateLongTermDebt(id: string, dto: UpdateLongTermDebtDto, user: User) {
-    const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR];
-    // Le `user` vient du token JWT, la propriété est `role`, pas `userRole`.
-    const userRole = (user as any).role || user.userRole;
-    if (!allowedRoles.includes(userRole)) {
-      throw new ForbiddenException('Permission denied to update long-term debts.');
-    }
-
+  async updateLongTermDebt(id: string, dto: UpdateLongTermDebtDto, user: JwtUser) {
+    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR], 'Permission denied to update long-term debts.');
     this.validateSubsidiaryId(user.subsidiaryId);
 
     const debt = await this.prisma.longTermDebt.findFirst({
-        where: { id, subsidiaryId: user.subsidiaryId },
+      where: { id, subsidiaryId: user.subsidiaryId },
     });
 
     if (!debt) {
-        throw new NotFoundException(`Long-term debt with ID "${id}" not found.`);
+      throw new NotFoundException(`Long-term debt with ID "${id}" not found.`);
     }
 
-    return this.prisma.longTermDebt.update({
-        where: { id },
-        data: dto,
-    });
+    return this.prisma.longTermDebt.update({ where: { id }, data: dto });
   }
 }

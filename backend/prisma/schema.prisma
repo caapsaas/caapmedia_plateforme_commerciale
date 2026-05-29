@@ -52,6 +52,8 @@ model Subsidiary {
   accountingAccounts            AccountingAccount[]
   fiscalYears                   FiscalYear[]
   journalEntries                JournalEntry[]
+  accountingJournals            AccountingJournal[]
+  accountMappings               AccountMapping[]
 
   @@index([subsidiaryName]) // Ajout de cet index
   @@map("subsidiaries")
@@ -64,6 +66,7 @@ model User {
   passwordHash                  String                         @map("password_hash")
   subsidiaryId                  String                         @map("subsidiary_id") @db.Uuid
   userRole                      UserRole                       @map("user_role")
+  additionalRoles               UserRole[]                     @default([]) @map("additional_roles")
   accounts                      Account[]
   contacts                      Contact[]
   crmTasks                      CrmTask[]
@@ -953,6 +956,36 @@ model FiscalYear {
   @@map("fiscal_years")
 }
 
+// Journaux comptables (JV, JA, JB, JOD)
+model AccountingJournal {
+  id           String         @id @default(uuid()) @map("id") @db.Uuid
+  code         String         @map("code") @db.VarChar(10)
+  name         String         @map("name") @db.VarChar(100)
+  journalType  JournalType    @map("journal_type")
+  subsidiaryId String         @map("subsidiary_id") @db.Uuid
+  isActive     Boolean        @default(true) @map("is_active")
+  subsidiary   Subsidiary     @relation(fields: [subsidiaryId], references: [id])
+  entries      JournalEntry[]
+
+  @@unique([subsidiaryId, code])
+  @@map("accounting_journals")
+}
+
+// Règles de journalisation automatique Finance → Comptabilité
+model AccountMapping {
+  id               String     @id @default(uuid()) @map("id") @db.Uuid
+  operationType    String     @map("operation_type") @db.VarChar(100)
+  journalCode      String     @map("journal_code") @db.VarChar(10)
+  debitAccountNum  String     @map("debit_account_num") @db.VarChar(10)
+  creditAccountNum String     @map("credit_account_num") @db.VarChar(10)
+  description      String     @map("description") @db.VarChar(255)
+  subsidiaryId     String     @map("subsidiary_id") @db.Uuid
+  subsidiary       Subsidiary @relation(fields: [subsidiaryId], references: [id])
+
+  @@unique([subsidiaryId, operationType])
+  @@map("account_mappings")
+}
+
 // Écritures comptables
 model JournalEntry {
   id           String             @id @default(uuid()) @map("id") @db.Uuid
@@ -964,17 +997,23 @@ model JournalEntry {
   fiscalYearId String             @map("fiscal_year_id") @db.Uuid
   subsidiaryId String             @map("subsidiary_id") @db.Uuid
   createdBy    String             @map("created_by") @db.Uuid
+  journalId    String?            @map("journal_id") @db.Uuid
+  sourceType   String?            @map("source_type") @db.VarChar(100)
+  sourceId     String?            @map("source_id") @db.VarChar(100)
   createdAt    DateTime           @default(now()) @map("created_at")
   updatedAt    DateTime           @updatedAt @map("updated_at")
 
-  fiscalYear FiscalYear         @relation(fields: [fiscalYearId], references: [id])
-  subsidiary Subsidiary         @relation(fields: [subsidiaryId], references: [id])
-  creator    User               @relation(fields: [createdBy], references: [id])
+  fiscalYear FiscalYear          @relation(fields: [fiscalYearId], references: [id])
+  subsidiary Subsidiary          @relation(fields: [subsidiaryId], references: [id])
+  creator    User                @relation(fields: [createdBy], references: [id])
+  journal    AccountingJournal?  @relation(fields: [journalId], references: [id])
   lines      JournalEntryLine[]
 
   @@index([subsidiaryId, entryDate])
   @@index([status])
   @@index([fiscalYearId])
+  @@index([journalId])
+  @@index([sourceType, sourceId])
   @@map("journal_entries")
 }
 
@@ -998,17 +1037,24 @@ model JournalEntryLine {
 
 // Énumérations comptables
 enum AccountingAccountType {
-  ASSET // Actif (Classe 1-5)
-  LIABILITY // Passif (Classe 1-4, 16)
-  EQUITY // Capitaux propres (Classe 1)
-  REVENUE // Produits (Classe 7)
-  EXPENSE // Charges (Classe 6)
+  ASSET     // Actif (Classe 2-5)
+  LIABILITY // Passif (Classe 1-4)
+  EQUITY    // Capitaux propres (Classe 1)
+  REVENUE   // Produits (Classe 7-8)
+  EXPENSE   // Charges (Classe 6)
 }
 
 enum JournalEntryStatus {
-  DRAFT // Brouillon
-  POSTED // Validé/Comptabilisé
+  DRAFT     // Brouillon
+  POSTED    // Validé/Comptabilisé
   CANCELLED // Annulé
+}
+
+enum JournalType {
+  VENTES   // Journal des ventes (JV)
+  ACHATS   // Journal des achats (JA)
+  TRESORERIE // Journal de trésorerie/banque (JB)
+  OD       // Journal des opérations diverses (JOD)
 }
 
 model Newsletter {

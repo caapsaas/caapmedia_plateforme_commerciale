@@ -1,12 +1,10 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TreasuryService } from './treasury.service';
 import { TreasuryController } from './treasury.controller';
-import { DebtsModule } from '../debts/debts.module';
-import { AssetsModule } from '../assets/assets.module';
-
+import { JournalizationModule } from '../../accounting/journalization/journalization.module';
 
 @Module({
-  imports: [forwardRef(() => DebtsModule), forwardRef(() => AssetsModule)],
+  imports: [JournalizationModule],
   controllers: [TreasuryController],
   providers: [TreasuryService],
   exports: [TreasuryService],

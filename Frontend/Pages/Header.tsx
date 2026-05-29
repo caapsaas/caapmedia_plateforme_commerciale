@@ -7,12 +7,14 @@ import IconGlobe from "../components/icons/IconGlobe";
 import IconMenu from "../components/icons/IconMenu";
 import { useAppContext } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
+import { useHasRole } from "../hooks/useHasRole";
 
 const Header: React.FC = () => {
   const { t, language, setLanguage } = useI18n();
   const { dispatch } = useAppContext();
   const { state } = useAppContext();
   const { user, subsidiary, logout: authLogout, updateUserRole } = useAuth();
+  const { hasRole } = useHasRole();
   const router = useRouter(); // ✅ Router TanStack
   const roles = Object.values(UserRole);
 
@@ -160,7 +162,7 @@ const Header: React.FC = () => {
                 className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20"
                 role="menu"
               >
-                {user.userRole === UserRole.ADMIN && roleSelected && (
+                {hasRole([UserRole.ADMIN]) && roleSelected && (
                   <button
                     onClick={() => {
                       setRoleSelected(false);

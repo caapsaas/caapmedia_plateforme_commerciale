@@ -153,6 +153,7 @@ export interface User {
   userName: string;
   email: string;
   userRole: UserRole;
+  additionalRoles?: UserRole[];
   subsidiaryId: string;
   password?: string;
 }

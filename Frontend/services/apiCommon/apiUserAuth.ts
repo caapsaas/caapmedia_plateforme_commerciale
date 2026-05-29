@@ -26,6 +26,7 @@ export interface UserRegisterData {
   email: string;
   password: string;
   userRole: UserRole;
+  additionalRoles?: UserRole[];
   subsidiaryId: string;
 }
 
@@ -35,6 +36,7 @@ export interface UserUpdateData {
   email?: string;
   password?: string;
   userRole?: UserRole;
+  additionalRoles?: UserRole[];
   subsidiaryId?: string;
 }
 

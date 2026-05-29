@@ -1,4 +1,19 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Get, Patch, Param, UseGuards, Req } from '@nestjs/common';
+import { PeriodsService } from './periods.service';
+import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 
-@Controller('periods')
-export class PeriodsController {}
+@UseGuards(JwtAuthGuard)
+@Controller('accounting/periods')
+export class PeriodsController {
+  constructor(private readonly periodsService: PeriodsService) {}
+
+  @Get()
+  findAll(@Req() req: any) {
+    return this.periodsService.findAll(req.user);
+  }
+
+  @Patch(':id/close')
+  close(@Param('id') id: string, @Req() req: any) {
+    return this.periodsService.close(id, req.user);
+  }
+}

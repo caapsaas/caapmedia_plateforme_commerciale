@@ -2,39 +2,47 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
-import { User, UserRole } from '@prisma/client';
+import { UserRole } from '@prisma/client';
+import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
+import { checkRole } from 'src/common/auth/role/check-role.util';
+import { JournalizationService } from 'src/accounting/journalization/journalization.service';
 
 @Injectable()
 export class ExpensesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly journalization: JournalizationService,
+  ) {}
 
-  async create(createExpenseDto: CreateExpenseDto, user: User) {
-    // Seuls les rôles financiers ou admin peuvent créer des charges
-   // const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR];
+  async create(createExpenseDto: CreateExpenseDto, user: JwtUser) {
+    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR], 'You do not have permission to create an expense.');
 
-    // Le `user` vient du token JWT, la propriété est `role`, pas `userRole`.
-    /*const userRole = (user as any).role || user.userRole;
-    if (!allowedRoles.includes(userRole)) {
-      throw new ForbiddenException('You do not have permission to create an expense.');
-    }*/
-
-    return this.prisma.expenseRecord.create({
+    const record = await this.prisma.expenseRecord.create({
       data: {
         ...createExpenseDto,
         expenseDate: new Date(createExpenseDto.expenseDate),
         subsidiaryId: user.subsidiaryId,
       },
     });
+
+    // Journalisation automatique SYSCOHADA
+    await this.journalization.journalize({
+      subsidiaryId: user.subsidiaryId,
+      userId: user.id,
+      operationDate: record.expenseDate,
+      amount: Number(record.amount),
+      description: record.description,
+      sourceType: 'EXPENSE_RECORD',
+      sourceId: record.id,
+      expenseCategory: record.category,
+      withTva: true,
+    });
+
+    return record;
   }
 
-  async findAll(user: User) {
-    // Tous les utilisateurs autorisés voient les charges de leur filiale
-    const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER];
-    // Le `user` vient du token JWT, la propriété est `role`, pas `userRole`.
-    const userRole = (user as any).role || user.userRole;
-    if (!allowedRoles.includes(userRole)) {
-      throw new ForbiddenException('You do not have permission to view expenses.');
-    }
+  async findAll(user: JwtUser) {
+    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER], 'You do not have permission to view expenses.');
 
     return this.prisma.expenseRecord.findMany({
       where: {
@@ -46,7 +54,7 @@ export class ExpensesService {
     });
   }
 
-  async findOne(id: string, user: User) {
+  async findOne(id: string, user: JwtUser) {
     const expense = await this.prisma.expenseRecord.findUnique({
       where: { id },
     });
@@ -63,15 +71,9 @@ export class ExpensesService {
     return expense;
   }
 
-  async update(id: string, updateExpenseDto: UpdateExpenseDto, user: User) {
-    await this.findOne(id, user); // Vérifie l'existence et les droits
-
-    const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR];
-    // Le `user` vient du token JWT, la propriété est `role`, pas `userRole`.
-    const userRole = (user as any).role || user.userRole;
-    if (!allowedRoles.includes(userRole)) {
-      throw new ForbiddenException('You do not have permission to update an expense.');
-    }
+  async update(id: string, updateExpenseDto: UpdateExpenseDto, user: JwtUser) {
+    await this.findOne(id, user);
+    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR], 'You do not have permission to update an expense.');
 
     return this.prisma.expenseRecord.update({
       where: { id },
@@ -83,15 +85,9 @@ export class ExpensesService {
     });
   }
 
-  async remove(id: string, user: User) {
-    await this.findOne(id, user); // Vérifie l'existence et les droits
-
-    const allowedRoles: UserRole[] = [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR];
-    // Le `user` vient du token JWT, la propriété est `role`, pas `userRole`.
-    const userRole = (user as any).role || user.userRole;
-    if (!allowedRoles.includes(userRole)) {
-      throw new ForbiddenException('You do not have permission to delete an expense.');
-    }
+  async remove(id: string, user: JwtUser) {
+    await this.findOne(id, user);
+    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR], 'You do not have permission to delete an expense.');
 
     return this.prisma.expenseRecord.delete({
       where: { id },

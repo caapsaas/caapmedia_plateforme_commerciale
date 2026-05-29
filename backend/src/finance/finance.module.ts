@@ -7,8 +7,19 @@ import { ExternalTransactionModule } from './external-transaction/external-trans
 import { BalancesheetModule } from './balancesheet/balancesheet.module';
 import { IncomestatementModule } from './incomestatement/incomestatement.module';
 import { PrefinancementModule } from './prefinancement/prefinancement.module';
+import { JournalizationModule } from '../accounting/journalization/journalization.module';
 
 @Module({
-    imports: [ExpenseModule, TreasuryModule, DebtsModule, AssetsModule, ExternalTransactionModule, BalancesheetModule, IncomestatementModule, PrefinancementModule]
+  imports: [
+    ExpenseModule,
+    TreasuryModule,
+    DebtsModule,
+    AssetsModule,
+    ExternalTransactionModule,
+    BalancesheetModule,
+    IncomestatementModule,
+    PrefinancementModule,
+    JournalizationModule,
+  ],
 })
 export class FinanceModule {}

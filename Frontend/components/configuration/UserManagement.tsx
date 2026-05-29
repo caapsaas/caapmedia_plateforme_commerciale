@@ -144,9 +144,16 @@ const UserManagement: React.FC = () => {
                                 <td className="px-6 py-4 font-semibold">{user.userName}</td>
                                 <td className="px-6 py-4">{user.email}</td>
                                 <td className="px-6 py-4">
-                                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-slate-200 text-slate-800">
-                                        {t(`roles.${user.userRole}`)}
-                                    </span>
+                                    <div className="flex flex-wrap gap-1">
+                                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-[#c6e911] text-slate-800">
+                                            {t(`roles.${user.userRole}`)}
+                                        </span>
+                                        {(user.additionalRoles ?? []).map(role => (
+                                            <span key={role} className="px-2 py-1 text-xs font-semibold rounded-full bg-slate-200 text-slate-600">
+                                                {t(`roles.${role}`)}
+                                            </span>
+                                        ))}
+                                    </div>
                                 </td>
                                 <td className="px-6 py-4 text-center space-x-2">
                                     <button onClick={() => handleOpenEditModal(user)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>

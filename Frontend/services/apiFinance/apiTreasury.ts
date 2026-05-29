@@ -135,8 +135,11 @@ export const createExpenseTransaction = async (expenseData: TransactionCreationD
  */
 export const getFinancialTransactions = async (subsidiaryId?: string): Promise<FinancialTransaction[]> => {
   const params = subsidiaryId ? { subsidiaryId } : {};
-  const { data } = await api.get<FinancialTransaction[]>('/finance/treasury/transactions', { params });
-  return data;
+  const { data } = await api.get<{ data: FinancialTransaction[]; total: number; page: number; limit: number; totalPages: number }>(
+    '/finance/treasury/transactions',
+    { params },
+  );
+  return data.data;
 };
 
 /**

@@ -3,6 +3,7 @@ import { ExternalFinancialTransaction, ExternalTransactionType, ExternalTransact
 import { getExternalTransactions, createExternalTransaction, updateExternalTransaction, validateExternalTransaction, cancelExternalTransaction, deleteExternalTransaction, getExternalTransactionStatistics, ExternalTransactionFilters, ExternalTransactionStatistics, CreateExternalTransactionData } from '../../services/apiFinance/apiExternalTransactions';
 import { getPrefinancementAccount, getPrefinancementStatistics } from '../../services/apiFinance/apiPrefinancement';
 import { useAuth } from '../../context/AuthContext';
+import { useHasRole } from '../../hooks/useHasRole';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import { exportToCSV, formatAmount, calculateTotals } from '../../utils/exportUtils';
@@ -24,11 +25,12 @@ interface ExternalTransactionsProps {
 const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary }) => {
   const { t } = useI18n();
   const { user } = useAuth();
+  const { hasRole } = useHasRole();
   const { toast } = useToast();
-  
+
   // Vérifier les permissions
-  const canCreate = user?.userRole === UserRole.FINANCIAL_DIRECTOR;
-  const canValidate = user?.userRole === UserRole.ADMIN;
+  const canCreate = hasRole([UserRole.FINANCIAL_DIRECTOR, UserRole.ADMIN]);
+  const canValidate = hasRole([UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR]);
   
   if (!canCreate && !canValidate) {
     return (
@@ -262,7 +264,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
       console.log('Transaction ID:', selectedTransaction.id);
       
       // Utiliser la route admin si la transaction est validée et l'utilisateur est admin/directeur financier
-      if (selectedTransaction.status === ExternalTransactionStatus.VALIDATED && (user?.userRole === UserRole.ADMIN || user?.userRole === UserRole.FINANCIAL_DIRECTOR)) {
+      if (selectedTransaction.status === ExternalTransactionStatus.VALIDATED && hasRole([UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR])) {
         await updateExternalTransaction(selectedTransaction.id, updateData); // TODO: Remplacer par la route admin quand disponible
         toast('success', t('externalTransactions.success.adminUpdated'));
       } else {
@@ -675,7 +677,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
                           </button>
                         </>
                       )}
-                      {user?.userRole === UserRole.ADMIN && (
+                      {hasRole([UserRole.ADMIN]) && (
                         <>
                           {transaction.status === ExternalTransactionStatus.DRAFT ? (
                             <button

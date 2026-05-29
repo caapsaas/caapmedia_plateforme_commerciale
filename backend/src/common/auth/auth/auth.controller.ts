@@ -4,7 +4,7 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from '../jwt/jwt.guard';
 import { RoleGuard } from '../role/role.guard';
 import { SetMetadata } from '@nestjs/common';
-import { IsString, IsEmail, IsOptional, IsUUID, IsEnum, IsNotEmpty } from 'class-validator';
+import { IsString, IsEmail, IsOptional, IsUUID, IsEnum, IsArray, IsNotEmpty } from 'class-validator';
 import { UserRole } from '@prisma/client';
 
 class RegisterDto {
@@ -19,6 +19,11 @@ class RegisterDto {
 
   @IsEnum(UserRole)
   userRole: UserRole;
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(UserRole, { each: true })
+  additionalRoles?: UserRole[];
 
   @IsUUID()
   @IsNotEmpty()
@@ -56,6 +61,11 @@ class UpdateUserDto {
   userRole?: UserRole;
 
   @IsOptional()
+  @IsArray()
+  @IsEnum(UserRole, { each: true })
+  additionalRoles?: UserRole[];
+
+  @IsOptional()
   @IsUUID()
   subsidiaryId?: string;
 }
@@ -80,7 +90,7 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto.userName, dto.email, dto.password, dto.userRole, dto.subsidiaryId);
+    return this.authService.register(dto.userName, dto.email, dto.password, dto.userRole, dto.subsidiaryId, dto.additionalRoles ?? []);
   }
 
 

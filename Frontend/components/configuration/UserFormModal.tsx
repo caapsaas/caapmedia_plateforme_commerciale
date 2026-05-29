@@ -14,14 +14,12 @@ interface UserFormModalProps {
 const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, user, subsidiaries, currentSubsidiaryId }) => {
     const { t } = useI18n();
     const initialFormState = {
-        userName: '', // Changed from 'name' to 'userName'
+        userName: '',
         email: '',
-        userRole: UserRole.COMMERCIAL, // Changed from 'role' to 'userRole'
+        userRole: UserRole.COMMERCIAL,
+        additionalRoles: [] as UserRole[],
         subsidiaryId: currentSubsidiaryId || (subsidiaries.length > 0 ? subsidiaries[0].id : ''),
     };
-    // Le type de l'état est ajusté pour correspondre à la structure de `initialFormState`.
-    // L'erreur TypeScript provient du décalage entre `Omit<User, 'id' | 'password'>` (qui attend `name` et `rolet`)
-    // et `initialFormState` (qui utilise `userName` et `userRole`).
     const [formData, setFormData] = useState(initialFormState);
 
     const [password, setPassword] = useState('');
@@ -35,6 +33,7 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
                 userName: user.userName,
                 email: user.email,
                 userRole: user.userRole,
+                additionalRoles: user.additionalRoles ?? [],
                 subsidiaryId: user.subsidiaryId || currentSubsidiaryId || (subsidiaries.length > 0 ? subsidiaries[0].id : ''),
             });
         } else {
@@ -48,7 +47,25 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        if (name === 'userRole') {
+            // Remove the new primary role from additionalRoles if it was there
+            setFormData(prev => ({
+                ...prev,
+                userRole: value as UserRole,
+                additionalRoles: prev.additionalRoles.filter(r => r !== value),
+            }));
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
+    };
+
+    const handleAdditionalRoleToggle = (role: UserRole) => {
+        setFormData(prev => ({
+            ...prev,
+            additionalRoles: prev.additionalRoles.includes(role)
+                ? prev.additionalRoles.filter(r => r !== role)
+                : [...prev.additionalRoles, role],
+        }));
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -56,7 +73,7 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
         setPasswordError('');
 
         if (showPasswordFields) {
-            if (!user && !password) { // Password required for new user
+            if (!user && !password) {
                 setPasswordError(t('configuration.form.passwordRequired'));
                 return;
             }
@@ -66,73 +83,49 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
             }
         }
 
-        // Validation pour les nouveaux utilisateurs uniquement
         if (!user && (!formData.subsidiaryId || formData.subsidiaryId.trim() === '')) {
             setPasswordError(t('login.errorSelectSubsidiary'));
             return;
         }
 
         let saveData: any = {};
-        
-        // N'inclure que les champs qui ont changé
-        if (formData.userName !== user?.userName) {
-            saveData.userName = formData.userName;
-        }
-        if (formData.email !== user?.email) {
-            saveData.email = formData.email;
-        }
-        if (formData.userRole !== user?.userRole) {
-            saveData.userRole = formData.userRole;
-        }
-        if (showPasswordFields && password) {
-            saveData.password = password;
-        }
 
-        // Pour un nouvel utilisateur, inclure tous les champs
         if (!user) {
             saveData = {
                 userName: formData.userName,
                 email: formData.email,
                 userRole: formData.userRole,
+                additionalRoles: formData.additionalRoles,
                 subsidiaryId: formData.subsidiaryId,
                 ...(password ? { password } : {})
             };
         } else {
-            // Mode édition : toujours inclure l'ID
             saveData.id = user.id;
-            
-            // Inclure uniquement les champs qui ont changé
-            if (formData.userName !== user?.userName) {
-                saveData.userName = formData.userName;
+            if (formData.userName !== user.userName) saveData.userName = formData.userName;
+            if (formData.email !== user.email) saveData.email = formData.email;
+            if (formData.userRole !== user.userRole) saveData.userRole = formData.userRole;
+            if (JSON.stringify(formData.additionalRoles) !== JSON.stringify(user.additionalRoles ?? [])) {
+                saveData.additionalRoles = formData.additionalRoles;
             }
-            if (formData.email !== user?.email) {
-                saveData.email = formData.email;
-            }
-            if (formData.userRole !== user?.userRole) {
-                saveData.userRole = formData.userRole;
-            }
-            if (formData.subsidiaryId !== user?.subsidiaryId) {
-                saveData.subsidiaryId = formData.subsidiaryId;
-            }
-            if (showPasswordFields && password) {
-                saveData.password = password;
-            }
+            if (formData.subsidiaryId !== user.subsidiaryId) saveData.subsidiaryId = formData.subsidiaryId;
+            if (showPasswordFields && password) saveData.password = password;
         }
 
-        // En mode édition, si seul l'ID est présent (aucun changement), fermer le modal
-        if (user && Object.keys(saveData).length === 1) { // Juste l'ID
+        if (user && Object.keys(saveData).length === 1) {
             onClose();
             return;
         }
 
         onSave(saveData);
     };
-    
+
     if (!isOpen) return null;
+
+    const secondaryRoles = Object.values(UserRole).filter(r => r !== formData.userRole);
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <form onSubmit={handleSubmit}>
                     <div className="p-6">
                         <h3 className="text-lg font-bold text-slate-900">
@@ -148,15 +141,15 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
                                 <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div> 
-                                    <label htmlFor="userRole" className="block text-sm font-medium text-slate-700">{t('configuration.form.role')}</label>
+                                <div>
+                                    <label htmlFor="userRole" className="block text-sm font-medium text-slate-700">Rôle principal</label>
                                     <select name="userRole" id="userRole" value={formData.userRole} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                         {Object.values(UserRole).map(roleValue => (
                                             <option key={roleValue} value={roleValue}>{t(`roles.${roleValue}`)}</option>
                                         ))}
                                     </select>
                                 </div>
-                                 <div>
+                                <div>
                                     <label htmlFor="subsidiaryId" className="block text-sm font-medium text-slate-700">Filiale</label>
                                     <select name="subsidiaryId" id="subsidiaryId" value={formData.subsidiaryId} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                         {subsidiaries.map(sub => (
@@ -166,7 +159,24 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
                                 </div>
                             </div>
 
-                             {user && !showPasswordFields && (
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Rôles supplémentaires</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {secondaryRoles.map(role => (
+                                        <label key={role} className="flex items-center gap-2 cursor-pointer select-none">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.additionalRoles.includes(role)}
+                                                onChange={() => handleAdditionalRoleToggle(role)}
+                                                className="h-4 w-4 rounded border-slate-300 text-[#c6e911] focus:ring-[#c6e911]"
+                                            />
+                                            <span className="text-sm text-slate-700">{t(`roles.${role}`)}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {user && !showPasswordFields && (
                                 <div className="pt-2">
                                     <button type="button" onClick={() => setShowPasswordFields(true)} className="text-sm font-medium text-[#c6e911] hover:text-[#adc40f]">
                                         Réinitialiser le mot de passe
@@ -174,7 +184,7 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
                                 </div>
                             )}
 
-                             {showPasswordFields && (
+                            {showPasswordFields && (
                                 <>
                                     <hr className="my-2"/>
                                     <div>

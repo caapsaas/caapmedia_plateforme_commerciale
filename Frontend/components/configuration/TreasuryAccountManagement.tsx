@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { TreasuryAccount, Subsidiary } from '../../types/models';
+import { TreasuryAccount, Subsidiary, UserRole } from '../../types/models';
 import { useAuth } from '../../context/AuthContext';
+import { useHasRole } from '../../hooks/useHasRole';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import { useQueryClient } from '@tanstack/react-query';
@@ -14,9 +15,10 @@ interface TreasuryAccountManagementProps {
 const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ subsidiary }) => {
   const { t } = useI18n();
   const { user } = useAuth();
+  const { hasRole } = useHasRole();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [accounts, setAccounts] = useState<TreasuryAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -24,7 +26,7 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
   const [editingAccount, setEditingAccount] = useState<TreasuryAccount | null>(null);
 
   // Vérifier les permissions
-  const canManage = user?.userRole === 'ADMIN' || user?.userRole === 'FINANCIAL_DIRECTOR';
+  const canManage = hasRole([UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR]);
 
   useEffect(() => {
     loadAccounts();

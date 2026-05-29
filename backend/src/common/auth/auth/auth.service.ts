@@ -23,6 +23,7 @@ export class AuthService {
     password: string,
     role: UserRole,
     subsidiaryId: string,
+    additionalRoles: UserRole[] = [],
   ) {
     // Validation des paramètres requis
     if (!subsidiaryId || subsidiaryId.trim() === '') {
@@ -62,6 +63,7 @@ export class AuthService {
         email,
         passwordHash,
         userRole: role,
+        additionalRoles: additionalRoles.filter(r => r !== role),
         subsidiaryId,
       },
     });
@@ -85,10 +87,12 @@ export class AuthService {
     }
 
     // Générer le token JWT
+    const roles = [user.userRole, ...user.additionalRoles.filter(r => r !== user.userRole)];
     const payload = {
       sub: user.id,
       email: user.email,
       role: user.userRole,
+      roles,
       subsidiaryId: user.subsidiaryId,
     };
     const token = this.jwtService.sign(payload);
@@ -97,7 +101,7 @@ export class AuthService {
     this.logger.log(`User ${email} logged in successfully`, 'AuthService');
     return {
       access_token: token,
-      user: { id: user.id, email: user.email, role: user.userRole, subsidiaryId: user.subsidiaryId },
+      user: { id: user.id, email: user.email, role: user.userRole, roles, additionalRoles: user.additionalRoles, subsidiaryId: user.subsidiaryId },
       subsidiary: subsidiary,
     };
   }
@@ -142,7 +146,7 @@ export class AuthService {
 
   async updateUser(
     id: string,
-    data: { userName?: string; email?: string; password?: string; userRole?: UserRole; subsidiaryId?: string },
+    data: { userName?: string; email?: string; password?: string; userRole?: UserRole; additionalRoles?: UserRole[]; subsidiaryId?: string },
     currentUser: { id: string; role: UserRole; subsidiaryId: string },
   ) {
     // Vérifier si l'utilisateur à mettre à jour existe
@@ -185,7 +189,12 @@ export class AuthService {
     const updateData: any = { ...data };
     if (data.password) {
       updateData.passwordHash = await bcrypt.hash(data.password, 10);
-      delete updateData.password; // Ne pas stocker le mot de passe en clair
+      delete updateData.password;
+    }
+    // Dédupliquer les rôles supplémentaires par rapport au rôle principal
+    if (data.additionalRoles !== undefined) {
+      const primaryRole = data.userRole ?? (await this.prisma.user.findUnique({ where: { id }, select: { userRole: true } }))?.userRole;
+      updateData.additionalRoles = data.additionalRoles.filter(r => r !== primaryRole);
     }
 
     // Mettre à jour l'utilisateur
@@ -201,6 +210,7 @@ export class AuthService {
       userName: updatedUser.userName,
       email: updatedUser.email,
       userRole: updatedUser.userRole,
+      additionalRoles: updatedUser.additionalRoles,
       subsidiaryId: updatedUser.subsidiaryId,
     };
   }
@@ -252,6 +262,7 @@ export class AuthService {
       userName: user.userName,
       email: user.email,
       userRole: user.userRole,
+      additionalRoles: user.additionalRoles,
       subsidiaryId: user.subsidiaryId,
       subsidiary: user.subsidiary ? { id: user.subsidiary.id, subsidiaryName: user.subsidiary.subsidiaryName } : null,
     }));
@@ -288,6 +299,7 @@ export class AuthService {
       userName: user.userName,
       email: user.email,
       userRole: user.userRole,
+      additionalRoles: user.additionalRoles,
       subsidiaryId: user.subsidiaryId,
       subsidiary: user.subsidiary ? { id: user.subsidiary.id, subsidiaryName: user.subsidiary.subsidiaryName } : null,
     }));
@@ -314,14 +326,15 @@ export class AuthService {
         userName: true,
         email: true,
         userRole: true,
+        additionalRoles: true,
         subsidiaryId: true,
       }
     });
-    
+
     if (!fullUser) {
       throw new Error('User not found');
     }
-    
+
     // Mapper userRole -> role pour correspondre au frontend
     const mappedUser = {
       ...fullUser,

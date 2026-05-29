@@ -3,6 +3,7 @@ import { FinancialTransaction, Subsidiary, TreasuryAccount, TransactionType, Use
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
+import { useHasRole } from '../../hooks/useHasRole';
 import { exportToCsv } from '../../utils/csvExporter';
 import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
@@ -23,14 +24,15 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
     const queryClient = useQueryClient();
     const toast = useToast();
     const { user } = useAuth();
+    const { hasRole } = useHasRole();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalType, setModalType] = useState<TransactionType>('DEPENSE');
     const [selectedTransaction, setSelectedTransaction] = useState<FinancialTransaction | null>(null);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
-    // Vérification des permissions
-    const canDeleteTransactions = user?.userRole === UserRole.ADMIN; // Seul l'admin peut supprimer
-    const canCreateTransactions = user?.userRole === UserRole.FINANCIAL_DIRECTOR; // Seul le directeur financier peut créer
+    // Permissions alignées avec le backend (treasury.service.ts)
+    const canDeleteTransactions = hasRole([UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR]);
+    const canCreateTransactions = hasRole([UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER]);
 
     // État pour la boîte de dialogue de confirmation
     const [confirmDialog, setConfirmDialog] = useState<{
@@ -71,33 +73,21 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
         enabled: !!subsidiary.id
     });
     
-    const { data: transactions = [], isLoading: l2 } = useQuery<FinancialTransaction[]>({ 
-        queryKey: queryKey('financialTransactions'), 
-        queryFn: async () => {
-            const result = await getFinancialTransactions(subsidiary.id);
-            console.log('Transactions récupérées:', result);
-            result.forEach((tx, index) => {
-                console.log(`Transaction ${index}:`, {
-                    id: tx.id,
-                    description: tx.description,
-                    amount: tx.amount,
-                    amountType: typeof tx.amount,
-                    financialTransactionType: tx.financialTransactionType
-                });
-            });
-            return result;
-        },
+    const { data: transactions = [], isLoading: l2 } = useQuery<FinancialTransaction[]>({
+        queryKey: queryKey('financialTransactions'),
+        queryFn: () => getFinancialTransactions(subsidiary.id),
         enabled: !!subsidiary.id
     });
 
+    // Lookup map pour éviter un O(n) par ligne dans le tableau
+    const accountMap = React.useMemo(
+        () => new Map(treasuryAccounts.map(a => [a.id, a.accountName])),
+        [treasuryAccounts]
+    );
+
     const { mutate: saveTransaction } = useMutation({
         mutationFn: (data: { formData: TransactionFormData; type: TransactionType }) => {
-            const transactionData = {
-                ...data.formData,
-                transactionDate: data.formData.transactionDate,
-            };
-            console.log('Données de transaction à sauvegarder:', transactionData);
-            return data.type === 'RECETTE' ? createIncomeTransaction(transactionData) : createExpenseTransaction(transactionData);
+            return data.type === 'RECETTE' ? createIncomeTransaction(data.formData) : createExpenseTransaction(data.formData);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKey('financialTransactions') });
@@ -305,7 +295,7 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
                                         <td className="px-6 py-4 font-medium text-slate-800">{tx.description}</td>
                                         <td className="px-6 py-4 text-slate-800">{tx.providerName || '-'}</td>
                                         <td className="px-6 py-4 text-slate-800">{tx.providerPhone || '-'}</td>
-                                        <td className="px-6 py-4 text-slate-800">{treasuryAccounts.find(a => a.id === tx.treasuryAccountId)?.accountName}</td>
+                                        <td className="px-6 py-4 text-slate-800">{accountMap.get(tx.treasuryAccountId)}</td>
                                         <td className={`px-6 py-4 font-semibold ${tx.financialTransactionType === 'RECETTE' ? 'text-green-600' : 'text-red-600'}`}>
                                             {getTranslatedType(tx.financialTransactionType)}
                                         </td>
@@ -401,7 +391,7 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-sm font-medium text-slate-500">{t('treasury.account')}</label>
-                                    <p className="text-slate-800">{treasuryAccounts.find(a => a.id === selectedTransaction.treasuryAccountId)?.accountName}</p>
+                                    <p className="text-slate-800">{accountMap.get(selectedTransaction.treasuryAccountId)}</p>
                                 </div>
                                 <div>
                                     <label className="text-sm font-medium text-slate-500">{t('treasury.amount')}</label>

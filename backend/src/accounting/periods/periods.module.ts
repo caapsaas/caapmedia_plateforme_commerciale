@@ -4,6 +4,7 @@ import { PeriodsController } from './periods.controller';
 
 @Module({
   providers: [PeriodsService],
-  controllers: [PeriodsController]
+  controllers: [PeriodsController],
+  exports: [PeriodsService],
 })
 export class PeriodsModule {}

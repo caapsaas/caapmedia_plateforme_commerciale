@@ -3,6 +3,7 @@ import { Subsidiary, UserRole } from '../../types';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
+import { useHasRole } from '../../hooks/useHasRole';
 import { exportToCsv } from '../../utils/csvExporter';
 import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
@@ -44,6 +45,7 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
     const { t, formatCurrency } = useI18n();
     const toast = useToast();
     const { user } = useAuth();
+    const { hasRole } = useHasRole();
     const queryClient = useQueryClient();
     const [showAddForm, setShowAddForm] = useState(false);
     const [filter, setFilter] = useState<'ALL' | 'CREDIT' | 'DEBIT'>('ALL');
@@ -62,8 +64,8 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
     });
 
     // Permissions
-    const canAddPrefinancement = user?.userRole === UserRole.FINANCIAL_DIRECTOR;
-    const canManagePrefinancement = user?.userRole === UserRole.ADMIN;
+    const canAddPrefinancement = hasRole([UserRole.FINANCIAL_DIRECTOR, UserRole.ADMIN]);
+    const canManagePrefinancement = hasRole([UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR]);
 
     // État pour la boîte de dialogue de confirmation
     const [confirmDialog, setConfirmDialog] = useState<{

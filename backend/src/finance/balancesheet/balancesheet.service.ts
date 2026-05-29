@@ -1,238 +1,190 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { BalanceSheetDto } from './dto/balance-sheet.dto';
+import { DebtStatus } from '@prisma/client';
 
 @Injectable()
 export class BalancesheetService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * Calcule le bilan comptable pour une filiale donnée
-   * @param subsidiaryId - ID de la filiale (optionnel, si null retourne le bilan consolidé)
-   * @returns Bilan comptable calculé
+   * Calcule le bilan comptable : Actifs = Passifs + Capitaux propres
+   * Les capitaux propres (equity) sont distincts des passifs (liabilities).
    */
   async getBalanceSheet(subsidiaryId?: string): Promise<BalanceSheetDto> {
-    // Récupération des données de la trésorerie
-    const treasuryData = await this.getTreasuryData(subsidiaryId);
-    
-    // Récupération des créances clients
-    const customerReceivables = await this.getCustomerReceivables(subsidiaryId);
-    
-    // Récupération de la valeur des stocks
-    const inventory = await this.getInventoryValue(subsidiaryId);
-    
-    // Récupération de la valeur des équipements
-    const equipments = await this.getEquipmentsValue(subsidiaryId);
-    
-    // Récupération de la valeur des immobilisations
-    const fixedAssets = await this.getFixedAssetsValue(subsidiaryId);
-    
-    // Calcul du total des actifs
-    const totalAssets = treasuryData + customerReceivables + inventory + equipments + fixedAssets;
-    
-    // Récupération des dettes fournisseurs
-    const supplierDebts = await this.getSupplierDebts(subsidiaryId);
-    
-    // Récupération du capital social
-    const shareCapital = await this.getShareCapital(subsidiaryId);
-    
-    // Récupération du résultat net (cumulé des exercices antérieurs)
-    const netIncome = await this.getAccumulatedNetIncome(subsidiaryId);
-    
-    // Calcul du total des passifs
-    const totalLiabilities = supplierDebts + shareCapital + netIncome;
-    
+    const [
+      treasury,
+      customerReceivables,
+      inventory,
+      equipments,
+      fixedAssets,
+      supplierDebts,
+      longTermDebts,
+      shareCapital,
+      retainedEarnings,
+    ] = await Promise.all([
+      this.getTreasuryData(subsidiaryId),
+      this.getCustomerReceivables(subsidiaryId),
+      this.getInventoryValue(subsidiaryId),
+      this.getEquipmentsValue(subsidiaryId),
+      this.getFixedAssetsValue(subsidiaryId),
+      this.getUnpaidSupplierDebts(subsidiaryId),
+      this.getLongTermDebtsBalance(subsidiaryId),
+      this.getShareCapital(subsidiaryId),
+      this.getRetainedEarnings(subsidiaryId),
+    ]);
+
+    const totalAssets = treasury + customerReceivables + inventory + equipments + fixedAssets;
+    const totalLiabilities = supplierDebts + longTermDebts;
+    const totalEquity = shareCapital + retainedEarnings;
+
     return {
-      assets: {
-        treasury: treasuryData,
-        customerReceivables,
-        inventory,
-        equipments,
-        fixedAssets,
-      },
+      assets: { treasury, customerReceivables, inventory, equipments, fixedAssets },
       totalAssets,
-      liabilities: {
-        supplierDebts,
-        shareCapital,
-        netIncome,
-      },
+      liabilities: { supplierDebts, longTermDebts },
       totalLiabilities,
+      equity: { shareCapital, retainedEarnings },
+      totalEquity,
     };
   }
 
-  /**
-   * Récupère le solde total des comptes de trésorerie
-   */
   async getTreasuryData(subsidiaryId?: string): Promise<number> {
-    const where = subsidiaryId ? { subsidiaryId } : {};
-    
-    const treasuryAccounts = await this.prisma.treasuryAccount.findMany({
-      where,
+    const accounts = await this.prisma.treasuryAccount.findMany({
+      where: subsidiaryId ? { subsidiaryId } : {},
       select: { balance: true },
     });
-    
-    return treasuryAccounts.reduce((total, account) => total + Number(account.balance), 0);
+    return accounts.reduce((sum, a) => sum + Number(a.balance), 0);
   }
 
-  /**
-   * Calcule le montant total des créances clients
-   * Inclut les comptes de crédit existants ET les ventes en attente de paiement
-   */
   async getCustomerReceivables(subsidiaryId?: string): Promise<number> {
-    const where = subsidiaryId ? { subsidiaryId } : {};
-    
-    // 1. Récupération des comptes de crédit existants
-    const creditAccounts = await this.prisma.creditAccount.findMany({
-      where,
-      select: { balance: true },
-    });
-    
-    const creditAccountTotal = creditAccounts.reduce((total, account) => total + Number(account.balance), 0);
-    
-    // 2. Récupération des ventes en attente de paiement (non payées)
-    const pendingSales = await this.prisma.sale.findMany({
-      where: {
-        ...where,
-        status: 'PENDING', // Ventes non encore payées
-      },
-      select: { totalPrice: true },
-    });
-    
-    const pendingSalesTotal = pendingSales.reduce((total, sale) => total + Number(sale.totalPrice), 0);
-    
-    // 3. Total des créances clients = comptes de crédit + ventes en attente
-    return creditAccountTotal + pendingSalesTotal;
+    const [creditAccounts, pendingSales] = await Promise.all([
+      this.prisma.creditAccount.findMany({
+        where: subsidiaryId ? { subsidiaryId } : {},
+        select: { balance: true },
+      }),
+      this.prisma.sale.findMany({
+        where: {
+          ...(subsidiaryId ? { subsidiaryId } : {}),
+          status: 'PENDING',
+        },
+        select: { totalPrice: true },
+      }),
+    ]);
+
+    const creditTotal = creditAccounts.reduce((sum, a) => sum + Number(a.balance), 0);
+    const pendingTotal = pendingSales.reduce((sum, s) => sum + Number(s.totalPrice), 0);
+    return creditTotal + pendingTotal;
   }
 
   /**
-   * Calcule la valeur totale des stocks (produits)
+   * Valorisation des stocks au coût d'achat (product.price), pas au prix de vente.
    */
   async getInventoryValue(subsidiaryId?: string): Promise<number> {
-    const where = subsidiaryId ? { subsidiaryId } : {};
-    
     const products = await this.prisma.product.findMany({
-      where,
-      select: { 
-        price: true,
-        stock: true,
-      },
+      where: subsidiaryId ? { subsidiaryId } : {},
+      select: { price: true, stock: true },
     });
-    
-    return products.reduce((total, product) => {
-      const purchasePrice = Number(product.price) || 0;
-      const stockQuantity = Number(product.stock) || 0;
-      return total + (purchasePrice * stockQuantity);
-    }, 0);
+    return products.reduce((sum, p) => sum + Number(p.price) * Number(p.stock), 0);
   }
 
-  /**
-   * Calcule la valeur totale des équipements
-   */
   async getEquipmentsValue(subsidiaryId?: string): Promise<number> {
-    const where = subsidiaryId ? { subsidiaryId } : {};
-    
     const equipments = await this.prisma.equipment.findMany({
-      where,
-      select: { 
-        acquisitionValue: true,
-      },
+      where: subsidiaryId ? { subsidiaryId } : {},
+      select: { acquisitionValue: true },
     });
-    
-    return equipments.reduce((total, equipment) => {
-      // Utiliser la valeur d'acquisition
-      const value = Number(equipment.acquisitionValue) || 0;
-      return total + value;
-    }, 0);
+    return equipments.reduce((sum, e) => sum + Number(e.acquisitionValue), 0);
   }
 
   /**
-   * Calcule la valeur totale des immobilisations
+   * Valeur nette comptable : coût d'acquisition moins amortissement cumulé.
+   * Pour le calcul correct, l'amortissement devrait être calculé sur la durée de vie.
+   * Ici on applique le taux annuel sur le coût d'acquisition comme approximation.
    */
   async getFixedAssetsValue(subsidiaryId?: string): Promise<number> {
-    const where = subsidiaryId ? { subsidiaryId } : {};
-    
-    const fixedAssets = await this.prisma.fixedAsset.findMany({
-      where,
-      select: { 
-        acquisitionCost: true,
-        depreciationRate: true,
-      },
+    const assets = await this.prisma.fixedAsset.findMany({
+      where: subsidiaryId ? { subsidiaryId } : {},
+      select: { acquisitionCost: true, depreciationRate: true, acquisitionDate: true },
     });
-    
-    return fixedAssets.reduce((total, asset) => {
-      const acquisitionCost = Number(asset.acquisitionCost) || 0;
-      const depreciationRate = Number(asset.depreciationRate) || 0;
-      const depreciationAmount = acquisitionCost * (depreciationRate / 100);
-      return total + (acquisitionCost - depreciationAmount);
+
+    const now = new Date();
+    return assets.reduce((sum, asset) => {
+      const cost = Number(asset.acquisitionCost);
+      const rate = Number(asset.depreciationRate) / 100;
+      const yearsOwned = (now.getTime() - new Date(asset.acquisitionDate).getTime()) / (1000 * 60 * 60 * 24 * 365);
+      const totalDepreciation = Math.min(cost * rate * yearsOwned, cost);
+      return sum + (cost - totalDepreciation);
     }, 0);
   }
 
   /**
-   * Calcule le montant total des dettes fournisseurs
+   * Uniquement les dettes IMPAYÉES — les dettes payées ne figurent plus au passif.
    */
-  async getSupplierDebts(subsidiaryId?: string): Promise<number> {
-    const where = subsidiaryId ? { subsidiaryId } : {};
-    
-    const supplierDebts = await this.prisma.supplierDebt.findMany({
-      where,
+  async getUnpaidSupplierDebts(subsidiaryId?: string): Promise<number> {
+    const debts = await this.prisma.supplierDebt.findMany({
+      where: {
+        ...(subsidiaryId ? { subsidiaryId } : {}),
+        status: DebtStatus.A_PAYER,
+      },
       select: { amount: true },
     });
-    
-    return supplierDebts.reduce((total, debt) => total + Number(debt.amount), 0);
+    return debts.reduce((sum, d) => sum + Number(d.amount), 0);
   }
 
-  /**
-   * Récupère le capital social de la filiale
-   */
+  async getLongTermDebtsBalance(subsidiaryId?: string): Promise<number> {
+    const debts = await this.prisma.longTermDebt.findMany({
+      where: subsidiaryId ? { subsidiaryId } : {},
+      select: { currentBalance: true },
+    });
+    return debts.reduce((sum, d) => sum + Number(d.currentBalance), 0);
+  }
+
   async getShareCapital(subsidiaryId?: string): Promise<number> {
     if (subsidiaryId) {
-      const subsidiary = await this.prisma.subsidiary.findUnique({
+      const sub = await this.prisma.subsidiary.findUnique({
         where: { id: subsidiaryId },
         select: { shareCapital: true },
       });
-      
-      return Number(subsidiary?.shareCapital) || 0;
+      return Number(sub?.shareCapital) || 0;
     }
-    
-    // Si consolidation, somme des capitaux sociaux de toutes les filiales
-    const subsidiaries = await this.prisma.subsidiary.findMany({
-      select: { shareCapital: true },
-    });
-    
-    return subsidiaries.reduce((total, subsidiary) => total + Number(subsidiary.shareCapital), 0);
+    const subs = await this.prisma.subsidiary.findMany({ select: { shareCapital: true } });
+    return subs.reduce((sum, s) => sum + Number(s.shareCapital), 0);
   }
 
   /**
-   * Calcule le résultat net cumulé (résultats des exercices antérieurs)
-   * Pour simplifier, on utilise les données des ventes moins les dépenses
+   * Résultats cumulés (bénéfices non distribués) = revenus encaissés - dépenses - masse salariale.
+   * Seules les ventes PAYÉES comptent comme revenus réalisés.
    */
-  async getAccumulatedNetIncome(subsidiaryId?: string): Promise<number> {
+  async getRetainedEarnings(subsidiaryId?: string): Promise<number> {
     const where = subsidiaryId ? { subsidiaryId } : {};
-    
-    // Récupération des ventes
-    const sales = await this.prisma.sale.findMany({
-      where,
-      select: { totalPrice: true },
-    });
-    
-    const totalRevenue = sales.reduce((total, sale) => total + Number(sale.totalPrice), 0);
-    
-    // Récupération des dépenses
-    const expenses = await this.prisma.expenseRecord.findMany({
-      where,
-      select: { amount: true },
-    });
-    
-    const totalExpenses = expenses.reduce((total, expense) => total + Number(expense.amount), 0);
-    
-    // Récupération des salaires
-    const payrolls = await this.prisma.payrollRecord.findMany({
-      where,
-      select: { netSalary: true },
-    });
-    
-    const totalPayroll = payrolls.reduce((total, payroll) => total + Number(payroll.netSalary), 0);
-    
+
+    const [sales, expenses, payrolls] = await Promise.all([
+      this.prisma.sale.findMany({
+        where: { ...where, status: 'PAID' },
+        select: { totalPrice: true },
+      }),
+      this.prisma.expenseRecord.findMany({
+        where,
+        select: { amount: true },
+      }),
+      this.prisma.payrollRecord.findMany({
+        where,
+        select: { netSalary: true, deductions: true },
+      }),
+    ]);
+
+    const totalRevenue = sales.reduce((sum, s) => sum + Number(s.totalPrice), 0);
+    const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+    const totalPayroll = payrolls.reduce((sum, p) => sum + Number(p.netSalary) + Number(p.deductions), 0);
+
     return totalRevenue - totalExpenses - totalPayroll;
+  }
+
+  // Méthodes publiques pour les endpoints individuels du controller
+  async getSupplierDebts(subsidiaryId?: string): Promise<number> {
+    return this.getUnpaidSupplierDebts(subsidiaryId);
+  }
+
+  async getAccumulatedNetIncome(subsidiaryId?: string): Promise<number> {
+    return this.getRetainedEarnings(subsidiaryId);
   }
 }

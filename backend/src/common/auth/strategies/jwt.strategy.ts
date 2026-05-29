@@ -23,10 +23,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       this.logger.error(`User with ID ${payload.sub} not found`, 'JwtStrategy');
       return null;
     }
+    const roles = [user.userRole, ...user.additionalRoles.filter(r => r !== user.userRole)];
     return {
       id: user.id,
       email: user.email,
       role: user.userRole,
+      roles,
       subsidiaryId: user.subsidiaryId,
     };
   }
