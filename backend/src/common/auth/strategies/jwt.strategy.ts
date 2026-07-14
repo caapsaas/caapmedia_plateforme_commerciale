@@ -29,6 +29,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
+    // Token intermediaire 2FA (voir auth.service.ts login()): ne doit JAMAIS
+    // etre accepte comme access token, meme s'il porte un `sub` valide -
+    // sinon un token pending vole permettrait de contourner le 2eme facteur.
+    if (payload.type === 'pending_2fa') {
+      this.logger.error('Tentative d\'utilisation d\'un pending_2fa token comme access token', 'JwtStrategy');
+      return null;
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       include: { subsidiary: true },

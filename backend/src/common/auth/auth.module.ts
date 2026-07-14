@@ -8,6 +8,8 @@ import { RoleGuard } from './role/role.guard';
 import { SubsidiaryGuard } from './subsidiary/subsidiary.guard';
 import { AuthController } from './auth/auth.controller';
 import { RefreshTokenService } from './auth/refresh-token.service';
+import { TwoFactorController } from './two-factor/two-factor.controller';
+import { TwoFactorService } from './two-factor/two-factor.service';
 
 @Module({
   imports: [
@@ -20,8 +22,8 @@ import { RefreshTokenService } from './auth/refresh-token.service';
       signOptions: { expiresIn: '15m' },
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RoleGuard, SubsidiaryGuard, RefreshTokenService],
-  exports: [AuthService, JwtModule, RoleGuard, SubsidiaryGuard, RefreshTokenService],
+  controllers: [AuthController, TwoFactorController],
+  providers: [AuthService, JwtStrategy, RoleGuard, SubsidiaryGuard, RefreshTokenService, TwoFactorService],
+  exports: [AuthService, JwtModule, RoleGuard, SubsidiaryGuard, RefreshTokenService, TwoFactorService],
 })
 export class AuthModule {}

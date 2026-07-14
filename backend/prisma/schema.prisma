@@ -70,6 +70,10 @@ model User {
   additionalRoles               UserRole[]                     @default([]) @map("additional_roles")
   /// Source de verite cible pour le RBAC (remplace userRole+additionalRoles, voir Doc/architecture-multi-filiale-auth-rbac.md phase 4)
   roles                         UserRole[]                     @default([]) @map("roles")
+  twoFactorSecret               String?                        @map("two_factor_secret")
+  twoFactorEnabled              Boolean                        @default(false) @map("two_factor_enabled")
+  /// Hash SHA-256 de chaque code (usage unique, jamais stockes en clair)
+  twoFactorRecoveryCodes        String[]                       @default([]) @map("two_factor_recovery_codes")
   accounts                      Account[]
   contacts                      Contact[]
   crmTasks                      CrmTask[]

@@ -100,14 +100,18 @@ export class AuthController {
 
   @Post('login')
   async login(@Body() dto: LoginDto, @Request() req, @Res({ passthrough: true }) res: Response) {
-    const { user, subsidiary } = await this.authService.login(dto.email, dto.password);
-    const { accessToken, refreshToken, user: userPayload } = await this.authService.issueTokens(user, {
+    const result = await this.authService.login(dto.email, dto.password);
+    if (result.twoFactorRequired) {
+      // Pas de cookies: le client doit d'abord completer POST /auth/2fa/login
+      return { twoFactorRequired: true, pendingToken: result.pendingToken };
+    }
+    const { accessToken, refreshToken, user: userPayload } = await this.authService.issueTokens(result.user, {
       userAgent: req.headers['user-agent'],
       ipAddress: req.ip,
     });
     setAuthCookies(res, accessToken, refreshToken);
     setCsrfCookie(res);
-    return { user: userPayload, subsidiary };
+    return { twoFactorRequired: false, user: userPayload, subsidiary: result.subsidiary };
   }
 
   /**

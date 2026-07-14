@@ -93,8 +93,18 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (user.twoFactorEnabled) {
+      // Pas de cookies de session ici: un second facteur est requis avant
+      // d'emettre l'access/refresh token. Token intermediaire courte duree,
+      // marque par `type: 'pending_2fa'` - JwtStrategy le rejette
+      // explicitement s'il est presente comme un access token normal.
+      const pendingToken = this.jwtService.sign({ sub: user.id, type: 'pending_2fa' }, { expiresIn: '5m' });
+      this.logger.log(`User ${email} password OK, 2FA requise`, 'AuthService');
+      return { twoFactorRequired: true as const, pendingToken };
+    }
+
     this.logger.log(`User ${email} logged in successfully`, 'AuthService');
-    return { user, subsidiary: user.subsidiary };
+    return { twoFactorRequired: false as const, user, subsidiary: user.subsidiary };
   }
 
   /**
