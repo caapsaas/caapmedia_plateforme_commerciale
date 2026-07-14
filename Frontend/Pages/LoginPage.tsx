@@ -76,11 +76,11 @@ const LoginPage: React.FC = () => {
   setIsLoading(true);
 
   try {
-    // 1️⃣ Appel à l’API d’authentification
-    const { user, access_token, subsidiary } = await apiLogin({ email, password });
+    // 1️⃣ Appel à l'API d'authentification (le serveur pose les cookies httpOnly)
+    const { user, subsidiary } = await apiLogin({ email, password });
 
-    // 2️⃣ Mise à jour complète du contexte Auth (token + user)
-    login({ user, token: access_token, subsidiary });
+    // 2️⃣ Mise à jour du contexte Auth
+    login({ user, subsidiary });
 
   } catch (err: any) {
     setError(err.message || t('login.errorIncorrectCredentials'));

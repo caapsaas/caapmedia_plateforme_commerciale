@@ -25,6 +25,22 @@ import SuperAdminDashboard from './Pages/SuperAdminDashboard';
 import { UserRole } from './types';
 
 
+// Le token "user" vit dans un cookie httpOnly (illisible en JS) - au chargement
+// de l'app, AuthContext doit d'abord interroger le serveur pour savoir si une
+// session est active (voir isAuthResolved). Les beforeLoad qui dependent de
+// l'authentification doivent attendre cette resolution avant de rediriger,
+// sous peine de rediriger vers /login un utilisateur pourtant deja connecte.
+function waitForAuthResolved(auth: ReturnType<typeof useAuth>): Promise<void> {
+  if (auth.isAuthResolved) return Promise.resolve();
+  return new Promise<void>(resolve => {
+    const check = () => {
+      if (auth.isAuthResolved) resolve();
+      else setTimeout(check, 10);
+    };
+    check();
+  });
+}
+
 // 1. Utiliser createRootRouteWithContext pour typer le contexte du routeur
 const rootRoute = createRootRouteWithContext<{
   auth: ReturnType<typeof useAuth>
@@ -76,8 +92,9 @@ const superAdminRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/super-admin',
   component: SuperAdminDashboard,
-  beforeLoad: ({ context, location }) => {
-    if (!context.auth.token) {
+  beforeLoad: async ({ context, location }) => {
+    await waitForAuthResolved(context.auth);
+    if (!context.auth.isAuthenticated) {
       throw redirect({
         to: '/login',
         search: { redirect: location.href },
@@ -93,9 +110,10 @@ const superAdminRoute = createRoute({
 const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/dashboard',
-  component: Outlet, 
-  beforeLoad: ({ context, location }) => {
-    if (!context.auth.token) {
+  component: Outlet,
+  beforeLoad: async ({ context, location }) => {
+    await waitForAuthResolved(context.auth);
+    if (!context.auth.isAuthenticated) {
       throw redirect({
         to: '/login',
         search: {

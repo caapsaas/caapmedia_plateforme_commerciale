@@ -11,7 +11,7 @@ import { Outlet, useRouterState } from '@tanstack/react-router';
 const App: React.FC = () => {
   const { state, dispatch } = useAppContext();
   const { showIdleModal } = state;
-  const { logout, token } = useAuth(); // Utiliser le token de AuthContext
+  const { logout, isAuthenticated } = useAuth();
   const routerState = useRouterState();
   const isDashboard = routerState.location.pathname.startsWith('/dashboard');
 
@@ -20,7 +20,7 @@ const App: React.FC = () => {
   };
 
   const handleIdle = () => {
-    if (isDashboard && token) { // Vérifier si un utilisateur est connecté via le token
+    if (isDashboard && isAuthenticated) {
       dispatch({ type: 'SET_IDLE_MODAL', payload: true });
     }
   };
