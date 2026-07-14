@@ -12,12 +12,14 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
+import { Throttle } from '@nestjs/throttler';
 import { IsOptional, IsString, MinLength } from 'class-validator';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../utils/prisma/prisma.service';
 import { JwtAuthGuard } from '../jwt/jwt.guard';
 import { TwoFactorService } from './two-factor.service';
 import { AuthService } from '../auth/auth.service';
+import { AuthAuditService } from '../auth/auth-audit.service';
 import { setAuthCookies, setCsrfCookie } from '../cookie.util';
 
 class TwoFactorCodeDto {
@@ -53,6 +55,7 @@ export class TwoFactorController {
   constructor(
     private readonly twoFactorService: TwoFactorService,
     private readonly authService: AuthService,
+    private readonly authAuditService: AuthAuditService,
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
   ) {}
@@ -82,6 +85,7 @@ export class TwoFactorController {
    * renvoie les codes de secours en clair - unique moment ou ils sont
    * visibles, seul leur hash est conserve ensuite.
    */
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @UseGuards(JwtAuthGuard)
   @Post('verify')
   async verify(@Request() req, @Body() dto: TwoFactorCodeDto) {
@@ -101,6 +105,7 @@ export class TwoFactorController {
       data: { twoFactorEnabled: true, twoFactorRecoveryCodes: hashedCodes },
     });
 
+    await this.authAuditService.log('TWO_FACTOR_ENABLED', { userId: user.id, email: user.email, ipAddress: req.ip, userAgent: req.headers['user-agent'] });
     return { message: 'Double authentification activee', recoveryCodes };
   }
 
@@ -108,6 +113,7 @@ export class TwoFactorController {
    * Desactivation: exige le mot de passe ET un code TOTP valide (double
    * confirmation car cela reduit la securite du compte).
    */
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @UseGuards(JwtAuthGuard)
   @Post('disable')
   async disable(@Request() req, @Body() dto: TwoFactorDisableDto) {
@@ -126,6 +132,7 @@ export class TwoFactorController {
       data: { twoFactorEnabled: false, twoFactorSecret: null, twoFactorRecoveryCodes: [] },
     });
 
+    await this.authAuditService.log('TWO_FACTOR_DISABLED', { userId: user.id, email: user.email, ipAddress: req.ip, userAgent: req.headers['user-agent'] });
     return { message: 'Double authentification desactivee' };
   }
 
@@ -134,6 +141,7 @@ export class TwoFactorController {
    * (obtenu apres verification du mot de passe) + un code TOTP ou un code de
    * secours contre une session complete (cookies httpOnly).
    */
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   async login(@Body() dto: TwoFactorLoginDto, @Request() req, @Res({ passthrough: true }) res: Response) {
     if (!dto.code && !dto.recoveryCode) {
@@ -150,6 +158,7 @@ export class TwoFactorController {
       throw new UnauthorizedException('Token invalide');
     }
 
+    const meta = { userId: payload.sub, ipAddress: req.ip, userAgent: req.headers['user-agent'] };
     const user = await this.prisma.user.findUnique({ where: { id: payload.sub }, include: { subsidiary: true } });
     if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
       throw new UnauthorizedException('Session invalide');
@@ -170,7 +179,10 @@ export class TwoFactorController {
       }
     }
 
-    if (!authenticated) throw new UnauthorizedException('Code invalide');
+    if (!authenticated) {
+      await this.authAuditService.log('TWO_FACTOR_LOGIN_FAILED', { ...meta, email: user.email });
+      throw new UnauthorizedException('Code invalide');
+    }
 
     const { accessToken, refreshToken, user: userPayload } = await this.authService.issueTokens(user, {
       userAgent: req.headers['user-agent'],
@@ -178,6 +190,7 @@ export class TwoFactorController {
     });
     setAuthCookies(res, accessToken, refreshToken);
     setCsrfCookie(res);
+    await this.authAuditService.log('TWO_FACTOR_LOGIN_SUCCESS', { ...meta, email: user.email });
     return { user: userPayload, subsidiary: user.subsidiary };
   }
 }

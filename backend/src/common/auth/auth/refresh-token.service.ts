@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { randomBytes, createHash } from 'crypto';
 import { PrismaService } from '../../utils/prisma/prisma.service';
 import { LoggerService } from '../../utils/logger/logger.service';
+import { AuthAuditService } from './auth-audit.service';
 
 const REFRESH_TOKEN_BYTES = 64;
 const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 jours
@@ -30,6 +31,7 @@ export class RefreshTokenService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
+    private readonly authAuditService: AuthAuditService,
   ) {}
 
   private hash(token: string): string {
@@ -70,6 +72,7 @@ export class RefreshTokenService {
     if (existing.revokedAt) {
       this.logger.warn(`Refresh token deja revoque reutilise pour user ${existing.userId} - revocation de toutes ses sessions`, 'RefreshTokenService');
       await this.revokeAllForUser(existing.userId);
+      await this.authAuditService.log('REFRESH_TOKEN_REUSE_DETECTED', { userId: existing.userId, ipAddress: meta.ipAddress, userAgent: meta.userAgent });
       throw new UnauthorizedException('Refresh token invalide');
     }
 

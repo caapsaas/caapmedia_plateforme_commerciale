@@ -110,6 +110,39 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
+enum AuthAuditEvent {
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOGIN_2FA_PENDING
+  LOGOUT
+  REFRESH_TOKEN_REUSE_DETECTED
+  TWO_FACTOR_ENABLED
+  TWO_FACTOR_DISABLED
+  TWO_FACTOR_LOGIN_SUCCESS
+  TWO_FACTOR_LOGIN_FAILED
+  PASSWORD_RESET_REQUESTED
+}
+
+/// Journal des evenements d'authentification sensibles. Pas de relation
+/// formelle vers User (juste un id en texte libre): l'historique doit
+/// survivre a la suppression d'un compte, et une tentative de login echouee
+/// n'a pas toujours d'utilisateur identifie (email inexistant).
+model AuthAuditLog {
+  id        String         @id @default(uuid()) @db.Uuid
+  event     AuthAuditEvent
+  userId    String?        @map("user_id") @db.Uuid
+  email     String?        @map("email")
+  ipAddress String?        @map("ip_address")
+  userAgent String?        @map("user_agent")
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([email])
+  @@index([event])
+  @@index([createdAt])
+  @@map("auth_audit_logs")
+}
+
 model Notification {
   id            String           @id @default(uuid()) @map("id") @db.Uuid
   title         String           @map("title") @db.VarChar(255)

@@ -6,7 +6,8 @@ import { PrismaModule } from './common/utils/prisma/prisma.module';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './common/auth/auth.module';
 import { SubsidiariesModule } from './common/subsidiaries/subsidiaries.module';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { ProductsModule } from './ecommerce/products/products.module';
 import { SecretariatModule } from './secretariat/secretariat.module';
 import { HrModule } from './hr/hr.module';
@@ -63,6 +64,12 @@ import { validate } from './config/env.validation';
 
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // ThrottlerModule.forRoot() ne fait qu'enregistrer la config: sans ce
+    // guard applique globalement, aucune limite n'est jamais appliquee
+    // (@Throttle() sur une route n'a d'effet que si ce guard tourne).
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}
