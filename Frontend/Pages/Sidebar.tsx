@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useRouterState } from '@tanstack/react-router';
 import { UserRole } from '../types';
@@ -22,6 +22,7 @@ import IconBuildingStorefront from '../components/icons/IconBuildingStorefront';
 import IconAccounting from '../components/icons/IconAccounting';
 import { useAuth } from '../context/AuthContext';
 import IconGmoLogo from '../components/icons/IconGmoLogo';
+import SidebarDropdown from '../components/common/SidebarDropdown';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -33,14 +34,13 @@ interface NavItem {
 
 interface NavGroup {
   groupLabel: string;
+  groupIcon: React.ReactNode;
   items: NavItem[];
 }
 
-// ─── NavLink ─────────────────────────────────────────────────────────────────
-// Style aligne sur gmo-plateforme-commerciale-241025/Frontend_GMO/components/Sidebar.tsx:
-// pastille active en gradient + ombre coloree, icone qui change de teinte selon
-// l'etat, et tooltip en portal (evite d'etre rogne par l'overflow-x-hidden du nav
-// quand la sidebar est reduite).
+// ─── NavLink (item unique hors dropdown, ex: bouton déconnexion) ─────────────
+// Port fidele de Frontend_GMO/components/Sidebar.tsx::NavLink, seule la
+// couleur d'accent change (#c6e911 au lieu du gradient orange de gmo).
 
 const NavLink: React.FC<{
   to: string;
@@ -79,7 +79,6 @@ const NavLink: React.FC<{
         {!isCollapsed && <span className="text-sm font-medium tracking-wide whitespace-nowrap">{label}</span>}
       </Link>
 
-      {/* Tooltip mode réduit, en portal pour ne pas être rogné par l'overflow du nav */}
       {isCollapsed && tooltipPos && createPortal(
         <div
           style={{ top: tooltipPos.top, left: tooltipPos.left, transform: 'translateY(-50%)' }}
@@ -90,105 +89,6 @@ const NavLink: React.FC<{
         </div>,
         document.body
       )}
-    </div>
-  );
-};
-
-// ─── CollapsibleGroup ─────────────────────────────────────────────────────────
-
-const CollapsibleGroup: React.FC<{
-  group: NavGroup;
-  isCollapsed: boolean;           // sidebar réduite (icônes seulement)
-  onItemClick: () => void;
-  currentPath: string;
-}> = ({ group, isCollapsed, onItemClick, currentPath }) => {
-  // Vérifie si un item du groupe est actif pour l'ouvrir par défaut
-  const isItemActive = (item: NavItem) =>
-    item.to === '/dashboard/' ? currentPath === '/dashboard/' : currentPath.startsWith(item.to);
-  const hasActiveItem = group.items.some(isItemActive);
-
-  const [open, setOpen] = useState(hasActiveItem);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [height, setHeight] = useState<number | undefined>(hasActiveItem ? undefined : 0);
-
-  // Mise à jour de la hauteur pour l'animation
-  useEffect(() => {
-    if (!contentRef.current) return;
-    if (open) {
-      setHeight(contentRef.current.scrollHeight);
-      // Après l'animation, libérer la hauteur pour gérer les redimensionnements
-      const timer = setTimeout(() => setHeight(undefined), 250);
-      return () => clearTimeout(timer);
-    } else {
-      // Figer la hauteur avant de l'animer vers 0
-      setHeight(contentRef.current.scrollHeight);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setHeight(0));
-      });
-    }
-  }, [open]);
-
-  // En mode sidebar réduite, tout est toujours visible (pas de labels, juste les icônes)
-  if (isCollapsed) {
-    return (
-      <div className="space-y-1 py-1">
-        <div className="mx-3 mb-1 border-t border-white/10" />
-        {group.items.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            icon={item.icon}
-            label={item.label}
-            isActive={isItemActive(item)}
-            isCollapsed
-            onClick={onItemClick}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-1">
-      {/* En-tête du groupe cliquable */}
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-4 pt-3 pb-1.5 rounded-lg group/header hover:bg-white/5 transition-colors duration-150"
-      >
-        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 group-hover/header:text-slate-400 transition-colors select-none">
-          {group.groupLabel}
-        </span>
-        <svg
-          className={`h-3 w-3 text-slate-500 group-hover/header:text-slate-400 transition-all duration-250 ${open ? 'rotate-180' : 'rotate-0'}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2.5}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {/* Contenu animé */}
-      <div
-        ref={contentRef}
-        style={{ height: height === undefined ? 'auto' : `${height}px` }}
-        className="overflow-hidden transition-[height] duration-250 ease-in-out"
-      >
-        <div className="space-y-1 pb-1">
-          {group.items.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              icon={item.icon}
-              label={item.label}
-              isActive={isItemActive(item)}
-              isCollapsed={false}
-              onClick={onItemClick}
-            />
-          ))}
-        </div>
-      </div>
     </div>
   );
 };
@@ -220,12 +120,14 @@ const Sidebar: React.FC = () => {
         return [
           {
             groupLabel: 'Principal',
+            groupIcon: <IconAnalytics className="h-5 w-5" />,
             items: [
               { to: '/dashboard/', label: t('sidebar.analytics'), icon: <IconAnalytics className="h-5 w-5" /> },
             ],
           },
           {
             groupLabel: 'Commerce',
+            groupIcon: <IconCrm className="h-5 w-5" />,
             items: [
               { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-5 w-5" /> },
               { to: '/dashboard/sales', label: t('sidebar.orders'), icon: <IconSales className="h-5 w-5" /> },
@@ -234,6 +136,7 @@ const Sidebar: React.FC = () => {
           },
           {
             groupLabel: 'Opérations',
+            groupIcon: <IconTruck className="h-5 w-5" />,
             items: [
               { to: '/dashboard/purchasing', label: t('sidebar.purchasing'), icon: <IconTruck className="h-5 w-5" /> },
               { to: '/dashboard/stock', label: t('sidebar.stockManagement'), icon: <IconStock className="h-5 w-5" /> },
@@ -243,6 +146,7 @@ const Sidebar: React.FC = () => {
           },
           {
             groupLabel: 'Finance & Comptabilité',
+            groupIcon: <IconFinance className="h-5 w-5" />,
             items: [
               { to: '/dashboard/finance', label: t('sidebar.finance'), icon: <IconFinance className="h-5 w-5" /> },
               { to: '/dashboard/accounting', label: 'Comptabilité', icon: <IconAccounting className="h-5 w-5" /> },
@@ -250,6 +154,7 @@ const Sidebar: React.FC = () => {
           },
           {
             groupLabel: 'RH & Administration',
+            groupIcon: <IconBriefcase className="h-5 w-5" />,
             items: [
               { to: '/dashboard/hr', label: t('sidebar.hrManagement'), icon: <IconBriefcase className="h-5 w-5" /> },
               { to: '/dashboard/secretariat', label: t('sidebar.secretariat'), icon: <IconClipboardList className="h-5 w-5" /> },
@@ -262,12 +167,14 @@ const Sidebar: React.FC = () => {
         return [
           {
             groupLabel: 'Principal',
+            groupIcon: <IconAnalytics className="h-5 w-5" />,
             items: [
               { to: '/dashboard/', label: t('sidebar.analytics'), icon: <IconAnalytics className="h-5 w-5" /> },
             ],
           },
           {
             groupLabel: 'Commerce',
+            groupIcon: <IconCrm className="h-5 w-5" />,
             items: [
               { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-5 w-5" /> },
               { to: '/dashboard/sales', label: t('sidebar.orders'), icon: <IconSales className="h-5 w-5" /> },
@@ -279,6 +186,7 @@ const Sidebar: React.FC = () => {
         return [
           {
             groupLabel: 'Caisse',
+            groupIcon: <IconCashRegister className="h-5 w-5" />,
             items: [
               { to: '/dashboard/caisse', label: t('sidebar.cashRegister'), icon: <IconCashRegister className="h-5 w-5" /> },
               { to: '/dashboard/sales', label: t('sidebar.transactions'), icon: <IconSales className="h-5 w-5" /> },
@@ -290,6 +198,7 @@ const Sidebar: React.FC = () => {
         return [
           {
             groupLabel: 'Opérations',
+            groupIcon: <IconTruck className="h-5 w-5" />,
             items: [
               { to: '/dashboard/purchasing', label: t('sidebar.purchasing'), icon: <IconTruck className="h-5 w-5" /> },
               { to: '/dashboard/stock', label: t('sidebar.stockManagement'), icon: <IconStock className="h-5 w-5" /> },
@@ -301,12 +210,14 @@ const Sidebar: React.FC = () => {
         return [
           {
             groupLabel: 'Principal',
+            groupIcon: <IconAnalytics className="h-5 w-5" />,
             items: [
               { to: '/dashboard/', label: t('sidebar.analytics'), icon: <IconAnalytics className="h-5 w-5" /> },
             ],
           },
           {
             groupLabel: 'Commerce',
+            groupIcon: <IconCrm className="h-5 w-5" />,
             items: [
               { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-5 w-5" /> },
               { to: '/dashboard/sales', label: t('sidebar.orders'), icon: <IconSales className="h-5 w-5" /> },
@@ -315,6 +226,7 @@ const Sidebar: React.FC = () => {
           },
           {
             groupLabel: 'Finance & Comptabilité',
+            groupIcon: <IconFinance className="h-5 w-5" />,
             items: [
               { to: '/dashboard/finance', label: t('sidebar.finance'), icon: <IconFinance className="h-5 w-5" /> },
               { to: '/dashboard/accounting', label: 'Comptabilité', icon: <IconAccounting className="h-5 w-5" /> },
@@ -326,6 +238,7 @@ const Sidebar: React.FC = () => {
         return [
           {
             groupLabel: 'Secrétariat',
+            groupIcon: <IconClipboardList className="h-5 w-5" />,
             items: [
               { to: '/dashboard/secretariat', label: t('sidebar.secretariat'), icon: <IconClipboardList className="h-5 w-5" /> },
               { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-5 w-5" /> },
@@ -337,6 +250,7 @@ const Sidebar: React.FC = () => {
         return [
           {
             groupLabel: 'Ressources humaines',
+            groupIcon: <IconBriefcase className="h-5 w-5" />,
             items: [
               { to: '/dashboard/hr', label: t('sidebar.hrManagement'), icon: <IconBriefcase className="h-5 w-5" /> },
             ],
@@ -347,6 +261,7 @@ const Sidebar: React.FC = () => {
         return [
           {
             groupLabel: 'Production',
+            groupIcon: <IconFactory className="h-5 w-5" />,
             items: [
               { to: '/dashboard/production', label: t('sidebar.production'), icon: <IconFactory className="h-5 w-5" /> },
               { to: '/dashboard/sales', label: t('sidebar.orders'), icon: <IconSales className="h-5 w-5" /> },
@@ -354,6 +269,7 @@ const Sidebar: React.FC = () => {
           },
           {
             groupLabel: 'Maintenance',
+            groupIcon: <IconMaintenance className="h-5 w-5" />,
             items: [
               { to: '/dashboard/maintenance', label: t('sidebar.maintenance'), icon: <IconMaintenance className="h-5 w-5" /> },
               { to: '/dashboard/equipements', label: t('sidebar.equipements'), icon: <IconBuildingStorefront className="h-5 w-5" /> },
@@ -370,6 +286,7 @@ const Sidebar: React.FC = () => {
   const subsidiaryName = subsidiary?.name || subsidiary?.subsidiaryName;
 
   const sidebarClasses = `
+    no-print
     fixed md:relative inset-y-0 left-0 z-40
     flex flex-col
     bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f]
@@ -377,17 +294,21 @@ const Sidebar: React.FC = () => {
     transition-all duration-300 ease-in-out
     shadow-2xl
     border-r border-white/5
-    no-print
     ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
     ${isSidebarCollapsed ? 'w-20' : 'w-72'}
   `;
 
+  // Un Fragment (et non un <div> englobant) pour que sidebarClasses soit
+  // l'enfant flex DIRECT du conteneur `flex h-screen` d'App.tsx: c'est ce qui
+  // lui permet de s'etirer sur toute la hauteur de l'ecran (align-items:
+  // stretch par defaut). Un div wrapper intermediaire cassait cet etirement -
+  // meme structure que Frontend_GMO/components/Sidebar.tsx.
   return (
-    <div className="no-print">
+    <>
       {/* Overlay mobile */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden"
+          className="no-print fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -435,15 +356,17 @@ const Sidebar: React.FC = () => {
 
         {/* ── Navigation ── */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden py-2">
-          <nav className={`${isSidebarCollapsed ? 'px-3' : 'px-4'}`}>
+          <nav className={`space-y-1 ${isSidebarCollapsed ? 'px-3' : 'px-4'}`}>
             {navGroups.length > 0 ? (
-              navGroups.map((group, idx) => (
-                <CollapsibleGroup
-                  key={idx}
-                  group={group}
+              navGroups.map((group) => (
+                <SidebarDropdown
+                  key={group.groupLabel}
+                  title={group.groupLabel}
+                  icon={group.groupIcon}
+                  items={group.items}
                   isCollapsed={isSidebarCollapsed}
-                  onItemClick={() => setIsSidebarOpen(false)}
                   currentPath={currentPath}
+                  onItemClick={() => setIsSidebarOpen(false)}
                 />
               ))
             ) : (
@@ -487,7 +410,7 @@ const Sidebar: React.FC = () => {
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
