@@ -20,6 +20,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ leads, onSave, onDele
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingLead, setEditingLead] = useState<Lead | null>(null);
     const [deletingLead, setDeletingLead] = useState<Lead | null>(null);
+    const [convertingLead, setConvertingLead] = useState<Lead | null>(null);
 
     const handleOpenAddModal = () => {
         setEditingLead(null);
@@ -38,6 +39,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ leads, onSave, onDele
     const handleCloseModals = () => {
         setIsFormModalOpen(false);
         setDeletingLead(null);
+        setConvertingLead(null);
     };
 
     const handleSave = (data: Omit<Lead, 'id' | 'subsidiaryId'>) => {
@@ -48,6 +50,13 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ leads, onSave, onDele
     const handleDelete = () => {
         if (deletingLead) {
             onDelete(deletingLead.id);
+            handleCloseModals();
+        }
+    };
+
+    const handleConvert = () => {
+        if (convertingLead) {
+            onConvertLead(convertingLead.id);
             handleCloseModals();
         }
     };
@@ -95,14 +104,15 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ leads, onSave, onDele
                                         {t(`crm.leads.status_${lead.status}`)}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 text-center space-x-1">
+                                <td className="px-6 py-4 text-center space-x-2">
                                     {lead.status === LeadStatus.QUALIFIED && (
                                         <button
-                                            onClick={() => onConvertLead(lead.id)}
-                                            className="p-2 text-green-600 hover:bg-green-100 rounded-full transition-colors"
-                                            title={t('crm.leads.convert')}
+                                            onClick={() => setConvertingLead(lead)}
+                                            className="inline-flex items-center gap-1 px-3 py-1 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-md transition-colors"
+                                            title="Convertir en client"
                                         >
-                                            <IconCheckCircle className="h-5 w-5" />
+                                            <span>✓</span>
+                                            <span>Convertir</span>
                                         </button>
                                     )}
 
@@ -134,6 +144,16 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ leads, onSave, onDele
                     onConfirm={handleDelete}
                     title={t('crm.leads.modal.deleteTitle')}
                     message={t('configuration.modal.deleteConfirmMessage', { itemName: deletingLead.leadName })}
+                />
+            )}
+
+            {convertingLead && (
+                <ConfirmationModal
+                    isOpen={!!convertingLead}
+                    onClose={handleCloseModals}
+                    onConfirm={handleConvert}
+                    title="Convertir en Client"
+                    message={`Êtes-vous sûr de vouloir convertir "${convertingLead.leadName}" en client? Un nouveau compte et une opportunité seront créés.`}
                 />
             )}
         </div>
