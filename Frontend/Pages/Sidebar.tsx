@@ -321,36 +321,18 @@ const Sidebar: React.FC = () => {
           </div>
         </div>
 
-        {/* ── Filiale & rôle ── */}
+        {/* ── Filiale ── */}
+        {/* Le role (et le switch entre plusieurs roles) s'affiche dans le
+            Header, pas ici - meme emplacement que Frontend_GMO/components/
+            Header.tsx (tabs de roles sous la barre principale), pas dans
+            Frontend_GMO/components/Sidebar.tsx qui n'affiche aucun role. */}
         {!isSidebarCollapsed && (
-          <div className="px-4 py-3 space-y-2">
+          <div className="px-4 py-3">
             <div className="bg-white/5 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/5">
               <p className="text-sm font-medium text-slate-200 truncate">
                 {subsidiaryName || (user.userRole === UserRole.ADMIN || user.userRole === UserRole.SUPER_ADMIN ? 'Vue Admin' : 'CaapMedia')}
               </p>
             </div>
-            {/* Role switcher: affiche des pills si l'utilisateur a des rôles supplémentaires */}
-            {(user.additionalRoles ?? []).length > 0 ? (
-              <div className="flex flex-wrap gap-1">
-                {[user.userRole, ...(user.additionalRoles ?? [])].filter((r): r is UserRole => !!r).map(role => (
-                  <button
-                    key={role}
-                    onClick={() => dispatch({ type: 'SET_PREVIEW_ROLE', payload: role })}
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase transition-all duration-150 ${
-                      activeRole === role
-                        ? 'bg-[#c6e911] text-slate-900 shadow-md'
-                        : 'bg-white/10 text-slate-400 hover:bg-white/20 hover:text-white'
-                    }`}
-                  >
-                    {role.replace(/_/g, ' ')}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#c6e911]/15 text-[#c6e911] tracking-wide uppercase">
-                {(user.userRole ?? '').replace(/_/g, ' ')}
-              </span>
-            )}
           </div>
         )}
 

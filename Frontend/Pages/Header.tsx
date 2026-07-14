@@ -8,24 +8,25 @@ import IconGlobe from "../components/icons/IconGlobe";
 import IconMenu from "../components/icons/IconMenu";
 import { useAppContext } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
-import { useHasRole } from "../hooks/useHasRole";
 
 const Header: React.FC = () => {
   const { t, language, setLanguage } = useI18n();
   const { dispatch } = useAppContext();
   const { state } = useAppContext();
-  const { user, subsidiary, logout: authLogout, updateUserRole } = useAuth();
-  const { hasRole } = useHasRole();
+  const { user, subsidiary, logout: authLogout } = useAuth();
   const router = useRouter(); // ✅ Router TanStack
-  const roles = Object.values(UserRole);
 
-  const realUserRole = user?.userRole ;
+  const realUserRole = user?.userRole;
   const previewRole = state.previewRole;
   const activeRole = previewRole ?? realUserRole;
+  // Roles reellement assignes a l'utilisateur (pas tous les roles du systeme) -
+  // meme logique que Frontend_GMO/components/Header.tsx: user.roles.filter(...).length > 1
+  const ownRoles = Array.from(new Set([user?.userRole, ...(user?.additionalRoles ?? [])])).filter(
+    (r): r is UserRole => !!r
+  );
 
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
-  const [roleSelected, setRoleSelected] = useState(false);
 
   const profileRef = useRef<HTMLDivElement>(null);
   const langRef = useRef<HTMLDivElement>(null);
@@ -46,11 +47,6 @@ const Header: React.FC = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // ✅ Sync roleSelected si le rôle change depuis l'extérieur
-  useEffect(() => {
-    setRoleSelected(false);
-  }, [user?.userRole]);
 
   if (!user || !subsidiary) return null;
 
@@ -84,7 +80,6 @@ const Header: React.FC = () => {
     // ✅ Navigation sans reload de page
     router.navigate({ to: getDefaultViewForRole(newRole) });
   };
- const isRealAdmin = realUserRole === UserRole.ADMIN;
 
   const onMenuButtonClick = () =>
     dispatch({ type: "SET_SIDEBAR_OPEN", payload: true });
@@ -163,18 +158,6 @@ const Header: React.FC = () => {
                 className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20"
                 role="menu"
               >
-                {hasRole([UserRole.ADMIN]) && roleSelected && (
-                  <button
-                    onClick={() => {
-                      setRoleSelected(false);
-                      setIsProfileMenuOpen(false);
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center space-x-2"
-                    role="menuitem"
-                  >
-                    <span>{t("header.changeRole")}</span>
-                  </button>
-                )}
                 <Link
                   to="/dashboard/security"
                   onClick={() => setIsProfileMenuOpen(false)}
@@ -201,15 +184,18 @@ const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs de rôles — admin seulement */}
-      {isRealAdmin && (
+      {/* Tabs de rôles: affichees uniquement quand l'utilisateur a plusieurs
+          roles qui lui sont reellement assignes (pas tous les roles du
+          systeme) - meme emplacement et meme condition que
+          Frontend_GMO/components/Header.tsx. */}
+      {ownRoles.length > 1 && (
         <div className="px-4">
           <div className="border-b border-slate-200">
             <nav
               className="-mb-px flex space-x-6 overflow-x-auto"
               aria-label="Tabs"
             >
-              {roles.map((role) => (
+              {ownRoles.map((role) => (
                 <button
                   key={role}
                   onClick={() => handleRoleChange(role)}

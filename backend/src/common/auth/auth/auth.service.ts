@@ -20,6 +20,20 @@ export class AuthService {
 
 //****1- Fonction de creation d'un utilisateur****
 
+  /**
+   * SUPER_ADMIN ne peut etre attribue (role principal ou secondaire) que par
+   * quelqu'un qui l'est deja - sinon un ADMIN de filiale pourrait se
+   * promouvoir (ou promouvoir un tiers) lui-meme via l'API, en contournant
+   * le fait que ce role s'attribue normalement a la main, hors UI courante.
+   */
+  private assertCanAssignSuperAdmin(roles: UserRole[], currentUser?: { roles?: UserRole[]; role?: UserRole }): void {
+    if (!roles.includes(UserRole.SUPER_ADMIN)) return;
+    const callerRoles = currentUser?.roles?.length ? currentUser.roles : currentUser?.role ? [currentUser.role] : [];
+    if (!callerRoles.includes(UserRole.SUPER_ADMIN)) {
+      throw new ForbiddenException('Seul un SUPER_ADMIN peut attribuer ce rôle');
+    }
+  }
+
   async register(
     userName: string,
     email: string,
@@ -27,7 +41,10 @@ export class AuthService {
     role: UserRole,
     subsidiaryId: string,
     additionalRoles: UserRole[] = [],
+    currentUser?: { roles?: UserRole[]; role?: UserRole },
   ) {
+    this.assertCanAssignSuperAdmin([role, ...additionalRoles], currentUser);
+
     // Validation des paramètres requis
     if (!subsidiaryId || subsidiaryId.trim() === '') {
       this.logger.error('Subsidiary ID is required for registration', 'AuthService');
@@ -191,13 +208,20 @@ export class AuthService {
   async updateUser(
     id: string,
     data: { userName?: string; email?: string; password?: string; userRole?: UserRole; additionalRoles?: UserRole[]; subsidiaryId?: string },
-    currentUser: { id: string; role: UserRole; subsidiaryId: string },
+    currentUser: { id: string; role: UserRole; roles?: UserRole[]; subsidiaryId: string },
   ) {
     // Vérifier si l'utilisateur à mettre à jour existe
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
       this.logger.error(`User with ID ${id} not found`, 'AuthService');
       throw new NotFoundException('User not found');
+    }
+
+    if (data.userRole !== undefined || data.additionalRoles !== undefined) {
+      this.assertCanAssignSuperAdmin(
+        [data.userRole ?? user.userRole, ...(data.additionalRoles ?? user.additionalRoles)],
+        currentUser,
+      );
     }
 
     // Vérifier les autorisations

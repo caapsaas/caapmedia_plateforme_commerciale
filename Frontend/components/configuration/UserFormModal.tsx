@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { User, UserRole, Subsidiary } from '../../types';
 import { useI18n } from '../../i18n';
 
+// SUPER_ADMIN n'est jamais attribuable depuis ce formulaire: c'est un role
+// d'exception (vue consolidee toutes filiales) attribue manuellement en base,
+// pas via la gestion courante des utilisateurs.
+const ASSIGNABLE_ROLES = Object.values(UserRole).filter(r => r !== UserRole.SUPER_ADMIN);
+
 interface UserFormModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -121,7 +126,7 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
 
     if (!isOpen) return null;
 
-    const secondaryRoles = Object.values(UserRole).filter(r => r !== formData.userRole);
+    const secondaryRoles = ASSIGNABLE_ROLES.filter(r => r !== formData.userRole);
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
@@ -143,11 +148,20 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="userRole" className="block text-sm font-medium text-slate-700">Rôle principal</label>
-                                    <select name="userRole" id="userRole" value={formData.userRole} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
-                                        {Object.values(UserRole).map(roleValue => (
-                                            <option key={roleValue} value={roleValue}>{t(`roles.${roleValue}`)}</option>
-                                        ))}
-                                    </select>
+                                    {formData.userRole === UserRole.SUPER_ADMIN ? (
+                                        // Cas d'un compte deja SUPER_ADMIN (attribue manuellement hors de
+                                        // cette UI): affiche sans permettre de le changer ici, plutot que
+                                        // de casser le select (SUPER_ADMIN n'est pas dans ASSIGNABLE_ROLES).
+                                        <select disabled value={UserRole.SUPER_ADMIN} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm bg-slate-100 text-slate-500 sm:text-sm">
+                                            <option value={UserRole.SUPER_ADMIN}>{t(`roles.${UserRole.SUPER_ADMIN}`)}</option>
+                                        </select>
+                                    ) : (
+                                        <select name="userRole" id="userRole" value={formData.userRole} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                            {ASSIGNABLE_ROLES.map(roleValue => (
+                                                <option key={roleValue} value={roleValue}>{t(`roles.${roleValue}`)}</option>
+                                            ))}
+                                        </select>
+                                    )}
                                 </div>
                                 <div>
                                     <label htmlFor="subsidiaryId" className="block text-sm font-medium text-slate-700">Filiale</label>

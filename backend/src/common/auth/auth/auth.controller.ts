@@ -119,8 +119,8 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @Post('register')
-  async register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto.userName, dto.email, dto.password, dto.userRole, dto.subsidiaryId, dto.additionalRoles ?? []);
+  async register(@Body() dto: RegisterDto, @Request() req) {
+    return this.authService.register(dto.userName, dto.email, dto.password, dto.userRole, dto.subsidiaryId, dto.additionalRoles ?? [], req.user);
   }
 
 
