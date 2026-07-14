@@ -54,6 +54,7 @@ model Subsidiary {
   journalEntries                JournalEntry[]
   accountingJournals            AccountingJournal[]
   accountMappings               AccountMapping[]
+  proformas                     Proforma[]
 
   @@index([subsidiaryName]) // Ajout de cet index
   @@map("subsidiaries")
@@ -80,6 +81,7 @@ model User {
   prefinancementAccounts        PrefinancementAccount[]
   prefinancementTransactions    PrefinancementTransaction[]
   journalEntries                JournalEntry[]
+  proformas                      Proforma[]
 
   @@map("users")
 }
@@ -133,6 +135,7 @@ model Product {
   productImages        ProductImage[]
   subsidiary           Subsidiary           @relation(fields: [subsidiaryId], references: [id])
   purchaseOrderItems   PurchaseOrderItem[]
+  proformaItems        ProformaItem[]
 
   @@index([subsidiaryId])
   @@index([subsidiaryId, stock])
@@ -387,6 +390,7 @@ model Opportunity {
   user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   products          OpportunityProduct[]
   orders            Order[]
+  proformas         Proforma[]
 
   @@map("opportunities")
 }
@@ -737,6 +741,7 @@ model Lead {
   status       LeadStatus
   salesRep     Employee?  @relation(fields: [salesRepId], references: [id])
   subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id])
+  proformas    Proforma[]
 
   @@index([subsidiaryId, leadName])
   @@index([status])
@@ -1466,4 +1471,83 @@ enum PrefinancementStatus {
   EN_ATTENTE
   VALIDE
   ANNULE
+}
+
+enum ProformaStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CONVERTED
+}
+
+model Proforma {
+  id              String   @id @default(uuid()) @map("id") @db.Uuid
+  proformaNumber  String   @unique @map("proforma_number") @db.VarChar(50)
+
+  // Lien au Lead
+  leadId          String   @map("lead_id") @db.Uuid
+  lead            Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  // Lien à l'Opportunity (optionnel)
+  opportunityId   String?  @map("opportunity_id") @db.Uuid
+  opportunity     Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  // Informations client
+  clientName      String   @map("client_name") @db.VarChar(255)
+  clientEmail     String   @map("client_email") @db.VarChar(255)
+  clientPhone     String   @map("client_phone") @db.VarChar(255)
+  clientCompany   String?  @map("client_company") @db.VarChar(255)
+
+  // Items
+  items           ProformaItem[]
+
+  // Montants
+  subtotal        Decimal  @default(0) @map("subtotal") @db.Decimal(15, 2)
+  taxRate         Decimal  @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  taxAmount       Decimal  @default(0) @map("tax_amount") @db.Decimal(15, 2)
+  totalAmount     Decimal  @default(0) @map("total_amount") @db.Decimal(15, 2)
+
+  // Statut & Validité
+  status          ProformaStatus @default(DRAFT) @map("status")
+  validityDate    DateTime @map("validity_date")
+  notes           String?  @map("notes")
+
+  // Tracking
+  createdBy       String   @map("created_by") @db.Uuid
+  createdByUser   User     @relation(fields: [createdBy], references: [id])
+  createdAt       DateTime @default(now()) @map("created_at")
+  sentAt          DateTime? @map("sent_at")
+  viewedAt        DateTime? @map("viewed_at")
+  acceptedAt      DateTime? @map("accepted_at")
+
+  subsidiaryId    String   @map("subsidiary_id") @db.Uuid
+  subsidiary      Subsidiary @relation(fields: [subsidiaryId], references: [id])
+
+  @@index([leadId])
+  @@index([opportunityId])
+  @@index([createdBy])
+  @@index([status])
+  @@index([subsidiaryId])
+  @@map("proformas")
+}
+
+model ProformaItem {
+  id              String   @id @default(uuid()) @map("id") @db.Uuid
+
+  proformaId      String   @map("proforma_id") @db.Uuid
+  proforma        Proforma @relation(fields: [proformaId], references: [id], onDelete: Cascade)
+
+  productId       String   @map("product_id") @db.Uuid
+  product         Product  @relation(fields: [productId], references: [id])
+
+  quantity        Int      @map("quantity")
+  unitPrice       Decimal  @map("unit_price") @db.Decimal(15, 2)
+  description     String?  @map("description") @db.VarChar(500)
+
+  @@index([proformaId])
+  @@index([productId])
+  @@map("proforma_items")
 }

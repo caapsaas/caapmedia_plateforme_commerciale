@@ -159,6 +159,17 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="absolute top-4 left-4">
+        <a
+          href="/"
+          className="inline-flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-[#c6e911] hover:bg-white rounded-lg transition-colors font-medium"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+          </svg>
+          Retour à l'e-commerce
+        </a>
+      </div>
       <div className="w-full max-w-4xl flex flex-col md:flex-row bg-white rounded-2xl shadow-2xl overflow-hidden">
         <div className="w-full md:w-1/2 bg-[#231F20] p-12 flex flex-col justify-center items-center text-white">
           <IconGmoLogo className="w-48 h-auto mb-8" />

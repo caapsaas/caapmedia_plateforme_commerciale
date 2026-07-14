@@ -6,6 +6,7 @@ import { OpportunitiesModule } from './opportunities/opportunities.module';
 import { CrmtasksModule } from './crmtasks/crmtasks.module';
 import { InteractionsModule } from './interactions/interactions.module';
 import { ContractsModule } from './contracts/contracts.module';
+import { ProformasModule } from './proformas/proformas.module';
 
 @Module({
   imports: [
@@ -16,8 +17,9 @@ import { ContractsModule } from './contracts/contracts.module';
     CrmtasksModule,
     ContractsModule,
     InteractionsModule,
+    ProformasModule,
   ],
- 
+
   exports: [
     LeadsModule,
     AccountsModule,
@@ -26,6 +28,7 @@ import { ContractsModule } from './contracts/contracts.module';
     CrmtasksModule,
     ContractsModule,
     InteractionsModule,
+    ProformasModule,
   ],
 })
 export class CrmModule {}
