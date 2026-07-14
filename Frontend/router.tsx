@@ -21,8 +21,6 @@ import Secretariat from './Pages/Secretariat';
 import Production from './Pages/Production';
 import Maintenance from './components/maintenance/Maintenance';
 import Equipements from './Pages/Equipements';
-import SuperAdminDashboard from './Pages/SuperAdminDashboard';
-import { UserRole } from './types';
 
 
 // Le token "user" vit dans un cookie httpOnly (illisible en JS) - au chargement
@@ -83,25 +81,6 @@ const customerAccountRoute = createRoute({
           redirect: location.href,
         },
       });
-    }
-  },
-});
-
-// 3bis. Route consolidee reservee a SUPER_ADMIN, distincte du dashboard par filiale
-const superAdminRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/super-admin',
-  component: SuperAdminDashboard,
-  beforeLoad: async ({ context, location }) => {
-    await waitForAuthResolved(context.auth);
-    if (!context.auth.isAuthenticated) {
-      throw redirect({
-        to: '/login',
-        search: { redirect: location.href },
-      });
-    }
-    if (context.auth.user?.userRole !== UserRole.SUPER_ADMIN) {
-      throw redirect({ to: '/dashboard' });
     }
   },
 });
@@ -175,7 +154,6 @@ const routeTree = rootRoute.addChildren([
   realisationsRoute,
   loginRoute,
   customerAccountRoute,
-  superAdminRoute,
   dashboardRoute.addChildren([
     dashboardIndexRoute,
     salesRoute,

@@ -187,16 +187,11 @@ const Sidebar: React.FC = () => {
 
   const getNavGroups = (): NavGroup[] => {
     switch (activeRole) {
+      // SUPER_ADMIN voit exactement les memes vues qu'ADMIN (memes routes
+      // /dashboard/*) - seule la donnee affichee differe (consolidee toutes
+      // filiales au lieu de la filiale de l'utilisateur), resolu cote backend
+      // via subsidiary-scope.ts, pas par une page dediee.
       case UserRole.SUPER_ADMIN:
-        return [
-          {
-            groupLabel: 'Principal',
-            items: [
-              { to: '/super-admin', label: t('sidebar.superAdminDashboard'), icon: <IconAnalytics className="h-5 w-5" /> },
-            ],
-          },
-        ];
-
       case UserRole.ADMIN:
         return [
           {

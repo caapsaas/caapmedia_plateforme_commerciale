@@ -17,13 +17,7 @@
     "noViewForRole": "Aucune vue disponible pour ce rôle",
     "adminView": "Vue Admin",
     "collapse": "Réduire",
-    "expand": "Développer",
-    "superAdminDashboard": "Vue consolidée"
-  },
-  "superAdmin": {
-    "title": "Tableau de bord consolidé",
-    "subsidiarySelectorLabel": "Filiale",
-    "allSubsidiaries": "Toutes les filiales (consolidé)"
+    "expand": "Développer"
   },
   "roles": {
     "SUPER_ADMIN": "Super administrateur",
