@@ -21,6 +21,8 @@ import Secretariat from './Pages/Secretariat';
 import Production from './Pages/Production';
 import Maintenance from './components/maintenance/Maintenance';
 import Equipements from './Pages/Equipements';
+import SuperAdminDashboard from './Pages/SuperAdminDashboard';
+import { UserRole } from './types';
 
 
 // 1. Utiliser createRootRouteWithContext pour typer le contexte du routeur
@@ -65,6 +67,24 @@ const customerAccountRoute = createRoute({
           redirect: location.href,
         },
       });
+    }
+  },
+});
+
+// 3bis. Route consolidee reservee a SUPER_ADMIN, distincte du dashboard par filiale
+const superAdminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/super-admin',
+  component: SuperAdminDashboard,
+  beforeLoad: ({ context, location }) => {
+    if (!context.auth.token) {
+      throw redirect({
+        to: '/login',
+        search: { redirect: location.href },
+      });
+    }
+    if (context.auth.user?.userRole !== UserRole.SUPER_ADMIN) {
+      throw redirect({ to: '/dashboard' });
     }
   },
 });
@@ -137,6 +157,7 @@ const routeTree = rootRoute.addChildren([
   realisationsRoute,
   loginRoute,
   customerAccountRoute,
+  superAdminRoute,
   dashboardRoute.addChildren([
     dashboardIndexRoute,
     salesRoute,

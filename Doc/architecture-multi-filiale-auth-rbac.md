@@ -3,7 +3,7 @@
 > **Suivi d'implémentation** (branche `feat/multi-filiale-auth-rbac`) :
 > - ✅ Phase 0 — quick wins sécurité (`/auth/register` protégé, secret JWT fail-fast, guards sur `finances-stats/*`)
 > - ✅ Phase 1 — modèle de données (`SUPER_ADMIN` dans l'enum, `Subsidiary.isHeadquarter`, `User.roles[]` backfillé). Nuance par rapport au plan initial : `userRole`/`additionalRoles` sont **conservés en parallèle** de `roles[]` pour l'instant (au lieu d'être supprimés immédiatement) — retrait prévu en phase 4 une fois tous les guards/le frontend migrés dessus, pour réduire le risque d'un big-bang.
-> - ⬜ Phase 2 — multi-filiale (scoping, dashboard super-admin)
+> - ✅ Phase 2 — multi-filiale : `subsidiary-scope.ts` + migration de `analytics`, `finance/balancesheet`, `finance/incomestatement`, `auth.service` (getAllUsers/searchUsers) ; corrige une IDOR reelle (subsidiaryId de requete non verifie contre l'utilisateur). Frontend : route `/super-admin`, page `SuperAdminDashboard` (reutilise `DashboardView`), garde de role reelle dans `router.tsx` (premiere du genre dans l'app). **Reste a migrer** (module par module, meme pattern) : ecommerce, crm, finance (assets/debts/expense/treasury/prefinancement/external-transaction), hr, purchase, accounting, maintenance, secretariat. Le doublon `finance/balancesheet`+`incomestatement` vs `statistics/finances_stats` sur les memes routes n'est pas encore dedupliqué.
 > - ⬜ Phase 3 — authentification (cookies httpOnly, refresh, CSRF, 2FA)
 > - ⬜ Phase 4 — RBAC finalisé (guards unifiés avec bypass `SUPER_ADMIN`, suppression des champs legacy, garde de route frontend)
 

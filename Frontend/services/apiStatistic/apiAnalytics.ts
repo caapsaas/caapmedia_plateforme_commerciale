@@ -96,9 +96,12 @@ export interface PurchaseAnalysis {
 
 /**
  * Récupère les statistiques du tableau de bord.
+ * @param subsidiaryId Filiale ciblée (drill-down). Ignoré par le backend si
+ * l'utilisateur n'a pas de scope global (SUPER_ADMIN/FINANCIAL_DIRECTOR) -
+ * omis ou vide, un utilisateur à scope global obtient la vue consolidée.
  */
-export const getDashboardStats = async (query: PeriodFilterDto): Promise<DashboardStats> => {
-    const { data } = await api.get<DashboardStats>('/analytics/dashboard', { params: query });
+export const getDashboardStats = async (query: PeriodFilterDto, subsidiaryId?: string): Promise<DashboardStats> => {
+    const { data } = await api.get<DashboardStats>('/analytics/dashboard', { params: { ...query, subsidiaryId } });
     return data;
 };
 

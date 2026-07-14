@@ -180,13 +180,23 @@ const Sidebar: React.FC = () => {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
 
-  if (!user || (!subsidiary && user.userRole !== UserRole.ADMIN)) return null;
+  if (!user || (!subsidiary && user.userRole !== UserRole.ADMIN && user.userRole !== UserRole.SUPER_ADMIN)) return null;
 
   const setIsSidebarOpen = (v: boolean) => dispatch({ type: 'SET_SIDEBAR_OPEN', payload: v });
   const setIsSidebarCollapsed = (v: boolean) => dispatch({ type: 'SET_SIDEBAR_COLLAPSED', payload: v });
 
   const getNavGroups = (): NavGroup[] => {
     switch (activeRole) {
+      case UserRole.SUPER_ADMIN:
+        return [
+          {
+            groupLabel: 'Principal',
+            items: [
+              { to: '/super-admin', label: t('sidebar.superAdminDashboard'), icon: <IconAnalytics className="h-5 w-5" /> },
+            ],
+          },
+        ];
+
       case UserRole.ADMIN:
         return [
           {

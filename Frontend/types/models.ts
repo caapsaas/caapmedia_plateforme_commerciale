@@ -9,6 +9,7 @@ export enum AppMode {
 }
 
 export enum UserRole {
+  SUPER_ADMIN = 'SUPER_ADMIN',
   ADMIN = 'ADMIN',
   COMMERCIAL = 'COMMERCIAL',
   CAISSIER = 'CAISSIER',

@@ -17,9 +17,16 @@
     "noViewForRole": "No view available for this role",
     "adminView": "Admin View",
     "collapse": "Collapse",
-    "expand": "Expand"
+    "expand": "Expand",
+    "superAdminDashboard": "Consolidated view"
+  },
+  "superAdmin": {
+    "title": "Consolidated dashboard",
+    "subsidiarySelectorLabel": "Subsidiary",
+    "allSubsidiaries": "All subsidiaries (consolidated)"
   },
   "roles": {
+    "SUPER_ADMIN": "Super administrator",
     "ADMIN": "Administrator",
     "COMMERCIAL": "Sales",
     "CAISSIER": "Cashier",

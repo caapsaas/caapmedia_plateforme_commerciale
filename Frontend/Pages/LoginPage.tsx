@@ -38,6 +38,7 @@ const LoginPage: React.FC = () => {
       // Déterminer la page par défaut selon le rôle
       const getDefaultViewForRole = (role: UserRole): string => {
         switch (role) {
+          case UserRole.SUPER_ADMIN: return '/super-admin';
           case UserRole.CAISSIER: return '/dashboard/caisse';
           case UserRole.COMMERCIAL: return '/dashboard/crm';
           case UserRole.PURCHASING_MANAGER: return '/dashboard/purchasing';

@@ -104,35 +104,35 @@ export class SubsidiaryController {
   constructor(private subsidiaryService: SubsidiaryService) {}
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN])
+  @SetMetadata('roles', [UserRole.ADMIN, UserRole.SUPER_ADMIN])
   @Post()
   async createSubsidiary(@Body() dto: CreateSubsidiaryDto, @Request() req) {
     return this.subsidiaryService.createSubsidiary(dto, req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.HR_MANAGER])
+  @SetMetadata('roles', [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.HR_MANAGER])
   @Patch(':id')
   async updateSubsidiary(@Param('id') id: string, @Body() dto: UpdateSubsidiaryDto, @Request() req) {
     return this.subsidiaryService.updateSubsidiary(id, dto, req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN])
+  @SetMetadata('roles', [UserRole.ADMIN, UserRole.SUPER_ADMIN])
   @Delete(':id')
   async deleteSubsidiary(@Param('id') id: string, @Request() req) {
     return this.subsidiaryService.deleteSubsidiary(id, req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.HR_MANAGER])
+  @SetMetadata('roles', [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.HR_MANAGER])
   @Get()
   async getAllSubsidiaries(@Request() req) {
     return this.subsidiaryService.getAllSubsidiaries(req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.HR_MANAGER])
+  @SetMetadata('roles', [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.HR_MANAGER])
   @Get('search')
   async searchSubsidiaries(@Query() query: SearchSubsidiariesDto, @Request() req) {
     return this.subsidiaryService.searchSubsidiaries(query, req.user);
