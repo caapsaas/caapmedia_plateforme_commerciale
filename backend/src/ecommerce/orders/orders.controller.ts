@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, Query, Req, UploadedFiles, U
 import { OrdersService } from './orders.service';
 import { ContactJwtAuthGuard } from 'src/common/auth/jwt/contact-jwt.guard';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
+import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { CreateOrderDto, CreateOrderBySalesRepDto, RecordPaymentDto, UpdateOrderStatusDto, updateProductionStatusDto } from './dto/create-order.dto';
 import { FindAllOrdersDto } from './dto/find-all-orders.dto';
 import { SetMetadata } from '@nestjs/common';
@@ -46,7 +47,7 @@ export class OrdersController {
      * Exemple d'URL : /ecommerce/orders/by-salesrep
      */
     @Post('by-salesrep')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RoleGuard)
     @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL])
     @UseInterceptors(FileFieldsInterceptor([
         { name: 'designFiles', maxCount: 10 }
@@ -72,7 +73,7 @@ export class OrdersController {
      * Exemple d'URL : /ecommerce/orders/by-salesrep/json
      */
     @Post('by-salesrep/json')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RoleGuard)
     @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL])
     createBySalesRepJson(
         @Body() createOrderDto: CreateOrderBySalesRepDto,
@@ -86,7 +87,7 @@ export class OrdersController {
      * Exemple d'URL : /ecommerce/orders
      */
     @Get()
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RoleGuard)
     @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER])
     findAll(@Query() query: FindAllOrdersDto, @Req() req) {
         return this.ordersService.findAll(req.user, query);
@@ -97,7 +98,7 @@ export class OrdersController {
      * Exemple d'url : /ecommerce/orders/credit
      */
     @Get('/credit')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RoleGuard)
     @SetMetadata('roles', [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR])
     findAllCredit(@Req() req){
         return this.ordersService.getAllCustomerCredit(req.user);
@@ -108,7 +109,7 @@ export class OrdersController {
      * Exemple d'URL : /ecommerce/orders/credit/:id
      */
     @Get('/credit/:id')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RoleGuard)
     @SetMetadata('roles', [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR])
     findOneCredit(@Param('id') id: string, @Req() req) {
         return this.ordersService.getOneCustomerCredit(id, req.user);
@@ -129,7 +130,7 @@ export class OrdersController {
      * Exemple d'URL : /ecommerce/orders/analytics/top-selling
      */
     @Get('analytics/top-selling')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RoleGuard)
     @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER])
     findTopSellingProducts(@Req() req) {
         return this.ordersService.getBestSellingProducts(req.user);
@@ -150,7 +151,7 @@ export class OrdersController {
      * Exemple d'URL : /ecommerce/orders/:id/order-status
      */
     @Patch('/order-status/:id')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RoleGuard)
     @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER])
     updateOrderStatus(
         @Param('id') id: string,
@@ -164,7 +165,7 @@ export class OrdersController {
      * Exemple d'URL : /ecommerce/orders/:id/production-status
      */
     @Patch('/production-status/:id')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RoleGuard)
     @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR])
     updateProductionStatus(
         @Param('id') id: string,
@@ -178,7 +179,7 @@ export class OrdersController {
      * Exemple d'URL : PATCH /ecommerce/orders/:id/payment
      */
     @Patch('/payment/:id')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RoleGuard)
     @SetMetadata('roles', [UserRole.ADMIN, UserRole.CAISSIER])
     recordPayment(
         @Param('id') id: string,

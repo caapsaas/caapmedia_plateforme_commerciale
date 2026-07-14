@@ -14,11 +14,12 @@ import {
 import { PurchaseOrdersService } from './purchase-orders.service';
 import { CreatePurchaseOrderDto, RecordPurchasePaymentDto, UpdatePurchaseOrderStatusDto } from './dto/create-purchase-order.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
+import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { UserRole } from '@prisma/client';
 import { FindAllPurchaseOrdersDto } from './dto/find-all-purchase-orders.dto';
 import { ReceiveItemsDto } from './dto/receive-items.dto';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RoleGuard)
 @Controller('purchasing/purchase-orders')
 export class PurchaseOrdersController {
   constructor(private readonly purchaseOrdersService: PurchaseOrdersService) { }

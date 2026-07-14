@@ -14,9 +14,10 @@ import {
 import { SuppliersService } from './suppliers.service';
 import { CreateSupplierDto, UpdateSupplierDto } from './dto/create-supplier.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
+import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { UserRole } from '@prisma/client';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RoleGuard)
 @Controller('purchasing/suppliers')
 export class SuppliersController {
   constructor(private readonly suppliersService: SuppliersService) { }

@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Post, Query, Req, UseGuards, SetMetadata } from '@nestjs/common';
 import { SalesService } from './sales.service';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
+import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { UserRole } from '@prisma/client';
 import { CreateDirectSaleDto } from './dto/create-sale.dto';
 import { FindAllSalesDto } from './dto/find-all-sales.dto';
@@ -14,7 +15,7 @@ export class SalesController {
    * Accessible par les caissiers, admins, et directeurs financiers.
    */
   @Post('direct')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @SetMetadata('roles', [UserRole.CAISSIER, UserRole.ADMIN])
   createDirectSale(@Body() createDirectSaleDto: CreateDirectSaleDto, @Req() req) {
     return this.salesService.createDirectSale(createDirectSaleDto, req.user);
@@ -25,7 +26,7 @@ export class SalesController {
    * Accessible par les caissiers, admins
    */
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @SetMetadata('roles', [UserRole.CAISSIER, UserRole.ADMIN])
   findAll(@Query() query: FindAllSalesDto, @Req() req) {
     return this.salesService.findAll(req.user, query);
