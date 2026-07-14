@@ -24,6 +24,7 @@ import { AnalyticsModule } from './statistics/analytics/analytics.module';
 import { StatisticsModule } from './statistics/statistics.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
 import { AccountingModule } from './accounting/accounting.module';
+import { validate } from './config/env.validation';
 
 @Module({
   imports: [
@@ -33,7 +34,7 @@ import { AccountingModule } from './accounting/accounting.module';
       ttl: 60000, // 60 secondes
       limit: 10,
     }]),
-    ConfigModule.forRoot({ isGlobal: true }), // Charge .env globalement
+    ConfigModule.forRoot({ isGlobal: true, validate }), // Charge .env globalement, échoue au démarrage si invalide
     PrismaModule,
     CommonModule,
     SecretariatModule,

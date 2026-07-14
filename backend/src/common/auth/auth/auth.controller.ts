@@ -88,6 +88,8 @@ class SearchUsersDto {
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @SetMetadata('roles', [UserRole.ADMIN])
   @Post('register')
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto.userName, dto.email, dto.password, dto.userRole, dto.subsidiaryId, dto.additionalRoles ?? []);

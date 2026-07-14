@@ -1,8 +1,13 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, SetMetadata } from '@nestjs/common';
 import { BalancesheetService } from './balancesheet.service';
 import { BalanceSheetDto } from './dto/balance-sheet.dto';
+import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
+import { RoleGuard } from '../../common/auth/role/role.guard';
+import { UserRole } from '@prisma/client';
 
 @Controller('finances-stats')
+@UseGuards(JwtAuthGuard, RoleGuard)
+@SetMetadata('roles', [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR])
 export class BalancesheetController {
   constructor(private readonly balancesheetService: BalancesheetService) {}
 
