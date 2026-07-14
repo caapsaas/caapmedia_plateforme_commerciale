@@ -89,7 +89,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN])
+  @SetMetadata('roles', [UserRole.ADMIN, UserRole.SUPER_ADMIN])
   @Post('register')
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto.userName, dto.email, dto.password, dto.userRole, dto.subsidiaryId, dto.additionalRoles ?? []);
@@ -116,28 +116,28 @@ export class AuthController {
   
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR])
+  @SetMetadata('roles', [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR])
   @Patch('users/:id')
   async updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto, @Request() req) {
     return this.authService.updateUser(id, dto, req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR])
+  @SetMetadata('roles', [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR])
   @Delete('users/:id')
   async deleteUser(@Param('id') id: string, @Request() req) {
     return this.authService.deleteUser(id, req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR])
+  @SetMetadata('roles', [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR])
   @Get('users')
   async getAllUsers(@Request() req) {
     return this.authService.getAllUsers(req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR])
+  @SetMetadata('roles', [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR])
   @Get('users/search')
   async searchUsers(@Query() query: SearchUsersDto, @Request() req) {
     return this.authService.searchUsers(query, req.user);

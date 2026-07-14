@@ -6,6 +6,7 @@ import { LoggerService } from '../../utils/logger/logger.service';
 import * as bcrypt from 'bcryptjs';
 import { UserRole } from '@prisma/client';
 import * as nodemailer from 'nodemailer';
+import { resolveScopeContext } from '../../utils/subsidiary-scope';
 
 @Injectable()
 export class AuthService {
@@ -254,9 +255,10 @@ export class AuthService {
 
 //****6- Fonction de récupération de tous les utilisateurs****
 
-  async getAllUsers(currentUser: { id: string; role: UserRole; subsidiaryId: string }) {
-    // Les admins peuvent voir tous les utilisateurs, les autres sont limités à leur filiale
-    const where = currentUser.role === UserRole.ADMIN ? {} : { subsidiaryId: currentUser.subsidiaryId };
+  async getAllUsers(currentUser: { id: string; role: UserRole; roles?: UserRole[]; subsidiaryId: string }) {
+    // Seul un scope global (SUPER_ADMIN) voit toutes les filiales; ADMIN de filiale est desormais scope a la sienne.
+    const ctx = resolveScopeContext(currentUser);
+    const where = ctx.hasGlobalScope ? {} : { subsidiaryId: currentUser.subsidiaryId };
 
     const users = await this.prisma.user.findMany({
       where,
@@ -280,10 +282,12 @@ export class AuthService {
 
   async searchUsers(
     query: { email?: string; userName?: string; userRole?: UserRole },
-    currentUser: { id: string; role: UserRole; subsidiaryId: string },
+    currentUser: { id: string; role: UserRole; roles?: UserRole[]; subsidiaryId: string },
   ) {
     // Construire les conditions de recherche
-    const where: any = currentUser.role === UserRole.ADMIN ? {} : { subsidiaryId: currentUser.subsidiaryId };
+    // Seul un scope global (SUPER_ADMIN) voit toutes les filiales; ADMIN de filiale est desormais scope a la sienne.
+    const ctx = resolveScopeContext(currentUser);
+    const where: any = ctx.hasGlobalScope ? {} : { subsidiaryId: currentUser.subsidiaryId };
     if (query.email) {
       where.email = { contains: query.email, mode: 'insensitive' };
     }

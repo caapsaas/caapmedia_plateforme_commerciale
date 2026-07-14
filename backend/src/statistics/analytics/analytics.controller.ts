@@ -13,31 +13,31 @@ export class AnalyticsController {
 
   /**
    * Methode pour récupérer les statistiques du tableau de bord.
-   * Exemple d'url: /analytics/dashboard?period=THIS_MONTH
+   * Exemple d'url: /analytics/dashboard?period=THIS_MONTH&subsidiaryId=xxx (drill-down super-admin)
    */
   @Get('dashboard')
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.COMMERCIAL])
-  getDashboardStats(@Req() req: any, @Query() periodFilterDto: PeriodFilterDto) {
-    return this.analyticsService.getDashboardStats(req.user, periodFilterDto);
+  @SetMetadata('roles', [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.COMMERCIAL, UserRole.SUPER_ADMIN])
+  getDashboardStats(@Req() req: any, @Query() periodFilterDto: PeriodFilterDto, @Query('subsidiaryId') subsidiaryId?: string) {
+    return this.analyticsService.getDashboardStats(req.user, periodFilterDto, subsidiaryId);
   }
 
   /**
    * Methode pour récupérer l'analyse des ventes.
-   * Exemple d'url: /analytics/sales?period=THIS_MONTH
+   * Exemple d'url: /analytics/sales?period=THIS_MONTH&subsidiaryId=xxx (drill-down super-admin)
    */
   @Get('sales')
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.COMMERCIAL])
-  getSalesAnalysis(@Req() req: any, @Query() periodFilterDto: PeriodFilterDto) {
-    return this.analyticsService.getSalesAnalysis(req.user, periodFilterDto);
+  @SetMetadata('roles', [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.COMMERCIAL, UserRole.SUPER_ADMIN])
+  getSalesAnalysis(@Req() req: any, @Query() periodFilterDto: PeriodFilterDto, @Query('subsidiaryId') subsidiaryId?: string) {
+    return this.analyticsService.getSalesAnalysis(req.user, periodFilterDto, subsidiaryId);
   }
 
   /**
    * Methode pour récupérer l'analyse des achats.
-   * Exemple d'url: /analytics/purchases?period=THIS_MONTH
+   * Exemple d'url: /analytics/purchases?period=THIS_MONTH&subsidiaryId=xxx (drill-down super-admin)
    */
   @Get('purchases')
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.COMMERCIAL])
-  getPurchaseAnalysis(@Req() req: any, @Query() periodFilterDto: PeriodFilterDto) {
-    return this.analyticsService.getPurchaseAnalysis(req.user, periodFilterDto);
+  @SetMetadata('roles', [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.COMMERCIAL, UserRole.SUPER_ADMIN])
+  getPurchaseAnalysis(@Req() req: any, @Query() periodFilterDto: PeriodFilterDto, @Query('subsidiaryId') subsidiaryId?: string) {
+    return this.analyticsService.getPurchaseAnalysis(req.user, periodFilterDto, subsidiaryId);
   }
 }

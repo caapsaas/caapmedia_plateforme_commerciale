@@ -1,24 +1,36 @@
-import { Controller, Get, Query, UseGuards, SetMetadata } from '@nestjs/common';
+import { Controller, Get, Query, Req, UseGuards, SetMetadata } from '@nestjs/common';
 import { BalancesheetService } from './balancesheet.service';
 import { BalanceSheetDto } from './dto/balance-sheet.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { UserRole } from '@prisma/client';
+import { resolveEffectiveSubsidiaryId, resolveScopeContext, ScopableUser } from '../../common/utils/subsidiary-scope';
 
 @Controller('finances-stats')
 @UseGuards(JwtAuthGuard, RoleGuard)
-@SetMetadata('roles', [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR])
+@SetMetadata('roles', [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.SUPER_ADMIN])
 export class BalancesheetController {
   constructor(private readonly balancesheetService: BalancesheetService) {}
 
   /**
+   * Resout la filiale effective a interroger: un utilisateur sans scope
+   * global (SUPER_ADMIN/FINANCIAL_DIRECTOR consolide) est TOUJOURS force sur
+   * sa propre filiale, meme s'il fournit ?subsidiaryId=<autre-filiale> - voir
+   * subsidiary-scope.ts pour le detail de la protection anti-IDOR.
+   */
+  private resolveSubsidiaryId(req: { user: ScopableUser }, requestedSubsidiaryId?: string): string | undefined {
+    const ctx = resolveScopeContext(req.user, [UserRole.FINANCIAL_DIRECTOR]);
+    return resolveEffectiveSubsidiaryId(ctx, requestedSubsidiaryId);
+  }
+
+  /**
    * Endpoint pour récupérer le bilan comptable
    * GET /finances-stats/balance-sheet?subsidiaryId=xxx
-   * Si subsidiaryId n'est pas fourni, retourne le bilan consolidé
+   * Si l'utilisateur a un scope global et n'indique pas subsidiaryId, retourne le bilan consolidé
    */
   @Get('balance-sheet')
-  async getBalanceSheet(@Query('subsidiaryId') subsidiaryId?: string): Promise<BalanceSheetDto> {
-    return this.balancesheetService.getBalanceSheet(subsidiaryId);
+  async getBalanceSheet(@Req() req: { user: ScopableUser }, @Query('subsidiaryId') subsidiaryId?: string): Promise<BalanceSheetDto> {
+    return this.balancesheetService.getBalanceSheet(this.resolveSubsidiaryId(req, subsidiaryId));
   }
 
   /**
@@ -26,8 +38,8 @@ export class BalancesheetController {
    * GET /finances-stats/treasury?subsidiaryId=xxx
    */
   @Get('treasury')
-  async getTreasuryData(@Query('subsidiaryId') subsidiaryId?: string): Promise<number> {
-    return this.balancesheetService.getTreasuryData(subsidiaryId);
+  async getTreasuryData(@Req() req: { user: ScopableUser }, @Query('subsidiaryId') subsidiaryId?: string): Promise<number> {
+    return this.balancesheetService.getTreasuryData(this.resolveSubsidiaryId(req, subsidiaryId));
   }
 
   /**
@@ -35,8 +47,8 @@ export class BalancesheetController {
    * GET /finances-stats/customer-receivables?subsidiaryId=xxx
    */
   @Get('customer-receivables')
-  async getCustomerReceivables(@Query('subsidiaryId') subsidiaryId?: string): Promise<number> {
-    return this.balancesheetService.getCustomerReceivables(subsidiaryId);
+  async getCustomerReceivables(@Req() req: { user: ScopableUser }, @Query('subsidiaryId') subsidiaryId?: string): Promise<number> {
+    return this.balancesheetService.getCustomerReceivables(this.resolveSubsidiaryId(req, subsidiaryId));
   }
 
   /**
@@ -44,8 +56,8 @@ export class BalancesheetController {
    * GET /finances-stats/inventory?subsidiaryId=xxx
    */
   @Get('inventory')
-  async getInventoryValue(@Query('subsidiaryId') subsidiaryId?: string): Promise<number> {
-    return this.balancesheetService.getInventoryValue(subsidiaryId);
+  async getInventoryValue(@Req() req: { user: ScopableUser }, @Query('subsidiaryId') subsidiaryId?: string): Promise<number> {
+    return this.balancesheetService.getInventoryValue(this.resolveSubsidiaryId(req, subsidiaryId));
   }
 
   /**
@@ -53,8 +65,8 @@ export class BalancesheetController {
    * GET /finances-stats/equipments?subsidiaryId=xxx
    */
   @Get('equipments')
-  async getEquipmentsValue(@Query('subsidiaryId') subsidiaryId?: string): Promise<number> {
-    return this.balancesheetService.getEquipmentsValue(subsidiaryId);
+  async getEquipmentsValue(@Req() req: { user: ScopableUser }, @Query('subsidiaryId') subsidiaryId?: string): Promise<number> {
+    return this.balancesheetService.getEquipmentsValue(this.resolveSubsidiaryId(req, subsidiaryId));
   }
 
   /**
@@ -62,8 +74,8 @@ export class BalancesheetController {
    * GET /finances-stats/fixed-assets?subsidiaryId=xxx
    */
   @Get('fixed-assets')
-  async getFixedAssetsValue(@Query('subsidiaryId') subsidiaryId?: string): Promise<number> {
-    return this.balancesheetService.getFixedAssetsValue(subsidiaryId);
+  async getFixedAssetsValue(@Req() req: { user: ScopableUser }, @Query('subsidiaryId') subsidiaryId?: string): Promise<number> {
+    return this.balancesheetService.getFixedAssetsValue(this.resolveSubsidiaryId(req, subsidiaryId));
   }
 
   /**
@@ -71,8 +83,8 @@ export class BalancesheetController {
    * GET /finances-stats/supplier-debts?subsidiaryId=xxx
    */
   @Get('supplier-debts')
-  async getSupplierDebts(@Query('subsidiaryId') subsidiaryId?: string): Promise<number> {
-    return this.balancesheetService.getSupplierDebts(subsidiaryId);
+  async getSupplierDebts(@Req() req: { user: ScopableUser }, @Query('subsidiaryId') subsidiaryId?: string): Promise<number> {
+    return this.balancesheetService.getSupplierDebts(this.resolveSubsidiaryId(req, subsidiaryId));
   }
 
   /**
@@ -80,8 +92,8 @@ export class BalancesheetController {
    * GET /finances-stats/share-capital?subsidiaryId=xxx
    */
   @Get('share-capital')
-  async getShareCapital(@Query('subsidiaryId') subsidiaryId?: string): Promise<number> {
-    return this.balancesheetService.getShareCapital(subsidiaryId);
+  async getShareCapital(@Req() req: { user: ScopableUser }, @Query('subsidiaryId') subsidiaryId?: string): Promise<number> {
+    return this.balancesheetService.getShareCapital(this.resolveSubsidiaryId(req, subsidiaryId));
   }
 
   /**
@@ -89,7 +101,7 @@ export class BalancesheetController {
    * GET /finances-stats/net-income?subsidiaryId=xxx
    */
   @Get('net-income')
-  async getAccumulatedNetIncome(@Query('subsidiaryId') subsidiaryId?: string): Promise<number> {
-    return this.balancesheetService.getAccumulatedNetIncome(subsidiaryId);
+  async getAccumulatedNetIncome(@Req() req: { user: ScopableUser }, @Query('subsidiaryId') subsidiaryId?: string): Promise<number> {
+    return this.balancesheetService.getAccumulatedNetIncome(this.resolveSubsidiaryId(req, subsidiaryId));
   }
 }

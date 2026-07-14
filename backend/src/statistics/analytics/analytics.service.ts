@@ -3,6 +3,8 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { PeriodFilterDto, PeriodFilter } from './dto/period-filter.dto';
 import { Prisma, User } from '@prisma/client';
 import { sub, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
+import { resolveEffectiveSubsidiaryId, resolveScopeContext } from 'src/common/utils/subsidiary-scope';
+import { UserRole } from '@prisma/client';
 
 @Injectable()
 export class AnalyticsService {
@@ -52,14 +54,26 @@ export class AnalyticsService {
   }
 
   /**
+   * Resout la filiale effective a interroger a partir de l'utilisateur connecte
+   * et d'un id de filiale optionnel demande en query param (drill-down super-admin).
+   * Un utilisateur sans scope global est toujours force sur sa propre filiale.
+   */
+  private resolveSubsidiaryId(user: User, requestedSubsidiaryId?: string): string | undefined {
+    const ctx = resolveScopeContext(user, [UserRole.FINANCIAL_DIRECTOR]);
+    return resolveEffectiveSubsidiaryId(ctx, requestedSubsidiaryId);
+  }
+
+  /**
    * @param user Utilisateur connecté.
    * @param periodFilterDto Dto contenant le filtre de période.
+   * @param requestedSubsidiaryId Filiale demandee en drill-down (ignoree si l'utilisateur n'a pas de scope global).
    * @returns Statistiques du Tableau de Bord global.
    */
-  async getDashboardStats(user: User, periodFilterDto: PeriodFilterDto) {
-    const { subsidiaryId } = user;
+  async getDashboardStats(user: User, periodFilterDto: PeriodFilterDto, requestedSubsidiaryId?: string) {
+    const subsidiaryId = this.resolveSubsidiaryId(user, requestedSubsidiaryId);
+    const subsidiaryFilter = subsidiaryId ? { subsidiaryId } : {};
     const dateFilter = this.getDateFilter(periodFilterDto);
-    const where: Prisma.SaleWhereInput = { subsidiaryId, saleDate: dateFilter, status: 'PAID' };
+    const where: Prisma.SaleWhereInput = { ...subsidiaryFilter, saleDate: dateFilter, status: 'PAID' };
 
     // Ventes totales (basé sur la table Sale)
     const totalSalesResult = await this.prisma.sale.aggregate({
@@ -90,24 +104,27 @@ export class AnalyticsService {
 
     // Nouveaux clients
     const newCustomersCount = await this.prisma.contact.count({
-      where: { subsidiaryId, since: dateFilter },
+      where: { ...subsidiaryFilter, since: dateFilter },
     });
 
     // Valeur du stock
     const productsWithStock = await this.prisma.product.findMany({
-      where: { subsidiaryId, stock: { gt: 0 } },
+      where: { ...subsidiaryFilter, stock: { gt: 0 } },
       select: { stock: true, price: true, mainCategory: true }
     });
     const stockValue = productsWithStock.reduce((acc, p) => acc.add(p.price.mul(p.stock)), new Prisma.Decimal(0));
 
     // Performance des ventes (agrégation par jour)
     // Utilisation de SQL brut pour une performance optimale sur le groupement par date.
+    // Le filtre filiale est un fragment conditionnel: consolidation (TRUE) si
+    // subsidiaryId est absent (scope global sans drill-down), sinon egalite stricte.
+    const subsidiarySqlFilter = subsidiaryId ? Prisma.sql`"subsidiary_id" = ${subsidiaryId}::uuid` : Prisma.sql`TRUE`;
     const salesPerformance: { date: string, sales: number }[] = await this.prisma.$queryRaw`
       SELECT
         TO_CHAR("sale_date", 'YYYY-MM-DD') as date,
         SUM("total_price")::float as sales
       FROM "sale"
-      WHERE "subsidiary_id" = ${subsidiaryId}::uuid
+      WHERE ${subsidiarySqlFilter}
         AND status = 'PAID'
         AND (${dateFilter.gte}::timestamp IS NULL OR "sale_date" >= ${dateFilter.gte}::timestamp)
         AND (${dateFilter.lte}::timestamp IS NULL OR "sale_date" <= ${dateFilter.lte}::timestamp)
@@ -119,7 +136,7 @@ export class AnalyticsService {
     const stockByCategoryResult = await this.prisma.product.groupBy({
       by: ['category'],
       where: {
-        subsidiaryId,
+        ...subsidiaryFilter,
         stock: { gt: 0 },
       },
       _sum: {
@@ -152,12 +169,14 @@ export class AnalyticsService {
   /**
    * @param user Utilisateur connecté.
    * @param periodFilterDto Dto contenant le filtre de période.
+   * @param requestedSubsidiaryId Filiale demandee en drill-down (ignoree si l'utilisateur n'a pas de scope global).
    * @returns Analyse des ventes.
    */
-  async getSalesAnalysis(user: User, periodFilterDto: PeriodFilterDto) {
-    const { subsidiaryId } = user;
+  async getSalesAnalysis(user: User, periodFilterDto: PeriodFilterDto, requestedSubsidiaryId?: string) {
+    const subsidiaryId = this.resolveSubsidiaryId(user, requestedSubsidiaryId);
+    const subsidiaryFilter = subsidiaryId ? { subsidiaryId } : {};
     const dateFilter = this.getDateFilter(periodFilterDto);
-    const where: Prisma.SaleWhereInput = { subsidiaryId, saleDate: dateFilter, status: 'PAID' };
+    const where: Prisma.SaleWhereInput = { ...subsidiaryFilter, saleDate: dateFilter, status: 'PAID' };
 
     // Chiffre d'affaires total (basé sur la table Sale)
     const totalRevenueResult = await this.prisma.sale.aggregate({
@@ -168,7 +187,7 @@ export class AnalyticsService {
     // Nombre de commandes (en comptant directement dans la table Order)
     const orderCount = await this.prisma.order.count({
       where: {
-        subsidiaryId,
+        ...subsidiaryFilter,
         orderDate: dateFilter,
       },
     });
@@ -189,13 +208,14 @@ export class AnalyticsService {
 
     // Répartition des ventes par catégorie de produits
     // On utilise une requête SQL brute pour joindre `Sale` et `Product` afin d'accéder à la catégorie.
+    const subsidiarySqlFilter = subsidiaryId ? Prisma.sql`s.subsidiary_id = ${subsidiaryId}::uuid` : Prisma.sql`TRUE`;
     const salesByCategory: { category: string, total: number }[] = await this.prisma.$queryRaw`
       SELECT
         p.category as "category",
         SUM(s.total_price)::float as total
       FROM "sale" s -- Utilisation de LOWER() pour une jointure insensible à la casse
       JOIN "products" p ON LOWER(s.product_name) = LOWER(p.product_name) AND s.subsidiary_id = p.subsidiary_id
-      WHERE s.subsidiary_id = ${subsidiaryId}::uuid
+      WHERE ${subsidiarySqlFilter}
         AND (${dateFilter.gte}::timestamp IS NULL OR s.sale_date >= ${dateFilter.gte}::timestamp)
         AND (${dateFilter.lte}::timestamp IS NULL OR s.sale_date <= ${dateFilter.lte}::timestamp)
       GROUP BY p.category
@@ -235,12 +255,14 @@ export class AnalyticsService {
   /**
    * @param user Utilisateur connecté.
    * @param periodFilterDto Dto contenant le filtre de période.
+   * @param requestedSubsidiaryId Filiale demandee en drill-down (ignoree si l'utilisateur n'a pas de scope global).
    * @returns Analyse des achats.
    */
-  async getPurchaseAnalysis(user: User, periodFilterDto: PeriodFilterDto) {
-    const { subsidiaryId } = user;
+  async getPurchaseAnalysis(user: User, periodFilterDto: PeriodFilterDto, requestedSubsidiaryId?: string) {
+    const subsidiaryId = this.resolveSubsidiaryId(user, requestedSubsidiaryId);
+    const subsidiaryFilter = subsidiaryId ? { subsidiaryId } : {};
     const dateFilter = this.getDateFilter(periodFilterDto);
-    const where: Prisma.PurchaseOrderWhereInput = { subsidiaryId, orderDate: dateFilter };
+    const where: Prisma.PurchaseOrderWhereInput = { ...subsidiaryFilter, orderDate: dateFilter };
 
     const totalPurchaseValueResult = await this.prisma.purchaseOrder.aggregate({
       _sum: { totalAmount: true },
