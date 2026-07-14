@@ -1,5 +1,12 @@
 # Plan d'architecture — Multi-filiale, Authentification, RBAC
 
+> **Suivi d'implémentation** (branche `feat/multi-filiale-auth-rbac`) :
+> - ✅ Phase 0 — quick wins sécurité (`/auth/register` protégé, secret JWT fail-fast, guards sur `finances-stats/*`)
+> - ✅ Phase 1 — modèle de données (`SUPER_ADMIN` dans l'enum, `Subsidiary.isHeadquarter`, `User.roles[]` backfillé). Nuance par rapport au plan initial : `userRole`/`additionalRoles` sont **conservés en parallèle** de `roles[]` pour l'instant (au lieu d'être supprimés immédiatement) — retrait prévu en phase 4 une fois tous les guards/le frontend migrés dessus, pour réduire le risque d'un big-bang.
+> - ⬜ Phase 2 — multi-filiale (scoping, dashboard super-admin)
+> - ⬜ Phase 3 — authentification (cookies httpOnly, refresh, CSRF, 2FA)
+> - ⬜ Phase 4 — RBAC finalisé (guards unifiés avec bypass `SUPER_ADMIN`, suppression des champs legacy, garde de route frontend)
+
 Document de cadrage pour 3 chantiers structurants sur `caapmedia_plateforme_commerciale_v2` :
 1. Architecture multi-filiale (dashboard filiale + dashboard super-admin consolidé)
 2. Authentification (cookies httpOnly, 2FA, refresh token, durcissement)
@@ -208,8 +215,10 @@ model User {
 
 Un seul mécanisme au lieu de deux : décorateur `@Roles(...UserRole[])` + `RolesGuard` qui vérifie `requiredRoles.includes(user.activeRole)`. Supprimer les usages bruts de `@SetMetadata('roles', [...])` restants, les remplacer par `@Roles(...)` partout pour la cohérence et la lisibilité.
 
+**Décision de conception (ajoutée après implémentation de la phase 1)** : `SUPER_ADMIN` doit **bypasser automatiquement** tout check de rôle dans `RolesGuard`, plutôt que d'être ajouté manuellement à chaque `@Roles(...)` sur les ~26 controllers existants. L'ajout manuel partout est exactement le genre d'oubli qui a produit le trou de sécurité sur `finances-stats/*` (section 1.1) — un bypass centralisé dans le guard est plus sûr et plus simple à maintenir. Concrètement : `if (user.roles.includes(UserRole.SUPER_ADMIN)) return true;` avant la vérification `requiredRoles.includes(...)`.
+
 À corriger dans la foulée (relevé dans l'audit, section 1.1) :
-- Ajouter un guard sur `finance/balancesheet/balancesheet.controller.ts`.
+- ~~Ajouter un guard sur `finance/balancesheet/balancesheet.controller.ts`~~ et `finance/incomestatement/incomestatement.controller.ts` — fait en phase 0 (guard `[ADMIN, FINANCIAL_DIRECTOR]` en attendant la dédup avec `statistics/finances_stats` qui expose les mêmes routes en double, voir phase 2).
 - Revoir les controllers où la liste de rôles autorisés est trop large par facilité (ex. gestion des users ouverte à `COMMERCIAL`/`SECRETARY` — à restreindre à `ADMIN`/`SUPER_ADMIN`/`HR_MANAGER` selon le cas réel).
 
 ### 4.3 Frontend

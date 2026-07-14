@@ -20,6 +20,7 @@ model Subsidiary {
   accountNumber                 String                         @map("account_number") @db.VarChar(255)
   swiftCode                     String                         @map("swift_code") @db.VarChar(255)
   shareCapital                  Decimal                        @map("share_capital") @db.Decimal(15, 2)
+  isHeadquarter                 Boolean                        @default(false) @map("is_headquarter")
   absenceRecords                AbsenceRecord[]
   accounts                      Account[]
   attendanceRecords             AttendanceRecord[]
@@ -67,6 +68,8 @@ model User {
   subsidiaryId                  String                         @map("subsidiary_id") @db.Uuid
   userRole                      UserRole                       @map("user_role")
   additionalRoles               UserRole[]                     @default([]) @map("additional_roles")
+  /// Source de verite cible pour le RBAC (remplace userRole+additionalRoles, voir Doc/architecture-multi-filiale-auth-rbac.md phase 4)
+  roles                         UserRole[]                     @default([]) @map("roles")
   accounts                      Account[]
   contacts                      Contact[]
   crmTasks                      CrmTask[]
@@ -1078,6 +1081,7 @@ enum CustomerPaymentMethod {
 }
 
 enum UserRole {
+  SUPER_ADMIN
   ADMIN
   COMMERCIAL
   CAISSIER

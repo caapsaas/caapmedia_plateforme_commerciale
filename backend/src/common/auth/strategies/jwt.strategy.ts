@@ -24,7 +24,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       this.logger.error(`User with ID ${payload.sub} not found`, 'JwtStrategy');
       return null;
     }
-    const roles = [user.userRole, ...user.additionalRoles.filter(r => r !== user.userRole)];
+    // roles[] est la source de verite RBAC (backfillee/maintenue en synchro avec userRole+additionalRoles)
+    const roles = user.roles.length > 0 ? user.roles : [user.userRole, ...user.additionalRoles.filter(r => r !== user.userRole)];
     return {
       id: user.id,
       email: user.email,

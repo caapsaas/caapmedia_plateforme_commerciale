@@ -56,6 +56,8 @@ export class AuthService {
     // Hacher le mot de passe
     const passwordHash = await bcrypt.hash(password, 10);
 
+    const dedupedAdditionalRoles = additionalRoles.filter(r => r !== role);
+
     // Créer l'utilisateur
     const user = await this.prisma.user.create({
       data: {
@@ -63,7 +65,9 @@ export class AuthService {
         email,
         passwordHash,
         userRole: role,
-        additionalRoles: additionalRoles.filter(r => r !== role),
+        additionalRoles: dedupedAdditionalRoles,
+        // roles[] est la source de verite RBAC cible (voir Doc/architecture-multi-filiale-auth-rbac.md)
+        roles: [role, ...dedupedAdditionalRoles],
         subsidiaryId,
       },
     });
@@ -87,7 +91,8 @@ export class AuthService {
     }
 
     // Générer le token JWT
-    const roles = [user.userRole, ...user.additionalRoles.filter(r => r !== user.userRole)];
+    // roles[] est la source de verite RBAC (backfillee/maintenue en synchro avec userRole+additionalRoles)
+    const roles = user.roles.length > 0 ? user.roles : [user.userRole, ...user.additionalRoles.filter(r => r !== user.userRole)];
     const payload = {
       sub: user.id,
       email: user.email,
@@ -191,10 +196,13 @@ export class AuthService {
       updateData.passwordHash = await bcrypt.hash(data.password, 10);
       delete updateData.password;
     }
-    // Dédupliquer les rôles supplémentaires par rapport au rôle principal
-    if (data.additionalRoles !== undefined) {
-      const primaryRole = data.userRole ?? (await this.prisma.user.findUnique({ where: { id }, select: { userRole: true } }))?.userRole;
-      updateData.additionalRoles = data.additionalRoles.filter(r => r !== primaryRole);
+    // Dédupliquer les rôles supplémentaires par rapport au rôle principal, et garder
+    // roles[] (source de verite RBAC cible) synchronise des qu'un des deux change.
+    if (data.additionalRoles !== undefined || data.userRole !== undefined) {
+      const primaryRole = data.userRole ?? user.userRole;
+      const additionalRoles = (data.additionalRoles ?? user.additionalRoles).filter(r => r !== primaryRole);
+      updateData.additionalRoles = additionalRoles;
+      updateData.roles = [primaryRole, ...additionalRoles];
     }
 
     // Mettre à jour l'utilisateur
