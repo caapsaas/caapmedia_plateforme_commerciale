@@ -965,15 +965,14 @@ const ECommercePage: React.FC = () => {
           isOpen={isQuoteModalOpen}
           onClose={() => setIsQuoteModalOpen(false)}
           onSave={(data) => {
-            const formData = new FormData();
-            Object.entries(data).forEach(([key, value]) => {
-              if (value)
-                formData.append(
-                  key,
-                  value instanceof File ? value : String(value),
-                );
-            });
-            quoteRequestMutation(formData);
+            const quoteData = {
+              leadName: data.name,
+              company: data.company,
+              email: data.email,
+              phone: data.phone,
+              description: data.description,
+            };
+            quoteRequestMutation(quoteData);
           }}
         />
       )}

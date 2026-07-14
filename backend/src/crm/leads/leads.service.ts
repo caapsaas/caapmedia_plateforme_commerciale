@@ -2,6 +2,7 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateLeadDto } from './dto/create-lead.dto';
+import { PublicQuoteRequestDto } from './dto/public-quote-request.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
 import { User, LeadStatus, OpportunityStage, OpportunitySource, Account, UserRole, Prisma } from '@prisma/client';
 import { AccountsService } from '../accounts/accounts.service';
@@ -11,10 +12,45 @@ import { CreateContactDto } from '../contacts/dto/create-contact.dto';
 @Injectable()
 export class LeadsService {
   constructor(
-    private readonly prisma: PrismaService, 
+    private readonly prisma: PrismaService,
     private readonly accountsService: AccountsService,
     private readonly contactsService: ContactsService, // Injecter ContactsService
   ) {}
+
+  /**
+   * Crée un lead public (demande de devis depuis le site e-commerce)
+   * Aucune authentification requise
+   */
+  async createPublicLead(publicQuoteRequestDto: PublicQuoteRequestDto) {
+    // Vérifier si une piste avec cet email existe déjà
+    const existingLead = await this.prisma.lead.findUnique({
+      where: { email: publicQuoteRequestDto.email },
+    });
+
+    if (existingLead) {
+      throw new ConflictException(`A lead with the email "${publicQuoteRequestDto.email}" already exists.`);
+    }
+
+    // Récupérer la filiale par défaut (la première filiale)
+    const defaultSubsidiary = await this.prisma.subsidiary.findFirst();
+    if (!defaultSubsidiary) {
+      throw new NotFoundException('No subsidiary found in the system.');
+    }
+
+    // Créer le lead avec statut NEW et sans commercial assigné
+    return this.prisma.lead.create({
+      data: {
+        leadName: publicQuoteRequestDto.leadName,
+        company: publicQuoteRequestDto.company,
+        email: publicQuoteRequestDto.email,
+        phone: publicQuoteRequestDto.phone,
+        description: publicQuoteRequestDto.description || '',
+        status: LeadStatus.NEW, // Toujours NEW pour les demandes publiques
+        subsidiaryId: defaultSubsidiary.id,
+        salesRepId: null, // Non assigné initialement
+      },
+    });
+  }
 
  async create(createLeadDto: CreateLeadDto, user: User) {
   // Récupérer l'utilisateur complet depuis la base pour s'assurer que les rôles sont à jour
