@@ -22,9 +22,10 @@ import ActivitiesView from '../components/crm/ActivitiesView';
 import LeadsManagement from '../components/crm/LeadsManagement';
 import AccountManagement from '../components/crm/AccountManagement';
 import ContractManagement from '../components/crm/ContractManagement';
+import ProformasManagement from '../components/crm/ProformasManagement';
 import { useAuth } from '../context/AuthContext';
 
-type CrmView = 'dashboard' | 'leads' | 'accounts' | 'contacts' | 'pipeline' | 'activities' | 'contracts';
+type CrmView = 'dashboard' | 'leads' | 'accounts' | 'contacts' | 'pipeline' | 'activities' | 'contracts' | 'proformas';
 
 const Crm: React.FC = () => {
     const { t } = useI18n();
@@ -178,13 +179,15 @@ const Crm: React.FC = () => {
                             onWinOpportunity={(data) => onWinOpportunity(data)}
                         />;
             case 'activities':
-                return <ActivitiesView 
+                return <ActivitiesView
                             contacts={userFilteredData.contacts}
                             interactions={userFilteredData.interactions}
                             crmTasks={userFilteredData.crmTasks}
                             onSaveTask={(data) => onSaveTask(data)}
                             onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })}
                         />;
+            case 'proformas':
+                return <ProformasManagement />;
             default:
                 return <CrmDashboard {...baseProps} {...userFilteredData} crmAnalysis={crmAnalysisData} onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })} />;
         }
@@ -213,6 +216,7 @@ const Crm: React.FC = () => {
                 <div className="flex items-center flex-wrap gap-2 p-1 bg-slate-200 rounded-lg self-start sm:self-center">
                     <TabButton view="dashboard" label={t('crm.tabs.dashboard')} />
                     <TabButton view="leads" label={t('crm.tabs.leads')} />
+                    <TabButton view="proformas" label="Proformas" />
                     <TabButton view="accounts" label={t('crm.tabs.accounts')} />
                     <TabButton view="contacts" label={t('crm.tabs.contacts')} />
                     <TabButton view="contracts" label={t('crm.tabs.contracts')} />

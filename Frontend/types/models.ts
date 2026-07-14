@@ -241,6 +241,15 @@ export enum ProductionStatus {
   READY_FOR_DELIVERY = 'READY_FOR_DELIVERY',
 }
 
+export enum ProformaStatus {
+  DRAFT = 'DRAFT',
+  SENT = 'SENT',
+  VIEWED = 'VIEWED',
+  ACCEPTED = 'ACCEPTED',
+  REJECTED = 'REJECTED',
+  EXPIRED = 'EXPIRED',
+  CONVERTED = 'CONVERTED',
+}
 
 export interface ProductOptions {
     format?: string;
