@@ -7,7 +7,7 @@ import { RoleGuard } from '../role/role.guard';
 import { SetMetadata } from '@nestjs/common';
 import { IsString, IsEmail, IsOptional, IsUUID, IsEnum, IsArray, IsNotEmpty } from 'class-validator';
 import { UserRole } from '@prisma/client';
-import { setAuthCookies, clearAuthCookies, REFRESH_TOKEN_COOKIE } from '../cookie.util';
+import { setAuthCookies, clearAuthCookies, setCsrfCookie, REFRESH_TOKEN_COOKIE } from '../cookie.util';
 
 class RegisterDto {
   @IsString()
@@ -106,6 +106,7 @@ export class AuthController {
       ipAddress: req.ip,
     });
     setAuthCookies(res, accessToken, refreshToken);
+    setCsrfCookie(res);
     return { user: userPayload, subsidiary };
   }
 
@@ -126,6 +127,7 @@ export class AuthController {
         ipAddress: req.ip,
       });
       setAuthCookies(res, accessToken, refreshToken);
+      setCsrfCookie(res);
       return { message: 'Session renouvelée' };
     } catch (error) {
       clearAuthCookies(res);

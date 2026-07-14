@@ -7,6 +7,7 @@ import { Logger, ValidationPipe, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import { csrfMiddleware } from './common/auth/csrf.middleware';
 
 async function bootstrap() {
   // Crée une instance avec le logger activé
@@ -22,6 +23,7 @@ async function bootstrap() {
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   }));
   app.use(cookieParser());
+  app.use(csrfMiddleware);
 
   // Get config service
   const configService = app.get(ConfigService);
