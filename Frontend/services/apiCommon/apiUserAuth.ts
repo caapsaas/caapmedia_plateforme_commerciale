@@ -10,10 +10,18 @@ export interface UserLoginCredentials {
   password: string;
 }
 
-export interface UserLoginResponse {
+export interface UserLoginSuccess {
+  twoFactorRequired: false;
   user: User;
   subsidiary: Subsidiary;
 }
+
+export interface UserLoginTwoFactorRequired {
+  twoFactorRequired: true;
+  pendingToken: string;
+}
+
+export type UserLoginResponse = UserLoginSuccess | UserLoginTwoFactorRequired;
 
 export interface UserRegisterResponse {
   message: string;
@@ -56,6 +64,21 @@ export interface UserSearchQuery {
  */
 export const loginUser = async (credentials: UserLoginCredentials): Promise<UserLoginResponse> => {
   const { data } = await api.post<UserLoginResponse>('/auth/login', credentials);
+  return data;
+};
+
+/**
+ * Complete le login quand loginUser() a renvoye twoFactorRequired: true.
+ * Un seul de `code` (TOTP) ou `recoveryCode` doit être fourni.
+ */
+export const completeTwoFactorLogin = async (
+  pendingToken: string,
+  credentials: { code?: string; recoveryCode?: string },
+): Promise<{ user: User; subsidiary: Subsidiary }> => {
+  const { data } = await api.post<{ user: User; subsidiary: Subsidiary }>('/auth/2fa/login', {
+    pendingToken,
+    ...credentials,
+  });
   return data;
 };
 

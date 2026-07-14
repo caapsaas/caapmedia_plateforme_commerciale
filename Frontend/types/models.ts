@@ -157,6 +157,7 @@ export interface User {
   additionalRoles?: UserRole[];
   subsidiaryId: string;
   password?: string;
+  twoFactorEnabled?: boolean;
 }
 
 export interface ConfigurableOptionItem {

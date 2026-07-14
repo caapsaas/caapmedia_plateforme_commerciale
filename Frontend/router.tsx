@@ -21,6 +21,7 @@ import Secretariat from './Pages/Secretariat';
 import Production from './Pages/Production';
 import Maintenance from './components/maintenance/Maintenance';
 import Equipements from './Pages/Equipements';
+import SecuritySettings from './Pages/SecuritySettings';
 
 
 // Le token "user" vit dans un cookie httpOnly (illisible en JS) - au chargement
@@ -140,6 +141,8 @@ const mesCommandesRoute = createRoute({
 
 const configurationRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/configuration', component: Configuration });
 const productionRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/production', component: Production });
+// Parametres personnels (2FA...) - accessible a tout role authentifie, pas de garde specifique.
+const securityRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/security', component: SecuritySettings });
 
 // Routes qui dépendaient auparavant de wrappers
 const secretariatRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/secretariat', component: Secretariat });
@@ -170,6 +173,7 @@ const routeTree = rootRoute.addChildren([
     productionRoute,
     maintenanceRoute,
     equipementsRoute,
+    securityRoute,
   ]),
 ]);
 

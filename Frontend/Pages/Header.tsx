@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useRouter } from "@tanstack/react-router";
+import { useRouter, Link } from "@tanstack/react-router";
 import { UserRole } from "../types";
 import IconLogout from "../components/icons/IconLogout";
+import IconLock from "../components/icons/IconLock";
 import { useI18n } from "../i18n";
 import IconGlobe from "../components/icons/IconGlobe";
 import IconMenu from "../components/icons/IconMenu";
@@ -174,6 +175,15 @@ const Header: React.FC = () => {
                     <span>{t("header.changeRole")}</span>
                   </button>
                 )}
+                <Link
+                  to="/dashboard/security"
+                  onClick={() => setIsProfileMenuOpen(false)}
+                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center space-x-2"
+                  role="menuitem"
+                >
+                  <IconLock className="h-4 w-4" />
+                  <span>{t("security.title")}</span>
+                </Link>
                 <button
                   onClick={() => {
                     authLogout();

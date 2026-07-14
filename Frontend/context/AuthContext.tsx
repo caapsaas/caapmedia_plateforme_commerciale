@@ -15,6 +15,7 @@ interface AuthContextType {
   contactToken: string | null;
   subsidiary: Subsidiary | null,
   updateUserRole: (newRole: UserRole) => void;
+  setTwoFactorEnabled: (enabled: boolean) => void;
   login: (data: { user: User; subsidiary: Subsidiary }) => void;
   logout: () => void;
   logoutCustomer: () => void;
@@ -86,6 +87,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const setTwoFactorEnabled = (enabled: boolean) => {
+    if (user) {
+      setUser({ ...user, twoFactorEnabled: enabled });
+    }
+  };
+
   const logoutCustomer = () => {
     localStorage.removeItem('contactToken');
     setContactToken(null);
@@ -107,7 +114,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, contact, isAuthResolved, isAuthenticated: !!user, contactToken, subsidiary, login, logout, loginCustomer, logoutCustomer, updateUserRole }}>
+    <AuthContext.Provider value={{ user, contact, isAuthResolved, isAuthenticated: !!user, contactToken, subsidiary, login, logout, loginCustomer, logoutCustomer, updateUserRole, setTwoFactorEnabled }}>
       {children}
     </AuthContext.Provider>
   );

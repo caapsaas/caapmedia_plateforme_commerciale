@@ -98,6 +98,7 @@ const frTranslations = {
     "copyright": "© 2024 CaapMedia. Tous droits réservés."
   },
   "roles": {
+    "SUPER_ADMIN": "Super Administrateur",
     "ADMIN": "Admin",
     "COMMERCIAL": "Commercial",
     "CAISSIER": "Caissier",
@@ -155,7 +156,18 @@ const frTranslations = {
     "errorIncorrectCredentials": "Identifiants incorrects. Veuillez vérifier votre e-mail et votre mot de passe.",
     "errorUserNotOnSubsidiary": "Cet utilisateur n'est pas rattaché à la filiale sélectionnée.",
     "forgotPasswordPrompt": "Veuillez entrer votre adresse e-mail pour réinitialiser votre mot de passe.",
-    "forgotPasswordSuccess": "Si un compte avec l'email {{email}} existe, un lien de réinitialisation a été envoyé."
+    "forgotPasswordSuccess": "Si un compte avec l'email {{email}} existe, un lien de réinitialisation a été envoyé.",
+    "twoFactor": {
+      "title": "Vérification en deux étapes",
+      "subtitle": "Entrez le code de votre application d'authentification.",
+      "codeLabel": "Code de vérification",
+      "recoveryCodeLabel": "Code de secours",
+      "recoveryCodePlaceholder": "xxxxxxxxxx",
+      "verifyButton": "Vérifier",
+      "useRecoveryCodeInstead": "Utiliser un code de secours",
+      "useCodeInstead": "Utiliser le code de l'application",
+      "errorInvalidCode": "Code invalide."
+    }
   },
    "forgotPassword": {
     "title": "Réinitialiser le mot de passe",
@@ -165,6 +177,25 @@ const frTranslations = {
     "backToLogin": "Retour à la connexion",
     "successMessage": "Si un compte existe avec cet e-mail, nous avons envoyé un lien pour réinitialiser votre mot de passe.",
     "errorMessage": "Une erreur est survenue lors de l'envoi du lien de réinitialisation. Veuillez réessayer."
+  },
+  "security": {
+    "title": "Sécurité du compte",
+    "twoFactor": {
+      "title": "Double authentification",
+      "description": "Ajoutez une couche de sécurité supplémentaire à votre compte avec une application d'authentification.",
+      "statusEnabled": "Activée",
+      "statusDisabled": "Désactivée",
+      "enableButton": "Activer la double authentification",
+      "disableButton": "Désactiver la double authentification",
+      "scanInstruction": "Scannez ce QR code avec votre application d'authentification (Google Authenticator, Authy...), puis entrez le code généré pour confirmer.",
+      "manualEntryLabel": "Ou saisissez ce code manuellement :",
+      "confirmCodeLabel": "Code de vérification",
+      "confirmButton": "Confirmer et activer",
+      "recoveryCodesWarning": "Notez ces codes de secours dans un endroit sûr. Chacun ne peut être utilisé qu'une seule fois pour vous connecter si vous perdez l'accès à votre application d'authentification. Ils ne seront plus jamais affichés.",
+      "recoveryCodesSavedButton": "J'ai sauvegardé mes codes de secours",
+      "errorInvalidCode": "Code invalide.",
+      "errorGeneric": "Une erreur est survenue. Veuillez réessayer."
+    }
   },
   "ecommerce": {
     "title": "Notre Boutique",
@@ -1691,6 +1722,7 @@ const enTranslations: Translations = {
       "copyright": "© 2024 CaapMedia. All rights reserved."
     },
     "roles": {
+        "SUPER_ADMIN": "Super Admin",
         "ADMIN": "Admin",
         "COMMERCIAL": "Sales Rep",
         "CAISSIER": "Cashier",
@@ -1748,7 +1780,18 @@ const enTranslations: Translations = {
         "errorIncorrectCredentials": "Incorrect credentials. Please check your email and password.",
         "errorUserNotOnSubsidiary": "This user is not assigned to the selected subsidiary.",
         "forgotPasswordPrompt": "Please enter your email address to reset your password.",
-        "forgotPasswordSuccess": "If an account with the email {{email}} exists, a reset link has been sent."
+        "forgotPasswordSuccess": "If an account with the email {{email}} exists, a reset link has been sent.",
+        "twoFactor": {
+          "title": "Two-factor verification",
+          "subtitle": "Enter the code from your authenticator app.",
+          "codeLabel": "Verification code",
+          "recoveryCodeLabel": "Recovery code",
+          "recoveryCodePlaceholder": "xxxxxxxxxx",
+          "verifyButton": "Verify",
+          "useRecoveryCodeInstead": "Use a recovery code",
+          "useCodeInstead": "Use the app code",
+          "errorInvalidCode": "Invalid code."
+        }
     },
     "forgotPassword": {
       "title": "Reset Password",
@@ -1758,6 +1801,25 @@ const enTranslations: Translations = {
       "backToLogin": "Back to Login",
       "successMessage": "If an account with that email exists, we have sent a link to reset your password.",
       "errorMessage": "An error occurred while sending the reset link. Please try again."
+    },
+    "security": {
+      "title": "Account security",
+      "twoFactor": {
+        "title": "Two-factor authentication",
+        "description": "Add an extra layer of security to your account with an authenticator app.",
+        "statusEnabled": "Enabled",
+        "statusDisabled": "Disabled",
+        "enableButton": "Enable two-factor authentication",
+        "disableButton": "Disable two-factor authentication",
+        "scanInstruction": "Scan this QR code with your authenticator app (Google Authenticator, Authy...), then enter the generated code to confirm.",
+        "manualEntryLabel": "Or enter this code manually:",
+        "confirmCodeLabel": "Verification code",
+        "confirmButton": "Confirm and enable",
+        "recoveryCodesWarning": "Save these recovery codes somewhere safe. Each can only be used once to sign in if you lose access to your authenticator app. They will never be shown again.",
+        "recoveryCodesSavedButton": "I've saved my recovery codes",
+        "errorInvalidCode": "Invalid code.",
+        "errorGeneric": "Something went wrong. Please try again."
+      }
     },
     "ecommerce": {
       "title": "Our Shop",

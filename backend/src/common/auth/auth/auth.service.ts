@@ -113,7 +113,7 @@ export class AuthService {
    * utilisateur deja authentifie. Separe de `login()` pour pouvoir aussi
    * etre appele apres verification 2FA sans re-verifier le mot de passe.
    */
-  async issueTokens(user: { id: string; email: string; userRole: UserRole; additionalRoles: UserRole[]; roles: UserRole[]; subsidiaryId: string }, meta: RequestMeta = {}) {
+  async issueTokens(user: { id: string; email: string; userRole: UserRole; additionalRoles: UserRole[]; roles: UserRole[]; subsidiaryId: string; twoFactorEnabled: boolean }, meta: RequestMeta = {}) {
     // roles[] est la source de verite RBAC (backfillee/maintenue en synchro avec userRole+additionalRoles)
     const roles = user.roles.length > 0 ? user.roles : [user.userRole, ...user.additionalRoles.filter(r => r !== user.userRole)];
     const payload = {
@@ -129,7 +129,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: { id: user.id, email: user.email, role: user.userRole, roles, additionalRoles: user.additionalRoles, subsidiaryId: user.subsidiaryId },
+      user: { id: user.id, email: user.email, role: user.userRole, roles, additionalRoles: user.additionalRoles, subsidiaryId: user.subsidiaryId, twoFactorEnabled: user.twoFactorEnabled },
     };
   }
 
@@ -382,6 +382,7 @@ export class AuthService {
         userRole: true,
         additionalRoles: true,
         subsidiaryId: true,
+        twoFactorEnabled: true,
       }
     });
 
