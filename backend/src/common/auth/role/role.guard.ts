@@ -45,20 +45,25 @@ export class RoleGuard implements CanActivate {
       return true;
     }
 
-    const userRole = user.role || user.userRole;
-    this.logger.debug(`User ${user.id} has role: ${userRole}`, 'RoleGuard');
+    // roles[] est la source de verite RBAC (voir jwt.strategy.ts): un
+    // utilisateur avec des additionalRoles doit passer si N'IMPORTE LEQUEL de
+    // ses roles matche - meme logique OR que checkRole() et useHasRole() cote
+    // frontend. Se limiter a user.role (le seul role principal) ignorait
+    // additionalRoles et etait incoherent avec ces deux autres mecanismes.
+    const userRoles: UserRole[] = user.roles?.length ? user.roles : [user.role || user.userRole].filter(Boolean);
+    this.logger.debug(`User ${user.id} has roles: ${userRoles.join(', ')}`, 'RoleGuard');
 
-    if (!userRole) {
+    if (userRoles.length === 0) {
       this.logger.error(`User ${user.id} has no role defined for ${method} ${url}`, 'RoleGuard');
       throw new ForbiddenException('User role not defined');
     }
 
-    const hasRole = requiredRoles.includes(userRole);
+    const hasRole = requiredRoles.some((r) => userRoles.includes(r));
     if (!hasRole) {
-      this.logger.error(`User ${user.id} lacks required role for ${method} ${url}. Has: ${userRole}, Required: ${requiredRoles.join(', ')}`, 'RoleGuard');
+      this.logger.error(`User ${user.id} lacks required role for ${method} ${url}. Has: ${userRoles.join(', ')}, Required: ${requiredRoles.join(', ')}`, 'RoleGuard');
       throw new ForbiddenException('Insufficient permissions');
     }
-    
+
     this.logger.debug(`User ${user.id} has required role for ${method} ${url}`, 'RoleGuard');
     return hasRole;
   }

@@ -22,6 +22,7 @@ import { extname } from 'path';
 import { SecretariatService } from './secretariat.service';
 import { JwtAuthGuard } from '../../src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from '../common/auth/role/role.guard';
+import { Roles } from '../common/auth/role/role.decorator';
 import { SetMetadata } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { CreateCompanyDocumentDto } from './dto/create-company-document.dto';
@@ -36,7 +37,7 @@ export class SecretariatController {
   constructor(private readonly secretariatService: SecretariatService) {}
 
   // Endpoints pour CompanyDocument
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Post('documents')
   @UsePipes(new ValidationPipe({ transform: true })) // Validation auto du DTO
   @UseInterceptors(
@@ -70,7 +71,7 @@ export class SecretariatController {
     return this.secretariatService.createCompanyDocument(dto, req.user, file);
   }
 
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Patch('documents/:id')
   @UsePipes(new ValidationPipe({ transform: true }))
   @UseInterceptors(
@@ -101,26 +102,26 @@ export class SecretariatController {
     return this.secretariatService.updateCompanyDocument(id, dto, req.user, file);
   }
 
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Delete('documents/:id')
   async deleteCompanyDocument(@Param('id') id: string, @Req() req) {
     return this.secretariatService.deleteCompanyDocument(id, req.user);
   }
 
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Get('documents')
   async getAllCompanyDocuments(@Req() req) {
     return this.secretariatService.getAllCompanyDocuments(req.user);
   }
 
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Get('documents/search')
   async searchCompanyDocuments(@Query() query: SearchCompanyDocumentsDto, @Req() req) {
     return this.secretariatService.searchCompanyDocuments(query, req.user);
   }
 
   // Endpoints for Meeting
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Post('meetings')
   @UsePipes(new ValidationPipe({ transform: true })) // Validation auto du DTO (ex. subsidiaryId requis, participantIds array optionnel)
   async createMeeting(@Body() dto: CreateMeetingDto, @Req() req) {
@@ -128,7 +129,7 @@ export class SecretariatController {
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Patch('meetings/:id')
   @UsePipes(new ValidationPipe({ transform: true })) // Validation auto du DTO (participantIds optionnel pour mise à jour)
   async updateMeeting(@Param('id') id: string, @Body() dto: UpdateMeetingDto, @Req() req) {
@@ -136,21 +137,21 @@ export class SecretariatController {
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Delete('meetings/:id')
   async deleteMeeting(@Param('id') id: string, @Req() req) {
     return this.secretariatService.deleteMeeting(id, req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Get('meetings')
   async getAllMeetings(@Req() req) {
     return this.secretariatService.getAllMeetings(req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Get('meetings/search')
   @UsePipes(new ValidationPipe({ transform: true })) // Validation auto du DTO (title, meetingDate optionnels)
   async searchMeetings(@Query() query: SearchMeetingsDto, @Req() req) {
@@ -159,7 +160,7 @@ export class SecretariatController {
 
   // Nouveaux endpoints pour gérer les participants individuellement
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Post('meetings/:id/participants/:employeeId')
   async addParticipantToMeeting(
     @Param('id') id: string,
@@ -170,7 +171,7 @@ export class SecretariatController {
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Delete('meetings/:id/participants/:employeeId')
   async removeParticipantFromMeeting(
     @Param('id') id: string,
@@ -182,7 +183,7 @@ export class SecretariatController {
 
   // Endpoints for SecretariatTask
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Post('tasks')
   @UsePipes(new ValidationPipe({ transform: true })) // Validation auto du DTO (ex. subsidiaryId requis, assignedToId optionnel)
   async createSecretariatTask(@Body() dto: CreateSecretariatTaskDto, @Req() req) {
@@ -190,7 +191,7 @@ export class SecretariatController {
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Patch('tasks/:id')
   @UsePipes(new ValidationPipe({ transform: true })) // Validation auto du DTO (assignedToId optionnel pour mise à jour)
   async updateSecretariatTask(@Param('id') id: string, @Body() dto: UpdateSecretariatTaskDto, @Req() req) {
@@ -198,21 +199,21 @@ export class SecretariatController {
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Delete('tasks/:id')
   async deleteSecretariatTask(@Param('id') id: string, @Req() req) {
     return this.secretariatService.deleteSecretariatTask(id, req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Get('tasks')
   async getAllSecretariatTasks(@Req() req) {
     return this.secretariatService.getAllSecretariatTasks(req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.SECRETARY, UserRole.ADMIN])
+  @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Get('tasks/search')
   @UsePipes(new ValidationPipe({ transform: true })) // Validation auto du DTO (title, status, dueDate optionnels)
   async searchSecretariatTasks(@Query() query: SearchSecretariatTasksDto, @Req() req) {

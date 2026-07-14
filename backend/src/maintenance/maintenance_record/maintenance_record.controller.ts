@@ -3,6 +3,7 @@ import { MaintenanceRecordService } from 'src/maintenance/maintenance_record/mai
 import { CreateMaintenanceRecordDto, UpdateMaintenanceRecordDto, SearchMaintenanceRecordDto } from 'src/maintenance/maintenance_record/dto/create-maintenance_record.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
+import { Roles } from 'src/common/auth/role/role.decorator';
 import { SetMetadata } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 
@@ -16,7 +17,7 @@ export class MaintenanceRecordController {
    */
   @Post()
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR])
+  @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR)
   create(@Body() createMaintenanceRecordDto: CreateMaintenanceRecordDto) {
     return this.service.create(createMaintenanceRecordDto);
   }
@@ -27,7 +28,7 @@ export class MaintenanceRecordController {
    */
   @Get()
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR])
+  @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR)
   findAll(@Query('equipmentId', new ParseUUIDPipe()) equipmentId: string) {
     return this.service.findAll(equipmentId);
   }
@@ -39,7 +40,7 @@ export class MaintenanceRecordController {
    */
   @Get('search')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR])
+  @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR)
   search(@Query() dto: SearchMaintenanceRecordDto) {
     return this.service.search(dto);
   }
@@ -50,7 +51,7 @@ export class MaintenanceRecordController {
    */
   @Get(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR])
+  @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR)
   findOne(@Param('id') id: string) {
     return this.service.findOne(id);
   }
@@ -61,7 +62,7 @@ export class MaintenanceRecordController {
    */
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR])
+  @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR)
   update(@Param('id') id: string, @Body() updateMaintenanceRecordDto: UpdateMaintenanceRecordDto) {
     return this.service.update(id, updateMaintenanceRecordDto);
   }
@@ -72,7 +73,7 @@ export class MaintenanceRecordController {
    */
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR])
+  @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR)
   remove(@Param('id') id: string) {
     return this.service.remove(id);
   }

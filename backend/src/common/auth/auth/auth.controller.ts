@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { AuthAuditService } from './auth-audit.service';
 import { JwtAuthGuard } from '../jwt/jwt.guard';
 import { RoleGuard } from '../role/role.guard';
+import { Roles } from '../role/role.decorator';
 import { SetMetadata } from '@nestjs/common';
 import { IsString, IsEmail, IsOptional, IsUUID, IsEnum, IsArray, IsNotEmpty } from 'class-validator';
 import { UserRole, AuthAuditEvent } from '@prisma/client';
@@ -116,7 +117,7 @@ export class AuthController {
   constructor(private authService: AuthService, private authAuditService: AuthAuditService) {}
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.SUPER_ADMIN])
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @Post('register')
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto.userName, dto.email, dto.password, dto.userRole, dto.subsidiaryId, dto.additionalRoles ?? []);
@@ -198,28 +199,28 @@ export class AuthController {
   
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR])
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR)
   @Patch('users/:id')
   async updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto, @Request() req) {
     return this.authService.updateUser(id, dto, req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR])
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR)
   @Delete('users/:id')
   async deleteUser(@Param('id') id: string, @Request() req) {
     return this.authService.deleteUser(id, req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR])
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR)
   @Get('users')
   async getAllUsers(@Request() req) {
     return this.authService.getAllUsers(req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR])
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.HR_MANAGER, UserRole.FINANCIAL_DIRECTOR)
   @Get('users/search')
   async searchUsers(@Query() query: SearchUsersDto, @Request() req) {
     return this.authService.searchUsers(query, req.user);
@@ -232,7 +233,7 @@ export class AuthController {
    * auth-rbac.md pour le suivi de ce genre de gap.
    */
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [UserRole.SUPER_ADMIN])
+  @Roles(UserRole.SUPER_ADMIN)
   @Get('audit-log')
   async getAuditLog(@Query() query: AuditLogQueryDto) {
     return this.authAuditService.findMany(query);

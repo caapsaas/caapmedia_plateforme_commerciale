@@ -3,12 +3,13 @@ import { BalancesheetService } from './balancesheet.service';
 import { BalanceSheetDto } from './dto/balance-sheet.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { RoleGuard } from '../../common/auth/role/role.guard';
+import { Roles } from '../../common/auth/role/role.decorator';
 import { UserRole } from '@prisma/client';
 import { resolveEffectiveSubsidiaryId, resolveScopeContext, ScopableUser } from '../../common/utils/subsidiary-scope';
 
 @Controller('finances-stats')
 @UseGuards(JwtAuthGuard, RoleGuard)
-@SetMetadata('roles', [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.SUPER_ADMIN])
+@Roles(UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.SUPER_ADMIN)
 export class BalancesheetController {
   constructor(private readonly balancesheetService: BalancesheetService) {}
 
