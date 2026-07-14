@@ -5,14 +5,27 @@ import { AppModule } from './app.module';
 import { join } from 'path';
 import { Logger, ValidationPipe, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 
 async function bootstrap() {
   // Crée une instance avec le logger activé
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: ['error', 'warn', 'log', 'debug', 'verbose'] });
-  
+
+  // Content-Security-Policy desactivee: cette API sert aussi des fichiers
+  // statiques (uploads, images produits) potentiellement charges cross-origin
+  // depuis le frontend - une CSP par defaut casserait ces chargements sans
+  // apporter de protection pertinente pour une API JSON. Le reste des
+  // protections helmet (X-Frame-Options, X-Content-Type-Options, HSTS...) reste actif.
+  app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  }));
+  app.use(cookieParser());
+
   // Get config service
   const configService = app.get(ConfigService);
-  
+
   // Dynamic CORS configuration
   const corsOrigins = configService.get('CORS_ORIGINS')?.split(',') || [
     'http://localhost:5173',
@@ -20,7 +33,7 @@ async function bootstrap() {
     'https://www.caapmedia.com',
     'https://caapmedia.com'
   ];
-  
+
   app.enableCors({
     origin: corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],

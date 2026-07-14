@@ -7,6 +7,7 @@ import * as bcrypt from 'bcryptjs';
 import { UserRole } from '@prisma/client';
 import * as nodemailer from 'nodemailer';
 import { resolveScopeContext } from '../../utils/subsidiary-scope';
+import { RefreshTokenService, RequestMeta } from './refresh-token.service';
 
 @Injectable()
 export class AuthService {
@@ -14,6 +15,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly logger: LoggerService,
+    private readonly refreshTokenService: RefreshTokenService,
   ) {}
 
 //****1- Fonction de creation d'un utilisateur****
@@ -91,7 +93,17 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Générer le token JWT
+    this.logger.log(`User ${email} logged in successfully`, 'AuthService');
+    return { user, subsidiary: user.subsidiary };
+  }
+
+  /**
+   * Emet l'access token JWT (courte duree, signe, stateless) et le refresh
+   * token (longue duree, stocke hashe en base, revocable) pour un
+   * utilisateur deja authentifie. Separe de `login()` pour pouvoir aussi
+   * etre appele apres verification 2FA sans re-verifier le mot de passe.
+   */
+  async issueTokens(user: { id: string; email: string; userRole: UserRole; additionalRoles: UserRole[]; roles: UserRole[]; subsidiaryId: string }, meta: RequestMeta = {}) {
     // roles[] est la source de verite RBAC (backfillee/maintenue en synchro avec userRole+additionalRoles)
     const roles = user.roles.length > 0 ? user.roles : [user.userRole, ...user.additionalRoles.filter(r => r !== user.userRole)];
     const payload = {
@@ -101,15 +113,31 @@ export class AuthService {
       roles,
       subsidiaryId: user.subsidiaryId,
     };
-    const token = this.jwtService.sign(payload);
-    const subsidiary = await this.prisma.subsidiary.findUnique({ where: { id: user.subsidiaryId } });
+    const accessToken = this.jwtService.sign(payload);
+    const { token: refreshToken } = await this.refreshTokenService.issue(user.id, meta);
 
-    this.logger.log(`User ${email} logged in successfully`, 'AuthService');
     return {
-      access_token: token,
+      accessToken,
+      refreshToken,
       user: { id: user.id, email: user.email, role: user.userRole, roles, additionalRoles: user.additionalRoles, subsidiaryId: user.subsidiaryId },
-      subsidiary: subsidiary,
     };
+  }
+
+  /**
+   * Rotation du refresh token: verifie le token presente, le revoque, en
+   * emet un nouveau + un nouvel access token.
+   */
+  async refresh(presentedRefreshToken: string, meta: RequestMeta = {}) {
+    const { userId, issued } = await this.refreshTokenService.rotate(presentedRefreshToken, meta);
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { subsidiary: true } });
+    if (!user) {
+      throw new UnauthorizedException('Utilisateur introuvable');
+    }
+    const roles = user.roles.length > 0 ? user.roles : [user.userRole, ...user.additionalRoles.filter(r => r !== user.userRole)];
+    const payload = { sub: user.id, email: user.email, role: user.userRole, roles, subsidiaryId: user.subsidiaryId };
+    const accessToken = this.jwtService.sign(payload);
+
+    return { accessToken, refreshToken: issued.token };
   }
 
 //****3- Fonction de reinitialisation de mot de passe****
@@ -319,10 +347,14 @@ export class AuthService {
 
 //****8- Fonction de déconnexion d'un utilisateur****
 
-  async logout(user: { email: string }) {
-    // Dans une configuration JWT sans état, la déconnexion est principalement une opération côté client.
-    // Le serveur ne peut pas "invalider" un JWT sans une liste de blocage.
-    // Ce point de terminaison est utile pour la journalisation ou si une liste de blocage est implémentée à l'avenir.
+  async logout(user: { email: string }, presentedRefreshToken?: string) {
+    // Le refresh token est revoque en base (contrairement a l'access token JWT
+    // stateless, qui reste techniquement valide jusqu'a son expiration courte
+    // de 15 min - c'est le refresh token revoque qui empeche une nouvelle
+    // session d'etre prolongee au-dela).
+    if (presentedRefreshToken) {
+      await this.refreshTokenService.revoke(presentedRefreshToken);
+    }
     this.logger.log(`User ${user.email} logged out successfully`, 'AuthService');
     return { message: 'Logged out successfully' };
   }

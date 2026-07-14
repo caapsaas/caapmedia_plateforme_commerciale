@@ -1,11 +1,13 @@
 
-import { Controller, Post, Body, Patch, Delete, Get, Query, Request, UseGuards, Param } from '@nestjs/common';
+import { Controller, Post, Body, Patch, Delete, Get, Query, Request, UseGuards, Param, Res, UnauthorizedException } from '@nestjs/common';
+import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from '../jwt/jwt.guard';
 import { RoleGuard } from '../role/role.guard';
 import { SetMetadata } from '@nestjs/common';
 import { IsString, IsEmail, IsOptional, IsUUID, IsEnum, IsArray, IsNotEmpty } from 'class-validator';
 import { UserRole } from '@prisma/client';
+import { setAuthCookies, clearAuthCookies, REFRESH_TOKEN_COOKIE } from '../cookie.util';
 
 class RegisterDto {
   @IsString()
@@ -97,8 +99,38 @@ export class AuthController {
 
 
   @Post('login')
-  async login(@Body() dto: LoginDto) {
-    return this.authService.login(dto.email, dto.password);
+  async login(@Body() dto: LoginDto, @Request() req, @Res({ passthrough: true }) res: Response) {
+    const { user, subsidiary } = await this.authService.login(dto.email, dto.password);
+    const { accessToken, refreshToken, user: userPayload } = await this.authService.issueTokens(user, {
+      userAgent: req.headers['user-agent'],
+      ipAddress: req.ip,
+    });
+    setAuthCookies(res, accessToken, refreshToken);
+    return { user: userPayload, subsidiary };
+  }
+
+  /**
+   * Rotation du refresh token: le cookie httpOnly refresh_token (non lisible
+   * en JS) est envoye automatiquement par le navigateur sur cette route
+   * (path restreint a /api-caapmedia/auth, voir cookie.util.ts).
+   */
+  @Post('refresh')
+  async refresh(@Request() req, @Res({ passthrough: true }) res: Response) {
+    const presentedToken = req.cookies?.[REFRESH_TOKEN_COOKIE];
+    if (!presentedToken) {
+      throw new UnauthorizedException('Refresh token manquant');
+    }
+    try {
+      const { accessToken, refreshToken } = await this.authService.refresh(presentedToken, {
+        userAgent: req.headers['user-agent'],
+        ipAddress: req.ip,
+      });
+      setAuthCookies(res, accessToken, refreshToken);
+      return { message: 'Session renouvelée' };
+    } catch (error) {
+      clearAuthCookies(res);
+      throw error;
+    }
   }
 
   @Post('forgot-password')
@@ -145,8 +177,11 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Post('logout')
-  async logout(@Request() req) {
-    return this.authService.logout(req.user);
+  async logout(@Request() req, @Res({ passthrough: true }) res: Response) {
+    const presentedToken = req.cookies?.[REFRESH_TOKEN_COOKIE];
+    const result = await this.authService.logout(req.user, presentedToken);
+    clearAuthCookies(res);
+    return result;
   }
 
   @UseGuards(JwtAuthGuard)

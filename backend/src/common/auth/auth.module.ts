@@ -5,7 +5,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UtilsModule } from '../utils/utils.module';
 import { RoleGuard } from './role/role.guard';
-import { SubsidiaryGuard } from './subsidiary/subsidiary.guard';import { AuthController } from './auth/auth.controller';
+import { SubsidiaryGuard } from './subsidiary/subsidiary.guard';
+import { AuthController } from './auth/auth.controller';
+import { RefreshTokenService } from './auth/refresh-token.service';
 
 @Module({
   imports: [
@@ -13,11 +15,13 @@ import { SubsidiaryGuard } from './subsidiary/subsidiary.guard';import { AuthCon
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
       secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '60m' },
+      // Access token courte duree: c'est le refresh token (httpOnly, stocke
+      // hashe en base, revocable) qui porte la duree de session reelle.
+      signOptions: { expiresIn: '15m' },
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RoleGuard, SubsidiaryGuard],
-  exports: [AuthService, JwtModule, RoleGuard, SubsidiaryGuard],
+  providers: [AuthService, JwtStrategy, RoleGuard, SubsidiaryGuard, RefreshTokenService],
+  exports: [AuthService, JwtModule, RoleGuard, SubsidiaryGuard, RefreshTokenService],
 })
 export class AuthModule {}
