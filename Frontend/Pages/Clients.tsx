@@ -13,12 +13,11 @@ import IconPrint from '../components/icons/IconPrint';
 import IconExport from '../components/icons/IconExport';
 import IconPdf from '../components/icons/IconPdf';
 import { getContacts, saveContact, deleteContact } from '../services/apiCrm/apiCrm';
-import { useAppContext } from '../context/AppContext'; // Assurez-vous que getContacts est bien exporté depuis apiCrm
+import { useAuth } from '../context/AuthContext';
 
 const Clients: React.FC = () => {
     const { t } = useI18n();
-    const { state } = useAppContext();
-    const { currentSubsidiary: subsidiary } = state;
+    const { subsidiary } = useAuth();
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingContact, setEditingContact] = useState<Contact | null>(null);

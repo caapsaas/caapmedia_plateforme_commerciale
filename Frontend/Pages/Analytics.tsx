@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '../i18n';
+import { useAuth } from '../context/AuthContext';
 import PeriodFilter from '../components/filters/PeriodFilter';
 import DashboardView from '../components/analytics/DashboardView';
 import SalesAnalysisView from '../components/analytics/SalesAnalysisView';
@@ -13,6 +14,7 @@ type AnalyticsView = 'dashboard' | 'sales' | 'purchases' | 'banks' | 'safe';
 
 const Analytics: React.FC = () => {
     const { t } = useI18n();
+    const { subsidiary } = useAuth();
     const [activeTab, setActiveTab] = useState<AnalyticsView>('dashboard');
     const [selectedSubsidiaryId, setSelectedSubsidiaryId] = useState('');
     const [selectedPeriod, setSelectedPeriod] = useState<PeriodFilterType>('LAST_30_DAYS');
@@ -85,9 +87,9 @@ const Analytics: React.FC = () => {
                 return purchaseAnalysisData ? <PurchaseAnalysisView data={purchaseAnalysisData} /> : null;
             case 'banks':
                  // Ces vues n'ont pas encore d'API, on garde l'ancienne structure pour l'instant
-                return <BankView subsidiary={{id: selectedSubsidiaryId, name: 'Dummy'}} period={selectedPeriod} startDate={startDate} endDate={endDate} />;
+                return subsidiary ? <BankView subsidiary={subsidiary} period={selectedPeriod} startDate={startDate || undefined} endDate={endDate || undefined} /> : null;
             case 'safe':
-                return <SafeView subsidiary={{id: selectedSubsidiaryId, name: 'Dummy'}} period={selectedPeriod} startDate={startDate} endDate={endDate} />;
+                return subsidiary ? <SafeView subsidiary={subsidiary} period={selectedPeriod} startDate={startDate || undefined} endDate={endDate || undefined} /> : null;
             default:
                 return dashboardData ? <DashboardView data={dashboardData} /> : null;        }
     };

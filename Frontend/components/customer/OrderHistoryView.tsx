@@ -38,8 +38,8 @@ const OrderHistoryView: React.FC<OrderHistoryViewProps> = ({ orders }) => {
                     </thead>
                     <tbody>
                         {orders.map(order => (
-                            <tr key={order.orders[0].orderId} className="bg-white border-b hover:bg-slate-50">
-                                <td className="px-6 py-4 font-semibold">{order.orders[0].orderId}</td>
+                            <tr key={order.orders[0].id} className="bg-white border-b hover:bg-slate-50">
+                                <td className="px-6 py-4 font-semibold">{order.orders[0].id}</td>
                                 <td className="px-6 py-4">{new Date(order.createdAt).toLocaleDateString()}</td>
                                 <td className="px-6 py-4 font-bold">{formatCurrency(order.orders[0].totalAmount)}</td>
                                 <td className="px-6 py-4">

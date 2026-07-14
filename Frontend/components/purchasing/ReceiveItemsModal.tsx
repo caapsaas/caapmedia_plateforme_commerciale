@@ -15,7 +15,7 @@ const ReceiveItemsModal: React.FC<ReceiveItemsModalProps> = ({ isOpen, onClose, 
     
     const handleQuantityChange = (purchaseOrderItemId: string, value: string) => {
         const quantity = parseInt(value, 10);
-        const item = purchaseOrder.purchaseOrderItems.find(i => i.id === parseInt(purchaseOrderItemId, 10));
+        const item = purchaseOrder.items.find(i => i.productId === purchaseOrderItemId);
         if (!item) return;
         
         const maxReceivable = item.quantity - item.quantityReceived;
@@ -29,7 +29,7 @@ const ReceiveItemsModal: React.FC<ReceiveItemsModalProps> = ({ isOpen, onClose, 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const itemsToReceive = Object.entries(receivedQuantities)
-            .map(([purchaseOrderItemId, quantityReceived]) => ({ purchaseOrderItemId: parseInt(purchaseOrderItemId, 10), quantityReceived }))
+            .map(([purchaseOrderItemId, quantityReceived]) => ({ purchaseOrderItemId, quantityReceived }))
             .filter(item => item.quantityReceived > 0);
         
         if (itemsToReceive.length > 0) {
@@ -60,20 +60,20 @@ const ReceiveItemsModal: React.FC<ReceiveItemsModalProps> = ({ isOpen, onClose, 
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {purchaseOrder.purchaseOrderItems.map(item => {
+                                    {purchaseOrder.items.map(item => {
                                         const remaining = item.quantity - item.quantityReceived;
                                         return (
-                                            <tr key={item.id} className="border-b">
+                                            <tr key={item.productId} className="border-b">
                                                 <td className="px-4 py-3 font-medium">{item.productName}</td>
                                                 <td className="px-4 py-3 text-center">{item.quantity}</td>
                                                 <td className="px-4 py-3 text-center">{item.quantityReceived}</td>
                                                 <td className="px-4 py-3">
-                                                    <input 
-                                                        type="number" 
+                                                    <input
+                                                        type="number"
                                                         min="0"
                                                         max={remaining}
-                                                        value={receivedQuantities[item.id] || ''}
-                                                        onChange={e => handleQuantityChange(item.id.toString(), e.target.value)}
+                                                        value={receivedQuantities[item.productId] || ''}
+                                                        onChange={e => handleQuantityChange(item.productId, e.target.value)}
                                                         className="w-24 p-1 text-center border border-slate-300 rounded-md"
                                                         placeholder="0"
                                                         disabled={remaining === 0}

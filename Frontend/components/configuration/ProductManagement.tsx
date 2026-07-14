@@ -149,7 +149,7 @@ const ProductManagement: React.FC = () => {
                                         className="h-12 w-12 object-cover rounded-md"/>
                                 </td>
                                 <td className="px-6 py-4 font-semibold">{product.productName}</td>
-                                <td className="px-6 py-4">{product.productRange ? t(rangeToKeyMap[product.productRange] || product.productRange) : 'Non specifie'}</td>
+                                <td className="px-6 py-4">{product.range ? t(rangeToKeyMap[product.range] || product.range) : 'Non specifie'}</td>
                                 <td className="px-6 py-4">{t(categoryToKeyMap[product.category] || product.category)}</td>
                                 <td className="px-6 py-4">{formatCurrency(product.sellingPrice)}</td>
                                 <td className={`px-6 py-4 font-bold ${product.stock < 100 ? 'text-red-500' : 'text-green-600'}`}>

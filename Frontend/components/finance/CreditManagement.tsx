@@ -75,7 +75,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
         return orders.map(order => {
             const client = clients[order.customerId];
             return {
-                id: order.orderId,
+                id: order.id,
                 clientName: order.customerName,
                 companyName: client?.company || '',
                 balance: order.totalAmount - order.amountPaid, // Solde restant dû

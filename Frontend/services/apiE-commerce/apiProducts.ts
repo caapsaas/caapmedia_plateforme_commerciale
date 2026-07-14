@@ -10,8 +10,11 @@ export type UpdateProductSellingAndPriceData = {
 /**
  * Récupère tous les produits peut importe la filiale pour la partie e-commerce
  */
-export const getProducts = async (page: number) => {
-    const { data } = await api.get(`/products/get-all-products?page=${page}`);
+export const getProducts = async (page: number, mainCategory?: string, category?: string) => {
+    let url = `/products/get-all-products?page=${page}`;
+    if (category) url += `&category=${encodeURIComponent(category)}`;
+    else if (mainCategory) url += `&mainCategory=${encodeURIComponent(mainCategory)}`;
+    const { data } = await api.get(url);
     return data;
 };
 

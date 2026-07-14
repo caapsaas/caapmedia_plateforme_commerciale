@@ -50,7 +50,7 @@ const CreditDetailsModal: React.FC<{ isOpen: boolean; onClose: () => void; accou
                                 {unpaidOrders.map((order: any) => (
                                     <tr key={order.id} className="bg-white border-b hover:bg-slate-50">
                                         <td className="px-6 py-4 font-medium">{order.id}</td>
-                                        <td className="px-6 py-4">{new Date(order.orderDate).toLocaleDateString()}</td>
+                                        <td className="px-6 py-4">{new Date(order.date).toLocaleDateString()}</td>
                                         <td className="px-6 py-4 text-right">{formatCurrency(order.totalAmount)}</td>
                                         <td className="px-6 py-4 text-right">{formatCurrency(order.amountPaid)}</td>
                                         <td className="px-6 py-4 text-right font-bold text-red-600">{formatCurrency(order.totalAmount - order.amountPaid)}</td>

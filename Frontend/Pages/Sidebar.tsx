@@ -372,7 +372,7 @@ const Sidebar: React.FC = () => {
               {/* Role switcher: affiche des pills si l'utilisateur a des rôles supplémentaires */}
               {(user.additionalRoles ?? []).length > 0 ? (
                 <div className="mt-2 flex flex-wrap gap-1 justify-center">
-                  {[user.userRole, ...(user.additionalRoles ?? [])].map(role => (
+                  {[user.userRole, ...(user.additionalRoles ?? [])].filter((r): r is UserRole => !!r).map(role => (
                     <button
                       key={role}
                       onClick={() => dispatch({ type: 'SET_PREVIEW_ROLE', payload: role })}
@@ -388,7 +388,7 @@ const Sidebar: React.FC = () => {
                 </div>
               ) : (
                 <span className="inline-block mt-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#c6e911]/15 text-[#c6e911] tracking-wide uppercase">
-                  {user.userRole.replace(/_/g, ' ')}
+                  {(user.userRole ?? '').replace(/_/g, ' ')}
                 </span>
               )}
             </div>

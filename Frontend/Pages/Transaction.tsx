@@ -3,7 +3,7 @@ import { Sale, CustomerPaymentMethod, Contact, Product } from '../types';
 import { useI18n } from '../i18n';
 import SelectFilter from '../components/filters/SelectFilter';
 import PeriodFilter from '../components/filters/PeriodFilter';
-import { useAppContext } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import IconEye from '../components/icons/IconEye';
 import IconCoins from '../components/icons/IconCoins';
 import IconCheckCircle from '../components/icons/IconCheckCircle';
@@ -15,8 +15,7 @@ import { getContacts } from '../services/apiCrm/apiContacts';
 
 const Transaction: React.FC = () => {
     const { t, formatCurrency } = useI18n();
-    const { state } = useAppContext();
-    const { currentSubsidiary: subsidiary, currentUser } = state;
+    const { subsidiary, user: currentUser } = useAuth();
     const queryClient = useQueryClient();
 
     const [filters, setFilters] = useState<FindAllSalesDto>({ period: 'ALL_TIME' });

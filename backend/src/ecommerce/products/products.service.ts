@@ -117,9 +117,24 @@ export class ProductsService {
    *
    * @returns // Liste des produits
    */
-  async findMany(page: number) {
+  // Catégories visibles sur la boutique en ligne (Matières Premières exclues)
+  private readonly ECOMMERCE_MAIN_CATEGORIES = [
+    'Imprimerie',
+    'Signalétique & Display',
+    'Objets publicitaires',
+    'Prestations de services',
+  ];
+
+  async findMany(page: number, mainCategory?: string, category?: string) {
     const TAKE = 9; // on prend 9 pour détecter s'il y a une suite
+    const where = category
+      ? { category }
+      : mainCategory
+        ? { mainCategory }
+        : { mainCategory: { in: this.ECOMMERCE_MAIN_CATEGORIES } };
+
     const products = await this.prisma.product.findMany({
+      where,
       skip: (page - 1) * 8, // on saute par 8
       take: TAKE,
       include: this.includeAll,
@@ -130,6 +145,7 @@ export class ProductsService {
   async searchProducts(query: string) {
     const products = await this.prisma.product.findMany({
       where: {
+        mainCategory: { in: this.ECOMMERCE_MAIN_CATEGORIES },
         OR: [
           { category: { contains: query, mode: 'insensitive' } },
           { productName: { contains: query, mode: 'insensitive' } },

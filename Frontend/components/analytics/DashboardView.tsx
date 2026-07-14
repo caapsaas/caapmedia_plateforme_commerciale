@@ -50,14 +50,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ data }) => {
                 {kpis.map(kpi => <KpiCard key={kpi.titleKey} {...kpi} />)}
             </div>
             
-            <div className="grid grid-cols-1 h-[350px] lg:grid-cols-2 gap-6">
-                <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-                    <h3 className="font-semibold text-lg mb-4 text-slate-700">{t('analytics.dashboard.weeklySalesPerformance')}</h3>                    
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 min-w-0">
+                    <h3 className="font-semibold text-lg mb-4 text-slate-700">{t('analytics.dashboard.weeklySalesPerformance')}</h3>
                     <SalesChart data={subsidiarySalesChartData} />
                 </div>
-              <div className="h-96 bg-white rounded-lg">  {/* ou h-[400px] ou h-full si le parent a une hauteur */}
-  <StockChart data={stockValueDistributionChartData} />
-</div>
+                <div className="bg-white p-6 rounded-xl shadow-md min-w-0">
+                    <h3 className="font-semibold text-lg mb-4 text-slate-700">{t('analytics.dashboard.stockDistributionByCategory')}</h3>
+                    <StockChart data={stockValueDistributionChartData} />
+                </div>
             </div>
         </div>
     );

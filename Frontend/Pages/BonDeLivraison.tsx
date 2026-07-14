@@ -51,12 +51,12 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
                     <div className="flex justify-between items-start mb-8">
                         <div>
                             {LogoComponent && <LogoComponent className="h-20 w-auto" />}
-                            <p className="font-bold text-lg mt-2">{subsidiary.subsidiaryName}</p>
+                            <p className="font-bold text-lg mt-2">{subsidiary.name}</p>
                         </div>
                         <div className="text-right">
                             <h4 className="font-bold text-lg">{t('bonDeLivraison.title')}</h4>
                             <p className="text-slate-700">{t('bonDeLivraison.orderNum')} <span className="font-semibold">{order.id}</span></p>
-                            <p className="text-slate-600">{t('bonDeLivraison.date')}: {new Date(order.orderDate).toLocaleDateString(language)}</p>
+                            <p className="text-slate-600">{t('bonDeLivraison.date')}: {new Date(order.date).toLocaleDateString(language)}</p>
                         </div>
                     </div>
                     

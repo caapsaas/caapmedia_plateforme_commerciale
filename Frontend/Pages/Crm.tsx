@@ -94,7 +94,7 @@ const Crm: React.FC = () => {
     // 'useMemo' est utilisé pour calculer les données filtrées uniquement lorsque les données brutes ou l'utilisateur changent.
     // Cela optimise les performances en évitant des recalculs inutiles à chaque rendu.
     const userFilteredData = useMemo(() => {
-        const isFullAccess = user.role === 'ADMIN' || user.role === 'FINANCIAL_DIRECTOR';
+        const isFullAccess = user.userRole === 'ADMIN' || user.userRole === 'FINANCIAL_DIRECTOR';
 
         const filterBySubsidiary = <T extends { subsidiaryId: string }>(items: T[]) => items.filter(i => i.subsidiaryId === subsidiary.id);
         const filterByUser = <T extends { salesRepId?: string }>(items: T[]) => items.filter(i => i.salesRepId === user.id);

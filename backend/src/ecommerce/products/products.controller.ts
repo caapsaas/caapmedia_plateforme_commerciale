@@ -90,9 +90,13 @@ export class ProductsController {
    * Exemple d'URL : /products/get-all-products
    */
   @Get('get-all-products')
-  findAllProducts(@Query('page') page: string) {
+  findAllProducts(
+    @Query('page') page: string,
+    @Query('mainCategory') mainCategory?: string,
+    @Query('category') category?: string,
+  ) {
     const pageNumber = parseInt(page) || 1;
-    return this.productsService.findMany(pageNumber);
+    return this.productsService.findMany(pageNumber, mainCategory, category);
   }
 
   @Get('search-products')

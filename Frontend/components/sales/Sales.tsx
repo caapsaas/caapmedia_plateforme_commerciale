@@ -579,7 +579,7 @@ const Sales: React.FC = () => {
                 <td className="px-6 py-4 font-semibold">{order.id}</td>
                 <td className="px-6 py-4">{order.customerName}</td>
                 <td className="px-6 py-4">
-                  {new Date(order.orderDate).toLocaleDateString("fr-FR")}
+                  {new Date(order.date).toLocaleDateString("fr-FR")}
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="font-bold">{formatCurrency(order.totalAmount)}</div>
@@ -769,7 +769,7 @@ const Sales: React.FC = () => {
           onClose={() => setInvoiceOrder(null)}
           order={invoiceOrder}
           subsidiary={subsidiary}
-          client={invoiceOrder.customer}
+          client={contacts.find(c => c.id === invoiceOrder.customerId) ?? null}
         />
       )}
       {blOrder && (

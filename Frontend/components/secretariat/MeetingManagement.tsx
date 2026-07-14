@@ -156,9 +156,9 @@ const formatTime = (isoString?: string | Date) => {
                         {meetings.map((meeting) => (
                             <tr key={meeting.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{meeting.title}</td>
-                                <td className="px-6 py-4">{`${formatDate(meeting.meetingDate)} - ${formatTime(meeting.meetingTime)}`}</td>
+                                <td className="px-6 py-4">{`${formatDate(meeting.date)} - ${formatTime(meeting.time)}`}</td>
 
-                                <td className="px-6 py-4">{meeting.meetingLocation}</td>
+                                <td className="px-6 py-4">{meeting.location}</td>
                                 <td className="px-6 py-4 max-w-sm truncate">{getParticipantNames(meeting.participants)}</td>
                                 <td className="px-6 py-4 text-center space-x-1 no-print">
                                     <button onClick={() => handleOpenViewModal(meeting)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-100 rounded-full transition-colors" aria-label={t('common.view')}>
@@ -193,7 +193,6 @@ const formatTime = (isoString?: string | Date) => {
                     isOpen={!!viewingMeeting}
                     onClose={handleCloseModals}
                     onSaveMinutes={handleSaveMinutes}
-                    employees={employees}
                     meeting={viewingMeeting}
                 />
             )}

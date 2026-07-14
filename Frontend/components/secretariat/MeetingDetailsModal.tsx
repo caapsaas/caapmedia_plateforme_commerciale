@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Meeting, Employee } from '../../types';
+import { Meeting } from '../../types';
 import { useI18n } from '../../i18n';
 
 interface MeetingDetailsModalProps {
@@ -7,10 +7,9 @@ interface MeetingDetailsModalProps {
     onClose: () => void;
     onSaveMinutes: (meetingId: string, minutes: string) => void;
     meeting: Meeting;
-    employees: Employee[];
 }
 
-const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClose, onSaveMinutes, meeting, employees }) => {
+const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClose, onSaveMinutes, meeting }) => {
     const { t } = useI18n();
     const [minutes, setMinutes] = useState(meeting.minutes);
     const [isEditing, setIsEditing] = useState(false);
@@ -19,13 +18,10 @@ const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClo
     const formatTime = (timeStr: string | Date) => new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     // Convertit les participantIds en noms complets
-   const getParticipantNames = (participantIds: string[]) => {
-    if (!participantIds || participantIds.length === 0) return '';
-    return participantIds
-        .map(id => {
-            const employee = employees.find(e => e.id === id);
-            return employee ? `${employee.firstName} ${employee.lastName}` : id;
-        })
+   const getParticipantNames = (participants: { employee: Employee }[]) => {
+    if (!participants || participants.length === 0) return '';
+    return participants
+        .map(p => p.employee ? `${p.employee.firstName} ${p.employee.lastName}` : 'Employé inconnu')
         .join(', ');
 };
 
@@ -47,15 +43,15 @@ const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClo
                 <div className="p-6 space-y-4 overflow-y-auto">
                     <div>
                         <h4 className="font-semibold text-slate-700">{t('secretariat.meetings.table.date')}</h4>
-                        <p className="text-slate-600">{`${formatDate(meeting.meetingDate)} at ${formatTime(meeting.meetingTime)}`}</p>
+                        <p className="text-slate-600">{`${formatDate(meeting.date)} at ${formatTime(meeting.time)}`}</p>
                     </div>
                     <div>
                         <h4 className="font-semibold text-slate-700">{t('secretariat.meetings.table.location')}</h4>
-                        <p className="text-slate-600">{meeting.meetingLocation}</p>
+                        <p className="text-slate-600">{meeting.location}</p>
                     </div>
                     <div>
                         <h4 className="font-semibold text-slate-700">{t('secretariat.meetings.table.participants')}</h4>
-                    <p className="text-slate-600">{getParticipantNames(meeting.participantIds || [])}</p>
+                    <p className="text-slate-600">{getParticipantNames(meeting.participants || [])}</p>
 
                     </div>
                     <div>

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useI18n } from '../../i18n';
+import { useAuth } from '../../context/AuthContext';
 import { useAppContext } from '../../context/AppContext';
 import { downloadCsvTemplate } from '../../utils/csvExporter';
 import { Product } from '../../types';
@@ -13,7 +14,8 @@ interface ProductImportModalProps {
 
 const ProductImportModal: React.FC<ProductImportModalProps> = ({ isOpen, onClose }) => {
     const { t } = useI18n();
-    const { state, dispatch } = useAppContext();
+    const { subsidiary } = useAuth();
+    const { dispatch } = useAppContext();
     const [file, setFile] = useState<File | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [importResult, setImportResult] = useState<{ successCount: number; errors: string[] } | null>(null);
@@ -101,7 +103,7 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({ isOpen, onClose
 
                 newProducts.push({
                     id: `P${Date.now()}-${i}`,
-                    name,
+                    productName: name,
                     category,
                     mainCategory,
                     description: productData.description || '',
@@ -110,8 +112,7 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({ isOpen, onClose
                     sellingPrice: sellingPriceNum,
                     warehouse: productData.warehouse || '',
                     range: productData.range || '',
-                    subsidiaryId: state.currentSubsidiary!.id,
-                    // productImages will be empty for imported products initially
+                    subsidiaryId: subsidiary?.id ?? '',
                 });
             }
             

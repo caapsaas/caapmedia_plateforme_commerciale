@@ -1,4 +1,3 @@
-// ProductsGrid.tsx
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -33,19 +32,32 @@ export default function ProductsGrid({
   onResetFilters,
 }: Props) {
   const [page, setPage] = useState(1);
-  const [allLoaded, setAllLoaded] = useState<Product[]>([]); // Stocke tous les produits chargés jusqu'à présent
+  const [allLoaded, setAllLoaded] = useState<Product[]>([]);
+
+  // Réinitialise la pagination et les produits chargés quand la catégorie change
+  useEffect(() => {
+    setPage(1);
+    setAllLoaded([]);
+  }, [selectedMainCategory, selectedSubcategory]);
 
   const {
     isLoading,
     isFetching,
     data: pageData,
   } = useQuery<Product[]>({
-    queryKey: ["products", page],
-    queryFn: () => getProducts(page),
+    queryKey: ["products", page, selectedMainCategory, selectedSubcategory],
+    queryFn: () =>
+      getProducts(
+        page,
+        selectedMainCategory || undefined,
+        selectedSubcategory || undefined,
+      ),
   });
+
   const { data: searchData, isLoading: searchLoading } = useQuery<Product[]>({
-    queryKey: ["productsSearch", searchTerm],
+    queryKey: ["productsSearch", searchTerm, selectedMainCategory, selectedSubcategory],
     queryFn: () => getProduitsSearch(searchTerm),
+    enabled: searchTerm.length > 0,
   });
 
   const { data: favoriteProducts = [] } = useQuery<Product[]>({
@@ -54,7 +66,7 @@ export default function ProductsGrid({
     enabled: showFavorites && likedProducts.size > 0,
   });
 
-  // ✅ Remplace onSuccess par useEffect
+  // Accumule les produits page par page
   useEffect(() => {
     if (!pageData) return;
     if (page === 1) {
@@ -68,22 +80,21 @@ export default function ProductsGrid({
 
   const isLoadingFirst = isLoading && page === 1;
   const isLoadingMore = isFetching && page > 1;
+
   let filtered: Product[] = [];
 
-  // Filtre sur les produits déjà chargés
-
-  if (searchTerm.length == 0 && !showFavorites) {
-    filtered = allLoaded;
-  } else if (showFavorites) {
-    filtered = (favoriteProducts ?? []).filter((p) => {
-      return true;
-    });
-  } else {
+  if (showFavorites) {
+    filtered = favoriteProducts ?? [];
+  } else if (searchTerm.length > 0) {
+    // Filtre les résultats de recherche par catégorie si une catégorie est sélectionnée
     filtered = (searchData ?? []).filter((p) => {
       if (selectedSubcategory) return p.category === selectedSubcategory;
       if (selectedMainCategory) return p.mainCategory === selectedMainCategory;
       return true;
     });
+  } else {
+    // Le backend a déjà filtré par catégorie, on affiche tel quel
+    filtered = allLoaded;
   }
 
   const handleLoadMore = () => {
@@ -111,6 +122,7 @@ export default function ProductsGrid({
 
         {/* Produits */}
         {!isLoadingFirst &&
+          !searchLoading &&
           filtered.map((product) => (
             <ProductCard
               key={product.id}
@@ -139,25 +151,37 @@ export default function ProductsGrid({
           ))}
 
         {/* Empty state */}
-        {!isLoadingFirst && filtered.length === 0  && (
+        {!isLoadingFirst && !searchLoading && filtered.length === 0 && (
           <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
             <div className="text-6xl mb-4">📦</div>
             <h3 className="text-xl font-bold text-slate-700 mb-2">
               {showFavorites
                 ? "Aucun favori pour l'instant"
-                : "Aucun produit trouvé"}
+                : selectedMainCategory || selectedSubcategory
+                  ? "Aucun produit dans cette catégorie"
+                  : "Aucun produit trouvé"}
             </h3>
             <p className="text-slate-500 max-w-sm">
               {showFavorites
-                ? "Ajoutez des produits à vos favoris en cliquant sur le "
-                : "Essayez de modifier vos filtres ou votre recherche."}
+                ? "Ajoutez des produits à vos favoris en cliquant sur le ♡"
+                : selectedMainCategory || selectedSubcategory
+                  ? "Essayez une autre catégorie ou consultez tous nos produits."
+                  : "Essayez de modifier vos filtres ou votre recherche."}
             </p>
+            {(selectedMainCategory || selectedSubcategory) && !showFavorites && (
+              <button
+                onClick={onResetFilters}
+                className="mt-4 px-6 py-2 bg-[#c6e911] text-slate-800 font-semibold rounded-full hover:bg-[#adc40f] transition-colors"
+              >
+                Voir tous les produits
+              </button>
+            )}
           </div>
         )}
       </div>
 
-      {/* Pagination footer */}
-      {!isLoadingFirst && filtered.length > 0 && (
+      {/* Pagination */}
+      {!isLoadingFirst && !searchLoading && filtered.length > 0 && (
         <div className="mt-14 flex flex-col items-center gap-4">
           {hasMore && !showFavorites && !searchTerm ? (
             <button

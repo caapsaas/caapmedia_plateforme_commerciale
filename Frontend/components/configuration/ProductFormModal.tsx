@@ -46,7 +46,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ isOpen, onClose, on
             productName: '',
             mainCategory: firstMainCategory,
             category: firstCategory,
-            productRange: '',
+            range: '',
             description: '',
             stock: 0,
             price: 0,
@@ -194,8 +194,8 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ isOpen, onClose, on
                                     </select>
                                 </div>
                                 <div>
-                                    <label htmlFor="productRange" className="block text-sm font-medium text-slate-700">{t('configuration.form.range')}</label>
-                                    <select name="productRange" id="productRange" value={formData.productRange || ''} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                    <label htmlFor="range" className="block text-sm font-medium text-slate-700">{t('configuration.form.range')}</label>
+                                    <select name="range" id="range" value={formData.range || ''} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                         <option value="">{t('productRange.none')}</option>
                                         {Object.keys(rangeToKeyMap).map(rangeKey => (
                                             <option key={rangeKey} value={rangeKey}>{t(rangeToKeyMap[rangeKey])}</option>

@@ -80,7 +80,7 @@ const SalesAnalysisView: React.FC<SalesAnalysisViewProps> = ({ data }) => {
                     </table>
                  </div>
             </div>
-            <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
+            <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md min-w-0">
                  <h3 className="font-semibold text-lg mb-4 text-slate-700">{t('salesAnalysis.salesByCategory')}</h3>
                  <StockChart data={salesByCategory} />
             </div>

@@ -88,7 +88,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
     const handleExportCsv = () => {
         try {
             const headers = [
-                { key: 'documentName', label: t('secretariat.documents.table.name') },
+                { key: 'name', label: t('secretariat.documents.table.name') },
                 { key: 'category', label: t('secretariat.documents.table.category') },
                 { key: 'uploadDate', label: t('secretariat.documents.table.uploadDate') },
                 { key: 'status', label: t('secretariat.documents.table.status') },
@@ -108,7 +108,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
     const handleExportPdf = () => {
         try {
             const headers = [
-                { key: 'documentName', label: t('secretariat.documents.table.name') },
+                { key: 'name', label: t('secretariat.documents.table.name') },
                 { key: 'category', label: t('secretariat.documents.table.category') },
                 { key: 'uploadDate', label: t('secretariat.documents.table.uploadDate') },
                 { key: 'status', label: t('secretariat.documents.table.status') },
@@ -149,9 +149,9 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
             
             // Utiliser le nom du document avec l'extension correcte pour le téléchargement
             const fileExtension = doc.fileUrl.split('.').pop();
-            const downloadName = doc.documentName.includes(`.${fileExtension}`) 
-                ? doc.documentName 
-                : `${doc.documentName}.${fileExtension}`;
+            const downloadName = doc.name.includes(`.${fileExtension}`) 
+                ? doc.name 
+                : `${doc.name}.${fileExtension}`;
             
             link.download = downloadName;
             link.rel = 'noopener noreferrer';
@@ -161,7 +161,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
             link.click();
             document.body.removeChild(link);
             
-            toast.success('Téléchargement démarré', `Le document "${doc.documentName}" est en cours de téléchargement.`);
+            toast.success('Téléchargement démarré', `Le document "${doc.name}" est en cours de téléchargement.`);
         } catch (error) {
             console.error('Erreur de téléchargement:', error);
             toast.error('Erreur de téléchargement', 'Une erreur est survenue lors du téléchargement du document.');
@@ -205,7 +205,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
                     <tbody>
                         {documents.map((doc) => (
                             <tr key={doc.id} className="bg-white border-b hover:bg-slate-50">
-                                <td className="px-6 py-4 font-semibold">{doc.documentName}</td>
+                                <td className="px-6 py-4 font-semibold">{doc.name}</td>
                                 <td className="px-6 py-4">{t(`secretariat.documents.categories.${doc.category}`)}</td>
                                 <td className="px-6 py-4">{doc.uploadDate}</td>
                                 <td className="px-6 py-4">
@@ -245,7 +245,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
                     onClose={handleCloseModals}
                     onConfirm={handleDeleteDocument}
                     title={t('secretariat.documents.modal.deleteTitle')}
-                    message={t('configuration.modal.deleteConfirmMessage', { itemName: deletingDocument.documentName })}
+                    message={t('configuration.modal.deleteConfirmMessage', { itemName: deletingDocument.name })}
                 />
             )}
         </div>

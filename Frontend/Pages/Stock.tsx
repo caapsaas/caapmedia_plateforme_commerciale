@@ -396,7 +396,7 @@ const Stock: React.FC = () => {
                                 <tr key={product.id} className="bg-white border-b hover:bg-slate-50">
                                     <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{product.id}</th>
                                     <td className="px-6 py-4 font-semibold">{product.productName}</td>
-                                    <td className="px-6 py-4">{product.productRange ? t(rangeToKeyMap[product.productRange] || product.productRange) : ''}</td>
+                                    <td className="px-6 py-4">{product.range ? t(rangeToKeyMap[product.range] || product.range) : ''}</td>
                                     <td className="px-6 py-4">{t(categoryToKeyMap[product.category] || product.category)}</td>
                                     <td className="px-6 py-4">{product.warehouse}</td>
                                     <td className={`px-6 py-4 text-center font-bold ${product.stock < 100 ? 'text-red-500' : 'text-green-600'}`}>

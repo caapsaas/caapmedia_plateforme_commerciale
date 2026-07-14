@@ -66,26 +66,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, isLiked
                                 <span className="bg-[#c6e911] text-slate-800 text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">PROMO : -{discount}%</span>
                              )}
                         </div>
-                        <div className="self-start">
-                             <button 
-                                onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    if (isLiked) {
-                                        onUnlike?.(product.id);
-                                    } else {
-                                        onLike?.(product.id);
-                                    }
-                                }}
-                                className={`p-2.5 rounded-full shadow-lg backdrop-blur-sm transition-all transform hover:scale-110 ${
-                                    isLiked 
-                                        ? 'bg-red-500 hover:bg-red-600 text-white' 
-                                        : 'bg-white/80 hover:bg-white text-red-500'
-                                }`}
-                                aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
-                            >
-                                <IconHeart className={`h-5 w-5 ${isLiked ? 'fill-current' : ''}`}/>
-                            </button>
-                        </div>
+                        {/* Bouton favori masqué temporairement */}
                     </div>
                 </div>
 
