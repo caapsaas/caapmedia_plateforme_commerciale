@@ -28,8 +28,8 @@ const ProfitAndLossStatement: React.FC<ProfitAndLossStatementProps> = ({
         alert('PDF export for P&L is a planned feature.');
     };
 
-    // Calculate operating income for display
-    const operatingIncome = pnlData ? pnlData.grossProfit - pnlData.operatingExpenses : 0;
+    // Calculate profit before tax for display (used for tax calculation)
+    const profitBeforeTax = pnlData ? pnlData.grossProfit - pnlData.operatingExpenses : 0;
     
     // Loading state with modern skeleton
     if (!pnlData) {
@@ -181,6 +181,20 @@ const ProfitAndLossStatement: React.FC<ProfitAndLossStatementProps> = ({
                                     </div>
                                 </div>
 
+                                {/* Profit Before Tax */}
+                                <div className="bg-white rounded-lg p-4 border border-[#adc40f]/20">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <div className="w-5 h-5 bg-blue-100 rounded-md flex items-center justify-center">
+                                            <div className="w-2.5 h-2.5 bg-blue-500 rounded"></div>
+                                        </div>
+                                        <h4 className="font-semibold text-slate-700 text-sm">Profit Before Tax</h4>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-slate-600 text-sm font-medium">Gross Profit - Operating Expenses</span>
+                                        <span className="text-lg font-bold text-blue-600">{formatCurrency(profitBeforeTax)}</span>
+                                    </div>
+                                </div>
+
                                 {/* Total Expenses */}
                                 <div className="bg-gradient-to-r from-[#adc40f] to-[#96900c] text-white rounded-lg p-4 shadow-md">
                                     <div className="flex justify-between items-center">
@@ -209,7 +223,7 @@ const ProfitAndLossStatement: React.FC<ProfitAndLossStatementProps> = ({
                                 <div>
                                     <h4 className="font-bold text-slate-800 text-lg">{t('pnl.netIncome')}</h4>
                                     <p className="text-slate-600 text-sm">
-                                        Gross Profit - Operating Expenses - Taxes
+                                        Profit Before Tax - Taxes
                                     </p>
                                 </div>
                             </div>

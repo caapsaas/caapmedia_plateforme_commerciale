@@ -20,6 +20,7 @@ model Subsidiary {
   accountNumber                 String                         @map("account_number") @db.VarChar(255)
   swiftCode                     String                         @map("swift_code") @db.VarChar(255)
   shareCapital                  Decimal                        @map("share_capital") @db.Decimal(15, 2)
+  taxRate                        Decimal                        @default(0.30) @map("tax_rate") @db.Decimal(5, 2)
   absenceRecords                AbsenceRecord[]
   accounts                      Account[]
   attendanceRecords             AttendanceRecord[]
