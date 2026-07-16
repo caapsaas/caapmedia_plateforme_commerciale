@@ -14,7 +14,7 @@ export async function seedEmployees() {
   if (!subsidiary) {
     subsidiary = await prisma.subsidiary.create({
       data: {
-        id: generateId(ID_PREFIXES.EMPLOYEE),
+        id: generateId(ID_PREFIXES.SUBSIDIARY),
         subsidiaryName: 'CAAP Media',
         logoSvg: '',
         address: '123 Rue Principale, Douala, Cameroun',
@@ -102,12 +102,13 @@ export async function seedEmployees() {
       await prisma.employeeLeaveBalance.createMany({
         data: [
           {
-            id: generateId(ID_PREFIXES.EMPLOYEE),
+            id: generateId(ID_PREFIXES.LEAVEBALANCE),
             employeeId: employee.id,
             leaveType: LeaveType.ANNUAL,
             days: 20,
           },
           {
+            id: generateId(ID_PREFIXES.LEAVEBALANCE),
             employeeId: employee.id,
             leaveType: LeaveType.SICK,
             days: 10,

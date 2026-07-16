@@ -94,6 +94,7 @@ export async function runOrdersSeeder(prisma: PrismaClient) {
         }
 
         const orderData: any = {
+            id: generateId(ID_PREFIXES.ORDER),
             customerId: contact.id,
             customerName: o.customerName,
             subtotal: o.subtotal,
@@ -111,12 +112,14 @@ export async function runOrdersSeeder(prisma: PrismaClient) {
             taxRateId: taxRate.id,
             orderItems: {
                 create: o.items.map(item => ({
+                    id: generateId(ID_PREFIXES.ORDERITEM),
                     quantity: item.quantity,
                     unitPrice: item.unitPrice,
                     productId: product.id,
                     ...(item.productOptions && {
                         productOptions: {
                             create: item.productOptions.map(opt => ({
+                                id: generateId(ID_PREFIXES.PRODUCTOPTION),
                                 optionType: opt.optionType,
                                 optionValue: opt.optionValue,
                             })),
@@ -128,7 +131,7 @@ export async function runOrdersSeeder(prisma: PrismaClient) {
 
         if (o.productionStatus) {
             orderData.productionHistory = {
-                create: [{ status: o.productionStatus }],
+                create: [{ id: generateId(ID_PREFIXES.ORDERPRODUCTIONHISTORY), status: o.productionStatus }],
             };
         }
 

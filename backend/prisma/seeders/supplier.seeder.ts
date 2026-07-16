@@ -1,11 +1,10 @@
 import { PrismaClient } from '@prisma/client';
-import { generateId } from './generate-id.util';
-import { ID_PREFIXES } from './id-prefixes.const';
 
 export async function runSupplierSeeder(prisma: PrismaClient) {
 
     const MOCK_SUPPLIERS = [
         {
+            id: generateId(ID_PREFIXES.SUPPLIER),
             supplierName: 'CAMTEL',
             company: 'Cameroon Telecommunications',
             email: 'contact@camtel.cm',
@@ -14,6 +13,7 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.yaounde@caap.cm',
         },
         {
+            id: generateId(ID_PREFIXES.SUPPLIER),
             supplierName: 'ORANGE',
             company: 'Orange Cameroun',
             email: 'fournisseurs@orange.cm',
@@ -22,6 +22,7 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.douala@caap.cm',
         },
         {
+            id: generateId(ID_PREFIXES.SUPPLIER),
             supplierName: 'MTN',
             company: 'MTN Cameroun',
             email: 'business@mtn.cm',
@@ -30,6 +31,7 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.douala@caap.cm',
         },
         {
+            id: generateId(ID_PREFIXES.SUPPLIER),
             supplierName: 'Eneo',
             company: 'Eneo Cameroon',
             email: 'fournisseurs@eneo.cm',
@@ -38,6 +40,7 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.douala@caap.cm',
         },
         {
+            id: generateId(ID_PREFIXES.SUPPLIER),
             supplierName: 'CAMWATER',
             company: 'Cameroon Water Utilities',
             email: 'services@camwater.cm',
@@ -46,6 +49,7 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.yaounde@caap.cm',
         },
         {
+            id: generateId(ID_PREFIXES.SUPPLIER),
             supplierName: 'SONARA',
             company: 'Société Nationale de Raffinage',
             email: 'fournisseurs@sonara.cm',
@@ -54,6 +58,7 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.douala@caap.cm',
         },
         {
+            id: generateId(ID_PREFIXES.SUPPLIER),
             supplierName: 'ALUCAM',
             company: 'Aluminium Cameroun',
             email: 'business@alucam.cm',
@@ -62,6 +67,7 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.douala@caap.cm',
         },
         {
+            id: generateId(ID_PREFIXES.SUPPLIER),
             supplierName: 'CIMENCAM',
             company: 'Cimenteries du Cameroun',
             email: 'fournisseurs@cimencam.cm',
@@ -70,6 +76,7 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.douala@caap.cm',
         },
         {
+            id: generateId(ID_PREFIXES.SUPPLIER),
             supplierName: 'CDC',
             company: 'Cameroon Development Corporation',
             email: 'suppliers@cdc.cm',
@@ -78,6 +85,7 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.yaounde@caap.cm',
         },
         {
+            id: generateId(ID_PREFIXES.SUPPLIER),
             supplierName: 'AIR LIQUIDE',
             company: 'Air Liquide Cameroun',
             email: 'contact@airliquide.cm',
@@ -86,6 +94,7 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.douala@caap.cm',
         },
         {
+            id: generateId(ID_PREFIXES.SUPPLIER),
             supplierName: 'GUINNESS',
             company: 'Guinness Cameroun',
             email: 'fournisseurs@guinness.cm',
@@ -94,6 +103,7 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.yaounde@caap.cm',
         },
         {
+            id: generateId(ID_PREFIXES.SUPPLIER),
             supplierName: 'CASTEL',
             company: 'Groupe Castel Cameroun',
             email: 'business@castel.cm',
@@ -102,6 +112,7 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.douala@caap.cm',
         },
         {
+            id: generateId(ID_PREFIXES.SUPPLIER),
             supplierName: 'TCHIBOBO',
             company: 'Tchibobo Cameroun',
             email: 'fournisseurs@tchibobo.cm',
@@ -110,6 +121,7 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.yaounde@caap.cm',
         },
         {
+            id: generateId(ID_PREFIXES.SUPPLIER),
             supplierName: 'SOCATRAL',
             company: 'Société Camerounaise de Transformation',
             email: 'contact@socatral.cm',
@@ -118,6 +130,7 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.douala@caap.cm',
         },
         {
+            id: generateId(ID_PREFIXES.SUPPLIER),
             supplierName: 'CHOCOCAM',
             company: 'Chococam',
             email: 'fournisseurs@chococam.cm',
@@ -137,7 +150,7 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
             console.warn(`Subsidiary ${s.subsidiaryEmail} not found for supplier ${s.email}`);
             continue;
         }
-
+   
         await prisma.supplier.upsert({
             where: { 
                 supplierName_subsidiaryId: {

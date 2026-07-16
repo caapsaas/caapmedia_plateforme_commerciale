@@ -254,6 +254,7 @@ export async function runContactCitiesSeeder(prisma: PrismaClient) {
       },
       create: {
         id: generateId(ID_PREFIXES.CONTACT),
+        id: generateId(ID_PREFIXES.CONTACT),
         contactName: contact.contactName,
         company: contact.company,
         email: contact.email,
@@ -292,6 +293,7 @@ export async function runContactCitiesSeeder(prisma: PrismaClient) {
         status: contact.status,
       },
       create: {
+        id: generateId(ID_PREFIXES.CONTACT),
         id: generateId(ID_PREFIXES.CONTACT),
         contactName: contact.contactName,
         company: contact.company,

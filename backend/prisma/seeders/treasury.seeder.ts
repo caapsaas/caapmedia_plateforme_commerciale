@@ -24,13 +24,15 @@ export async function seedTreasuryAccounts() {
       currency: 'XOF', // Franc CFA par défaut, à adapter selon vos besoins
       accountType: AccountType.CAISSE,
     },
-    {
+        {
+            id: generateId(ID_PREFIXES.TREASURYACCOUNT),
       accountName: 'Compte Bancaire BOA',
       balance: 160000,
       currency: 'XOF',
       accountType: AccountType.BANQUE,
     },
-    {
+        {
+            id: generateId(ID_PREFIXES.TREASURYACCOUNT),
       accountName: 'Compte Mobile Money',
       balance: 150000,
       currency: 'XOF',

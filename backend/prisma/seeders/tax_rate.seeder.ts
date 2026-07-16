@@ -11,7 +11,8 @@ export async function runTaxRateSeeder(prisma: PrismaClient) {
             isDefault: true,
             description: 'Taxe sur la Valeur Ajoutée standard.',
         },
-        {
+    {
+      id: generateId(ID_PREFIXES.TAXRATE),
             taxRatesName: 'Exonéré',
             rate: new Prisma.Decimal(0),
             isDefault: false,
@@ -22,6 +23,7 @@ export async function runTaxRateSeeder(prisma: PrismaClient) {
     for (const t of taxRatesData) {
         await prisma.taxRate.create({
             data: {
+                id: t.id,
                 taxRatesName: t.taxRatesName,
                 rate: t.rate,
                 isDefault: t.isDefault,

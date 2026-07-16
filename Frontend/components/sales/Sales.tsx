@@ -504,8 +504,6 @@ const Sales: React.FC = () => {
           <th className="px-6 py-3">{t("order.customer")}</th>
           <th className="px-6 py-3">{t("order.date")}</th>
           <th className="px-6 py-3 text-right">{t("order.total")}</th>
-          <th className="px-6 py-3 text-right">{t("order.amountPaid")}</th>
-          <th className="px-6 py-3 text-right">{t("order.remainingBalance")}</th>
           <th className="px-6 py-3 text-center">{t("order.paymentStatus")}</th>
           <th className="px-6 py-3 text-center">{t("order.orderStatus")}</th>
           <th className="px-6 py-3 text-center">{t("common.actions")}</th>
@@ -521,17 +519,11 @@ const Sales: React.FC = () => {
               <div className="h-3 w-28 bg-slate-200 rounded animate-pulse" />
             </td>
             <td className="px-6 py-4">
-              <div className="h-3 w-20 bg-slate-200 rounded animate-pulse" />
+              <div className="h-3 w-24 bg-slate-200 rounded animate-pulse" />
+              <div className="h-2 w-20 bg-slate-100 rounded animate-pulse mt-1" />
             </td>
             <td className="px-6 py-4">
               <div className="h-3 w-20 bg-slate-200 rounded animate-pulse ml-auto" />
-              <div className="h-2 w-16 bg-slate-100 rounded animate-pulse mt-1 ml-auto" />
-            </td>
-            <td className="px-6 py-4">
-              <div className="h-3 w-16 bg-slate-200 rounded animate-pulse ml-auto" />
-            </td>
-            <td className="px-6 py-4">
-              <div className="h-3 w-16 bg-slate-200 rounded animate-pulse ml-auto" />
             </td>
             <td className="px-6 py-4 text-center">
               <div className="h-5 w-20 bg-slate-200 rounded-full animate-pulse mx-auto" />
@@ -555,8 +547,6 @@ const Sales: React.FC = () => {
             <th className="px-6 py-3">{t("order.customer")}</th>
             <th className="px-6 py-3">{t("order.date")}</th>
             <th className="px-6 py-3 text-right">{t("order.total")}</th>
-            <th className="px-6 py-3 text-right">{t("order.amountPaid")}</th>
-            <th className="px-6 py-3 text-right">{t("order.remainingBalance")}</th>
             <th className="px-6 py-3 text-center">{t("order.paymentStatus")}</th>
             <th className="px-6 py-3 text-center">{t("order.orderStatus")}</th>
             <th className="px-6 py-3 text-center">{t("common.actions")}</th>
@@ -578,23 +568,14 @@ const Sales: React.FC = () => {
                 key={order.id}
                 className={`bg-white border-b hover:bg-slate-50 transition-colors ${isPendingValidation ? "bg-blue-50 border-l-4 border-blue-500" : ""}`}
               >
-                <td className="px-6 py-4 font-semibold">{order.id}</td>
-                <td className="px-6 py-4">{order.customerName}</td>
-                <td className="px-6 py-4">
-                  {new Date(order.date).toLocaleDateString("fr-FR")}
+                <td className="px-6 py-4 font-semibold text-slate-800">{order.id.substring(0, 8)}</td>
+                <td className="px-6 py-4 text-slate-800">{order.customerName}</td>
+                <td className="px-6 py-4 text-slate-700">
+                  <div>{new Date(order.date).toLocaleDateString("fr-FR")}</div>
+                  <div className="text-xs text-slate-500">{new Date(order.date).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</div>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <div className="font-bold">{formatCurrency(order.totalAmount)}</div>
-                  <div className="text-xs text-slate-500">
-                    {t("invoice.tax")} ({(order.taxRateValue * 100).toFixed(2)}%):{" "}
-                    {formatCurrency(order.taxAmount)}
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-right text-green-600 font-medium">
-                  {formatCurrency(order.amountPaid)}
-                </td>
-                <td className="px-6 py-4 text-right text-red-600 font-medium">
-                  {formatCurrency(order.totalAmount - order.amountPaid)}
+                  <div className="font-bold text-slate-800">{formatCurrency(order.totalAmount)}</div>
                 </td>
                 <td className="px-6 py-4 text-center">
                   <div className="flex items-center justify-center gap-2">
@@ -631,36 +612,32 @@ const Sales: React.FC = () => {
                       <span>{t("sales.validateForProduction")}</span>
                     </button>
                   ) : (
-                    <div className="flex justify-center items-center space-x-1">
+                    <div className="flex justify-center items-center space-x-2">
                       {order.paymentStatus !== PaymentStatus.PAID && (
                         <button
                           onClick={() => setPayingOrder(order)}
-                          className="p-2 text-green-600 hover:bg-green-100 rounded-full"
+                          className="px-3 py-1 text-xs font-semibold bg-green-100 text-green-700 hover:bg-green-200 rounded-md transition-colors flex items-center gap-1"
                           title={t("order.recordPayment")}
                         >
-                          <IconCoins className="h-5 w-5" />
+                          <IconCoins className="h-4 w-4" />
+                          <span>Payer</span>
                         </button>
                       )}
                       <button
                         onClick={() => setUpdatingStatusOrder(order)}
-                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-full"
+                        className="px-3 py-1 text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md transition-colors flex items-center gap-1"
                         title={t("order.updateStatus")}
                       >
-                        <IconEdit className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => setInvoiceOrder(order)}
-                        className="p-2 text-slate-500 hover:bg-slate-100 rounded-full"
-                        title={t("invoice.viewInvoice")}
-                      >
-                        <IconInvoice className="h-5 w-5" />
+                        <IconEdit className="h-4 w-4" />
+                        <span>Modifier</span>
                       </button>
                       <button
                         onClick={() => setBlOrder(order)}
-                        className="p-2 text-slate-500 hover:bg-slate-100 rounded-full"
+                        className="px-3 py-1 text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-md transition-colors flex items-center gap-1"
                         title={t("common.viewBL")}
                       >
-                        <IconDocumentText className="h-5 w-5" />
+                        <IconDocumentText className="h-4 w-4" />
+                        <span>BL</span>
                       </button>
                     </div>
                   )}

@@ -126,7 +126,6 @@ export async function runEquipmentSeeder(prisma: PrismaClient) {
             equipment = await prisma.equipment.update({
                 where: { id: existingEquipment.id },
                 data: {
-        id: generateId(ID_PREFIXES.EQUIPMENT),
                     status: e.status,
                     lastMaintenanceDate: new Date(e.lastMaintenanceDate),
                     nextMaintenanceDate: new Date(e.nextMaintenanceDate),
@@ -138,6 +137,7 @@ export async function runEquipmentSeeder(prisma: PrismaClient) {
         } else {
             equipment = await prisma.equipment.create({
                 data: {
+                    id: generateId(ID_PREFIXES.EQUIPMENT),
                     equipmentName: e.name,
                     status: e.status,
                     lastMaintenanceDate: new Date(e.lastMaintenanceDate),
@@ -153,6 +153,7 @@ export async function runEquipmentSeeder(prisma: PrismaClient) {
         for (const m of e.maintenanceHistory) {
             await prisma.maintenanceRecord.create({
                 data: {
+                    id: generateId(ID_PREFIXES.MAINTENANCERECORD),
                     maintenanceDate: new Date(m.date),
                     technician: m.technician,
                     description: m.description,
