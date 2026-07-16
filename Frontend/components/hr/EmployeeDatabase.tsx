@@ -170,17 +170,15 @@ const EmployeeDatabase: React.FC<EmployeeDatabaseProps> = ({ subsidiary, employe
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-            <div className="flex justify-between items-center mb-6 gap-4">
-                <div className="flex items-center gap-4 flex-1">
-                    <h3 className="text-xl font-semibold text-slate-800 whitespace-nowrap">{t('hr.employees.title')}</h3>
-                    <div className="flex-1 no-print">
-                        <SearchBar
-                            value={searchTerm}
-                            onChange={setSearchTerm}
-                            placeholder={t('common.search') || 'Rechercher les employés...'}
-                            className="w-full"
-                        />
-                    </div>
+            <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-6 gap-4">
+                <h3 className="text-xl font-semibold text-slate-800">{t('hr.employees.title')}</h3>
+                <div className="flex-1 max-w-md no-print">
+                    <SearchBar
+                        value={searchTerm}
+                        onChange={setSearchTerm}
+                        placeholder={t('common.search') || 'Rechercher les employés...'}
+                        className="w-full"
+                    />
                 </div>
                 <div className="flex items-center space-x-2 no-print">
                     <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">

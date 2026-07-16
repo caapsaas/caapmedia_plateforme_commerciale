@@ -101,11 +101,11 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({ subsidiary, emplo
             case AbsenceType.JUSTIFIED:
                 return 'bg-yellow-100 text-yellow-800';
             case AbsenceType.UNJUSTIFIED:
-            return 'bg-red-100 text-red-800';
+                return 'bg-red-100 text-red-800';
             default:
-            return 'bg-slate-100 text-slate-800';
+                return 'bg-slate-100 text-slate-800';
         }
-        };
+    };
 
     const handlePrint = () => {
         window.print();
