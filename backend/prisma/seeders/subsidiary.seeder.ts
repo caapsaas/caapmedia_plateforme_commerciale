@@ -1,8 +1,11 @@
 import { PrismaClient } from '@prisma/client';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 
 export async function runSubsidiarySeeder(prisma: PrismaClient) {
     const subsidiaries = [
         {
+            id: generateId(ID_PREFIXES.SUBSIDIARY),
             subsidiaryName: 'CAAP Douala',
             logoSvg: '<svg>...</svg>',
             address: 'CAAP Douala',
@@ -16,6 +19,7 @@ export async function runSubsidiarySeeder(prisma: PrismaClient) {
             shareCapital: 10000000.00,
         },
         {
+            id: generateId(ID_PREFIXES.SUBSIDIARY),
             subsidiaryName: 'CAAP Yaoundé',
             logoSvg: '<svg>...</svg>',
             address: 'CAAP Yaoundé',

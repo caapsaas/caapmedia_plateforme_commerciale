@@ -9,6 +9,7 @@ import { runTaxRateSeeder } from './seeders/tax_rate.seeder';
 import { runOrdersSeeder } from './seeders/order.seeder';
 import { seedTreasuryAccounts } from './seeders/treasury.seeder';
 import { runSupplierSeeder } from './seeders/supplier.seeder';
+import { runContactCitiesSeeder } from './seeders/contact-cities.seeder';
 
 const prisma = new PrismaClient()
 
@@ -56,6 +57,7 @@ async function main() {
     await runUserSeeder(prisma);
     await runProductSeeder(prisma);
     await runContactSeeder(prisma);
+    await runContactCitiesSeeder(prisma); // Additional clients for Douala and Yaoundé
     await runEquipmentSeeder(prisma);
     await runTaxRateSeeder(prisma);
     await runOrdersSeeder(prisma);

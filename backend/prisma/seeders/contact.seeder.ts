@@ -1,7 +1,15 @@
 import { PrismaClient } from '@prisma/client';
 import { ContactStatus, UserRole } from '@prisma/client';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 
-
+// Helper to add ID if not present
+function ensureContactId(contact: any) {
+  if (!contact.id) {
+    contact.id = generateId(ID_PREFIXES.CONTACT);
+  }
+  return contact;
+}
 
 export async function runContactSeeder(prisma: PrismaClient) {
 
@@ -213,6 +221,7 @@ export async function runContactSeeder(prisma: PrismaClient) {
                 subsidiaryId: subsidiary.id,
             },
             create: {
+                id: generateId(ID_PREFIXES.CONTACT),
                 contactName: c.contactName,
                 company: c.company,
                 email: c.email,
