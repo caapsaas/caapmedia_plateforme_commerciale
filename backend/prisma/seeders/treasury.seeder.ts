@@ -1,6 +1,4 @@
 import { PrismaClient, AccountType } from '@prisma/client';
-import { generateId } from './generate-id.util';
-import { ID_PREFIXES } from './id-prefixes.const';
 
 const prisma = new PrismaClient();
 
@@ -24,22 +22,20 @@ export async function seedTreasuryAccounts() {
       currency: 'XOF', // Franc CFA par défaut, à adapter selon vos besoins
       accountType: AccountType.CAISSE,
     },
-        {
-            id: generateId(ID_PREFIXES.TREASURYACCOUNT),
+    {
       accountName: 'Compte Bancaire BOA',
       balance: 160000,
       currency: 'XOF',
       accountType: AccountType.BANQUE,
     },
-        {
-            id: generateId(ID_PREFIXES.TREASURYACCOUNT),
+    {
       accountName: 'Compte Mobile Money',
       balance: 150000,
       currency: 'XOF',
       accountType: AccountType.BANQUE,
     },
   ];
-
+   
   // 3. Boucler sur chaque filiale pour créer les comptes
   for (const subsidiary of subsidiaries) {
     for (const acc of defaultAccounts) {
