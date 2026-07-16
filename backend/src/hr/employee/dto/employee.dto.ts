@@ -77,11 +77,11 @@ export class CreateEmployeeDto {
   @Length(1, 100)
   workLocation: string;
 
-  @IsDecimal()
+  @IsNumber()
   @Min(0)
   baseSalary: number;
 
-  @IsDecimal()
+  @IsNumber()
   @Min(0)
   bonus: number;
 

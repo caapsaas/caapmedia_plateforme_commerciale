@@ -64,11 +64,12 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Get all employees of a subsidiary' })
   async findAll(
     @Request() req,
-    @Query('includeRelations', ParseBoolPipe) includeRelations = false,
+    @Query('includeRelations') includeRelations?: string,
   ) {
     const subsidiaryId = req.user.subsidiaryId;
     this.logger.log(`Fetching employees for subsidiary ${subsidiaryId}`);
-    return this.employeeService.findAll(subsidiaryId, includeRelations);
+    const includeRel = includeRelations === 'true';
+    return this.employeeService.findAll(subsidiaryId, includeRel);
   }
 
   @Get(':id')
@@ -76,10 +77,11 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Get a single employee by ID' })
   async findOne(
     @Param('id') id: string,
-    @Query('includeRelations', ParseBoolPipe) includeRelations = false,
+    @Query('includeRelations') includeRelations?: string,
   ) {
     this.logger.log(`Fetching employee ${id}`);
-    return this.employeeService.findOne(id, includeRelations);
+    const includeRel = includeRelations === 'true';
+    return this.employeeService.findOne(id, includeRel);
   }
 
   @Patch(':id')
