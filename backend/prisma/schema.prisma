@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Subsidiary {
-  id                            String                         @id @default(uuid()) @map("id") @db.Uuid
+  id                            String                         @id @map("id")
   subsidiaryName                String                         @map("subsidiary_name") @db.VarChar(255)
   logoSvg                       String                         @map("logo_svg")
   address                       String                         @map("address")
@@ -62,11 +62,11 @@ model Subsidiary {
 }
 
 model User {
-  id                            String                         @id @default(uuid()) @map("id") @db.Uuid
+  id                            String                         @id @map("id")
   userName                      String                         @map("user_name") @db.VarChar(255)
   email                         String                         @unique @map("email") @db.VarChar(255)
   passwordHash                  String                         @map("password_hash")
-  subsidiaryId                  String                         @map("subsidiary_id") @db.Uuid
+  subsidiaryId                  String                         @map("subsidiary_id")
   userRole                      UserRole                       @map("user_role")
   additionalRoles               UserRole[]                     @default([]) @map("additional_roles")
   accounts                      Account[]
@@ -88,18 +88,18 @@ model User {
 }
 
 model Notification {
-  id            String           @id @default(uuid()) @map("id") @db.Uuid
+  id            String           @id @map("id")
   title         String           @map("title") @db.VarChar(255)
   message       String           @map("message")
   read          Boolean          @default(false) @map("read")
-  orderId       String?          @map("order_id") @db.Uuid
+  orderId       String?          @map("order_id")
   createdAt     DateTime         @default(now()) @map("created_at")
   updatedAt     DateTime         @updatedAt @map("updated_at")
   type          NotificationType @map("type")
-  recipientId   String           @map("recipient_id") @db.Uuid
+  recipientId   String           @map("recipient_id")
   recipientType RecipientType    @map("recipient_type")
   data          Json?            @map("data")
-  userId        String?          @map("user_id") @db.Uuid
+  userId        String?          @map("user_id")
   user          User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([recipientId, recipientType, read])
@@ -119,7 +119,7 @@ model ConfigurableOptionItem {
 }
 
 model Product {
-  id                   String               @id @default(uuid()) @map("id") @db.Uuid
+  id                   String               @id @map("id")
   productName          String               @map("product_name") @db.VarChar(255)
   mainCategory         String               @map("main_category") @db.VarChar(255)
   category             String               @map("category") @db.VarChar(255)
@@ -129,7 +129,7 @@ model Product {
   sellingPrice         Decimal              @map("selling_price") @db.Decimal(15, 2)
   warehouse            String               @map("warehouse") @db.VarChar(255)
   productRange         String?              @map("product_range") @db.VarChar(255)
-  subsidiaryId         String               @map("subsidiary_id") @db.Uuid
+  subsidiaryId         String               @map("subsidiary_id")
   configurableOptions  ConfigurableOption[]
   opportunitieProducts OpportunityProduct[]
   orderItems           OrderItem[]
@@ -145,7 +145,7 @@ model Product {
 
 model ConfigurableOption {
   id         Int                     @id @default(autoincrement()) @map("id")
-  productId  String?                 @map("product_id") @db.Uuid
+  productId  String?                 @map("product_id")
   itemId     Int?                    @map("item_id")
   optionType OptionType              @map("option_type")
   item       ConfigurableOptionItem? @relation(fields: [itemId], references: [id], onDelete: Cascade)
@@ -158,14 +158,14 @@ model ProductImage {
   id        Int      @id @default(autoincrement()) @map("id")
   imageName String   @map("image_name") @db.VarChar(255)
   imageUrl  String   @map("image_url")
-  productId String?  @map("product_id") @db.Uuid
+  productId String?  @map("product_id")
   product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("product_image")
 }
 
 model Employee {
-  id                       String                      @id @default(uuid()) @map("id") @db.Uuid
+  id                       String                      @id @map("id")
   lastName                 String                      @map("last_name") @db.VarChar(100)
   firstName                String                      @map("first_name") @db.VarChar(100)
   birthDate                DateTime                    @map("birth_date")
@@ -183,8 +183,8 @@ model Employee {
   benefits                 String[]                    @map("benefits")
   lastSalaryAdjustmentDate DateTime?                   @map("last_salary_adjustment_date")
   leaveBalance             Decimal?                    @default(0) @map("leave_balance") @db.Decimal(5, 2)
-  subsidiaryId             String                      @map("subsidiary_id") @db.Uuid
-  managerId                String?                     @map("manager_id") @db.Uuid
+  subsidiaryId             String                      @map("subsidiary_id")
+  managerId                String?                     @map("manager_id")
   gender                   Gender                      @map("gender")
   contractType             ContractType                @map("contract_type")
   status                   EmployeeStatus              @map("status")
@@ -215,7 +215,7 @@ model EmployeeDocument {
   id           Int          @id @default(autoincrement()) @map("id")
   documentName String       @map("document_name") @db.VarChar(255)
   url          String       @map("url")
-  employeeId   String       @map("employee_id") @db.Uuid
+  employeeId   String       @map("employee_id")
   docType      DocumentType @map("doc_type")
   employee     Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
@@ -228,7 +228,7 @@ model EmployeePositionHistory {
   department       String?   @map("department") @db.VarChar(100)
   startDate        DateTime  @map("start_date")
   endDate          DateTime? @map("end_date")
-  employeeId       String    @map("employee_id") @db.Uuid
+  employeeId       String    @map("employee_id")
   employee         Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@map("employee_position_history")
@@ -239,7 +239,7 @@ model EmployeeTraining {
   trainingName String   @map("training_name") @db.VarChar(255)
   trainingDate DateTime @map("training_date")
   provider     String?  @map("provider") @db.VarChar(255)
-  employeeId   String   @map("employee_id") @db.Uuid
+  employeeId   String   @map("employee_id")
   employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@map("employee_trainings")
@@ -251,7 +251,7 @@ model EmployeePerformanceReview {
   reviewer       String?  @map("reviewer") @db.VarChar(255)
   rating         Int?     @map("rating")
   reviewComments String?  @map("review_comments")
-  employeeId     String   @map("employee_id") @db.Uuid
+  employeeId     String   @map("employee_id")
   employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@map("employee_performance_reviews")
@@ -262,7 +262,7 @@ model EmployeeLeaveRecord {
   startDate       DateTime  @map("start_date")
   endDate         DateTime  @map("end_date")
   days            Int       @map("days")
-  employeeId      String    @map("employee_id") @db.Uuid
+  employeeId      String    @map("employee_id")
   leaveRecordType LeaveType @map("leave_record_type")
   employee        Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
@@ -270,8 +270,8 @@ model EmployeeLeaveRecord {
 }
 
 model EmployeeLeaveBalance {
-  id          String    @id @default(uuid()) @map("id") @db.Uuid
-  employeeId  String    @map("employee_id") @db.Uuid
+  id          String    @id @map("id")
+  employeeId  String    @map("employee_id")
   leaveType   LeaveType @map("leave_type")
   days        Decimal   @default(0) @map("days") @db.Decimal(5, 2)
   lastUpdated DateTime  @default(now()) @map("last_updated")
@@ -283,13 +283,13 @@ model EmployeeLeaveBalance {
 }
 
 model Account {
-  id            String        @id @default(uuid()) @map("id") @db.Uuid
+  id            String        @id @map("id")
   accountName   String        @map("account_name") @db.VarChar(255)
   industry      String        @map("industry") @db.VarChar(255)
   phone         String        @map("phone") @db.VarChar(255)
   address       String        @map("address")
-  subsidiaryId  String        @map("subsidiary_id") @db.Uuid
-  salesRepId    String?       @map("sales_rep_id") @db.Uuid
+  subsidiaryId  String        @map("subsidiary_id")
+  salesRepId    String?       @map("sales_rep_id")
   salesRep      User?         @relation(fields: [salesRepId], references: [id])
   subsidiary    Subsidiary    @relation(fields: [subsidiaryId], references: [id])
   contacts      Contact[]
@@ -303,7 +303,7 @@ model Account {
 }
 
 model Contact {
-  id            String         @id @default(uuid()) @map("id") @db.Uuid
+  id            String         @id @map("id")
   contactName   String         @map("contact_name") @db.VarChar(255)
   company       String         @map("company") @db.VarChar(255)
   email         String         @unique @map("email") @db.VarChar(255)
@@ -312,9 +312,9 @@ model Contact {
   address       String         @map("address")
   passwordHash  String?        @map("password_hash")
   isVerified    Boolean        @default(false) @map("is_verified")
-  accountId     String?        @map("account_id") @db.Uuid
-  salesRepId    String?        @map("sales_rep_id") @db.Uuid
-  subsidiaryId  String?        @map("subsidiary_id") @db.Uuid
+  accountId     String?        @map("account_id")
+  salesRepId    String?        @map("sales_rep_id")
+  subsidiaryId  String?        @map("subsidiary_id")
   status        ContactStatus? @map("status")
   account       Account?       @relation(fields: [accountId], references: [id])
   salesRep      User?          @relation(fields: [salesRepId], references: [id])
@@ -336,18 +336,18 @@ model Contact {
 }
 
 model Sale {
-  id            String                @id @default(uuid()) @map("id") @db.Uuid
+  id            String                @id @map("id")
   productName   String                @map("product_name") @db.VarChar(255)
   quantity      Int                   @map("quantity")
   totalPrice    Decimal               @map("total_price") @db.Decimal(15, 2)
   saleDate      DateTime              @default(now()) @map("sale_date")
   customerName  String                @map("customer_name") @db.VarChar(255)
   taxRate       Decimal               @map("tax_rate") @db.Decimal(5, 2)
-  customerId    String                @map("customer_id") @db.Uuid
-  subsidiaryId  String                @map("subsidiary_id") @db.Uuid
-  salesRepId    String?               @map("sales_rep_id") @db.Uuid
+  customerId    String                @map("customer_id")
+  subsidiaryId  String                @map("subsidiary_id")
+  salesRepId    String?               @map("sales_rep_id")
   status        SaleStatus            @map("status")
-  orderId       String?               @map("order_id") @db.Uuid
+  orderId       String?               @map("order_id")
   paymentMethod CustomerPaymentMethod @map("payment_method")
   customer      Contact               @relation(fields: [customerId], references: [id])
   order         Order?                @relation(fields: [orderId], references: [id])
@@ -362,7 +362,7 @@ model Sale {
 }
 
 model TaxRate {
-  id           String  @id @default(uuid()) @map("id") @db.Uuid
+  id           String  @id @map("id")
   taxRatesName String  @map("tax_rates_name") @db.VarChar(255)
   rate         Decimal @map("rate") @db.Decimal(5, 4)
   isDefault    Boolean @default(false) @map("is_default")
@@ -374,14 +374,14 @@ model TaxRate {
 }
 
 model Opportunity {
-  id                String               @id @default(uuid()) @map("id") @db.Uuid
+  id                String               @id @map("id")
   opportunityName   String               @map("opportunity_name") @db.VarChar(255)
   opportunityValue  Decimal              @map("opportunity_value") @db.Decimal(15, 2)
   closeDate         DateTime             @map("close_date")
-  contactId         String               @map("contact_id") @db.Uuid
-  accountId         String               @map("account_id") @db.Uuid
-  userId            String               @map("user_id") @db.Uuid
-  subsidiaryId      String               @map("subsidiary_id") @db.Uuid
+  contactId         String               @map("contact_id")
+  accountId         String               @map("account_id")
+  userId            String               @map("user_id")
+  subsidiaryId      String               @map("subsidiary_id")
   stage             OpportunityStage     @map("stage")
   sourceOpportunity OpportunitySource?   @map("source_opportunity")
   crmTasks          CrmTask[]
@@ -397,9 +397,9 @@ model Opportunity {
 }
 
 model OpportunityProduct {
-  id            String      @id @default(uuid()) @map("id") @db.Uuid
-  opportunityId String      @map("opportunity_id") @db.Uuid
-  productId     String      @map("product_id") @db.Uuid
+  id            String      @id @map("id")
+  opportunityId String      @map("opportunity_id")
+  productId     String      @map("product_id")
   opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
   product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
 
@@ -407,9 +407,9 @@ model OpportunityProduct {
 }
 
 model OrderGroup {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @map("id")
   groupCode   String   @unique @map("group_code")
-  customerId  String   @map("customer_id") @db.Uuid
+  customerId  String   @map("customer_id")
   totalAmount Decimal  @default(0) @map("total_amount") @db.Decimal(15, 2)
   createdAt   DateTime @default(now()) @map("created_at")
   orders      Order[]
@@ -419,7 +419,7 @@ model OrderGroup {
 }
 
 model Order {
-  id                String                   @id @default(uuid()) @map("id") @db.Uuid
+  id                String                   @id @map("id")
   orderDate         DateTime                 @default(now()) @map("order_date")
   customerName      String                   @map("customer_name") @db.VarChar(255)
   subtotal          Decimal                  @default(0) @map("subtotal") @db.Decimal(15, 2)
@@ -428,16 +428,16 @@ model Order {
   taxRateValue      Decimal                  @map("tax_rate_value") @db.Decimal(5, 2)
   amountPaid        Decimal                  @default(0) @map("amount_paid") @db.Decimal(15, 2)
   paymentDueDate    DateTime                 @map("payment_due_date")
-  customerId        String                   @map("customer_id") @db.Uuid
-  subsidiaryId      String                   @map("subsidiary_id") @db.Uuid
-  taxRateId         String                   @map("tax_rate_id") @db.Uuid
-  salesRepId        String?                  @map("sales_rep_id") @db.Uuid
-  opportunityId     String?                  @map("opportunity_id") @db.Uuid
+  customerId        String                   @map("customer_id")
+  subsidiaryId      String                   @map("subsidiary_id")
+  taxRateId         String                   @map("tax_rate_id")
+  salesRepId        String?                  @map("sales_rep_id")
+  opportunityId     String?                  @map("opportunity_id")
   status            OrderStatus              @map("status")
   productionStatus  ProductionStatus         @map("production_status")
   paymentStatus     PaymentStatus            @map("payment_status")
   source            OrderSource              @map("source")
-  groupId           String?                  @map("group_id") @db.Uuid
+  groupId           String?                  @map("group_id")
   paymentMethod     CustomerPaymentMethod?   @map("payment_method")
   orderItems        OrderItem[]
   productionHistory OrderProductionHistory[]
@@ -458,7 +458,7 @@ model Order {
 model OrderProductionHistory {
   id         Int              @id @default(autoincrement()) @map("id")
   changeDate DateTime         @default(now()) @map("change_date")
-  orderId    String           @map("order_id") @db.Uuid
+  orderId    String           @map("order_id")
   status     ProductionStatus @map("status")
   order      Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
@@ -466,13 +466,13 @@ model OrderProductionHistory {
 }
 
 model OrderItem {
-  id             String          @id @default(uuid()) @map("id") @db.Uuid
+  id             String          @id @map("id")
   quantity       Int             @map("quantity")
   unitPrice      Decimal         @map("unit_price") @db.Decimal(15, 2)
   designFileName String?         @map("design_file_name") @db.VarChar(255)
   designFileUrl  String?         @map("design_file_url")
-  productId      String?         @map("product_id") @db.Uuid
-  orderId        String?         @map("order_id") @db.Uuid
+  productId      String?         @map("product_id")
+  orderId        String?         @map("order_id")
   order          Order?          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product        Product?        @relation(fields: [productId], references: [id], onDelete: Cascade)
   productOptions ProductOption[]
@@ -486,14 +486,14 @@ model ProductOption {
   id          Int        @id @default(autoincrement()) @map("id")
   optionType  String     @map("option_type")
   optionValue String     @map("option_value") @db.VarChar(150)
-  orderItemId String?    @map("order_item_id") @db.Uuid
+  orderItemId String?    @map("order_item_id")
   orderItem   OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 
   @@map("product_option")
 }
 
 model Kpi {
-  id         String     @id @default(uuid()) @map("id") @db.Uuid
+  id         String     @id @map("id")
   titleKey   String     @map("title_key") @db.VarChar(100)
   kpiValue   String     @map("kpi_value") @db.VarChar(50)
   change     String     @map("change") @db.VarChar(50)
@@ -503,13 +503,13 @@ model Kpi {
 }
 
 model Supplier {
-  id             String          @id @default(uuid()) @map("id") @db.Uuid
+  id             String          @id @map("id")
   supplierName   String          @map("supplier_name") @db.VarChar(255)
   company        String          @map("company") @db.VarChar(255)
   email          String          @map("email") @db.VarChar(255)
   phone          String          @map("phone") @db.VarChar(255)
   address        String          @map("address")
-  subsidiaryId   String          @map("subsidiary_id") @db.Uuid
+  subsidiaryId   String          @map("subsidiary_id")
   purchaseOrders PurchaseOrder[]
   subsidiary     Subsidiary      @relation(fields: [subsidiaryId], references: [id])
 
@@ -518,14 +518,14 @@ model Supplier {
 }
 
 model PurchaseOrder {
-  id                   String                 @id @default(uuid()) @map("id") @db.Uuid
+  id                   String                 @id @map("id")
   supplierName         String                 @map("supplier_name") @db.VarChar(255)
   orderDate            DateTime               @map("order_date")
   expectedDeliveryDate DateTime               @map("expected_delivery_date")
   totalAmount          Decimal                @map("total_amount") @db.Decimal(15, 2)
   amountPaid           Decimal                @map("amount_paid") @db.Decimal(15, 2)
-  supplierId           String                 @map("supplier_id") @db.Uuid
-  subsidiaryId         String                 @map("subsidiary_id") @db.Uuid
+  supplierId           String                 @map("supplier_id")
+  subsidiaryId         String                 @map("subsidiary_id")
   status               PurchaseOrderStatus    @map("status")
   paymentTerms         PaymentTerms           @map("payment_terms")
   paymentStatus        PaymentStatus          @map("payment_status")
@@ -548,8 +548,8 @@ model PurchaseOrderItem {
   quantity         Int           @map("quantity")
   quantityReceived Int           @map("quantity_received")
   purchasePrice    Decimal       @map("purchase_price") @db.Decimal(15, 2)
-  purchaseOrderId  String        @map("purchase_order_id") @db.Uuid
-  productId        String        @map("product_id") @db.Uuid
+  purchaseOrderId  String        @map("purchase_order_id")
+  productId        String        @map("product_id")
   product          Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
   purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
 
@@ -561,20 +561,20 @@ model PurchaseOrderHistory {
   id              Int           @id @default(autoincrement()) @map("id")
   eventName       String        @map("event_name") @db.VarChar(255)
   eventDate       DateTime      @default(now()) @map("event_date")
-  purchaseOrderId String        @map("purchase_order_id") @db.Uuid
+  purchaseOrderId String        @map("purchase_order_id")
   purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
 
   @@map("purchase_order_history")
 }
 
 model CreditAccount {
-  id              String     @id @default(uuid()) @map("id") @db.Uuid
+  id              String     @id @map("id")
   clientName      String     @map("client_name") @db.VarChar(255)
   companyName     String     @map("company_name") @db.VarChar(255)
   balance         Decimal    @map("balance") @db.Decimal(15, 2)
   lastPaymentDate DateTime   @map("last_payment_date")
-  subsidiaryId    String     @map("subsidiary_id") @db.Uuid
-  contactId       String     @unique @map("contact_id") @db.Uuid
+  subsidiaryId    String     @map("subsidiary_id")
+  contactId       String     @unique @map("contact_id")
   contact         Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
   subsidiary      Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
@@ -582,12 +582,12 @@ model CreditAccount {
 }
 
 model TreasuryAccount {
-  id                    String                 @id @default(uuid()) @map("id") @db.Uuid
+  id                    String                 @id @map("id")
   accountName           String                 @map("account_name") @db.VarChar(255)
   balance               Decimal                @map("balance") @db.Decimal(15, 2)
   currency              String                 @map("currency") @db.VarChar(10)
   accountType           AccountType            @map("account_type")
-  subsidiaryId          String                 @map("subsidiary_id") @db.Uuid
+  subsidiaryId          String                 @map("subsidiary_id")
   financialTransactions FinancialTransaction[]
   subsidiary            Subsidiary             @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
@@ -596,14 +596,14 @@ model TreasuryAccount {
 }
 
 model FinancialTransaction {
-  id                       String          @id @default(uuid()) @map("id") @db.Uuid
+  id                       String          @id @map("id")
   transactionDate          DateTime        @map("transaction_date")
   description              String?         @map("description")
   amount                   Decimal         @map("amount") @db.Decimal(15, 2)
   relatedDocumentId        String?         @map("related_document_id") @db.VarChar(50)
-  subsidiaryId             String          @map("subsidiary_id") @db.Uuid
+  subsidiaryId             String          @map("subsidiary_id")
   financialTransactionType TransactionType @map("financial_transaction_type")
-  treasuryAccountId        String          @map("treasury_account_id") @db.Uuid
+  treasuryAccountId        String          @map("treasury_account_id")
   providerName             String?         @map("provider_name") @db.VarChar(255)
   providerPhone            String?         @map("provider_phone") @db.VarChar(20)
   subsidiary               Subsidiary      @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
@@ -616,7 +616,7 @@ model FinancialTransaction {
 }
 
 model ExternalFinancialTransaction {
-  id                          String                      @id @default(uuid()) @map("id") @db.Uuid
+  id                          String                      @id @map("id")
   transactionDate             DateTime                    @map("transaction_date")
   description                 String                      @map("description")
   amount                      Decimal                     @map("amount") @db.Decimal(15, 2)
@@ -625,8 +625,8 @@ model ExternalFinancialTransaction {
   status                      ExternalTransactionStatus   @map("status")
   paymentMethod               PaymentMethod               @map("payment_method")
   referenceNumber             String?                     @map("reference_number") @db.VarChar(100)
-  createdBy                   String                      @map("created_by") @db.Uuid
-  subsidiaryId                String                      @map("subsidiary_id") @db.Uuid
+  createdBy                   String                      @map("created_by")
+  subsidiaryId                String                      @map("subsidiary_id")
   createdAt                   DateTime                    @default(now()) @map("created_at")
   updatedAt                   DateTime                    @updatedAt @map("updated_at")
   subsidiary                  Subsidiary                  @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
@@ -641,11 +641,11 @@ model ExternalFinancialTransaction {
 }
 
 model CompanyDocument {
-  id           String           @id @default(uuid()) @map("id") @db.Uuid
+  id           String           @id @map("id")
   documentName String           @map("document_name") @db.VarChar(255)
   uploadDate   DateTime         @default(now()) @map("upload_date")
   fileUrl      String           @map("file_url")
-  subsidiaryId String           @map("subsidiary_id") @db.Uuid
+  subsidiaryId String           @map("subsidiary_id")
   category     DocumentCategory @map("category")
   status       DocumentStatus   @map("status")
   subsidiary   Subsidiary       @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
@@ -657,14 +657,14 @@ model CompanyDocument {
 }
 
 model Meeting {
-  id              String               @id @default(uuid()) @map("id") @db.Uuid
+  id              String               @id @map("id")
   title           String               @db.VarChar(255)
   meetingDate     DateTime             @map("meeting_date")
   meetingTime     DateTime             @map("meeting_time")
   meetingLocation String?              @map("meeting_location") @db.VarChar(255)
   agenda          String?
   minutes         String?
-  subsidiaryId    String               @map("subsidiary_id") @db.Uuid
+  subsidiaryId    String               @map("subsidiary_id")
   participants    MeetingParticipant[]
   subsidiary      Subsidiary           @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
@@ -674,8 +674,8 @@ model Meeting {
 
 model MeetingParticipant {
   id         Int      @id @default(autoincrement()) @map("id")
-  meetingId  String   @map("meeting_id") @db.Uuid
-  employeeId String   @map("employee_id") @db.Uuid
+  meetingId  String   @map("meeting_id")
+  employeeId String   @map("employee_id")
   employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   meeting    Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
@@ -684,12 +684,12 @@ model MeetingParticipant {
 }
 
 model SecretariatTask {
-  id           String                @id @default(uuid()) @map("id") @db.Uuid
+  id           String                @id @map("id")
   title        String                @db.VarChar(255)
   description  String
   dueDate      DateTime              @map("due_date")
-  assignedToId String?               @map("assigned_to_id") @db.Uuid
-  subsidiaryId String                @map("subsidiary_id") @db.Uuid
+  assignedToId String?               @map("assigned_to_id")
+  subsidiaryId String                @map("subsidiary_id")
   status       SecretariatTaskStatus @map("status")
   assignedTo   Employee?             @relation(fields: [assignedToId], references: [id])
   subsidiary   Subsidiary            @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
@@ -701,11 +701,11 @@ model SecretariatTask {
 }
 
 model Interaction {
-  id               String          @id @default(uuid()) @map("id") @db.Uuid
+  id               String          @id @map("id")
   interactionDate  DateTime        @map("interaction_date")
   notes            String
-  contactId        String          @map("contact_id") @db.Uuid
-  userId           String          @map("user_id") @db.Uuid
+  contactId        String          @map("contact_id")
+  userId           String          @map("user_id")
   typeInteractions InteractionType @map("type_interactions")
   contact          Contact         @relation(fields: [contactId], references: [id])
   user             User            @relation(fields: [userId], references: [id])
@@ -714,13 +714,13 @@ model Interaction {
 }
 
 model CrmTask {
-  id            String          @id @default(uuid()) @map("id") @db.Uuid
+  id            String          @id @map("id")
   title         String          @db.VarChar(255)
   description   String?
   dueDate       DateTime        @map("due_date")
-  contactId     String          @map("contact_id") @db.Uuid
-  opportunityId String?         @map("opportunity_id") @db.Uuid
-  userId        String          @map("user_id") @db.Uuid
+  contactId     String          @map("contact_id")
+  opportunityId String?         @map("opportunity_id")
+  userId        String          @map("user_id")
   status        CrmTaskStatus
   priority      CrmTaskPriority
   contact       Contact         @relation(fields: [contactId], references: [id])
@@ -731,14 +731,14 @@ model CrmTask {
 }
 
 model Lead {
-  id           String     @id @default(uuid()) @map("id") @db.Uuid
+  id           String     @id @map("id")
   leadName     String     @map("lead_name") @db.VarChar(255)
   company      String     @db.VarChar(255)
   email        String     @unique @db.VarChar(255)
   phone        String     @db.VarChar(255)
   description  String?
-  salesRepId   String?    @map("sales_rep_id") @db.Uuid
-  subsidiaryId String     @map("subsidiary_id") @db.Uuid
+  salesRepId   String?    @map("sales_rep_id")
+  subsidiaryId String     @map("subsidiary_id")
   status       LeadStatus
   salesRep     Employee?  @relation(fields: [salesRepId], references: [id])
   subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id])
@@ -751,13 +751,13 @@ model Lead {
 }
 
 model Contract {
-  id           String         @id @default(uuid()) @map("id") @db.Uuid
+  id           String         @id @map("id")
   title        String
   startDate    DateTime       @map("start_date")
   endDate      DateTime       @map("end_date")
   amount       Decimal        @db.Decimal(12, 2)
-  clientId     String         @map("client_id") @db.Uuid
-  subsidiaryId String         @map("subsidiary_id") @db.Uuid
+  clientId     String         @map("client_id")
+  subsidiaryId String         @map("subsidiary_id")
   status       ContractStatus
   client       Contact        @relation(fields: [clientId], references: [id])
   subsidiary   Subsidiary     @relation(fields: [subsidiaryId], references: [id])
@@ -766,12 +766,12 @@ model Contract {
 }
 
 model FixedAsset {
-  id               String     @id @default(uuid()) @map("id") @db.Uuid
+  id               String     @id @map("id")
   fixedAssetsName  String     @map("fixed_assets_name") @db.VarChar(255)
   acquisitionDate  DateTime   @map("acquisition_date")
   acquisitionCost  Decimal    @map("acquisition_cost") @db.Decimal(15, 2)
   depreciationRate Decimal    @map("depreciation_rate") @db.Decimal(5, 2)
-  subsidiaryId     String     @map("subsidiary_id") @db.Uuid
+  subsidiaryId     String     @map("subsidiary_id")
   subsidiary       Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
   @@index([subsidiaryId, acquisitionDate])
@@ -779,13 +779,13 @@ model FixedAsset {
 }
 
 model LongTermDebt {
-  id             String     @id @default(uuid()) @map("id") @db.Uuid
+  id             String     @id @map("id")
   debtsName      String     @map("debts_name") @db.VarChar(255)
   initialAmount  Decimal    @map("initial_amount") @db.Decimal(15, 2)
   currentBalance Decimal    @map("current_balance") @db.Decimal(15, 2)
   interestRate   Decimal    @map("interest_rate") @db.Decimal(5, 2)
   maturityDate   DateTime   @map("maturity_date")
-  subsidiaryId   String     @map("subsidiary_id") @db.Uuid
+  subsidiaryId   String     @map("subsidiary_id")
   subsidiary     Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
   @@index([subsidiaryId, maturityDate])
@@ -793,13 +793,13 @@ model LongTermDebt {
 }
 
 model Equipment {
-  id                  String              @id @default(uuid()) @map("id") @db.Uuid
+  id                  String              @id @map("id")
   equipmentName       String              @map("equipment_name") @db.VarChar(255)
   lastMaintenanceDate DateTime            @map("last_maintenance_date")
   nextMaintenanceDate DateTime            @map("next_maintenance_date")
   acquisitionDate     DateTime            @map("acquisition_date")
   acquisitionValue    Decimal             @map("acquisition_value") @db.Decimal(15, 2)
-  subsidiaryId        String              @map("subsidiary_id") @db.Uuid
+  subsidiaryId        String              @map("subsidiary_id")
   status              EquipmentStatus
   subsidiary          Subsidiary          @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
   maintenanceRecords  MaintenanceRecord[]
@@ -812,12 +812,12 @@ model Equipment {
 }
 
 model MaintenanceRecord {
-  id              String    @id @default(uuid()) @map("id") @db.Uuid
+  id              String    @id @map("id")
   maintenanceDate DateTime  @map("maintenance_date")
   technician      String    @db.VarChar(255)
   description     String
   maintenanceCost Decimal   @map("maintenance_cost") @db.Decimal(10, 2)
-  equipmentId     String    @map("equipment_id") @db.Uuid
+  equipmentId     String    @map("equipment_id")
   equipment       Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
 
   @@index([equipmentId])
@@ -826,14 +826,14 @@ model MaintenanceRecord {
 }
 
 model AbsenceRecord {
-  id           String      @id @default(uuid()) @map("id") @db.Uuid
+  id           String      @id @map("id")
   employeeName String      @map("employee_name") @db.VarChar(255)
   startDate    DateTime    @map("start_date")
   endDate      DateTime    @map("end_date")
   reason       String
   documentUrl  String?     @map("document_url")
-  employeeId   String      @map("employee_id") @db.Uuid
-  subsidiaryId String      @map("subsidiary_id") @db.Uuid
+  employeeId   String      @map("employee_id")
+  subsidiaryId String      @map("subsidiary_id")
   typeAbsence  AbsenceType @map("type_absence")
   employee     Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   subsidiary   Subsidiary  @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
@@ -845,7 +845,7 @@ model AbsenceRecord {
 }
 
 model AttendanceRecord {
-  id             String           @id @default(uuid()) @map("id") @db.Uuid
+  id             String           @id @map("id")
   employeeName   String           @map("employee_name") @db.VarChar(255)
   attendanceDate DateTime         @map("attendance_date")
   arrivalTime    DateTime?        @map("arrival_time")
@@ -853,8 +853,8 @@ model AttendanceRecord {
   breakStartTime DateTime?        @map("break_start_time")
   breakEndTime   DateTime?        @map("break_end_time")
   signature      String?
-  employeeId     String           @map("employee_id") @db.Uuid
-  subsidiaryId   String           @map("subsidiary_id") @db.Uuid
+  employeeId     String           @map("employee_id")
+  subsidiaryId   String           @map("subsidiary_id")
   status         AttendanceStatus @map("status")
   employee       Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   subsidiary     Subsidiary       @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
@@ -866,7 +866,7 @@ model AttendanceRecord {
 }
 
 model PayrollRecord {
-  id            String        @id @default(uuid()) @map("id") @db.Uuid
+  id            String        @id @map("id")
   employeeName  String        @map("employee_name") @db.VarChar(255)
   payrollPeriod String        @map("payroll_period") @db.VarChar(7)
   grossSalary   Decimal       @map("gross_salary") @db.Decimal(12, 2)
@@ -874,8 +874,8 @@ model PayrollRecord {
   netSalary     Decimal       @map("net_salary") @db.Decimal(12, 2)
   paymentDate   DateTime?     @map("payment_date")
   signature     String?
-  employeeId    String        @map("employee_id") @db.Uuid
-  subsidiaryId  String        @map("subsidiary_id") @db.Uuid
+  employeeId    String        @map("employee_id")
+  subsidiaryId  String        @map("subsidiary_id")
   status        PayrollStatus @map("status")
   employee      Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   subsidiary    Subsidiary    @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
@@ -887,14 +887,14 @@ model PayrollRecord {
 }
 
 model SupplierDebt {
-  id              String        @id @default(uuid()) @map("id") @db.Uuid
+  id              String        @id @map("id")
   supplierName    String        @map("supplier_name") @db.VarChar(255)
   invoiceId       String        @map("invoice_id") @db.VarChar(50)
   dueDate         DateTime      @map("due_date")
   amount          Decimal       @db.Decimal(15, 2)
   invoiceUrl      String?       @map("invoice_url")
-  subsidiaryId    String        @map("subsidiary_id") @db.Uuid
-  purchaseOrderId String        @map("purchase_order_id") @db.Uuid
+  subsidiaryId    String        @map("subsidiary_id")
+  purchaseOrderId String        @map("purchase_order_id")
   status          DebtStatus    @map("status")
   purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   subsidiary      Subsidiary    @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
@@ -906,11 +906,11 @@ model SupplierDebt {
 }
 
 model ExpenseRecord {
-  id                String          @id @default(uuid()) @map("id") @db.Uuid
+  id                String          @id @map("id")
   expenseDate       DateTime        @map("expense_date")
   description       String
   amount            Decimal         @db.Decimal(12, 2)
-  subsidiaryId      String          @map("subsidiary_id") @db.Uuid
+  subsidiaryId      String          @map("subsidiary_id")
   category          ExpenseCategory @map("category")
   expenseRecordType ExpenseType     @map("expense_record_type")
   subsidiary        Subsidiary      @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
@@ -923,13 +923,13 @@ model ExpenseRecord {
 
 // Plan comptable
 model AccountingAccount {
-  id              String                @id @default(uuid()) @map("id") @db.Uuid
+  id              String                @id @map("id")
   accountNumber   String                @unique @map("account_number") @db.VarChar(10)
   accountName     String                @map("account_name") @db.VarChar(255)
   accountType     AccountingAccountType @map("account_type")
-  parentAccountId String?               @map("parent_account_id") @db.Uuid
+  parentAccountId String?               @map("parent_account_id")
   isActive        Boolean               @default(true) @map("is_active")
-  subsidiaryId    String                @map("subsidiary_id") @db.Uuid
+  subsidiaryId    String                @map("subsidiary_id")
   createdAt       DateTime              @default(now()) @map("created_at")
   updatedAt       DateTime              @updatedAt @map("updated_at")
 
@@ -944,13 +944,13 @@ model AccountingAccount {
 
 // Exercices fiscaux
 model FiscalYear {
-  id           String   @id @default(uuid()) @map("id") @db.Uuid
+  id           String   @id @map("id")
   name         String   @map("name") @db.VarChar(100)
   startDate    DateTime @map("start_date")
   endDate      DateTime @map("end_date")
   isActive     Boolean  @default(true) @map("is_active")
   isClosed     Boolean  @default(false) @map("is_closed")
-  subsidiaryId String   @map("subsidiary_id") @db.Uuid
+  subsidiaryId String   @map("subsidiary_id")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -964,11 +964,11 @@ model FiscalYear {
 
 // Journaux comptables (JV, JA, JB, JOD)
 model AccountingJournal {
-  id           String         @id @default(uuid()) @map("id") @db.Uuid
+  id           String         @id @map("id")
   code         String         @map("code") @db.VarChar(10)
   name         String         @map("name") @db.VarChar(100)
   journalType  JournalType    @map("journal_type")
-  subsidiaryId String         @map("subsidiary_id") @db.Uuid
+  subsidiaryId String         @map("subsidiary_id")
   isActive     Boolean        @default(true) @map("is_active")
   subsidiary   Subsidiary     @relation(fields: [subsidiaryId], references: [id])
   entries      JournalEntry[]
@@ -979,13 +979,13 @@ model AccountingJournal {
 
 // Règles de journalisation automatique Finance → Comptabilité
 model AccountMapping {
-  id               String     @id @default(uuid()) @map("id") @db.Uuid
+  id               String     @id @map("id")
   operationType    String     @map("operation_type") @db.VarChar(100)
   journalCode      String     @map("journal_code") @db.VarChar(10)
   debitAccountNum  String     @map("debit_account_num") @db.VarChar(10)
   creditAccountNum String     @map("credit_account_num") @db.VarChar(10)
   description      String     @map("description") @db.VarChar(255)
-  subsidiaryId     String     @map("subsidiary_id") @db.Uuid
+  subsidiaryId     String     @map("subsidiary_id")
   subsidiary       Subsidiary @relation(fields: [subsidiaryId], references: [id])
 
   @@unique([subsidiaryId, operationType])
@@ -994,16 +994,16 @@ model AccountMapping {
 
 // Écritures comptables
 model JournalEntry {
-  id           String             @id @default(uuid()) @map("id") @db.Uuid
+  id           String             @id @map("id")
   entryNumber  String             @unique @map("entry_number") @db.VarChar(50)
   entryDate    DateTime           @map("entry_date")
   description  String             @map("description")
   status       JournalEntryStatus @default(DRAFT) @map("status")
   totalAmount  Decimal            @map("total_amount") @db.Decimal(15, 2)
-  fiscalYearId String             @map("fiscal_year_id") @db.Uuid
-  subsidiaryId String             @map("subsidiary_id") @db.Uuid
-  createdBy    String             @map("created_by") @db.Uuid
-  journalId    String?            @map("journal_id") @db.Uuid
+  fiscalYearId String             @map("fiscal_year_id")
+  subsidiaryId String             @map("subsidiary_id")
+  createdBy    String             @map("created_by")
+  journalId    String?            @map("journal_id")
   sourceType   String?            @map("source_type") @db.VarChar(100)
   sourceId     String?            @map("source_id") @db.VarChar(100)
   createdAt    DateTime           @default(now()) @map("created_at")
@@ -1025,9 +1025,9 @@ model JournalEntry {
 
 // Lignes d'écriture comptable
 model JournalEntryLine {
-  id             String  @id @default(uuid()) @map("id") @db.Uuid
-  journalEntryId String  @map("journal_entry_id") @db.Uuid
-  accountId      String  @map("account_id") @db.Uuid
+  id             String  @id @map("id")
+  journalEntryId String  @map("journal_entry_id")
+  accountId      String  @map("account_id")
   description    String  @map("description")
   debitAmount    Decimal @default(0) @map("debit_amount") @db.Decimal(15, 2)
   creditAmount   Decimal @default(0) @map("credit_amount") @db.Decimal(15, 2)
@@ -1064,7 +1064,7 @@ enum JournalType {
 }
 
 model Newsletter {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @map("id")
   email     String   @unique
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -1423,12 +1423,12 @@ enum RecipientType {
 }
 
 model PrefinancementAccount {
-  id           String     @id @default(uuid()) @map("prefinancement_accounts")
+  id           String     @id @map("prefinancement_accounts")
   accountName  String     @map("account_name") @db.VarChar(255)
   balance      Decimal    @map("balance") @db.Decimal(15, 2)
   currency     String     @default("XOF") @map("currency") @db.VarChar(10)
   lastUpdated  DateTime   @default(now()) @map("last_updated") @db.Timestamp
-  subsidiaryId String     @map("subsidiary_id") @db.Uuid
+  subsidiaryId String     @map("subsidiary_id")
   subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id])
   createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamp
   updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamp
@@ -1437,7 +1437,7 @@ model PrefinancementAccount {
 }
 
 model PrefinancementTransaction {
-  id              String                        @id @default(uuid()) @map("prefinancement_transactions")
+  id              String                        @id @map("prefinancement_transactions")
   date            DateTime                      @map("date") @db.Timestamp
   description     String                        @map("description") @db.Text
   amount          Decimal                       @map("amount") @db.Decimal(15, 2)
@@ -1447,8 +1447,8 @@ model PrefinancementTransaction {
   referenceNumber String?                       @map("reference_number") @db.VarChar(100)
   relatedOrderId  String?                       @map("related_order_id") @db.VarChar(255)
   notes           String?                       @map("notes") @db.Text
-  subsidiaryId    String                        @map("subsidiary_id") @db.Uuid
-  createdBy       String                        @map("created_by") @db.Uuid
+  subsidiaryId    String                        @map("subsidiary_id")
+  createdBy       String                        @map("created_by")
   createdAt       DateTime                      @default(now()) @map("created_at") @db.Timestamp
   updatedAt       DateTime                      @updatedAt @map("updated_at") @db.Timestamp
   creator         User?                         @relation(fields: [createdBy], references: [id])
@@ -1485,15 +1485,15 @@ enum ProformaStatus {
 }
 
 model Proforma {
-  id              String   @id @default(uuid()) @map("id") @db.Uuid
+  id              String   @id @map("id")
   proformaNumber  String   @unique @map("proforma_number") @db.VarChar(50)
 
   // Lien au Lead
-  leadId          String   @map("lead_id") @db.Uuid
+  leadId          String   @map("lead_id")
   lead            Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   // Lien à l'Opportunity (optionnel)
-  opportunityId   String?  @map("opportunity_id") @db.Uuid
+  opportunityId   String?  @map("opportunity_id")
   opportunity     Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
 
   // Informations client
@@ -1517,14 +1517,14 @@ model Proforma {
   notes           String?  @map("notes")
 
   // Tracking
-  createdBy       String   @map("created_by") @db.Uuid
+  createdBy       String   @map("created_by")
   createdByUser   User     @relation(fields: [createdBy], references: [id])
   createdAt       DateTime @default(now()) @map("created_at")
   sentAt          DateTime? @map("sent_at")
   viewedAt        DateTime? @map("viewed_at")
   acceptedAt      DateTime? @map("accepted_at")
 
-  subsidiaryId    String   @map("subsidiary_id") @db.Uuid
+  subsidiaryId    String   @map("subsidiary_id")
   subsidiary      Subsidiary @relation(fields: [subsidiaryId], references: [id])
 
   @@index([leadId])
@@ -1536,12 +1536,12 @@ model Proforma {
 }
 
 model ProformaItem {
-  id              String   @id @default(uuid()) @map("id") @db.Uuid
+  id              String   @id @map("id")
 
-  proformaId      String   @map("proforma_id") @db.Uuid
+  proformaId      String   @map("proforma_id")
   proforma        Proforma @relation(fields: [proformaId], references: [id], onDelete: Cascade)
 
-  productId       String   @map("product_id") @db.Uuid
+  productId       String   @map("product_id")
   product         Product  @relation(fields: [productId], references: [id])
 
   quantity        Int      @map("quantity")

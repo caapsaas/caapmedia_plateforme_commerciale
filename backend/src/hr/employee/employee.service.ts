@@ -21,6 +21,8 @@ import {
   DocumentType,
   LeaveType,
 } from '@prisma/client';
+import { generateId } from '../../common/utils/generate-id.util';
+import { ID_PREFIXES } from '../../common/constants/id-prefixes.const';
 
 @Injectable()
 export class EmployeeService {
@@ -127,6 +129,7 @@ export class EmployeeService {
         // Create employee
         const newEmployee = await prisma.employee.create({
           data: {
+            id: generateId(ID_PREFIXES.EMPLOYEE),
             // Map all fields from the DTO to the Prisma model explicitly
             lastName: createEmployeeDto.lastName,
             firstName: createEmployeeDto.firstName,

@@ -9,6 +9,8 @@ import {
   UpdateProductDto,
   UpdateProductPriceDto,
 } from './dto/create-product.dto';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class ProductsService {
@@ -67,6 +69,7 @@ export class ProductsService {
 
     const product = await this.prisma.product.create({
       data: {
+        id: generateId(ID_PREFIXES.PRODUCT),
         ...productData,
         stock: Number(productData.stock),
         price: Number(productData.price),

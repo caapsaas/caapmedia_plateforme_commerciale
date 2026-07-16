@@ -5,6 +5,8 @@ import { Order, OrderGroup, OrderStatus, PaymentStatus, Prisma, ProductionStatus
 import { FindAllOrdersDto, OrderPeriod } from './dto/find-all-orders.dto';
 import { sub, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
 import { Decimal } from '@prisma/client/runtime/library';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 // Degressive pricing table: [quantity, discount percentage]
 const degressivePricing = [
@@ -154,26 +156,37 @@ export class OrdersService {
         if (!product) {
           throw new NotFoundException(`Produit avec l'ID ${item.productId} introuvable`);
         }
-        let unitPrice = new Decimal(product.sellingPrice);
 
-        if (item.options) {
-          for (const option of item.options) {
-            const optionItem = optionItemMap.get(option.optionValue);
-            if (optionItem) {
-              unitPrice = unitPrice.mul(optionItem.multiplier);
+        // Déterminer le prix unitaire à utiliser
+        let finalUnitPrice: Decimal;
+
+        if (item.unitPrice !== undefined) {
+          // Utiliser le prix manuel fourni par le commercial (pas d'options, pas de tarification dégressive)
+          finalUnitPrice = new Decimal(item.unitPrice);
+        } else {
+          // Utiliser la logique de prix par défaut
+          let unitPrice = new Decimal(product.sellingPrice);
+
+          if (item.options) {
+            for (const option of item.options) {
+              const optionItem = optionItemMap.get(option.optionValue);
+              if (optionItem) {
+                unitPrice = unitPrice.mul(optionItem.multiplier);
+              }
             }
           }
+
+          // Appliquer la tarification dégressive
+          let discount = new Decimal(0);
+          for (const tier of degressivePricing) {
+            if (item.quantity >= tier.threshold) {
+              discount = tier.discount;
+              break; // La table est triée, on prend la première correspondance
+            }
+          }
+          finalUnitPrice = unitPrice.mul(new Decimal(1).sub(discount));
         }
 
-        // Appliquer la tarification dégressive
-        let discount = new Decimal(0);
-        for (const tier of degressivePricing) {
-          if (item.quantity >= tier.threshold) {
-            discount = tier.discount;
-            break; // La table est triée, on prend la première correspondance
-          }
-        }
-        const finalUnitPrice = unitPrice.mul(new Decimal(1).sub(discount));
         overallTotalAmount = overallTotalAmount.add(finalUnitPrice.mul(item.quantity));
       }
       // Ajouter la taxe au montant total global
@@ -232,6 +245,7 @@ export class OrdersService {
         // Créer la commande
         const createdOrder = await tx.order.create({
           data: {
+            id: generateId(ID_PREFIXES.ORDER),
             customerName,
             paymentDueDate: paymentDue,
             source,
@@ -359,7 +373,7 @@ export class OrdersService {
    * @returns // Commande créée
    */
   async createBySalesRep(createOrderDto: CreateOrderBySalesRepDto, user: any, designFiles?: Express.Multer.File[]) {
-    const { items, customerId, customerName, paymentDueDate, source, opportunityId, paymentMethod } = createOrderDto;
+    const { items, customerId, customerName, paymentDueDate, source, opportunityId, paymentMethod, customTaxRate } = createOrderDto;
 
     // Le corps d'un formulaire multipart est toujours en string, il faut parser les items.
     const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
@@ -379,11 +393,21 @@ export class OrdersService {
       throw new BadRequestException('Tous les articles doivent avoir un productId. Articles invalides: ' + JSON.stringify(itemsWithoutProductId, null, 2));
     }
     
-    const [products, taxRate, customer] = await Promise.all([
+    const [products, defaultTaxRate, customer] = await Promise.all([
       this.prisma.product.findMany({ where: { id: { in: productIds } } }),
       this.prisma.taxRate.findFirstOrThrow({ where: { isDefault: true } }),
       this.prisma.contact.findUniqueOrThrow({ where: { id: customerId } }),
     ]);
+
+    // Déterminer le taux de taxe à utiliser (personnalisé ou par défaut)
+    let taxRate = defaultTaxRate;
+    if (customTaxRate !== undefined) {
+      // Créer un objet taxRate temporaire avec le taux personnalisé
+      taxRate = {
+        ...defaultTaxRate,
+        rate: new Decimal(customTaxRate / 100), // Convertir le pourcentage en décimal
+      };
+    }
 
     // Valider que le client appartient à la même filiale que le commercial
     if (customer.subsidiaryId !== salesRepSubsidiaryId) {
@@ -436,26 +460,37 @@ export class OrdersService {
         if (!product) {
           throw new NotFoundException(`Produit avec l'ID ${item.productId} introuvable`);
         }
-        let unitPrice = new Decimal(product.sellingPrice);
 
-        if (item.options) {
-          for (const option of item.options) {
-            const optionItem = optionItemMap.get(option.optionValue);
-            if (optionItem) {
-              unitPrice = unitPrice.mul(optionItem.multiplier);
+        // Déterminer le prix unitaire à utiliser
+        let finalUnitPrice: Decimal;
+
+        if (item.unitPrice !== undefined) {
+          // Utiliser le prix manuel fourni par le commercial (pas d'options, pas de tarification dégressive)
+          finalUnitPrice = new Decimal(item.unitPrice);
+        } else {
+          // Utiliser la logique de prix par défaut
+          let unitPrice = new Decimal(product.sellingPrice);
+
+          if (item.options) {
+            for (const option of item.options) {
+              const optionItem = optionItemMap.get(option.optionValue);
+              if (optionItem) {
+                unitPrice = unitPrice.mul(optionItem.multiplier);
+              }
             }
           }
+
+          // Appliquer la tarification dégressive
+          let discount = new Decimal(0);
+          for (const tier of degressivePricing) {
+            if (item.quantity >= tier.threshold) {
+              discount = tier.discount;
+              break; // La table est triée, on prend la première correspondance
+            }
+          }
+          finalUnitPrice = unitPrice.mul(new Decimal(1).sub(discount));
         }
 
-        // Appliquer la tarification dégressive
-        let discount = new Decimal(0);
-        for (const tier of degressivePricing) {
-          if (item.quantity >= tier.threshold) {
-            discount = tier.discount;
-            break; // La table est triée, on prend la première correspondance
-          }
-        }
-        const finalUnitPrice = unitPrice.mul(new Decimal(1).sub(discount));
         overallTotalAmount = overallTotalAmount.add(finalUnitPrice.mul(item.quantity));
       }
       const overallTotalWithTax = overallTotalAmount.mul(new Decimal(1).add(taxRate.rate));
@@ -475,25 +510,35 @@ export class OrdersService {
       for (const [subsidiaryId, subsidiaryItems] of itemsBySubsidiary.entries()) {
         let subtotal = new Decimal(0);
         const orderItemsData = subsidiaryItems.map((item) => {
-          let unitPrice = new Decimal(item.product.sellingPrice);
-          if (item.options) {
-            for (const opt of item.options) {
-              const optionItem = optionItemMap.get(opt.optionValue);
-              if (optionItem) {
-                unitPrice = unitPrice.mul(optionItem.multiplier);
+          // Déterminer le prix unitaire à utiliser
+          let finalUnitPrice: Decimal;
+
+          if (item.unitPrice !== undefined) {
+            // Utiliser le prix manuel fourni par le commercial
+            finalUnitPrice = new Decimal(item.unitPrice);
+          } else {
+            // Utiliser la logique de prix par défaut
+            let unitPrice = new Decimal(item.product.sellingPrice);
+            if (item.options) {
+              for (const opt of item.options) {
+                const optionItem = optionItemMap.get(opt.optionValue);
+                if (optionItem) {
+                  unitPrice = unitPrice.mul(optionItem.multiplier);
+                }
               }
             }
+
+            // Appliquer la tarification dégressive
+            let discount = new Decimal(0);
+            for (const tier of degressivePricing) {
+              if (item.quantity >= tier.threshold) {
+                discount = tier.discount;
+                break; // La table est triée, on prend la première correspondance
+              }
+            }
+            finalUnitPrice = unitPrice.mul(new Decimal(1).sub(discount));
           }
 
-          // Appliquer la tarification dégressive
-          let discount = new Decimal(0);
-          for (const tier of degressivePricing) {
-            if (item.quantity >= tier.threshold) {
-              discount = tier.discount;
-              break; // La table est triée, on prend la première correspondance
-            }
-          }
-          const finalUnitPrice = unitPrice.mul(new Decimal(1).sub(discount));
           subtotal = subtotal.add(finalUnitPrice.mul(item.quantity));
           return {
             ...item,
@@ -510,6 +555,7 @@ export class OrdersService {
 
         const newOrder = await tx.order.create({
           data: {
+            id: generateId(ID_PREFIXES.ORDER),
             customerName,
             paymentDueDate: new Date(paymentDueDate),
             source,
