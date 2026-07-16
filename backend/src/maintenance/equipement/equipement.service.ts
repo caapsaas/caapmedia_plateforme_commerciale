@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateEquipmentDto, UpdateEquipmentDto, SearchEquipmentDto } from './dto/create-equipement.dto';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class EquipementService {
@@ -19,6 +21,7 @@ export class EquipementService {
     async create(createEquipementDto: CreateEquipmentDto, user: any) {
         const equipment = await this.prisma.equipment.create({ 
             data: {
+        id: generateId(ID_PREFIXES.EQUIPMENT),
                 ...createEquipementDto,
                 lastMaintenanceDate: new Date(createEquipementDto.lastMaintenanceDate),
                 nextMaintenanceDate: new Date(createEquipementDto.nextMaintenanceDate),

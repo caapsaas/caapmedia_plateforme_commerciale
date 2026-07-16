@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, ConflictException, ForbiddenException } 
 import { PrismaService } from '../../utils/prisma/prisma.service';
 import { LoggerService } from '../../utils/logger/logger.service';
 import { UserRole } from '@prisma/client';
+import { generateId } from '../../utils/generate-id.util';
+import { ID_PREFIXES } from '../../constants/id-prefixes.const';
 
 @Injectable()
 export class SubsidiaryService {
@@ -42,6 +44,7 @@ export class SubsidiaryService {
     // Créer la filiale
     const subsidiary = await this.prisma.subsidiary.create({
       data: {
+        id: generateId(ID_PREFIXES.SUBSIDIARY),
         ...data,
         shareCapital: Number(data.shareCapital),
       },

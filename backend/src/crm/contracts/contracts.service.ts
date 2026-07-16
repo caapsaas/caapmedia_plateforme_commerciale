@@ -7,6 +7,8 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { User, UserRole, Prisma } from '@prisma/client';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class ContractsService {
@@ -23,6 +25,7 @@ export class ContractsService {
 
     return this.prisma.contract.create({
       data: {
+        id: generateId(ID_PREFIXES.CONTRACT),
         ...createContractDto,
         // Convertir les chaînes de dates en objets Date pour Prisma
         startDate: new Date(createContractDto.startDate),

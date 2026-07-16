@@ -8,6 +8,8 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateOpportunityDto } from './dto/create-opportunity.dto';
 import { UpdateOpportunityDto } from './dto/update-opportunity.dto';
 import { Prisma, User, UserRole } from '@prisma/client';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class OpportunitiesService {
@@ -39,6 +41,7 @@ export class OpportunitiesService {
 
     return this.prisma.opportunity.create({
       data: {
+        id: generateId(ID_PREFIXES.OPPORTUNITY),
         ...opportunityData,
         userId: user.id,
         subsidiaryId: user.subsidiaryId,

@@ -6,6 +6,8 @@ import { LoggerService } from '../../utils/logger/logger.service';
 import * as bcrypt from 'bcryptjs';
 import { UserRole } from '@prisma/client';
 import * as nodemailer from 'nodemailer';
+import { generateId } from '../../utils/generate-id.util';
+import { ID_PREFIXES } from '../../constants/id-prefixes.const';
 
 @Injectable()
 export class AuthService {
@@ -59,6 +61,7 @@ export class AuthService {
     // Créer l'utilisateur
     const user = await this.prisma.user.create({
       data: {
+        id: generateId(ID_PREFIXES.USER),
         userName,
         email,
         passwordHash,

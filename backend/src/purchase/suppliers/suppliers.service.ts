@@ -2,6 +2,8 @@ import { ConflictException, ForbiddenException, Injectable, NotFoundException } 
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateSupplierDto, UpdateSupplierDto } from './dto/create-supplier.dto';
 import { User } from '@prisma/client';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class SuppliersService {
@@ -29,6 +31,7 @@ export class SuppliersService {
 
     return this.prisma.supplier.create({
       data: {
+        id: generateId(ID_PREFIXES.SUPPLIER),
         ...createSupplierDto,
         subsidiaryId: subsidiaryId,
       },

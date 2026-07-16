@@ -2,6 +2,8 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { CreateAttendanceRecordDto, UpdateAttendanceRecordDto } from './dto/atendancerecord.dto';
 import { AttendanceRecord } from '@prisma/client';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class AttendanceRecordService {
@@ -13,6 +15,7 @@ export class AttendanceRecordService {
     this.logger.log(`Creating attendance record for employee ${employeeId}`);
     return this.prisma.attendanceRecord.create({
       data: {
+        id: generateId(ID_PREFIXES.ATTENDANCE),
         employeeName: createAttendanceRecordDto.employeeName ?? '', // Fournir une valeur par défaut
         attendanceDate: createAttendanceRecordDto.attendanceDate,
         status: createAttendanceRecordDto.status,

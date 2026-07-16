@@ -221,10 +221,10 @@ const Sales: React.FC = () => {
   const handlePlaceOrder = (
     newOrderData: Omit<Order, "id" | "subsidiaryId">,
   ) => {
-    const itemsForJson = newOrderData.items.map((item) => {
+    const itemsForJson = newOrderData.items.map((item: any) => {
       // Convertir les options en tableau d'objets {optionType, optionValue}
       const optionsArray = item.options
-        ? Object.entries(item.options).map(([optionType, optionValue]) => ({
+        ? Object.entries(item.options).map(([optionType, optionValue]: any) => ({
             optionType,
             optionValue: String(optionValue),
           }))
@@ -233,6 +233,7 @@ const Sales: React.FC = () => {
       return {
         productId: item.product.id,
         quantity: item.quantity,
+        unitPrice: item.unitPrice, // ← NOUVEAU: prix unitaire manuel
         options: optionsArray,
       };
     });
@@ -245,6 +246,7 @@ const Sales: React.FC = () => {
       paymentMethod: "PAY_ON_DELIVERY" as CustomerPaymentMethod,
       source: "MANUAL" as any, // TODO: utiliser OrderSource.MANUAL quand disponible
       items: itemsForJson,
+      customTaxRate: (newOrderData as any).customTaxRate, // ← NOUVEAU: taux de taxe personnalisé
     };
 
     // Logs pour débogage

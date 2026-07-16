@@ -7,6 +7,8 @@ import {
   import { CreateTaskDto } from './dto/create-task.dto';
   import { UpdateTaskDto } from './dto/update-task.dto';
   import { Prisma, User, UserRole, CrmTaskStatus } from '@prisma/client';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
   
   @Injectable()
   export class CrmtasksService {
@@ -30,6 +32,7 @@ import {
       // La tâche est assignée à l'utilisateur qui la crée
       return this.prisma.crmTask.create({
         data: {
+        id: generateId(ID_PREFIXES.CRMTASK),
           ...createTaskDto,
           userId: creator.id,
           status: CrmTaskStatus.TODO, // Définir le statut par défaut

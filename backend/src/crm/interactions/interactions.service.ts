@@ -3,6 +3,8 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { User, UserRole, Prisma } from '@prisma/client';
 import { CreateInteractionDto } from './dto/create-interaction.dto';
 import { UpdateInteractionDto } from './dto/update-interaction.dto';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class InteractionsService {
@@ -20,6 +22,7 @@ export class InteractionsService {
 
     return this.prisma.interaction.create({
       data: {
+        id: generateId(ID_PREFIXES.INTERACTION),
         notes: createInteractionDto.notes,
         contactId: createInteractionDto.contactId,
         userId: user.id,

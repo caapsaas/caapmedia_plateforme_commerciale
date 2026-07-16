@@ -3,6 +3,8 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { PrefinancementTransactionType, PrefinancementCategory, PrefinancementStatus } from '@prisma/client';
 import { TreasuryService } from '../treasury/treasury.service';
 
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 @Injectable()
 export class PrefinancementService {
     constructor(
@@ -18,6 +20,7 @@ export class PrefinancementService {
     }) {
         return this.prisma.prefinancementAccount.create({
             data: {
+        id: generateId(ID_PREFIXES.PREFINANCEMENT),
                 accountName: createDto.accountName,
                 balance: createDto.initialBalance || 0,
                 subsidiaryId: createDto.subsidiaryId,
@@ -80,6 +83,7 @@ export class PrefinancementService {
     }) {
         return this.prisma.prefinancementTransaction.create({
             data: {
+        id: generateId(ID_PREFIXES.PREFINANCEMENT),
                 ...createDto,
                 date: new Date(createDto.date),
                 status: PrefinancementStatus.EN_ATTENTE,

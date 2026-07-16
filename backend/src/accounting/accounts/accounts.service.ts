@@ -3,6 +3,8 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { AccountingAccountType, Prisma } from '@prisma/client';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 export interface CreateAccountDto {
   accountNumber: string;
   accountName: string;
@@ -110,7 +112,8 @@ export class AccountsService {
     if (exists) throw new ConflictException(`Le compte ${dto.accountNumber} existe déjà.`);
 
     return this.prisma.accountingAccount.create({
-      data: { ...dto, subsidiaryId: user.subsidiaryId },
+      data: {
+        id: generateId(ID_PREFIXES.ACCOUNTINGACCOUNT), ...dto, subsidiaryId: user.subsidiaryId },
     });
   }
 

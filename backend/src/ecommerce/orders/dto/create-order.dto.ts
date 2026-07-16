@@ -9,6 +9,7 @@ import {
   IsString,
   IsUUID,
   Min,
+  Max,
   ValidateNested,
 } from 'class-validator';
 import { OrderSource } from '@prisma/client';
@@ -34,6 +35,11 @@ class CreateOrderItemDto {
   @IsInt()
   @Min(1)
   quantity: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  unitPrice?: number;
 
   @IsOptional()
   @IsString()
@@ -105,6 +111,12 @@ export class CreateOrderBySalesRepDto {
   @ValidateNested({ each: true })
   @Type(() => CreateOrderItemDto)
   items: CreateOrderItemDto[];
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  customTaxRate?: number;
 }
 
 export class RecordPaymentDto {

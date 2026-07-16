@@ -2,7 +2,9 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { CreateAbsenceRecordDto, UpdateAbsenceRecordDto } from './dto/absencerecord.dto';
-import { AbsenceRecord, Prisma } from '@prisma/client'; // Import AbsenceType
+import { AbsenceRecord, Prisma } from '@prisma/client'; 
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';// Import AbsenceType
 
 @Injectable()
 export class AbsenceRecordService {
@@ -18,6 +20,7 @@ export class AbsenceRecordService {
     }
     return this.prisma.absenceRecord.create({
       data: {
+        id: generateId(ID_PREFIXES.ABSENCE),
         employeeName: dto.employeeName,
         typeAbsence: dto.typeAbsence,
         startDate: new Date(dto.startDate),

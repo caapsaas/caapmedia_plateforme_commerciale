@@ -8,6 +8,8 @@ import { User, LeadStatus, OpportunityStage, OpportunitySource, Account, UserRol
 import { AccountsService } from '../accounts/accounts.service';
 import { ContactsService } from '../contacts/contacts.service';
 import { CreateContactDto } from '../contacts/dto/create-contact.dto';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class LeadsService {
@@ -40,6 +42,7 @@ export class LeadsService {
     // Créer le lead avec statut NEW et sans commercial assigné
     return this.prisma.lead.create({
       data: {
+        id: generateId(ID_PREFIXES.LEAD),
         leadName: publicQuoteRequestDto.leadName,
         company: publicQuoteRequestDto.company,
         email: publicQuoteRequestDto.email,

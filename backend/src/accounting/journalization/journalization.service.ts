@@ -5,6 +5,8 @@ import { AccountsService } from '../accounts/accounts.service';
 import { JournalsService } from '../journals/journals.service';
 import { PeriodsService } from '../periods/periods.service';
 
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 // TVA UEMOA standard (18%) et IS (30%)
 export const TVA_RATE = 0.18;
 export const IS_RATE = 0.30;
@@ -95,6 +97,7 @@ export class JournalizationService {
 
     await this.prisma.journalEntry.create({
       data: {
+        id: generateId(ID_PREFIXES.JOURNALENTRY),
         entryNumber,
         entryDate: operationDate,
         description,

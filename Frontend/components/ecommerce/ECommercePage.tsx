@@ -3,7 +3,7 @@ import { Product, CustomerPaymentMethod } from "../../types";
 import { useI18n } from "../../i18n";
 import { useToast } from "../../context/ToastContext";
 import ECommerceHeader from "./ECommerceHeader";
-import ShoppingCart, { CartItem } from "./ShoppingCart";
+import { CartItem } from "./ShoppingCart";
 import CheckoutModal from "./CheckoutModal";
 import { PRODUCT_HIERARCHY } from "../../constants";
 import IconGmoLogo from "../icons/IconGmoLogo";
@@ -48,7 +48,6 @@ const ECommercePage: React.FC = () => {
       return [];
     }
   });
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [configuringProduct, setConfiguringProduct] = useState<Product | null>(
@@ -202,10 +201,6 @@ const ECommercePage: React.FC = () => {
       console.error("Logout failed:", error);
     }
   };
-  const cartItemCount = useMemo(
-    () => cart.reduce((sum, item) => sum + item.quantity, 0),
-    [cart],
-  );
 
   const handleAddToCart = (item: CartItem) => {
     setCart((currentCart) => {
@@ -265,7 +260,6 @@ const ECommercePage: React.FC = () => {
   };
 
   const handleInitiateCheckout = () => {
-    setIsCartOpen(false);
     localStorage.setItem("isCheckoutFlow", "true");
     if (contact) {
       setIsCheckoutOpen(true);
@@ -458,10 +452,8 @@ const ECommercePage: React.FC = () => {
         }}
         onLogout={onLogout}
         accountPath="/account"
-        cartItemCount={cartItemCount}
         likedItemCount={likedProducts.size}
         onWishlistClick={handleWishlistClick}
-        onCartClick={() => setIsCartOpen(true)}
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
         onQuoteRequest={() => setIsQuoteModalOpen(true)}
@@ -922,14 +914,6 @@ const ECommercePage: React.FC = () => {
         onContactClick={handleContactClick}
       />
 
-      {isCartOpen && (
-        <ShoppingCart
-          cartItems={cart}
-          onClose={() => setIsCartOpen(false)}
-          onUpdateQuantity={handleUpdateQuantity}
-          onCheckout={handleInitiateCheckout}
-        />
-      )}
 
       {isAuthModalOpen && (
         <AuthModal

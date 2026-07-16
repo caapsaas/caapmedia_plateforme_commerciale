@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateMaintenanceRecordDto, UpdateMaintenanceRecordDto, SearchMaintenanceRecordDto } from './dto/create-maintenance_record.dto';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class MaintenanceRecordService {
@@ -18,6 +20,7 @@ export class MaintenanceRecordService {
   async create(createMaintenanceRecordDto: CreateMaintenanceRecordDto) {
     const maintenanceRecord = await this.prisma.maintenanceRecord.create({
       data: {
+        id: generateId(ID_PREFIXES.MAINTENANCERECORD),
         ...createMaintenanceRecordDto,
         maintenanceDate: new Date(createMaintenanceRecordDto.maintenanceDate),
       }, 

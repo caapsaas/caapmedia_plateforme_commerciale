@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import IconGmoLogo from '../icons/IconGmoLogo';
-import IconShoppingCart from '../icons/IconShoppingCart';
 import IconUserCircle from '../icons/IconUserCircle';
 import IconSearch from '../icons/IconSearch';
 import { useI18n } from '../../i18n';
@@ -16,8 +15,6 @@ interface ECommerceHeaderProps {
     onLogin: () => void;
     onLogout: () => void;
     accountPath: string;
-    cartItemCount: number;
-    onCartClick: () => void;
     likedItemCount?: number;
     onWishlistClick?: () => void;
     searchTerm: string;
@@ -147,19 +144,6 @@ const ECommerceHeader: React.FC<ECommerceHeaderProps> = (props) => {
                             </>
                         )}
                     </div>
-                    {/* Favoris masqués temporairement */}
-                    <button 
-                        onClick={props.onCartClick}
-                        className="relative p-2.5 rounded-full hover:bg-slate-100 transition-colors"
-                        aria-label={`Shopping cart with ${props.cartItemCount} items`}
-                    >
-                        <IconShoppingCart className="h-9 w-9 text-slate-700" />
-                        {props.cartItemCount > 0 && (
-                            <span className="absolute top-0 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-[#E61D2B] text-white text-base font-bold">
-                                {props.cartItemCount}
-                            </span>
-                        )}
-                    </button>
                 </div>
             </div>
             

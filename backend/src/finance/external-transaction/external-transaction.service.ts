@@ -3,6 +3,8 @@ import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { CreateExternalTransactionDto } from './dto/create-external-transaction.dto';
 import { UpdateExternalTransactionDto } from './dto/update-external-transaction.dto';
 import { ExternalTransactionStatus, ExternalTransactionType, ExternalTransactionCategory, PaymentMethod, UserRole } from '@prisma/client';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class ExternalTransactionService {
@@ -29,6 +31,7 @@ export class ExternalTransactionService {
       
       const transaction = await this.prisma.externalFinancialTransaction.create({
         data: {
+        id: generateId(ID_PREFIXES.EXTERNALTRANSACTION),
           ...createDto,
           status: ExternalTransactionStatus.DRAFT,
           transactionDate: new Date(createDto.transactionDate),

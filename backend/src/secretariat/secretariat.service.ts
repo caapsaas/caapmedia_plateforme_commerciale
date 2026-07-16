@@ -5,6 +5,8 @@ import { LoggerService } from '../../src/common/utils/logger/logger.service';
 import { UserRole, DocumentCategory, DocumentStatus, SecretariatTaskStatus, Prisma } from '@prisma/client';
 import { CreateCompanyDocumentDto } from './dto/create-company-document.dto';
 import { CreateSecretariatTaskDto, UpdateSecretariatTaskDto } from './dto/task.dto';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class SecretariatService {
@@ -55,6 +57,7 @@ async createCompanyDocument(
   // Créer le document (Prisma gérera subsidiaryId via data)
   const document = await this.prisma.companyDocument.create({
     data: {
+        id: generateId(ID_PREFIXES.SECRETARIATASK),
       documentName: dto.documentName,
       category: dto.category,
       status: dto.status,
@@ -220,6 +223,7 @@ async createMeeting(
     // Créer la réunion de base
     const createdMeeting = await tx.meeting.create({
       data: {
+        id: generateId(ID_PREFIXES.SECRETARIATASK),
         title: data.title,
         meetingDate: data.meetingDate,
         meetingTime: data.meetingTime,
@@ -471,7 +475,8 @@ async addParticipantToMeeting(
   // Ajouter le participant
   try {
     const participant = await this.prisma.meetingParticipant.create({
-      data: { meetingId, employeeId },
+      data: {
+        id: generateId(ID_PREFIXES.SECRETARIATASK), meetingId, employeeId },
       include: { employee: true, meeting: true },
     });
     this.logger.log(`Participant ${employeeId} added to meeting ${meetingId}`, 'SecretariatService');
@@ -555,6 +560,7 @@ async removeParticipantFromMeeting(
     // Créer la tâche
     const task = await this.prisma.secretariatTask.create({
       data: {
+        id: generateId(ID_PREFIXES.SECRETARIATASK),
         ...dto,
         dueDate: new Date(dto.dueDate), // S'assurer que c'est un objet Date
       },

@@ -5,6 +5,8 @@ import { UpdateProformaDto } from './dto/update-proforma.dto';
 import { User, ProformaStatus } from '@prisma/client';
 import { addDays } from 'date-fns';
 
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 @Injectable()
 export class ProformasService {
   constructor(private readonly prisma: PrismaService) {}
@@ -35,6 +37,7 @@ export class ProformasService {
     // Créer la proforma avec les items
     return this.prisma.proforma.create({
       data: {
+        id: generateId(ID_PREFIXES.PROFORMA),
         proformaNumber,
         leadId: createProformaDto.leadId,
         opportunityId: createProformaDto.opportunityId,

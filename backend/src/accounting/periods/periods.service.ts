@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 @Injectable()
 export class PeriodsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -21,6 +23,7 @@ export class PeriodsService {
 
     return this.prisma.fiscalYear.create({
       data: {
+        id: generateId(ID_PREFIXES.ACCOUNTINGPERIOD),
         name,
         startDate: new Date(`${year}-01-01`),
         endDate: new Date(`${year}-12-31`),

@@ -57,6 +57,11 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>(selectedCustomer?.id || '');
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CustomerPaymentMethod>(CustomerPaymentMethod.PAY_ON_DELIVERY);
 
+    // États pour les prix et taxes manuels
+    const [cartItemPrices, setCartItemPrices] = useState<Record<string, number>>({});
+    const [useCustomTaxRate, setUseCustomTaxRate] = useState(false);
+    const [customTaxRate, setCustomTaxRate] = useState(19.25);
+
 
 
     useEffect(() => {
@@ -167,6 +172,11 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
         });
 
+        // Initialiser le prix de cet article s'il n'existe pas
+        if (!cartItemPrices[product.id]) {
+          setCartItemPrices(prev => ({ ...prev, [product.id]: product.sellingPrice }));
+        }
+
         setQuantities(prev => ({ ...prev, [product.id]: 0 }));
 
     };
@@ -207,9 +217,12 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
     const subtotal = useMemo(() =>
 
-        cart.reduce((sum, item) => sum + item.product.sellingPrice * item.quantity, 0),
+        cart.reduce((sum, item) => {
+          const unitPrice = cartItemPrices[item.product.id] || item.product.sellingPrice;
+          return sum + unitPrice * item.quantity;
+        }, 0),
 
-        [cart]
+        [cart, cartItemPrices]
 
     );
 
@@ -217,7 +230,8 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
     const defaultTaxRate = useMemo(() => taxRates.find(t => t.isDefault) || { rate: 0.1925, id: '' }, [taxRates]);
 
-    const taxAmount = useMemo(() => subtotal * defaultTaxRate.rate, [subtotal, defaultTaxRate]);
+    const effectiveTaxRate = useCustomTaxRate ? customTaxRate / 100 : defaultTaxRate.rate;
+    const taxAmount = useMemo(() => subtotal * effectiveTaxRate, [subtotal, effectiveTaxRate]);
 
     const totalAmount = useMemo(() => subtotal + taxAmount, [subtotal, taxAmount]);
 
@@ -251,7 +265,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
                 // Extrait les options du produit pour les envoyer au backend.
 
-                const options: Partial<ProductOptions> = item.product.configurableOptions 
+                const options: Partial<ProductOptions> = item.product.configurableOptions
 
                     ? Object.entries(item.product.configurableOptions).reduce((acc, [optionType, optionItems]) => {
                         if (optionItems && optionItems.length > 0) {
@@ -262,14 +276,18 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                     }, {} as Partial<ProductOptions>)
 
                     : {};
-  
+
+                const unitPrice = cartItemPrices[item.product.id] || item.product.sellingPrice;
+
                 return {
 
                     product: item.product,
 
                     quantity: item.quantity,
 
-                    price: item.product.sellingPrice, // Add the calculated unit price
+                    price: unitPrice,
+
+                    unitPrice: unitPrice,
 
                     options: options,
 
@@ -279,7 +297,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
                 // Extrait les options du produit pour les envoyer au backend.
 
-                const options: Partial<ProductOptions> = item.product.configurableOptions 
+                const options: Partial<ProductOptions> = item.product.configurableOptions
 
                     ? Object.entries(item.product.configurableOptions).reduce((acc, [optionType, optionItems]) => {
                         if (optionItems && optionItems.length > 0) {
@@ -291,13 +309,17 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
                     : {};
 
+                const unitPrice = cartItemPrices[item.product.id] || item.product.sellingPrice;
+
                 return {
 
                     product: item.product,
 
                     quantity: item.quantity,
 
-                    price: item.product.sellingPrice, // Add the calculated unit price
+                    price: unitPrice,
+
+                    unitPrice: unitPrice,
 
                     options: options,
 
@@ -311,7 +333,9 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
             taxRateId: defaultTaxRate.id,
 
-            taxRateValue: defaultTaxRate.rate,
+            taxRateValue: useCustomTaxRate ? customTaxRate / 100 : defaultTaxRate.rate,
+
+            customTaxRate: useCustomTaxRate ? customTaxRate : undefined,
 
             paymentDueDate: paymentDueDate.toISOString().split('T')[0],
 
@@ -340,6 +364,9 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
         setOrderPlaced(true);
 
         setCart([]);
+        setCartItemPrices({});
+        setUseCustomTaxRate(false);
+        setCustomTaxRate(19.25);
 
         setTimeout(() => {
 
@@ -577,35 +604,47 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
                         <ul className="divide-y divide-slate-200">
 
-                            {cart.map(item => (
+                            {cart.map(item => {
+                              const unitPrice = cartItemPrices[item.product.id] || item.product.sellingPrice;
+                              const itemTotal = unitPrice * item.quantity;
 
-                                <li key={item.product.id} className="py-3 flex items-center">
+                              return (
+                                <li key={item.product.id} className="py-3 flex flex-col gap-2">
 
-                                    <div className="flex-grow">
-
+                                    <div className="flex items-center justify-between">
+                                      <div>
                                         <p className="font-semibold text-slate-800">{item.product.productName}</p>
-
-                                        <div className="flex items-center space-x-2 text-sm text-slate-500">
-
-                                            <span>{item.quantity} x {formatCurrency(item.product.sellingPrice)}</span>
-
-                                            <span className="font-bold text-slate-700">{formatCurrency(item.product.sellingPrice * item.quantity)}</span>
-
-                                        </div>
-
-                                    </div>
-
-                                    <div className="flex items-center space-x-1">
+                                        <p className="text-xs text-slate-500">Stock: {item.product.stock}</p>
+                                      </div>
+                                      <div className="flex items-center space-x-1">
 
                                         <button onClick={() => updateCartQuantity(item.product.id, item.quantity - 1)} className="p-1 rounded-full bg-slate-200 hover:bg-slate-300"><IconMinus className="h-4 w-4" /></button>
 
+                                        <span className="w-8 text-center font-medium">{item.quantity}</span>
+
+                                        <button onClick={() => updateCartQuantity(item.product.id, item.quantity + 1)} className="p-1 rounded-full bg-slate-200 hover:bg-slate-300"><IconMinus className="h-4 w-4 rotate-180" /></button>
+
                                         <button onClick={() => updateCartQuantity(item.product.id, 0)} className="p-1 rounded-full hover:bg-red-100 text-red-500"><IconDelete className="h-4 w-4" /></button>
 
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 text-sm bg-slate-50 p-2 rounded">
+                                      <label className="text-slate-600 whitespace-nowrap">Prix/u:</label>
+                                      <input
+                                        type="number"
+                                        value={unitPrice}
+                                        onChange={(e) => setCartItemPrices(prev => ({ ...prev, [item.product.id]: parseFloat(e.target.value) || 0 }))}
+                                        className="flex-1 px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-[#c6e911]"
+                                        min="0"
+                                        step="100"
+                                      />
+                                      <span className="font-bold text-slate-700 whitespace-nowrap">{formatCurrency(itemTotal)}</span>
                                     </div>
 
                                 </li>
-
-                            ))}
+                              );
+                            })}
 
                         </ul>
 
@@ -613,7 +652,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
                 </div>
 
-                <div className="border-t pt-4 mt-4 space-y-2">
+                <div className="border-t pt-4 mt-4 space-y-3">
 
                     <div className="flex justify-between text-sm">
 
@@ -623,9 +662,48 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
                     </div>
 
+                    <div className="border p-3 rounded-md bg-slate-50">
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-medium text-slate-700">Taxes</label>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setUseCustomTaxRate(false)}
+                            className={`px-2 py-1 text-xs rounded transition-colors ${!useCustomTaxRate ? 'bg-[#c6e911] text-slate-800' : 'bg-slate-200 text-slate-600'}`}
+                          >
+                            Par défaut
+                          </button>
+                          <button
+                            onClick={() => setUseCustomTaxRate(true)}
+                            className={`px-2 py-1 text-xs rounded transition-colors ${useCustomTaxRate ? 'bg-[#c6e911] text-slate-800' : 'bg-slate-200 text-slate-600'}`}
+                          >
+                            Personnalisé
+                          </button>
+                        </div>
+                      </div>
+
+                      {useCustomTaxRate ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            value={customTaxRate}
+                            onChange={(e) => setCustomTaxRate(Math.max(0, Math.min(100, parseFloat(e.target.value) || 0)))}
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            className="flex-1 px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-[#c6e911]"
+                          />
+                          <span className="text-sm font-medium text-slate-700">%</span>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-slate-600">
+                          Taux par défaut: {(defaultTaxRate.rate * 100).toFixed(2)}%
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex justify-between text-sm">
 
-                        <span>{t('invoice.tax')} ({(defaultTaxRate.rate * 100).toFixed(2)}%)</span>
+                        <span>{t('invoice.tax')} ({(effectiveTaxRate * 100).toFixed(2)}%)</span>
 
                         <span>{formatCurrency(taxAmount)}</span>
 
