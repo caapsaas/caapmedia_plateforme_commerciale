@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 
 export async function runSupplierSeeder(prisma: PrismaClient) {
 
@@ -151,6 +153,7 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
                 subsidiaryId: subsidiary.id,
             },
             create: {
+        id: generateId(ID_PREFIXES.SUPPLIER),
                 supplierName: s.supplierName,
                 company: s.company,
                 email: s.email,

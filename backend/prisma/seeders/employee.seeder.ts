@@ -1,4 +1,6 @@
 import { PrismaClient, Gender, ContractType, EmployeeStatus, PaymentMethod, LeaveType, Employee } from '@prisma/client';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 import { faker } from '@faker-js/faker';
 
 const prisma = new PrismaClient();
@@ -12,6 +14,7 @@ export async function seedEmployees() {
   if (!subsidiary) {
     subsidiary = await prisma.subsidiary.create({
       data: {
+        id: generateId(ID_PREFIXES.EMPLOYEE),
         subsidiaryName: 'CAAP Media',
         logoSvg: '',
         address: '123 Rue Principale, Douala, Cameroun',
@@ -48,6 +51,7 @@ export async function seedEmployees() {
     
     const employee = await prisma.employee.create({
       data: {
+        id: generateId(ID_PREFIXES.EMPLOYEE),
         lastName,
         firstName,
         birthDate: faker.date.birthdate({ min: 22, max: 60, mode: 'age' }),
@@ -98,6 +102,7 @@ export async function seedEmployees() {
       await prisma.employeeLeaveBalance.createMany({
         data: [
           {
+            id: generateId(ID_PREFIXES.EMPLOYEE),
             employeeId: employee.id,
             leaveType: LeaveType.ANNUAL,
             days: 20,

@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 import { ContactStatus } from '@prisma/client';
 
 export async function runContactCitiesSeeder(prisma: PrismaClient) {
@@ -251,6 +253,7 @@ export async function runContactCitiesSeeder(prisma: PrismaClient) {
         status: contact.status,
       },
       create: {
+        id: generateId(ID_PREFIXES.CONTACT),
         contactName: contact.contactName,
         company: contact.company,
         email: contact.email,
@@ -289,6 +292,7 @@ export async function runContactCitiesSeeder(prisma: PrismaClient) {
         status: contact.status,
       },
       create: {
+        id: generateId(ID_PREFIXES.CONTACT),
         contactName: contact.contactName,
         company: contact.company,
         email: contact.email,

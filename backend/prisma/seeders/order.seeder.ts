@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 import { OrderStatus, ProductionStatus, PaymentStatus, OrderSource } from '@prisma/client';
 
 interface OrderItemData {

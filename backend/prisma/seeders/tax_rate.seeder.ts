@@ -1,8 +1,11 @@
 import { PrismaClient, Prisma } from '@prisma/client';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 
 export async function runTaxRateSeeder(prisma: PrismaClient) {
     const taxRatesData = [
-        {
+    {
+      id: generateId(ID_PREFIXES.TAXRATE),
             taxRatesName: 'TVA',
             rate: new Prisma.Decimal(0.1925),
             isDefault: true,

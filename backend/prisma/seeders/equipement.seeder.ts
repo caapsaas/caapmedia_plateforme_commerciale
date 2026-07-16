@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 import { EquipmentStatus } from '@prisma/client';
 
 
@@ -124,6 +126,7 @@ export async function runEquipmentSeeder(prisma: PrismaClient) {
             equipment = await prisma.equipment.update({
                 where: { id: existingEquipment.id },
                 data: {
+        id: generateId(ID_PREFIXES.EQUIPMENT),
                     status: e.status,
                     lastMaintenanceDate: new Date(e.lastMaintenanceDate),
                     nextMaintenanceDate: new Date(e.nextMaintenanceDate),
