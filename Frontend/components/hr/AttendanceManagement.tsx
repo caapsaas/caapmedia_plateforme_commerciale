@@ -13,6 +13,8 @@ import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
 import { UseMutateFunction } from '@tanstack/react-query';
 import SignaturePad from '../common/SignaturePad';
+import SearchBar from './SearchBar';
+import IconUsers from '../icons/IconUsers';
 
 interface AttendanceManagementProps {
     subsidiary: Subsidiary;
@@ -27,6 +29,35 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary,
     const [viewingSignature, setViewingSignature] = useState<{name: string, signature: string} | null>(null);
     const [isActionModalOpen, setIsActionModalOpen] = useState(false);
     const [signingEmployee, setSigningEmployee] = useState<{employee: Employee, type: 'arrival' | 'departure'} | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredEmployees = useMemo(() => {
+        return employees.filter(employee => {
+            const searchLower = searchTerm.toLowerCase();
+            return (
+                employee.firstName.toLowerCase().includes(searchLower) ||
+                employee.lastName.toLowerCase().includes(searchLower) ||
+                employee.positions.toLowerCase().includes(searchLower)
+            );
+        });
+    }, [employees, searchTerm]);
+
+    const filteredAttendances = useMemo(() => {
+        return attendances.filter(record => {
+            const searchLower = searchTerm.toLowerCase();
+            return record.employeeName.toLowerCase().includes(searchLower);
+        });
+    }, [attendances, searchTerm]);
+
+    const stats = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
+        const todayRecords = attendances.filter(r => new Date(r.attendanceDate).toISOString().split('T')[0] === today);
+        const present = todayRecords.filter(r => r.arrivalTime && r.departureTime).length;
+        const atWork = todayRecords.filter(r => r.arrivalTime && !r.departureTime).length;
+        const absent = filteredEmployees.length - present - atWork;
+
+        return { present, atWork, absent, total: filteredEmployees.length };
+    }, [attendances, filteredEmployees]);
 
     const getStatusClass = (status: AttendanceStatus) => {
         switch (status) {
@@ -180,83 +211,169 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary,
     };
 
     return (
-        <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold text-slate-800">{t('hr.attendance.title')}</h3>
-                <div className="flex items-center space-x-2 no-print">
-                    <button onClick={() => setIsActionModalOpen(true)} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
-                        <IconPlus className="h-4 w-4" />
-                        <span>{t('hr.attendance.record')}</span>
-                    </button>
-                    <button onClick={handlePrint} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
-                        <IconPrint className="h-4 w-4" />
-                        <span>{t('common.print')}</span>
-                    </button>
-                    <button onClick={handleExportCsv} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
-                        <IconExport className="h-4 w-4" />
-                        <span>{t('common.export')}</span>
-                    </button>
-                    <button onClick={handleExportPdf} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
-                        <IconPdf className="h-4 w-4" />
-                        <span>{t('common.exportPdf')}</span>
-                    </button>
+        <div className="space-y-6">
+            {/* Header Section */}
+            <div className="bg-white p-6 rounded-xl shadow-md">
+                <div className="flex justify-between items-center mb-4">
+                    <h1 className="text-2xl font-bold text-slate-900">{t('hr.attendance.title')}</h1>
+                    <div className="flex items-center space-x-2 no-print">
+                        <button onClick={() => setIsActionModalOpen(true)} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
+                            <IconPlus className="h-4 w-4" />
+                            <span>{t('hr.attendance.record')}</span>
+                        </button>
+                        <button onClick={handlePrint} className="p-2 text-slate-700 hover:bg-slate-200 rounded-md transition-colors" aria-label={t('common.print')} title={t('common.print')}>
+                            <IconPrint className="h-5 w-5" />
+                        </button>
+                        <button onClick={handleExportCsv} className="p-2 text-slate-700 hover:bg-slate-200 rounded-md transition-colors" aria-label={t('common.export')} title={t('common.export')}>
+                            <IconExport className="h-5 w-5" />
+                        </button>
+                        <button onClick={handleExportPdf} className="p-2 text-slate-700 hover:bg-slate-200 rounded-md transition-colors" aria-label={t('common.exportPdf')} title={t('common.exportPdf')}>
+                            <IconPdf className="h-5 w-5" />
+                        </button>
+                    </div>
+                </div>
+                <div className="no-print">
+                    <SearchBar
+                        value={searchTerm}
+                        onChange={setSearchTerm}
+                        placeholder={t('common.search') || 'Rechercher les employés...'}
+                        className="max-w-md"
+                    />
                 </div>
             </div>
-            <div className="mb-6">
-                <h3 className="text-lg font-semibold text-slate-700 mb-4">Pointage du jour - {new Date().toLocaleDateString('fr-FR')}</h3>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 no-print">
+                <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-500">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-slate-600 font-medium">Présents</p>
+                            <p className="text-2xl font-bold text-green-600">{stats.present}</p>
+                        </div>
+                        <div className="text-green-100">
+                            <IconUsers className="h-10 w-10" />
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-slate-600 font-medium">Au travail</p>
+                            <p className="text-2xl font-bold text-blue-600">{stats.atWork}</p>
+                        </div>
+                        <div className="text-blue-100">
+                            <IconUsers className="h-10 w-10" />
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-red-500">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-slate-600 font-medium">Absents</p>
+                            <p className="text-2xl font-bold text-red-600">{stats.absent}</p>
+                        </div>
+                        <div className="text-red-100">
+                            <IconUsers className="h-10 w-10" />
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-slate-400">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-slate-600 font-medium">Total</p>
+                            <p className="text-2xl font-bold text-slate-700">{stats.total}</p>
+                        </div>
+                        <div className="text-slate-200">
+                            <IconUsers className="h-10 w-10" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Today's Attendance Section */}
+            <div className="bg-white p-6 rounded-xl shadow-md">
+                <div className="mb-6">
+                    <h2 className="text-lg font-semibold text-slate-800 mb-1">Pointage du jour</h2>
+                    <p className="text-sm text-slate-500">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {employees.map((employee) => {
+                    {filteredEmployees.map((employee) => {
                         const status = getEmployeeStatus(employee);
                         const attendance = todayAttendance.get(employee.id);
-                        
+
                         return (
-                            <div key={employee.id} className="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                <div className="flex justify-between items-start mb-3">
-                                    <div>
-                                        <h4 className="font-semibold text-slate-800">
+                            <div key={employee.id} className="bg-white border border-slate-200 rounded-lg p-5 hover:shadow-lg transition-all duration-200">
+                                {/* Employee Header */}
+                                <div className="flex items-start justify-between mb-4 pb-4 border-b border-slate-100">
+                                    <div className="flex-1">
+                                        <h4 className="font-semibold text-slate-900 text-sm">
                                             {employee.firstName} {employee.lastName}
                                         </h4>
-                                        <p className="text-sm text-slate-600">{employee.positions}</p>
+                                        <p className="text-xs text-slate-500 mt-1">{employee.positions}</p>
                                     </div>
-                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadgeClass(status)}`}>
+                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ml-2 ${getStatusBadgeClass(status)}`}>
                                         {getStatusText(status)}
                                     </span>
                                 </div>
-                                
-                                <div className="space-y-2 text-sm text-slate-600 mb-3">
-                                    {attendance?.arrivalTime && (
-                                        <div>Arrivée: {new Date(attendance.arrivalTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
+
+                                {/* Times Display */}
+                                <div className="space-y-2 mb-4">
+                                    {attendance?.arrivalTime ? (
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-slate-600">Arrivée</span>
+                                            <span className="font-semibold text-slate-900">{new Date(attendance.arrivalTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-slate-600">Arrivée</span>
+                                            <span className="text-slate-400">--:--</span>
+                                        </div>
                                     )}
-                                    {attendance?.departureTime && (
-                                        <div>Départ: {new Date(attendance.departureTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
+                                    {attendance?.departureTime ? (
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-slate-600">Départ</span>
+                                            <span className="font-semibold text-slate-900">{new Date(attendance.departureTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-slate-600">Départ</span>
+                                            <span className="text-slate-400">--:--</span>
+                                        </div>
                                     )}
                                 </div>
 
-                                <div className="flex space-x-2">
+                                {/* Action Buttons */}
+                                <div className="space-y-2">
                                     {status !== 'AT_WORK' && status !== 'DEPARTED' && (
                                         <button
                                             onClick={() => handleArrivalSignature(employee)}
-                                            className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-green-500 text-white text-sm font-medium rounded-md hover:bg-green-600 transition-colors"
+                                            className="w-full flex items-center justify-center space-x-2 px-3 py-2.5 bg-green-50 hover:bg-green-100 text-green-700 text-sm font-medium rounded-md transition-colors border border-green-200"
                                         >
                                             <IconSignature className="h-4 w-4" />
                                             <span>Pointer l'arrivée</span>
                                         </button>
                                     )}
-                                    
+
                                     {status === 'AT_WORK' && (
                                         <button
                                             onClick={() => handleDepartureSignature(employee)}
-                                            className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition-colors"
+                                            className="w-full flex items-center justify-center space-x-2 px-3 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 text-sm font-medium rounded-md transition-colors border border-red-200"
                                         >
                                             <IconSignature className="h-4 w-4" />
                                             <span>Pointer le départ</span>
                                         </button>
                                     )}
 
+                                    {status === 'DEPARTED' && (
+                                        <div className="w-full px-3 py-2.5 bg-slate-50 text-slate-600 text-sm font-medium rounded-md text-center">
+                                            Journée complète
+                                        </div>
+                                    )}
+
                                     {attendance?.signature && (
                                         <button
                                             onClick={() => setViewingSignature({name: `${employee.firstName} ${employee.lastName}`, signature: attendance.signature})}
-                                            className="px-3 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-md hover:bg-slate-200 transition-colors"
+                                            className="w-full px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-md transition-colors"
                                         >
                                             Voir signature
                                         </button>
@@ -268,9 +385,11 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary,
                 </div>
             </div>
 
-            <div className="mt-8">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-slate-700">Historique des présences</h3>
+            {/* Attendance History Section */}
+            <div className="bg-white p-6 rounded-xl shadow-md">
+                <div className="mb-6">
+                    <h2 className="text-lg font-semibold text-slate-800 mb-1">Historique des présences</h2>
+                    <p className="text-sm text-slate-500">Enregistrements détaillés des pointages</p>
                 </div>
                 <table className="w-full text-sm text-left text-slate-500">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50">
@@ -285,7 +404,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary,
                         </tr>
                     </thead>
                     <tbody>
-                        {attendances.map((record) => (
+                        {filteredAttendances.map((record) => (
                             <tr key={record.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{record.employeeName}</td>
                                 <td className="px-6 py-4">{record.attendanceDate}</td>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Subsidiary, Employee, EmployeeFormData, ContractType, EmployeeStatus } from '../../types';
 import { UseMutateFunction } from '@tanstack/react-query';
 import { useI18n } from '../../i18n';
@@ -15,6 +15,7 @@ import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
+import SearchBar from './SearchBar';
 
 interface EmployeeDatabaseProps {
   subsidiary: Subsidiary;
@@ -30,6 +31,22 @@ const EmployeeDatabase: React.FC<EmployeeDatabaseProps> = ({ subsidiary, employe
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
     const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
     const [viewingEmployee, setViewingEmployee] = useState<Employee | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredEmployees = useMemo(() => {
+        return employees.filter(employee => {
+            const searchLower = searchTerm.toLowerCase();
+            return (
+                employee.firstName.toLowerCase().includes(searchLower) ||
+                employee.lastName.toLowerCase().includes(searchLower) ||
+                employee.id.toLowerCase().includes(searchLower) ||
+                employee.email.toLowerCase().includes(searchLower) ||
+                employee.phone.toLowerCase().includes(searchLower) ||
+                employee.positions.toLowerCase().includes(searchLower) ||
+                employee.department.toLowerCase().includes(searchLower)
+            );
+        });
+    }, [employees, searchTerm]);
 
     const handleOpenAddModal = () => {
         setEditingEmployee(null);
@@ -153,24 +170,31 @@ const EmployeeDatabase: React.FC<EmployeeDatabaseProps> = ({ subsidiary, employe
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold text-slate-800">{t('hr.employees.title')}</h3>
+            <div className="flex justify-between items-center mb-6 gap-4">
+                <div className="flex items-center gap-4 flex-1">
+                    <h3 className="text-xl font-semibold text-slate-800 whitespace-nowrap">{t('hr.employees.title')}</h3>
+                    <div className="flex-1 no-print">
+                        <SearchBar
+                            value={searchTerm}
+                            onChange={setSearchTerm}
+                            placeholder={t('common.search') || 'Rechercher les employés...'}
+                            className="w-full"
+                        />
+                    </div>
+                </div>
                 <div className="flex items-center space-x-2 no-print">
                     <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
                         <IconPlus className="h-4 w-4" />
                         <span>{t('hr.employees.add')}</span>
                     </button>
-                    <button onClick={handlePrint} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
-                        <IconPrint className="h-4 w-4" />
-                        <span>{t('common.print')}</span>
+                    <button onClick={handlePrint} className="p-2 text-slate-700 hover:bg-slate-200 rounded-md transition-colors" aria-label={t('common.print')} title={t('common.print')}>
+                        <IconPrint className="h-5 w-5" />
                     </button>
-                    <button onClick={handleExport} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
-                        <IconExport className="h-4 w-4" />
-                        <span>{t('common.export')}</span>
+                    <button onClick={handleExport} className="p-2 text-slate-700 hover:bg-slate-200 rounded-md transition-colors" aria-label={t('common.export')} title={t('common.export')}>
+                        <IconExport className="h-5 w-5" />
                     </button>
-                    <button onClick={handleExportPdf} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
-                        <IconPdf className="h-4 w-4" />
-                        <span>{t('common.exportPdf')}</span>
+                    <button onClick={handleExportPdf} className="p-2 text-slate-700 hover:bg-slate-200 rounded-md transition-colors" aria-label={t('common.exportPdf')} title={t('common.exportPdf')}>
+                        <IconPdf className="h-5 w-5" />
                     </button>
                 </div>
             </div>
@@ -188,7 +212,7 @@ const EmployeeDatabase: React.FC<EmployeeDatabaseProps> = ({ subsidiary, employe
                         </tr>
                     </thead>
                     <tbody>
-                        {employees.map((employee) => (
+                        {filteredEmployees.map((employee) => (
                             <tr key={employee.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{employee.id}</td>
                                 <td className="px-6 py-4 font-semibold">{`${employee.firstName} ${employee.lastName}`}</td>

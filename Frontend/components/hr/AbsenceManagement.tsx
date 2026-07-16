@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Subsidiary, AbsenceRecord, AbsenceType, Employee } from '../../types';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
@@ -14,6 +14,8 @@ import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
 import { UseMutateFunction } from '@tanstack/react-query';
+import SearchBar from './SearchBar';
+import IconUsers from '../icons/IconUsers';
 
 interface AbsenceManagementProps {
     subsidiary: Subsidiary;
@@ -29,6 +31,27 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({ subsidiary, emplo
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingAbsence, setEditingAbsence] = useState<AbsenceRecord | null>(null);
     const [deletingAbsence, setDeletingAbsence] = useState<AbsenceRecord | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredAbsences = useMemo(() => {
+        return absences.filter(record => {
+            const searchLower = searchTerm.toLowerCase();
+            return (
+                record.employeeName.toLowerCase().includes(searchLower) ||
+                record.reason.toLowerCase().includes(searchLower) ||
+                record.startDate.includes(searchTerm) ||
+                record.endDate.includes(searchTerm)
+            );
+        });
+    }, [absences, searchTerm]);
+
+    const absenceStats = useMemo(() => {
+        const justified = filteredAbsences.filter(a => a.typeAbsence === AbsenceType.JUSTIFIED).length;
+        const unjustified = filteredAbsences.filter(a => a.typeAbsence === AbsenceType.UNJUSTIFIED).length;
+        const total = filteredAbsences.length;
+
+        return { justified, unjustified, total };
+    }, [filteredAbsences]);
 
     const handleOpenAddModal = () => {
         setEditingAbsence(null);
@@ -126,30 +149,82 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({ subsidiary, emplo
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
     return (
-        <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold text-slate-800">{t('hr.absences.title')}</h3>
-                <div className="flex items-center space-x-2 no-print">
-                    <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
-                        <IconPlus className="h-4 w-4" />
-                        <span>{t('hr.absences.add')}</span>
-                    </button>
-                    <button onClick={handlePrint} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
-                        <IconPrint className="h-4 w-4" />
-                        <span>{t('common.print')}</span>
-                    </button>
-                    <button onClick={handleExportCsv} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
-                        <IconExport className="h-4 w-4" />
-                        <span>{t('common.export')}</span>
-                    </button>
-                    <button onClick={handleExportPdf} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
-                        <IconPdf className="h-4 w-4" />
-                        <span>{t('common.exportPdf')}</span>
-                    </button>
+        <div className="space-y-6">
+            {/* Header Section */}
+            <div className="bg-white p-6 rounded-xl shadow-md">
+                <div className="flex justify-between items-center mb-4">
+                    <h1 className="text-2xl font-bold text-slate-900">{t('hr.absences.title')}</h1>
+                    <div className="flex items-center space-x-2 no-print">
+                        <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
+                            <IconPlus className="h-4 w-4" />
+                            <span>{t('hr.absences.add')}</span>
+                        </button>
+                        <button onClick={handlePrint} className="p-2 text-slate-700 hover:bg-slate-200 rounded-md transition-colors" aria-label={t('common.print')} title={t('common.print')}>
+                            <IconPrint className="h-5 w-5" />
+                        </button>
+                        <button onClick={handleExportCsv} className="p-2 text-slate-700 hover:bg-slate-200 rounded-md transition-colors" aria-label={t('common.export')} title={t('common.export')}>
+                            <IconExport className="h-5 w-5" />
+                        </button>
+                        <button onClick={handleExportPdf} className="p-2 text-slate-700 hover:bg-slate-200 rounded-md transition-colors" aria-label={t('common.exportPdf')} title={t('common.exportPdf')}>
+                            <IconPdf className="h-5 w-5" />
+                        </button>
+                    </div>
+                </div>
+                <div className="no-print">
+                    <SearchBar
+                        value={searchTerm}
+                        onChange={setSearchTerm}
+                        placeholder={t('common.search') || 'Rechercher les absences...'}
+                        className="max-w-md"
+                    />
                 </div>
             </div>
-            <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left text-slate-500">
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 no-print">
+                <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-yellow-500">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-slate-600 font-medium">Justifiées</p>
+                            <p className="text-2xl font-bold text-yellow-600">{absenceStats.justified}</p>
+                        </div>
+                        <div className="text-yellow-100">
+                            <IconUsers className="h-10 w-10" />
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-red-500">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-slate-600 font-medium">Non justifiées</p>
+                            <p className="text-2xl font-bold text-red-600">{absenceStats.unjustified}</p>
+                        </div>
+                        <div className="text-red-100">
+                            <IconUsers className="h-10 w-10" />
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-slate-400">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-slate-600 font-medium">Total</p>
+                            <p className="text-2xl font-bold text-slate-700">{absenceStats.total}</p>
+                        </div>
+                        <div className="text-slate-200">
+                            <IconUsers className="h-10 w-10" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Absences Table Section */}
+            <div className="bg-white p-6 rounded-xl shadow-md">
+                <div className="mb-6">
+                    <h2 className="text-lg font-semibold text-slate-800 mb-1">Registre des absences</h2>
+                    <p className="text-sm text-slate-500">Liste des absences enregistrées</p>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left text-slate-500">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50">
                         <tr>
                             <th scope="col" className="px-6 py-3">{t('hr.absences.table.employee')}</th>
@@ -162,7 +237,7 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({ subsidiary, emplo
                         </tr>
                     </thead>
                     <tbody>
-                        {absences.map((record) => (
+                        {filteredAbsences.map((record) => (
                             <tr key={record.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{record.employeeName}</td>
                                 <td className="px-6 py-4">
@@ -194,7 +269,8 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({ subsidiary, emplo
                             </tr>
                         ))}
                     </tbody>
-                </table>
+                    </table>
+                </div>
             </div>
 
             {isFormModalOpen && (

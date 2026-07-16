@@ -5,6 +5,7 @@ import React, { createContext, useState, useContext, useCallback } from 'react';
 // approach that guarantees the translations are always available.
 const frTranslations = {
   "common": {
+    "search": "Rechercher",
     "searchPlaceholder": "Rechercher produits, clients...",
     "logout": "Déconnexion",
     "add": "Ajouter",
@@ -1024,7 +1025,7 @@ const frTranslations = {
       "absences": "Absences"
     },
     "employees": {
-      "title": "Base de Données Employés",
+      "title": "Gestion des Employés",
       "add": "Ajouter un employé",
       "id": "ID",
       "fullName": "Nom complet",

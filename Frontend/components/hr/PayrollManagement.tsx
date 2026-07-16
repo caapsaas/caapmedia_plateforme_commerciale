@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Subsidiary, PayrollRecord, PayrollStatus, Employee } from '../../types';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
@@ -15,6 +15,7 @@ import IconPdf from '../icons/IconPdf';
 import IconEye from '../icons/IconEye'; // Importer l'icône pour le bouton "Détails"
 import IconCreditCard from '../icons/IconCreditCard';
 import { UseMutateFunction } from '@tanstack/react-query';
+import SearchBar from './SearchBar';
 
 interface PayrollManagementProps {
     subsidiary: Subsidiary;
@@ -32,6 +33,17 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary, emplo
     const [signingRecord, setSigningRecord] = useState<PayrollRecord | null>(null);
     const [payingRecord, setPayingRecord] = useState<PayrollRecord | null>(null);
     const [viewingDetails, setViewingDetails] = useState<PayrollRecord | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredPayrolls = useMemo(() => {
+        return payrolls.filter(record => {
+            const searchLower = searchTerm.toLowerCase();
+            return (
+                record.employeeName.toLowerCase().includes(searchLower) ||
+                record.period.toLowerCase().includes(searchLower)
+            );
+        });
+    }, [payrolls, searchTerm]);
 
     const handleSign = (record: PayrollRecord) => {
         setSigningRecord(record);
@@ -112,25 +124,30 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary, emplo
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-semibold text-slate-800">{t('hr.payroll.title')}</h3>
                 <div className="flex items-center space-x-2 no-print">
                     <button onClick={handleProcessPayroll} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
                         <span>{t('hr.payroll.process')}</span>
                     </button>
-                    <button onClick={handlePrint} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
-                        <IconPrint className="h-4 w-4" />
-                        <span>{t('common.print')}</span>
+                    <button onClick={handlePrint} className="p-2 text-slate-700 hover:bg-slate-200 rounded-md transition-colors" aria-label={t('common.print')} title={t('common.print')}>
+                        <IconPrint className="h-5 w-5" />
                     </button>
-                    <button onClick={handleExportCsv} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
-                        <IconExport className="h-4 w-4" />
-                        <span>{t('common.export')}</span>
+                    <button onClick={handleExportCsv} className="p-2 text-slate-700 hover:bg-slate-200 rounded-md transition-colors" aria-label={t('common.export')} title={t('common.export')}>
+                        <IconExport className="h-5 w-5" />
                     </button>
-                    <button onClick={handleExportPdf} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
-                        <IconPdf className="h-4 w-4" />
-                        <span>{t('common.exportPdf')}</span>
+                    <button onClick={handleExportPdf} className="p-2 text-slate-700 hover:bg-slate-200 rounded-md transition-colors" aria-label={t('common.exportPdf')} title={t('common.exportPdf')}>
+                        <IconPdf className="h-5 w-5" />
                     </button>
                 </div>
+            </div>
+            <div className="mb-4 no-print">
+                <SearchBar
+                    value={searchTerm}
+                    onChange={setSearchTerm}
+                    placeholder={t('common.search') || 'Rechercher les paies...'}
+                    className="max-w-md"
+                />
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-slate-500">
@@ -146,7 +163,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary, emplo
                         </tr>
                     </thead>
                     <tbody>
-                        {payrolls.map((record) => (
+                        {filteredPayrolls.map((record) => (
                             <tr key={record.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{record.employeeName}</td>
                                 <td className="px-6 py-4">{record.period}</td>
