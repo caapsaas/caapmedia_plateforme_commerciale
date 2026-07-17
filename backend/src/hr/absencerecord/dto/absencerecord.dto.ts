@@ -1,4 +1,11 @@
-import { IsString, IsDate, IsEnum, IsOptional, Length, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsDate,
+  IsEnum,
+  IsOptional,
+  Length,
+  IsUUID,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
 import { AbsenceType } from '@prisma/client';
@@ -30,4 +37,6 @@ export class CreateAbsenceRecordDto {
   typeAbsence: AbsenceType;
 }
 
-export class UpdateAbsenceRecordDto extends PartialType(CreateAbsenceRecordDto) {}
+export class UpdateAbsenceRecordDto extends PartialType(
+  CreateAbsenceRecordDto,
+) {}

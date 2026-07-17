@@ -52,7 +52,14 @@ export class ProductsController {
     }),
   )
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR,)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+    UserRole.FINANCIAL_DIRECTOR,
+  )
   create(
     @Body() createProductDto: CreateProductDto,
     @UploadedFiles() files: Express.Multer.File[],
@@ -67,7 +74,14 @@ export class ProductsController {
    */
   @Get()
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR,)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+    UserRole.FINANCIAL_DIRECTOR,
+  )
   findAll(@Req() req: any) {
     return this.productsService.findAll(req.user);
   }
@@ -102,7 +116,14 @@ export class ProductsController {
    */
   @Get(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR,)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+    UserRole.FINANCIAL_DIRECTOR,
+  )
   findOne(@Param('id', new ParseUUIDPipe()) id: string, @Req() req: any) {
     return this.productsService.findOne(id, req.user);
   }
@@ -113,7 +134,14 @@ export class ProductsController {
    */
   @Patch(':id/update-price')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR,)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+    UserRole.FINANCIAL_DIRECTOR,
+  )
   updatePrice(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateProductPriceDto: UpdateProductPriceDto,
@@ -146,7 +174,14 @@ export class ProductsController {
     }),
   )
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR,)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+    UserRole.FINANCIAL_DIRECTOR,
+  )
   update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateProductDto: UpdateProductDto,
@@ -162,7 +197,14 @@ export class ProductsController {
    */
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR,)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+    UserRole.FINANCIAL_DIRECTOR,
+  )
   remove(@Param('id', new ParseUUIDPipe()) id: string, @Req() req: any) {
     return this.productsService.remove(id, req.user);
   }

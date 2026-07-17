@@ -1,6 +1,20 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Request,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { AbsenceRecordService } from './absencerecord.service';
-import { CreateAbsenceRecordDto, UpdateAbsenceRecordDto } from './dto/absencerecord.dto';
+import {
+  CreateAbsenceRecordDto,
+  UpdateAbsenceRecordDto,
+} from './dto/absencerecord.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles } from '../../common/auth/role/role.decorator';
@@ -12,9 +26,16 @@ export class AbsencerecordController {
 
   @Post()
   @Roles('HR_MANAGER', 'ADMIN')
-  create(@Body() createAbsenceRecordDto: CreateAbsenceRecordDto, @Request() req) {
+  create(
+    @Body() createAbsenceRecordDto: CreateAbsenceRecordDto,
+    @Request() req,
+  ) {
     const subsidiaryId = req.user.subsidiaryId;
-    return this.absenceRecordService.create(createAbsenceRecordDto, createAbsenceRecordDto.employeeId, subsidiaryId);
+    return this.absenceRecordService.create(
+      createAbsenceRecordDto,
+      createAbsenceRecordDto.employeeId,
+      subsidiaryId,
+    );
   }
 
   @Get()
@@ -32,7 +53,10 @@ export class AbsencerecordController {
 
   @Patch(':id')
   @Roles('HR_MANAGER', 'ADMIN')
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateAbsenceRecordDto: UpdateAbsenceRecordDto) {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateAbsenceRecordDto: UpdateAbsenceRecordDto,
+  ) {
     return this.absenceRecordService.update(id, updateAbsenceRecordDto);
   }
 

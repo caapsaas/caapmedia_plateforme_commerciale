@@ -1,4 +1,11 @@
-import { Controller, Get, Query, UseGuards, SetMetadata, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  UseGuards,
+  SetMetadata,
+  Req,
+} from '@nestjs/common';
 import { FinancesStatsService } from './finances_stats.service';
 import { PeriodFilterDto } from '../analytics/dto/period-filter.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
@@ -17,8 +24,14 @@ export class FinancesStatsController {
    * Exemple d'url: /finances-stats/customer-receivables?period=THIS_MONTH
    */
   @Get('customer-receivables')
-  getCustomerReceivables(@Req() req: any, @Query() periodFilterDto: PeriodFilterDto) {
-    return this.financesStatsService.getCustomerReceivables(req.user, periodFilterDto);
+  getCustomerReceivables(
+    @Req() req: any,
+    @Query() periodFilterDto: PeriodFilterDto,
+  ) {
+    return this.financesStatsService.getCustomerReceivables(
+      req.user,
+      periodFilterDto,
+    );
   }
 
   /**
@@ -27,7 +40,10 @@ export class FinancesStatsController {
    */
   @Get('supplier-debts')
   getSupplierDebts(@Req() req: any, @Query() periodFilterDto: PeriodFilterDto) {
-    return this.financesStatsService.getSupplierDebts(req.user, periodFilterDto);
+    return this.financesStatsService.getSupplierDebts(
+      req.user,
+      periodFilterDto,
+    );
   }
 
   /**

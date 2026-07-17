@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { UserRole, DebtStatus, TransactionType, Prisma } from '@prisma/client';
 import { CreateSupplierDebtDto } from './dto/create-supplier-debt.dto';
@@ -19,7 +23,9 @@ export class DebtsService {
 
   private validateSubsidiaryId(subsidiaryId: string) {
     if (!isUUID(subsidiaryId)) {
-      throw new BadRequestException('ID de filiale invalide dans le token utilisateur.');
+      throw new BadRequestException(
+        'ID de filiale invalide dans le token utilisateur.',
+      );
     }
   }
 
@@ -30,7 +36,11 @@ export class DebtsService {
   async createSupplierDebt(dto: CreateSupplierDebtDto, user: JwtUser) {
     checkRole(
       user,
-      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.PURCHASING_MANAGER],
+      [
+        UserRole.ADMIN,
+        UserRole.FINANCIAL_DIRECTOR,
+        UserRole.PURCHASING_MANAGER,
+      ],
       'Permission denied to create supplier debts.',
     );
     this.validateSubsidiaryId(user.subsidiaryId);
@@ -107,7 +117,11 @@ export class DebtsService {
   // ================================================================= //
 
   async createLongTermDebt(dto: CreateLongTermDebtDto, user: JwtUser) {
-    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR], 'Permission denied to create long-term debts.');
+    checkRole(
+      user,
+      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
+      'Permission denied to create long-term debts.',
+    );
     this.validateSubsidiaryId(user.subsidiaryId);
 
     return this.prisma.longTermDebt.create({
@@ -128,8 +142,16 @@ export class DebtsService {
     });
   }
 
-  async updateLongTermDebt(id: string, dto: UpdateLongTermDebtDto, user: JwtUser) {
-    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR], 'Permission denied to update long-term debts.');
+  async updateLongTermDebt(
+    id: string,
+    dto: UpdateLongTermDebtDto,
+    user: JwtUser,
+  ) {
+    checkRole(
+      user,
+      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
+      'Permission denied to update long-term debts.',
+    );
     this.validateSubsidiaryId(user.subsidiaryId);
 
     const debt = await this.prisma.longTermDebt.findFirst({

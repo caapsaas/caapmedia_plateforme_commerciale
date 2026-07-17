@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Query, Req, UseGuards, SetMetadata } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+  SetMetadata,
+} from '@nestjs/common';
 import { SalesService } from './sales.service';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
@@ -18,7 +27,10 @@ export class SalesController {
   @Post('direct')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.CAISSIER, UserRole.ADMIN)
-  createDirectSale(@Body() createDirectSaleDto: CreateDirectSaleDto, @Req() req) {
+  createDirectSale(
+    @Body() createDirectSaleDto: CreateDirectSaleDto,
+    @Req() req,
+  ) {
     return this.salesService.createDirectSale(createDirectSaleDto, req.user);
   }
 

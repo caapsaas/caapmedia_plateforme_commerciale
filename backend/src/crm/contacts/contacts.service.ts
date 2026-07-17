@@ -18,9 +18,9 @@ import { RegisterContactDto } from './dto/register-contact.dto';
 @Injectable()
 export class ContactsService {
   constructor(
-    private readonly prisma: PrismaService, 
+    private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-    private readonly emailService: EmailService
+    private readonly emailService: EmailService,
   ) {}
 
   async create(createContactDto: CreateContactDto, user: User) {
@@ -38,7 +38,9 @@ export class ContactsService {
     }
 
     // Générer un mot de passe temporaire pour le portail client
-    const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+    const tempPassword =
+      Math.random().toString(36).slice(-8) +
+      Math.random().toString(36).slice(-8);
     const passwordHash = await bcrypt.hash(tempPassword, 10);
 
     const newContact = await this.prisma.contact.create({
@@ -49,19 +51,26 @@ export class ContactsService {
         accountId: createContactDto.accountId || null,
         subsidiaryId: user.subsidiaryId,
         salesRepId: user.id,
-        since: createContactDto.since ? new Date(createContactDto.since) : new Date(),
+        since: createContactDto.since
+          ? new Date(createContactDto.since)
+          : new Date(),
         passwordHash,
         isVerified: true, // Le contact est vérifié automatiquement lors de la création
       },
     });
 
     // Envoyer un email avec les identifiants de connexion
-    await this.emailService.sendWelcomeEmail(createContactDto.email, tempPassword, createContactDto.contactName);
+    await this.emailService.sendWelcomeEmail(
+      createContactDto.email,
+      tempPassword,
+      createContactDto.contactName,
+    );
 
     return {
       ...newContact,
       tempPassword, // Retourner le mot de passe temporaire pour le développement
-      message: 'Contact créé avec succès. Un email avec les identifiants de connexion a été envoyé.'
+      message:
+        'Contact créé avec succès. Un email avec les identifiants de connexion a été envoyé.',
     };
   }
 
@@ -71,7 +80,7 @@ export class ContactsService {
     };
 
     // Seul le commercial a une vue restreinte à ses propres contacts.
-    if (user.userRole === UserRole.COMMERCIAL) { 
+    if (user.userRole === UserRole.COMMERCIAL) {
       where.salesRepId = user.id;
     }
 
@@ -132,9 +141,16 @@ export class ContactsService {
     // 3. Vérifier l'unicité de l'email si celui-ci est modifié.
     if (otherData.email) {
       const existing = await this.prisma.contact.findFirst({
-        where: { email: otherData.email, id: { not: id }, subsidiaryId: user.subsidiaryId },
+        where: {
+          email: otherData.email,
+          id: { not: id },
+          subsidiaryId: user.subsidiaryId,
+        },
       });
-      if (existing) throw new ConflictException('This email is already in use by another contact.');
+      if (existing)
+        throw new ConflictException(
+          'This email is already in use by another contact.',
+        );
     }
 
     // 4. Construire l'objet de données pour la mise à jour Prisma.
@@ -145,10 +161,14 @@ export class ContactsService {
     }
 
     if (accountId !== undefined) {
-      data.account = accountId ? { connect: { id: accountId } } : { disconnect: true };
+      data.account = accountId
+        ? { connect: { id: accountId } }
+        : { disconnect: true };
     }
     if (salesRepId !== undefined) {
-      data.salesRep = salesRepId ? { connect: { id: salesRepId } } : { disconnect: true };
+      data.salesRep = salesRepId
+        ? { connect: { id: salesRepId } }
+        : { disconnect: true };
     }
 
     // 5. Effectuer la mise à jour.
@@ -166,12 +186,11 @@ export class ContactsService {
   // --- Client (Contact) Authentication & Portal ---
 
   async register(registerContactDto: RegisterContactDto) {
-    const { email, password,  ...rest } = registerContactDto;
+    const { email, password, ...rest } = registerContactDto;
 
     const existingContact = await this.prisma.contact.findFirst({
       where: {
         email: email,
-      
       },
     });
 
@@ -187,7 +206,9 @@ export class ContactsService {
       data: {
         ...rest,
         email,
-        since: registerContactDto.since ? new Date(registerContactDto.since) : new Date(),
+        since: registerContactDto.since
+          ? new Date(registerContactDto.since)
+          : new Date(),
         status: ContactStatus.ACTIVE,
         passwordHash,
       },
@@ -206,15 +227,22 @@ export class ContactsService {
     });
 
     if (!contact || !contact.passwordHash) {
-      throw new UnauthorizedException('Invalid credentials or portal access not enabled.');
+      throw new UnauthorizedException(
+        'Invalid credentials or portal access not enabled.',
+      );
     }
 
     // Vérification du statut du compte
     if (contact.status !== ContactStatus.ACTIVE) {
-      throw new UnauthorizedException('Your account is not active. Please contact support.');
+      throw new UnauthorizedException(
+        'Your account is not active. Please contact support.',
+      );
     }
 
-    const isPasswordMatching = await bcrypt.compare(password, contact.passwordHash);
+    const isPasswordMatching = await bcrypt.compare(
+      password,
+      contact.passwordHash,
+    );
 
     if (!isPasswordMatching) {
       throw new UnauthorizedException('Invalid credentials.');
@@ -266,7 +294,9 @@ export class ContactsService {
     const contact = await this.findOne(contactId, user);
 
     // Générer un nouveau mot de passe temporaire
-    const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+    const tempPassword =
+      Math.random().toString(36).slice(-8) +
+      Math.random().toString(36).slice(-8);
     const passwordHash = await bcrypt.hash(tempPassword, 10);
 
     // Mettre à jour le contact avec le nouveau mot de passe
@@ -280,15 +310,16 @@ export class ContactsService {
 
     // Envoyer un email avec le nouveau mot de passe
     await this.emailService.sendPasswordResetEmail(
-      contact.email, 
-      tempPassword, 
-      contact.contactName
+      contact.email,
+      tempPassword,
+      contact.contactName,
     );
 
     return {
       ...updatedContact,
       tempPassword, // Retourner le mot de passe temporaire pour le développement
-      message: 'Mot de passe réinitialisé avec succès. Un email avec les nouveaux identifiants a été envoyé.'
+      message:
+        'Mot de passe réinitialisé avec succès. Un email avec les nouveaux identifiants a été envoyé.',
     };
   }
 
@@ -297,11 +328,15 @@ export class ContactsService {
     const contact = await this.findOne(contactId, user);
 
     if (contact.passwordHash) {
-      throw new ConflictException('Ce contact a déjà un accès au portail activé.');
+      throw new ConflictException(
+        'Ce contact a déjà un accès au portail activé.',
+      );
     }
 
     // Générer un mot de passe temporaire
-    const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+    const tempPassword =
+      Math.random().toString(36).slice(-8) +
+      Math.random().toString(36).slice(-8);
     const passwordHash = await bcrypt.hash(tempPassword, 10);
 
     // Activer l'accès au portail
@@ -316,15 +351,16 @@ export class ContactsService {
 
     // Envoyer un email avec les identifiants
     await this.emailService.sendWelcomeEmail(
-      contact.email, 
-      tempPassword, 
-      contact.contactName
+      contact.email,
+      tempPassword,
+      contact.contactName,
     );
 
     return {
       ...updatedContact,
       tempPassword,
-      message: 'Accès au portail activé avec succès. Un email avec les identifiants de connexion a été envoyé.'
+      message:
+        'Accès au portail activé avec succès. Un email avec les identifiants de connexion a été envoyé.',
     };
   }
 

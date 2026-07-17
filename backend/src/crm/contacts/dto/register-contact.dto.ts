@@ -1,6 +1,12 @@
 import { PickType } from '@nestjs/mapped-types';
 import { CreateContactDto } from './create-contact.dto';
-import { IsNotEmpty, IsString,IsOptional , IsDateString, MinLength } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsDateString,
+  MinLength,
+} from 'class-validator';
 
 export class RegisterContactDto extends PickType(CreateContactDto, [
   'email',

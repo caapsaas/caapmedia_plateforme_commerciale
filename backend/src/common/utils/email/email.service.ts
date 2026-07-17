@@ -5,7 +5,11 @@ import { ConfigService } from '@nestjs/config';
 export class EmailService {
   constructor(private readonly configService: ConfigService) {}
 
-  async sendWelcomeEmail(email: string, tempPassword: string, contactName: string) {
+  async sendWelcomeEmail(
+    email: string,
+    tempPassword: string,
+    contactName: string,
+  ) {
     // TODO: Implémenter l'envoi d'email réel avec un service comme SendGrid, Nodemailer, etc.
     console.log(`
       📧 EMAIL DE BIENVENUE - À ENVOYER
@@ -28,12 +32,16 @@ export class EmailService {
       Cordialement,
       L'équipe CAAP Media
     `);
-    
+
     // Simulation d'envoi réussi
     return { success: true, message: 'Email envoyé avec succès' };
   }
 
-  async sendPasswordResetEmail(email: string, tempPassword: string, contactName: string) {
+  async sendPasswordResetEmail(
+    email: string,
+    tempPassword: string,
+    contactName: string,
+  ) {
     console.log(`
       📧 EMAIL DE RÉINITIALISATION - À ENVOYER
       ==========================================
@@ -53,7 +61,10 @@ export class EmailService {
       Cordialement,
       L'équipe CAAP Media
     `);
-    
-    return { success: true, message: 'Email de réinitialisation envoyé avec succès' };
+
+    return {
+      success: true,
+      message: 'Email de réinitialisation envoyé avec succès',
+    };
   }
 }

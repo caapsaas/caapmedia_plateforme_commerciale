@@ -1,6 +1,21 @@
-import { Controller, Post, Body, Patch, Delete, Get, Param, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Patch,
+  Delete,
+  Get,
+  Param,
+  Query,
+  UseGuards,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { MaintenanceRecordService } from 'src/maintenance/maintenance_record/maintenance_record.service';
-import { CreateMaintenanceRecordDto, UpdateMaintenanceRecordDto, SearchMaintenanceRecordDto } from 'src/maintenance/maintenance_record/dto/create-maintenance_record.dto';
+import {
+  CreateMaintenanceRecordDto,
+  UpdateMaintenanceRecordDto,
+  SearchMaintenanceRecordDto,
+} from 'src/maintenance/maintenance_record/dto/create-maintenance_record.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { Roles } from 'src/common/auth/role/role.decorator';
@@ -33,7 +48,6 @@ export class MaintenanceRecordController {
     return this.service.findAll(equipmentId);
   }
 
-  
   /**
    * Endpoint pour rechercher les historiques de maintenance selon plusieurs critères
    * Exemple d'URL : /maintenance-records/search?equipmentId=123e4567-e89b-12d3-a456-426614174000&technician=John
@@ -63,7 +77,10 @@ export class MaintenanceRecordController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR)
-  update(@Param('id') id: string, @Body() updateMaintenanceRecordDto: UpdateMaintenanceRecordDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateMaintenanceRecordDto: UpdateMaintenanceRecordDto,
+  ) {
     return this.service.update(id, updateMaintenanceRecordDto);
   }
 
@@ -77,5 +94,4 @@ export class MaintenanceRecordController {
   remove(@Param('id') id: string) {
     return this.service.remove(id);
   }
-
 }

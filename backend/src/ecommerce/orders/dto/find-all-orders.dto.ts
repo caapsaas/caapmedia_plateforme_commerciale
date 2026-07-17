@@ -1,4 +1,10 @@
-import { IsOptional, IsString, IsEnum, IsDateString, IsUUID } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsDateString,
+  IsUUID,
+} from 'class-validator';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 export enum OrderPeriod {

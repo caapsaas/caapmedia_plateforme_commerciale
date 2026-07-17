@@ -1,13 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
-import { JournalEntryStatus, AccountType, ExpenseCategory, Prisma } from '@prisma/client';
+import {
+  JournalEntryStatus,
+  AccountType,
+  ExpenseCategory,
+  Prisma,
+} from '@prisma/client';
 import { AccountsService } from '../accounts/accounts.service';
 import { JournalsService } from '../journals/journals.service';
 import { PeriodsService } from '../periods/periods.service';
 
 // TVA UEMOA standard (18%) et IS (30%)
 export const TVA_RATE = 0.18;
-export const IS_RATE = 0.30;
+export const IS_RATE = 0.3;
 
 export type OperationSource =
   | 'TREASURY_INCOME'
@@ -27,9 +32,9 @@ export interface JournalizationContext {
   sourceType: OperationSource;
   sourceId: string;
   // Données spécifiques selon l'opération
-  accountType?: AccountType;         // pour trésorerie : BANQUE ou CAISSE
+  accountType?: AccountType; // pour trésorerie : BANQUE ou CAISSE
   expenseCategory?: ExpenseCategory; // pour dépenses : catégorie SYSCOHADA
-  withTva?: boolean;                 // inclure TVA dans l'écriture
+  withTva?: boolean; // inclure TVA dans l'écriture
 }
 
 // Mapping des catégories de dépenses → numéros de comptes SYSCOHADA
@@ -75,10 +80,21 @@ export class JournalizationService {
   }
 
   private async doJournalize(ctx: JournalizationContext): Promise<void> {
-    const { subsidiaryId, userId, operationDate, amount, description, sourceType, sourceId } = ctx;
+    const {
+      subsidiaryId,
+      userId,
+      operationDate,
+      amount,
+      description,
+      sourceType,
+      sourceId,
+    } = ctx;
 
     // 1. Récupérer (ou créer) l'exercice fiscal courant
-    const fiscalYear = await this.periodsService.getOrCreateCurrentFiscalYear(subsidiaryId, userId);
+    const fiscalYear = await this.periodsService.getOrCreateCurrentFiscalYear(
+      subsidiaryId,
+      userId,
+    );
 
     // 2. Construire les lignes débit/crédit selon le type d'opération
     const { journalCode, lines } = await this.buildLines(ctx);
@@ -86,10 +102,16 @@ export class JournalizationService {
     if (!lines || lines.length === 0) return;
 
     // 3. Récupérer le journal concerné
-    const journal = await this.journalsService.findByCode(journalCode, subsidiaryId);
+    const journal = await this.journalsService.findByCode(
+      journalCode,
+      subsidiaryId,
+    );
 
     // 4. Numéro d'écriture séquentiel
-    const entryNumber = await this.generateEntryNumber(subsidiaryId, journalCode);
+    const entryNumber = await this.generateEntryNumber(
+      subsidiaryId,
+      journalCode,
+    );
 
     const totalDebit = lines.reduce((s, l) => s + l.debitAmount, 0);
 
@@ -120,7 +142,14 @@ export class JournalizationService {
   }
 
   private async buildLines(ctx: JournalizationContext) {
-    const { subsidiaryId, amount, sourceType, accountType, expenseCategory, withTva } = ctx;
+    const {
+      subsidiaryId,
+      amount,
+      sourceType,
+      accountType,
+      expenseCategory,
+      withTva,
+    } = ctx;
 
     const acc = (num: string) => this.getAccountId(num, subsidiaryId);
     const treasuryAccount = accountType === AccountType.CAISSE ? '571' : '521';
@@ -128,19 +157,33 @@ export class JournalizationService {
     switch (sourceType) {
       // ── RECETTE TRÉSORERIE ──────────────────────────────────────────
       case 'TREASURY_INCOME': {
-        const [debitId, creditId] = await Promise.all([acc(treasuryAccount), acc('411')]);
+        const [debitId, creditId] = await Promise.all([
+          acc(treasuryAccount),
+          acc('411'),
+        ]);
         return {
           journalCode: 'JB',
           lines: [
-            { accountId: debitId,  description: 'Encaissement', debitAmount: amount, creditAmount: 0 },
-            { accountId: creditId, description: 'Client',        debitAmount: 0, creditAmount: amount },
+            {
+              accountId: debitId,
+              description: 'Encaissement',
+              debitAmount: amount,
+              creditAmount: 0,
+            },
+            {
+              accountId: creditId,
+              description: 'Client',
+              debitAmount: 0,
+              creditAmount: amount,
+            },
           ],
         };
       }
 
       // ── DÉPENSE TRÉSORERIE ──────────────────────────────────────────
       case 'TREASURY_EXPENSE': {
-        const chargeNum = EXPENSE_CATEGORY_ACCOUNT[expenseCategory ?? 'OTHER'] ?? '659';
+        const chargeNum =
+          EXPENSE_CATEGORY_ACCOUNT[expenseCategory ?? 'OTHER'] ?? '659';
         const amountHT = withTva ? amount / (1 + TVA_RATE) : amount;
         const tvaAmount = withTva ? amount - amountHT : 0;
 
@@ -149,11 +192,26 @@ export class JournalizationService {
         const [chargeId, treasuryId, tvaId] = await Promise.all(linePromises);
 
         const lines: any[] = [
-          { accountId: chargeId,   description: 'Charge',    debitAmount: amountHT,  creditAmount: 0 },
-          { accountId: treasuryId, description: 'Règlement', debitAmount: 0,         creditAmount: amount },
+          {
+            accountId: chargeId,
+            description: 'Charge',
+            debitAmount: amountHT,
+            creditAmount: 0,
+          },
+          {
+            accountId: treasuryId,
+            description: 'Règlement',
+            debitAmount: 0,
+            creditAmount: amount,
+          },
         ];
         if (withTva && tvaId) {
-          lines.splice(1, 0, { accountId: tvaId, description: 'TVA déductible 18%', debitAmount: tvaAmount, creditAmount: 0 });
+          lines.splice(1, 0, {
+            accountId: tvaId,
+            description: 'TVA déductible 18%',
+            debitAmount: tvaAmount,
+            creditAmount: 0,
+          });
         }
         return { journalCode: 'JB', lines };
       }
@@ -162,41 +220,93 @@ export class JournalizationService {
       case 'SALE_PAID': {
         const amountHT = amount / (1 + TVA_RATE);
         const tvaAmount = amount - amountHT;
-        const [clientId, venteId, tvaId] = await Promise.all([acc('411'), acc('706'), acc('4431')]);
+        const [clientId, venteId, tvaId] = await Promise.all([
+          acc('411'),
+          acc('706'),
+          acc('4431'),
+        ]);
         return {
           journalCode: 'JV',
           lines: [
-            { accountId: clientId, description: 'Vente client',    debitAmount: amount,    creditAmount: 0 },
-            { accountId: venteId,  description: 'Produit HT',      debitAmount: 0,         creditAmount: amountHT },
-            { accountId: tvaId,    description: 'TVA collectée 18%', debitAmount: 0,       creditAmount: tvaAmount },
+            {
+              accountId: clientId,
+              description: 'Vente client',
+              debitAmount: amount,
+              creditAmount: 0,
+            },
+            {
+              accountId: venteId,
+              description: 'Produit HT',
+              debitAmount: 0,
+              creditAmount: amountHT,
+            },
+            {
+              accountId: tvaId,
+              description: 'TVA collectée 18%',
+              debitAmount: 0,
+              creditAmount: tvaAmount,
+            },
           ],
         };
       }
 
       // ── DÉPENSE OPÉRATIONNELLE (ExpenseRecord) ──────────────────────
       case 'EXPENSE_RECORD': {
-        const chargeNum = EXPENSE_CATEGORY_ACCOUNT[expenseCategory ?? 'OTHER'] ?? '659';
+        const chargeNum =
+          EXPENSE_CATEGORY_ACCOUNT[expenseCategory ?? 'OTHER'] ?? '659';
         const amountHT = amount / (1 + TVA_RATE);
         const tvaAmount = amount - amountHT;
-        const [chargeId, fournId, tvaId] = await Promise.all([acc(chargeNum), acc('401'), acc('4452')]);
+        const [chargeId, fournId, tvaId] = await Promise.all([
+          acc(chargeNum),
+          acc('401'),
+          acc('4452'),
+        ]);
         return {
           journalCode: 'JOD',
           lines: [
-            { accountId: chargeId, description: 'Charge enregistrée',    debitAmount: amountHT,  creditAmount: 0 },
-            { accountId: tvaId,    description: 'TVA déductible 18%',    debitAmount: tvaAmount, creditAmount: 0 },
-            { accountId: fournId,  description: 'Fournisseur ou caisse', debitAmount: 0,         creditAmount: amount },
+            {
+              accountId: chargeId,
+              description: 'Charge enregistrée',
+              debitAmount: amountHT,
+              creditAmount: 0,
+            },
+            {
+              accountId: tvaId,
+              description: 'TVA déductible 18%',
+              debitAmount: tvaAmount,
+              creditAmount: 0,
+            },
+            {
+              accountId: fournId,
+              description: 'Fournisseur ou caisse',
+              debitAmount: 0,
+              creditAmount: amount,
+            },
           ],
         };
       }
 
       // ── PAIEMENT DETTE FOURNISSEUR ──────────────────────────────────
       case 'SUPPLIER_DEBT_PAYMENT': {
-        const [fournId, treasuryId] = await Promise.all([acc('401'), acc(treasuryAccount)]);
+        const [fournId, treasuryId] = await Promise.all([
+          acc('401'),
+          acc(treasuryAccount),
+        ]);
         return {
           journalCode: 'JA',
           lines: [
-            { accountId: fournId,    description: 'Apurement dette fournisseur', debitAmount: amount, creditAmount: 0 },
-            { accountId: treasuryId, description: 'Règlement',                   debitAmount: 0,      creditAmount: amount },
+            {
+              accountId: fournId,
+              description: 'Apurement dette fournisseur',
+              debitAmount: amount,
+              creditAmount: 0,
+            },
+            {
+              accountId: treasuryId,
+              description: 'Règlement',
+              debitAmount: 0,
+              creditAmount: amount,
+            },
           ],
         };
       }
@@ -207,8 +317,18 @@ export class JournalizationService {
         return {
           journalCode: 'JB',
           lines: [
-            { accountId: bankId,    description: 'Réception emprunt', debitAmount: amount, creditAmount: 0 },
-            { accountId: empruntId, description: 'Emprunt LT',        debitAmount: 0,      creditAmount: amount },
+            {
+              accountId: bankId,
+              description: 'Réception emprunt',
+              debitAmount: amount,
+              creditAmount: 0,
+            },
+            {
+              accountId: empruntId,
+              description: 'Emprunt LT',
+              debitAmount: 0,
+              creditAmount: amount,
+            },
           ],
         };
       }
@@ -219,8 +339,18 @@ export class JournalizationService {
         return {
           journalCode: 'JOD',
           lines: [
-            { accountId: immoId, description: 'Acquisition immobilisation', debitAmount: amount, creditAmount: 0 },
-            { accountId: bankId, description: 'Règlement',                  debitAmount: 0,      creditAmount: amount },
+            {
+              accountId: immoId,
+              description: 'Acquisition immobilisation',
+              debitAmount: amount,
+              creditAmount: 0,
+            },
+            {
+              accountId: bankId,
+              description: 'Règlement',
+              debitAmount: 0,
+              creditAmount: amount,
+            },
           ],
         };
       }
@@ -230,18 +360,27 @@ export class JournalizationService {
     }
   }
 
-  private async getAccountId(accountNumber: string, subsidiaryId: string): Promise<string> {
-    const account = await this.accountsService.findByNumber(accountNumber, subsidiaryId);
+  private async getAccountId(
+    accountNumber: string,
+    subsidiaryId: string,
+  ): Promise<string> {
+    const account = await this.accountsService.findByNumber(
+      accountNumber,
+      subsidiaryId,
+    );
     if (!account) {
       throw new Error(
         `Compte SYSCOHADA "${accountNumber}" introuvable pour la filiale ${subsidiaryId}. ` +
-        `Lancez le seed du plan comptable via POST /accounting/accounts/seed.`,
+          `Lancez le seed du plan comptable via POST /accounting/accounts/seed.`,
       );
     }
     return account.id;
   }
 
-  private async generateEntryNumber(subsidiaryId: string, journalCode: string): Promise<string> {
+  private async generateEntryNumber(
+    subsidiaryId: string,
+    journalCode: string,
+  ): Promise<string> {
     const year = new Date().getFullYear();
     const count = await this.prisma.journalEntry.count({
       where: { subsidiaryId, sourceType: { not: null } },

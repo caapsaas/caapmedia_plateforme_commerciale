@@ -12,7 +12,10 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { SuppliersService } from './suppliers.service';
-import { CreateSupplierDto, UpdateSupplierDto } from './dto/create-supplier.dto';
+import {
+  CreateSupplierDto,
+  UpdateSupplierDto,
+} from './dto/create-supplier.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { Roles } from 'src/common/auth/role/role.decorator';
@@ -21,8 +24,7 @@ import { UserRole } from '@prisma/client';
 @UseGuards(JwtAuthGuard, RoleGuard)
 @Controller('purchasing/suppliers')
 export class SuppliersController {
-  constructor(private readonly suppliersService: SuppliersService) { }
-
+  constructor(private readonly suppliersService: SuppliersService) {}
 
   /**
    * Endpoint pour creer un fournisseur
@@ -60,7 +62,11 @@ export class SuppliersController {
    */
   @Patch(':id')
   @Roles(UserRole.ADMIN)
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateSupplierDto: UpdateSupplierDto, @Req() req) {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateSupplierDto: UpdateSupplierDto,
+    @Req() req,
+  ) {
     return this.suppliersService.update(id, updateSupplierDto, req.user);
   }
 

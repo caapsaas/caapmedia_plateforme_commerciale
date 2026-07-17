@@ -1,5 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { ACCESS_TOKEN_COOKIE, CSRF_TOKEN_COOKIE, CSRF_HEADER } from './cookie.util';
+import {
+  ACCESS_TOKEN_COOKIE,
+  CSRF_TOKEN_COOKIE,
+  CSRF_HEADER,
+} from './cookie.util';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
@@ -15,7 +19,11 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
  * concernes - un site tiers ne peut de toute facon pas forcer l'ajout d'un
  * header Authorization personnalise sans passer une preflight CORS.
  */
-export function csrfMiddleware(req: Request, res: Response, next: NextFunction): void {
+export function csrfMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
   if (SAFE_METHODS.has(req.method)) {
     return next();
   }
@@ -29,7 +37,11 @@ export function csrfMiddleware(req: Request, res: Response, next: NextFunction):
   const headerToken = req.headers[CSRF_HEADER];
 
   if (!cookieToken || !headerToken || cookieToken !== headerToken) {
-    res.status(403).json({ message: 'CSRF token invalide ou manquant', error: 'Forbidden', statusCode: 403 });
+    res.status(403).json({
+      message: 'CSRF token invalide ou manquant',
+      error: 'Forbidden',
+      statusCode: 403,
+    });
     return;
   }
 

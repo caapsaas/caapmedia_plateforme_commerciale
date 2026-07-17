@@ -12,9 +12,18 @@ import {
   ParseBoolPipe,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { EmployeeService } from './employee.service';
-import { CreateEmployeeDto, UpdateEmployeeDto, LeaveBalanceDto } from './dto/employee.dto';
+import {
+  CreateEmployeeDto,
+  UpdateEmployeeDto,
+  LeaveBalanceDto,
+} from './dto/employee.dto';
 import { DocumentType, LeaveType } from '@prisma/client';
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles } from '../../common/auth/role/role.decorator';
@@ -38,25 +47,22 @@ export class EmployeeController {
   async create(@Body() createEmployeeDto: CreateEmployeeDto, @Request() req) {
     const subsidiaryId = req.user.subsidiaryId;
     this.logger.log(`Creating employee in subsidiary ${subsidiaryId}`);
-    
+
     // Log pour déboguer
     this.logger.log(`Received DTO: ${JSON.stringify(createEmployeeDto)}`);
-    
+
     // Extraire l'ID des données si présent (pour gérer les mises à jour déguisées)
     const dtoAsAny = createEmployeeDto as any;
     const employeeId = dtoAsAny.id;
-    
+
     this.logger.log(`Extracted employeeId: ${employeeId}`);
-    
+
     if (employeeId) {
       this.logger.log(`Redirecting to update for employee ${employeeId}`);
       return this.employeeService.update(employeeId, dtoAsAny);
     }
-    
-    return this.employeeService.create(
-      createEmployeeDto,
-      subsidiaryId
-    );
+
+    return this.employeeService.create(createEmployeeDto, subsidiaryId);
   }
 
   @Get()
@@ -85,7 +91,10 @@ export class EmployeeController {
   @Patch(':id')
   @Roles('ADMIN', 'HR_MANAGER')
   @ApiOperation({ summary: 'Update employee by ID' })
-  async update(@Param('id') id: string, @Body() updateEmployeeDto: UpdateEmployeeDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateEmployeeDto: UpdateEmployeeDto,
+  ) {
     this.logger.log(`Updating employee ${id}`);
     return this.employeeService.update(id, updateEmployeeDto);
   }
@@ -109,7 +118,12 @@ export class EmployeeController {
     @Param('id') id: string,
     @Body() body: { documentName: string; url: string; docType: DocumentType },
   ) {
-    return this.employeeService.addDocument(id, body.documentName, body.url, body.docType);
+    return this.employeeService.addDocument(
+      id,
+      body.documentName,
+      body.url,
+      body.docType,
+    );
   }
 
   @Post(':id/trainings')
@@ -117,7 +131,8 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Add a training record to an employee' })
   async addTraining(
     @Param('id') id: string,
-    @Body() body: { trainingName: string; trainingDate: string; provider?: string },
+    @Body()
+    body: { trainingName: string; trainingDate: string; provider?: string },
   ) {
     return this.employeeService.addTraining(id, {
       ...body,
@@ -165,12 +180,17 @@ export class EmployeeController {
   }
 
   @Post(':id/leaves')
-  @Roles('HR_MANAGER','ADMIN')
+  @Roles('HR_MANAGER', 'ADMIN')
   @ApiOperation({ summary: 'Add a leave record' })
   async addLeaveRecord(
     @Param('id') id: string,
     @Body()
-    body: { startDate: string; endDate: string; days: number; leaveRecordType: LeaveType },
+    body: {
+      startDate: string;
+      endDate: string;
+      days: number;
+      leaveRecordType: LeaveType;
+    },
   ) {
     return this.employeeService.addLeaveRecord(id, {
       ...body,
@@ -198,7 +218,7 @@ export class EmployeeController {
       id,
       leaveType,
       body.days,
-      body.operation || 'set'
+      body.operation || 'set',
     );
   }
 

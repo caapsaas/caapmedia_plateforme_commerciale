@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsDateString, IsNumber, IsPositive } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsDateString,
+  IsNumber,
+  IsPositive,
+} from 'class-validator';
 
 export class CreateLongTermDebtDto {
   @IsString()

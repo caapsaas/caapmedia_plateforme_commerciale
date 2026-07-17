@@ -7,10 +7,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
-import {
-  CreateEmployeeDto,
-  UpdateEmployeeDto,
-} from './dto/employee.dto';
+import { CreateEmployeeDto, UpdateEmployeeDto } from './dto/employee.dto';
 import {
   Prisma,
   Employee,
@@ -70,7 +67,7 @@ export class EmployeeService {
       maternity: number;
       paternity: number;
       other: number;
-    }
+    },
   ) {
     const leaveTypeMapping = {
       annual: 'ANNUAL' as LeaveType,
@@ -95,14 +92,20 @@ export class EmployeeService {
   async create(
     createEmployeeDto: CreateEmployeeDto,
     subsidiaryId: string,
-    employeeId?: string // Ajouter un paramètre optionnel pour l'ID de l'employé
+    employeeId?: string, // Ajouter un paramètre optionnel pour l'ID de l'employé
   ): Promise<Employee> {
-    this.logger.log(`Attempting to create employee for subsidiary ${subsidiaryId}`);
+    this.logger.log(
+      `Attempting to create employee for subsidiary ${subsidiaryId}`,
+    );
 
     // Vérifier que la filiale existe
-    const subsidiary = await this.prisma.subsidiary.findUnique({ where: { id: subsidiaryId } });
+    const subsidiary = await this.prisma.subsidiary.findUnique({
+      where: { id: subsidiaryId },
+    });
     if (!subsidiary) {
-      throw new BadRequestException(`Subsidiary with ID ${subsidiaryId} not found.`);
+      throw new BadRequestException(
+        `Subsidiary with ID ${subsidiaryId} not found.`,
+      );
     }
 
     // Vérifier si un employé avec cet e-mail existe déjà (en excluant l'employé actuel si ID fourni)
@@ -110,11 +113,20 @@ export class EmployeeService {
     const existingEmployee = await this.prisma.employee.findUnique({
       where: { email: createEmployeeDto.email },
     });
-    this.logger.log(`Existing employee found: ${JSON.stringify(existingEmployee)}`);
-    
-    if (existingEmployee && (!employeeId || existingEmployee.id !== employeeId)) {
-      this.logger.warn(`Email conflict detected for email: ${createEmployeeDto.email}`);
-      throw new ConflictException(`An employee with the email ${createEmployeeDto.email} already exists.`);
+    this.logger.log(
+      `Existing employee found: ${JSON.stringify(existingEmployee)}`,
+    );
+
+    if (
+      existingEmployee &&
+      (!employeeId || existingEmployee.id !== employeeId)
+    ) {
+      this.logger.warn(
+        `Email conflict detected for email: ${createEmployeeDto.email}`,
+      );
+      throw new ConflictException(
+        `An employee with the email ${createEmployeeDto.email} already exists.`,
+      );
     }
 
     // Si un employeeId est fourni, c'est une mise à jour déguisée
@@ -158,12 +170,19 @@ export class EmployeeService {
         });
 
         // Initialize leave balances for all leave types
-        const leaveTypes = ['ANNUAL', 'SICK', 'PERSONAL', 'MATERNITY', 'PATERNITY', 'OTHER'] as LeaveType[];
-        
+        const leaveTypes = [
+          'ANNUAL',
+          'SICK',
+          'PERSONAL',
+          'MATERNITY',
+          'PATERNITY',
+          'OTHER',
+        ] as LeaveType[];
+
         for (const leaveType of leaveTypes) {
           const balanceKey = leaveType.toLowerCase();
           const days = createEmployeeDto.leaveBalance?.[balanceKey] || 0;
-          
+
           await prisma.employeeLeaveBalance.create({
             data: {
               employeeId: newEmployee.id,
@@ -179,22 +198,32 @@ export class EmployeeService {
       this.logger.log(`Employee created with ID: ${employee.id}`);
       return employee;
     } catch (error) {
-      this.logger.error(`Failed to create employee: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to create employee: ${error.message}`,
+        error.stack,
+      );
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new ConflictException(`An employee with this email already exists.`);
+          throw new ConflictException(
+            `An employee with this email already exists.`,
+          );
         }
         if (error.code === 'P2003') {
-          throw new BadRequestException(`Foreign key constraint failed. Ensure subsidiary and manager (if provided) exist.`);
+          throw new BadRequestException(
+            `Foreign key constraint failed. Ensure subsidiary and manager (if provided) exist.`,
+          );
         }
         // Add more specific error handling for date parsing issues from Prisma
         if (error.code === 'P2000' && error.message.includes('birthDate')) {
-          throw new BadRequestException('Invalid birthDate format. Expected a valid date string (e.g., YYYY-MM-DD).');
+          throw new BadRequestException(
+            'Invalid birthDate format. Expected a valid date string (e.g., YYYY-MM-DD).',
+          );
         }
         if (error.code === 'P2000' && error.message.includes('hireDate')) {
-          throw new BadRequestException('Invalid hireDate format. Expected a valid date string (e.g., YYYY-MM-DD).');
+          throw new BadRequestException(
+            'Invalid hireDate format. Expected a valid date string (e.g., YYYY-MM-DD).',
+          );
         }
-
       }
       throw new InternalServerErrorException('Could not create employee.');
     }
@@ -203,7 +232,10 @@ export class EmployeeService {
   /**
    * FIND ALL employees
    */
-  async findAll(subsidiaryId: string, includeRelations = false): Promise<Employee[]> {
+  async findAll(
+    subsidiaryId: string,
+    includeRelations = false,
+  ): Promise<Employee[]> {
     const include = includeRelations
       ? {
           manager: true,
@@ -277,7 +309,7 @@ export class EmployeeService {
     employeeId: string,
     leaveType: LeaveType,
     days: number,
-    operation: 'set' | 'add' | 'subtract' = 'set'
+    operation: 'set' | 'add' | 'subtract' = 'set',
   ) {
     const employee = await this.prisma.employee.findUnique({
       where: { id: employeeId },
@@ -295,7 +327,12 @@ export class EmployeeService {
         },
       },
       update: {
-        days: operation === 'set' ? days : operation === 'add' ? { increment: days } : { decrement: days },
+        days:
+          operation === 'set'
+            ? days
+            : operation === 'add'
+              ? { increment: days }
+              : { decrement: days },
         lastUpdated: new Date(),
       },
       create: {
@@ -318,7 +355,7 @@ export class EmployeeService {
       maternity: number;
       paternity: number;
       other: number;
-    }
+    },
   ) {
     const employee = await this.prisma.employee.findUnique({
       where: { id: employeeId },
@@ -329,8 +366,11 @@ export class EmployeeService {
     }
 
     return this.prisma.$transaction(async (prisma) => {
-      await this.updateLeaveBalancesFromFrontendFormat(employeeId, leaveBalance);
-      
+      await this.updateLeaveBalancesFromFrontendFormat(
+        employeeId,
+        leaveBalance,
+      );
+
       // Return updated balances
       const updatedEmployee = await prisma.employee.findUnique({
         where: { id: employeeId },
@@ -341,7 +381,9 @@ export class EmployeeService {
         throw new Error(`Employee with ID ${employeeId} not found`);
       }
 
-      return this.convertLeaveBalancesToFrontendFormat(updatedEmployee.leaveBalances);
+      return this.convertLeaveBalancesToFrontendFormat(
+        updatedEmployee.leaveBalances,
+      );
     });
   }
 
@@ -350,11 +392,19 @@ export class EmployeeService {
    */
   async addLeaveRecord(
     employeeId: string,
-    leaveData: { startDate: Date; endDate: Date; days?: number; leaveRecordType: LeaveType },
+    leaveData: {
+      startDate: Date;
+      endDate: Date;
+      days?: number;
+      leaveRecordType: LeaveType;
+    },
   ): Promise<any> {
     const days =
       leaveData.days ||
-      Math.ceil((leaveData.endDate.getTime() - leaveData.startDate.getTime()) / (1000 * 60 * 60 * 24));
+      Math.ceil(
+        (leaveData.endDate.getTime() - leaveData.startDate.getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
 
     return this.prisma.$transaction(async (prisma) => {
       const leaveRecord = await prisma.employeeLeaveRecord.create({
@@ -362,7 +412,12 @@ export class EmployeeService {
       });
 
       // Update specific leave balance instead of general balance
-      await this.updateLeaveBalance(employeeId, leaveData.leaveRecordType, days, 'subtract');
+      await this.updateLeaveBalance(
+        employeeId,
+        leaveData.leaveRecordType,
+        days,
+        'subtract',
+      );
 
       return leaveRecord;
     });
@@ -371,16 +426,21 @@ export class EmployeeService {
   /**
    * UPDATE employee
    */
-  async update(id: string, updateEmployeeDto: UpdateEmployeeDto): Promise<Employee> {
+  async update(
+    id: string,
+    updateEmployeeDto: UpdateEmployeeDto,
+  ): Promise<Employee> {
     try {
       // Vérifier si l'email est en cours de modification et si il est déjà utilisé par un autre employé
       if (updateEmployeeDto.email) {
         const existingEmployee = await this.prisma.employee.findUnique({
           where: { email: updateEmployeeDto.email },
         });
-        
+
         if (existingEmployee && existingEmployee.id !== id) {
-          throw new ConflictException(`An employee with the email ${updateEmployeeDto.email} already exists.`);
+          throw new ConflictException(
+            `An employee with the email ${updateEmployeeDto.email} already exists.`,
+          );
         }
       }
 
@@ -388,19 +448,38 @@ export class EmployeeService {
 
       // Filtrer les champs valides uniquement
       const validFields = [
-        'lastName', 'firstName', 'address', 'phone', 'email', 'nationality', 
-        'socialSecurityNumber', 'department', 'workLocation', 'positions',
-        'gender', 'contractType', 'status', 'paymentMethod', 'managerId',
-        'baseSalary', 'bonus', 'benefits', 'lastSalaryAdjustmentDate'
+        'lastName',
+        'firstName',
+        'address',
+        'phone',
+        'email',
+        'nationality',
+        'socialSecurityNumber',
+        'department',
+        'workLocation',
+        'positions',
+        'gender',
+        'contractType',
+        'status',
+        'paymentMethod',
+        'managerId',
+        'baseSalary',
+        'bonus',
+        'benefits',
+        'lastSalaryAdjustmentDate',
       ];
 
       // Copier uniquement les champs valides
-      Object.keys(updateEmployeeDto).forEach(key => {
+      Object.keys(updateEmployeeDto).forEach((key) => {
         if (validFields.includes(key) && updateEmployeeDto[key] !== undefined) {
           if (key === 'baseSalary' || key === 'bonus') {
             // Convertir les nombres en type number si nécessaire
             dataToUpdate[key] = Number(updateEmployeeDto[key]);
-          } else if (key === 'birthDate' || key === 'hireDate' || key === 'lastSalaryAdjustmentDate') {
+          } else if (
+            key === 'birthDate' ||
+            key === 'hireDate' ||
+            key === 'lastSalaryAdjustmentDate'
+          ) {
             // Convertir les dates en objets Date
             if (updateEmployeeDto[key]) {
               dataToUpdate[key] = new Date(updateEmployeeDto[key]);
@@ -419,19 +498,28 @@ export class EmployeeService {
       this.logger.log(`Employee ${id} updated successfully`);
       return employee;
     } catch (error) {
-      this.logger.error(`Failed to update employee ${id}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to update employee ${id}: ${error.message}`,
+        error.stack,
+      );
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
           throw new NotFoundException(`Employee with ID ${id} not found`);
         }
         if (error.code === 'P2003') {
-          throw new BadRequestException(`Foreign key constraint failed. Ensure manager (if provided) exists.`);
+          throw new BadRequestException(
+            `Foreign key constraint failed. Ensure manager (if provided) exists.`,
+          );
         }
         if (error.code === 'P2000' && error.message.includes('birthDate')) {
-          throw new BadRequestException('Invalid birthDate format. Expected a valid date string (e.g., YYYY-MM-DD).');
+          throw new BadRequestException(
+            'Invalid birthDate format. Expected a valid date string (e.g., YYYY-MM-DD).',
+          );
         }
         if (error.code === 'P2000' && error.message.includes('hireDate')) {
-          throw new BadRequestException('Invalid hireDate format. Expected a valid date string (e.g., YYYY-MM-DD).');
+          throw new BadRequestException(
+            'Invalid hireDate format. Expected a valid date string (e.g., YYYY-MM-DD).',
+          );
         }
       }
       throw new InternalServerErrorException(`Could not update employee ${id}`);
@@ -449,7 +537,10 @@ export class EmployeeService {
       this.logger.log(`Employee ${id} deleted successfully`);
       return employee;
     } catch (error) {
-      this.logger.error(`Failed to delete employee ${id}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to delete employee ${id}: ${error.message}`,
+        error.stack,
+      );
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
           throw new NotFoundException(`Employee with ID ${id} not found`);
@@ -484,7 +575,12 @@ export class EmployeeService {
    */
   async addPositionHistory(
     employeeId: string,
-    positionData: { employeePosition: string; department?: string; startDate: Date; endDate?: Date },
+    positionData: {
+      employeePosition: string;
+      department?: string;
+      startDate: Date;
+      endDate?: Date;
+    },
   ): Promise<any> {
     return this.prisma.employeePositionHistory.create({
       data: { ...positionData, employeeId },
@@ -496,7 +592,11 @@ export class EmployeeService {
    */
   async addTraining(
     employeeId: string,
-    trainingData: { trainingName: string; trainingDate: Date; provider?: string },
+    trainingData: {
+      trainingName: string;
+      trainingDate: Date;
+      provider?: string;
+    },
   ): Promise<any> {
     return this.prisma.employeeTraining.create({
       data: { ...trainingData, employeeId },
@@ -508,7 +608,12 @@ export class EmployeeService {
    */
   async addPerformanceReview(
     employeeId: string,
-    reviewData: { reviewDate: Date; reviewer?: string; rating?: number; reviewComments?: string },
+    reviewData: {
+      reviewDate: Date;
+      reviewer?: string;
+      rating?: number;
+      reviewComments?: string;
+    },
   ): Promise<any> {
     return this.prisma.employeePerformanceReview.create({
       data: { ...reviewData, employeeId },

@@ -17,12 +17,12 @@ export class CreateAttendanceRecordDto {
 
   @IsOptional()
   @IsDate()
-  @Transform(({ value }) => value ? new Date(value) : null)
+  @Transform(({ value }) => (value ? new Date(value) : null))
   arrivalTime?: Date;
 
   @IsOptional()
   @IsDate()
-  @Transform(({ value }) => value ? new Date(value) : null)
+  @Transform(({ value }) => (value ? new Date(value) : null))
   departureTime?: Date;
 
   @IsOptional()
@@ -39,9 +39,10 @@ export class CreateAttendanceRecordDto {
   @IsString()
   signature?: string;
 
-
   @IsEnum(AttendanceStatus)
   status: AttendanceStatus;
 }
 
-export class UpdateAttendanceRecordDto extends PartialType(CreateAttendanceRecordDto) {}
+export class UpdateAttendanceRecordDto extends PartialType(
+  CreateAttendanceRecordDto,
+) {}

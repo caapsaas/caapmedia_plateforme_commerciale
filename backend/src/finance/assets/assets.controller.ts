@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { AssetsService } from './assets.service';
 import { CreateFixedAssetDto } from './dto/create-fixed-asset.dto';
 import { UpdateFixedAssetDto } from './dto/update-fixed-asset.dto';
@@ -27,7 +36,11 @@ export class AssetsController {
   }
 
   @Patch('fixed/:id')
-  update(@Param('id') id: string, @Body() updateDto: UpdateFixedAssetDto, @CurrentUser() user: JwtUser) {
+  update(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateFixedAssetDto,
+    @CurrentUser() user: JwtUser,
+  ) {
     return this.assetsService.update(id, updateDto, user);
   }
 

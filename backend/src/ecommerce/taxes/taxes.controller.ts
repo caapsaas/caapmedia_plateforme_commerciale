@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { TaxesService } from './taxes.service';
 import { CreateTaxDto, UpdateTaxDto } from './dto/create-taxe.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
@@ -6,8 +15,6 @@ import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { Roles } from 'src/common/auth/role/role.decorator';
 import { SetMetadata } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
-
-
 
 @Controller('ecommerce/taxes')
 export class TaxesController {

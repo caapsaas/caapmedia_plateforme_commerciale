@@ -1,4 +1,11 @@
-import { IsString, IsUUID, IsDateString, IsNumber, IsOptional, Min } from 'class-validator';
+import {
+  IsString,
+  IsUUID,
+  IsDateString,
+  IsNumber,
+  IsOptional,
+  Min,
+} from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 
 // DTO de création
@@ -21,7 +28,9 @@ export class CreateMaintenanceRecordDto {
 }
 
 // DTO de mise à jour (hérite de Create et rend tout optionnel)
-export class UpdateMaintenanceRecordDto extends PartialType(CreateMaintenanceRecordDto) {
+export class UpdateMaintenanceRecordDto extends PartialType(
+  CreateMaintenanceRecordDto,
+) {
   @IsDateString()
   maintenanceDate: Date;
 }

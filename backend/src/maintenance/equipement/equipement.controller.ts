@@ -32,7 +32,11 @@ export class EquipementController {
    */
   @Post()
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR,)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.PRODUCTION_DIRECTOR,
+    UserRole.FINANCIAL_DIRECTOR,
+  )
   create(@Body() createEquipementDto: CreateEquipmentDto, @Req() req: any) {
     return this.equipementService.create(createEquipementDto, req.user);
   }
@@ -43,7 +47,11 @@ export class EquipementController {
    */
   @Get()
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR,)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.PRODUCTION_DIRECTOR,
+    UserRole.FINANCIAL_DIRECTOR,
+  )
   findAll(@Req() req: any) {
     return this.equipementService.findAll(req.user);
   }
@@ -54,7 +62,11 @@ export class EquipementController {
    */
   @Get('search')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR,)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.PRODUCTION_DIRECTOR,
+    UserRole.FINANCIAL_DIRECTOR,
+  )
   search(@Query() query: SearchEquipmentDto, @Req() req: any) {
     return this.equipementService.search(query, req.user);
   }
@@ -65,7 +77,11 @@ export class EquipementController {
    */
   @Get(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR,)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.PRODUCTION_DIRECTOR,
+    UserRole.FINANCIAL_DIRECTOR,
+  )
   findOne(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.equipementService.findOne(id);
   }
@@ -76,7 +92,11 @@ export class EquipementController {
    */
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR,)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.PRODUCTION_DIRECTOR,
+    UserRole.FINANCIAL_DIRECTOR,
+  )
   update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateEquipementDto: UpdateEquipmentDto,
@@ -91,7 +111,11 @@ export class EquipementController {
    */
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR,)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.PRODUCTION_DIRECTOR,
+    UserRole.FINANCIAL_DIRECTOR,
+  )
   remove(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.equipementService.remove(id);
   }

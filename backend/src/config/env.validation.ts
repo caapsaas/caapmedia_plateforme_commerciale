@@ -15,11 +15,17 @@ export function validate(config: Record<string, unknown>) {
   const validatedConfig = plainToInstance(EnvironmentVariables, config, {
     enableImplicitConversion: true,
   });
-  const errors = validateSync(validatedConfig, { skipMissingProperties: false });
+  const errors = validateSync(validatedConfig, {
+    skipMissingProperties: false,
+  });
 
   if (errors.length > 0) {
-    const messages = errors.map((error) => Object.values(error.constraints ?? {}).join(', '));
-    throw new Error(`Configuration d'environnement invalide:\n${messages.join('\n')}`);
+    const messages = errors.map((error) =>
+      Object.values(error.constraints ?? {}).join(', '),
+    );
+    throw new Error(
+      `Configuration d'environnement invalide:\n${messages.join('\n')}`,
+    );
   }
 
   return validatedConfig;

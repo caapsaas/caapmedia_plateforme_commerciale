@@ -18,7 +18,9 @@ export class ContractsService {
       where: { id: createContractDto.clientId },
     });
     if (!client || client.subsidiaryId !== user.subsidiaryId) {
-      throw new ForbiddenException('Client not found or does not belong to your subsidiary.');
+      throw new ForbiddenException(
+        'Client not found or does not belong to your subsidiary.',
+      );
     }
 
     return this.prisma.contract.create({
@@ -67,7 +69,9 @@ export class ContractsService {
 
     // Vérifier que l'utilisateur a le droit de voir ce contrat
     if (contract.subsidiaryId !== user.subsidiaryId) {
-      throw new ForbiddenException('You are not allowed to view this contract.');
+      throw new ForbiddenException(
+        'You are not allowed to view this contract.',
+      );
     }
 
     return contract;

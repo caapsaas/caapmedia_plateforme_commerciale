@@ -1,4 +1,10 @@
-import { IsString, IsEnum, IsNumber, IsOptional, IsDate } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsDate,
+} from 'class-validator';
 import { EquipmentStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
@@ -16,7 +22,7 @@ export class CreateEquipmentDto {
 
   @IsDate()
   acquisitionDate: Date;
-  
+
   @IsNumber({ maxDecimalPlaces: 2 })
   @Type(() => Number)
   acquisitionValue: number;

@@ -17,7 +17,7 @@ import { ContractsModule } from './contracts/contracts.module';
     ContractsModule,
     InteractionsModule,
   ],
- 
+
   exports: [
     LeadsModule,
     AccountsModule,

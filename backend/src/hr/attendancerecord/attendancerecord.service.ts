@@ -1,6 +1,9 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
-import { CreateAttendanceRecordDto, UpdateAttendanceRecordDto } from './dto/atendancerecord.dto';
+import {
+  CreateAttendanceRecordDto,
+  UpdateAttendanceRecordDto,
+} from './dto/atendancerecord.dto';
 import { AttendanceRecord } from '@prisma/client';
 
 @Injectable()
@@ -9,7 +12,11 @@ export class AttendanceRecordService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createAttendanceRecordDto: CreateAttendanceRecordDto, employeeId: string, subsidiaryId: string): Promise<AttendanceRecord> {
+  async create(
+    createAttendanceRecordDto: CreateAttendanceRecordDto,
+    employeeId: string,
+    subsidiaryId: string,
+  ): Promise<AttendanceRecord> {
     this.logger.log(`Creating attendance record for employee ${employeeId}`);
     return this.prisma.attendanceRecord.create({
       data: {
@@ -34,7 +41,9 @@ export class AttendanceRecordService {
   async findAll(subsidiaryId: string): Promise<AttendanceRecord[]> {
     return this.prisma.attendanceRecord.findMany({
       where: { subsidiaryId },
-      include: { employee: { select: { id: true, firstName: true, lastName: true } } },
+      include: {
+        employee: { select: { id: true, firstName: true, lastName: true } },
+      },
       orderBy: { attendanceDate: 'desc' },
     });
   }
@@ -44,11 +53,15 @@ export class AttendanceRecordService {
       where: { id },
       include: { employee: true },
     });
-    if (!record) throw new NotFoundException(`Attendance record ${id} not found`);
+    if (!record)
+      throw new NotFoundException(`Attendance record ${id} not found`);
     return record;
   }
 
-  async update(id: string, updateAttendanceRecordDto: UpdateAttendanceRecordDto): Promise<AttendanceRecord> {
+  async update(
+    id: string,
+    updateAttendanceRecordDto: UpdateAttendanceRecordDto,
+  ): Promise<AttendanceRecord> {
     this.logger.log(`Updating attendance record ${id}`);
     await this.findOne(id); // Vérifie si l'enregistrement existe
     return this.prisma.attendanceRecord.update({

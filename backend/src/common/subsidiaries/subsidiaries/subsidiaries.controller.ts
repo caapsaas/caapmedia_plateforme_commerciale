@@ -1,10 +1,28 @@
-import { Controller, Post, Body, Patch, Delete, Get, Query, Param, Request, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Patch,
+  Delete,
+  Get,
+  Query,
+  Param,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { SubsidiaryService } from '../subsidiaries/subsidiaries.service';
 import { JwtAuthGuard } from '../../auth/jwt/jwt.guard';
 import { RoleGuard } from '../../auth/role/role.guard';
 import { Roles } from '../../auth/role/role.decorator';
 import { SetMetadata } from '@nestjs/common';
-import { IsString, IsEmail, IsOptional, IsUUID, IsNumber, Min } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  IsOptional,
+  IsUUID,
+  IsNumber,
+  Min,
+} from 'class-validator';
 import { UserRole } from '@prisma/client';
 
 class CreateSubsidiaryDto {
@@ -114,7 +132,11 @@ export class SubsidiaryController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.HR_MANAGER)
   @Patch(':id')
-  async updateSubsidiary(@Param('id') id: string, @Body() dto: UpdateSubsidiaryDto, @Request() req) {
+  async updateSubsidiary(
+    @Param('id') id: string,
+    @Body() dto: UpdateSubsidiaryDto,
+    @Request() req,
+  ) {
     return this.subsidiaryService.updateSubsidiary(id, dto, req.user);
   }
 
@@ -135,7 +157,10 @@ export class SubsidiaryController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.HR_MANAGER)
   @Get('search')
-  async searchSubsidiaries(@Query() query: SearchSubsidiariesDto, @Request() req) {
+  async searchSubsidiaries(
+    @Query() query: SearchSubsidiariesDto,
+    @Request() req,
+  ) {
     return this.subsidiaryService.searchSubsidiaries(query, req.user);
   }
 }

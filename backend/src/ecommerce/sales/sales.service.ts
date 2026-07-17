@@ -1,9 +1,20 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateDirectSaleDto } from './dto/create-sale.dto';
 import { FindAllSalesDto, OrderPeriod } from './dto/find-all-sales.dto';
 import { Prisma, SaleStatus, UserRole } from '@prisma/client';
-import { sub, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
+import {
+  sub,
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+  subMonths,
+} from 'date-fns';
 
 @Injectable()
 export class SalesService {
@@ -19,7 +30,9 @@ export class SalesService {
     const { userId: salesRepId, subsidiaryId } = user;
 
     if (!items || items.length === 0) {
-      throw new BadRequestException('Une vente doit contenir au moins un article.');
+      throw new BadRequestException(
+        'Une vente doit contenir au moins un article.',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -32,32 +45,39 @@ export class SalesService {
       ]);
 
       if (!customer) {
-        throw new NotFoundException(`Client avec l'ID ${customerId} non trouvé.`);
+        throw new NotFoundException(
+          `Client avec l'ID ${customerId} non trouvé.`,
+        );
       }
 
       if (products.length !== productIds.length) {
-        throw new NotFoundException('Un ou plusieurs produits sont introuvables.');
+        throw new NotFoundException(
+          'Un ou plusieurs produits sont introuvables.',
+        );
       }
 
       const productMap = new Map(products.map((p) => [p.id, p]));
 
       // 2. Préparer les données pour la création des ventes
-      const salesToCreate: Prisma.SaleCreateManyInput[] = items.map(item => {
+      const salesToCreate: Prisma.SaleCreateManyInput[] = items.map((item) => {
         const product = productMap.get(item.productId);
         if (!product) {
-          throw new NotFoundException(`Produit avec ID ${item.productId} non trouvé.`);
+          throw new NotFoundException(
+            `Produit avec ID ${item.productId} non trouvé.`,
+          );
         }
 
         // Vérifier que tous les produits appartiennent à la filiale du caissier
         if (product.subsidiaryId !== subsidiaryId) {
-            throw new BadRequestException(`Le produit "${product.productName}" n'appartient pas à cette filiale.`);
+          throw new BadRequestException(
+            `Le produit "${product.productName}" n'appartient pas à cette filiale.`,
+          );
         }
 
         const unitPrice = product.sellingPrice;
         const subtotal = unitPrice.mul(item.quantity);
         const taxAmount = subtotal.mul(taxRate.rate);
         const totalPrice = subtotal.add(taxAmount);
-
 
         return {
           productName: product.productName,
@@ -92,7 +112,9 @@ export class SalesService {
         data: salesToCreate,
       });
 
-      return { message: `${result.count} vente(s) enregistrée(s) avec succès.` };
+      return {
+        message: `${result.count} vente(s) enregistrée(s) avec succès.`,
+      };
     });
   }
 
@@ -102,7 +124,14 @@ export class SalesService {
    * @param query Les paramètres de filtrage
    */
   async findAll(user: any, query: FindAllSalesDto) {
-    const { customerId, salesRepId, paymentMethod, period, startDate, endDate } = query;
+    const {
+      customerId,
+      salesRepId,
+      paymentMethod,
+      period,
+      startDate,
+      endDate,
+    } = query;
     const { subsidiaryId, userRole, userId } = user;
 
     const where: Prisma.SaleWhereInput = {
@@ -134,7 +163,10 @@ export class SalesService {
         dateFilter = { gte: startOfMonth(now), lte: endOfMonth(now) };
       } else if (period === OrderPeriod.LAST_MONTH) {
         const lastMonth = subMonths(now, 1);
-        dateFilter = { gte: startOfMonth(lastMonth), lte: endOfMonth(lastMonth) };
+        dateFilter = {
+          gte: startOfMonth(lastMonth),
+          lte: endOfMonth(lastMonth),
+        };
       } else if (period === OrderPeriod.LAST_7_DAYS) {
         dateFilter = { gte: sub(now, { days: 7 }) };
       } else if (period === OrderPeriod.LAST_30_DAYS) {
@@ -143,7 +175,9 @@ export class SalesService {
         dateFilter = { gte: startOfYear(now), lte: endOfYear(now) };
       } else if (period === OrderPeriod.CUSTOM) {
         if (!startDate || !endDate) {
-          throw new BadRequestException('Pour une période personnalisée, les dates de début et de fin sont requises.');
+          throw new BadRequestException(
+            'Pour une période personnalisée, les dates de début et de fin sont requises.',
+          );
         }
         dateFilter = { gte: new Date(startDate), lte: new Date(endDate) };
       }

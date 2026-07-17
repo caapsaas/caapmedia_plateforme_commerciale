@@ -7,6 +7,12 @@ import { ReportsModule } from './reports/reports.module';
 import { JournalsModule } from './journals/journals.module';
 
 @Module({
-  imports: [AccountsModule, EntriesModule, PeriodsModule, ReportsModule, JournalsModule]
+  imports: [
+    AccountsModule,
+    EntriesModule,
+    PeriodsModule,
+    ReportsModule,
+    JournalsModule,
+  ],
 })
 export class AccountingModule {}

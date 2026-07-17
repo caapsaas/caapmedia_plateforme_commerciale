@@ -21,7 +21,11 @@ function baseCookieOptions() {
   };
 }
 
-export function setAuthCookies(res: Response, accessToken: string, refreshToken: string): void {
+export function setAuthCookies(
+  res: Response,
+  accessToken: string,
+  refreshToken: string,
+): void {
   res.cookie(ACCESS_TOKEN_COOKIE, accessToken, {
     ...baseCookieOptions(),
     maxAge: ACCESS_TOKEN_MAX_AGE_MS,
@@ -36,8 +40,15 @@ export function setAuthCookies(res: Response, accessToken: string, refreshToken:
 
 export function clearAuthCookies(res: Response): void {
   res.clearCookie(ACCESS_TOKEN_COOKIE, { ...baseCookieOptions(), path: '/' });
-  res.clearCookie(REFRESH_TOKEN_COOKIE, { ...baseCookieOptions(), path: AUTH_ROUTES_PATH });
-  res.clearCookie(CSRF_TOKEN_COOKIE, { secure: baseCookieOptions().secure, sameSite: 'strict', path: '/' });
+  res.clearCookie(REFRESH_TOKEN_COOKIE, {
+    ...baseCookieOptions(),
+    path: AUTH_ROUTES_PATH,
+  });
+  res.clearCookie(CSRF_TOKEN_COOKIE, {
+    secure: baseCookieOptions().secure,
+    sameSite: 'strict',
+    path: '/',
+  });
 }
 
 /**

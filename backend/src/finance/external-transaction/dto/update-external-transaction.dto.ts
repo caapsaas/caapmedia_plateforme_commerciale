@@ -1,6 +1,17 @@
 import { PartialType } from '@nestjs/swagger';
-import { IsOptional, IsEnum, IsString, IsNumber, IsDateString } from 'class-validator';
-import { ExternalTransactionStatus, ExternalTransactionType, ExternalTransactionCategory, PaymentMethod } from '@prisma/client';
+import {
+  IsOptional,
+  IsEnum,
+  IsString,
+  IsNumber,
+  IsDateString,
+} from 'class-validator';
+import {
+  ExternalTransactionStatus,
+  ExternalTransactionType,
+  ExternalTransactionCategory,
+  PaymentMethod,
+} from '@prisma/client';
 
 export class UpdateExternalTransactionDto {
   @IsOptional()

@@ -17,11 +17,11 @@ export class PeriodFilterDto {
   @IsOptional()
   period: PeriodFilter = PeriodFilter.THIS_MONTH;
 
-  @ValidateIf(o => o.period === PeriodFilter.CUSTOM)
+  @ValidateIf((o) => o.period === PeriodFilter.CUSTOM)
   @IsDateString()
   startDate?: string;
 
-  @ValidateIf(o => o.period === PeriodFilter.CUSTOM)
+  @ValidateIf((o) => o.period === PeriodFilter.CUSTOM)
   @IsDateString()
   endDate?: string;
 }

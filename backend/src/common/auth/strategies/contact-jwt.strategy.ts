@@ -10,7 +10,10 @@ type JwtPayload = {
 };
 
 @Injectable()
-export class ContactJwtStrategy extends PassportStrategy(Strategy, 'jwt-contact') {
+export class ContactJwtStrategy extends PassportStrategy(
+  Strategy,
+  'jwt-contact',
+) {
   constructor(private prisma: PrismaService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -24,7 +27,9 @@ export class ContactJwtStrategy extends PassportStrategy(Strategy, 'jwt-contact'
     if (payload.type !== 'contact') {
       throw new UnauthorizedException('Invalid token type.');
     }
-    const contact = await this.prisma.contact.findUnique({ where: { id: payload.sub } });
+    const contact = await this.prisma.contact.findUnique({
+      where: { id: payload.sub },
+    });
 
     if (!contact) {
       throw new UnauthorizedException('Contact not found or access revoked.');

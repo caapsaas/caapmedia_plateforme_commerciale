@@ -26,9 +26,19 @@ export interface SubsidiaryScopeContext {
  * FINANCIAL_DIRECTOR sur les rapports financiers) sans dupliquer cette logique
  * partout - voir Doc/architecture-multi-filiale-auth-rbac.md section 2.2/4.2.
  */
-export function resolveScopeContext(user: ScopableUser, extraGlobalRoles: UserRole[] = []): SubsidiaryScopeContext {
-  const roles = user.roles && user.roles.length > 0 ? user.roles : user.role ? [user.role] : [];
-  const hasGlobalScope = roles.includes(UserRole.SUPER_ADMIN) || extraGlobalRoles.some((r) => roles.includes(r));
+export function resolveScopeContext(
+  user: ScopableUser,
+  extraGlobalRoles: UserRole[] = [],
+): SubsidiaryScopeContext {
+  const roles =
+    user.roles && user.roles.length > 0
+      ? user.roles
+      : user.role
+        ? [user.role]
+        : [];
+  const hasGlobalScope =
+    roles.includes(UserRole.SUPER_ADMIN) ||
+    extraGlobalRoles.some((r) => roles.includes(r));
   return { subsidiaryId: user.subsidiaryId, hasGlobalScope };
 }
 
@@ -48,7 +58,9 @@ export function withSubsidiaryScope<T extends Record<string, unknown>>(
   requestedSubsidiaryId?: string,
 ): T & { subsidiaryId?: string } {
   if (ctx.hasGlobalScope) {
-    return requestedSubsidiaryId ? { ...where, subsidiaryId: requestedSubsidiaryId } : where;
+    return requestedSubsidiaryId
+      ? { ...where, subsidiaryId: requestedSubsidiaryId }
+      : where;
   }
   return { ...where, subsidiaryId: ctx.subsidiaryId };
 }
@@ -60,7 +72,10 @@ export function withSubsidiaryScope<T extends Record<string, unknown>>(
  * Retourne `undefined` uniquement si l'utilisateur a un scope global ET n'a
  * pas demande de filiale precise (= vue consolidee).
  */
-export function resolveEffectiveSubsidiaryId(ctx: SubsidiaryScopeContext, requestedSubsidiaryId?: string): string | undefined {
+export function resolveEffectiveSubsidiaryId(
+  ctx: SubsidiaryScopeContext,
+  requestedSubsidiaryId?: string,
+): string | undefined {
   if (ctx.hasGlobalScope) {
     return requestedSubsidiaryId || undefined;
   }
@@ -72,7 +87,10 @@ export function resolveEffectiveSubsidiaryId(ctx: SubsidiaryScopeContext, reques
  * qu'elle appartient bien a la filiale de l'utilisateur, quand la requete
  * elle-meme n'a pas pu filtrer par subsidiaryId (lookup par id seul).
  */
-export function assertSubsidiaryAccess(entitySubsidiaryId: string, ctx: SubsidiaryScopeContext): void {
+export function assertSubsidiaryAccess(
+  entitySubsidiaryId: string,
+  ctx: SubsidiaryScopeContext,
+): void {
   if (!ctx.hasGlobalScope && entitySubsidiaryId !== ctx.subsidiaryId) {
     throw new ForbiddenException("Vous n'avez pas acces a cette ressource.");
   }

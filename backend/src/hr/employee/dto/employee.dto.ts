@@ -1,7 +1,25 @@
-import { IsString, IsDate, IsEmail, IsEnum, IsDecimal, IsOptional, IsArray, Min, Max, Length, IsUUID, IsNumber } from 'class-validator';
+import {
+  IsString,
+  IsDate,
+  IsEmail,
+  IsEnum,
+  IsDecimal,
+  IsOptional,
+  IsArray,
+  Min,
+  Max,
+  Length,
+  IsUUID,
+  IsNumber,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
-import { Gender, ContractType, EmployeeStatus, PaymentMethod } from '@prisma/client'; // Assumons que ces enums sont générés par Prisma
+import {
+  Gender,
+  ContractType,
+  EmployeeStatus,
+  PaymentMethod,
+} from '@prisma/client'; // Assumons que ces enums sont générés par Prisma
 
 export class LeaveBalanceDto {
   @IsNumber()
@@ -106,7 +124,6 @@ export class CreateEmployeeDto {
   @IsUUID()
   managerId?: string;
 
-  
   @IsOptional()
   @IsUUID()
   subsidiaryId?: string;

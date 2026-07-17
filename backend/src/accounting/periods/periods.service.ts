@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 
@@ -51,7 +55,8 @@ export class PeriodsService {
       where: { id, subsidiaryId: user.subsidiaryId },
     });
     if (!fy) throw new NotFoundException(`Exercice introuvable.`);
-    if (fy.isClosed) throw new BadRequestException(`Cet exercice est déjà clôturé.`);
+    if (fy.isClosed)
+      throw new BadRequestException(`Cet exercice est déjà clôturé.`);
 
     // Vérifier qu'il n'y a plus d'écritures en DRAFT
     const drafts = await this.prisma.journalEntry.count({

@@ -9,7 +9,9 @@ describe('AttendancerecordController', () => {
       controllers: [AttendancerecordController],
     }).compile();
 
-    controller = module.get<AttendancerecordController>(AttendancerecordController);
+    controller = module.get<AttendancerecordController>(
+      AttendancerecordController,
+    );
   });
 
   it('should be defined', () => {

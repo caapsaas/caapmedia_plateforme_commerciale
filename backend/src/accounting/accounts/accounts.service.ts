@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { AccountingAccountType, Prisma } from '@prisma/client';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
@@ -15,8 +19,12 @@ export const SYSCOHADA_SEED_ACCOUNTS = [
   // CLASSE 1 — CAPITAUX
   { num: '101', name: 'Capital social', type: 'EQUITY' },
   { num: '111', name: 'Réserve légale', type: 'EQUITY' },
-  { num: '120', name: 'Résultat net de l\'exercice', type: 'EQUITY' },
-  { num: '162', name: 'Emprunts auprès des établissements de crédit', type: 'LIABILITY' },
+  { num: '120', name: "Résultat net de l'exercice", type: 'EQUITY' },
+  {
+    num: '162',
+    name: 'Emprunts auprès des établissements de crédit',
+    type: 'LIABILITY',
+  },
   { num: '163', name: 'Autres emprunts à long terme', type: 'LIABILITY' },
   // CLASSE 2 — IMMOBILISATIONS
   { num: '211', name: 'Terrains', type: 'ASSET' },
@@ -29,7 +37,11 @@ export const SYSCOHADA_SEED_ACCOUNTS = [
   { num: '32', name: 'Stocks de matières premières', type: 'ASSET' },
   // CLASSE 4 — TIERS
   { num: '401', name: 'Fournisseurs', type: 'LIABILITY' },
-  { num: '408', name: 'Fournisseurs — Factures non parvenues', type: 'LIABILITY' },
+  {
+    num: '408',
+    name: 'Fournisseurs — Factures non parvenues',
+    type: 'LIABILITY',
+  },
   { num: '411', name: 'Clients', type: 'ASSET' },
   { num: '418', name: 'Clients — Produits à recevoir', type: 'ASSET' },
   { num: '421', name: 'Personnel — Rémunérations dues', type: 'LIABILITY' },
@@ -38,8 +50,8 @@ export const SYSCOHADA_SEED_ACCOUNTS = [
   { num: '4451', name: 'TVA déductible sur achats', type: 'ASSET' },
   { num: '4452', name: 'TVA déductible sur services', type: 'ASSET' },
   { num: '447', name: 'Impôt sur les sociétés (IS)', type: 'LIABILITY' },
-  { num: '471', name: 'Produits constatés d\'avance', type: 'LIABILITY' },
-  { num: '481', name: 'Charges constatées d\'avance', type: 'ASSET' },
+  { num: '471', name: "Produits constatés d'avance", type: 'LIABILITY' },
+  { num: '481', name: "Charges constatées d'avance", type: 'ASSET' },
   // CLASSE 5 — TRÉSORERIE
   { num: '521', name: 'Banques comptes courants', type: 'ASSET' },
   { num: '522', name: 'Banques — Découverts', type: 'LIABILITY' },
@@ -48,14 +60,22 @@ export const SYSCOHADA_SEED_ACCOUNTS = [
   // CLASSE 6 — CHARGES
   { num: '601', name: 'Achats de marchandises', type: 'EXPENSE' },
   { num: '602', name: 'Achats de matières premières', type: 'EXPENSE' },
-  { num: '604', name: 'Achats d\'emballages', type: 'EXPENSE' },
+  { num: '604', name: "Achats d'emballages", type: 'EXPENSE' },
   { num: '606', name: 'Achats de fournitures de bureau', type: 'EXPENSE' },
   { num: '613', name: 'Locations et charges locatives', type: 'EXPENSE' },
   { num: '614', name: 'Charges locatives et de copropriété', type: 'EXPENSE' },
   { num: '621', name: 'Personnel extérieur', type: 'EXPENSE' },
-  { num: '624', name: 'Transport de marchandises et déplacements', type: 'EXPENSE' },
+  {
+    num: '624',
+    name: 'Transport de marchandises et déplacements',
+    type: 'EXPENSE',
+  },
   { num: '625', name: 'Déplacements, missions et réceptions', type: 'EXPENSE' },
-  { num: '627', name: 'Publicité, publication, relations publiques', type: 'EXPENSE' },
+  {
+    num: '627',
+    name: 'Publicité, publication, relations publiques',
+    type: 'EXPENSE',
+  },
   { num: '628', name: 'Divers frais et charges', type: 'EXPENSE' },
   { num: '631', name: 'Impôts et taxes (hors IS)', type: 'EXPENSE' },
   { num: '641', name: 'Appointements et salaires', type: 'EXPENSE' },
@@ -65,7 +85,11 @@ export const SYSCOHADA_SEED_ACCOUNTS = [
   { num: '651', name: 'Pertes sur créances irrécouvrables', type: 'EXPENSE' },
   { num: '659', name: 'Charges diverses', type: 'EXPENSE' },
   { num: '661', name: 'Intérêts sur emprunts', type: 'EXPENSE' },
-  { num: '671', name: 'Valeurs comptables des cessions d\'actif', type: 'EXPENSE' },
+  {
+    num: '671',
+    name: "Valeurs comptables des cessions d'actif",
+    type: 'EXPENSE',
+  },
   { num: '681', name: 'Dotations aux amortissements', type: 'EXPENSE' },
   { num: '691', name: 'Impôt sur les bénéfices (IS — 30%)', type: 'EXPENSE' },
   // CLASSE 7 — PRODUITS
@@ -73,10 +97,14 @@ export const SYSCOHADA_SEED_ACCOUNTS = [
   { num: '706', name: 'Prestations de services', type: 'REVENUE' },
   { num: '707', name: 'Produits des activités annexes', type: 'REVENUE' },
   { num: '721', name: 'Production immobilisée', type: 'REVENUE' },
-  { num: '741', name: 'Subventions d\'exploitation', type: 'REVENUE' },
+  { num: '741', name: "Subventions d'exploitation", type: 'REVENUE' },
   { num: '754', name: 'Revenus des créances financières', type: 'REVENUE' },
-  { num: '771', name: 'Produits de cession d\'actif', type: 'REVENUE' },
-  { num: '781', name: 'Reprises sur provisions et dépréciations', type: 'REVENUE' },
+  { num: '771', name: "Produits de cession d'actif", type: 'REVENUE' },
+  {
+    num: '781',
+    name: 'Reprises sur provisions et dépréciations',
+    type: 'REVENUE',
+  },
 ];
 
 @Injectable()
@@ -105,9 +133,15 @@ export class AccountsService {
 
   async create(dto: CreateAccountDto, user: JwtUser) {
     const exists = await this.prisma.accountingAccount.findFirst({
-      where: { accountNumber: dto.accountNumber, subsidiaryId: user.subsidiaryId },
+      where: {
+        accountNumber: dto.accountNumber,
+        subsidiaryId: user.subsidiaryId,
+      },
     });
-    if (exists) throw new ConflictException(`Le compte ${dto.accountNumber} existe déjà.`);
+    if (exists)
+      throw new ConflictException(
+        `Le compte ${dto.accountNumber} existe déjà.`,
+      );
 
     return this.prisma.accountingAccount.create({
       data: { ...dto, subsidiaryId: user.subsidiaryId },
@@ -146,6 +180,9 @@ export class AccountsService {
 
   async deactivate(id: string, user: JwtUser) {
     await this.findOne(id, user);
-    return this.prisma.accountingAccount.update({ where: { id }, data: { isActive: false } });
+    return this.prisma.accountingAccount.update({
+      where: { id },
+      data: { isActive: false },
+    });
   }
 }

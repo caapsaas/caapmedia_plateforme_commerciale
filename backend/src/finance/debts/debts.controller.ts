@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  UseGuards,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { DebtsService } from './debts.service';
 import type { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
@@ -16,7 +25,10 @@ export class DebtsController {
 
   // --- Supplier Debts Routes ---
   @Post('supplier')
-  createSupplierDebt(@Body() createDto: CreateSupplierDebtDto, @CurrentUser() user: JwtUser) {
+  createSupplierDebt(
+    @Body() createDto: CreateSupplierDebtDto,
+    @CurrentUser() user: JwtUser,
+  ) {
     return this.debtsService.createSupplierDebt(createDto, user);
   }
 
@@ -26,13 +38,20 @@ export class DebtsController {
   }
 
   @Post('supplier/:id/pay')
-  paySupplierDebt(@Param('id', ParseUUIDPipe) id: string, @Body() payDto: PaySupplierDebtDto, @CurrentUser() user: JwtUser) {
+  paySupplierDebt(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() payDto: PaySupplierDebtDto,
+    @CurrentUser() user: JwtUser,
+  ) {
     return this.debtsService.paySupplierDebt(id, payDto, user);
   }
 
   // --- Long-Term Debts Routes ---
   @Post('long-term')
-  createLongTermDebt(@Body() createDto: CreateLongTermDebtDto, @CurrentUser() user: JwtUser) {
+  createLongTermDebt(
+    @Body() createDto: CreateLongTermDebtDto,
+    @CurrentUser() user: JwtUser,
+  ) {
     return this.debtsService.createLongTermDebt(createDto, user);
   }
 
@@ -42,7 +61,11 @@ export class DebtsController {
   }
 
   @Patch('long-term/:id')
-  updateLongTermDebt(@Param('id', ParseUUIDPipe) id: string, @Body() updateDto: UpdateLongTermDebtDto, @CurrentUser() user: JwtUser) {
+  updateLongTermDebt(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateDto: UpdateLongTermDebtDto,
+    @CurrentUser() user: JwtUser,
+  ) {
     return this.debtsService.updateLongTermDebt(id, updateDto, user);
   }
 }

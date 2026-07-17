@@ -46,7 +46,10 @@ export class AuthAuditService {
         },
       });
     } catch (error) {
-      this.logger.error(`Echec d'ecriture du journal d'audit pour ${event}: ${error}`, 'AuthAuditService');
+      this.logger.error(
+        `Echec d'ecriture du journal d'audit pour ${event}: ${error}`,
+        'AuthAuditService',
+      );
     }
   }
 
@@ -61,12 +64,19 @@ export class AuthAuditService {
 
     const where: Prisma.AuthAuditLogWhereInput = {
       ...(query.userId ? { userId: query.userId } : {}),
-      ...(query.email ? { email: { contains: query.email, mode: 'insensitive' } } : {}),
+      ...(query.email
+        ? { email: { contains: query.email, mode: 'insensitive' } }
+        : {}),
       ...(query.event ? { event: query.event } : {}),
     };
 
     const [entries, total] = await Promise.all([
-      this.prisma.authAuditLog.findMany({ where, orderBy: { createdAt: 'desc' }, take, skip }),
+      this.prisma.authAuditLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take,
+        skip,
+      }),
       this.prisma.authAuditLog.count({ where }),
     ]);
 

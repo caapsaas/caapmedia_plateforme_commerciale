@@ -4,6 +4,6 @@ import { NewsletterService } from './newsletter.service';
 
 @Module({
   controllers: [NewsletterController],
-  providers: [NewsletterService]
+  providers: [NewsletterService],
 })
 export class NewsletterModule {}

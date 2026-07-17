@@ -15,7 +15,6 @@ import { OrderSource } from '@prisma/client';
 import { OrderStatus, CustomerPaymentMethod } from '@prisma/client';
 import { ProductionStatus } from '@prisma/client';
 
-
 class CreateProductOptionDto {
   @IsString()
   @IsNotEmpty()
@@ -126,5 +125,5 @@ export class UpdateOrderStatusDto {
 export class updateProductionStatusDto {
   @IsEnum(ProductionStatus)
   @IsNotEmpty()
-  productionStatus: ProductionStatus
+  productionStatus: ProductionStatus;
 }

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
@@ -15,7 +19,11 @@ export class ExpensesService {
   ) {}
 
   async create(createExpenseDto: CreateExpenseDto, user: JwtUser) {
-    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR], 'You do not have permission to create an expense.');
+    checkRole(
+      user,
+      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
+      'You do not have permission to create an expense.',
+    );
 
     const record = await this.prisma.expenseRecord.create({
       data: {
@@ -42,7 +50,11 @@ export class ExpensesService {
   }
 
   async findAll(user: JwtUser) {
-    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER], 'You do not have permission to view expenses.');
+    checkRole(
+      user,
+      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER],
+      'You do not have permission to view expenses.',
+    );
 
     return this.prisma.expenseRecord.findMany({
       where: {
@@ -65,7 +77,9 @@ export class ExpensesService {
 
     // Vérifie que la charge appartient à la filiale de l'utilisateur
     if (expense.subsidiaryId !== user.subsidiaryId) {
-      throw new ForbiddenException('You do not have permission to view this expense.');
+      throw new ForbiddenException(
+        'You do not have permission to view this expense.',
+      );
     }
 
     return expense;
@@ -73,21 +87,31 @@ export class ExpensesService {
 
   async update(id: string, updateExpenseDto: UpdateExpenseDto, user: JwtUser) {
     await this.findOne(id, user);
-    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR], 'You do not have permission to update an expense.');
+    checkRole(
+      user,
+      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
+      'You do not have permission to update an expense.',
+    );
 
     return this.prisma.expenseRecord.update({
       where: { id },
       data: {
         ...updateExpenseDto,
         amount: updateExpenseDto.amount,
-        expenseDate: updateExpenseDto.expenseDate ? new Date(updateExpenseDto.expenseDate) : undefined,
+        expenseDate: updateExpenseDto.expenseDate
+          ? new Date(updateExpenseDto.expenseDate)
+          : undefined,
       },
     });
   }
 
   async remove(id: string, user: JwtUser) {
     await this.findOne(id, user);
-    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR], 'You do not have permission to delete an expense.');
+    checkRole(
+      user,
+      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
+      'You do not have permission to delete an expense.',
+    );
 
     return this.prisma.expenseRecord.delete({
       where: { id },

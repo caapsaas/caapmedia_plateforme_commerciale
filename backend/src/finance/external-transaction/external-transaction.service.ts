@@ -1,14 +1,22 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { CreateExternalTransactionDto } from './dto/create-external-transaction.dto';
 import { UpdateExternalTransactionDto } from './dto/update-external-transaction.dto';
-import { ExternalTransactionStatus, ExternalTransactionType, ExternalTransactionCategory, PaymentMethod, UserRole } from '@prisma/client';
+import {
+  ExternalTransactionStatus,
+  ExternalTransactionType,
+  ExternalTransactionCategory,
+  PaymentMethod,
+  UserRole,
+} from '@prisma/client';
 
 @Injectable()
 export class ExternalTransactionService {
-  constructor(
-    private prisma: PrismaService
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   // Utilitaire pour formater les montants
   private formatAmount(amount: number): string {
@@ -22,33 +30,47 @@ export class ExternalTransactionService {
 
   async create(createDto: CreateExternalTransactionDto) {
     try {
-      console.log('Creating external transaction with DTO:', JSON.stringify(createDto, null, 2));
-      console.log('Available ExternalTransactionType values:', Object.values(ExternalTransactionType));
-      console.log('Available ExternalTransactionCategory values:', Object.values(ExternalTransactionCategory));
-      console.log('Available PaymentMethod values:', Object.values(PaymentMethod));
-      
-      const transaction = await this.prisma.externalFinancialTransaction.create({
-        data: {
-          ...createDto,
-          status: ExternalTransactionStatus.DRAFT,
-          transactionDate: new Date(createDto.transactionDate),
-        },
-        include: {
-          creator: {
-            select: {
-              id: true,
-              userName: true,
-              email: true,
+      console.log(
+        'Creating external transaction with DTO:',
+        JSON.stringify(createDto, null, 2),
+      );
+      console.log(
+        'Available ExternalTransactionType values:',
+        Object.values(ExternalTransactionType),
+      );
+      console.log(
+        'Available ExternalTransactionCategory values:',
+        Object.values(ExternalTransactionCategory),
+      );
+      console.log(
+        'Available PaymentMethod values:',
+        Object.values(PaymentMethod),
+      );
+
+      const transaction = await this.prisma.externalFinancialTransaction.create(
+        {
+          data: {
+            ...createDto,
+            status: ExternalTransactionStatus.DRAFT,
+            transactionDate: new Date(createDto.transactionDate),
+          },
+          include: {
+            creator: {
+              select: {
+                id: true,
+                userName: true,
+                email: true,
+              },
+            },
+            subsidiary: {
+              select: {
+                id: true,
+                subsidiaryName: true,
+              },
             },
           },
-          subsidiary: {
-            select: {
-              id: true,
-              subsidiaryName: true,
-            },
-          },
         },
-      });
+      );
 
       // Envoyer une notification aux admins et directeurs financiers
       // await this.notificationsService.sendAdminNotification({
@@ -73,51 +95,66 @@ export class ExternalTransactionService {
         message: error.message,
         meta: error.meta,
         cause: error.cause,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       if (error.code === 'P2002') {
-        throw new BadRequestException('Erreur de contrainte unique: une transaction avec ces données existe déjà.');
+        throw new BadRequestException(
+          'Erreur de contrainte unique: une transaction avec ces données existe déjà.',
+        );
       }
       if (error.code === 'P2025') {
-        throw new BadRequestException('Erreur: enregistrement non trouvé. Vérifiez que l\'utilisateur et la filiale existent.');
+        throw new BadRequestException(
+          "Erreur: enregistrement non trouvé. Vérifiez que l'utilisateur et la filiale existent.",
+        );
       }
-      
+
       // Gérer les erreurs de validation de données
       if (error.code === 'P2003' || error.code === 'P2004') {
-        throw new BadRequestException('Erreur de clé étrangère: vérifiez que l\'utilisateur et la filiale existent.');
-      }   
-        
+        throw new BadRequestException(
+          "Erreur de clé étrangère: vérifiez que l'utilisateur et la filiale existent.",
+        );
+      }
+
       // Erreur de validation - capturer le message complet
       if (error.message) {
         const fullMessage = error.message;
         console.error('Full validation error message:', fullMessage);
-        
+
         if (fullMessage.includes('Invalid value')) {
           // Extraire la première ligne significative
-          const lines = fullMessage.split('\n').filter(line => line.trim());
-          const relevantLine = lines.find(line => 
-            line.includes('Invalid value') || 
-            line.includes('Got') || 
-            line.includes('Expected')
-          ) || lines[0];
-          
-          throw new BadRequestException(`Erreur de validation: ${relevantLine}`);
+          const lines = fullMessage.split('\n').filter((line) => line.trim());
+          const relevantLine =
+            lines.find(
+              (line) =>
+                line.includes('Invalid value') ||
+                line.includes('Got') ||
+                line.includes('Expected'),
+            ) || lines[0];
+
+          throw new BadRequestException(
+            `Erreur de validation: ${relevantLine}`,
+          );
         }
       }
-      
-      throw new BadRequestException(`Erreur lors de la création de la transaction: ${error.message}`);
+
+      throw new BadRequestException(
+        `Erreur lors de la création de la transaction: ${error.message}`,
+      );
     }
   }
 
-  async findAll(subsidiaryId: string, filters?: {
-    type?: string;
-    category?: string;
-    status?: ExternalTransactionStatus;
-    startDate?: string;
-    endDate?: string;
-    search?: string;
-  }) {
+  async findAll(
+    subsidiaryId: string,
+    filters?: {
+      type?: string;
+      category?: string;
+      status?: ExternalTransactionStatus;
+      startDate?: string;
+      endDate?: string;
+      search?: string;
+    },
+  ) {
     const where: any = {
       subsidiaryId,
     };
@@ -151,50 +188,52 @@ export class ExternalTransactionService {
       ];
     }
 
-    const transactions = await this.prisma.externalFinancialTransaction.findMany({
-      where,
-      orderBy: {
-        transactionDate: 'desc',
-      },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            userName: true,
-            email: true,
+    const transactions =
+      await this.prisma.externalFinancialTransaction.findMany({
+        where,
+        orderBy: {
+          transactionDate: 'desc',
+        },
+        include: {
+          creator: {
+            select: {
+              id: true,
+              userName: true,
+              email: true,
+            },
+          },
+          subsidiary: {
+            select: {
+              id: true,
+              subsidiaryName: true,
+            },
           },
         },
-        subsidiary: {
-          select: {
-            id: true,
-            subsidiaryName: true,
-          },
-        },
-      },
-    });
+      });
 
     return transactions;
   }
 
   async findOne(id: string) {
-    const transaction = await this.prisma.externalFinancialTransaction.findUnique({
-      where: { id },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            userName: true,
-            email: true,
+    const transaction =
+      await this.prisma.externalFinancialTransaction.findUnique({
+        where: { id },
+        include: {
+          creator: {
+            select: {
+              id: true,
+              userName: true,
+              email: true,
+            },
+          },
+          subsidiary: {
+            select: {
+              id: true,
+              subsidiaryName: true,
+            },
           },
         },
-        subsidiary: {
-          select: {
-            id: true,
-            subsidiaryName: true,
-          },
-        },
-      },
-    });
+      });
 
     if (!transaction) {
       throw new NotFoundException(`Transaction avec l'ID ${id} non trouvée`);
@@ -208,37 +247,40 @@ export class ExternalTransactionService {
 
     // Empêcher la modification d'une transaction validée
     if (existingTransaction.status === ExternalTransactionStatus.VALIDATED) {
-      throw new BadRequestException('Impossible de modifier une transaction validée');
+      throw new BadRequestException(
+        'Impossible de modifier une transaction validée',
+      );
     }
 
     // Remove fields that shouldn't be updated
     const { createdBy, subsidiaryId, ...validUpdateData } = updateDto as any;
-    
+
     const updateData: any = { ...validUpdateData };
-    
+
     if (updateDto.transactionDate) {
       updateData.transactionDate = new Date(updateDto.transactionDate);
     }
 
-    const updatedTransaction = await this.prisma.externalFinancialTransaction.update({
-      where: { id },
-      data: updateData,
-      include: {
-        creator: {
-          select: {
-            id: true,
-            userName: true,
-            email: true,
+    const updatedTransaction =
+      await this.prisma.externalFinancialTransaction.update({
+        where: { id },
+        data: updateData,
+        include: {
+          creator: {
+            select: {
+              id: true,
+              userName: true,
+              email: true,
+            },
+          },
+          subsidiary: {
+            select: {
+              id: true,
+              subsidiaryName: true,
+            },
           },
         },
-        subsidiary: {
-          select: {
-            id: true,
-            subsidiaryName: true,
-          },
-        },
-      },
-    });
+      });
 
     // Envoyer une notification aux admins et directeurs financiers
     // await this.notificationsService.sendAdminNotification({
@@ -265,11 +307,18 @@ export class ExternalTransactionService {
     }
 
     if (transaction.status === ExternalTransactionStatus.CANCELLED) {
-      throw new BadRequestException('Impossible de valider une transaction annulée');
+      throw new BadRequestException(
+        'Impossible de valider une transaction annulée',
+      );
     }
 
     // Vérifier si l'utilisateur qui valide est un directeur financier
-    let validatorUser: { id: string; userName: string | null; email: string; userRole: UserRole } | null = null;
+    let validatorUser: {
+      id: string;
+      userName: string | null;
+      email: string;
+      userRole: UserRole;
+    } | null = null;
     if (validatorUserId) {
       validatorUser = await this.prisma.user.findUnique({
         where: { id: validatorUserId },
@@ -282,27 +331,28 @@ export class ExternalTransactionService {
       });
     }
 
-    const validatedTransaction = await this.prisma.externalFinancialTransaction.update({
-      where: { id },
-      data: {
-        status: ExternalTransactionStatus.VALIDATED,
-      },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            userName: true,
-            email: true,
+    const validatedTransaction =
+      await this.prisma.externalFinancialTransaction.update({
+        where: { id },
+        data: {
+          status: ExternalTransactionStatus.VALIDATED,
+        },
+        include: {
+          creator: {
+            select: {
+              id: true,
+              userName: true,
+              email: true,
+            },
+          },
+          subsidiary: {
+            select: {
+              id: true,
+              subsidiaryName: true,
+            },
           },
         },
-        subsidiary: {
-          select: {
-            id: true,
-            subsidiaryName: true,
-          },
-        },
-      },
-    });
+      });
 
     // Si un directeur financier a validé la transaction, notifier uniquement les administrateurs
     // if (validatorUser && validatorUser.userRole === 'FINANCIAL_DIRECTOR') {
@@ -345,27 +395,28 @@ export class ExternalTransactionService {
       throw new BadRequestException('Cette transaction est déjà annulée');
     }
 
-    const cancelledTransaction = await this.prisma.externalFinancialTransaction.update({
-      where: { id },
-      data: {
-        status: ExternalTransactionStatus.CANCELLED,
-      },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            userName: true,
-            email: true,
+    const cancelledTransaction =
+      await this.prisma.externalFinancialTransaction.update({
+        where: { id },
+        data: {
+          status: ExternalTransactionStatus.CANCELLED,
+        },
+        include: {
+          creator: {
+            select: {
+              id: true,
+              userName: true,
+              email: true,
+            },
+          },
+          subsidiary: {
+            select: {
+              id: true,
+              subsidiaryName: true,
+            },
           },
         },
-        subsidiary: {
-          select: {
-            id: true,
-            subsidiaryName: true,
-          },
-        },
-      },
-    });
+      });
 
     // Envoyer une notification aux admins et directeurs financiers
     // await this.notificationsService.sendAdminNotification({
@@ -388,7 +439,9 @@ export class ExternalTransactionService {
     const transaction = await this.findOne(id);
 
     if (transaction.status === ExternalTransactionStatus.VALIDATED) {
-      throw new BadRequestException('Impossible de supprimer une transaction validée');
+      throw new BadRequestException(
+        'Impossible de supprimer une transaction validée',
+      );
     }
 
     // Notifications désactivées - suppression silencieuse
@@ -401,44 +454,54 @@ export class ExternalTransactionService {
   }
 
   // Fonctions spéciales pour les administrateurs et directeurs financiers
-  async adminUpdate(id: string, updateDto: UpdateExternalTransactionDto, adminUserId: string) {
+  async adminUpdate(
+    id: string,
+    updateDto: UpdateExternalTransactionDto,
+    adminUserId: string,
+  ) {
     const existingTransaction = await this.findOne(id);
 
     // Vérifier que l'utilisateur est un administrateur ou un directeur financier
     const adminUser = await this.prisma.user.findUnique({
       where: { id: adminUserId },
-      select: { userRole: true }
+      select: { userRole: true },
     });
 
-    if (!adminUser || !['ADMIN', 'FINANCIAL_DIRECTOR'].includes(adminUser.userRole)) {
-      throw new BadRequestException('Accès refusé: réservé aux administrateurs et directeurs financiers');
+    if (
+      !adminUser ||
+      !['ADMIN', 'FINANCIAL_DIRECTOR'].includes(adminUser.userRole)
+    ) {
+      throw new BadRequestException(
+        'Accès refusé: réservé aux administrateurs et directeurs financiers',
+      );
     }
 
     const updateData: any = { ...updateDto };
-    
+
     if (updateDto.transactionDate) {
       updateData.transactionDate = new Date(updateDto.transactionDate);
     }
 
-    const updatedTransaction = await this.prisma.externalFinancialTransaction.update({
-      where: { id },
-      data: updateData,
-      include: {
-        creator: {
-          select: {
-            id: true,
-            userName: true,
-            email: true,
+    const updatedTransaction =
+      await this.prisma.externalFinancialTransaction.update({
+        where: { id },
+        data: updateData,
+        include: {
+          creator: {
+            select: {
+              id: true,
+              userName: true,
+              email: true,
+            },
+          },
+          subsidiary: {
+            select: {
+              id: true,
+              subsidiaryName: true,
+            },
           },
         },
-        subsidiary: {
-          select: {
-            id: true,
-            subsidiaryName: true,
-          },
-        },
-      },
-    });
+      });
 
     // Notifications désactivées
 
@@ -451,11 +514,16 @@ export class ExternalTransactionService {
     // Vérifier que l'utilisateur est un administrateur ou un directeur financier
     const adminUser = await this.prisma.user.findUnique({
       where: { id: adminUserId },
-      select: { userRole: true }
+      select: { userRole: true },
     });
 
-    if (!adminUser || !['ADMIN', 'FINANCIAL_DIRECTOR'].includes(adminUser.userRole)) {
-      throw new BadRequestException('Accès refusé: réservé aux administrateurs et directeurs financiers');
+    if (
+      !adminUser ||
+      !['ADMIN', 'FINANCIAL_DIRECTOR'].includes(adminUser.userRole)
+    ) {
+      throw new BadRequestException(
+        'Accès refusé: réservé aux administrateurs et directeurs financiers',
+      );
     }
 
     // Notifications désactivées - suppression silencieuse
@@ -464,7 +532,9 @@ export class ExternalTransactionService {
       where: { id },
     });
 
-    return { message: 'Transaction validée supprimée avec succès par l\'administrateur' };
+    return {
+      message: "Transaction validée supprimée avec succès par l'administrateur",
+    };
   }
 
   async getStatistics(subsidiaryId: string) {
@@ -518,17 +588,17 @@ export class ExternalTransactionService {
     return {
       totalTransactions,
       totalAmount: totalAmount._sum.amount || 0,
-      transactionsByType: transactionsByType.map(item => ({
+      transactionsByType: transactionsByType.map((item) => ({
         type: item.externalTransactionType,
         count: item._count,
         amount: item._sum.amount || 0,
       })),
-      transactionsByCategory: transactionsByCategory.map(item => ({
+      transactionsByCategory: transactionsByCategory.map((item) => ({
         category: item.externalTransactionCategory,
         count: item._count,
         amount: item._sum.amount || 0,
       })),
-      transactionsByStatus: transactionsByStatus.map(item => ({
+      transactionsByStatus: transactionsByStatus.map((item) => ({
         status: item.status,
         count: item._count,
       })),

@@ -1,4 +1,12 @@
-import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 
 export class CreateTaxDto {
@@ -21,4 +29,3 @@ export class CreateTaxDto {
 }
 
 export class UpdateTaxDto extends PartialType(CreateTaxDto) {}
-

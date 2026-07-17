@@ -1,6 +1,14 @@
-import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
-import { CreatePayrollRecordDto, UpdatePayrollRecordDto } from './dto/payrollrecord.dto';
+import {
+  CreatePayrollRecordDto,
+  UpdatePayrollRecordDto,
+} from './dto/payrollrecord.dto';
 import { PayrollRecord, EmployeeStatus, PayrollStatus } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
@@ -24,10 +32,17 @@ export class PayrollRecordService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreatePayrollRecordDto, employeeId: string, subsidiaryId: string): Promise<PayrollRecord> {
-    this.logger.log(`Creating payroll record for employee ${employeeId} in subsidiary ${subsidiaryId}`);
+  async create(
+    dto: CreatePayrollRecordDto,
+    employeeId: string,
+    subsidiaryId: string,
+  ): Promise<PayrollRecord> {
+    this.logger.log(
+      `Creating payroll record for employee ${employeeId} in subsidiary ${subsidiaryId}`,
+    );
     // Calcul netSalary si pas fourni : gross - deductions
-    const netSalary = dto.netSalary ?? (Number(dto.grossSalary) - Number(dto.deductions));
+    const netSalary =
+      dto.netSalary ?? Number(dto.grossSalary) - Number(dto.deductions);
 
     return this.prisma.payrollRecord.create({
       data: {
@@ -49,12 +64,21 @@ export class PayrollRecordService {
   async findAll(subsidiaryId: string): Promise<PayrollRecordWithSalary[]> {
     const records = await this.prisma.payrollRecord.findMany({
       where: { subsidiaryId },
-      include: { employee: { select: { firstName: true, lastName: true, baseSalary: true, bonus: true } } },
+      include: {
+        employee: {
+          select: {
+            firstName: true,
+            lastName: true,
+            baseSalary: true,
+            bonus: true,
+          },
+        },
+      },
       orderBy: { payrollPeriod: 'desc' },
     });
 
     // Transformer les données pour inclure baseSalary et bonus de l'employé
-    return records.map(record => ({
+    return records.map((record) => ({
       ...record,
       baseSalary: record.employee.baseSalary,
       bonus: record.employee.bonus,
@@ -78,7 +102,10 @@ export class PayrollRecordService {
     };
   }
 
-  async update(id: string, dto: UpdatePayrollRecordDto): Promise<PayrollRecord> {
+  async update(
+    id: string,
+    dto: UpdatePayrollRecordDto,
+  ): Promise<PayrollRecord> {
     await this.findOne(id); // Vérifie l'existence
     return this.prisma.payrollRecord.update({
       where: { id },
@@ -96,20 +123,23 @@ export class PayrollRecordService {
    * @param id L'ID de la fiche de paie
    * @param signature La signature (texte ou base64)
    */
-  async signPayrollRecord(id: string, signature: string): Promise<PayrollRecordWithSalary> {
+  async signPayrollRecord(
+    id: string,
+    signature: string,
+  ): Promise<PayrollRecordWithSalary> {
     this.logger.log(`Signing payroll record ${id}`);
-    
+
     const record = await this.findOne(id); // Utilise findOne transformé
-    
+
     const updatedRecord = await this.prisma.payrollRecord.update({
       where: { id },
-      data: { 
+      data: {
         signature,
-        status: PayrollStatus.PAID
+        status: PayrollStatus.PAID,
       },
       include: { employee: true },
     });
-    
+
     // Retourner les données transformées avec baseSalary et bonus
     return {
       ...updatedRecord,
@@ -124,8 +154,13 @@ export class PayrollRecordService {
    * @param subsidiaryId L'ID de la filiale.
    * @param period La période de paie (ex: "YYYY-MM").
    */
-  async processPayroll(subsidiaryId: string, period: string): Promise<{ count: number }> {
-    this.logger.log(`Processing payroll for subsidiary ${subsidiaryId} for period ${period}`);
+  async processPayroll(
+    subsidiaryId: string,
+    period: string,
+  ): Promise<{ count: number }> {
+    this.logger.log(
+      `Processing payroll for subsidiary ${subsidiaryId} for period ${period}`,
+    );
 
     // 1. Récupérer les employés actifs de la filiale
     const activeEmployees = await this.prisma.employee.findMany({
@@ -136,7 +171,9 @@ export class PayrollRecordService {
     });
 
     if (activeEmployees.length === 0) {
-      this.logger.warn(`No active employees found for subsidiary ${subsidiaryId}.`);
+      this.logger.warn(
+        `No active employees found for subsidiary ${subsidiaryId}.`,
+      );
       return { count: 0 };
     }
 
@@ -145,22 +182,28 @@ export class PayrollRecordService {
       where: {
         subsidiaryId,
         payrollPeriod: period,
-        employeeId: { in: activeEmployees.map(e => e.id) },
+        employeeId: { in: activeEmployees.map((e) => e.id) },
       },
       select: { employeeId: true },
     });
-    const existingEmployeeIds = new Set(existingPayrolls.map(p => p.employeeId));
+    const existingEmployeeIds = new Set(
+      existingPayrolls.map((p) => p.employeeId),
+    );
 
     // 3. Filtrer les employés qui n'ont pas encore de fiche de paie
-    const employeesToProcess = activeEmployees.filter(e => !existingEmployeeIds.has(e.id));
+    const employeesToProcess = activeEmployees.filter(
+      (e) => !existingEmployeeIds.has(e.id),
+    );
 
     if (employeesToProcess.length === 0) {
-      this.logger.log(`All active employees already have a payroll record for period ${period}.`);
+      this.logger.log(
+        `All active employees already have a payroll record for period ${period}.`,
+      );
       return { count: 0 };
     }
 
     // 4. Créer les nouvelles fiches de paie en une seule transaction
-    const newPayrollsData = employeesToProcess.map(employee => ({
+    const newPayrollsData = employeesToProcess.map((employee) => ({
       employeeId: employee.id,
       employeeName: `${employee.firstName} ${employee.lastName}`,
       payrollPeriod: period,
@@ -176,7 +219,9 @@ export class PayrollRecordService {
       skipDuplicates: true, // Au cas où, pour éviter les erreurs de concurrence
     });
 
-    this.logger.log(`Successfully created ${result.count} new payroll records.`);
+    this.logger.log(
+      `Successfully created ${result.count} new payroll records.`,
+    );
     return { count: result.count };
   }
 }

@@ -69,14 +69,25 @@ export class TwoFactorController {
   @UseGuards(JwtAuthGuard)
   @Post('setup')
   async setup(@Request() req) {
-    const user = await this.prisma.user.findUnique({ where: { id: req.user.id } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: req.user.id },
+    });
     if (!user) throw new NotFoundException('Utilisateur introuvable');
-    if (user.twoFactorEnabled) throw new ConflictException('La double authentification est deja activee');
+    if (user.twoFactorEnabled)
+      throw new ConflictException(
+        'La double authentification est deja activee',
+      );
 
     const secret = this.twoFactorService.generateSecret();
-    await this.prisma.user.update({ where: { id: user.id }, data: { twoFactorSecret: secret } });
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { twoFactorSecret: secret },
+    });
 
-    const qrCodeDataUrl = await this.twoFactorService.generateQrCodeDataUrl(user.email, secret);
+    const qrCodeDataUrl = await this.twoFactorService.generateQrCodeDataUrl(
+      user.email,
+      secret,
+    );
     return { qrCodeDataUrl, secret };
   }
 
@@ -89,23 +100,37 @@ export class TwoFactorController {
   @UseGuards(JwtAuthGuard)
   @Post('verify')
   async verify(@Request() req, @Body() dto: TwoFactorCodeDto) {
-    const user = await this.prisma.user.findUnique({ where: { id: req.user.id } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: req.user.id },
+    });
     if (!user?.twoFactorSecret) {
-      throw new BadRequestException('Aucune configuration 2FA en attente - appelez /auth/2fa/setup d\'abord');
+      throw new BadRequestException(
+        "Aucune configuration 2FA en attente - appelez /auth/2fa/setup d'abord",
+      );
     }
 
-    const isValid = await this.twoFactorService.verifyToken(user.twoFactorSecret, dto.code);
+    const isValid = await this.twoFactorService.verifyToken(
+      user.twoFactorSecret,
+      dto.code,
+    );
     if (!isValid) throw new UnauthorizedException('Code invalide');
 
     const recoveryCodes = this.twoFactorService.generateRecoveryCodes();
-    const hashedCodes = recoveryCodes.map((c) => this.twoFactorService.hashRecoveryCode(c));
+    const hashedCodes = recoveryCodes.map((c) =>
+      this.twoFactorService.hashRecoveryCode(c),
+    );
 
     await this.prisma.user.update({
       where: { id: user.id },
       data: { twoFactorEnabled: true, twoFactorRecoveryCodes: hashedCodes },
     });
 
-    await this.authAuditService.log('TWO_FACTOR_ENABLED', { userId: user.id, email: user.email, ipAddress: req.ip, userAgent: req.headers['user-agent'] });
+    await this.authAuditService.log('TWO_FACTOR_ENABLED', {
+      userId: user.id,
+      email: user.email,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
     return { message: 'Double authentification activee', recoveryCodes };
   }
 
@@ -117,22 +142,36 @@ export class TwoFactorController {
   @UseGuards(JwtAuthGuard)
   @Post('disable')
   async disable(@Request() req, @Body() dto: TwoFactorDisableDto) {
-    const user = await this.prisma.user.findUnique({ where: { id: req.user.id } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: req.user.id },
+    });
     if (!user) throw new NotFoundException('Utilisateur introuvable');
 
     if (!(await bcrypt.compare(dto.password, user.passwordHash))) {
       throw new UnauthorizedException('Mot de passe incorrect');
     }
-    if (!user.twoFactorSecret || !(await this.twoFactorService.verifyToken(user.twoFactorSecret, dto.code))) {
+    if (
+      !user.twoFactorSecret ||
+      !(await this.twoFactorService.verifyToken(user.twoFactorSecret, dto.code))
+    ) {
       throw new UnauthorizedException('Code invalide');
     }
 
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { twoFactorEnabled: false, twoFactorSecret: null, twoFactorRecoveryCodes: [] },
+      data: {
+        twoFactorEnabled: false,
+        twoFactorSecret: null,
+        twoFactorRecoveryCodes: [],
+      },
     });
 
-    await this.authAuditService.log('TWO_FACTOR_DISABLED', { userId: user.id, email: user.email, ipAddress: req.ip, userAgent: req.headers['user-agent'] });
+    await this.authAuditService.log('TWO_FACTOR_DISABLED', {
+      userId: user.id,
+      email: user.email,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
     return { message: 'Double authentification desactivee' };
   }
 
@@ -143,7 +182,11 @@ export class TwoFactorController {
    */
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
-  async login(@Body() dto: TwoFactorLoginDto, @Request() req, @Res({ passthrough: true }) res: Response) {
+  async login(
+    @Body() dto: TwoFactorLoginDto,
+    @Request() req,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     if (!dto.code && !dto.recoveryCode) {
       throw new BadRequestException('code ou recoveryCode requis');
     }
@@ -158,15 +201,25 @@ export class TwoFactorController {
       throw new UnauthorizedException('Token invalide');
     }
 
-    const meta = { userId: payload.sub, ipAddress: req.ip, userAgent: req.headers['user-agent'] };
-    const user = await this.prisma.user.findUnique({ where: { id: payload.sub }, include: { subsidiary: true } });
+    const meta = {
+      userId: payload.sub,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    };
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      include: { subsidiary: true },
+    });
     if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
       throw new UnauthorizedException('Session invalide');
     }
 
     let authenticated = false;
     if (dto.code) {
-      authenticated = await this.twoFactorService.verifyToken(user.twoFactorSecret, dto.code);
+      authenticated = await this.twoFactorService.verifyToken(
+        user.twoFactorSecret,
+        dto.code,
+      );
     } else if (dto.recoveryCode) {
       const hashed = this.twoFactorService.hashRecoveryCode(dto.recoveryCode);
       if (user.twoFactorRecoveryCodes.includes(hashed)) {
@@ -174,23 +227,37 @@ export class TwoFactorController {
         // Usage unique: le code consomme est retire immediatement.
         await this.prisma.user.update({
           where: { id: user.id },
-          data: { twoFactorRecoveryCodes: user.twoFactorRecoveryCodes.filter((c) => c !== hashed) },
+          data: {
+            twoFactorRecoveryCodes: user.twoFactorRecoveryCodes.filter(
+              (c) => c !== hashed,
+            ),
+          },
         });
       }
     }
 
     if (!authenticated) {
-      await this.authAuditService.log('TWO_FACTOR_LOGIN_FAILED', { ...meta, email: user.email });
+      await this.authAuditService.log('TWO_FACTOR_LOGIN_FAILED', {
+        ...meta,
+        email: user.email,
+      });
       throw new UnauthorizedException('Code invalide');
     }
 
-    const { accessToken, refreshToken, user: userPayload } = await this.authService.issueTokens(user, {
+    const {
+      accessToken,
+      refreshToken,
+      user: userPayload,
+    } = await this.authService.issueTokens(user, {
       userAgent: req.headers['user-agent'],
       ipAddress: req.ip,
     });
     setAuthCookies(res, accessToken, refreshToken);
     setCsrfCookie(res);
-    await this.authAuditService.log('TWO_FACTOR_LOGIN_SUCCESS', { ...meta, email: user.email });
+    await this.authAuditService.log('TWO_FACTOR_LOGIN_SUCCESS', {
+      ...meta,
+      email: user.email,
+    });
     return { user: userPayload, subsidiary: user.subsidiary };
   }
 }

@@ -4,6 +4,6 @@ import { IncomestatementController } from './incomestatement.controller';
 
 @Module({
   providers: [IncomestatementService],
-  controllers: [IncomestatementController]
+  controllers: [IncomestatementController],
 })
 export class IncomestatementModule {}

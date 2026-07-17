@@ -2,19 +2,31 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { PeriodFilterDto, PeriodFilter } from './dto/period-filter.dto';
 import { Prisma, User } from '@prisma/client';
-import { sub, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
-import { resolveEffectiveSubsidiaryId, resolveScopeContext } from 'src/common/utils/subsidiary-scope';
+import {
+  sub,
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+  subMonths,
+} from 'date-fns';
+import {
+  resolveEffectiveSubsidiaryId,
+  resolveScopeContext,
+} from 'src/common/utils/subsidiary-scope';
 import { UserRole } from '@prisma/client';
 
 @Injectable()
 export class AnalyticsService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * @param periodFilterDto Dto contenant le filtre de période.
    * @returns filtre de date pour les requêtes Prisma à partir du DTO.
    */
-  private getDateFilter(periodFilterDto: PeriodFilterDto): Prisma.DateTimeFilter {
+  private getDateFilter(
+    periodFilterDto: PeriodFilterDto,
+  ): Prisma.DateTimeFilter {
     const { period, startDate, endDate } = periodFilterDto;
     const now = new Date();
     let dateFilter: Prisma.DateTimeFilter = {};
@@ -25,7 +37,10 @@ export class AnalyticsService {
         break;
       case PeriodFilter.LAST_MONTH:
         const lastMonth = subMonths(now, 1);
-        dateFilter = { gte: startOfMonth(lastMonth), lte: endOfMonth(lastMonth) };
+        dateFilter = {
+          gte: startOfMonth(lastMonth),
+          lte: endOfMonth(lastMonth),
+        };
         break;
       case PeriodFilter.LAST_7_DAYS:
         dateFilter = { gte: sub(now, { days: 7 }) };
@@ -41,7 +56,9 @@ export class AnalyticsService {
         break;
       case PeriodFilter.CUSTOM:
         if (!startDate || !endDate) {
-          throw new BadRequestException('Pour une période personnalisée, les dates de début et de fin sont requises.');
+          throw new BadRequestException(
+            'Pour une période personnalisée, les dates de début et de fin sont requises.',
+          );
         }
         dateFilter = { gte: new Date(startDate), lte: new Date(endDate) };
         break;
@@ -58,7 +75,10 @@ export class AnalyticsService {
    * et d'un id de filiale optionnel demande en query param (drill-down super-admin).
    * Un utilisateur sans scope global est toujours force sur sa propre filiale.
    */
-  private resolveSubsidiaryId(user: User, requestedSubsidiaryId?: string): string | undefined {
+  private resolveSubsidiaryId(
+    user: User,
+    requestedSubsidiaryId?: string,
+  ): string | undefined {
     const ctx = resolveScopeContext(user, [UserRole.FINANCIAL_DIRECTOR]);
     return resolveEffectiveSubsidiaryId(ctx, requestedSubsidiaryId);
   }
@@ -69,11 +89,19 @@ export class AnalyticsService {
    * @param requestedSubsidiaryId Filiale demandee en drill-down (ignoree si l'utilisateur n'a pas de scope global).
    * @returns Statistiques du Tableau de Bord global.
    */
-  async getDashboardStats(user: User, periodFilterDto: PeriodFilterDto, requestedSubsidiaryId?: string) {
+  async getDashboardStats(
+    user: User,
+    periodFilterDto: PeriodFilterDto,
+    requestedSubsidiaryId?: string,
+  ) {
     const subsidiaryId = this.resolveSubsidiaryId(user, requestedSubsidiaryId);
     const subsidiaryFilter = subsidiaryId ? { subsidiaryId } : {};
     const dateFilter = this.getDateFilter(periodFilterDto);
-    const where: Prisma.SaleWhereInput = { ...subsidiaryFilter, saleDate: dateFilter, status: 'PAID' };
+    const where: Prisma.SaleWhereInput = {
+      ...subsidiaryFilter,
+      saleDate: dateFilter,
+      status: 'PAID',
+    };
 
     // Ventes totales (basé sur la table Sale)
     const totalSalesResult = await this.prisma.sale.aggregate({
@@ -86,20 +114,26 @@ export class AnalyticsService {
     // Mais nous filtrons par les ID de commandes présentes dans les ventes payées.
     const salesWithOrder = await this.prisma.sale.findMany({
       where: { ...where, orderId: { not: null } },
-      include: { order: { include: { orderItems: { include: { product: true } } } } }
+      include: {
+        order: { include: { orderItems: { include: { product: true } } } },
+      },
     });
 
     let totalCostOfGoods = new Prisma.Decimal(0);
     for (const sale of salesWithOrder) {
       if (sale.order) {
         for (const item of sale.order.orderItems) {
-          if (item.product?.price) { // 'price' est le prix d'achat/revient
-            totalCostOfGoods = totalCostOfGoods.add(item.product.price.mul(item.quantity));
+          if (item.product?.price) {
+            // 'price' est le prix d'achat/revient
+            totalCostOfGoods = totalCostOfGoods.add(
+              item.product.price.mul(item.quantity),
+            );
           }
         }
       }
     }
-    const totalSales = totalSalesResult._sum.totalPrice || new Prisma.Decimal(0);
+    const totalSales =
+      totalSalesResult._sum.totalPrice || new Prisma.Decimal(0);
     const netRevenue = totalSales.sub(totalCostOfGoods);
 
     // Nouveaux clients
@@ -110,16 +144,22 @@ export class AnalyticsService {
     // Valeur du stock
     const productsWithStock = await this.prisma.product.findMany({
       where: { ...subsidiaryFilter, stock: { gt: 0 } },
-      select: { stock: true, price: true, mainCategory: true }
+      select: { stock: true, price: true, mainCategory: true },
     });
-    const stockValue = productsWithStock.reduce((acc, p) => acc.add(p.price.mul(p.stock)), new Prisma.Decimal(0));
+    const stockValue = productsWithStock.reduce(
+      (acc, p) => acc.add(p.price.mul(p.stock)),
+      new Prisma.Decimal(0),
+    );
 
     // Performance des ventes (agrégation par jour)
     // Utilisation de SQL brut pour une performance optimale sur le groupement par date.
     // Le filtre filiale est un fragment conditionnel: consolidation (TRUE) si
     // subsidiaryId est absent (scope global sans drill-down), sinon egalite stricte.
-    const subsidiarySqlFilter = subsidiaryId ? Prisma.sql`"subsidiary_id" = ${subsidiaryId}::uuid` : Prisma.sql`TRUE`;
-    const salesPerformance: { date: string, sales: number }[] = await this.prisma.$queryRaw`
+    const subsidiarySqlFilter = subsidiaryId
+      ? Prisma.sql`"subsidiary_id" = ${subsidiaryId}::uuid`
+      : Prisma.sql`TRUE`;
+    const salesPerformance: { date: string; sales: number }[] = await this
+      .prisma.$queryRaw`
       SELECT
         TO_CHAR("sale_date", 'YYYY-MM-DD') as date,
         SUM("total_price")::float as sales
@@ -146,12 +186,15 @@ export class AnalyticsService {
 
     // Pour obtenir la valeur, il faut une autre requête ou un calcul manuel.
     // Ici, nous calculons la valeur monétaire.
-    const stockDistribution = productsWithStock.reduce((acc, product) => {
-      const category = product.mainCategory || 'Non catégorisé';
-      const value = product.price.mul(product.stock);
-      acc[category] = (acc[category] || new Prisma.Decimal(0)).add(value);
-      return acc;
-    }, {} as Record<string, Prisma.Decimal>);
+    const stockDistribution = productsWithStock.reduce(
+      (acc, product) => {
+        const category = product.mainCategory || 'Non catégorisé';
+        const value = product.price.mul(product.stock);
+        acc[category] = (acc[category] || new Prisma.Decimal(0)).add(value);
+        return acc;
+      },
+      {} as Record<string, Prisma.Decimal>,
+    );
 
     return {
       totalSales: totalSales.toNumber(),
@@ -160,9 +203,12 @@ export class AnalyticsService {
       stockValue: stockValue.toNumber(),
       salesPerformance,
       stockDistribution: Object.fromEntries(
-        Object.entries(stockDistribution).map(([key, value]) => [key, value.toNumber()])
+        Object.entries(stockDistribution).map(([key, value]) => [
+          key,
+          value.toNumber(),
+        ]),
       ),
-      stockByCategory: stockByCategoryResult
+      stockByCategory: stockByCategoryResult,
     };
   }
 
@@ -172,11 +218,19 @@ export class AnalyticsService {
    * @param requestedSubsidiaryId Filiale demandee en drill-down (ignoree si l'utilisateur n'a pas de scope global).
    * @returns Analyse des ventes.
    */
-  async getSalesAnalysis(user: User, periodFilterDto: PeriodFilterDto, requestedSubsidiaryId?: string) {
+  async getSalesAnalysis(
+    user: User,
+    periodFilterDto: PeriodFilterDto,
+    requestedSubsidiaryId?: string,
+  ) {
     const subsidiaryId = this.resolveSubsidiaryId(user, requestedSubsidiaryId);
     const subsidiaryFilter = subsidiaryId ? { subsidiaryId } : {};
     const dateFilter = this.getDateFilter(periodFilterDto);
-    const where: Prisma.SaleWhereInput = { ...subsidiaryFilter, saleDate: dateFilter, status: 'PAID' };
+    const where: Prisma.SaleWhereInput = {
+      ...subsidiaryFilter,
+      saleDate: dateFilter,
+      status: 'PAID',
+    };
 
     // Chiffre d'affaires total (basé sur la table Sale)
     const totalRevenueResult = await this.prisma.sale.aggregate({
@@ -193,9 +247,16 @@ export class AnalyticsService {
     });
 
     // Ventes à la caisse (ventes sans orderId)
-    const cashSaleCount = await this.prisma.sale.count({ where: { ...where, orderId: null } });
+    const cashSaleCount = await this.prisma.sale.count({
+      where: { ...where, orderId: null },
+    });
 
-    const averageBasket = orderCount > 0 ? (totalRevenueResult._sum.totalPrice || new Prisma.Decimal(0)).div(orderCount) : new Prisma.Decimal(0);
+    const averageBasket =
+      orderCount > 0
+        ? (totalRevenueResult._sum.totalPrice || new Prisma.Decimal(0)).div(
+            orderCount,
+          )
+        : new Prisma.Decimal(0);
 
     // Produits les plus vendus (basé sur la table Sale)
     const topSellingProducts = await this.prisma.sale.groupBy({
@@ -208,8 +269,11 @@ export class AnalyticsService {
 
     // Répartition des ventes par catégorie de produits
     // On utilise une requête SQL brute pour joindre `Sale` et `Product` afin d'accéder à la catégorie.
-    const subsidiarySqlFilter = subsidiaryId ? Prisma.sql`s.subsidiary_id = ${subsidiaryId}::uuid` : Prisma.sql`TRUE`;
-    const salesByCategory: { category: string, total: number }[] = await this.prisma.$queryRaw`
+    const subsidiarySqlFilter = subsidiaryId
+      ? Prisma.sql`s.subsidiary_id = ${subsidiaryId}::uuid`
+      : Prisma.sql`TRUE`;
+    const salesByCategory: { category: string; total: number }[] = await this
+      .prisma.$queryRaw`
       SELECT
         p.category as "category",
         SUM(s.total_price)::float as total
@@ -244,7 +308,7 @@ export class AnalyticsService {
       averageBasket: averageBasket.toNumber(),
       topSellingProducts,
       salesByCategory,
-      topCustomers: topCustomers.map(c => ({
+      topCustomers: topCustomers.map((c) => ({
         customerId: c.customerId,
         customerName: c.customerName,
         totalSpent: c._sum.totalPrice?.toNumber() ?? 0,
@@ -258,11 +322,18 @@ export class AnalyticsService {
    * @param requestedSubsidiaryId Filiale demandee en drill-down (ignoree si l'utilisateur n'a pas de scope global).
    * @returns Analyse des achats.
    */
-  async getPurchaseAnalysis(user: User, periodFilterDto: PeriodFilterDto, requestedSubsidiaryId?: string) {
+  async getPurchaseAnalysis(
+    user: User,
+    periodFilterDto: PeriodFilterDto,
+    requestedSubsidiaryId?: string,
+  ) {
     const subsidiaryId = this.resolveSubsidiaryId(user, requestedSubsidiaryId);
     const subsidiaryFilter = subsidiaryId ? { subsidiaryId } : {};
     const dateFilter = this.getDateFilter(periodFilterDto);
-    const where: Prisma.PurchaseOrderWhereInput = { ...subsidiaryFilter, orderDate: dateFilter };
+    const where: Prisma.PurchaseOrderWhereInput = {
+      ...subsidiaryFilter,
+      orderDate: dateFilter,
+    };
 
     const totalPurchaseValueResult = await this.prisma.purchaseOrder.aggregate({
       _sum: { totalAmount: true },
@@ -271,7 +342,12 @@ export class AnalyticsService {
 
     const totalOrders = await this.prisma.purchaseOrder.count({ where });
 
-    const averageOrderValue = totalOrders > 0 ? (totalPurchaseValueResult._sum.totalAmount || new Prisma.Decimal(0)).div(totalOrders) : new Prisma.Decimal(0);
+    const averageOrderValue =
+      totalOrders > 0
+        ? (
+            totalPurchaseValueResult._sum.totalAmount || new Prisma.Decimal(0)
+          ).div(totalOrders)
+        : new Prisma.Decimal(0);
 
     const spendingBySupplier = await this.prisma.purchaseOrder.groupBy({
       by: ['supplierId', 'supplierName'],
@@ -289,10 +365,14 @@ export class AnalyticsService {
     });
 
     return {
-      totalPurchaseValue: totalPurchaseValueResult._sum.totalAmount?.toNumber() ?? 0,
+      totalPurchaseValue:
+        totalPurchaseValueResult._sum.totalAmount?.toNumber() ?? 0,
       totalOrders,
       averageOrderValue: averageOrderValue.toNumber(),
-      spendingBySupplier: spendingBySupplier.map(s => ({ ...s, _sum: { totalAmount: s._sum.totalAmount?.toNumber() ?? 0 } })),
+      spendingBySupplier: spendingBySupplier.map((s) => ({
+        ...s,
+        _sum: { totalAmount: s._sum.totalAmount?.toNumber() ?? 0 },
+      })),
       topPurchasedProducts,
     };
   }

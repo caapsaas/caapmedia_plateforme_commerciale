@@ -1,8 +1,19 @@
-import { IsString, IsEnum, IsOptional,IsNotEmpty, IsUUID, IsDateString,IsArray } from 'class-validator';
-import { DocumentCategory, DocumentStatus, SecretariatTaskStatus } from '@prisma/client';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsNotEmpty,
+  IsUUID,
+  IsDateString,
+  IsArray,
+} from 'class-validator';
+import {
+  DocumentCategory,
+  DocumentStatus,
+  SecretariatTaskStatus,
+} from '@prisma/client';
 
-
- export class UpdateCompanyDocumentDto {
+export class UpdateCompanyDocumentDto {
   @IsOptional()
   @IsString()
   documentName?: string;

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateTaxDto, UpdateTaxDto } from './dto/create-taxe.dto';
 import { Prisma } from '@prisma/client';
@@ -59,9 +63,13 @@ export class TaxesService {
     // Règle : On ne peut pas désactiver manuellement une taxe par défaut.
     // La seule façon de le faire est de définir une autre taxe comme étant par défaut.
     if (updateTaxDto.isDefault === false) {
-      const currentTax = await this.prisma.taxRate.findUnique({ where: { id } });
+      const currentTax = await this.prisma.taxRate.findUnique({
+        where: { id },
+      });
       if (currentTax?.isDefault) {
-        throw new BadRequestException('Impossible de désactiver la taxe par défaut. Veuillez définir une autre taxe comme étant par défaut pour la remplacer.');
+        throw new BadRequestException(
+          'Impossible de désactiver la taxe par défaut. Veuillez définir une autre taxe comme étant par défaut pour la remplacer.',
+        );
       }
     }
 
@@ -77,7 +85,9 @@ export class TaxesService {
         where: { id },
         data: {
           ...updateTaxDto,
-          ...(updateTaxDto.rate && { rate: new Prisma.Decimal(updateTaxDto.rate) }),
+          ...(updateTaxDto.rate && {
+            rate: new Prisma.Decimal(updateTaxDto.rate),
+          }),
         },
       });
     });
@@ -91,7 +101,9 @@ export class TaxesService {
   async remove(id: string) {
     const tax = await this.findOne(id);
     if (tax.isDefault) {
-      throw new BadRequestException('Impossible de supprimer la taxe par défaut.');
+      throw new BadRequestException(
+        'Impossible de supprimer la taxe par défaut.',
+      );
     }
     return this.prisma.taxRate.delete({ where: { id } });
   }

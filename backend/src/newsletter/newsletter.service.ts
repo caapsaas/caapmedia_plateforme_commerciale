@@ -15,7 +15,9 @@ export class NewsletterService {
     });
 
     if (existingSubscriber) {
-      throw new ConflictException('Cet e-mail est déjà inscrit à notre newsletter.');
+      throw new ConflictException(
+        'Cet e-mail est déjà inscrit à notre newsletter.',
+      );
     }
 
     // Créer la nouvelle inscription

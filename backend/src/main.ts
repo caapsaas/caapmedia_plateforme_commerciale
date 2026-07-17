@@ -11,17 +11,21 @@ import { csrfMiddleware } from './common/auth/csrf.middleware';
 
 async function bootstrap() {
   // Crée une instance avec le logger activé
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: ['error', 'warn', 'log', 'debug', 'verbose'] });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+  });
 
   // Content-Security-Policy desactivee: cette API sert aussi des fichiers
   // statiques (uploads, images produits) potentiellement charges cross-origin
   // depuis le frontend - une CSP par defaut casserait ces chargements sans
   // apporter de protection pertinente pour une API JSON. Le reste des
   // protections helmet (X-Frame-Options, X-Content-Type-Options, HSTS...) reste actif.
-  app.use(helmet({
-    contentSecurityPolicy: false,
-    crossOriginResourcePolicy: { policy: 'cross-origin' },
-  }));
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
   app.use(cookieParser());
   app.use(csrfMiddleware);
 
@@ -33,7 +37,7 @@ async function bootstrap() {
     'http://localhost:5173',
     'http://localhost:3001',
     'https://www.caapmedia.com',
-    'https://caapmedia.com'
+    'https://caapmedia.com',
   ];
 
   app.enableCors({
@@ -43,24 +47,26 @@ async function bootstrap() {
   });
 
   // Add global validation pipe
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    transform: true,
-    transformOptions: {
-      enableImplicitConversion: true,
-    },
-    exceptionFactory: (errors) => {
-      const errorMessages = errors.map(error => {
-        const constraints = Object.values(error.constraints || {});
-        return `${error.property}: ${constraints.join(', ')}`;
-      });
-      return new BadRequestException({
-        message: errorMessages,
-        error: 'Validation failed',
-        statusCode: 400,
-      });
-    },
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+      exceptionFactory: (errors) => {
+        const errorMessages = errors.map((error) => {
+          const constraints = Object.values(error.constraints || {});
+          return `${error.property}: ${constraints.join(', ')}`;
+        });
+        return new BadRequestException({
+          message: errorMessages,
+          error: 'Validation failed',
+          statusCode: 400,
+        });
+      },
+    }),
+  );
 
   app.useStaticAssets(join(__dirname, '..', '..', 'public'), {
     prefix: '/public',
@@ -71,12 +77,15 @@ async function bootstrap() {
   const staticPath = join(__dirname, '..', '..', 'public');
 
   Logger.log(`✅ Static files served from: ${staticPath}`, 'Bootstrap');
-  
+
   app.setGlobalPrefix('api-caapmedia');
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  Logger.log(`Application running on: https://www.caapmedia.com/api-caapmedia, port:${port}`, 'Bootstrap');
+  Logger.log(
+    `Application running on: https://www.caapmedia.com/api-caapmedia, port:${port}`,
+    'Bootstrap',
+  );
 }
 
 bootstrap();

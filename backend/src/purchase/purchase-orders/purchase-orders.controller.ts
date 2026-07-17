@@ -12,7 +12,11 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { PurchaseOrdersService } from './purchase-orders.service';
-import { CreatePurchaseOrderDto, RecordPurchasePaymentDto, UpdatePurchaseOrderStatusDto } from './dto/create-purchase-order.dto';
+import {
+  CreatePurchaseOrderDto,
+  RecordPurchasePaymentDto,
+  UpdatePurchaseOrderStatusDto,
+} from './dto/create-purchase-order.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { Roles } from 'src/common/auth/role/role.decorator';
@@ -23,14 +27,18 @@ import { ReceiveItemsDto } from './dto/receive-items.dto';
 @UseGuards(JwtAuthGuard, RoleGuard)
 @Controller('purchasing/purchase-orders')
 export class PurchaseOrdersController {
-  constructor(private readonly purchaseOrdersService: PurchaseOrdersService) { }
+  constructor(private readonly purchaseOrdersService: PurchaseOrdersService) {}
 
   /**
    * Endpoint pour créer un bon de commande fournisseur
    * Accessible par les responsables achats et les admins.
    */
   @Post()
-  @Roles(UserRole.PURCHASING_MANAGER, UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR)
+  @Roles(
+    UserRole.PURCHASING_MANAGER,
+    UserRole.ADMIN,
+    UserRole.FINANCIAL_DIRECTOR,
+  )
   create(@Body() createPurchaseOrderDto: CreatePurchaseOrderDto, @Req() req) {
     return this.purchaseOrdersService.create(createPurchaseOrderDto, req.user);
   }
@@ -40,7 +48,11 @@ export class PurchaseOrdersController {
    * Accessible par les responsables achats et les admins.
    */
   @Get()
-  @Roles(UserRole.PURCHASING_MANAGER, UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR)
+  @Roles(
+    UserRole.PURCHASING_MANAGER,
+    UserRole.ADMIN,
+    UserRole.FINANCIAL_DIRECTOR,
+  )
   findAll(@Req() req, @Query() query: FindAllPurchaseOrdersDto) {
     return this.purchaseOrdersService.findAll(req.user, query);
   }
@@ -50,7 +62,11 @@ export class PurchaseOrdersController {
    * Accessible par les responsables achats et les admins.
    */
   @Get(':id')
-  @Roles(UserRole.PURCHASING_MANAGER, UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR)
+  @Roles(
+    UserRole.PURCHASING_MANAGER,
+    UserRole.ADMIN,
+    UserRole.FINANCIAL_DIRECTOR,
+  )
   findOne(@Param('id', ParseUUIDPipe) id: string, @Req() req) {
     return this.purchaseOrdersService.findOne(id, req.user);
   }
@@ -60,9 +76,21 @@ export class PurchaseOrdersController {
    * Accessible par les responsables achats et les admins.
    */
   @Patch(':id/status')
-  @Roles(UserRole.PURCHASING_MANAGER, UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR)
-  updateStatus(@Param('id', ParseUUIDPipe) id: string, @Body() updateStatusDto: UpdatePurchaseOrderStatusDto, @Req() req) {
-    return this.purchaseOrdersService.updateStatus(id, updateStatusDto, req.user);
+  @Roles(
+    UserRole.PURCHASING_MANAGER,
+    UserRole.ADMIN,
+    UserRole.FINANCIAL_DIRECTOR,
+  )
+  updateStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateStatusDto: UpdatePurchaseOrderStatusDto,
+    @Req() req,
+  ) {
+    return this.purchaseOrdersService.updateStatus(
+      id,
+      updateStatusDto,
+      req.user,
+    );
   }
 
   /**
@@ -70,9 +98,21 @@ export class PurchaseOrdersController {
    * Accessible par les responsables achats et les admins.
    */
   @Post(':id/receive')
-  @Roles(UserRole.PURCHASING_MANAGER, UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR)
-  receiveItems(@Param('id', ParseUUIDPipe) id: string, @Body() receiveItemsDto: ReceiveItemsDto, @Req() req) {
-    return this.purchaseOrdersService.receiveItems(id, receiveItemsDto, req.user);
+  @Roles(
+    UserRole.PURCHASING_MANAGER,
+    UserRole.ADMIN,
+    UserRole.FINANCIAL_DIRECTOR,
+  )
+  receiveItems(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() receiveItemsDto: ReceiveItemsDto,
+    @Req() req,
+  ) {
+    return this.purchaseOrdersService.receiveItems(
+      id,
+      receiveItemsDto,
+      req.user,
+    );
   }
 
   /**
@@ -80,8 +120,20 @@ export class PurchaseOrdersController {
    * Accessible par les responsables achats et les admins.
    */
   @Post(':id/payment')
-  @Roles(UserRole.PURCHASING_MANAGER, UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR)
-  recordPayment(@Param('id', ParseUUIDPipe) id: string, @Body() recordPaymentDto: RecordPurchasePaymentDto, @Req() req) {
-    return this.purchaseOrdersService.recordPayment(id, recordPaymentDto, req.user);
+  @Roles(
+    UserRole.PURCHASING_MANAGER,
+    UserRole.ADMIN,
+    UserRole.FINANCIAL_DIRECTOR,
+  )
+  recordPayment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() recordPaymentDto: RecordPurchasePaymentDto,
+    @Req() req,
+  ) {
+    return this.purchaseOrdersService.recordPayment(
+      id,
+      recordPaymentDto,
+      req.user,
+    );
   }
 }

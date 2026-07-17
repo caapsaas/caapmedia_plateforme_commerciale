@@ -39,7 +39,11 @@ export class EntriesService {
     }
 
     const fiscalYear = await this.prisma.fiscalYear.findFirst({
-      where: { id: dto.fiscalYearId, subsidiaryId: user.subsidiaryId, isClosed: false },
+      where: {
+        id: dto.fiscalYearId,
+        subsidiaryId: user.subsidiaryId,
+        isClosed: false,
+      },
     });
 
     if (!fiscalYear) {
@@ -72,7 +76,11 @@ export class EntriesService {
     });
   }
 
-  async findAll(user: JwtUser, fiscalYearId?: string, status?: JournalEntryStatus) {
+  async findAll(
+    user: JwtUser,
+    fiscalYearId?: string,
+    status?: JournalEntryStatus,
+  ) {
     return this.prisma.journalEntry.findMany({
       where: {
         subsidiaryId: user.subsidiaryId,
@@ -81,7 +89,11 @@ export class EntriesService {
       },
       orderBy: { entryDate: 'desc' },
       include: {
-        lines: { include: { account: { select: { accountNumber: true, accountName: true } } } },
+        lines: {
+          include: {
+            account: { select: { accountNumber: true, accountName: true } },
+          },
+        },
       },
     });
   }
@@ -90,12 +102,17 @@ export class EntriesService {
     const entry = await this.prisma.journalEntry.findFirst({
       where: { id, subsidiaryId: user.subsidiaryId },
       include: {
-        lines: { include: { account: { select: { accountNumber: true, accountName: true } } } },
+        lines: {
+          include: {
+            account: { select: { accountNumber: true, accountName: true } },
+          },
+        },
         fiscalYear: { select: { name: true } },
       },
     });
 
-    if (!entry) throw new NotFoundException(`Écriture comptable "${id}" introuvable.`);
+    if (!entry)
+      throw new NotFoundException(`Écriture comptable "${id}" introuvable.`);
     return entry;
   }
 
@@ -110,7 +127,9 @@ export class EntriesService {
       throw new BadRequestException('Cette écriture est déjà validée.');
     }
     if (entry.status === JournalEntryStatus.CANCELLED) {
-      throw new BadRequestException('Impossible de valider une écriture annulée.');
+      throw new BadRequestException(
+        'Impossible de valider une écriture annulée.',
+      );
     }
 
     return this.prisma.journalEntry.update({
@@ -132,7 +151,10 @@ export class EntriesService {
 
     return this.prisma.$transaction(async (tx) => {
       // Marquer l'écriture originale comme annulée
-      await tx.journalEntry.update({ where: { id }, data: { status: JournalEntryStatus.CANCELLED } });
+      await tx.journalEntry.update({
+        where: { id },
+        data: { status: JournalEntryStatus.CANCELLED },
+      });
 
       if (entry.status === JournalEntryStatus.POSTED) {
         // Créer l'écriture de contre-passation (lignes inversées)
@@ -151,9 +173,11 @@ export class EntriesService {
               create: entry.lines.map((line) => ({
                 accountId: line.accountId,
                 description: line.description,
-                debitAmount: line.creditAmount,   // inversé
-                creditAmount: line.debitAmount,   // inversé
-                balance: new Prisma.Decimal(Number(line.creditAmount) - Number(line.debitAmount)),
+                debitAmount: line.creditAmount, // inversé
+                creditAmount: line.debitAmount, // inversé
+                balance: new Prisma.Decimal(
+                  Number(line.creditAmount) - Number(line.debitAmount),
+                ),
               })),
             },
           },

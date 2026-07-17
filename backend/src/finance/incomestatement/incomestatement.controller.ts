@@ -1,24 +1,40 @@
-import { Controller, Get, Query, Req, UseGuards, SetMetadata } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  Req,
+  UseGuards,
+  SetMetadata,
+} from '@nestjs/common';
 import { IncomestatementService } from './incomestatement.service';
 import { IncomeStatementDto } from './dto/income-statement.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles } from '../../common/auth/role/role.decorator';
 import { UserRole } from '@prisma/client';
-import { resolveEffectiveSubsidiaryId, resolveScopeContext, ScopableUser } from '../../common/utils/subsidiary-scope';
+import {
+  resolveEffectiveSubsidiaryId,
+  resolveScopeContext,
+  ScopableUser,
+} from '../../common/utils/subsidiary-scope';
 
 @Controller('finances-stats')
 @UseGuards(JwtAuthGuard, RoleGuard)
 @Roles(UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.SUPER_ADMIN)
 export class IncomestatementController {
-  constructor(private readonly incomestatementService: IncomestatementService) {}
+  constructor(
+    private readonly incomestatementService: IncomestatementService,
+  ) {}
 
   /**
    * Resout la filiale effective a interroger: un utilisateur sans scope
    * global (SUPER_ADMIN/FINANCIAL_DIRECTOR consolide) est TOUJOURS force sur
    * sa propre filiale, meme s'il fournit ?subsidiaryId=<autre-filiale>.
    */
-  private resolveSubsidiaryId(req: { user: ScopableUser }, requestedSubsidiaryId?: string): string | undefined {
+  private resolveSubsidiaryId(
+    req: { user: ScopableUser },
+    requestedSubsidiaryId?: string,
+  ): string | undefined {
     const ctx = resolveScopeContext(req.user, [UserRole.FINANCIAL_DIRECTOR]);
     return resolveEffectiveSubsidiaryId(ctx, requestedSubsidiaryId);
   }
@@ -34,7 +50,11 @@ export class IncomestatementController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ): Promise<IncomeStatementDto> {
-    return this.incomestatementService.getIncomeStatement(this.resolveSubsidiaryId(req, subsidiaryId), startDate, endDate);
+    return this.incomestatementService.getIncomeStatement(
+      this.resolveSubsidiaryId(req, subsidiaryId),
+      startDate,
+      endDate,
+    );
   }
 
   /**
@@ -48,7 +68,11 @@ export class IncomestatementController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ): Promise<number> {
-    return this.incomestatementService.getRevenueData(this.resolveSubsidiaryId(req, subsidiaryId), startDate, endDate);
+    return this.incomestatementService.getRevenueData(
+      this.resolveSubsidiaryId(req, subsidiaryId),
+      startDate,
+      endDate,
+    );
   }
 
   /**
@@ -62,7 +86,11 @@ export class IncomestatementController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ): Promise<number> {
-    return this.incomestatementService.getCogsData(this.resolveSubsidiaryId(req, subsidiaryId), startDate, endDate);
+    return this.incomestatementService.getCogsData(
+      this.resolveSubsidiaryId(req, subsidiaryId),
+      startDate,
+      endDate,
+    );
   }
 
   /**
@@ -76,7 +104,11 @@ export class IncomestatementController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ): Promise<number> {
-    return this.incomestatementService.getOperatingExpensesData(this.resolveSubsidiaryId(req, subsidiaryId), startDate, endDate);
+    return this.incomestatementService.getOperatingExpensesData(
+      this.resolveSubsidiaryId(req, subsidiaryId),
+      startDate,
+      endDate,
+    );
   }
 
   /**
@@ -90,6 +122,10 @@ export class IncomestatementController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ): Promise<number> {
-    return this.incomestatementService.getTaxesData(this.resolveSubsidiaryId(req, subsidiaryId), startDate, endDate);
+    return this.incomestatementService.getTaxesData(
+      this.resolveSubsidiaryId(req, subsidiaryId),
+      startDate,
+      endDate,
+    );
   }
 }

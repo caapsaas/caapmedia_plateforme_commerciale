@@ -13,4 +13,3 @@ export class CreateInteractionDto {
   @IsString()
   notes: string;
 }
-

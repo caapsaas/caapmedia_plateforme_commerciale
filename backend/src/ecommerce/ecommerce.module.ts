@@ -5,6 +5,6 @@ import { TaxesModule } from './taxes/taxes.module';
 import { SalesModule } from './sales/sales.module';
 
 @Module({
-  imports: [ProductsModule, OrdersModule, TaxesModule, SalesModule]
+  imports: [ProductsModule, OrdersModule, TaxesModule, SalesModule],
 })
 export class EcommerceModule {}

@@ -38,7 +38,10 @@ export class RefreshTokenService {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  async issue(userId: string, meta: RequestMeta = {}): Promise<IssuedRefreshToken> {
+  async issue(
+    userId: string,
+    meta: RequestMeta = {},
+  ): Promise<IssuedRefreshToken> {
     const token = randomBytes(REFRESH_TOKEN_BYTES).toString('hex');
     const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
 
@@ -61,18 +64,30 @@ export class RefreshTokenService {
    * (reutilisation d'un token vole apres rotation), toutes les sessions de
    * l'utilisateur sont revoquees par precaution.
    */
-  async rotate(presentedToken: string, meta: RequestMeta = {}): Promise<{ userId: string; issued: IssuedRefreshToken }> {
+  async rotate(
+    presentedToken: string,
+    meta: RequestMeta = {},
+  ): Promise<{ userId: string; issued: IssuedRefreshToken }> {
     const tokenHash = this.hash(presentedToken);
-    const existing = await this.prisma.refreshToken.findUnique({ where: { tokenHash } });
+    const existing = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash },
+    });
 
     if (!existing) {
       throw new UnauthorizedException('Refresh token invalide');
     }
 
     if (existing.revokedAt) {
-      this.logger.warn(`Refresh token deja revoque reutilise pour user ${existing.userId} - revocation de toutes ses sessions`, 'RefreshTokenService');
+      this.logger.warn(
+        `Refresh token deja revoque reutilise pour user ${existing.userId} - revocation de toutes ses sessions`,
+        'RefreshTokenService',
+      );
       await this.revokeAllForUser(existing.userId);
-      await this.authAuditService.log('REFRESH_TOKEN_REUSE_DETECTED', { userId: existing.userId, ipAddress: meta.ipAddress, userAgent: meta.userAgent });
+      await this.authAuditService.log('REFRESH_TOKEN_REUSE_DETECTED', {
+        userId: existing.userId,
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+      });
       throw new UnauthorizedException('Refresh token invalide');
     }
 

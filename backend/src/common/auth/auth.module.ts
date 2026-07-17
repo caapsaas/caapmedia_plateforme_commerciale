@@ -24,7 +24,23 @@ import { TwoFactorService } from './two-factor/two-factor.service';
     }),
   ],
   controllers: [AuthController, TwoFactorController],
-  providers: [AuthService, JwtStrategy, RoleGuard, SubsidiaryGuard, RefreshTokenService, AuthAuditService, TwoFactorService],
-  exports: [AuthService, JwtModule, RoleGuard, SubsidiaryGuard, RefreshTokenService, AuthAuditService, TwoFactorService],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    RoleGuard,
+    SubsidiaryGuard,
+    RefreshTokenService,
+    AuthAuditService,
+    TwoFactorService,
+  ],
+  exports: [
+    AuthService,
+    JwtModule,
+    RoleGuard,
+    SubsidiaryGuard,
+    RefreshTokenService,
+    AuthAuditService,
+    TwoFactorService,
+  ],
 })
 export class AuthModule {}

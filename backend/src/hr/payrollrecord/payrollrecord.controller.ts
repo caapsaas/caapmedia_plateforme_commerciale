@@ -1,6 +1,22 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ParseUUIDPipe, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Request,
+  ParseUUIDPipe,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { PayrollRecordService } from './payrollrecord.service';
-import { CreatePayrollRecordDto, UpdatePayrollRecordDto } from './dto/payrollrecord.dto';
+import {
+  CreatePayrollRecordDto,
+  UpdatePayrollRecordDto,
+} from './dto/payrollrecord.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles } from '../../common/auth/role/role.decorator';
@@ -12,9 +28,16 @@ export class PayrollrecordController {
 
   @Post()
   @Roles('HR_MANAGER', 'ADMIN')
-  create(@Body() createPayrollRecordDto: CreatePayrollRecordDto, @Request() req) {
+  create(
+    @Body() createPayrollRecordDto: CreatePayrollRecordDto,
+    @Request() req,
+  ) {
     const subsidiaryId = req.user.subsidiaryId;
-    return this.payrollRecordService.create(createPayrollRecordDto, createPayrollRecordDto.employeeId, subsidiaryId);
+    return this.payrollRecordService.create(
+      createPayrollRecordDto,
+      createPayrollRecordDto.employeeId,
+      subsidiaryId,
+    );
   }
 
   @Get()
@@ -32,7 +55,10 @@ export class PayrollrecordController {
 
   @Patch(':id')
   @Roles('HR_MANAGER', 'ADMIN')
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() updatePayrollRecordDto: UpdatePayrollRecordDto) {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updatePayrollRecordDto: UpdatePayrollRecordDto,
+  ) {
     return this.payrollRecordService.update(id, updatePayrollRecordDto);
   }
 
@@ -53,7 +79,10 @@ export class PayrollrecordController {
   @Patch(':id/sign')
   @Roles('HR_MANAGER', 'ADMIN')
   @HttpCode(HttpStatus.OK)
-  signPayrollRecord(@Param('id', ParseUUIDPipe) id: string, @Body() body: { signature: string }) {
+  signPayrollRecord(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { signature: string },
+  ) {
     return this.payrollRecordService.signPayrollRecord(id, body.signature);
   }
 }

@@ -1,4 +1,10 @@
-import { IsString, IsEnum, IsOptional, IsUUID, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsUUID,
+  IsDateString,
+} from 'class-validator';
 import { SecretariatTaskStatus } from '@prisma/client';
 
 export class CreateSecretariatTaskDto {

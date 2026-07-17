@@ -9,7 +9,9 @@ describe('MaintenanceRecordController', () => {
       controllers: [MaintenanceRecordController],
     }).compile();
 
-    controller = module.get<MaintenanceRecordController>(MaintenanceRecordController);
+    controller = module.get<MaintenanceRecordController>(
+      MaintenanceRecordController,
+    );
   });
 
   it('should be defined', () => {

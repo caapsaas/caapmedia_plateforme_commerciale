@@ -1,7 +1,5 @@
 import { IsString, IsEnum, IsOptional } from 'class-validator';
-import {  DocumentCategory, DocumentStatus} from '@prisma/client';
-
-
+import { DocumentCategory, DocumentStatus } from '@prisma/client';
 
 export class SearchCompanyDocumentsDto {
   @IsOptional()

@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsNumber, IsPositive, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsPositive,
+  IsDateString,
+} from 'class-validator';
 
 export class UpdateFixedAssetDto {
   @IsString()

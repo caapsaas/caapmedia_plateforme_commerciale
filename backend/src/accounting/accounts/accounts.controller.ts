@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { AccountsService } from './accounts.service';
 import type { CreateAccountDto } from './accounts.service';
 import { JournalsService } from '../journals/journals.service';
@@ -22,7 +32,9 @@ export class AccountsController {
     const { subsidiaryId } = req.user;
     await this.accountsService.seedSyscohada(subsidiaryId);
     await this.journalsService.seedDefaultJournals(subsidiaryId);
-    return { message: 'Plan comptable SYSCOHADA et journaux initialisés avec succès.' };
+    return {
+      message: 'Plan comptable SYSCOHADA et journaux initialisés avec succès.',
+    };
   }
 
   @Post()
@@ -41,7 +53,11 @@ export class AccountsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: Partial<CreateAccountDto>, @Req() req: any) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: Partial<CreateAccountDto>,
+    @Req() req: any,
+  ) {
     return this.accountsService.update(id, dto, req.user);
   }
 

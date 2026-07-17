@@ -24,10 +24,16 @@ export class OpportunitiesService {
     // Vérifier que le contact et le compte existent et appartiennent à la filiale
     const [contact, account] = await Promise.all([
       this.prisma.contact.findFirst({
-        where: { id: opportunityData.contactId, subsidiaryId: user.subsidiaryId },
+        where: {
+          id: opportunityData.contactId,
+          subsidiaryId: user.subsidiaryId,
+        },
       }),
       this.prisma.account.findFirst({
-        where: { id: opportunityData.accountId, subsidiaryId: user.subsidiaryId },
+        where: {
+          id: opportunityData.accountId,
+          subsidiaryId: user.subsidiaryId,
+        },
       }),
     ]);
 
@@ -96,7 +102,8 @@ export class OpportunitiesService {
     const privilegedRoles: UserRole[] = [UserRole.ADMIN, UserRole.SECRETARY];
     if (
       opportunity.subsidiaryId !== user.subsidiaryId ||
-      (!privilegedRoles.includes(user.userRole) && opportunity.userId !== user.id)
+      (!privilegedRoles.includes(user.userRole) &&
+        opportunity.userId !== user.id)
     ) {
       throw new ForbiddenException(
         'You do not have permission to view this opportunity.',

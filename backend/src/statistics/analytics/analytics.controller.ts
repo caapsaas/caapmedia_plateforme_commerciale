@@ -1,11 +1,17 @@
-import { Controller, Get, Query, UseGuards, SetMetadata, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  UseGuards,
+  SetMetadata,
+  Req,
+} from '@nestjs/common';
 import { AnalyticsService } from './analytics.service';
 import { PeriodFilterDto } from './dto/period-filter.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { Roles } from 'src/common/auth/role/role.decorator';
 import { UserRole } from '@prisma/client';
-
 
 @Controller('analytics')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -17,9 +23,22 @@ export class AnalyticsController {
    * Exemple d'url: /analytics/dashboard?period=THIS_MONTH&subsidiaryId=xxx (drill-down super-admin)
    */
   @Get('dashboard')
-  @Roles(UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.COMMERCIAL, UserRole.SUPER_ADMIN)
-  getDashboardStats(@Req() req: any, @Query() periodFilterDto: PeriodFilterDto, @Query('subsidiaryId') subsidiaryId?: string) {
-    return this.analyticsService.getDashboardStats(req.user, periodFilterDto, subsidiaryId);
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.FINANCIAL_DIRECTOR,
+    UserRole.COMMERCIAL,
+    UserRole.SUPER_ADMIN,
+  )
+  getDashboardStats(
+    @Req() req: any,
+    @Query() periodFilterDto: PeriodFilterDto,
+    @Query('subsidiaryId') subsidiaryId?: string,
+  ) {
+    return this.analyticsService.getDashboardStats(
+      req.user,
+      periodFilterDto,
+      subsidiaryId,
+    );
   }
 
   /**
@@ -27,9 +46,22 @@ export class AnalyticsController {
    * Exemple d'url: /analytics/sales?period=THIS_MONTH&subsidiaryId=xxx (drill-down super-admin)
    */
   @Get('sales')
-  @Roles(UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.COMMERCIAL, UserRole.SUPER_ADMIN)
-  getSalesAnalysis(@Req() req: any, @Query() periodFilterDto: PeriodFilterDto, @Query('subsidiaryId') subsidiaryId?: string) {
-    return this.analyticsService.getSalesAnalysis(req.user, periodFilterDto, subsidiaryId);
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.FINANCIAL_DIRECTOR,
+    UserRole.COMMERCIAL,
+    UserRole.SUPER_ADMIN,
+  )
+  getSalesAnalysis(
+    @Req() req: any,
+    @Query() periodFilterDto: PeriodFilterDto,
+    @Query('subsidiaryId') subsidiaryId?: string,
+  ) {
+    return this.analyticsService.getSalesAnalysis(
+      req.user,
+      periodFilterDto,
+      subsidiaryId,
+    );
   }
 
   /**
@@ -37,8 +69,21 @@ export class AnalyticsController {
    * Exemple d'url: /analytics/purchases?period=THIS_MONTH&subsidiaryId=xxx (drill-down super-admin)
    */
   @Get('purchases')
-  @Roles(UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.COMMERCIAL, UserRole.SUPER_ADMIN)
-  getPurchaseAnalysis(@Req() req: any, @Query() periodFilterDto: PeriodFilterDto, @Query('subsidiaryId') subsidiaryId?: string) {
-    return this.analyticsService.getPurchaseAnalysis(req.user, periodFilterDto, subsidiaryId);
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.FINANCIAL_DIRECTOR,
+    UserRole.COMMERCIAL,
+    UserRole.SUPER_ADMIN,
+  )
+  getPurchaseAnalysis(
+    @Req() req: any,
+    @Query() periodFilterDto: PeriodFilterDto,
+    @Query('subsidiaryId') subsidiaryId?: string,
+  ) {
+    return this.analyticsService.getPurchaseAnalysis(
+      req.user,
+      periodFilterDto,
+      subsidiaryId,
+    );
   }
 }

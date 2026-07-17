@@ -1,22 +1,49 @@
-import { BadRequestException, Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
-import { CreateOrderDto, CreateOrderBySalesRepDto, RecordPaymentDto, UpdateOrderStatusDto, updateProductionStatusDto } from './dto/create-order.dto';
-import { Order, OrderGroup, OrderStatus, PaymentStatus, Prisma, ProductionStatus, CustomerPaymentMethod, SaleStatus } from '@prisma/client';
+import {
+  CreateOrderDto,
+  CreateOrderBySalesRepDto,
+  RecordPaymentDto,
+  UpdateOrderStatusDto,
+  updateProductionStatusDto,
+} from './dto/create-order.dto';
+import {
+  Order,
+  OrderGroup,
+  OrderStatus,
+  PaymentStatus,
+  Prisma,
+  ProductionStatus,
+  CustomerPaymentMethod,
+  SaleStatus,
+} from '@prisma/client';
 import { FindAllOrdersDto, OrderPeriod } from './dto/find-all-orders.dto';
-import { sub, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
+import {
+  sub,
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+  subMonths,
+} from 'date-fns';
 import { Decimal } from '@prisma/client/runtime/library';
 
 // Degressive pricing table: [quantity, discount percentage]
 const degressivePricing = [
-  { threshold: 1000, discount: new Decimal(0.20) },
+  { threshold: 1000, discount: new Decimal(0.2) },
   { threshold: 500, discount: new Decimal(0.15) },
-  { threshold: 250, discount: new Decimal(0.10) },
+  { threshold: 250, discount: new Decimal(0.1) },
   { threshold: 100, discount: new Decimal(0.05) },
 ];
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   // Fonction utilitaire pour mapper une commande à son format de réponse
   private mapOrderToResponse(order: any) {
@@ -39,7 +66,7 @@ export class OrdersService {
     };
   }
 
-   /**
+  /**
    * Met à jour le compte crédit d'un client.
    * Crée le compte s'il n'existe pas.
    */
@@ -49,7 +76,7 @@ export class OrdersService {
     subsidiaryId: string,
     amount: Decimal,
     clientName: string,
-    companyName: string
+    companyName: string,
   ) {
     const creditAccount = await tx.creditAccount.findUnique({
       where: { contactId },
@@ -71,21 +98,32 @@ export class OrdersService {
           contact: { connect: { id: contactId } },
           subsidiary: { connect: { id: subsidiaryId } },
           clientName: clientName,
-          companyName: companyName
+          companyName: companyName,
         },
       });
     }
   }
 
   /**
-   * 
+   *
    * @param createOrderDto // DTO contenant les données de la commande à créer
    * @param user // Utilisateur connecté
    * @param designFiles // Fichiers uploadés
    * @returns // Commande créée
    */
-  async create(createOrderDto: CreateOrderDto, user: any, designFiles?: Express.Multer.File[]) {
-    const { items, customerName, paymentDueDate, source, opportunityId, paymentMethod } = createOrderDto;
+  async create(
+    createOrderDto: CreateOrderDto,
+    user: any,
+    designFiles?: Express.Multer.File[],
+  ) {
+    const {
+      items,
+      customerName,
+      paymentDueDate,
+      source,
+      opportunityId,
+      paymentMethod,
+    } = createOrderDto;
 
     const paymentDue = new Date(paymentDueDate);
     if (isNaN(paymentDue.getTime())) {
@@ -98,31 +136,41 @@ export class OrdersService {
     const { id: customerId, contactName, company } = user; // L'utilisateur connecté est le client
 
     if (!items || items.length === 0) {
-      throw new BadRequestException('Une commande doit contenir au moins un article.');
+      throw new BadRequestException(
+        'Une commande doit contenir au moins un article.',
+      );
     }
 
     // 1. Récupérer toutes les données de référence (Produits, Taxe par défaut)
-    const productIds = parsedItems.map((item) => item.productId).filter(id => id !== undefined);
+    const productIds = parsedItems
+      .map((item) => item.productId)
+      .filter((id) => id !== undefined);
     const [products, taxRate] = await Promise.all([
       this.prisma.product.findMany({ where: { id: { in: productIds } } }),
       this.prisma.taxRate.findFirstOrThrow({ where: { isDefault: true } }),
     ]);
 
     if (products.length !== productIds.length) {
-      throw new NotFoundException('Un ou plusieurs produits sont introuvables.');
+      throw new NotFoundException(
+        'Un ou plusieurs produits sont introuvables.',
+      );
     }
 
     const productMap = new Map(products.map((p) => [p.id, p]));
 
     // 2. Regrouper les articles par filiale (subsidiaryId)
     const itemsBySubsidiary = new Map<string, any[]>();
-    const validItems = parsedItems.filter(item => item.productId !== undefined);
-    
+    const validItems = parsedItems.filter(
+      (item) => item.productId !== undefined,
+    );
+
     // Validation améliorée: vérifier que tous les produits existent
     for (const item of validItems) {
       const product = productMap.get(item.productId);
       if (!product) {
-        throw new NotFoundException(`Produit avec l'ID ${item.productId} introuvable`);
+        throw new NotFoundException(
+          `Produit avec l'ID ${item.productId} introuvable`,
+        );
       }
       const subsidiaryId = product.subsidiaryId;
       if (!itemsBySubsidiary.has(subsidiaryId)) {
@@ -132,15 +180,20 @@ export class OrdersService {
     }
 
     // Pré-charger tous les items d'options configurables nécessaires pour le calcul du prix
-    const allOptionValues = validItems.flatMap(item => {
+    const allOptionValues = validItems.flatMap((item) => {
       if (!item.options) return [];
       // Transformer l'objet ProductOptions en tableau d'optionValues
-      return item.options.map(option => option.optionValue).filter(value => value !== undefined);
+      return item.options
+        .map((option) => option.optionValue)
+        .filter((value) => value !== undefined);
     });
-    const configurableOptionItems = await this.prisma.configurableOptionItem.findMany({
-      where: { optionName: { in: allOptionValues } },
-    });
-    const optionItemMap = new Map(configurableOptionItems.map(item => [item.optionName, item]));
+    const configurableOptionItems =
+      await this.prisma.configurableOptionItem.findMany({
+        where: { optionName: { in: allOptionValues } },
+      });
+    const optionItemMap = new Map(
+      configurableOptionItems.map((item) => [item.optionName, item]),
+    );
 
     // 3. Exécuter la création dans une transaction globale
     return this.prisma.$transaction(async (tx) => {
@@ -152,7 +205,9 @@ export class OrdersService {
       for (const item of validItems) {
         const product = productMap.get(item.productId);
         if (!product) {
-          throw new NotFoundException(`Produit avec l'ID ${item.productId} introuvable`);
+          throw new NotFoundException(
+            `Produit avec l'ID ${item.productId} introuvable`,
+          );
         }
         let unitPrice = new Decimal(product.sellingPrice);
 
@@ -174,10 +229,14 @@ export class OrdersService {
           }
         }
         const finalUnitPrice = unitPrice.mul(new Decimal(1).sub(discount));
-        overallTotalAmount = overallTotalAmount.add(finalUnitPrice.mul(item.quantity));
+        overallTotalAmount = overallTotalAmount.add(
+          finalUnitPrice.mul(item.quantity),
+        );
       }
       // Ajouter la taxe au montant total global
-      const overallTotalWithTax = overallTotalAmount.mul(new Decimal(1).add(taxRate.rate));
+      const overallTotalWithTax = overallTotalAmount.mul(
+        new Decimal(1).add(taxRate.rate),
+      );
 
       // Si plusieurs filiales sont concernées, créer un OrderGroup
       if (itemsBySubsidiary.size > 1) {
@@ -191,7 +250,10 @@ export class OrdersService {
       }
 
       // Créer une commande (ou sous-commande) pour chaque filiale
-      for (const [subsidiaryId, subsidiaryItems] of itemsBySubsidiary.entries()) {
+      for (const [
+        subsidiaryId,
+        subsidiaryItems,
+      ] of itemsBySubsidiary.entries()) {
         // Calculer les totaux pour cette sous-commande
         let subtotal = new Decimal(0);
         const orderItemsData = subsidiaryItems.map((item) => {
@@ -225,9 +287,14 @@ export class OrdersService {
         const totalAmount = subtotal.add(taxAmount);
 
         // Déterminer le statut de paiement initial
-        const unpaidMethods: CustomerPaymentMethod[] = [CustomerPaymentMethod.PAY_ON_DELIVERY, CustomerPaymentMethod.CUSTOMER_CREDIT];
+        const unpaidMethods: CustomerPaymentMethod[] = [
+          CustomerPaymentMethod.PAY_ON_DELIVERY,
+          CustomerPaymentMethod.CUSTOMER_CREDIT,
+        ];
         const isPaidImmediately = !unpaidMethods.includes(paymentMethod);
-        const initialPaymentStatus = isPaidImmediately ? PaymentStatus.PAID : PaymentStatus.UNPAID;
+        const initialPaymentStatus = isPaidImmediately
+          ? PaymentStatus.PAID
+          : PaymentStatus.UNPAID;
         const initialAmountPaid = isPaidImmediately ? totalAmount : 0;
         // Créer la commande
         const createdOrder = await tx.order.create({
@@ -257,17 +324,23 @@ export class OrdersService {
                 const file = designFiles?.[index];
                 return {
                   quantity: item.quantity,
-                  unitPrice: item.unitPrice, 
-                  designFileName: file?.originalname ? file.originalname : item.designFileName, 
-                  designFileUrl: file ? `/public/order_item_img/${file.filename}` : item.designFileUrl,
+                  unitPrice: item.unitPrice,
+                  designFileName: file?.originalname
+                    ? file.originalname
+                    : item.designFileName,
+                  designFileUrl: file
+                    ? `/public/order_item_img/${file.filename}`
+                    : item.designFileUrl,
                   productId: item.productId,
                   productOptions: item.options
                     ? {
-                      create: Object.entries(item.options).map(([optionType, optionValue]) => ({
-                        optionType,
-                        optionValue: String(optionValue),
-                      })),
-                    }
+                        create: Object.entries(item.options).map(
+                          ([optionType, optionValue]) => ({
+                            optionType,
+                            optionValue: String(optionValue),
+                          }),
+                        ),
+                      }
                     : undefined,
                 };
               }),
@@ -289,7 +362,9 @@ export class OrdersService {
         });
 
         if (!newOrder) {
-          throw new InternalServerErrorException('Erreur lors de la récupération de la commande créée');
+          throw new InternalServerErrorException(
+            'Erreur lors de la récupération de la commande créée',
+          );
         }
 
         // Si la commande est payée immédiatement, décrémenter le stock et créer la vente
@@ -303,7 +378,7 @@ export class OrdersService {
             }
           }
 
-          const salesToCreate = newOrder.orderItems.map(item => ({
+          const salesToCreate = newOrder.orderItems.map((item) => ({
             productName: productMap.get(item.productId!)!.productName,
             quantity: item.quantity,
             totalPrice: new Decimal(item.unitPrice).mul(item.quantity),
@@ -328,7 +403,14 @@ export class OrdersService {
 
       // Si le paiement est à crédit, on met à jour le compte crédit du client avec le montant total
       if (paymentMethod === CustomerPaymentMethod.CUSTOMER_CREDIT) {
-        await this.updateCustomerCredit(tx, customerId, itemsBySubsidiary.keys().next().value, overallTotalWithTax, contactName, company);
+        await this.updateCustomerCredit(
+          tx,
+          customerId,
+          itemsBySubsidiary.keys().next().value,
+          overallTotalWithTax,
+          contactName,
+          company,
+        );
       }
 
       // Retourner le groupe de commande avec ses sous-commandes, ou la commande unique
@@ -340,7 +422,9 @@ export class OrdersService {
       } else {
         // Vérifier que des commandes ont été créées
         if (createdOrders.length === 0) {
-          throw new InternalServerErrorException('Aucune commande n\'a pu être créée. Vérifiez que les produits existent et sont valides.');
+          throw new InternalServerErrorException(
+            "Aucune commande n'a pu être créée. Vérifiez que les produits existent et sont valides.",
+          );
         }
         // S'il n'y a qu'une seule commande, on la retourne directement
         return tx.order.findUniqueOrThrow({
@@ -352,14 +436,26 @@ export class OrdersService {
   }
 
   /**
-   * 
+   *
    * @param createOrderDto // DTO contenant les données de la commande à créer
    * @param user // Utilisateur connecté
    * @param designFiles // Fichiers uploadés
    * @returns // Commande créée
    */
-  async createBySalesRep(createOrderDto: CreateOrderBySalesRepDto, user: any, designFiles?: Express.Multer.File[]) {
-    const { items, customerId, customerName, paymentDueDate, source, opportunityId, paymentMethod } = createOrderDto;
+  async createBySalesRep(
+    createOrderDto: CreateOrderBySalesRepDto,
+    user: any,
+    designFiles?: Express.Multer.File[],
+  ) {
+    const {
+      items,
+      customerId,
+      customerName,
+      paymentDueDate,
+      source,
+      opportunityId,
+      paymentMethod,
+    } = createOrderDto;
 
     // Le corps d'un formulaire multipart est toujours en string, il faut parser les items.
     const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
@@ -367,18 +463,25 @@ export class OrdersService {
     const { userId: salesRepId, subsidiaryId: salesRepSubsidiaryId } = user;
 
     if (!parsedItems || parsedItems.length === 0) {
-      throw new BadRequestException('Une commande doit contenir au moins un article.');
+      throw new BadRequestException(
+        'Une commande doit contenir au moins un article.',
+      );
     }
 
     // 1. Récupérer toutes les données de référence (Produits, Taxe par défaut, Client)
-    const productIds = parsedItems.map((item) => item.productId).filter(id => id !== undefined);
-    
+    const productIds = parsedItems
+      .map((item) => item.productId)
+      .filter((id) => id !== undefined);
+
     // Validation explicite: vérifier que tous les articles ont un productId
-    const itemsWithoutProductId = parsedItems.filter(item => !item.productId);
+    const itemsWithoutProductId = parsedItems.filter((item) => !item.productId);
     if (itemsWithoutProductId.length > 0) {
-      throw new BadRequestException('Tous les articles doivent avoir un productId. Articles invalides: ' + JSON.stringify(itemsWithoutProductId, null, 2));
+      throw new BadRequestException(
+        'Tous les articles doivent avoir un productId. Articles invalides: ' +
+          JSON.stringify(itemsWithoutProductId, null, 2),
+      );
     }
-    
+
     const [products, taxRate, customer] = await Promise.all([
       this.prisma.product.findMany({ where: { id: { in: productIds } } }),
       this.prisma.taxRate.findFirstOrThrow({ where: { isDefault: true } }),
@@ -387,24 +490,32 @@ export class OrdersService {
 
     // Valider que le client appartient à la même filiale que le commercial
     if (customer.subsidiaryId !== salesRepSubsidiaryId) {
-      throw new BadRequestException('Le client sélectionné n\'appartient pas à votre filiale.');
+      throw new BadRequestException(
+        "Le client sélectionné n'appartient pas à votre filiale.",
+      );
     }
 
     if (products.length !== productIds.length) {
-      throw new NotFoundException('Un ou plusieurs produits sont introuvables.');
+      throw new NotFoundException(
+        'Un ou plusieurs produits sont introuvables.',
+      );
     }
 
     const productMap = new Map(products.map((p) => [p.id, p]));
 
     // 2. Regrouper les articles par filiale (subsidiaryId) du produit
     const itemsBySubsidiary = new Map<string, any[]>();
-    const validItems = parsedItems.filter(item => item.productId !== undefined);
-    
+    const validItems = parsedItems.filter(
+      (item) => item.productId !== undefined,
+    );
+
     // Validation améliorée: vérifier que tous les produits existent
     for (const item of validItems) {
       const product = productMap.get(item.productId);
       if (!product) {
-        throw new NotFoundException(`Produit avec l'ID ${item.productId} introuvable`);
+        throw new NotFoundException(
+          `Produit avec l'ID ${item.productId} introuvable`,
+        );
       }
       const productSubsidiaryId = product.subsidiaryId;
       if (!itemsBySubsidiary.has(productSubsidiaryId)) {
@@ -414,15 +525,20 @@ export class OrdersService {
     }
 
     // Pré-charger tous les items d'options configurables nécessaires pour le calcul du prix
-    const allOptionValues = validItems.flatMap(item => {
+    const allOptionValues = validItems.flatMap((item) => {
       if (!item.options) return [];
       // Transformer l'objet ProductOptions en tableau d'optionValues
-      return item.options.map(option => option.optionValue).filter(value => value !== undefined);
+      return item.options
+        .map((option) => option.optionValue)
+        .filter((value) => value !== undefined);
     });
-    const configurableOptionItems = await this.prisma.configurableOptionItem.findMany({
-      where: { optionName: { in: allOptionValues } },
-    });
-    const optionItemMap = new Map(configurableOptionItems.map(item => [item.optionName, item]));
+    const configurableOptionItems =
+      await this.prisma.configurableOptionItem.findMany({
+        where: { optionName: { in: allOptionValues } },
+      });
+    const optionItemMap = new Map(
+      configurableOptionItems.map((item) => [item.optionName, item]),
+    );
 
     // 3. Exécuter la création dans une transaction globale
     return this.prisma.$transaction(async (tx) => {
@@ -434,7 +550,9 @@ export class OrdersService {
       for (const item of validItems) {
         const product = productMap.get(item.productId);
         if (!product) {
-          throw new NotFoundException(`Produit avec l'ID ${item.productId} introuvable`);
+          throw new NotFoundException(
+            `Produit avec l'ID ${item.productId} introuvable`,
+          );
         }
         let unitPrice = new Decimal(product.sellingPrice);
 
@@ -456,9 +574,13 @@ export class OrdersService {
           }
         }
         const finalUnitPrice = unitPrice.mul(new Decimal(1).sub(discount));
-        overallTotalAmount = overallTotalAmount.add(finalUnitPrice.mul(item.quantity));
+        overallTotalAmount = overallTotalAmount.add(
+          finalUnitPrice.mul(item.quantity),
+        );
       }
-      const overallTotalWithTax = overallTotalAmount.mul(new Decimal(1).add(taxRate.rate));
+      const overallTotalWithTax = overallTotalAmount.mul(
+        new Decimal(1).add(taxRate.rate),
+      );
 
       // Si plusieurs filiales sont concernées, créer un OrderGroup
       if (itemsBySubsidiary.size > 1) {
@@ -472,7 +594,10 @@ export class OrdersService {
       }
 
       // Créer une commande (ou sous-commande) pour chaque filiale
-      for (const [subsidiaryId, subsidiaryItems] of itemsBySubsidiary.entries()) {
+      for (const [
+        subsidiaryId,
+        subsidiaryItems,
+      ] of itemsBySubsidiary.entries()) {
         let subtotal = new Decimal(0);
         const orderItemsData = subsidiaryItems.map((item) => {
           let unitPrice = new Decimal(item.product.sellingPrice);
@@ -534,11 +659,20 @@ export class OrdersService {
                 return {
                   quantity: item.quantity,
                   unitPrice: item.unitPrice,
-                  designFileName: file?.originalname, 
-                  designFileUrl: file ? `/public/order_item_img/${file.filename}` : undefined,
+                  designFileName: file?.originalname,
+                  designFileUrl: file
+                    ? `/public/order_item_img/${file.filename}`
+                    : undefined,
                   productId: item.productId,
                   productOptions: item.options
-                    ? { create: Object.entries(item.options).map(([optionType, optionValue]) => ({ optionType, optionValue: String(optionValue) })) }
+                    ? {
+                        create: Object.entries(item.options).map(
+                          ([optionType, optionValue]) => ({
+                            optionType,
+                            optionValue: String(optionValue),
+                          }),
+                        ),
+                      }
                     : undefined,
                 };
               }),
@@ -564,7 +698,9 @@ export class OrdersService {
       } else {
         // Vérifier que des commandes ont été créées
         if (createdOrders.length === 0) {
-          throw new InternalServerErrorException('Aucune commande n\'a pu être créée. Vérifiez que les produits existent et sont valides.');
+          throw new InternalServerErrorException(
+            "Aucune commande n'a pu être créée. Vérifiez que les produits existent et sont valides.",
+          );
         }
         return tx.order.findUniqueOrThrow({
           where: { id: createdOrders[0].id },
@@ -575,13 +711,21 @@ export class OrdersService {
   }
 
   /**
-   * 
+   *
    * @param user // Utilisateur connecté
    * @param query // Paramètres de la requête
    * @returns // Liste des commandes
    */
   async findAll(user: any, query: FindAllOrdersDto) {
-    const { customerId, productId, orderStatus, paymentStatus, period, startDate, endDate } = query;
+    const {
+      customerId,
+      productId,
+      orderStatus,
+      paymentStatus,
+      period,
+      startDate,
+      endDate,
+    } = query;
     const where: Prisma.OrderWhereInput = {
       subsidiaryId: user.subsidiaryId,
     };
@@ -610,7 +754,10 @@ export class OrdersService {
         dateFilter = { gte: startOfMonth(now), lte: endOfMonth(now) };
       } else if (period === OrderPeriod.LAST_MONTH) {
         const lastMonth = subMonths(now, 1);
-        dateFilter = { gte: startOfMonth(lastMonth), lte: endOfMonth(lastMonth) };
+        dateFilter = {
+          gte: startOfMonth(lastMonth),
+          lte: endOfMonth(lastMonth),
+        };
       } else if (period === OrderPeriod.LAST_7_DAYS) {
         dateFilter = { gte: sub(now, { days: 7 }) };
       } else if (period === OrderPeriod.LAST_30_DAYS) {
@@ -621,7 +768,9 @@ export class OrdersService {
         dateFilter = { gte: startOfYear(now), lte: endOfYear(now) };
       } else if (period === OrderPeriod.CUSTOM) {
         if (!startDate || !endDate) {
-          throw new BadRequestException('Pour une période personnalisée, les dates de début et de fin sont requises.');
+          throw new BadRequestException(
+            'Pour une période personnalisée, les dates de début et de fin sont requises.',
+          );
         }
         dateFilter = { gte: new Date(startDate), lte: new Date(endDate) };
       }
@@ -640,7 +789,7 @@ export class OrdersService {
   }
 
   /**
-   * 
+   *
    * @param id // ID de la commande
    * @param user // Utilisateur connecté
    * @returns // Commande trouvée
@@ -664,13 +813,17 @@ export class OrdersService {
   }
 
   /**
-   * 
+   *
    * @param id // ID de la commande
    * @param updateDto // DTO contenant le statut de la commande à mettre à jour
    * @param user // Utilisateur connecté
    * @returns // Commande mise à jour
    */
-  async updateOrderStatus(id: string, updateDto: UpdateOrderStatusDto, user: any) {
+  async updateOrderStatus(
+    id: string,
+    updateDto: UpdateOrderStatusDto,
+    user: any,
+  ) {
     // Vérifier que la commande existe et appartient à la bonne filiale
     await this.findOne(id, user);
 
@@ -685,19 +838,23 @@ export class OrdersService {
   }
 
   /**
-   * 
+   *
    * @param id  ID de la commande
    * @param updateDto DTO contenant le statut de production a mettre a jour
    * @param user Utilisateur connecte
    * @returns Commande mise a jour
    */
-  async updateProductionStatus(id: string, updateDto: updateProductionStatusDto, user: any){
+  async updateProductionStatus(
+    id: string,
+    updateDto: updateProductionStatusDto,
+    user: any,
+  ) {
     await this.findOne(id, user);
 
     return this.prisma.$transaction(async (tx) => {
       const updateProduction = await tx.order.update({
         where: { id },
-        data: { productionStatus: updateDto.productionStatus},
+        data: { productionStatus: updateDto.productionStatus },
       });
 
       await tx.orderProductionHistory.create({
@@ -708,11 +865,11 @@ export class OrdersService {
       });
 
       return updateProduction;
-    })
+    });
   }
 
   /**
-   * 
+   *
    * @param customerId // ID du client
    * @returns // Liste des commandes du client
    */
@@ -768,7 +925,7 @@ export class OrdersService {
   }
 
   /**
-   * 
+   *
    * @param user // Utilisateur connecté
    * @param limit // Nombre de produits à retourner
    * @returns // Liste des produits les plus vendus
@@ -799,7 +956,7 @@ export class OrdersService {
       LIMIT ${limit};
     `;
 
-    return result.map(r => ({
+    return result.map((r) => ({
       productName: r.product_name,
       quantity: r.total_quantity,
       totalRevenue: r.total_revenue,
@@ -813,7 +970,11 @@ export class OrdersService {
    * @param user Utilisateur connecté
    * @returns La commande mise à jour avec le solde
    */
-  async recordPayment(id: string, recordPaymentDto: RecordPaymentDto, user: any) {
+  async recordPayment(
+    id: string,
+    recordPaymentDto: RecordPaymentDto,
+    user: any,
+  ) {
     const { amount, paymentMethod } = recordPaymentDto;
     const paymentAmount = new Decimal(amount);
 
@@ -831,18 +992,22 @@ export class OrdersService {
       // 2. Valider le paiement
       const newAmountPaid = order.amountPaid.add(paymentAmount);
       if (newAmountPaid.greaterThan(order.totalAmount)) {
-        throw new BadRequestException('Le montant payé ne peut pas dépasser le total de la commande.');
+        throw new BadRequestException(
+          'Le montant payé ne peut pas dépasser le total de la commande.',
+        );
       }
 
       const remainingBalance = order.totalAmount.sub(newAmountPaid);
-      const newPaymentStatus = remainingBalance.isZero() ? PaymentStatus.PAID : PaymentStatus.PARTIALLY_PAID;
+      const newPaymentStatus = remainingBalance.isZero()
+        ? PaymentStatus.PAID
+        : PaymentStatus.PARTIALLY_PAID;
 
       const updatedOrder = await tx.order.update({
         where: { id },
         data: {
           amountPaid: newAmountPaid,
           paymentStatus: newPaymentStatus,
-          paymentMethod: paymentMethod, 
+          paymentMethod: paymentMethod,
         },
         include: { orderItems: { include: { product: true } }, customer: true },
       });
@@ -864,10 +1029,12 @@ export class OrdersService {
         }
 
         // Ensuite, créer les enregistrements de vente
-        const salesToCreate = updatedOrder.orderItems.map(item => {
+        const salesToCreate = updatedOrder.orderItems.map((item) => {
           if (!item.product) {
             // Ce cas ne devrait pas arriver si la base est cohérente, mais c'est une sécurité.
-            throw new InternalServerErrorException(`Produit manquant pour l'article de commande ${item.id}`);
+            throw new InternalServerErrorException(
+              `Produit manquant pour l'article de commande ${item.id}`,
+            );
           }
           return {
             productName: item.product.productName,
@@ -899,10 +1066,10 @@ export class OrdersService {
    * @param user connecte
    * @returns la liste des contacts/clients avec des credits
    */
-  async getAllCustomerCredit(user:any){
+  async getAllCustomerCredit(user: any) {
     const creditAccount = await this.prisma.creditAccount.findMany({
-      where: {subsidiaryId: user.subsidiaryId},
-    })
+      where: { subsidiaryId: user.subsidiaryId },
+    });
     return creditAccount;
   }
 
@@ -921,7 +1088,9 @@ export class OrdersService {
     });
 
     if (!creditAccount) {
-      throw new NotFoundException(`Compte de crédit avec l'ID "${id}" non trouvé.`);
+      throw new NotFoundException(
+        `Compte de crédit avec l'ID "${id}" non trouvé.`,
+      );
     }
 
     return creditAccount;

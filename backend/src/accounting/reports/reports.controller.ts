@@ -14,7 +14,12 @@ export class ReportsController {
     @Query('accountNumber') accountNumber?: string,
     @Query('journalCode') journalCode?: string,
   ) {
-    return this.reportsService.getGrandLivre(req.user, fiscalYearId, accountNumber, journalCode);
+    return this.reportsService.getGrandLivre(
+      req.user,
+      fiscalYearId,
+      accountNumber,
+      journalCode,
+    );
   }
 
   @Get('balance/:fiscalYearId')
@@ -28,11 +33,18 @@ export class ReportsController {
     @Req() req: any,
     @Query('journalCode') journalCode?: string,
   ) {
-    return this.reportsService.getJournalCentralisateur(req.user, fiscalYearId, journalCode);
+    return this.reportsService.getJournalCentralisateur(
+      req.user,
+      fiscalYearId,
+      journalCode,
+    );
   }
 
   @Get('states/:fiscalYearId')
-  getSyscohadaStatements(@Param('fiscalYearId') fiscalYearId: string, @Req() req: any) {
+  getSyscohadaStatements(
+    @Param('fiscalYearId') fiscalYearId: string,
+    @Req() req: any,
+  ) {
     return this.reportsService.getSyscohadaStatements(req.user, fiscalYearId);
   }
 }
