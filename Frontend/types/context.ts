@@ -34,7 +34,6 @@ export interface AppState {
     isSidebarCollapsed: boolean;
     isRestored: boolean;
     showIdleModal: boolean;
-    previewRole: UserRole | null;
 }
 
 export type AppAction =
@@ -90,5 +89,4 @@ export type AppAction =
     | { type: 'ADD_MAINTENANCE_RECORD'; payload: { equipmentId: string; record: Omit<MaintenanceRecord, 'id'> } }
     | { type: 'ADD_BULK_PRODUCTS'; payload: Product[] }
     | { type: 'SAVE_TAX_RATE'; payload: Omit<TaxRate, 'id'> & { id?: string } }
-    | { type: 'DELETE_TAX_RATE'; payload: string }
-    |{ type: 'SET_PREVIEW_ROLE'; payload: UserRole | null }; 
+    | { type: 'DELETE_TAX_RATE'; payload: string };

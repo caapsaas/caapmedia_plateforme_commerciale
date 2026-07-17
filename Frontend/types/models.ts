@@ -155,6 +155,8 @@ export interface User {
   email: string;
   userRole: UserRole;
   additionalRoles?: UserRole[];
+  /** Role actif pour un utilisateur multi-role (POST /auth/switch-role) - retombe sur userRole si absent. */
+  activeRole?: UserRole;
   subsidiaryId: string;
   password?: string;
   twoFactorEnabled?: boolean;
@@ -908,14 +910,14 @@ export interface MaintenanceRecord {
     maintenanceCost: number;
 }
 export interface Equipment {
-    id: string; 
+    id: string;
     equipmentName: string;
     status: EquipmentStatus;
-    lastMaintenanceDate: Date;
-    nextMaintenanceDate: Date;
+    lastMaintenanceDate: string;
+    nextMaintenanceDate: string;
     maintenanceHistory: MaintenanceRecord[];
     subsidiaryId: string;
-    acquisitionDate: Date;
+    acquisitionDate: string;
     acquisitionValue: number;
 }
 

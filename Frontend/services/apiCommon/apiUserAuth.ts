@@ -168,3 +168,13 @@ export const getProfile = async (): Promise<User> => {
   const { data } = await api.get<User>('/auth/profile');
   return data;
 };
+
+/**
+ * Change le rôle actif d'un utilisateur multi-rôle. Effectif immédiatement
+ * côté backend (RoleGuard/checkRole n'autorisent que ce rôle-ci tant qu'il
+ * n'est pas re-switché), pas seulement un changement d'affichage.
+ */
+export const switchRole = async (role: UserRole): Promise<{ user: User }> => {
+  const { data } = await api.post<{ user: User }>('/auth/switch-role', { role });
+  return data;
+};

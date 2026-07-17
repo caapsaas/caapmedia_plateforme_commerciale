@@ -10,7 +10,7 @@ import { useNavigate, useSearch } from '@tanstack/react-router';
 import { getSubsidiaries } from '../services/apiCommon/apiSubsidiaries'; // Importation depuis le nouveau fichier
 import { Subsidiary } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { UserRole } from '../types';
+import { getDefaultViewForRole } from '../utils/roleViews';
 
 const LoginPage: React.FC = () => {
   const { t } = useI18n();
@@ -43,23 +43,7 @@ const LoginPage: React.FC = () => {
     // Ce `useEffect` réagit au changement de l'état d'authentification.
     // Si l'utilisateur est authentifié, on le redirige selon son rôle.
     if (authUser) {
-      // Déterminer la page par défaut selon le rôle
-      const getDefaultViewForRole = (role: UserRole): string => {
-        switch (role) {
-          // SUPER_ADMIN retombe sur le default ('/dashboard') comme ADMIN -
-          // memes vues, donnees consolidees plutot qu'une page dediee.
-          case UserRole.CAISSIER: return '/dashboard/caisse';
-          case UserRole.COMMERCIAL: return '/dashboard/crm';
-          case UserRole.PURCHASING_MANAGER: return '/dashboard/purchasing';
-          case UserRole.SECRETARY: return '/dashboard/secretariat';
-          case UserRole.HR_MANAGER: return '/dashboard/hr';
-          case UserRole.PRODUCTION_DIRECTOR: return '/dashboard/production';
-          case UserRole.FINANCIAL_DIRECTOR: return '/dashboard/finance';
-          default: return '/dashboard';
-        }
-      };
-
-      const destination = redirect || getDefaultViewForRole(authUser.role);
+      const destination = redirect || getDefaultViewForRole(authUser.activeRole ?? authUser.userRole);
       navigate({ to: destination, replace: true });
     }
   }, [authUser, navigate, redirect]);
