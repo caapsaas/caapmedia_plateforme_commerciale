@@ -24,9 +24,9 @@ const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
   const initialFormState = {
     equipmentName: "",
     status: EquipmentStatus.OPERATIONAL,
-    lastMaintenanceDate: new Date(),
-    nextMaintenanceDate: new Date(),
-    acquisitionDate: new Date(),
+    lastMaintenanceDate: "",
+    nextMaintenanceDate: "",
+    acquisitionDate: "",
     acquisitionValue: 0,
   };
 
@@ -43,7 +43,6 @@ const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
         acquisitionDate: equipment.acquisitionDate,
         acquisitionValue: equipment.acquisitionValue,
       });
-      console.log('role admin is ', user?.userRole );
     } else {
       setFormData(initialFormState);
     }
@@ -64,9 +63,6 @@ const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
     e.preventDefault();
     onSave({
       ...formData,
-      lastMaintenanceDate: new Date(formData.lastMaintenanceDate),
-      nextMaintenanceDate: new Date(formData.nextMaintenanceDate),
-      acquisitionDate: new Date(formData.acquisitionDate),
       id: equipment?.id,
     });
   };
@@ -104,7 +100,7 @@ const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
                   value={formData.equipmentName}
                   onChange={handleChange}
                   required
-                  className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                  className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                 />
               </div>
               <div>
@@ -120,7 +116,7 @@ const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
                   value={formData.status}
                   onChange={handleChange}
                   required
-                  className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                  className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                 >
                   {Object.values(EquipmentStatus).map((s) => (
                     <option key={s} value={s}>
@@ -150,7 +146,7 @@ const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
                     }
                     onChange={handleChange}
                     required
-                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                   />
                 </div>
                 <div>
@@ -167,7 +163,7 @@ const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
                     value={formData.acquisitionValue}
                     onChange={handleChange}
                     required
-                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                   />
                 </div>
               </div>
@@ -192,7 +188,7 @@ const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
                     }
                     onChange={handleChange}
                     required
-                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                   />
                 </div>
                 <div>
@@ -215,7 +211,7 @@ const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
                     }
                     onChange={handleChange}
                     required
-                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                   />
                 </div>
               </div>

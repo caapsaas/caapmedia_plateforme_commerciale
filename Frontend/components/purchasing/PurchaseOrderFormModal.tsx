@@ -75,14 +75,14 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                              <div>
                                 <label htmlFor="supplierId" className="block text-sm font-medium text-slate-700">{t('purchasing.form.supplier')}</label>
-                                <select id="supplierId" value={supplierId} onChange={e => setSupplierId(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                <select id="supplierId" value={supplierId} onChange={e => setSupplierId(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                     <option value="" disabled>{t('purchasing.form.selectSupplier')}</option>
                                     {suppliers.map(s => <option key={s.id} value={s.id}>{s.supplierName}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label htmlFor="paymentTerms" className="block text-sm font-medium text-slate-700">{t('purchasing.form.paymentTerms')}</label>
-                                <select id="paymentTerms" value={paymentTerms} onChange={e => setPaymentTerms(e.target.value as PaymentTerms)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                <select id="paymentTerms" value={paymentTerms} onChange={e => setPaymentTerms(e.target.value as PaymentTerms)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                     <option value={PaymentTerms.IMMEDIATE}>{t('purchasing.terms_IMMEDIATE')}</option>
                                     <option value={PaymentTerms.CREDIT}>{t('purchasing.terms_CREDIT')}</option>
                                     <option value={PaymentTerms.DRAFT_PAYMENT}>{t('purchasing.terms_DRAFT_PAYMENT')}</option>
@@ -90,11 +90,11 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
                             </div>
                             <div>
                                 <label htmlFor="orderDate" className="block text-sm font-medium text-slate-700">{t('purchasing.form.orderDate')}</label>
-                                <input type="date" id="orderDate" value={orderDate} onChange={e => setOrderDate(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <input type="date" id="orderDate" value={orderDate} onChange={e => setOrderDate(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
                                 <label htmlFor="expectedDeliveryDate" className="block text-sm font-medium text-slate-700">{t('purchasing.form.deliveryDate')}</label>
-                                <input type="date" id="expectedDeliveryDate" value={expectedDeliveryDate} onChange={e => setExpectedDeliveryDate(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <input type="date" id="expectedDeliveryDate" value={expectedDeliveryDate} onChange={e => setExpectedDeliveryDate(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                         </div>
 
@@ -140,8 +140,8 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
                                             <tr key={item.productId}>
                                                 <td className="px-4 py-2 font-medium">{item.productName}</td>
                                                 <td className="px-4 py-2 text-center">{item.quantity}</td>
-                                                <td className="px-4 py-2 text-right">{formatCurrency(parseFloat(item.purchasePrice))}</td>
-                                                <td className="px-4 py-2 text-right font-semibold">{formatCurrency(item.quantity * parseFloat(item.purchasePrice))}</td>
+                                                <td className="px-4 py-2 text-right">{formatCurrency(item.purchasePrice)}</td>
+                                                <td className="px-4 py-2 text-right font-semibold">{formatCurrency(item.quantity * item.purchasePrice)}</td>
                                                 <td className="px-4 py-2 text-center">
                                                     <button type="button" onClick={() => handleRemoveItem(item.productId)}>
                                                         <IconDelete className="h-4 w-4 text-red-500 hover:text-red-700" />

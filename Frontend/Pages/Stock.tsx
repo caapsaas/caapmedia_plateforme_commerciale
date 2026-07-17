@@ -404,14 +404,14 @@ const Stock: React.FC = () => {
                                     </td>
                                     <td className="px-6 py-4">
                                         {isEditing ? (
-                                            <input type="number" value={editedPrices.cost} onChange={(e) => handlePriceChange(e, 'cost')} onKeyDown={handleKeyDown} className="w-24 p-1 border rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911]" />
+                                            <input type="number" value={editedPrices.cost} onChange={(e) => handlePriceChange(e, 'cost')} onKeyDown={handleKeyDown} className="w-24 p-1 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]" />
                                         ) : (
                                             formatCurrency(product.price)
                                         )}
                                     </td>
                                     <td className="px-6 py-4">
                                          {isEditing ? (
-                                            <input type="number" value={editedPrices.selling} onChange={(e) => handlePriceChange(e, 'selling')} onKeyDown={handleKeyDown} className="w-24 p-1 border rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911]" />
+                                            <input type="number" value={editedPrices.selling} onChange={(e) => handlePriceChange(e, 'selling')} onKeyDown={handleKeyDown} className="w-24 p-1 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]" />
                                         ) : (
                                             formatCurrency(product.sellingPrice)
                                         )}

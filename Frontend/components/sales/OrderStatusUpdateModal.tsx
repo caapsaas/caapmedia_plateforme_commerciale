@@ -42,7 +42,7 @@ const OrderStatusUpdateModal: React.FC<OrderStatusUpdateModalProps> = ({ isOpen,
                                 id="status"
                                 value={newStatus}
                                 onChange={e => setNewStatus(e.target.value as OrderStatus)}
-                                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                             >
                                 {Object.values(OrderStatus).map(status => (
                                     <option key={status} value={status}>
