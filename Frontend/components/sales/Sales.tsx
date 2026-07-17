@@ -241,15 +241,19 @@ const Sales: React.FC = () => {
     });
 
     // Créer l'objet de commande pour l'endpoint JSON
-    const orderData = {
+    const orderData: any = {
       customerId: newOrderData.customerId,
       customerName: newOrderData.customerName,
       paymentDueDate: newOrderData.paymentDueDate,
       paymentMethod: "PAY_ON_DELIVERY" as CustomerPaymentMethod,
       source: "MANUAL" as any, // TODO: utiliser OrderSource.MANUAL quand disponible
       items: itemsForJson,
-      customTaxRate: (newOrderData as any).customTaxRate, // ← NOUVEAU: taux de taxe personnalisé
     };
+
+    // Ne pas inclure customTaxRate si undefined
+    if ((newOrderData as any).customTaxRate !== undefined) {
+      orderData.customTaxRate = (newOrderData as any).customTaxRate;
+    }
 
     // Logs pour débogage
     console.log("Order data being sent:", orderData);
