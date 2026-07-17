@@ -37,21 +37,26 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
         });
     };
 
-    const formatDate = (dateString: string) => {
+    const formatDate = (dateString: string | undefined) => {
+        if (!dateString) return 'N/A';
         try {
-            return new Date(dateString).toLocaleDateString(language, {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                return dateString;
+            }
+            return date.toLocaleDateString(language, {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'
             });
-        } catch {
-            return dateString;
+        } catch (e) {
+            return dateString || 'N/A';
         }
     };
 
     return (
         <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center"
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center p-4"
             role="dialog"
             aria-modal="true"
             aria-labelledby="bc-title"
@@ -155,16 +160,16 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
 
             {/* Modal container */}
             <div
-                className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col no-print"
+                className="bg-white rounded-lg shadow-2xl w-full max-w-5xl h-[95vh] flex flex-col no-print"
                 onClick={e => e.stopPropagation()}
             >
-                <div className="p-6 border-b-2 border-slate-200 flex justify-between items-center bg-gradient-to-r from-slate-50 to-white">
+                <div className="p-6 border-b-2 border-slate-200 flex justify-between items-center bg-gradient-to-r from-slate-50 to-white flex-shrink-0">
                     <h3 id="bc-title" className="text-2xl font-bold text-slate-800">{t('bonDeCommande.title')}</h3>
                     <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6 text-slate-600"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                 </div>
-                <div className="p-8 overflow-y-auto flex-1">
+                <div className="p-8 overflow-y-auto flex-1 bg-white">
                     {bcContentRef.current && (
                         <div>
                             {/* Re-render the document content */}
@@ -232,24 +237,24 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
                     )}
                 </div>
 
-                <div className="p-6 bg-slate-50 border-t-2 border-slate-200 flex justify-end items-center space-x-3">
+                <div className="p-6 bg-slate-50 border-t-2 border-slate-200 flex justify-end items-center space-x-3 flex-shrink-0">
                     <button
                         onClick={handleExportPdf}
-                        className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-all shadow-md hover:shadow-lg"
+                        className="flex items-center space-x-2 px-5 py-2.5 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-all shadow-md hover:shadow-lg"
                     >
                         <IconPdf className="h-5 w-5"/>
                         <span>{t('bonDeCommande.exportPdf')}</span>
                     </button>
                     <button
                         onClick={handlePrint}
-                        className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-all shadow-md hover:shadow-lg"
+                        className="flex items-center space-x-2 px-5 py-2.5 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-all shadow-md hover:shadow-lg"
                     >
                         <IconPrint className="h-5 w-5"/>
                         <span>{t('bonDeCommande.print')}</span>
                     </button>
                     <button
                         onClick={onClose}
-                        className="px-6 py-2 bg-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-400 transition-all"
+                        className="px-7 py-2.5 bg-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-400 transition-all"
                     >
                         {t('common.close')}
                     </button>
