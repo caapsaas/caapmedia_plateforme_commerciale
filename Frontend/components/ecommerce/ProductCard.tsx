@@ -15,7 +15,6 @@ interface ProductCardProps {
     isLiked?: boolean;
     onLike?: (productId: string) => void;
     onUnlike?: (productId: string) => void;
-    onOrderClick?: (product: Product) => void;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, isLiked, onLike, onUnlike }) => {
