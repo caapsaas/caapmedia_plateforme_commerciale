@@ -23,6 +23,7 @@ import IconChevronDown from "../icons/IconChevronDown";
 import IconCheckCircle from "../icons/IconCheckCircle";
 import IconExclamationTriangle from "../icons/IconExclamationTriangle";
 import NewOrder from "../../Pages/NewOrder";
+import NewOrderModal from "../ecommerce/NewOrderModal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getOrders,
@@ -266,6 +267,7 @@ const Sales: React.FC = () => {
   // State for UI toggles
   const [showOrderHistory, setShowOrderHistory] = useState(true);
   const [showTopProducts, setShowTopProducts] = useState(true);
+  const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState(false);
 
   const handleApplyFilters = () => {
     setAppliedFilters(filters);
@@ -357,9 +359,17 @@ const Sales: React.FC = () => {
         <h2 className="text-3xl font-bold text-slate-800">
           {t("sidebar.orders")}
         </h2>
-        <div className="flex items-center space-x-2 p-1 bg-slate-200 rounded-lg self-start sm:self-center">
-          <TabButton view="history" label={t("myOrders.historyTab")} />
-          <TabButton view="new" label={t("myOrders.newOrderTab")} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center space-x-2 p-1 bg-slate-200 rounded-lg">
+            <TabButton view="history" label={t("myOrders.historyTab")} />
+            <TabButton view="new" label={t("myOrders.newOrderTab")} />
+          </div>
+          <button
+            onClick={() => setIsNewOrderModalOpen(true)}
+            className="px-4 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-colors text-sm"
+          >
+            Nouvelle Commande
+          </button>
         </div>
       </div>
 
@@ -756,6 +766,17 @@ const Sales: React.FC = () => {
           order={blOrder}
           subsidiary={subsidiary}
           onClose={() => setBlOrder(null)}
+        />
+      )}
+
+      {isNewOrderModalOpen && (
+        <NewOrderModal
+          isOpen={isNewOrderModalOpen}
+          onClose={() => setIsNewOrderModalOpen(false)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["orders"] });
+            setActiveTab("history");
+          }}
         />
       )}
     </div>

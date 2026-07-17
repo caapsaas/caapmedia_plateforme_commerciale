@@ -7,7 +7,6 @@ import { PRODUCT_HIERARCHY } from "../../constants";
 import IconGmoLogo from "../icons/IconGmoLogo";
 import HeroBanner from "./HeroBanner";
 import QuoteRequestModal from "./QuoteRequestModal";
-import NewOrderModal from "./NewOrderModal";
 import ECommerceFooter from "./ECommerceFooter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createQuoteRequest } from "../../services/apiCrm/apiLeads";
@@ -40,7 +39,6 @@ const ECommercePage: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
-  const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState(false);
   const [likedProducts, setLikedProducts] = useState<Set<string>>(() => {
     try {
       const savedLikes = window.localStorage.getItem("likedProducts");
@@ -256,7 +254,6 @@ const ECommercePage: React.FC = () => {
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
         onQuoteRequest={() => setIsQuoteModalOpen(true)}
-        onNewOrder={() => setIsNewOrderModalOpen(true)}
         onSelectAllCategories={handleSelectAllCategories}
         productHierarchy={PRODUCT_HIERARCHY.filter(
           (cat) => cat.category !== "Matières Premières",
@@ -745,15 +742,6 @@ const ECommercePage: React.FC = () => {
         <ContactModal
           isOpen={isContactModalOpen}
           onClose={() => setIsContactModalOpen(false)}
-        />
-      )}
-      {isNewOrderModalOpen && (
-        <NewOrderModal
-          isOpen={isNewOrderModalOpen}
-          onClose={() => setIsNewOrderModalOpen(false)}
-          onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ["orders"] });
-          }}
         />
       )}
     </div>
