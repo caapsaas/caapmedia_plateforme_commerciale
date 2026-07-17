@@ -33,8 +33,12 @@ const SidebarDropdown: React.FC<SidebarDropdownProps> = ({
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const buttonRef = useRef<HTMLButtonElement>(null);
 
+  // Le routeur TanStack normalise les URLs sans slash final par defaut
+  // (trailingSlash: 'never', jamais configure explicitement dans router.tsx)
+  // - currentPath vaut donc '/dashboard', jamais '/dashboard/', meme si
+  // item.to (utilise pour la navigation) garde le slash.
   const isItemActive = (item: SidebarDropdownItem) =>
-    item.to === '/dashboard/' ? currentPath === '/dashboard/' : currentPath.startsWith(item.to);
+    item.to === '/dashboard/' ? currentPath === '/dashboard' : currentPath.startsWith(item.to);
   const hasActiveItem = items.some(isItemActive);
 
   useEffect(() => {
@@ -97,13 +101,13 @@ const SidebarDropdown: React.FC<SidebarDropdownProps> = ({
               hasActiveItem || isOpen ? 'text-white bg-white/10' : 'text-gray-300 hover:text-white hover:bg-white/5'
             }`}
           >
-            <div className="flex items-center gap-3">
-              <span className={`transition-colors duration-200 ${hasActiveItem || isOpen ? 'text-[#c6e911]' : 'text-gray-400 group-hover:text-white'}`}>
+            <div className="flex items-center gap-3 min-w-0">
+              <span className={`shrink-0 transition-colors duration-200 ${hasActiveItem || isOpen ? 'text-[#c6e911]' : 'text-gray-400 group-hover:text-white'}`}>
                 {icon}
               </span>
-              <span className="font-medium text-sm tracking-wide whitespace-nowrap">{title}</span>
+              <span className="font-medium text-sm tracking-wide truncate">{title}</span>
             </div>
-            <ChevronDown className={`h-4 w-4 transition-all duration-200 ${isOpen ? 'rotate-180 text-[#c6e911]' : 'text-gray-500'}`} />
+            <ChevronDown className={`h-4 w-4 shrink-0 transition-all duration-200 ${isOpen ? 'rotate-180 text-[#c6e911]' : 'text-gray-500'}`} />
           </button>
         </div>
       )}
@@ -143,7 +147,7 @@ const SidebarDropdown: React.FC<SidebarDropdownProps> = ({
           style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}
         >
           <div className="px-3 py-2 border-b border-gray-700">
-            <span className="text-xs font-semibold text-[#c6e911]">{title}</span>
+            <span className="block text-xs font-semibold text-[#c6e911] truncate">{title}</span>
           </div>
           <div className="py-1">
             {items.map((item) => {

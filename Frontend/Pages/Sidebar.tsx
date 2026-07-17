@@ -93,14 +93,24 @@ const NavLink: React.FC<{
   );
 };
 
+// Le routeur TanStack normalise les URLs sans slash final par defaut
+// (trailingSlash: 'never', jamais configure explicitement dans router.tsx) -
+// currentPath vaut donc '/dashboard', jamais '/dashboard/', meme si item.to
+// (utilise pour la navigation) garde le slash. Meme correctif que
+// SidebarDropdown.tsx::isItemActive.
+const isNavItemActive = (item: NavItem, currentPath: string): boolean =>
+  item.to === '/dashboard/' ? currentPath === '/dashboard' : currentPath.startsWith(item.to);
+
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 const Sidebar: React.FC = () => {
   const { t } = useI18n();
   const { state, dispatch } = useAppContext();
   const { user, subsidiary, logout: authLogout } = useAuth();
-  const { isSidebarOpen, isSidebarCollapsed, previewRole } = state;
-  const activeRole = previewRole ?? user?.userRole;
+  const { isSidebarOpen, isSidebarCollapsed } = state;
+  // activeRole vient desormais du backend (POST /auth/switch-role), pas d'un
+  // apercu local - voir AuthContext.switchRole / Header.tsx.
+  const activeRole = user?.activeRole ?? user?.userRole;
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
 
@@ -108,6 +118,15 @@ const Sidebar: React.FC = () => {
 
   const setIsSidebarOpen = (v: boolean) => dispatch({ type: 'SET_SIDEBAR_OPEN', payload: v });
   const setIsSidebarCollapsed = (v: boolean) => dispatch({ type: 'SET_SIDEBAR_COLLAPSED', payload: v });
+
+  // Port fidele de Frontend_GMO/components/Sidebar.tsx::getNavItems: seuls les
+  // roles avec BEAUCOUP d'items a categoriser (ADMIN, FINANCIAL_DIRECTOR,
+  // COMMERCIAL) utilisent des dropdowns - les roles avec peu d'items
+  // (CAISSIER, PURCHASING_MANAGER, SECRETARY, HR_MANAGER, PRODUCTION_DIRECTOR)
+  // s'affichent en liste plate de NavLink, sans aucun regroupement/toggle,
+  // meme si leurs items sont repartis sur plusieurs groupes logiques ici.
+  const DROPDOWN_ROLES: (UserRole | undefined)[] = [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.COMMERCIAL, UserRole.FINANCIAL_DIRECTOR];
+  const useDropdowns = DROPDOWN_ROLES.includes(activeRole);
 
   const getNavGroups = (): NavGroup[] => {
     switch (activeRole) {
@@ -119,7 +138,7 @@ const Sidebar: React.FC = () => {
       case UserRole.ADMIN:
         return [
           {
-            groupLabel: 'Principal',
+            groupLabel: 'Dashboard',
             groupIcon: <IconAnalytics className="h-5 w-5" />,
             items: [
               { to: '/dashboard/', label: t('sidebar.analytics'), icon: <IconAnalytics className="h-5 w-5" /> },
@@ -339,20 +358,57 @@ const Sidebar: React.FC = () => {
         {/* ── Navigation ── */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden py-2">
           <nav className={`space-y-1 ${isSidebarCollapsed ? 'px-3' : 'px-4'}`}>
-            {navGroups.length > 0 ? (
-              navGroups.map((group) => (
-                <SidebarDropdown
-                  key={group.groupLabel}
-                  title={group.groupLabel}
-                  icon={group.groupIcon}
-                  items={group.items}
-                  isCollapsed={isSidebarCollapsed}
-                  currentPath={currentPath}
-                  onItemClick={() => setIsSidebarOpen(false)}
-                />
-              ))
-            ) : (
+            {navGroups.length === 0 ? (
               <div className="p-4 text-slate-500 text-sm text-center">{t('sidebar.noViewForRole')}</div>
+            ) : !useDropdowns ? (
+              // Role "flat": tous les items de tous les groupes a plat, en
+              // NavLink directs - pas de regroupement/toggle du tout.
+              navGroups.flatMap((group) => group.items).map((item) => {
+                const isActive = isNavItemActive(item, currentPath);
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    icon={item.icon}
+                    label={item.label}
+                    isActive={isActive}
+                    isCollapsed={isSidebarCollapsed}
+                    onClick={() => setIsSidebarOpen(false)}
+                  />
+                );
+              })
+            ) : (
+              navGroups.map((group) => {
+                // Un dropdown sert a regrouper PLUSIEURS elements - un groupe
+                // a un seul element n'a pas besoin d'un toggle ouvert/ferme,
+                // juste un lien direct.
+                if (group.items.length === 1) {
+                  const item = group.items[0];
+                  const isActive = isNavItemActive(item, currentPath);
+                  return (
+                    <NavLink
+                      key={group.groupLabel}
+                      to={item.to}
+                      icon={item.icon}
+                      label={item.label}
+                      isActive={isActive}
+                      isCollapsed={isSidebarCollapsed}
+                      onClick={() => setIsSidebarOpen(false)}
+                    />
+                  );
+                }
+                return (
+                  <SidebarDropdown
+                    key={group.groupLabel}
+                    title={group.groupLabel}
+                    icon={group.groupIcon}
+                    items={group.items}
+                    isCollapsed={isSidebarCollapsed}
+                    currentPath={currentPath}
+                    onItemClick={() => setIsSidebarOpen(false)}
+                  />
+                );
+              })
             )}
           </nav>
         </div>
