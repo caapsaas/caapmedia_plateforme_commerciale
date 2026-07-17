@@ -48,6 +48,7 @@ export class OpportunitiesService {
         products: productIds
           ? {
               create: productIds.map((id) => ({
+                id: generateId(ID_PREFIXES.OPPORTUNITYPRODUCT),
                 product: { connect: { id } },
               })),
             }
@@ -130,6 +131,7 @@ export class OpportunitiesService {
               deleteMany: {},
               // Crée de nouvelles relations OpportunityProduct pour chaque productId
               create: productIds.map((productId) => ({
+                id: generateId(ID_PREFIXES.OPPORTUNITYPRODUCT),
                 product: { connect: { id: productId } },
               })),
             }

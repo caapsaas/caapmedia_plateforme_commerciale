@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateTaxDto, UpdateTaxDto } from './dto/create-taxe.dto';
 import { Prisma } from '@prisma/client';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class TaxesService {
@@ -23,6 +25,7 @@ export class TaxesService {
       }
       return tx.taxRate.create({
         data: {
+          id: generateId(ID_PREFIXES.TAXRATE),
           ...createTaxDto,
           rate: new Prisma.Decimal(createTaxDto.rate),
         },

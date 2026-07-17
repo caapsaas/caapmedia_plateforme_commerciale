@@ -56,6 +56,7 @@ export class ProformasService {
         subsidiaryId: user.subsidiaryId,
         items: {
           create: createProformaDto.items.map((item: ProformaItemDto) => ({
+            id: generateId(ID_PREFIXES.PROFORMAITEM),
             productId: item.productId,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
@@ -144,6 +145,7 @@ export class ProformasService {
 
       data.items = {
         create: updateProformaDto.items.map((item: ProformaItemDto) => ({
+          id: generateId(ID_PREFIXES.PROFORMAITEM),
           productId: item.productId,
           quantity: item.quantity,
           unitPrice: item.unitPrice,

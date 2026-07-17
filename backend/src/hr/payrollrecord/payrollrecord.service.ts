@@ -164,6 +164,7 @@ export class PayrollRecordService {
 
     // 4. Créer les nouvelles fiches de paie en une seule transaction
     const newPayrollsData = employeesToProcess.map(employee => ({
+      id: generateId(ID_PREFIXES.PAYROLL),
       employeeId: employee.id,
       employeeName: `${employee.firstName} ${employee.lastName}`,
       payrollPeriod: period,

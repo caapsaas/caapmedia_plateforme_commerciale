@@ -94,6 +94,7 @@ export class AccountsService {
       await this.prisma.accountingAccount.upsert({
         where: { accountNumber: acc.num },
         create: {
+          id: generateId(ID_PREFIXES.ACCOUNTINGACCOUNT),
           accountNumber: acc.num,
           accountName: acc.name,
           accountType: acc.type as AccountingAccountType,

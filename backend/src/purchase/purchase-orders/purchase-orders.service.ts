@@ -6,6 +6,8 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { FindAllPurchaseOrdersDto, OrderPeriod } from './dto/find-all-purchase-orders.dto';
 import { sub, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
 import { ReceiveItemsDto } from './dto/receive-items.dto';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class PurchaseOrdersService {
@@ -63,6 +65,7 @@ export class PurchaseOrdersService {
             // 3. Créer le bon de commande et ses dépendances
             const purchaseOrder = await tx.purchaseOrder.create({
                 data: {
+                    id: generateId(ID_PREFIXES.PURCHASEORDER),
                     supplierName: supplier.supplierName,
                     orderDate: new Date(),
                     expectedDeliveryDate: new Date(expectedDeliveryDate),
@@ -75,7 +78,8 @@ export class PurchaseOrdersService {
                     subsidiary: { connect: { id: subsidiaryId } },
                     purchaseOrderItems: {
                         create: items.map(item => ({
-                            productName: products.find(p => p.id === item.productId)?.productName || 'Produit inconnu', // Ajout d'une valeur par défaut
+                            id: generateId(ID_PREFIXES.PURCHASEORDERITEM),
+                            productName: products.find(p => p.id === item.productId)?.productName || 'Produit inconnu',
                             quantity: item.quantity,
                             quantityReceived: 0,
                             purchasePrice: item.purchasePrice,
@@ -84,6 +88,7 @@ export class PurchaseOrdersService {
                     },
                     purchaseOrderHistory: {
                         create: {
+                            id: generateId(ID_PREFIXES.PURCHASEORDERHISTORY),
                             eventName: `Bon de commande créé par ${userNameForHistory}`,
                         },
                     },
@@ -98,6 +103,7 @@ export class PurchaseOrdersService {
             if (paymentTerms === PaymentTerms.CREDIT) {
                 await tx.supplierDebt.create({
                     data: {
+                        id: generateId(ID_PREFIXES.SUPPLIERDEBT),
                         supplierName: supplier.supplierName,
                         invoiceId: `PO-${purchaseOrder.id.substring(0, 8)}`,
                         dueDate: new Date(expectedDeliveryDate),
@@ -251,6 +257,7 @@ export class PurchaseOrdersService {
             // Ajouter à l'historique
             await tx.purchaseOrderHistory.create({
                 data: {
+                    id: generateId(ID_PREFIXES.PURCHASEORDERHISTORY),
                     purchaseOrderId: id,
                     eventName: `Réception de ${receiveItemsDto.items.length} article(s) par ${userNameForHistory}`,
                 },
@@ -319,8 +326,9 @@ export class PurchaseOrdersService {
             } else {
                 await tx.supplierDebt.create({
                     data: {
+                        id: generateId(ID_PREFIXES.SUPPLIERDEBT),
                         supplierName: order.supplierName,
-                        invoiceId: `PO-${order.id.substring(0, 8)}`, // ID de facture basé sur le PO
+                        invoiceId: `PO-${order.id.substring(0, 8)}`,
                         dueDate: order.expectedDeliveryDate,
                         amount: order.totalAmount.sub(newAmountPaid),
                         status: debtStatus,
@@ -333,6 +341,7 @@ export class PurchaseOrdersService {
             // Ajouter à l'historique
             await tx.purchaseOrderHistory.create({
                 data: {
+                    id: generateId(ID_PREFIXES.PURCHASEORDERHISTORY),
                     purchaseOrderId: id,
                     eventName: `Paiement de ${amount} enregistré par ${userNameForHistory}`,
                 },
@@ -370,6 +379,7 @@ export class PurchaseOrdersService {
 
             await tx.purchaseOrderHistory.create({
                 data: {
+                    id: generateId(ID_PREFIXES.PURCHASEORDERHISTORY),
                     purchaseOrderId: id,
                     eventName: `Statut changé à ${status} par ${userNameForHistory}`,
                 },

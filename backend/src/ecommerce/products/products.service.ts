@@ -10,6 +10,11 @@ import {
 } from './dto/create-product.dto';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import {
+  buildRelativeImagePath,
+  deleteImageFile,
+} from 'src/common/utils/image.util';
+import { FILE_UPLOAD_CONFIG } from 'src/common/constants/file-upload.const';
 
 @Injectable()
 export class ProductsService {
@@ -64,6 +69,16 @@ export class ProductsService {
   ) {
     const { configurableOptions, ...productData } = createProductDto;
 
+    // Construire les chemins relatifs sécurisés
+    const productImageData = files?.map((file) => ({
+      id: generateId(ID_PREFIXES.PRODUCTIMAGE),
+      imageName: file.originalname,
+      imageUrl: buildRelativeImagePath(
+        FILE_UPLOAD_CONFIG.UPLOAD_DIRS.PRODUCTS,
+        file.filename,
+      ),
+    })) || [];
+
     const product = await this.prisma.product.create({
       data: {
         id: generateId(ID_PREFIXES.PRODUCT),
@@ -73,22 +88,24 @@ export class ProductsService {
         configurableOptions: configurableOptions
           ? {
               create: configurableOptions.map((opt) => ({
+                id: generateId(ID_PREFIXES.CONFIGURABLEOPTION),
                 optionType: opt.optionType,
                 item: {
                   connectOrCreate: {
                     where: { optionName: opt.item.optionName },
-                    create: opt.item,
+                    create: {
+                      id: generateId(ID_PREFIXES.CONFIGURABLEOPTIONITEM),
+                      optionName: opt.item.optionName,
+                      multiplier: Number(opt.item.multiplier),
+                    },
                   },
                 },
               })),
             }
           : undefined,
-        productImages: files?.length
+        productImages: productImageData.length
           ? {
-              create: files.map((file) => ({
-                imageName: file.originalname,
-                imageUrl: `/public/products/${file.filename}`,
-              })),
+              create: productImageData,
             }
           : undefined,
       },
@@ -208,6 +225,16 @@ export class ProductsService {
       dataToUpdate.stock = Number(productData.stock);
     }
 
+    // Récupérer les anciennes images pour cleanup
+    let oldImages: any[] = [];
+    if (files?.length) {
+      const product = await this.prisma.product.findUnique({
+        where: { id },
+        include: { productImages: true },
+      });
+      oldImages = product?.productImages || [];
+    }
+
     const product = await this.prisma.$transaction(async (tx) => {
       // Mise à jour des infos de base
       await tx.product.update({
@@ -222,22 +249,24 @@ export class ProductsService {
 
         // Recréer chaque option avec connectOrCreate sur l’item
         for (const opt of configurableOptions) {
-          // Créer ou récupérer l'item
+          // Créer ou récupérer l’item
           const item = await tx.configurableOptionItem.upsert({
             where: { optionName: opt.item.optionName },
             update: {},
             create: {
+              id: generateId(ID_PREFIXES.CONFIGURABLEOPTIONITEM),
               optionName: opt.item.optionName,
-              multiplier: opt.item.multiplier,
+              multiplier: Number(opt.item.multiplier),
             },
           });
 
           // Créer la ConfigurableOption en utilisant itemId
           await tx.configurableOption.create({
             data: {
+              id: generateId(ID_PREFIXES.CONFIGURABLEOPTION),
               optionType: opt.optionType,
               productId: id,
-              itemId: item.id, // <-- on passe l'id ici
+              itemId: item.id,
             },
           });
         }
@@ -247,13 +276,17 @@ export class ProductsService {
       if (files?.length) {
         await tx.productImage.deleteMany({ where: { productId: id } });
 
-        await tx.productImage.createMany({
-          data: files.map((file) => ({
-            imageName: file.originalname,
-            imageUrl: `/public/products/${file.filename}`,
-            productId: id,
-          })),
-        });
+        const newImageData = files.map((file) => ({
+          id: generateId(ID_PREFIXES.PRODUCTIMAGE),
+          imageName: file.originalname,
+          imageUrl: buildRelativeImagePath(
+            FILE_UPLOAD_CONFIG.UPLOAD_DIRS.PRODUCTS,
+            file.filename,
+          ),
+          productId: id,
+        }));
+
+        await tx.productImage.createMany({ data: newImageData });
       }
 
       // Retourne le produit mis à jour
@@ -263,20 +296,46 @@ export class ProductsService {
       });
     });
 
+    // Cleanup des anciennes images après succès de la transaction
+    if (files?.length) {
+      for (const image of oldImages) {
+        await deleteImageFile(image.imageUrl);
+      }
+    }
+
     return this.mapDecimals(product);
   }
 
   /**
-   *
+   * Supprimer un produit + cleanup des images physiques
    * @param id // ID du produit
-   * @returns // Produit supprimé
+   * @returns // Confirmation suppression
    */
   async remove(id: string, user: any) {
-    // Vérifie que le produit existe
-    await this.findOne(id, user);
-    const deleted = await this.prisma.product.delete({
+    // Vérifie que le produit existe et appartient à la filiale
+    const product = await this.prisma.product.findUnique({
+      where: { id },
+      include: { productImages: true },
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Product with ID "${id}" not found`);
+    }
+
+    if (product.subsidiaryId !== user.subsidiaryId) {
+      throw new NotFoundException('Product not found in your subsidiary');
+    }
+
+    // Supprimer en BD (cascade supprime productImages)
+    await this.prisma.product.delete({
       where: { id, subsidiaryId: user.subsidiaryId },
     });
-    return { id: deleted.id };
+
+    // Cleanup des fichiers physiques après suppression en BD
+    for (const image of product.productImages) {
+      await deleteImageFile(image.imageUrl);
+    }
+
+    return { success: true, id };
   }
 }

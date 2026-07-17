@@ -68,6 +68,7 @@ export class OrdersService {
     } else {
       await tx.creditAccount.create({
         data: {
+          id: generateId(ID_PREFIXES.CREDITACCOUNT),
           balance: amount,
           lastPaymentDate: new Date(),
           contact: { connect: { id: contactId } },
@@ -167,6 +168,7 @@ export class OrdersService {
       if (itemsBySubsidiary.size > 1) {
         orderGroup = await tx.orderGroup.create({
           data: {
+            id: generateId(ID_PREFIXES.ORDERGROUP),
             groupCode: `GRP-${Date.now()}`, // Générer un code de groupe unique
             customerId: customerId, // Utiliser l'ID de l'utilisateur connecté
             totalAmount: overallTotalWithTax,
@@ -241,14 +243,16 @@ export class OrdersService {
                 // On suppose que l'ordre des fichiers correspond à l'ordre des articles.
                 const file = designFiles?.[index];
                 return {
+                  id: generateId(ID_PREFIXES.ORDERITEM),
                   quantity: item.quantity,
-                  unitPrice: item.unitPrice, 
-                  designFileName: file?.originalname ? file.originalname : item.designFileName, 
+                  unitPrice: item.unitPrice,
+                  designFileName: file?.originalname ? file.originalname : item.designFileName,
                   designFileUrl: file ? `/public/order_item_img/${file.filename}` : item.designFileUrl,
                   productId: item.productId,
                   productOptions: item.options
                     ? {
                       create: Object.entries(item.options).map(([optionType, optionValue]) => ({
+                        id: generateId(ID_PREFIXES.PRODUCTOPTION),
                         optionType,
                         optionValue: String(optionValue),
                       })),
@@ -259,6 +263,7 @@ export class OrdersService {
             },
             productionHistory: {
               create: {
+                id: generateId(ID_PREFIXES.ORDERPRODUCTIONHISTORY),
                 status: ProductionStatus.PREPRESS,
               },
             },
@@ -289,6 +294,7 @@ export class OrdersService {
           }
 
           const salesToCreate = newOrder.orderItems.map(item => ({
+            id: generateId(ID_PREFIXES.SALE),
             productName: productMap.get(item.productId!)!.productName,
             quantity: item.quantity,
             totalPrice: new Decimal(item.unitPrice).mul(item.quantity),
@@ -441,6 +447,7 @@ export class OrdersService {
       if (itemsBySubsidiary.size > 1) {
         orderGroup = await tx.orderGroup.create({
           data: {
+            id: generateId(ID_PREFIXES.ORDERGROUP),
             groupCode: `GRP-${Date.now()}`,
             customerId: customerId,
             totalAmount: overallTotalWithTax,
@@ -492,19 +499,20 @@ export class OrdersService {
               create: orderItemsData.map((item, index) => {
                 const file = designFiles?.[index];
                 return {
+                  id: generateId(ID_PREFIXES.ORDERITEM),
                   quantity: item.quantity,
                   unitPrice: item.unitPrice,
-                  designFileName: file?.originalname, 
+                  designFileName: file?.originalname,
                   designFileUrl: file ? `/public/order_item_img/${file.filename}` : undefined,
                   productId: item.productId,
                   productOptions: item.options
-                    ? { create: Object.entries(item.options).map(([optionType, optionValue]) => ({ optionType, optionValue: String(optionValue) })) }
+                    ? { create: Object.entries(item.options).map(([optionType, optionValue]) => ({ id: generateId(ID_PREFIXES.PRODUCTOPTION), optionType, optionValue: String(optionValue) })) }
                     : undefined,
                 };
               }),
             },
             productionHistory: {
-              create: { status: ProductionStatus.PREPRESS },
+              create: { id: generateId(ID_PREFIXES.ORDERPRODUCTIONHISTORY), status: ProductionStatus.PREPRESS },
             },
           },
           include: {
@@ -662,6 +670,7 @@ export class OrdersService {
 
       await tx.orderProductionHistory.create({
         data: {
+          id: generateId(ID_PREFIXES.ORDERPRODUCTIONHISTORY),
           orderId: id,
           status: updateDto.productionStatus,
         },
@@ -830,6 +839,7 @@ export class OrdersService {
             throw new InternalServerErrorException(`Produit manquant pour l'article de commande ${item.id}`);
           }
           return {
+            id: generateId(ID_PREFIXES.SALE),
             productName: item.product.productName,
             quantity: item.quantity,
             totalPrice: new Decimal(item.unitPrice).mul(item.quantity),

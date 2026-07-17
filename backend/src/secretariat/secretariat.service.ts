@@ -251,6 +251,7 @@ async createMeeting(
 
       // Créer les liens participants
       const participantData = data.participantIds.map(employeeId => ({
+        id: generateId(ID_PREFIXES.MEETINGPARTICIPANT),
         meetingId: createdMeeting.id,
         employeeId,
       }));
@@ -344,6 +345,7 @@ async updateMeeting(
         }
 
         const participantData = data.participantIds.map(employeeId => ({
+          id: generateId(ID_PREFIXES.MEETINGPARTICIPANT),
           meetingId: id,
           employeeId,
         }));

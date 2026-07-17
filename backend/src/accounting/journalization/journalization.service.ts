@@ -111,6 +111,7 @@ export class JournalizationService {
         sourceId,
         lines: {
           create: lines.map((l) => ({
+            id: generateId(ID_PREFIXES.JOURNALENTRYLINE),
             accountId: l.accountId,
             description: l.description,
             debitAmount: new Prisma.Decimal(l.debitAmount),

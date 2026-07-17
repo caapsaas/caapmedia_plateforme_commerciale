@@ -9,6 +9,7 @@ import {
   Post,
   Query,
   Req,
+  BadRequestException,
 } from '@nestjs/common';
 import { UseInterceptors } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
@@ -20,11 +21,15 @@ import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { UseGuards } from '@nestjs/common';
 import { SetMetadata } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
-import { extname } from 'path';
 import {
   CreateProductDto,
   UpdateProductDto,
 } from './dto/create-product.dto';
+import {
+  validateImageFile,
+  generateSecureFilename,
+} from 'src/common/utils/image.util';
+import { FILE_UPLOAD_CONFIG } from 'src/common/constants/file-upload.const';
 
 @Controller('products')
 export class ProductsController {
@@ -36,18 +41,42 @@ export class ProductsController {
    */
   @Post()
   @UseInterceptors(
-    FilesInterceptor('productImages', 5, {
-      storage: diskStorage({
-        destination: './public/products',
-        filename: (req, file, cb) => {
-          const randomName = Array(32)
-            .fill(null)
-            .map(() => Math.round(Math.random() * 16).toString(16))
-            .join('');
-          cb(null, `${randomName}${extname(file.originalname)}`);
+    FilesInterceptor(
+      'productImages',
+      FILE_UPLOAD_CONFIG.LIMITS.MAX_FILES_PER_UPLOAD,
+      {
+        storage: diskStorage({
+          destination: FILE_UPLOAD_CONFIG.UPLOAD_DIRS.PRODUCTS,
+          filename: (req, file, cb) => {
+            try {
+              validateImageFile(file);
+              const filename = generateSecureFilename(file, 'product');
+              cb(null, filename);
+            } catch (error) {
+              cb(error as Error, '');
+            }
+          },
+        }),
+        limits: {
+          fileSize: FILE_UPLOAD_CONFIG.LIMITS.MAX_FILE_SIZE,
         },
-      }),
-    }),
+        fileFilter: (req, file, cb) => {
+          const isValidMime = FILE_UPLOAD_CONFIG.ALLOWED_MIME_TYPES.IMAGES.includes(
+            file.mimetype,
+          );
+          if (!isValidMime) {
+            cb(
+              new BadRequestException(
+                FILE_UPLOAD_CONFIG.ERRORS.INVALID_MIME_TYPE,
+              ) as any,
+              false,
+            );
+          } else {
+            cb(null, true);
+          }
+        },
+      },
+    ),
   )
   @UseGuards(JwtAuthGuard, RoleGuard)
   @SetMetadata('roles', [
@@ -132,18 +161,42 @@ export class ProductsController {
    */
   @Patch(':id')
   @UseInterceptors(
-    FilesInterceptor('productImages', 5, {
-      storage: diskStorage({
-        destination: './public/products',
-        filename: (req, file, cb) => {
-          const randomName = Array(32)
-            .fill(null)
-            .map(() => Math.round(Math.random() * 16).toString(16))
-            .join('');
-          cb(null, `${randomName}${extname(file.originalname)}`);
+    FilesInterceptor(
+      'productImages',
+      FILE_UPLOAD_CONFIG.LIMITS.MAX_FILES_PER_UPLOAD,
+      {
+        storage: diskStorage({
+          destination: FILE_UPLOAD_CONFIG.UPLOAD_DIRS.PRODUCTS,
+          filename: (req, file, cb) => {
+            try {
+              validateImageFile(file);
+              const filename = generateSecureFilename(file, 'product');
+              cb(null, filename);
+            } catch (error) {
+              cb(error as Error, '');
+            }
+          },
+        }),
+        limits: {
+          fileSize: FILE_UPLOAD_CONFIG.LIMITS.MAX_FILE_SIZE,
         },
-      }),
-    }),
+        fileFilter: (req, file, cb) => {
+          const isValidMime = FILE_UPLOAD_CONFIG.ALLOWED_MIME_TYPES.IMAGES.includes(
+            file.mimetype,
+          );
+          if (!isValidMime) {
+            cb(
+              new BadRequestException(
+                FILE_UPLOAD_CONFIG.ERRORS.INVALID_MIME_TYPE,
+              ) as any,
+              false,
+            );
+          } else {
+            cb(null, true);
+          }
+        },
+      },
+    ),
   )
   @UseGuards(JwtAuthGuard, RoleGuard)
   @SetMetadata('roles', [

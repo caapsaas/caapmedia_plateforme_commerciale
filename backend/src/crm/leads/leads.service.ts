@@ -91,6 +91,7 @@ export class LeadsService {
   // Créer la piste
   return this.prisma.lead.create({
     data: {
+      id: generateId(ID_PREFIXES.LEAD),
       ...createLeadDto, // Garde les autres champs du DTO
       subsidiaryId: fullUser.subsidiaryId,
       salesRepId: finalSalesRepId, // Applique le commercial correctement assigné
@@ -213,6 +214,7 @@ async convert(id: string, user: User) {
     // 3. Créer l'opportunité
     const opportunity = await tx.opportunity.create({
       data: {
+        id: generateId(ID_PREFIXES.OPPORTUNITY),
         opportunityName: `Opportunity from ${lead.leadName}`,
         opportunityValue: 0,
         closeDate: new Date(new Date().setDate(new Date().getDate() + 30)),

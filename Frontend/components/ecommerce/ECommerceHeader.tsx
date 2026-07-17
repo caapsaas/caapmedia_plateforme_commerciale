@@ -20,6 +20,7 @@ interface ECommerceHeaderProps {
     searchTerm: string;
     onSearchTermChange: (term: string) => void;
     onQuoteRequest: () => void;
+    onNewOrder?: () => void;
     onSelectAllCategories: () => void;
     productHierarchy: { category: string; slug: string; subcategories: { name: string; slug: string }[] }[];
     onSelectMainCategory: (category: string) => void;
@@ -105,6 +106,14 @@ const ECommerceHeader: React.FC<ECommerceHeaderProps> = (props) => {
                     </div>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-4">
+                     {props.onNewOrder && (
+                      <button
+                        onClick={props.onNewOrder}
+                        className="py-2 px-4 rounded-full bg-green-600 text-white shadow-lg hover:bg-green-700 transition-colors font-bold text-xs md:text-sm"
+                    >
+                        Nouvelle Commande
+                    </button>
+                    )}
                      <button
                         onClick={props.onQuoteRequest}
                         className="py-2 px-4 rounded-full bg-[#E61D2B] text-white animate-blink shadow-lg hover:bg-red-700 transition-colors font-bold text-xs md:text-sm"

@@ -5,6 +5,8 @@ import { FindAllSalesDto, OrderPeriod } from './dto/find-all-sales.dto';
 import { Prisma, SaleStatus, UserRole } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { sub, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class SalesService {
@@ -61,6 +63,7 @@ export class SalesService {
 
 
         return {
+          id: generateId(ID_PREFIXES.SALE),
           productName: product.productName,
           quantity: item.quantity,
           totalPrice: totalPrice,

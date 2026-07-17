@@ -115,10 +115,20 @@ export class AnalyticsService {
 
     // Pour obtenir la valeur, il faut une autre requête ou un calcul manuel.
     // Ici, nous calculons la valeur monétaire.
+    const productsWithStock = await this.prisma.product.findMany({
+      where: {
+        subsidiaryId,
+        stock: { gt: 0 },
+      },
+      select: {
+        mainCategory: true,
+        stock: true,
+      },
+    });
+
     const stockDistribution = productsWithStock.reduce((acc, product) => {
       const category = product.mainCategory || 'Non catégorisé';
-      const value = product.price.mul(product.stock);
-      acc[category] = (acc[category] || new Prisma.Decimal(0)).add(value);
+      acc[category] = (acc[category] || new Prisma.Decimal(0)).add(product.stock);
       return acc;
     }, {} as Record<string, Prisma.Decimal>);
 

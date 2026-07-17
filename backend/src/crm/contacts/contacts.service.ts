@@ -188,6 +188,7 @@ export class ContactsService {
 
     const newContact = await this.prisma.contact.create({
       data: {
+        id: generateId(ID_PREFIXES.CONTACT),
         ...rest,
         email,
         since: registerContactDto.since ? new Date(registerContactDto.since) : new Date(),

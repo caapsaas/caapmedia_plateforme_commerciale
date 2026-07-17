@@ -119,7 +119,7 @@ model ConfigurableOptionItem {
 }
 
 model Product {
-  id                   String               @id @map("id")
+  id                   String               @id @map("id") @db.Text
   productName          String               @map("product_name") @db.VarChar(255)
   mainCategory         String               @map("main_category") @db.VarChar(255)
   category             String               @map("category") @db.VarChar(255)

@@ -63,6 +63,7 @@ export class EntriesService {
         createdBy: user.id,
         lines: {
           create: dto.lines.map((line) => ({
+            id: generateId(ID_PREFIXES.JOURNALENTRYLINE),
             accountId: line.accountId,
             description: line.description,
             debitAmount: new Prisma.Decimal(line.debitAmount),
@@ -153,6 +154,7 @@ export class EntriesService {
             createdBy: user.id,
             lines: {
               create: entry.lines.map((line) => ({
+                id: generateId(ID_PREFIXES.JOURNALENTRYLINE),
                 accountId: line.accountId,
                 description: line.description,
                 debitAmount: line.creditAmount,   // inversé

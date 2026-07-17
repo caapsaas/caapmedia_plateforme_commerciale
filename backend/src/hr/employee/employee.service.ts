@@ -162,13 +162,14 @@ export class EmployeeService {
 
         // Initialize leave balances for all leave types
         const leaveTypes = ['ANNUAL', 'SICK', 'PERSONAL', 'MATERNITY', 'PATERNITY', 'OTHER'] as LeaveType[];
-        
+
         for (const leaveType of leaveTypes) {
           const balanceKey = leaveType.toLowerCase();
           const days = createEmployeeDto.leaveBalance?.[balanceKey] || 0;
-          
+
           await prisma.employeeLeaveBalance.create({
             data: {
+              id: generateId(ID_PREFIXES.EMPLOYEELEAVEBALANCE),
               employeeId: newEmployee.id,
               leaveType,
               days: days,
@@ -302,6 +303,7 @@ export class EmployeeService {
         lastUpdated: new Date(),
       },
       create: {
+        id: generateId(ID_PREFIXES.EMPLOYEELEAVEBALANCE),
         employeeId,
         leaveType,
         days: days,
@@ -361,7 +363,7 @@ export class EmployeeService {
 
     return this.prisma.$transaction(async (prisma) => {
       const leaveRecord = await prisma.employeeLeaveRecord.create({
-        data: { ...leaveData, days, employeeId },
+        data: { id: generateId(ID_PREFIXES.EMPLOYEELEAVERECORD), ...leaveData, days, employeeId },
       });
 
       // Update specific leave balance instead of general balance
@@ -477,7 +479,7 @@ export class EmployeeService {
     docType: DocumentType,
   ): Promise<any> {
     return this.prisma.employeeDocument.create({
-      data: { employeeId, documentName, url, docType },
+      data: { id: generateId(ID_PREFIXES.EMPLOYEEDOCUMENT), employeeId, documentName, url, docType },
       include: { employee: true },
     });
   }
@@ -490,7 +492,7 @@ export class EmployeeService {
     positionData: { employeePosition: string; department?: string; startDate: Date; endDate?: Date },
   ): Promise<any> {
     return this.prisma.employeePositionHistory.create({
-      data: { ...positionData, employeeId },
+      data: { id: generateId(ID_PREFIXES.EMPLOYEEPOSITIONHISTORY), ...positionData, employeeId },
     });
   }
 
@@ -502,7 +504,7 @@ export class EmployeeService {
     trainingData: { trainingName: string; trainingDate: Date; provider?: string },
   ): Promise<any> {
     return this.prisma.employeeTraining.create({
-      data: { ...trainingData, employeeId },
+      data: { id: generateId(ID_PREFIXES.EMPLOYEETRAINING), ...trainingData, employeeId },
     });
   }
 
@@ -514,7 +516,7 @@ export class EmployeeService {
     reviewData: { reviewDate: Date; reviewer?: string; rating?: number; reviewComments?: string },
   ): Promise<any> {
     return this.prisma.employeePerformanceReview.create({
-      data: { ...reviewData, employeeId },
+      data: { id: generateId(ID_PREFIXES.EMPLOYEEPERFORMANCEREVIEW), ...reviewData, employeeId },
     });
   }
 }
