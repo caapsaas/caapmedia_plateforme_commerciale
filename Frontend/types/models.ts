@@ -195,8 +195,6 @@ export interface Product {
   category: string; // This is the subcategory
   description: string;
   stock: number;
-  price: number; // Prix de revient
-  sellingPrice: number; // Prix de vente
   warehouse: string;
   subsidiaryId: string;
   range?: string;

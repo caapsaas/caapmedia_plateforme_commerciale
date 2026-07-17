@@ -125,8 +125,6 @@ model Product {
   category             String               @map("category") @db.VarChar(255)
   description          String               @map("description")
   stock                Decimal              @map("stock")
-  price                Decimal              @map("price") @db.Decimal(15, 2)
-  sellingPrice         Decimal              @map("selling_price") @db.Decimal(15, 2)
   warehouse            String               @map("warehouse") @db.VarChar(255)
   productRange         String?              @map("product_range") @db.VarChar(255)
   subsidiaryId         String               @map("subsidiary_id")

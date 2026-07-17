@@ -641,6 +641,7 @@ async function runProductSeeder(prisma: PrismaClient) {
         for (const url of p.imageUrls) {
           await prisma.productImage.create({
             data: {
+              id: generateId(ID_PREFIXES.PRODUCTIMAGE),
               imageName: `${p.name}-${url.split('/').pop()}`,
               imageUrl: url,
               product: { connect: { id: product.id } },
@@ -660,12 +661,17 @@ async function runProductSeeder(prisma: PrismaClient) {
     
             if (!optionItem) {
               optionItem = await prisma.configurableOptionItem.create({
-                data: { optionName: item.name, multiplier: new Prisma.Decimal(item.multiplier) },
+                data: {
+                  id: generateId(ID_PREFIXES.CONFIGURABLEOPTIONITEM),
+                  optionName: item.name,
+                  multiplier: new Prisma.Decimal(item.multiplier)
+                },
               });
             }
     
             await prisma.configurableOption.create({
               data: {
+                id: generateId(ID_PREFIXES.CONFIGURABLEOPTION),
                 optionType: type.toUpperCase() as OptionType,
                 product: { connect: { id: product.id } },
                 item: { connect: { id: optionItem.id } },
