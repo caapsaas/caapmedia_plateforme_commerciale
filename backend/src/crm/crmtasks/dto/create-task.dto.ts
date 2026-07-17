@@ -3,7 +3,6 @@ import {
     IsNotEmpty,
     IsOptional,
     IsEnum,
-    IsUUID,
     IsDateString,
   } from 'class-validator';
   import { CrmTaskStatus, CrmTaskPriority } from '@prisma/client';
@@ -20,10 +19,11 @@ import {
     @IsDateString()
     dueDate: string;
   
-    @IsUUID()
+    @IsString()
+    @IsNotEmpty()
     contactId: string;
-  
-    @IsUUID()
+
+    @IsString()
     @IsOptional()
     opportunityId?: string;
   

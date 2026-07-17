@@ -1,8 +1,8 @@
-import { IsString, IsUUID, IsNotEmpty, IsOptional, IsNumber, IsArray, ValidateNested, IsEmail } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, IsArray, ValidateNested, IsEmail } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class ProformaItemDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   productId: string;
 
@@ -20,11 +20,11 @@ export class ProformaItemDto {
 }
 
 export class CreateProformaDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   leadId: string;
 
-  @IsUUID()
+  @IsString()
   @IsOptional()
   opportunityId?: string;
 

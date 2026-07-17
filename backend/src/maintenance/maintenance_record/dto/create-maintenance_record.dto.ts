@@ -1,4 +1,4 @@
-import { IsString, IsUUID, IsDateString, IsNumber, IsOptional, Min } from 'class-validator';
+import { IsString, IsDateString, IsNumber, IsOptional, Min } from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 
 // DTO de création
@@ -16,7 +16,7 @@ export class CreateMaintenanceRecordDto {
   @Min(0)
   maintenanceCost: number;
 
-  @IsUUID()
+  @IsString()
   equipmentId: string;
 }
 
@@ -29,7 +29,7 @@ export class UpdateMaintenanceRecordDto extends PartialType(CreateMaintenanceRec
 // DTO de recherche/filtre
 export class SearchMaintenanceRecordDto {
   @IsOptional()
-  @IsUUID()
+  @IsString()
   equipmentId?: string;
 
   @IsOptional()

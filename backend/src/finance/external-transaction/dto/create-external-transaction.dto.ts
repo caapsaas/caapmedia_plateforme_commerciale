@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsEnum, IsDateString, IsUUID } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsEnum, IsDateString } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ExternalTransactionType, ExternalTransactionCategory, ExternalTransactionStatus, PaymentMethod } from '@prisma/client';
 
@@ -42,10 +42,10 @@ export class CreateExternalTransactionDto {
   referenceNumber?: string;
 
   @ApiProperty({ description: 'ID de l\'utilisateur qui crée la transaction' })
-  @IsUUID()
+  @IsString()
   createdBy: string;
 
   @ApiProperty({ description: 'ID de la filiale' })
-  @IsUUID()
+  @IsString()
   subsidiaryId: string;
 }

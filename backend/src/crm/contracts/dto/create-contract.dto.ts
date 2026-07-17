@@ -3,7 +3,6 @@ import {
   IsDateString,
   IsNumber,
   IsEnum,
-  IsUUID,
   IsNotEmpty,
 } from 'class-validator';
 import { ContractStatus } from '@prisma/client';
@@ -25,6 +24,7 @@ export class CreateContractDto {
   @IsEnum(ContractStatus)
   status: ContractStatus;
 
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   clientId: string;
 }

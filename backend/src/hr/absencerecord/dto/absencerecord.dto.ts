@@ -1,4 +1,4 @@
-import { IsString, IsDate, IsEnum, IsOptional, Length, IsUUID } from 'class-validator';
+import { IsString, IsDate, IsEnum, IsOptional, Length } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
 import { AbsenceType } from '@prisma/client';
@@ -8,7 +8,8 @@ export class CreateAbsenceRecordDto {
   @Length(1, 255)
   employeeName: string;
 
-  @IsUUID()
+  @IsString()
+  @Length(1, 255)
   employeeId: string;
 
   @IsDate()

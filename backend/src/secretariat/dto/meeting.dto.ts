@@ -1,5 +1,5 @@
 
-import { IsString, IsDate, IsOptional, IsUUID, IsArray } from 'class-validator';
+import { IsString, IsDate, IsOptional, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
 export class CreateMeetingDto {
   @IsString()
@@ -31,13 +31,13 @@ export class CreateMeetingDto {
   // @ApiPropertyOptional({ description: 'Compte-rendu' })
   minutes?: string;
 
-  @IsUUID('all')  // Plus précis : valide tous les types UUID
+  @IsString()
   // @ApiProperty({ description: 'ID de la filiale' })
   subsidiaryId: string;
 
   @IsOptional()  // Rendu optionnel : tableau vide OK
   @IsArray()
-  @IsUUID('all', { each: true })
+  @IsString({ each: true })
   // @ApiPropertyOptional({ description: 'IDs des participants (employés)', type: [String] })
   participantIds?: string[];
 }
@@ -77,7 +77,7 @@ export class UpdateMeetingDto {
 
   @IsOptional()  // Rendu optionnel : ne force pas l'update des participants
   @IsArray()
-  @IsUUID('all', { each: true })
+  @IsString({ each: true })
   // @ApiPropertyOptional({ description: 'Nouveaux IDs des participants', type: [String] })
   participantIds?: string[];
 }

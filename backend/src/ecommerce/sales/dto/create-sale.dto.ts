@@ -5,7 +5,6 @@ import {
   IsNotEmpty,
   IsEnum,
   IsString,
-  IsUUID,
   IsNumber,
   Min,
   ValidateNested,
@@ -13,7 +12,7 @@ import {
 import { CustomerPaymentMethod } from '@prisma/client';
 
 class DirectSaleItemDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   productId: string;
 
@@ -33,7 +32,7 @@ class DirectSaleItemDto {
 
 export class CreateDirectSaleDto {
   @IsNotEmpty()
-  @IsUUID()
+  @IsString()
   customerId: string;
 
   @IsNotEmpty()

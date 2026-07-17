@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsEnum, IsDateString, IsUUID } from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsDateString } from 'class-validator';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 export enum OrderPeriod {
@@ -14,11 +14,11 @@ export enum OrderPeriod {
 
 export class FindAllOrdersDto {
   @IsOptional()
-  @IsUUID()
+  @IsString()
   customerId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   productId?: string;
 
   @IsOptional()

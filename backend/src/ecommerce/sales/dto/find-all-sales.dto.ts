@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsUUID, IsEnum } from 'class-validator';
+import { IsOptional, IsString, IsEnum } from 'class-validator';
 import { CustomerPaymentMethod, SaleStatus } from '@prisma/client';
 
 // Réutilisation de l'enum de période pour la cohérence
@@ -15,11 +15,11 @@ export enum OrderPeriod {
 
 export class FindAllSalesDto {
   @IsOptional()
-  @IsUUID()
+  @IsString()
   customerId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   salesRepId?: string;
 
   @IsOptional()

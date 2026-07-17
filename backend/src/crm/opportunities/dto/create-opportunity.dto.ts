@@ -3,7 +3,6 @@ import {
     IsNotEmpty,
     IsNumber,
     IsDateString,
-    IsUUID,
     IsEnum,
     IsOptional,
     IsArray,
@@ -24,10 +23,12 @@ import {
     @IsDateString()
     closeDate: string;
   
-    @IsUUID()
+    @IsString()
+    @IsNotEmpty()
     contactId: string;
-  
-    @IsUUID()
+
+    @IsString()
+    @IsNotEmpty()
     accountId: string;
   
     @IsEnum(OpportunityStage)
@@ -38,7 +39,7 @@ import {
     sourceOpportunity?: OpportunitySource;
   
     @IsArray()
-    @IsUUID('4', { each: true })
+    @IsString({ each: true })
     @IsOptional()
     productIds?: string[];
   }

@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsDateString, IsNumber, IsPositive, IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty, IsDateString, IsNumber, IsPositive } from 'class-validator';
 
 export class CreateSupplierDebtDto {
   @IsString()
@@ -17,7 +17,7 @@ export class CreateSupplierDebtDto {
   @IsPositive()
   amount: number;
 
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   purchaseOrderId: string;
 

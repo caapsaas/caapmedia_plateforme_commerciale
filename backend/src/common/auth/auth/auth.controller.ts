@@ -4,7 +4,7 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from '../jwt/jwt.guard';
 import { RoleGuard } from '../role/role.guard';
 import { SetMetadata } from '@nestjs/common';
-import { IsString, IsEmail, IsOptional, IsUUID, IsEnum, IsArray, IsNotEmpty } from 'class-validator';
+import { IsString, IsEmail, IsOptional, IsEnum, IsArray, IsNotEmpty } from 'class-validator';
 import { UserRole } from '@prisma/client';
 
 class RegisterDto {
@@ -25,7 +25,7 @@ class RegisterDto {
   @IsEnum(UserRole, { each: true })
   additionalRoles?: UserRole[];
 
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   subsidiaryId: string;
 }
@@ -66,7 +66,7 @@ class UpdateUserDto {
   additionalRoles?: UserRole[];
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   subsidiaryId?: string;
 }
 

@@ -1,4 +1,4 @@
-import { IsString, IsDate, IsEmail, IsEnum, IsDecimal, IsOptional, IsArray, Min, Max, Length, IsUUID, IsNumber } from 'class-validator';
+import { IsString, IsDate, IsEmail, IsEnum, IsDecimal, IsOptional, IsArray, Min, Max, Length, IsNumber } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
 import { Gender, ContractType, EmployeeStatus, PaymentMethod } from '@prisma/client'; // Assumons que ces enums sont générés par Prisma
@@ -103,12 +103,11 @@ export class CreateEmployeeDto {
   paymentMethod: PaymentMethod; // Devrait maintenant accepter VIREMENT_BANCAIRE
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   managerId?: string;
 
-  
   @IsOptional()
-  @IsUUID()
+  @IsString()
   subsidiaryId?: string;
 
   @IsOptional()
