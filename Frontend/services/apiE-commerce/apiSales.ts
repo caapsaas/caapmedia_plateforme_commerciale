@@ -20,7 +20,9 @@ export interface FindAllSalesDto {
     customerId?: string;
     salesRepId?: string;
     paymentMethod?: CustomerPaymentMethod;
-    period?: 'ALL_TIME' | 'THIS_MONTH' | 'LAST_MONTH' | 'LAST_7_DAYS' | 'LAST_30_DAYS' | 'THIS_YEAR' | 'CUSTOM';
+    // Valeurs (pas les cles) de l'enum OrderPeriod backend - IsEnum() les
+    // valide telles quelles, en minuscules.
+    period?: 'all_time' | 'this_month' | 'last_month' | 'last_7_days' | 'last_30_days' | 'last_90_days' | 'this_year' | 'custom';
     startDate?: string;
     endDate?: string;
 }

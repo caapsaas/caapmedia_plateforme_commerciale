@@ -111,7 +111,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
     const { data: totalReceivablesData = { totalReceivables: 0 }, isLoading: isLoadingReceivable } = useQuery<CustomerReceivablesStats>({
         queryKey: ['totalReceivables'],
         queryFn: () => getCustomerReceivables({
-            period: 'ALL_TIME',
+            period: 'all_time',
         })
     });
 

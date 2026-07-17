@@ -17,36 +17,36 @@ const Analytics: React.FC = () => {
     const { subsidiary } = useAuth();
     const [activeTab, setActiveTab] = useState<AnalyticsView>('dashboard');
     const [selectedSubsidiaryId, setSelectedSubsidiaryId] = useState('');
-    const [selectedPeriod, setSelectedPeriod] = useState<PeriodFilterType>('LAST_30_DAYS');
+    const [selectedPeriod, setSelectedPeriod] = useState<PeriodFilterType>('last_30_days');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
 
-    const isCustomPeriodValid =selectedPeriod !== 'CUSTOM' || (!!startDate && !!endDate && startDate <= endDate);
+    const isCustomPeriodValid =selectedPeriod !== 'custom' || (!!startDate && !!endDate && startDate <= endDate);
 
-    
+
     const handlePeriodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newPeriod = e.target.value as PeriodFilterType;
         setSelectedPeriod(newPeriod);
-        if (newPeriod !== 'CUSTOM') {
+        if (newPeriod !== 'custom') {
             setStartDate('');
             setEndDate('');
         }
     };
 
     const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSelectedPeriod('CUSTOM');
+        setSelectedPeriod('custom');
         setStartDate(e.target.value);
     };
-    
+
     const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSelectedPeriod('CUSTOM');
+        setSelectedPeriod('custom');
         setEndDate(e.target.value);
     };
 
     const queryParams = useMemo(() => ({
-        period: selectedPeriod.toLowerCase(),
-        startDate: selectedPeriod === 'CUSTOM' && startDate ? startDate : undefined,
-        endDate: selectedPeriod === 'CUSTOM' && endDate ? endDate : undefined,
+        period: selectedPeriod,
+        startDate: selectedPeriod === 'custom' && startDate ? startDate : undefined,
+        endDate: selectedPeriod === 'custom' && endDate ? endDate : undefined,
     }), [selectedPeriod, startDate, endDate]);
 
     // --- TanStack Query Data Fetching ---
@@ -69,7 +69,7 @@ const Analytics: React.FC = () => {
     });
 
     const renderActiveView = () => {
-        if (selectedPeriod === 'CUSTOM' && (!startDate || !endDate || startDate > endDate)) {
+        if (selectedPeriod === 'custom' && (!startDate || !endDate || startDate > endDate)) {
             return <div className="p-6 text-center text-slate-500">{t('analytics.periods.selectDates')}</div>;
         }
         // Only show loading if the current active tab's data is loading

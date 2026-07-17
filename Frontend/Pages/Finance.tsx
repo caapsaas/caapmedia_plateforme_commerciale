@@ -36,7 +36,7 @@ const Finance: React.FC = () => {
     const [activeTab, setActiveTab] = useState<FinanceView>(FinanceView.CREDIT);
     
     // Centralisation de la gestion des filtres de période
-    const [period, setPeriod] = useState<PeriodFilter>('THIS_MONTH');
+    const [period, setPeriod] = useState<PeriodFilter>('this_month');
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
 
@@ -58,8 +58,8 @@ const Finance: React.FC = () => {
 
     const queryParams = useMemo(() => ({
         period: period,
-        startDate: period === 'CUSTOM' ? startDate : undefined,
-        endDate: period === 'CUSTOM' ? endDate : undefined,
+        startDate: period === 'custom' ? startDate : undefined,
+        endDate: period === 'custom' ? endDate : undefined,
     }), [period, startDate, endDate]);
 
     // Appel à l'API pour le P&L, activé seulement si l'onglet est visible

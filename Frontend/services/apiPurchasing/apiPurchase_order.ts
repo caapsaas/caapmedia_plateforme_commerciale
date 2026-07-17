@@ -19,7 +19,9 @@ export interface CreatePurchaseOrderDto {
 /**
  * Périodes de filtrage pour les commandes.
  */
-export type OrderPeriod = 'ALL_TIME' | 'THIS_MONTH' | 'LAST_MONTH' | 'LAST_7_DAYS' | 'LAST_30_DAYS' | 'THIS_YEAR' | 'CUSTOM';
+// Valeurs (pas les cles) de l'enum OrderPeriod backend - IsEnum() les valide
+// telles quelles, en minuscules (pas de LAST_90_DAYS ici, absent cote backend).
+export type OrderPeriod = 'all_time' | 'this_month' | 'last_month' | 'last_7_days' | 'last_30_days' | 'this_year' | 'custom';
 
 /**
  * DTO pour le filtrage des bons de commande.

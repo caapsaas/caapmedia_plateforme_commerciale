@@ -1,9 +1,12 @@
 import { api } from '../api';
 
 /**
- * Périodes de filtrage disponibles, correspondant à l'enum PeriodFilter du backend.
+ * Périodes de filtrage disponibles - valeurs (pas les clés) de l'enum
+ * PeriodFilter du backend (backend/src/statistics/analytics/dto/period-filter.dto.ts),
+ * validees via class-validator @IsEnum: doivent matcher exactement, en
+ * minuscules ('all_time', pas 'ALL_TIME').
  */
-export type PeriodFilter = 'ALL_TIME' | 'THIS_MONTH' | 'LAST_MONTH' | 'LAST_7_DAYS' | 'LAST_30_DAYS' | 'LAST_90_DAYS' | 'THIS_YEAR' | 'CUSTOM';
+export type PeriodFilter = 'all_time' | 'this_month' | 'last_month' | 'last_7_days' | 'last_30_days' | 'last_90_days' | 'this_year' | 'custom';
 
 /**
  * DTO pour le filtrage par période.

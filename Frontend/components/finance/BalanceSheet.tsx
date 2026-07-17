@@ -63,7 +63,7 @@ const BalanceSheet: React.FC<BalanceSheetProps> = ({ subsidiary, balanceSheetDat
     const { data: apiReceivablesData = { totalReceivables: 0 } } = useQuery<CustomerReceivablesStats>({
         queryKey: ['totalReceivables'],
         queryFn: () => getCustomerReceivables({
-            period: 'ALL_TIME',
+            period: 'all_time',
         })
     });
 
