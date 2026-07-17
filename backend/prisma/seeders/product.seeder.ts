@@ -629,8 +629,6 @@ async function runProductSeeder(prisma: PrismaClient) {
             category: p.category,
             description: p.description,
             stock: new Prisma.Decimal(p.stock),
-            price: new Prisma.Decimal(p.price),
-            sellingPrice: new Prisma.Decimal(p.sellingPrice),
             warehouse: p.warehouse,
             productRange: p.range,
             subsidiary: { connect: { id: subsidiary.id } },

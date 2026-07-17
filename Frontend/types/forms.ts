@@ -20,10 +20,8 @@ export enum OptionType {
 }
 
 // Type pour les données du formulaire de produit, gérant les fichiers et les types de données envoyés.
-export type ProductFormData = Omit<Product, 'id' | 'subsidiaryId' | 'productImages' | 'configurableOptions' | 'stock' | 'price' | 'sellingPrice'> & {
+export type ProductFormData = Omit<Product, 'id' | 'subsidiaryId' | 'productImages' | 'configurableOptions' | 'stock'> & {
     stock: string | number;
-    price: string | number;
-    sellingPrice: string | number;
     productImages?: File[];
     configurableOptions?: {
         optionType: OptionType;

@@ -134,7 +134,6 @@ const ProductManagement: React.FC = () => {
                             <th scope="col" className="px-6 py-3">{t('configuration.name')}</th>
                             <th scope="col" className="px-6 py-3">{t('stock.range')}</th>
                             <th scope="col" className="px-6 py-3">{t('configuration.category')}</th>
-                            <th scope="col" className="px-6 py-3">{t('configuration.sellingPrice')}</th>
                             <th scope="col" className="px-6 py-3">{t('configuration.stock')}</th>
                             <th scope="col" className="px-6 py-3 text-center">{t('common.actions')}</th>
                         </tr>
@@ -151,7 +150,6 @@ const ProductManagement: React.FC = () => {
                                 <td className="px-6 py-4 font-semibold">{product.productName}</td>
                                 <td className="px-6 py-4">{product.range ? t(rangeToKeyMap[product.range] || product.range) : 'Non specifie'}</td>
                                 <td className="px-6 py-4">{t(categoryToKeyMap[product.category] || product.category)}</td>
-                                <td className="px-6 py-4">{formatCurrency(product.sellingPrice)}</td>
                                 <td className={`px-6 py-4 font-bold ${product.stock < 100 ? 'text-red-500' : 'text-green-600'}`}>
                                     {product.stock}
                                 </td>

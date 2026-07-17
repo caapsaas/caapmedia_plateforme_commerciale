@@ -55,7 +55,7 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({ isOpen, onClose
             }
 
             const header = rows[0].split(',').map(h => h.trim().replace(/"/g, ''));
-            const expectedHeaders = ['name', 'category', 'description', 'stock', 'price', 'sellingPrice', 'warehouse', 'range'];
+            const expectedHeaders = ['name', 'category', 'description', 'stock', 'warehouse', 'range'];
             
             const headersMatch = expectedHeaders.every((h, i) => h === header[i]);
             if (!headersMatch) {
@@ -82,20 +82,16 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({ isOpen, onClose
                     return obj;
                 }, {} as any);
                 
-                const { name, category, stock, price, sellingPrice } = productData;
+                const { name, category, stock } = productData;
                 let hasError = false;
 
                 if (!name) { errors.push(`Ligne ${rowNumber}: Le champ 'name' est requis.`); hasError = true; }
                 if (!category) { errors.push(`Ligne ${rowNumber}: Le champ 'category' est requis.`); hasError = true; }
                 if (category && !allCategories.has(category)) { errors.push(`Ligne ${rowNumber}: La catégorie '${category}' n'est pas valide.`); hasError = true; }
-                
+
                 const stockNum = parseFloat(stock);
-                const priceNum = parseFloat(price);
-                const sellingPriceNum = parseFloat(sellingPrice);
 
                 if (isNaN(stockNum)) { errors.push(`Ligne ${rowNumber}: 'stock' doit être un nombre.`); hasError = true; }
-                if (isNaN(priceNum)) { errors.push(`Ligne ${rowNumber}: 'price' doit être un nombre.`); hasError = true; }
-                if (isNaN(sellingPriceNum)) { errors.push(`Ligne ${rowNumber}: 'sellingPrice' doit être un nombre.`); hasError = true; }
 
                 if (hasError) continue;
                 
@@ -108,8 +104,6 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({ isOpen, onClose
                     mainCategory,
                     description: productData.description || '',
                     stock: stockNum,
-                    price: priceNum,
-                    sellingPrice: sellingPriceNum,
                     warehouse: productData.warehouse || '',
                     range: productData.range || '',
                     subsidiaryId: subsidiary?.id ?? '',

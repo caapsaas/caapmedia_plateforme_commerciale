@@ -49,8 +49,6 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ isOpen, onClose, on
             range: '',
             description: '',
             stock: 0,
-            price: 0,
-            sellingPrice: 0,
             warehouse: '',
             // Initialisation pour ProductFormData
             productImages: [],
@@ -222,16 +220,6 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ isOpen, onClose, on
                                     </button>
                                 </div>
                                 {descriptionError && <p className="mt-1 text-sm text-red-600">{descriptionError}</p>}
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label htmlFor="price" className="block text-sm font-medium text-slate-700">{t('configuration.form.costPrice')}</label>
-                                    <input type="number" step="0.01" name="price" id="price" value={formData.price} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
-                                </div>
-                                <div>
-                                    <label htmlFor="sellingPrice" className="block text-sm font-medium text-slate-700">{t('configuration.form.sellingPrice')}</label>
-                                    <input type="number" step="0.01" name="sellingPrice" id="sellingPrice" value={formData.sellingPrice} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
-                                </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
