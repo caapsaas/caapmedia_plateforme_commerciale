@@ -7,7 +7,6 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/favicon.svg">
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- <link href="/index.css" rel="stylesheet"> -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,19 +14,39 @@
     body {
         font-family: 'Montserrat', sans-serif;
     }
-    /* Custom scrollbar for better aesthetics */
+    /* Scrollbar globale: fine et gris clair (meme gris que border-slate-300,
+       deja utilise partout dans l'app). */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 transparent;
+    }
     ::-webkit-scrollbar {
-      width: 8px;
+      width: 6px;
+      height: 6px;
     }
     ::-webkit-scrollbar-track {
-      background: #f1f5f9;
+      background: transparent;
     }
     ::-webkit-scrollbar-thumb {
-      background: #94a3b8;
-      border-radius: 10px;
+      background: #cbd5e1;
+      border-radius: 9999px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: #64748b;
+      background: #94a3b8;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .animate-slideDown {
+      animation: slideDown 0.15s ease-out;
     }
 
     @keyframes blink {
