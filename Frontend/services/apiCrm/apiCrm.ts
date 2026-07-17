@@ -15,9 +15,11 @@ import {
 export const getContacts = (subsidiaryId: string): Promise<Contact[]> =>
   api.get(`/crm/contacts?subsidiaryId=${subsidiaryId}`).then(res => res.data);
 
-export const saveContact = (data: Omit<Contact, 'id' | 'subsidiaryId'> & { id?: string }): Promise<Contact> => {
+// A la creation, le backend genere un mot de passe temporaire pour le portail
+// client et le renvoie dans la reponse (voir contacts.service.ts) - absent
+// sur une mise a jour (PATCH), d'ou l'union avec Contact simple.
+export const saveContact = (data: Omit<Contact, 'id' | 'subsidiaryId'> & { id?: string }): Promise<Contact & { tempPassword?: string; message?: string }> => {
   const payload = { ...data };
- 
 
   return data.id
     ? api.patch(`/crm/contacts/${data.id}`, payload).then(res => res.data)

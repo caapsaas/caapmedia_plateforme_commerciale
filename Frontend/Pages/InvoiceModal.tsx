@@ -10,7 +10,7 @@ interface InvoiceModalProps {
     isOpen: boolean;
     order: Order;
     subsidiary: Subsidiary;
-    client: Contact;
+    client: Contact | null;
     onClose: () => void;
 }
 
@@ -18,6 +18,8 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, order, subsidiary, 
     const { t, formatCurrency, language } = useI18n();
     const LogoComponent = subsidiary.logo;
     const invoiceContentRef = React.useRef<HTMLDivElement>(null);
+
+    if (!isOpen || !client) return null;
 
     const handlePrint = () => {
         window.print();
@@ -79,12 +81,12 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, order, subsidiary, 
                         </tr>
                     </thead>
                     <tbody>
-                        {order.orderItems.map((item) => (
-                            <tr key={item.id} className="bg-white border-b">
+                        {order.orderItems.map((item, index) => (
+                            <tr key={`${item.product.id}-${index}`} className="bg-white border-b">
                                 <td className="px-6 py-4 font-medium text-slate-900">{item.product.productName}</td>
                                 <td className="px-6 py-4 text-center">{item.quantity}</td>
-                                <td className="px-6 py-4 text-right">{formatCurrency(item.unitPrice)}</td>
-                                <td className="px-6 py-4 text-right font-semibold">{formatCurrency(item.unitPrice * item.quantity)}</td>
+                                <td className="px-6 py-4 text-right">{formatCurrency(item.price)}</td>
+                                <td className="px-6 py-4 text-right font-semibold">{formatCurrency(item.price * item.quantity)}</td>
                             </tr>
                         ))}
                     </tbody>

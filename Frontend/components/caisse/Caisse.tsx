@@ -16,7 +16,7 @@ import PriceCalculatorModal from '../ecommerce/PriceCalculatorModal';
 import { CartItem } from '../ecommerce/ShoppingCart';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProductsBySubsidiary } from '../../services/apiE-commerce/apiProducts';
-import { getContacts, createContactByEmployee, ContactCreationData } from '../../services/apiCrm/apiContacts';
+import { getContacts, createContactByEmployee, ContactCreationData } from '../../services/apiCrm/apicontacts';
 import { getOrders, recordOrderPayment, FindAllOrdersDto } from '../../services/apiE-commerce/apiOrders';
 import { createDirectSale, CreateDirectSaleDto } from '../../services/apiE-commerce/apiSales';
 import { getImageUrl } from '../../utils/imageUtils';
@@ -282,7 +282,7 @@ const Caisse: React.FC = () => {
                                                 disabled={isOutOfStock}
                                             >
                                                 <div className="w-full h-20 mb-2 rounded overflow-hidden bg-slate-100">
-                                                    <img src={p.productImages && p.productImages.length > 0 ? getImageUrl(p.productImages[0].imageUrl) : 'https://via.placeholder.com/150'} alt={p.name} className="w-full h-full object-cover"/>
+                                                    <img src={p.productImages && p.productImages.length > 0 ? getImageUrl(p.productImages[0].imageUrl) : 'https://via.placeholder.com/150'} alt={p.productName} className="w-full h-full object-cover"/>
                                                 </div>
                                                 <div className="flex-grow flex flex-col">
                                                     <h3 className="font-semibold text-sm leading-tight">{p.productName}</h3>
@@ -310,7 +310,7 @@ const Caisse: React.FC = () => {
                                 <p><strong>{t('cashRegister.clientSection.title')}:</strong> {loadedOrder.customerName}</p>
                             </div>
                              <ul className="divide-y divide-slate-200">
-                                {loadedOrder.orderItems.map((item, index) => <li key={index} className="py-2 flex justify-between items-center"><p>{item.product.productName} (x{item.quantity})</p><p className="font-semibold">{formatCurrency(item.unitPrice * item.quantity)}</p></li>)}
+                                {loadedOrder.orderItems.map((item, index) => <li key={index} className="py-2 flex justify-between items-center"><p>{item.product.productName} (x{item.quantity})</p><p className="font-semibold">{formatCurrency(item.price * item.quantity)}</p></li>)}
                             </ul>
                         </div>
                     )}

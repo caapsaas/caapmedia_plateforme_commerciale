@@ -9,7 +9,7 @@ import PeriodFilter from '../components/filters/PeriodFilter';
 import { useAuth } from '../context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getOrders, createOrderBySalesRep, createOrderBySalesRepJson, FindAllOrdersDto } from '../services/apiE-commerce/apiOrders';
-import { getProducts } from '../services/apiE-commerce/apiProducts';
+import { getProductsBySubsidiary } from '../services/apiE-commerce/apiProducts';
 import { getContacts } from '../services/apiCrm/apicontacts';
 
 const MesCommandes: React.FC = () => {
@@ -49,7 +49,7 @@ const MesCommandes: React.FC = () => {
 
     const { data: products = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
         queryKey: ['products', subsidiary?.id],
-        queryFn: getProducts,
+        queryFn: getProductsBySubsidiary,
         enabled: !!subsidiary,
     });
 

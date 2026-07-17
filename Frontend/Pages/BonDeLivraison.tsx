@@ -83,8 +83,8 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
                                     <tr key={index} className="bg-white border-b">
                                         <td className="px-6 py-4 font-medium text-slate-900">{item.product.productName}</td>
                                         <td className="px-6 py-4 text-center">{item.quantity}</td>
-                                        <td className="px-6 py-4 text-right">{formatCurrency(item.unitPrice)}</td>
-                                        <td className="px-6 py-4 text-right font-semibold">{formatCurrency(item.unitPrice * item.quantity)}</td>
+                                        <td className="px-6 py-4 text-right">{formatCurrency(item.price)}</td>
+                                        <td className="px-6 py-4 text-right font-semibold">{formatCurrency(item.price * item.quantity)}</td>
                                     </tr>
                                 ))}
                             </tbody>

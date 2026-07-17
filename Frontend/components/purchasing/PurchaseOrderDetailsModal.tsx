@@ -85,7 +85,7 @@ const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps> = ({ i
                     <ul className="space-y-2">
                         {purchaseOrder.history.map((entry, index) => (
                             <li key={index} className="text-xs text-slate-600">
-                                <span className="font-semibold">{new Date(entry.eventDate).toLocaleDateString(language)}:</span> {entry.eventName}
+                                <span className="font-semibold">{new Date(entry.date).toLocaleDateString(language)}:</span> {entry.event}
                             </li>
                         ))}
                     </ul>

@@ -255,7 +255,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary,
 
                                     {attendance?.signature && (
                                         <button
-                                            onClick={() => setViewingSignature({name: `${employee.firstName} ${employee.lastName}`, signature: attendance.signature})}
+                                            onClick={() => setViewingSignature({name: `${employee.firstName} ${employee.lastName}`, signature: attendance.signature!})}
                                             className="px-3 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-md hover:bg-slate-200 transition-colors"
                                         >
                                             Voir signature

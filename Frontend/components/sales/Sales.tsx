@@ -31,6 +31,7 @@ import {
   createOrderBySalesRepJson,
   FindAllOrdersDto,
   getTopSellingProducts,
+  TopSellingProduct,
 } from "../../services/apiE-commerce/apiOrders";
 import { getProductsBySubsidiary } from "../../services/apiE-commerce/apiProducts";
 import { getContacts } from "../../services/apiCrm/apicontacts";
@@ -152,7 +153,7 @@ const Sales: React.FC = () => {
   const {
     data: topSellingProducts = [],
     isLoading: isLoadingTopSellingProducts,
-  } = useQuery<Product[]>({
+  } = useQuery<TopSellingProduct[]>({
     queryKey: ["top-selling-products", subsidiary?.id],
     queryFn: () => getTopSellingProducts(),
     enabled: !!subsidiary,

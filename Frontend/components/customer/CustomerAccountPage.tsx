@@ -8,7 +8,7 @@ import IconArrowLeft from '../icons/IconArrowLeft';
 import ECommerceFooter from '../ecommerce/ECommerceFooter';
 import { useNavigate, Navigate, Link } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateContact } from '../../services/apiCrm/apiContacts';
+import { updateContact } from '../../services/apiCrm/apicontacts';
 import { getOrdersByCustomer } from '../../services/apiE-commerce/apiOrders';
 import { useAuth } from '../../context/AuthContext';
 
@@ -105,7 +105,7 @@ const CustomerAccountPage: React.FC = () => {
           </div>
         </div>
       </main>
-      <ECommerceFooter realisationsPath="/realisations" onBackToShop={() => navigate({ to: '/' })} />
+      <ECommerceFooter onNavigateToRealisations={() => navigate({ to: '/realisations' })} onBackToShop={() => navigate({ to: '/' })} />
     </div>
   );
 };

@@ -93,11 +93,17 @@ export const getOrderById = async (id: string) => {
     return data;
 };
 
+export interface TopSellingProduct {
+    productName: string;
+    quantity: number;
+    totalRevenue: number;
+}
+
 /**
  * Récupère les produits les plus vendus.
  */
-export const getTopSellingProducts = async () => {
-    const { data } = await api.get('/ecommerce/orders/analytics/top-selling');
+export const getTopSellingProducts = async (): Promise<TopSellingProduct[]> => {
+    const { data } = await api.get<TopSellingProduct[]>('/ecommerce/orders/analytics/top-selling');
     return data;
 };
 
