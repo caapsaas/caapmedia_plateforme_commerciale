@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 export async function runSupplierSeeder(prisma: PrismaClient) {
 
     const MOCK_SUPPLIERS = [

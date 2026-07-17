@@ -1,123 +1,123 @@
-import { PrismaClient, Gender, ContractType, EmployeeStatus, PaymentMethod, LeaveType, Employee } from '@prisma/client';
+import { PrismaClient, Gender, ContractType, EmployeeStatus, PaymentMethod, LeaveType } from '@prisma/client';
 import { generateId } from './generate-id.util';
 import { ID_PREFIXES } from './id-prefixes.const';
-import { faker } from '@faker-js/faker';
 
 const prisma = new PrismaClient();
 
 export async function seedEmployees() {
   console.log('🌱 Seeding employees...');
 
-  // Get or create subsidiary
-  let subsidiary = await prisma.subsidiary.findFirst();
-  
+  // Get first subsidiary (seeded by subsidiary seeder)
+  const subsidiary = await prisma.subsidiary.findFirst();
   if (!subsidiary) {
-    subsidiary = await prisma.subsidiary.create({
-      data: {
-        id: generateId(ID_PREFIXES.SUBSIDIARY),
-        subsidiaryName: 'CAAP Media',
-        logoSvg: '',
-        address: '123 Rue Principale, Douala, Cameroun',
-        phone: '+237 233 456 789',
-        email: 'contact@caapmedia.cm',
-        ifu: '123456789012',
-        rccm: 'RCCM-DLA-2023-A12345',
-        bankName: 'SCB Cameroun',
-        accountNumber: 'CM0123456789012345678901234',
-        swiftCode: 'SCMCAMCX',
-        shareCapital: 1000000.00,
-      },
-    });
-    console.log('✅ Created default subsidiary');
+    console.warn('No subsidiary found - employees require a subsidiary');
+    return;
   }
 
-  // Simple departments and positions
-  const departments = ['Direction', 'Commercial', 'Production', 'Finance', 'RH'];
-  const positions = ['Directeur', 'Manager', 'Employé', 'Assistant', 'Stagiaire'];
+  // Fixed seed employees with deterministic data
+  const seedEmployeesData = [
+    {
+      firstName: 'Jean',
+      lastName: 'Dupont',
+      email: 'jean.dupont@caap.cm',
+      department: 'Production',
+      positions: 'Manager',
+      gender: Gender.MALE,
+    },
+    {
+      firstName: 'Marie',
+      lastName: 'Martin',
+      email: 'marie.martin@caap.cm',
+      department: 'Finance',
+      positions: 'Directeur',
+      gender: Gender.FEMALE,
+    },
+    {
+      firstName: 'Pierre',
+      lastName: 'Bernard',
+      email: 'pierre.bernard@caap.cm',
+      department: 'Commercial',
+      positions: 'Employé',
+      gender: Gender.MALE,
+    },
+  ];
 
-  // Clear existing employees and leave balances
-  await prisma.employeeLeaveBalance.deleteMany({});
-  await prisma.employee.deleteMany({});
-  console.log('🗑️  Cleared existing employees');
-
-  // Create employees
-  const employees: Employee[] = [];
-  const employeeCount = 15; // Reduced for simplicity
-
-  for (let i = 0; i < employeeCount; i++) {
-    const firstName = faker.person.firstName().substring(0, 15);
-    const lastName = faker.person.lastName().substring(0, 15);
-    const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@caapmedia.cm`;
-    
-    const employee = await prisma.employee.create({
-      data: {
+  for (const data of seedEmployeesData) {
+    await prisma.employee.upsert({
+      where: { email: data.email },
+      update: {
+        department: data.department,
+        positions: data.positions,
+      },
+      create: {
         id: generateId(ID_PREFIXES.EMPLOYEE),
-        lastName,
-        firstName,
-        birthDate: faker.date.birthdate({ min: 22, max: 60, mode: 'age' }),
-        address: faker.location.streetAddress().substring(0, 200),
-        phone: faker.phone.number().substring(0, 20),
-        email: email.substring(0, 100),
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        birthDate: new Date('1985-01-15'),
+        address: '123 Rue Principale, Douala',
+        phone: '+237 233 456 789',
         nationality: 'Camerounaise',
-        socialSecurityNumber: faker.string.numeric(13),
-        positions: faker.helpers.arrayElement(positions),
-        department: faker.helpers.arrayElement(departments),
-        hireDate: faker.date.past({ years: 5 }),
+        socialSecurityNumber: Math.random().toString().substring(2, 15),
+        positions: data.positions,
+        department: data.department,
+        hireDate: new Date('2020-01-15'),
         workLocation: 'Douala',
-        baseSalary: faker.number.float({ min: 50000, max: 500000, fractionDigits: 0 }),
+        baseSalary: 150000,
         bonus: 0,
         benefits: ['Assurance santé'],
         subsidiaryId: subsidiary.id,
-        gender: faker.helpers.arrayElement([Gender.MALE, Gender.FEMALE]),
-        contractType: faker.helpers.arrayElement([ContractType.CDI, ContractType.CDD]),
+        gender: data.gender,
+        contractType: ContractType.CDI,
         status: EmployeeStatus.ACTIVE,
         paymentMethod: PaymentMethod.BANK_TRANSFER,
       },
     });
-
-    employees.push(employee);
+    console.log(`Employee ${data.email} seeded`);
   }
 
-  // Set manager relationships (some employees report to others)
-  const activeEmployees = employees.filter(emp => emp.status === EmployeeStatus.ACTIVE);
-  const potentialManagers = activeEmployees.filter(emp => 
-    emp.department === 'Direction' || 
-    emp.positions.includes('Directeur') || 
-    emp.positions.includes('Chef')
+  // Fetch seeded employees
+  const employees = await prisma.employee.findMany({
+    where: { email: { in: seedEmployeesData.map(d => d.email) } },
+  });
+
+  // Set manager relationships
+  const potentialManagers = employees.filter(emp =>
+    emp.positions.includes('Directeur') || emp.positions.includes('Manager')
   );
 
-  for (const employee of activeEmployees) {
-    if (!potentialManagers.find(m => m.id === employee.id)) {
-      const manager = faker.helpers.arrayElement(potentialManagers);
-      await prisma.employee.update({
-        where: { id: employee.id },
-        data: { managerId: manager.id },
-      });
+  for (const employee of employees) {
+    if (potentialManagers.length > 0 && !potentialManagers.find(m => m.id === employee.id)) {
+      const manager = potentialManagers[0];
+      if (employee.managerId !== manager.id) {
+        await prisma.employee.update({
+          where: { id: employee.id },
+          data: { managerId: manager.id },
+        });
+      }
     }
   }
 
-  // Simple leave balances (only for active employees)
-  for (const employee of activeEmployees) {
-    try {
-      await prisma.employeeLeaveBalance.createMany({
-        data: [
-          {
-            id: generateId(ID_PREFIXES.LEAVEBALANCE),
-            employeeId: employee.id,
-            leaveType: LeaveType.ANNUAL,
-            days: 20,
-          },
-          {
-            id: generateId(ID_PREFIXES.LEAVEBALANCE),
-            employeeId: employee.id,
-            leaveType: LeaveType.SICK,
-            days: 10,
-          }
-        ],
-        skipDuplicates: true,
+  // Seed leave balances (only for seeded employees)
+  for (const employee of employees) {
+    const leaveTypes = [LeaveType.ANNUAL, LeaveType.SICK];
+    const leaveDays = { [LeaveType.ANNUAL]: 20, [LeaveType.SICK]: 10 };
+
+    for (const leaveType of leaveTypes) {
+      const existing = await prisma.employeeLeaveBalance.findFirst({
+        where: { employeeId: employee.id, leaveType },
       });
-    } catch (error) {
-      // Ignore duplicate errors
+
+      if (!existing) {
+        await prisma.employeeLeaveBalance.create({
+          data: {
+            id: generateId(ID_PREFIXES.EMPLOYEELEAVEBALANCE),
+            employeeId: employee.id,
+            leaveType,
+            days: leaveDays[leaveType],
+          },
+        });
+      }
     }
   }
 

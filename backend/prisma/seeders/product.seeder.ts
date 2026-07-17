@@ -1,6 +1,7 @@
 // prisma/seeders/product.seeder.ts
 import { PrismaClient, Prisma, OptionType  } from '@prisma/client';
-
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 
 async function runProductSeeder(prisma: PrismaClient) {
  

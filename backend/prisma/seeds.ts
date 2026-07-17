@@ -10,6 +10,8 @@ import { runOrdersSeeder } from './seeders/order.seeder';
 import { seedTreasuryAccounts } from './seeders/treasury.seeder';
 import { runSupplierSeeder } from './seeders/supplier.seeder';
 import { runContactCitiesSeeder } from './seeders/contact-cities.seeder';
+import { generateId } from './seeders/generate-id.util';
+import { ID_PREFIXES } from './seeders/id-prefixes.const';
 
 const prisma = new PrismaClient()
 
@@ -40,6 +42,7 @@ async function seedEmployeeLeaveBalances() {
                 },
                 update: {},
                 create: {
+                    id: generateId(ID_PREFIXES.EMPLOYEELEAVEBALANCE),
                     employeeId: employee.id,
                     leaveType: leaveType as LeaveType,
                     days: days,

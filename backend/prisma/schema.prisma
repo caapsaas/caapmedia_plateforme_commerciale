@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Subsidiary {
-  id                            String                         @id @map("id")
+  id                            String                         @id @map("id") @db.Text
   subsidiaryName                String                         @map("subsidiary_name") @db.VarChar(255)
   logoSvg                       String                         @map("logo_svg")
   address                       String                         @map("address")
@@ -62,7 +62,7 @@ model Subsidiary {
 }
 
 model User {
-  id                            String                         @id @map("id")
+  id                            String                         @id @map("id") @db.Text
   userName                      String                         @map("user_name") @db.VarChar(255)
   email                         String                         @unique @map("email") @db.VarChar(255)
   passwordHash                  String                         @map("password_hash")
@@ -110,7 +110,7 @@ model Notification {
 }
 
 model ConfigurableOptionItem {
-  id                  Int                  @id @default(autoincrement()) @map("id")
+  id                  String               @id @map("id") @db.Text
   optionName          String               @unique @map("option_name") @db.VarChar(150)
   multiplier          Decimal              @map("multiplier") @db.Decimal(15, 2)
   configurableOptions ConfigurableOption[]
@@ -144,9 +144,9 @@ model Product {
 }
 
 model ConfigurableOption {
-  id         Int                     @id @default(autoincrement()) @map("id")
+  id         String                  @id @map("id") @db.Text
   productId  String?                 @map("product_id")
-  itemId     Int?                    @map("item_id")
+  itemId     String?                 @map("item_id")
   optionType OptionType              @map("option_type")
   item       ConfigurableOptionItem? @relation(fields: [itemId], references: [id], onDelete: Cascade)
   product    Product?                @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -155,7 +155,7 @@ model ConfigurableOption {
 }
 
 model ProductImage {
-  id        Int      @id @default(autoincrement()) @map("id")
+  id        String   @id @map("id") @db.Text
   imageName String   @map("image_name") @db.VarChar(255)
   imageUrl  String   @map("image_url")
   productId String?  @map("product_id")
@@ -212,7 +212,7 @@ model Employee {
 }
 
 model EmployeeDocument {
-  id           Int          @id @default(autoincrement()) @map("id")
+  id           String       @id @map("id") @db.Text
   documentName String       @map("document_name") @db.VarChar(255)
   url          String       @map("url")
   employeeId   String       @map("employee_id")
@@ -223,7 +223,7 @@ model EmployeeDocument {
 }
 
 model EmployeePositionHistory {
-  id               Int       @id @default(autoincrement()) @map("id")
+  id               String    @id @map("id") @db.Text
   employeePosition String    @map("employee_position") @db.VarChar(100)
   department       String?   @map("department") @db.VarChar(100)
   startDate        DateTime  @map("start_date")
@@ -235,7 +235,7 @@ model EmployeePositionHistory {
 }
 
 model EmployeeTraining {
-  id           Int      @id @default(autoincrement()) @map("id")
+  id           String   @id @map("id") @db.Text
   trainingName String   @map("training_name") @db.VarChar(255)
   trainingDate DateTime @map("training_date")
   provider     String?  @map("provider") @db.VarChar(255)
@@ -246,7 +246,7 @@ model EmployeeTraining {
 }
 
 model EmployeePerformanceReview {
-  id             Int      @id @default(autoincrement()) @map("id")
+  id             String   @id @map("id") @db.Text
   reviewDate     DateTime @map("review_date")
   reviewer       String?  @map("reviewer") @db.VarChar(255)
   rating         Int?     @map("rating")
@@ -258,7 +258,7 @@ model EmployeePerformanceReview {
 }
 
 model EmployeeLeaveRecord {
-  id              Int       @id @default(autoincrement()) @map("id")
+  id              String    @id @map("id") @db.Text
   startDate       DateTime  @map("start_date")
   endDate         DateTime  @map("end_date")
   days            Int       @map("days")
@@ -362,7 +362,7 @@ model Sale {
 }
 
 model TaxRate {
-  id           String  @id @default(uuid()) @map("id")
+  id           String  @id @map("id") @db.Text
   taxRatesName String  @map("tax_rates_name") @db.VarChar(255)
   rate         Decimal @map("rate") @db.Decimal(5, 4)
   isDefault    Boolean @default(false) @map("is_default")
@@ -456,7 +456,7 @@ model Order {
 }
 
 model OrderProductionHistory {
-  id         Int              @id @default(autoincrement()) @map("id")
+  id         String           @id @map("id") @db.Text
   changeDate DateTime         @default(now()) @map("change_date")
   orderId    String           @map("order_id")
   status     ProductionStatus @map("status")
@@ -483,7 +483,7 @@ model OrderItem {
 }
 
 model ProductOption {
-  id          Int        @id @default(autoincrement()) @map("id")
+  id          String     @id @map("id") @db.Text
   optionType  String     @map("option_type")
   optionValue String     @map("option_value") @db.VarChar(150)
   orderItemId String?    @map("order_item_id")
@@ -543,7 +543,7 @@ model PurchaseOrder {
 }
 
 model PurchaseOrderItem {
-  id               Int           @id @default(autoincrement()) @map("id")
+  id               String        @id @map("id") @db.Text
   productName      String        @map("product_name") @db.VarChar(255)
   quantity         Int           @map("quantity")
   quantityReceived Int           @map("quantity_received")
@@ -558,7 +558,7 @@ model PurchaseOrderItem {
 }
 
 model PurchaseOrderHistory {
-  id              Int           @id @default(autoincrement()) @map("id")
+  id              String        @id @map("id") @db.Text
   eventName       String        @map("event_name") @db.VarChar(255)
   eventDate       DateTime      @default(now()) @map("event_date")
   purchaseOrderId String        @map("purchase_order_id")
@@ -673,7 +673,7 @@ model Meeting {
 }
 
 model MeetingParticipant {
-  id         Int      @id @default(autoincrement()) @map("id")
+  id         String   @id @map("id") @db.Text
   meetingId  String   @map("meeting_id")
   employeeId String   @map("employee_id")
   employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
