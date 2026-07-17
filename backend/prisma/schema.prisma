@@ -70,6 +70,11 @@ model User {
   additionalRoles               UserRole[]                     @default([]) @map("additional_roles")
   /// Source de verite cible pour le RBAC (remplace userRole+additionalRoles, voir Doc/architecture-multi-filiale-auth-rbac.md phase 4)
   roles                         UserRole[]                     @default([]) @map("roles")
+  /// Role actuellement actif pour un utilisateur multi-role (POST /auth/switch-role) -
+  /// null = pas encore switche, retombe sur userRole. Enforce par RoleGuard/checkRole:
+  /// contrairement a roles[] (OR), l'autorisation ne considere QUE ce role tant qu'il
+  /// n'est pas re-switche (SUPER_ADMIN reste bypasse quel que soit activeRole).
+  activeRole                    UserRole?                      @map("active_role")
   twoFactorSecret               String?                        @map("two_factor_secret")
   twoFactorEnabled              Boolean                        @default(false) @map("two_factor_enabled")
   /// Hash SHA-256 de chaque code (usage unique, jamais stockes en clair)

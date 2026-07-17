@@ -1,5 +1,11 @@
-
-import { Injectable, UnauthorizedException, NotFoundException, ConflictException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../utils/prisma/prisma.service';
 import { LoggerService } from '../../utils/logger/logger.service';
@@ -18,7 +24,7 @@ export class AuthService {
     private readonly refreshTokenService: RefreshTokenService,
   ) {}
 
-//****1- Fonction de creation d'un utilisateur****
+  //****1- Fonction de creation d'un utilisateur****
 
   /**
    * SUPER_ADMIN ne peut etre attribue (role principal ou secondaire) que par
@@ -26,11 +32,20 @@ export class AuthService {
    * promouvoir (ou promouvoir un tiers) lui-meme via l'API, en contournant
    * le fait que ce role s'attribue normalement a la main, hors UI courante.
    */
-  private assertCanAssignSuperAdmin(roles: UserRole[], currentUser?: { roles?: UserRole[]; role?: UserRole }): void {
+  private assertCanAssignSuperAdmin(
+    roles: UserRole[],
+    currentUser?: { roles?: UserRole[]; role?: UserRole },
+  ): void {
     if (!roles.includes(UserRole.SUPER_ADMIN)) return;
-    const callerRoles = currentUser?.roles?.length ? currentUser.roles : currentUser?.role ? [currentUser.role] : [];
+    const callerRoles = currentUser?.roles?.length
+      ? currentUser.roles
+      : currentUser?.role
+        ? [currentUser.role]
+        : [];
     if (!callerRoles.includes(UserRole.SUPER_ADMIN)) {
-      throw new ForbiddenException('Seul un SUPER_ADMIN peut attribuer ce rôle');
+      throw new ForbiddenException(
+        'Seul un SUPER_ADMIN peut attribuer ce rôle',
+      );
     }
   }
 
@@ -47,7 +62,10 @@ export class AuthService {
 
     // Validation des paramètres requis
     if (!subsidiaryId || subsidiaryId.trim() === '') {
-      this.logger.error('Subsidiary ID is required for registration', 'AuthService');
+      this.logger.error(
+        'Subsidiary ID is required for registration',
+        'AuthService',
+      );
       throw new BadRequestException('Subsidiary ID is required');
     }
 
@@ -56,14 +74,22 @@ export class AuthService {
       where: { id: subsidiaryId },
     });
     if (!subsidiary) {
-      this.logger.error(`Subsidiary with ID ${subsidiaryId} not found`, 'AuthService');
+      this.logger.error(
+        `Subsidiary with ID ${subsidiaryId} not found`,
+        'AuthService',
+      );
       throw new NotFoundException('Invalid subsidiary ID');
     }
 
     // Vérifier si l'utilisateur existe déjà
-    const existingUser = await this.prisma.user.findUnique({ where: { email } });
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
     if (existingUser) {
-      this.logger.error(`User with email ${email} already exists`, 'AuthService');
+      this.logger.error(
+        `User with email ${email} already exists`,
+        'AuthService',
+      );
       throw new ConflictException('Email already in use');
     }
 
@@ -76,7 +102,7 @@ export class AuthService {
     // Hacher le mot de passe
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const dedupedAdditionalRoles = additionalRoles.filter(r => r !== role);
+    const dedupedAdditionalRoles = additionalRoles.filter((r) => r !== role);
 
     // Créer l'utilisateur
     const user = await this.prisma.user.create({
@@ -96,8 +122,7 @@ export class AuthService {
     return { message: 'User registered successfully', userId: user.id };
   }
 
-//****2- Fonction de connexion d'un utilisateur****
-
+  //****2- Fonction de connexion d'un utilisateur****
 
   async login(email: string, password: string) {
     // Vérifier l'utilisateur
@@ -106,7 +131,10 @@ export class AuthService {
       include: { subsidiary: true },
     });
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-      this.logger.error(`Invalid credentials for email ${email}`, 'AuthService');
+      this.logger.error(
+        `Invalid credentials for email ${email}`,
+        'AuthService',
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -115,13 +143,20 @@ export class AuthService {
       // d'emettre l'access/refresh token. Token intermediaire courte duree,
       // marque par `type: 'pending_2fa'` - JwtStrategy le rejette
       // explicitement s'il est presente comme un access token normal.
-      const pendingToken = this.jwtService.sign({ sub: user.id, type: 'pending_2fa' }, { expiresIn: '5m' });
+      const pendingToken = this.jwtService.sign(
+        { sub: user.id, type: 'pending_2fa' },
+        { expiresIn: '5m' },
+      );
       this.logger.log(`User ${email} password OK, 2FA requise`, 'AuthService');
       return { twoFactorRequired: true as const, pendingToken };
     }
 
     this.logger.log(`User ${email} logged in successfully`, 'AuthService');
-    return { twoFactorRequired: false as const, user, subsidiary: user.subsidiary };
+    return {
+      twoFactorRequired: false as const,
+      user,
+      subsidiary: user.subsidiary,
+    };
   }
 
   /**
@@ -130,9 +165,28 @@ export class AuthService {
    * utilisateur deja authentifie. Separe de `login()` pour pouvoir aussi
    * etre appele apres verification 2FA sans re-verifier le mot de passe.
    */
-  async issueTokens(user: { id: string; email: string; userRole: UserRole; additionalRoles: UserRole[]; roles: UserRole[]; subsidiaryId: string; twoFactorEnabled: boolean }, meta: RequestMeta = {}) {
+  async issueTokens(
+    user: {
+      id: string;
+      email: string;
+      userName: string;
+      userRole: UserRole;
+      additionalRoles: UserRole[];
+      roles: UserRole[];
+      activeRole?: UserRole | null;
+      subsidiaryId: string;
+      twoFactorEnabled: boolean;
+    },
+    meta: RequestMeta = {},
+  ) {
     // roles[] est la source de verite RBAC (backfillee/maintenue en synchro avec userRole+additionalRoles)
-    const roles = user.roles.length > 0 ? user.roles : [user.userRole, ...user.additionalRoles.filter(r => r !== user.userRole)];
+    const roles =
+      user.roles.length > 0
+        ? user.roles
+        : [
+            user.userRole,
+            ...user.additionalRoles.filter((r) => r !== user.userRole),
+          ];
     const payload = {
       sub: user.id,
       email: user.email,
@@ -141,12 +195,34 @@ export class AuthService {
       subsidiaryId: user.subsidiaryId,
     };
     const accessToken = this.jwtService.sign(payload);
-    const { token: refreshToken } = await this.refreshTokenService.issue(user.id, meta);
+    const { token: refreshToken } = await this.refreshTokenService.issue(
+      user.id,
+      meta,
+    );
 
     return {
       accessToken,
       refreshToken,
-      user: { id: user.id, email: user.email, role: user.userRole, roles, additionalRoles: user.additionalRoles, subsidiaryId: user.subsidiaryId, twoFactorEnabled: user.twoFactorEnabled },
+      // userRole (pas seulement role): c'est le champ que le frontend lit
+      // partout (types/models.ts::User.userRole) - getProfileUser() (appele
+      // au refresh via /auth/Userprofile) le renvoyait deja, mais ce
+      // endpoint-ci (login/2FA) ne renvoyait que `role`, jamais `userRole`
+      // ni `userName`. Resultat: juste apres une connexion, user.userRole
+      // etait undefined (Header affichait "roles.undefined", Sidebar
+      // "Aucune vue disponible") jusqu'a ce qu'un refresh recharge le profil
+      // via getProfileUser() qui a la bonne forme.
+      user: {
+        id: user.id,
+        email: user.email,
+        userName: user.userName,
+        userRole: user.userRole,
+        role: user.userRole,
+        activeRole: user.activeRole ?? user.userRole,
+        roles,
+        additionalRoles: user.additionalRoles,
+        subsidiaryId: user.subsidiaryId,
+        twoFactorEnabled: user.twoFactorEnabled,
+      },
     };
   }
 
@@ -155,19 +231,37 @@ export class AuthService {
    * emet un nouveau + un nouvel access token.
    */
   async refresh(presentedRefreshToken: string, meta: RequestMeta = {}) {
-    const { userId, issued } = await this.refreshTokenService.rotate(presentedRefreshToken, meta);
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { subsidiary: true } });
+    const { userId, issued } = await this.refreshTokenService.rotate(
+      presentedRefreshToken,
+      meta,
+    );
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { subsidiary: true },
+    });
     if (!user) {
       throw new UnauthorizedException('Utilisateur introuvable');
     }
-    const roles = user.roles.length > 0 ? user.roles : [user.userRole, ...user.additionalRoles.filter(r => r !== user.userRole)];
-    const payload = { sub: user.id, email: user.email, role: user.userRole, roles, subsidiaryId: user.subsidiaryId };
+    const roles =
+      user.roles.length > 0
+        ? user.roles
+        : [
+            user.userRole,
+            ...user.additionalRoles.filter((r) => r !== user.userRole),
+          ];
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.userRole,
+      roles,
+      subsidiaryId: user.subsidiaryId,
+    };
     const accessToken = this.jwtService.sign(payload);
 
     return { accessToken, refreshToken: issued.token };
   }
 
-//****3- Fonction de reinitialisation de mot de passe****
+  //****3- Fonction de reinitialisation de mot de passe****
 
   async forgotPassword(email: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
@@ -175,11 +269,16 @@ export class AuthService {
       this.logger.error(`User with email ${email} not found`, 'AuthService');
       throw new NotFoundException('User not found');
     }
-  
+
     // Ajout d'une vérification pour s'assurer que les variables d'environnement sont chargées
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      this.logger.error('SMTP credentials (SMTP_USER, SMTP_PASS) are not configured in .env file.', 'AuthService');
-      throw new Error('Email service is not configured. Please check server environment variables.');
+      this.logger.error(
+        'SMTP credentials (SMTP_USER, SMTP_PASS) are not configured in .env file.',
+        'AuthService',
+      );
+      throw new Error(
+        'Email service is not configured. Please check server environment variables.',
+      );
     }
 
     const transporter = nodemailer.createTransport({
@@ -198,17 +297,29 @@ export class AuthService {
       subject: 'Password Reset Request',
       text: 'Click the link to reset your password: http://localhost:3000/reset-password?token=some-token',
     });
-  
+
     this.logger.log(`Password reset email sent to ${email}`, 'AuthService');
     return { message: 'Password reset link sent' };
   }
 
-//****4- Fonction de mise à jour d'un utilisateur****
+  //****4- Fonction de mise à jour d'un utilisateur****
 
   async updateUser(
     id: string,
-    data: { userName?: string; email?: string; password?: string; userRole?: UserRole; additionalRoles?: UserRole[]; subsidiaryId?: string },
-    currentUser: { id: string; role: UserRole; roles?: UserRole[]; subsidiaryId: string },
+    data: {
+      userName?: string;
+      email?: string;
+      password?: string;
+      userRole?: UserRole;
+      additionalRoles?: UserRole[];
+      subsidiaryId?: string;
+    },
+    currentUser: {
+      id: string;
+      role: UserRole;
+      roles?: UserRole[];
+      subsidiaryId: string;
+    },
   ) {
     // Vérifier si l'utilisateur à mettre à jour existe
     const user = await this.prisma.user.findUnique({ where: { id } });
@@ -219,36 +330,62 @@ export class AuthService {
 
     if (data.userRole !== undefined || data.additionalRoles !== undefined) {
       this.assertCanAssignSuperAdmin(
-        [data.userRole ?? user.userRole, ...(data.additionalRoles ?? user.additionalRoles)],
+        [
+          data.userRole ?? user.userRole,
+          ...(data.additionalRoles ?? user.additionalRoles),
+        ],
         currentUser,
       );
     }
 
     // Vérifier les autorisations
     if (currentUser.role !== UserRole.ADMIN && currentUser.id !== id) {
-      this.logger.error(`User ${currentUser.id} is not authorized to update user ${id}`, 'AuthService');
-      throw new ForbiddenException('You are not authorized to update this user');
+      this.logger.error(
+        `User ${currentUser.id} is not authorized to update user ${id}`,
+        'AuthService',
+      );
+      throw new ForbiddenException(
+        'You are not authorized to update this user',
+      );
     }
 
     // Vérifier si la nouvelle filiale existe (si fournie)
     if (data.subsidiaryId) {
-      const subsidiary = await this.prisma.subsidiary.findUnique({ where: { id: data.subsidiaryId } });
+      const subsidiary = await this.prisma.subsidiary.findUnique({
+        where: { id: data.subsidiaryId },
+      });
       if (!subsidiary) {
-        this.logger.error(`Subsidiary with ID ${data.subsidiaryId} not found`, 'AuthService');
+        this.logger.error(
+          `Subsidiary with ID ${data.subsidiaryId} not found`,
+          'AuthService',
+        );
         throw new NotFoundException('Invalid subsidiary ID');
       }
       // Les non-admins ne peuvent pas changer de filiale
-      if (currentUser.role !== UserRole.ADMIN && user.subsidiaryId !== currentUser.subsidiaryId) {
-        this.logger.error(`User ${currentUser.id} cannot update subsidiary for user ${id}`, 'AuthService');
-        throw new ForbiddenException('You cannot update the subsidiary of this user');
+      if (
+        currentUser.role !== UserRole.ADMIN &&
+        user.subsidiaryId !== currentUser.subsidiaryId
+      ) {
+        this.logger.error(
+          `User ${currentUser.id} cannot update subsidiary for user ${id}`,
+          'AuthService',
+        );
+        throw new ForbiddenException(
+          'You cannot update the subsidiary of this user',
+        );
       }
     }
 
     // Vérifier si le nouvel email est déjà utilisé (si fourni et différent)
     if (data.email && data.email.trim() !== '' && data.email !== user.email) {
-      const existingUser = await this.prisma.user.findUnique({ where: { email: data.email } });
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email: data.email },
+      });
       if (existingUser) {
-        this.logger.error(`Email ${data.email} is already in use`, 'AuthService');
+        this.logger.error(
+          `Email ${data.email} is already in use`,
+          'AuthService',
+        );
         throw new ConflictException('Email already in use');
       }
     }
@@ -263,7 +400,9 @@ export class AuthService {
     // roles[] (source de verite RBAC cible) synchronise des qu'un des deux change.
     if (data.additionalRoles !== undefined || data.userRole !== undefined) {
       const primaryRole = data.userRole ?? user.userRole;
-      const additionalRoles = (data.additionalRoles ?? user.additionalRoles).filter(r => r !== primaryRole);
+      const additionalRoles = (
+        data.additionalRoles ?? user.additionalRoles
+      ).filter((r) => r !== primaryRole);
       updateData.additionalRoles = additionalRoles;
       updateData.roles = [primaryRole, ...additionalRoles];
     }
@@ -286,9 +425,12 @@ export class AuthService {
     };
   }
 
-//****5- Fonction de suppression d'un utilisateur****
+  //****5- Fonction de suppression d'un utilisateur****
 
-  async deleteUser(id: string, currentUser: { id: string; role: UserRole; subsidiaryId: string }) {
+  async deleteUser(
+    id: string,
+    currentUser: { id: string; role: UserRole; subsidiaryId: string },
+  ) {
     // Vérifier si l'utilisateur existe
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
@@ -298,14 +440,27 @@ export class AuthService {
 
     // Vérifier les autorisations
     if (currentUser.role !== UserRole.ADMIN && currentUser.id !== id) {
-      this.logger.error(`User ${currentUser.id} is not authorized to delete user ${id}`, 'AuthService');
-      throw new ForbiddenException('You are not authorized to delete this user');
+      this.logger.error(
+        `User ${currentUser.id} is not authorized to delete user ${id}`,
+        'AuthService',
+      );
+      throw new ForbiddenException(
+        'You are not authorized to delete this user',
+      );
     }
 
     // Les non-admins ne peuvent supprimer que leur propre compte
-    if (currentUser.role !== UserRole.ADMIN && user.subsidiaryId !== currentUser.subsidiaryId) {
-      this.logger.error(`User ${currentUser.id} cannot delete user from another subsidiary`, 'AuthService');
-      throw new ForbiddenException('You cannot delete a user from another subsidiary');
+    if (
+      currentUser.role !== UserRole.ADMIN &&
+      user.subsidiaryId !== currentUser.subsidiaryId
+    ) {
+      this.logger.error(
+        `User ${currentUser.id} cannot delete user from another subsidiary`,
+        'AuthService',
+      );
+      throw new ForbiddenException(
+        'You cannot delete a user from another subsidiary',
+      );
     }
 
     // Supprimer l'utilisateur
@@ -315,12 +470,19 @@ export class AuthService {
     return { message: 'User deleted successfully' };
   }
 
-//****6- Fonction de récupération de tous les utilisateurs****
+  //****6- Fonction de récupération de tous les utilisateurs****
 
-  async getAllUsers(currentUser: { id: string; role: UserRole; roles?: UserRole[]; subsidiaryId: string }) {
+  async getAllUsers(currentUser: {
+    id: string;
+    role: UserRole;
+    roles?: UserRole[];
+    subsidiaryId: string;
+  }) {
     // Seul un scope global (SUPER_ADMIN) voit toutes les filiales; ADMIN de filiale est desormais scope a la sienne.
     const ctx = resolveScopeContext(currentUser);
-    const where = ctx.hasGlobalScope ? {} : { subsidiaryId: currentUser.subsidiaryId };
+    const where = ctx.hasGlobalScope
+      ? {}
+      : { subsidiaryId: currentUser.subsidiaryId };
 
     const users = await this.prisma.user.findMany({
       where,
@@ -336,20 +498,32 @@ export class AuthService {
       userRole: user.userRole,
       additionalRoles: user.additionalRoles,
       subsidiaryId: user.subsidiaryId,
-      subsidiary: user.subsidiary ? { id: user.subsidiary.id, subsidiaryName: user.subsidiary.subsidiaryName } : null,
+      subsidiary: user.subsidiary
+        ? {
+            id: user.subsidiary.id,
+            subsidiaryName: user.subsidiary.subsidiaryName,
+          }
+        : null,
     }));
   }
 
-//****7- Fonction de recherche d'un utilisateur****
+  //****7- Fonction de recherche d'un utilisateur****
 
   async searchUsers(
     query: { email?: string; userName?: string; userRole?: UserRole },
-    currentUser: { id: string; role: UserRole; roles?: UserRole[]; subsidiaryId: string },
+    currentUser: {
+      id: string;
+      role: UserRole;
+      roles?: UserRole[];
+      subsidiaryId: string;
+    },
   ) {
     // Construire les conditions de recherche
     // Seul un scope global (SUPER_ADMIN) voit toutes les filiales; ADMIN de filiale est desormais scope a la sienne.
     const ctx = resolveScopeContext(currentUser);
-    const where: any = ctx.hasGlobalScope ? {} : { subsidiaryId: currentUser.subsidiaryId };
+    const where: any = ctx.hasGlobalScope
+      ? {}
+      : { subsidiaryId: currentUser.subsidiaryId };
     if (query.email) {
       where.email = { contains: query.email, mode: 'insensitive' };
     }
@@ -357,7 +531,7 @@ export class AuthService {
       where.userName = { contains: query.userName, mode: 'insensitive' };
     }
     if (query.userRole) {
-      where.userRole = query.userRole;   
+      where.userRole = query.userRole;
       where.userRole = query.userRole;
     }
 
@@ -367,7 +541,10 @@ export class AuthService {
       orderBy: { userName: 'asc' },
     });
 
-    this.logger.log(`Found ${users.length} users matching query`, 'AuthService');
+    this.logger.log(
+      `Found ${users.length} users matching query`,
+      'AuthService',
+    );
     return users.map((user) => ({
       id: user.id,
       userName: user.userName,
@@ -375,11 +552,16 @@ export class AuthService {
       userRole: user.userRole,
       additionalRoles: user.additionalRoles,
       subsidiaryId: user.subsidiaryId,
-      subsidiary: user.subsidiary ? { id: user.subsidiary.id, subsidiaryName: user.subsidiary.subsidiaryName } : null,
+      subsidiary: user.subsidiary
+        ? {
+            id: user.subsidiary.id,
+            subsidiaryName: user.subsidiary.subsidiaryName,
+          }
+        : null,
     }));
   }
 
-//****8- Fonction de déconnexion d'un utilisateur****
+  //****8- Fonction de déconnexion d'un utilisateur****
 
   async logout(user: { email: string }, presentedRefreshToken?: string) {
     // Le refresh token est revoque en base (contrairement a l'access token JWT
@@ -389,13 +571,23 @@ export class AuthService {
     if (presentedRefreshToken) {
       await this.refreshTokenService.revoke(presentedRefreshToken);
     }
-    this.logger.log(`User ${user.email} logged out successfully`, 'AuthService');
+    this.logger.log(
+      `User ${user.email} logged out successfully`,
+      'AuthService',
+    );
     return { message: 'Logged out successfully' };
   }
 
-  async getProfileUser(user: { id: string; email: string; role: UserRole; subsidiaryId: string }) {
-    const subsidiary = await this.prisma.subsidiary.findUnique({ where: { id: user.subsidiaryId } });
-    
+  async getProfileUser(user: {
+    id: string;
+    email: string;
+    role: UserRole;
+    subsidiaryId: string;
+  }) {
+    const subsidiary = await this.prisma.subsidiary.findUnique({
+      where: { id: user.subsidiaryId },
+    });
+
     // Récupérer l'utilisateur complet depuis la base de données pour inclure userName
     const fullUser = await this.prisma.user.findUnique({
       where: { id: user.id },
@@ -405,9 +597,11 @@ export class AuthService {
         email: true,
         userRole: true,
         additionalRoles: true,
+        roles: true,
+        activeRole: true,
         subsidiaryId: true,
         twoFactorEnabled: true,
-      }
+      },
     });
 
     if (!fullUser) {
@@ -417,13 +611,68 @@ export class AuthService {
     // Mapper userRole -> role pour correspondre au frontend
     const mappedUser = {
       ...fullUser,
-      role: fullUser.userRole
+      role: fullUser.userRole,
+      activeRole: fullUser.activeRole ?? fullUser.userRole,
     };
-    
+
     this.logger.log(`Profile retrieved for user ${user.email}`, 'AuthService');
     return {
       user: mappedUser,
-      subsidiary: subsidiary
+      subsidiary: subsidiary,
+    };
+  }
+
+  /**
+   * Change le role actif d'un utilisateur multi-role (POST /auth/switch-role).
+   * Ne fait QUE mettre a jour activeRole en base - pas besoin de re-emettre
+   * l'access token, JwtStrategy relit activeRole depuis la DB a chaque
+   * requete (voir jwt.strategy.ts), donc le changement est effectif des la
+   * prochaine requete.
+   */
+  async switchRole(userId: string, requestedRole: UserRole) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Utilisateur introuvable');
+    }
+
+    const availableRoles =
+      user.roles.length > 0
+        ? user.roles
+        : [
+            user.userRole,
+            ...user.additionalRoles.filter((r) => r !== user.userRole),
+          ];
+
+    if (!availableRoles.includes(requestedRole)) {
+      throw new ForbiddenException('Vous ne possédez pas ce rôle');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { activeRole: requestedRole },
+      select: {
+        id: true,
+        userName: true,
+        email: true,
+        userRole: true,
+        additionalRoles: true,
+        roles: true,
+        activeRole: true,
+        subsidiaryId: true,
+        twoFactorEnabled: true,
+      },
+    });
+
+    this.logger.log(
+      `User ${user.email} switched active role to ${requestedRole}`,
+      'AuthService',
+    );
+    return {
+      user: {
+        ...updated,
+        role: updated.userRole,
+        activeRole: updated.activeRole ?? updated.userRole,
+      },
     };
   }
 
@@ -447,7 +696,10 @@ export class AuthService {
     });
 
     if (!user) {
-      this.logger.error(`Profile for user ID ${userId} not found`, 'AuthService');
+      this.logger.error(
+        `Profile for user ID ${userId} not found`,
+        'AuthService',
+      );
       throw new NotFoundException('User profile not found');
     }
 
@@ -466,5 +718,4 @@ export class AuthService {
     // La stratégie se chargera de retirer le mot de passe.
     return user;
   }
-  
 }

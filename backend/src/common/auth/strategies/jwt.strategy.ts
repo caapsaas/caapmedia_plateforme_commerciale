@@ -19,7 +19,10 @@ function cookieOrBearerExtractor(req: Request): string | null {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private prisma: PrismaService, private logger: LoggerService) {
+  constructor(
+    private prisma: PrismaService,
+    private logger: LoggerService,
+  ) {
     super({
       jwtFromRequest: cookieOrBearerExtractor,
       ignoreExpiration: false,
@@ -33,7 +36,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // etre accepte comme access token, meme s'il porte un `sub` valide -
     // sinon un token pending vole permettrait de contourner le 2eme facteur.
     if (payload.type === 'pending_2fa') {
-      this.logger.error('Tentative d\'utilisation d\'un pending_2fa token comme access token', 'JwtStrategy');
+      this.logger.error(
+        "Tentative d'utilisation d'un pending_2fa token comme access token",
+        'JwtStrategy',
+      );
       return null;
     }
 
@@ -46,12 +52,23 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       return null;
     }
     // roles[] est la source de verite RBAC (backfillee/maintenue en synchro avec userRole+additionalRoles)
-    const roles = user.roles.length > 0 ? user.roles : [user.userRole, ...user.additionalRoles.filter(r => r !== user.userRole)];
+    const roles =
+      user.roles.length > 0
+        ? user.roles
+        : [
+            user.userRole,
+            ...user.additionalRoles.filter((r) => r !== user.userRole),
+          ];
     return {
       id: user.id,
       email: user.email,
       role: user.userRole,
       roles,
+      // Relu depuis la DB a chaque requete (comme roles[] ci-dessus), pas
+      // depuis le payload du JWT: coherent avec le reste de cette strategie,
+      // et permet a switch-role de prendre effet immediatement sans avoir a
+      // re-emettre l'access token.
+      activeRole: user.activeRole ?? user.userRole,
       subsidiaryId: user.subsidiaryId,
     };
   }
