@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, UseGuards } from '@nestjs/common';
 import { DebtsService } from './debts.service';
 import type { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
@@ -26,7 +26,7 @@ export class DebtsController {
   }
 
   @Post('supplier/:id/pay')
-  paySupplierDebt(@Param('id', ParseUUIDPipe) id: string, @Body() payDto: PaySupplierDebtDto, @CurrentUser() user: JwtUser) {
+  paySupplierDebt(@Param('id') id: string, @Body() payDto: PaySupplierDebtDto, @CurrentUser() user: JwtUser) {
     return this.debtsService.paySupplierDebt(id, payDto, user);
   }
 
@@ -42,7 +42,9 @@ export class DebtsController {
   }
 
   @Patch('long-term/:id')
-  updateLongTermDebt(@Param('id', ParseUUIDPipe) id: string, @Body() updateDto: UpdateLongTermDebtDto, @CurrentUser() user: JwtUser) {
+  updateLongTermDebt(@Param('id') id: string, @Body() updateDto: UpdateLongTermDebtDto, @CurrentUser() user: JwtUser) {
     return this.debtsService.updateLongTermDebt(id, updateDto, user);
   }
 }
+
+

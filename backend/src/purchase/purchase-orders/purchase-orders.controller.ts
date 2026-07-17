@@ -9,8 +9,7 @@ import {
   Req,
   SetMetadata,
   Query,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+  } from '@nestjs/common';
 import { PurchaseOrdersService } from './purchase-orders.service';
 import { CreatePurchaseOrderDto, RecordPurchasePaymentDto, UpdatePurchaseOrderStatusDto } from './dto/create-purchase-order.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
@@ -49,7 +48,7 @@ export class PurchaseOrdersController {
    */
   @Get(':id')
   @SetMetadata('roles', [UserRole.PURCHASING_MANAGER, UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR])
-  findOne(@Param('id', ParseUUIDPipe) id: string, @Req() req) {
+  findOne(@Param('id') id: string, @Req() req) {
     return this.purchaseOrdersService.findOne(id, req.user);
   }
 
@@ -59,7 +58,7 @@ export class PurchaseOrdersController {
    */
   @Patch(':id/status')
   @SetMetadata('roles', [UserRole.PURCHASING_MANAGER, UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR])
-  updateStatus(@Param('id', ParseUUIDPipe) id: string, @Body() updateStatusDto: UpdatePurchaseOrderStatusDto, @Req() req) {
+  updateStatus(@Param('id') id: string, @Body() updateStatusDto: UpdatePurchaseOrderStatusDto, @Req() req) {
     return this.purchaseOrdersService.updateStatus(id, updateStatusDto, req.user);
   }
 
@@ -69,7 +68,7 @@ export class PurchaseOrdersController {
    */
   @Post(':id/receive')
   @SetMetadata('roles', [UserRole.PURCHASING_MANAGER, UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR])
-  receiveItems(@Param('id', ParseUUIDPipe) id: string, @Body() receiveItemsDto: ReceiveItemsDto, @Req() req) {
+  receiveItems(@Param('id') id: string, @Body() receiveItemsDto: ReceiveItemsDto, @Req() req) {
     return this.purchaseOrdersService.receiveItems(id, receiveItemsDto, req.user);
   }
 
@@ -79,7 +78,8 @@ export class PurchaseOrdersController {
    */
   @Post(':id/payment')
   @SetMetadata('roles', [UserRole.PURCHASING_MANAGER, UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR])
-  recordPayment(@Param('id', ParseUUIDPipe) id: string, @Body() recordPaymentDto: RecordPurchasePaymentDto, @Req() req) {
+  recordPayment(@Param('id') id: string, @Body() recordPaymentDto: RecordPurchasePaymentDto, @Req() req) {
     return this.purchaseOrdersService.recordPayment(id, recordPaymentDto, req.user);
   }
 }
+

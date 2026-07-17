@@ -7,8 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+  } from '@nestjs/common';
 import { OpportunitiesService } from './opportunities.service';
 import { CreateOpportunityDto } from './dto/create-opportunity.dto';
 import { UpdateOpportunityDto } from './dto/update-opportunity.dto';
@@ -36,19 +35,21 @@ export class OpportunitiesController {
 
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
-  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  findOne(@Param('id') id: string, @CurrentUser() user: User) {
     return this.opportunitiesService.findOne(id, user);
   }
 
   @Patch(':id')
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateOpportunityDto: UpdateOpportunityDto, @CurrentUser() user: User) {
+  update(@Param('id') id: string, @Body() updateOpportunityDto: UpdateOpportunityDto, @CurrentUser() user: User) {
     return this.opportunitiesService.update(id, updateOpportunityDto, user);
   }
 
   @Delete(':id')
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
-  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  remove(@Param('id') id: string, @CurrentUser() user: User) {
     return this.opportunitiesService.remove(id, user);
   }
 }
+
+

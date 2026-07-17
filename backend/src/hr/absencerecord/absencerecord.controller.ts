@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
 import { AbsenceRecordService } from './absencerecord.service';
 import { CreateAbsenceRecordDto, UpdateAbsenceRecordDto } from './dto/absencerecord.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
@@ -26,19 +26,21 @@ export class AbsencerecordController {
 
   @Get(':id')
   @Roles('HR_MANAGER', 'ADMIN')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
+  findOne(@Param('id') id: string) {
     return this.absenceRecordService.findOne(id);
   }
 
   @Patch(':id')
   @Roles('HR_MANAGER', 'ADMIN')
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateAbsenceRecordDto: UpdateAbsenceRecordDto) {
+  update(@Param('id') id: string, @Body() updateAbsenceRecordDto: UpdateAbsenceRecordDto) {
     return this.absenceRecordService.update(id, updateAbsenceRecordDto);
   }
 
   @Delete(':id')
   @Roles('HR_MANAGER', 'ADMIN')
-  remove(@Param('id', ParseUUIDPipe) id: string) {
+  remove(@Param('id') id: string) {
     return this.absenceRecordService.remove(id);
   }
 }
+
+

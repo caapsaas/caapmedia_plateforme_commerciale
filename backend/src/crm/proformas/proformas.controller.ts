@@ -7,7 +7,6 @@ import {
   Param,
   Delete,
   UseGuards,
-  ParseUUIDPipe,
   Query,
 } from '@nestjs/common';
 import { ProformasService } from './proformas.service';
@@ -36,40 +35,42 @@ export class ProformasController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
+  findOne(@Param('id') id: string) {
     return this.proformasService.findOne(id);
   }
 
   @Patch(':id')
   update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() updateProformaDto: UpdateProformaDto,
   ) {
     return this.proformasService.update(id, updateProformaDto);
   }
 
   @Post(':id/send')
-  send(@Param('id', ParseUUIDPipe) id: string) {
+  send(@Param('id') id: string) {
     return this.proformasService.send(id);
   }
 
   @Post(':id/mark-viewed')
-  markAsViewed(@Param('id', ParseUUIDPipe) id: string) {
+  markAsViewed(@Param('id') id: string) {
     return this.proformasService.markAsViewed(id);
   }
 
   @Post(':id/accept')
-  accept(@Param('id', ParseUUIDPipe) id: string) {
+  accept(@Param('id') id: string) {
     return this.proformasService.accept(id);
   }
 
   @Post(':id/reject')
-  reject(@Param('id', ParseUUIDPipe) id: string) {
+  reject(@Param('id') id: string) {
     return this.proformasService.reject(id);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseUUIDPipe) id: string) {
+  remove(@Param('id') id: string) {
     return this.proformasService.remove(id);
   }
 }
+
+

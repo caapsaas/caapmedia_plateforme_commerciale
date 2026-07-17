@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Patch, Delete, Get, Param, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Post, Body, Patch, Delete, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { MaintenanceRecordService } from 'src/maintenance/maintenance_record/maintenance_record.service';
 import { CreateMaintenanceRecordDto, UpdateMaintenanceRecordDto, SearchMaintenanceRecordDto } from 'src/maintenance/maintenance_record/dto/create-maintenance_record.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
@@ -28,7 +28,7 @@ export class MaintenanceRecordController {
   @Get()
   @UseGuards(JwtAuthGuard, RoleGuard)
   @SetMetadata('roles', [UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR])
-  findAll(@Query('equipmentId', new ParseUUIDPipe()) equipmentId: string) {
+  findAll(@Query('') equipmentId: string) {
     return this.service.findAll(equipmentId);
   }
 
@@ -78,3 +78,5 @@ export class MaintenanceRecordController {
   }
 
 }
+
+

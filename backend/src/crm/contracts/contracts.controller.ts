@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { ContractsService } from './contracts.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
@@ -28,19 +28,20 @@ export class ContractsController {
 
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
-  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  findOne(@Param('id') id: string, @CurrentUser() user: User) {
     return this.contractsService.findOne(id, user);
   }
 
   @Patch(':id')
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY)
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateContractDto: UpdateContractDto, @CurrentUser() user: User) {
+  update(@Param('id') id: string, @Body() updateContractDto: UpdateContractDto, @CurrentUser() user: User) {
     return this.contractsService.update(id, updateContractDto, user);
   }
 
   @Delete(':id')
  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY)
-  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  remove(@Param('id') id: string, @CurrentUser() user: User) {
     return this.contractsService.remove(id, user);
   }
 }
+

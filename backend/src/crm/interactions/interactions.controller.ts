@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, UseGuards, ParseUUIDPipe, Patch } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, UseGuards, Patch } from '@nestjs/common';
 import { InteractionsService } from './interactions.service';
 import { CreateInteractionDto } from './dto/create-interaction.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
@@ -28,13 +28,15 @@ export class InteractionsController {
 
   @Patch(':id')
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY)
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateInteractionDto: UpdateInteractionDto, @CurrentUser() user: User) {
+  update(@Param('id') id: string, @Body() updateInteractionDto: UpdateInteractionDto, @CurrentUser() user: User) {
     return this.interactionsService.update(id, updateInteractionDto, user);
   }
 
   @Delete(':id')
  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY)
-  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  remove(@Param('id') id: string, @CurrentUser() user: User) {
     return this.interactionsService.remove(id, user);
   }
 }
+
+

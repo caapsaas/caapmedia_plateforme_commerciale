@@ -9,8 +9,7 @@ import {
   UseGuards,
   Req,
   SetMetadata,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+  } from '@nestjs/common';
 import { SuppliersService } from './suppliers.service';
 import { CreateSupplierDto, UpdateSupplierDto } from './dto/create-supplier.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
@@ -48,7 +47,7 @@ export class SuppliersController {
    */
   @Get(':id')
   @SetMetadata('roles', [UserRole.ADMIN])
-  findOne(@Param('id', ParseUUIDPipe) id: string, @Req() req) {
+  findOne(@Param('id') id: string, @Req() req) {
     return this.suppliersService.findOne(id, req.user);
   }
 
@@ -58,7 +57,7 @@ export class SuppliersController {
    */
   @Patch(':id')
   @SetMetadata('roles', [UserRole.ADMIN])
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateSupplierDto: UpdateSupplierDto, @Req() req) {
+  update(@Param('id') id: string, @Body() updateSupplierDto: UpdateSupplierDto, @Req() req) {
     return this.suppliersService.update(id, updateSupplierDto, req.user);
   }
 
@@ -68,7 +67,8 @@ export class SuppliersController {
    */
   @Delete(':id')
   @SetMetadata('roles', [UserRole.ADMIN])
-  remove(@Param('id', ParseUUIDPipe) id: string, @Req() req) {
+  remove(@Param('id') id: string, @Req() req) {
     return this.suppliersService.remove(id, req.user);
   }
 }
+

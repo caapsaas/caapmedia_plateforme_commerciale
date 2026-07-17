@@ -7,8 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+  } from '@nestjs/common';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { AccountsService } from './accounts.service';
 import { CreateAccountDto } from './dto/create-account.dto';
@@ -42,21 +41,23 @@ export class AccountsController {
   @Get(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
-  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  findOne(@Param('id') id: string, @CurrentUser() user: User) {
     return this.accountsService.findOne(id, user);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateAccountDto: UpdateAccountDto, @CurrentUser() user: User) {
+  update(@Param('id') id: string, @Body() updateAccountDto: UpdateAccountDto, @CurrentUser() user: User) {
     return this.accountsService.update(id, updateAccountDto, user);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
-  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  remove(@Param('id') id: string, @CurrentUser() user: User) {
     return this.accountsService.remove(id, user);
   }
 }
+
+

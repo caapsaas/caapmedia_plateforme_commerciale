@@ -4,7 +4,6 @@ import {
   Delete,
   Get,
   Param,
-  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -151,7 +150,7 @@ export class ProductsController {
     UserRole.PRODUCTION_DIRECTOR,
     UserRole.FINANCIAL_DIRECTOR,
   ])
-  findOne(@Param('id', new ParseUUIDPipe()) id: string, @Req() req: any) {
+  findOne(@Param('') id: string, @Req() req: any) {
     return this.productsService.findOne(id, req.user);
   }
 
@@ -208,7 +207,7 @@ export class ProductsController {
     UserRole.FINANCIAL_DIRECTOR,
   ])
   update(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('') id: string,
     @Body() updateProductDto: UpdateProductDto,
     @UploadedFiles() files: Express.Multer.File[],
     @Req() req: any,
@@ -230,7 +229,7 @@ export class ProductsController {
     UserRole.PRODUCTION_DIRECTOR,
     UserRole.FINANCIAL_DIRECTOR,
   ])
-  remove(@Param('id', new ParseUUIDPipe()) id: string, @Req() req: any) {
+  remove(@Param('') id: string, @Req() req: any) {
     return this.productsService.remove(id, req.user);
   }
 }
@@ -243,3 +242,5 @@ function query(
 ) => void {
   throw new Error('Function not implemented.');
 }
+
+

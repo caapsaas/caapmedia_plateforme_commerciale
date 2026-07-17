@@ -1,5 +1,5 @@
 // src/crm/leads/leads.controller.ts
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { LeadsService } from './leads.service';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { PublicQuoteRequestDto } from './dto/public-quote-request.dto';
@@ -35,28 +35,30 @@ export class LeadsController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
-  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  findOne(@Param('id') id: string, @CurrentUser() user: User) {
     return this.leadsService.findOne(id);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Patch(':id')
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateLeadDto: UpdateLeadDto, @CurrentUser() user: User) {
+  update(@Param('id') id: string, @Body() updateLeadDto: UpdateLeadDto, @CurrentUser() user: User) {
     return this.leadsService.update(id, updateLeadDto);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Delete(':id')
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
-  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  remove(@Param('id') id: string, @CurrentUser() user: User) {
     return this.leadsService.remove(id);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Post(':id/convert')
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
-  convert(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  convert(@Param('id') id: string, @CurrentUser() user: User) {
     return this.leadsService.convert(id, user);
   }
 }
+
+

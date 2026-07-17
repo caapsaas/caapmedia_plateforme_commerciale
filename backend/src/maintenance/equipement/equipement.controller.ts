@@ -7,8 +7,7 @@ import {
   Patch,
   Post,
   Query,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+  } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { UseGuards } from '@nestjs/common';
@@ -81,7 +80,7 @@ export class EquipementController {
     UserRole.PRODUCTION_DIRECTOR,
     UserRole.FINANCIAL_DIRECTOR,
   ])
-  findOne(@Param('id', new ParseUUIDPipe()) id: string) {
+  findOne(@Param('') id: string) {
     return this.equipementService.findOne(id);
   }
 
@@ -97,7 +96,7 @@ export class EquipementController {
     UserRole.FINANCIAL_DIRECTOR,
   ])
   update(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('') id: string,
     @Body() updateEquipementDto: UpdateEquipmentDto,
     @Req() req: any,
   ) {
@@ -115,7 +114,9 @@ export class EquipementController {
     UserRole.PRODUCTION_DIRECTOR,
     UserRole.FINANCIAL_DIRECTOR,
   ])
-  remove(@Param('id', new ParseUUIDPipe()) id: string) {
+  remove(@Param('') id: string) {
     return this.equipementService.remove(id);
   }
 }
+
+

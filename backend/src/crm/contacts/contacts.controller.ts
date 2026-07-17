@@ -7,7 +7,6 @@ import {
   Param,
   Delete,
   UseGuards,
-  ParseUUIDPipe,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -82,14 +81,14 @@ export class ContactsController {
 
   @Get('public/:id')
   // Endpoint public pour récupérer les informations de base d'un contact
-  findPublic(@Param('id', ParseUUIDPipe) id: string) {
+  findPublic(@Param('id') id: string) {
     return this.contactsService.findPublic(id);
   }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.HR_MANAGER, UserRole.PRODUCTION_DIRECTOR)
-  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  findOne(@Param('id') id: string, @CurrentUser() user: User) {
     return this.contactsService.findOne(id, user);
   }
 
@@ -97,7 +96,7 @@ export class ContactsController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.HR_MANAGER, UserRole.PRODUCTION_DIRECTOR)
   update(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('id') id: string,
     @Body() updateContactDto: UpdateContactDto,
     @CurrentUser() user: User,
   ) {
@@ -107,7 +106,7 @@ export class ContactsController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.HR_MANAGER, UserRole.PRODUCTION_DIRECTOR)
-  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  remove(@Param('id') id: string, @CurrentUser() user: User) {
     return this.contactsService.remove(id, user);
   }
 
@@ -115,7 +114,7 @@ export class ContactsController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.HR_MANAGER, UserRole.PRODUCTION_DIRECTOR)
   @HttpCode(HttpStatus.OK)
-  resetPassword(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  resetPassword(@Param('id') id: string, @CurrentUser() user: User) {
     return this.contactsService.resetContactPassword(id, user);
   }
 
@@ -123,7 +122,7 @@ export class ContactsController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.HR_MANAGER, UserRole.PRODUCTION_DIRECTOR)
   @HttpCode(HttpStatus.OK)
-  enablePortalAccess(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  enablePortalAccess(@Param('id') id: string, @CurrentUser() user: User) {
     return this.contactsService.enablePortalAccess(id, user);
   }
 }

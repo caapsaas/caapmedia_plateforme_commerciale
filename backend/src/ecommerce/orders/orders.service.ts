@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, InternalServerErrorException, ConflictException } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateOrderDto, CreateOrderBySalesRepDto, RecordPaymentDto, UpdateOrderStatusDto, updateProductionStatusDto } from './dto/create-order.dto';
 import { Order, OrderGroup, OrderStatus, PaymentStatus, Prisma, ProductionStatus, CustomerPaymentMethod, SaleStatus } from '@prisma/client';
@@ -149,29 +149,16 @@ export class OrdersService {
     return this.prisma.$transaction(async (tx) => {
       const createdOrders: Order[] = [];
       let orderGroup: OrderGroup | null = null;
-      let overallTotalAmount = new Decimal(0);
 
-      // Calculer le montant total global pour le groupe de commandes
-      for (const item of validItems) {
-        const product = productMap.get(item.productId);
-        if (!product) {
-          throw new NotFoundException(`Produit avec l'ID ${item.productId} introuvable`);
-        }
-
-        const finalUnitPrice = new Decimal(item.unitPrice);
-        overallTotalAmount = overallTotalAmount.add(finalUnitPrice.mul(item.quantity));
-      }
-      // Ajouter la taxe au montant total global
-      const overallTotalWithTax = overallTotalAmount.mul(new Decimal(1).add(taxRate.rate));
-
-      // Si plusieurs filiales sont concernées, créer un OrderGroup
+      // Si plusieurs filiales sont concernées, créer un OrderGroup avec un placeholder
+      // Le totalAmount sera mis à jour après le calcul des vrais montants
       if (itemsBySubsidiary.size > 1) {
         orderGroup = await tx.orderGroup.create({
           data: {
             id: generateId(ID_PREFIXES.ORDERGROUP),
             groupCode: `GRP-${Date.now()}`, // Générer un code de groupe unique
             customerId: customerId, // Utiliser l'ID de l'utilisateur connecté
-            totalAmount: overallTotalWithTax,
+            totalAmount: new Decimal(0), // Placeholder, sera mis à jour après la création des commandes
           },
         });
       }
@@ -286,10 +273,15 @@ export class OrdersService {
         if (isPaidImmediately) {
           for (const item of newOrder.orderItems) {
             if (item.productId) {
-              await tx.product.update({
-                where: { id: item.productId },
+              // Utiliser updateMany avec condition de stock pour garantir l'atomicité
+              // et empêcher le stock de devenir négatif
+              const updated = await tx.product.updateMany({
+                where: { id: item.productId, stock: { gte: item.quantity } },
                 data: { stock: { decrement: item.quantity } },
               });
+              if (updated.count === 0) {
+                throw new BadRequestException(`Stock insuffisant pour le produit ${productMap.get(item.productId)!.productName}. Quantité demandée : ${item.quantity}`);
+              }
             }
           }
 
@@ -317,9 +309,20 @@ export class OrdersService {
         createdOrders.push(newOrder);
       }
 
-      // Si le paiement est à crédit, on met à jour le compte crédit du client avec le montant total
+      // Calculer le montant total global réel à partir des commandes créées
+      const overallTotalWithTax = createdOrders.reduce((sum, order) => sum.add(order.totalAmount), new Decimal(0));
+
+      // Mettre à jour le montant du groupe si créé
+      if (orderGroup) {
+        await tx.orderGroup.update({
+          where: { id: orderGroup.id },
+          data: { totalAmount: overallTotalWithTax },
+        });
+      }
+
+      // Si le paiement est à crédit, on met à jour le compte crédit du client avec le montant total réel
       if (paymentMethod === CustomerPaymentMethod.CUSTOMER_CREDIT) {
-        await this.updateCustomerCredit(tx, customerId, itemsBySubsidiary.keys().next().value, overallTotalWithTax, contactName, company);
+        await this.updateCustomerCredit(tx, customerId, user.subsidiaryId, overallTotalWithTax, contactName, company);
       }
 
       // Retourner le groupe de commande avec ses sous-commandes, ou la commande unique
@@ -485,7 +488,7 @@ export class OrdersService {
             totalAmount,
             taxRateValue: taxRate.rate,
             status: OrderStatus.NEW,
-            paymentMethod: null, // Le mode de paiement sera défini lors de l'encaissement.
+            paymentMethod: paymentMethod, // Persister le mode de paiement prévu, sera potentiellement écrasé lors de l'encaissement
             productionStatus: ProductionStatus.PREPRESS,
             paymentStatus: initialPaymentStatus,
             amountPaid: initialAmountPaid,
@@ -806,29 +809,52 @@ export class OrdersService {
       const remainingBalance = order.totalAmount.sub(newAmountPaid);
       const newPaymentStatus = remainingBalance.isZero() ? PaymentStatus.PAID : PaymentStatus.PARTIALLY_PAID;
 
-      const updatedOrder = await tx.order.update({
-        where: { id },
+      // Utiliser updateMany avec verrou optimiste pour éviter les race conditions
+      const updateCount = await tx.order.updateMany({
+        where: {
+          id,
+          amountPaid: order.amountPaid, // Vérifier que amountPaid n'a pas changé
+          paymentStatus: order.paymentStatus, // Vérifier que paymentStatus n'a pas changé
+        },
         data: {
           amountPaid: newAmountPaid,
           paymentStatus: newPaymentStatus,
-          paymentMethod: paymentMethod, 
+          paymentMethod: paymentMethod,
         },
+      });
+
+      // Si l'update a échoué (count === 0), la commande a été modifiée par une autre requête
+      if (updateCount.count === 0) {
+        throw new ConflictException('Cette commande a été modifiée entre-temps. Veuillez réessayer.');
+      }
+
+      // Re-récupérer la commande mise à jour
+      const updatedOrder = await tx.order.findUniqueOrThrow({
+        where: { id },
         include: { orderItems: { include: { product: true } }, customer: true },
       });
 
       // 4. Si la commande est entièrement payée, mettre à jour le stock et créer les ventes
       if (newPaymentStatus === PaymentStatus.PAID) {
-        // D'abord, mettre à jour le stock
+        // D'abord, mettre à jour le stock de manière atomique
         for (const item of updatedOrder.orderItems) {
           if (item.productId) {
-            await tx.product.update({
-              where: { id: item.productId },
+            // Utiliser updateMany avec condition de stock pour garantir l'atomicité
+            const updateResult = await tx.product.updateMany({
+              where: {
+                id: item.productId,
+                stock: { gte: item.quantity }, // Vérifier que le stock est suffisant
+              },
               data: {
                 stock: {
                   decrement: item.quantity,
                 },
               },
             });
+
+            if (updateResult.count === 0) {
+              throw new BadRequestException(`Stock insuffisant pour le produit ${item.product?.productName || item.productId}. Quantité demandée : ${item.quantity}`);
+            }
           }
         }
 
