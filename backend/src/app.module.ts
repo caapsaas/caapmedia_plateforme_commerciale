@@ -31,23 +31,30 @@ import { validate } from './config/env.validation';
   imports: [
     // La configuration se fait maintenant via un tableau d'objets.
     // ttl est maintenant en millisecondes.
-    ThrottlerModule.forRoot([{
-      ttl: 60000, // 60 secondes
-      limit: 10,
-    }]),
+    // Defaut global genereux (couvre le trafic normal d'un dashboard: chargement
+    // de page = plusieurs GET en parallele, et une IP de bureau est souvent
+    // partagee par plusieurs employes via NAT). Les endpoints sensibles
+    // (login, refresh, forgot-password) ont leur propre @Throttle() plus
+    // strict qui prend le dessus sur ce defaut, voir auth.controller.ts.
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // 60 secondes
+        limit: 300,
+      },
+    ]),
     ConfigModule.forRoot({ isGlobal: true, validate }), // Charge .env globalement, échoue au démarrage si invalide
     PrismaModule,
     CommonModule,
     SecretariatModule,
-    AuthModule, 
+    AuthModule,
     SubsidiariesModule,
-    EcommerceModule, 
+    EcommerceModule,
 
-    HrModule, 
+    HrModule,
     AuthModule,
     SubsidiariesModule,
     SecretariatModule,
-    MaintenanceModule, 
+    MaintenanceModule,
     EquipementModule,
     MaintenanceRecordModule,
     OrdersModule,
@@ -60,8 +67,7 @@ import { validate } from './config/env.validation';
     AnalyticsModule,
     StatisticsModule,
     NewsletterModule,
-    AccountingModule
-
+    AccountingModule,
   ],
   controllers: [AppController],
   providers: [
