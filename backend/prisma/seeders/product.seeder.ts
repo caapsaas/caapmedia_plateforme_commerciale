@@ -445,6 +445,17 @@ async function runProductSeeder(prisma: PrismaClient) {
           continue;
         }
         
+        // Idempotence: product.name n'est pas @unique dans le schema, donc
+        // pas de upsert possible - on verifie manuellement par (nom, filiale)
+        // pour que ce seeder soit rejouable sans dupliquer tout le catalogue
+        // a chaque `npm run seed`.
+        const existingProduct = await prisma.product.findFirst({
+          where: { productName: p.name, subsidiaryId: subsidiary.id },
+        });
+        if (existingProduct) {
+          continue;
+        }
+
         // Création du produit
         const product = await prisma.product.create({
           data: {
@@ -460,7 +471,7 @@ async function runProductSeeder(prisma: PrismaClient) {
             subsidiary: { connect: { id: subsidiary.id } },
           },
         });
-    
+
         // Création des images
         for (const url of p.imageUrls) {
           await prisma.productImage.create({

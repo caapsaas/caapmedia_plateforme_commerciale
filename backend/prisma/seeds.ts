@@ -9,6 +9,7 @@ import { runTaxRateSeeder } from './seeders/tax_rate.seeder';
 import { runOrdersSeeder } from './seeders/order.seeder';
 import { seedTreasuryAccounts } from './seeders/treasury.seeder';
 import { runSupplierSeeder } from './seeders/supplier.seeder';
+import { runMovementsSeeder } from './seeders/movements.seeder';
 
 const prisma = new PrismaClient()
 
@@ -61,6 +62,10 @@ async function main() {
     await runOrdersSeeder(prisma);
     await runSupplierSeeder(prisma);
     await seedTreasuryAccounts();
+    // Apres subsidiary/user/product/contact/tax_rate: cree les mouvements
+    // (commandes) multi-filiales pour observer l'architecture SUPER_ADMIN
+    // (vue consolidee) vs ADMIN de filiale (vue scopee), voir movements.seeder.ts.
+    await runMovementsSeeder(prisma);
     // Note: seedEmployeeLeaveBalances is already called inside seedEmployees()
 }
 

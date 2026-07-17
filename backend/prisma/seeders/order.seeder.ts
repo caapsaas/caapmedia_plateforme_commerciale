@@ -91,6 +91,17 @@ export async function runOrdersSeeder(prisma: PrismaClient) {
             continue;
         }
 
+        // Idempotence: pas de cle naturelle unique sur Order, on verifie par
+        // (client, filiale, montant) pour ne pas recreer cette commande
+        // d'exemple a chaque `npm run seed`.
+        const existingOrder = await prisma.order.findFirst({
+            where: { customerId: contact.id, subsidiaryId: subsidiary.id, totalAmount: o.totalAmount },
+        });
+        if (existingOrder) {
+            console.log(`Order déjà existante pour ${contact.email} (${o.totalAmount}), skip`);
+            continue;
+        }
+
         const orderData: any = {
             customerId: contact.id,
             customerName: o.customerName,

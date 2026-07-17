@@ -146,8 +146,17 @@ export async function runEquipmentSeeder(prisma: PrismaClient) {
             });
         }
 
-        // Création des maintenance records
+        // Création des maintenance records (idempotent: sinon dupliques a
+        // chaque re-run meme quand l'equipement existait deja)
         for (const m of e.maintenanceHistory) {
+            const existingRecord = await prisma.maintenanceRecord.findFirst({
+                where: {
+                    equipmentId: equipment.id,
+                    maintenanceDate: new Date(m.date),
+                    technician: m.technician,
+                },
+            });
+            if (existingRecord) continue;
             await prisma.maintenanceRecord.create({
                 data: {
                     maintenanceDate: new Date(m.date),
