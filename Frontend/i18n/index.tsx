@@ -1591,6 +1591,47 @@ const frTranslations = {
       "EXTERNAL_TRANSACTION_CANCELLED": "Transaction Externe Annulée",
       "EXTERNAL_TRANSACTION_DELETED": "Transaction Externe Supprimée"
     }
+  },
+  "bonDeCommande": {
+    "title": "Bon de Commande",
+    "orderNum": "Numéro de commande",
+    "date": "Date",
+    "dueDate": "Échéance",
+    "billedTo": "Commandé par",
+    "item": "Produit",
+    "items": "Détail de la commande",
+    "quantity": "Quantité",
+    "unitPrice": "Prix unitaire",
+    "totalPrice": "Total",
+    "total": "TOTAL",
+    "paymentMethod": "Mode de paiement",
+    "paymentDueDate": "Date d'échéance du paiement",
+    "print": "Imprimer",
+    "exportPdf": "Exporter en PDF",
+    "footer": "Merci de votre confiance. Cette commande est valide jusqu'au",
+    "status": "Statut",
+    "noData": "Aucune commande"
+  },
+  "newOrder": {
+    "productCatalog": "Catalogue des produits",
+    "searchPlaceholder": "Rechercher un produit...",
+    "price": "Prix",
+    "product": "Produit",
+    "quantity": "Quantité",
+    "addToCart": "Ajouter au panier",
+    "orderSummary": "Résumé de la commande",
+    "cartEmpty": "Panier vide",
+    "total": "Total",
+    "submitOrder": "Placer la commande",
+    "orderPlacedSuccess": "Commande créée avec succès !"
+  },
+  "filter": {
+    "client": "Client",
+    "noResults": "Aucun résultat"
+  },
+  "invoice": {
+    "subtotal": "Sous-total",
+    "tax": "Taxe"
   }
 };
 
@@ -3186,6 +3227,47 @@ const enTranslations: Translations = {
             "EXTERNAL_TRANSACTION_CANCELLED": "External Transaction Cancelled",
             "EXTERNAL_TRANSACTION_DELETED": "External Transaction Deleted"
         }
+    },
+    "bonDeCommande": {
+        "title": "Purchase Order",
+        "orderNum": "Order Number",
+        "date": "Date",
+        "dueDate": "Due Date",
+        "billedTo": "Billed To",
+        "item": "Product",
+        "items": "Order Details",
+        "quantity": "Quantity",
+        "unitPrice": "Unit Price",
+        "totalPrice": "Total",
+        "total": "TOTAL",
+        "paymentMethod": "Payment Method",
+        "paymentDueDate": "Payment Due Date",
+        "print": "Print",
+        "exportPdf": "Export to PDF",
+        "footer": "Thank you for your trust. This order is valid until",
+        "status": "Status",
+        "noData": "No orders"
+    },
+    "newOrder": {
+        "productCatalog": "Product Catalog",
+        "searchPlaceholder": "Search for a product...",
+        "price": "Price",
+        "product": "Product",
+        "quantity": "Quantity",
+        "addToCart": "Add to Cart",
+        "orderSummary": "Order Summary",
+        "cartEmpty": "Cart is empty",
+        "total": "Total",
+        "submitOrder": "Place Order",
+        "orderPlacedSuccess": "Order created successfully!"
+    },
+    "filter": {
+        "client": "Client",
+        "noResults": "No results"
+    },
+    "invoice": {
+        "subtotal": "Subtotal",
+        "tax": "Tax"
     }
 };
 
