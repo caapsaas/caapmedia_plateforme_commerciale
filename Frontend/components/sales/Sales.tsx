@@ -38,6 +38,12 @@ import { getContacts } from "../../services/apiCrm/apicontacts";
 import { useAuth } from "../../context/AuthContext";
 
 const initialFilterState: FindAllOrdersDto = { period: "all_time" };
+const parseDate = (dateStr: string | undefined): Date | null => {
+  if (!dateStr) return null;
+  const date = new Date(dateStr);
+  return isNaN(date.getTime()) ? null : date;
+};
+
 const getPeriodDates = (period: FindAllOrdersDto["period"]) => {
   const now = new Date();
 
@@ -578,11 +584,26 @@ const Sales: React.FC = () => {
                 <td className="px-6 py-4 font-semibold text-slate-800">{order.id.substring(0, 8)}</td>
                 <td className="px-6 py-4 text-slate-800">{order.customerName}</td>
                 <td className="px-6 py-4 text-slate-700">
-                  <div>{new Date(order.date).toLocaleDateString("fr-FR")}</div>
-                  <div className="text-xs text-slate-500">{new Date(order.date).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</div>
+                  <div>
+                    {(() => {
+                      const parsedDate = parseDate(order.date);
+                      return parsedDate ? parsedDate.toLocaleDateString("fr-FR") : "N/A";
+                    })()}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {(() => {
+                      const parsedDate = parseDate(order.date);
+                      return parsedDate ? parsedDate.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "";
+                    })()}
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <div className="font-bold text-slate-800">{formatCurrency(order.totalAmount)}</div>
+                  <div className="font-bold text-slate-800">
+                    {(() => {
+                      const total = order.totalAmount || order.subtotal || 0;
+                      return formatCurrency(total);
+                    })()}
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-center">
                   <div className="flex items-center justify-center gap-2">
@@ -623,36 +644,32 @@ const Sales: React.FC = () => {
                       {order.paymentStatus !== PaymentStatus.PAID && (
                         <button
                           onClick={() => setPayingOrder(order)}
-                          className="px-3 py-1 text-xs font-semibold bg-green-100 text-green-700 hover:bg-green-200 rounded-md transition-colors flex items-center gap-1"
+                          className="p-2 text-green-700 hover:bg-green-100 rounded-md transition-colors"
                           title={t("order.recordPayment")}
                         >
-                          <IconCoins className="h-4 w-4" />
-                          <span>Payer</span>
+                          <IconCoins className="h-5 w-5" />
                         </button>
                       )}
                       <button
                         onClick={() => setUpdatingStatusOrder(order)}
-                        className="px-3 py-1 text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md transition-colors flex items-center gap-1"
+                        className="p-2 text-blue-700 hover:bg-blue-100 rounded-md transition-colors"
                         title={t("order.updateStatus")}
                       >
-                        <IconEdit className="h-4 w-4" />
-                        <span>Modifier</span>
+                        <IconEdit className="h-5 w-5" />
                       </button>
                       <button
                         onClick={() => setBonDeCommandeOrder(order)}
-                        className="px-3 py-1 text-xs font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 rounded-md transition-colors flex items-center gap-1"
+                        className="p-2 text-amber-700 hover:bg-amber-100 rounded-md transition-colors"
                         title={t("common.viewBonDeCommande")}
                       >
-                        <IconDocumentText className="h-4 w-4" />
-                        <span>BC</span>
+                        <IconDocumentText className="h-5 w-5" />
                       </button>
                       <button
                         onClick={() => setBlOrder(order)}
-                        className="px-3 py-1 text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-md transition-colors flex items-center gap-1"
+                        className="p-2 text-slate-700 hover:bg-slate-200 rounded-md transition-colors"
                         title={t("common.viewBL")}
                       >
-                        <IconDocumentText className="h-4 w-4" />
-                        <span>BL</span>
+                        <IconDocumentText className="h-5 w-5" />
                       </button>
                     </div>
                   )}

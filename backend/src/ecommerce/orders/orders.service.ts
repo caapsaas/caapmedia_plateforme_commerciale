@@ -23,21 +23,19 @@ export class OrdersService {
   // Fonction utilitaire pour mapper une commande à son format de réponse
   private mapOrderToResponse(order: any) {
     return {
-      orderId: order.id,
-      subsidiaryId: order.subsidiaryId,
-      subtotal: order.subtotal.toNumber(),
-      taxAmount: order.taxAmount.toNumber(),
-      totalAmount: order.totalAmount.toNumber(),
+      ...order,
+      id: order.id,
+      date: order.orderDate, // Mapper orderDate à date pour le frontend
+      subtotal: order.subtotal ? order.subtotal.toNumber() : 0,
+      taxAmount: order.taxAmount ? order.taxAmount.toNumber() : 0,
+      totalAmount: order.totalAmount ? order.totalAmount.toNumber() : 0,
+      amountPaid: order.amountPaid ? order.amountPaid.toNumber() : 0,
+      taxRateValue: order.taxRateValue ? order.taxRateValue.toNumber() : 0,
       status: order.status,
-      orderItems: order.orderItems.map((item: any) => ({
-        productName: item.product?.productName,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice.toNumber(),
-        options: item.productOptions?.map((opt: any) => ({
-          optionType: opt.optionType,
-          optionValue: opt.optionValue,
-        })),
-      })),
+      orderItems: order.orderItems?.map((item: any) => ({
+        ...item,
+        unitPrice: item.unitPrice ? item.unitPrice.toNumber() : 0,
+      })) || [],
     };
   }
 
@@ -599,7 +597,7 @@ export class OrdersService {
       where.orderDate = dateFilter;
     }
 
-    return this.prisma.order.findMany({
+    const orders = await this.prisma.order.findMany({
       where,
       include: {
         customer: true,
@@ -608,6 +606,21 @@ export class OrdersService {
       },
       orderBy: { orderDate: 'desc' },
     });
+
+    // Mapper les commandes pour renvoyer les champs attendus par le frontend
+    return orders.map(order => ({
+      ...order,
+      date: order.orderDate, // Mapper orderDate à date pour le frontend
+      totalAmount: order.totalAmount ? order.totalAmount.toNumber() : 0,
+      subtotal: order.subtotal ? order.subtotal.toNumber() : 0,
+      taxAmount: order.taxAmount ? order.taxAmount.toNumber() : 0,
+      amountPaid: order.amountPaid ? order.amountPaid.toNumber() : 0,
+      taxRateValue: order.taxRateValue ? order.taxRateValue.toNumber() : 0,
+      orderItems: order.orderItems.map(item => ({
+        ...item,
+        unitPrice: item.unitPrice ? item.unitPrice.toNumber() : 0,
+      })),
+    }));
   }
 
   /**
@@ -631,7 +644,21 @@ export class OrdersService {
     if (!order) {
       throw new NotFoundException(`Commande avec l'ID "${id}" non trouvée.`);
     }
-    return order;
+
+    // Mapper les champs pour le frontend
+    return {
+      ...order,
+      date: order.orderDate,
+      totalAmount: order.totalAmount ? order.totalAmount.toNumber() : 0,
+      subtotal: order.subtotal ? order.subtotal.toNumber() : 0,
+      taxAmount: order.taxAmount ? order.taxAmount.toNumber() : 0,
+      amountPaid: order.amountPaid ? order.amountPaid.toNumber() : 0,
+      taxRateValue: order.taxRateValue ? order.taxRateValue.toNumber() : 0,
+      orderItems: order.orderItems.map(item => ({
+        ...item,
+        unitPrice: item.unitPrice ? item.unitPrice.toNumber() : 0,
+      })),
+    };
   }
 
   /**

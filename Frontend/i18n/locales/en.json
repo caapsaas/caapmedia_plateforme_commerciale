@@ -60,7 +60,8 @@
     "email": "Email",
     "phone": "Phone",
     "actions": "Actions",
-    "viewBL": "View BL"
+    "viewBL": "View BL",
+    "viewBonDeCommande": "View PO"
   },
   "configuration": {
     "title": "Configuration",
@@ -194,9 +195,10 @@
     "dueDate": "Due Date",
     "billedTo": "Billed To",
     "item": "Product",
+    "items": "Order Details",
     "quantity": "Quantity",
     "unitPrice": "Unit Price",
-    "totalPrice": "Total Amount",
+    "totalPrice": "Total",
     "total": "TOTAL",
     "paymentMethod": "Payment Method",
     "paymentDueDate": "Payment Due Date",
