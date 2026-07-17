@@ -224,19 +224,8 @@ const ECommercePage: React.FC = () => {
       return;
     }
 
-    if (product.configurableOptions) {
-      setConfiguringProduct(product);
-    } else {
-      const cartItem: CartItem = {
-        id: product.id,
-        product,
-        quantity: 1,
-        options: {},
-        unitPrice: product.sellingPrice,
-        totalPrice: product.sellingPrice,
-      };
-      handleAddToCart(cartItem);
-    }
+    // Toujours ouvrir le calculateur de prix
+    setConfiguringProduct(product);
   };
 
   const handleUpdateQuantity = (cartItemId: string, newQuantity: number) => {
@@ -301,6 +290,7 @@ const ECommercePage: React.FC = () => {
       return {
         productId: item.id,
         quantity: item.quantity,
+        unitPrice: item.unitPrice,
         options: optionsArray.map(([optionType, optionValue]) => ({
           optionType,
           optionValue,

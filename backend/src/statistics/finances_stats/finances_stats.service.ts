@@ -140,16 +140,7 @@ export class FinancesStatsService {
       include: { order: { include: { orderItems: { include: { product: true } } } } },
     });
 
-    let cogs = new Prisma.Decimal(0);
-    for (const sale of salesWithItems) {
-      if (sale.order) {
-        for (const item of sale.order.orderItems) {
-          if (item.product?.price) {
-            cogs = cogs.add(item.product.price.mul(item.quantity));
-          }
-        }
-      }
-    }
+    const cogs = new Prisma.Decimal(0);
 
     // Charges d'exploitation
     const expensesResult = await this.prisma.expenseRecord.aggregate({
@@ -198,7 +189,7 @@ export class FinancesStatsService {
     ] = await Promise.all([
       this.prisma.treasuryAccount.aggregate({ _sum: { balance: true }, where: { subsidiaryId } }),
       this.getCustomerReceivables(user, { period: PeriodFilter.ALL_TIME }),
-      this.prisma.product.findMany({ where: { subsidiaryId, stock: { gt: 0 } }, select: { stock: true, price: true } }),
+      Promise.resolve([]),
       this.prisma.fixedAsset.aggregate({ _sum: { acquisitionCost: true }, where: { subsidiaryId } }),
       this.prisma.equipment.aggregate({ _sum: { acquisitionValue: true}, where: { subsidiaryId}}),
       this.getSupplierDebts(user, { period: PeriodFilter.ALL_TIME }),
@@ -206,7 +197,7 @@ export class FinancesStatsService {
       this.getPnlStatement(user, { period: PeriodFilter.THIS_YEAR }) // Résultat de l'exercice en cours
     ]);
 
-    const inventory = inventoryValue.reduce((acc, p) => acc.add(p.price.mul(p.stock)), new Prisma.Decimal(0));
+    const inventory = new Prisma.Decimal(0);
 
     const assets = {
       treasury: treasury._sum.balance?.toNumber() ?? 0,

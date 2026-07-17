@@ -21,6 +21,7 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
     
     const [options, setOptions] = useState<Partial<ProductOptions>>({});
     const [quantity, setQuantity] = useState(100);
+    const [basePrice, setBasePrice] = useState(0);
     const [price, setPrice] = useState({ unitPriceHT: 0, totalPriceHT: 0 , totalPriceTTC: 0, taxAmount: 0 });
     const [designFile, setDesignFile] = useState<File | null>(null);
     const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -54,11 +55,11 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
     }, [product]);
 
     useEffect(() => {
-        if (product) {
-            const newPrice = calculatePrice(product, options, quantity);
+        if (product && basePrice > 0) {
+            const newPrice = calculatePrice(product, options, quantity, basePrice);
             setPrice(newPrice);
         }
-    }, [product, options, quantity]);
+    }, [product, options, quantity, basePrice]);
     
     const handleOptionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -68,6 +69,11 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
     const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newQuantity = parseInt(e.target.value, 10);
         setQuantity(isNaN(newQuantity) || newQuantity < 1 ? 1 : newQuantity);
+    };
+
+    const handleBasePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newPrice = parseFloat(e.target.value);
+        setBasePrice(isNaN(newPrice) || newPrice < 0 ? 0 : newPrice);
     };
     
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -195,17 +201,32 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
                                     {config?.NUMBERING && renderSelect('numbering', 'calculator.numbering', config.NUMBERING)}
                                 </div>
                             </div>
-                            <div>
-                                <label htmlFor="quantity" className="block text-sm font-medium text-slate-700">{t('calculator.quantity')}</label>
-                                <input
-                                    type="number"
-                                    id="quantity"
-                                    name="quantity"
-                                    value={quantity}
-                                    onChange={handleQuantityChange}
-                                    min="1"
-                                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
-                                />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="basePrice" className="block text-sm font-medium text-slate-700">{t('calculator.unitPrice')} (HT)</label>
+                                    <input
+                                        type="number"
+                                        id="basePrice"
+                                        name="basePrice"
+                                        value={basePrice}
+                                        onChange={handleBasePriceChange}
+                                        step="0.01"
+                                        min="0"
+                                        className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="quantity" className="block text-sm font-medium text-slate-700">{t('calculator.quantity')}</label>
+                                    <input
+                                        type="number"
+                                        id="quantity"
+                                        name="quantity"
+                                        value={quantity}
+                                        onChange={handleQuantityChange}
+                                        min="1"
+                                        className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                                    />
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700">{t('calculator.uploadFile')}</label>

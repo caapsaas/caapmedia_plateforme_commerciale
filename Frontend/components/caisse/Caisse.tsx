@@ -122,11 +122,8 @@ const Caisse: React.FC = () => {
     };
 
     const handleProductClick = (product: Product) => {
-        if (product.configurableOptions) {
-            setConfiguringProduct(product);
-        } else {
-            addSimpleProductToCart(product);
-        }
+        // Toujours ouvrir le calculateur de prix
+        setConfiguringProduct(product);
     };
     
     const handleAddToCartFromModal = (item: CartItem) => {
@@ -286,7 +283,6 @@ const Caisse: React.FC = () => {
                                                 </div>
                                                 <div className="flex-grow flex flex-col">
                                                     <h3 className="font-semibold text-sm leading-tight">{p.productName}</h3>
-                                                    <p className="font-bold text-[#c6e911] mt-1 text-sm">{formatCurrency(p.sellingPrice)}</p>
                                                 </div>
                                                 {isService ? (
                                                      <p className="text-xs mt-auto pt-1 text-green-600 font-semibold">{t('stock.available')}</p>

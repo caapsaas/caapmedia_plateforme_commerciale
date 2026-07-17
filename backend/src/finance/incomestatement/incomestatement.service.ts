@@ -44,39 +44,15 @@ export class IncomestatementService {
   }
 
   /**
-   * COGS = coût d'achat (product.price) × quantité vendue.
-   * product.price est le prix d'achat, product.sellingPrice est le prix de vente.
+   * COGS: non applicable car les coûts d'achat ne sont plus stockés sur les produits.
+   * Les prix sont maintenant définis uniquement lors de la création des commandes/ventes par le commercial.
    */
   private async getCostOfGoodsSold(
     subsidiaryId?: string,
     startDate?: string,
     endDate?: string,
   ): Promise<number> {
-    const sales = await this.prisma.sale.findMany({
-      where: {
-        ...(subsidiaryId ? { subsidiaryId } : {}),
-        status: 'PAID',
-        saleDate: this.buildDateRange(startDate, endDate),
-      },
-      include: {
-        order: {
-          include: {
-            orderItems: {
-              include: {
-                product: { select: { price: true } }, // prix d'achat
-              },
-            },
-          },
-        },
-      },
-    });
-
-    return sales.reduce((sum, sale) => {
-      const itemsCost = (sale.order?.orderItems ?? []).reduce((itemSum, item) => {
-        return itemSum + Number(item.product?.price ?? 0) * Number(item.quantity ?? 0);
-      }, 0);
-      return sum + itemsCost;
-    }, 0);
+    return 0;
   }
 
   private async getOperatingExpenses(

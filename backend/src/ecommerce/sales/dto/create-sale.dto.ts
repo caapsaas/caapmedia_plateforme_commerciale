@@ -6,6 +6,7 @@ import {
   IsEnum,
   IsString,
   IsUUID,
+  IsNumber,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -23,6 +24,11 @@ class DirectSaleItemDto {
   @IsString()
   @IsNotEmpty()
   productName: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsNotEmpty()
+  unitPrice: number;
 }
 
 export class CreateDirectSaleDto {

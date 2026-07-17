@@ -174,7 +174,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
         // Initialiser le prix de cet article s'il n'existe pas
         if (!cartItemPrices[product.id]) {
-          setCartItemPrices(prev => ({ ...prev, [product.id]: product.sellingPrice }));
+          setCartItemPrices(prev => ({ ...prev, [product.id]: 0 }));
         }
 
         setQuantities(prev => ({ ...prev, [product.id]: 0 }));
@@ -218,7 +218,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
     const subtotal = useMemo(() =>
 
         cart.reduce((sum, item) => {
-          const unitPrice = cartItemPrices[item.product.id] || item.product.sellingPrice;
+          const unitPrice = cartItemPrices[item.product.id] || 0;
           return sum + unitPrice * item.quantity;
         }, 0),
 
@@ -277,7 +277,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
                     : {};
 
-                const unitPrice = cartItemPrices[item.product.id] || item.product.sellingPrice;
+                const unitPrice = cartItemPrices[item.product.id] || 0;
 
                 return {
 
@@ -309,7 +309,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
                     : {};
 
-                const unitPrice = cartItemPrices[item.product.id] || item.product.sellingPrice;
+                const unitPrice = cartItemPrices[item.product.id] || 0;
 
                 return {
 
@@ -462,8 +462,6 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
                                         </td>
 
-                                        <td className="px-4 py-3 text-right font-medium text-slate-700">{formatCurrency(product.sellingPrice)}</td>
-
                                         <td className="px-4 py-3 text-center">
 
                                             <span className={`text-sm font-medium ${product.stock <= 0 ? 'text-red-600' : 'text-green-600'}`}>
@@ -605,7 +603,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                         <ul className="divide-y divide-slate-200">
 
                             {cart.map(item => {
-                              const unitPrice = cartItemPrices[item.product.id] || item.product.sellingPrice;
+                              const unitPrice = cartItemPrices[item.product.id] || 0;
                               const itemTotal = unitPrice * item.quantity;
 
                               return (

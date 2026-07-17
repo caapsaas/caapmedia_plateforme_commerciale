@@ -36,10 +36,10 @@ class CreateOrderItemDto {
   @Min(1)
   quantity: number;
 
-  @IsOptional()
   @IsNumber()
   @Min(0)
-  unitPrice?: number;
+  @IsNotEmpty()
+  unitPrice: number;
 
   @IsOptional()
   @IsString()

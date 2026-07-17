@@ -3,6 +3,7 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateDirectSaleDto } from './dto/create-sale.dto';
 import { FindAllSalesDto, OrderPeriod } from './dto/find-all-sales.dto';
 import { Prisma, SaleStatus, UserRole } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 import { sub, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
 
 @Injectable()
@@ -53,7 +54,7 @@ export class SalesService {
             throw new BadRequestException(`Le produit "${product.productName}" n'appartient pas à cette filiale.`);
         }
 
-        const unitPrice = product.sellingPrice;
+        const unitPrice = new Decimal(item.unitPrice);
         const subtotal = unitPrice.mul(item.quantity);
         const taxAmount = subtotal.mul(taxRate.rate);
         const totalPrice = subtotal.add(taxAmount);

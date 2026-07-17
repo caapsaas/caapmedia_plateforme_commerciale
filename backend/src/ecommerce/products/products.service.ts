@@ -7,7 +7,6 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import {
   CreateProductDto,
   UpdateProductDto,
-  UpdateProductPriceDto,
 } from './dto/create-product.dto';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
@@ -46,8 +45,6 @@ export class ProductsService {
     return {
       ...product,
       productImages: product.productImages,
-      price: product.price?.toString(),
-      sellingPrice: product.sellingPrice?.toString(),
       stock: product.stock?.toString(),
       configurableOptions: groupedOptions,
     };
@@ -72,8 +69,6 @@ export class ProductsService {
         id: generateId(ID_PREFIXES.PRODUCT),
         ...productData,
         stock: Number(productData.stock),
-        price: Number(productData.price),
-        sellingPrice: Number(productData.sellingPrice),
         subsidiaryId: user.subsidiaryId,
         configurableOptions: configurableOptions
           ? {
@@ -188,44 +183,6 @@ export class ProductsService {
   }
 
   /**
-   * Met à jour uniquement le prix de revient et le prix de vente d'un produit.
-   * @param id ID du produit
-   * @param updateProductPriceDto DTO contenant le prix de revient et de vente
-   * @param user Utilisateur authentifié
-   * @returns Le produit mis à jour
-   */
-  async updatePrice(
-    id: string,
-    updateProductPriceDto: UpdateProductPriceDto,
-    user: any,
-  ) {
-    const { price, sellingPrice } = updateProductPriceDto;
-
-    if (price === undefined || sellingPrice === undefined) {
-      throw new BadRequestException(
-        'Le prix de revient et le prix de vente sont requis.',
-      );
-    }
-
-    // Vérifie que le produit existe et appartient à la bonne filiale
-    await this.findOne(id, user);
-
-    const updatedProduct = await this.prisma.product.update({
-      where: {
-        id: id,
-        subsidiaryId: user.subsidiaryId,
-      },
-      data: {
-        price: Number(price),
-        sellingPrice: Number(sellingPrice),
-      },
-      include: this.includeAll,
-    });
-
-    return this.mapDecimals(updatedProduct);
-  }
-
-  /**
    *
    * @param id // ID du produit
    * @param updateProductDto // DTO contenant les données du produit à mettre à jour
@@ -247,15 +204,8 @@ export class ProductsService {
 
     const dataToUpdate: any = { ...productData };
 
-    // Convertir les champs numériques de string à number s'ils sont présents
     if (productData.stock !== undefined) {
       dataToUpdate.stock = Number(productData.stock);
-    }
-    if (productData.price !== undefined) {
-      dataToUpdate.price = Number(productData.price);
-    }
-    if (productData.sellingPrice !== undefined) {
-      dataToUpdate.sellingPrice = Number(productData.sellingPrice);
     }
 
     const product = await this.prisma.$transaction(async (tx) => {

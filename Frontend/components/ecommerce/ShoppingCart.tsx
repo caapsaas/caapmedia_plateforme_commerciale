@@ -159,7 +159,24 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ cartItems, onClose, onUpdat
                         </ul>
                     </div>
                 )}
-                
+
+                {cartItems.length > 0 && (
+                    <div className="px-4 py-4 bg-slate-50 border-t flex justify-between items-center gap-4 flex-shrink-0">
+                        <div>
+                            <p className="text-sm text-slate-600">{t('ecommerce.total')}:</p>
+                            <p className="text-lg font-bold text-slate-800">{formatCurrency(total)}</p>
+                        </div>
+                        <button
+                            onClick={() => {
+                                onClose();
+                                onCheckout();
+                            }}
+                            className="px-6 py-3 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f] transition-all"
+                        >
+                            {t('ecommerce.proceedToCheckout') || 'Procéder à la caisse'}
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

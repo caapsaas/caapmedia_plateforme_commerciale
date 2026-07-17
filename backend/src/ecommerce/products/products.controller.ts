@@ -24,7 +24,6 @@ import { extname } from 'path';
 import {
   CreateProductDto,
   UpdateProductDto,
-  UpdateProductPriceDto,
 } from './dto/create-product.dto';
 
 @Controller('products')
@@ -125,32 +124,6 @@ export class ProductsController {
   ])
   findOne(@Param('id', new ParseUUIDPipe()) id: string, @Req() req: any) {
     return this.productsService.findOne(id, req.user);
-  }
-
-  /**
-   * Endpoint pour mettre à jour le prix d'un produit
-   * Exemple d'URL : /products/:id/update-price
-   */
-  @Patch(':id/update-price')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @SetMetadata('roles', [
-    UserRole.ADMIN,
-    UserRole.COMMERCIAL,
-    UserRole.CAISSIER,
-    UserRole.PURCHASING_MANAGER,
-    UserRole.PRODUCTION_DIRECTOR,
-    UserRole.FINANCIAL_DIRECTOR,
-  ])
-  updatePrice(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() updateProductPriceDto: UpdateProductPriceDto,
-    @Req() req: any,
-  ) {
-    return this.productsService.updatePrice(
-      id,
-      updateProductPriceDto,
-      req.user,
-    );
   }
 
   /**

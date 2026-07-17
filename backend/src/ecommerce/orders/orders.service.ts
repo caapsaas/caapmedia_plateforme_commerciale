@@ -157,36 +157,7 @@ export class OrdersService {
           throw new NotFoundException(`Produit avec l'ID ${item.productId} introuvable`);
         }
 
-        // Déterminer le prix unitaire à utiliser
-        let finalUnitPrice: Decimal;
-
-        if (item.unitPrice !== undefined) {
-          // Utiliser le prix manuel fourni par le commercial (pas d'options, pas de tarification dégressive)
-          finalUnitPrice = new Decimal(item.unitPrice);
-        } else {
-          // Utiliser la logique de prix par défaut
-          let unitPrice = new Decimal(product.sellingPrice);
-
-          if (item.options) {
-            for (const option of item.options) {
-              const optionItem = optionItemMap.get(option.optionValue);
-              if (optionItem) {
-                unitPrice = unitPrice.mul(optionItem.multiplier);
-              }
-            }
-          }
-
-          // Appliquer la tarification dégressive
-          let discount = new Decimal(0);
-          for (const tier of degressivePricing) {
-            if (item.quantity >= tier.threshold) {
-              discount = tier.discount;
-              break; // La table est triée, on prend la première correspondance
-            }
-          }
-          finalUnitPrice = unitPrice.mul(new Decimal(1).sub(discount));
-        }
-
+        const finalUnitPrice = new Decimal(item.unitPrice);
         overallTotalAmount = overallTotalAmount.add(finalUnitPrice.mul(item.quantity));
       }
       // Ajouter la taxe au montant total global
@@ -461,36 +432,7 @@ export class OrdersService {
           throw new NotFoundException(`Produit avec l'ID ${item.productId} introuvable`);
         }
 
-        // Déterminer le prix unitaire à utiliser
-        let finalUnitPrice: Decimal;
-
-        if (item.unitPrice !== undefined) {
-          // Utiliser le prix manuel fourni par le commercial (pas d'options, pas de tarification dégressive)
-          finalUnitPrice = new Decimal(item.unitPrice);
-        } else {
-          // Utiliser la logique de prix par défaut
-          let unitPrice = new Decimal(product.sellingPrice);
-
-          if (item.options) {
-            for (const option of item.options) {
-              const optionItem = optionItemMap.get(option.optionValue);
-              if (optionItem) {
-                unitPrice = unitPrice.mul(optionItem.multiplier);
-              }
-            }
-          }
-
-          // Appliquer la tarification dégressive
-          let discount = new Decimal(0);
-          for (const tier of degressivePricing) {
-            if (item.quantity >= tier.threshold) {
-              discount = tier.discount;
-              break; // La table est triée, on prend la première correspondance
-            }
-          }
-          finalUnitPrice = unitPrice.mul(new Decimal(1).sub(discount));
-        }
-
+        const finalUnitPrice = new Decimal(item.unitPrice);
         overallTotalAmount = overallTotalAmount.add(finalUnitPrice.mul(item.quantity));
       }
       const overallTotalWithTax = overallTotalAmount.mul(new Decimal(1).add(taxRate.rate));
@@ -510,35 +452,7 @@ export class OrdersService {
       for (const [subsidiaryId, subsidiaryItems] of itemsBySubsidiary.entries()) {
         let subtotal = new Decimal(0);
         const orderItemsData = subsidiaryItems.map((item) => {
-          // Déterminer le prix unitaire à utiliser
-          let finalUnitPrice: Decimal;
-
-          if (item.unitPrice !== undefined) {
-            // Utiliser le prix manuel fourni par le commercial
-            finalUnitPrice = new Decimal(item.unitPrice);
-          } else {
-            // Utiliser la logique de prix par défaut
-            let unitPrice = new Decimal(item.product.sellingPrice);
-            if (item.options) {
-              for (const opt of item.options) {
-                const optionItem = optionItemMap.get(opt.optionValue);
-                if (optionItem) {
-                  unitPrice = unitPrice.mul(optionItem.multiplier);
-                }
-              }
-            }
-
-            // Appliquer la tarification dégressive
-            let discount = new Decimal(0);
-            for (const tier of degressivePricing) {
-              if (item.quantity >= tier.threshold) {
-                discount = tier.discount;
-                break; // La table est triée, on prend la première correspondance
-              }
-            }
-            finalUnitPrice = unitPrice.mul(new Decimal(1).sub(discount));
-          }
-
+          const finalUnitPrice = new Decimal(item.unitPrice);
           subtotal = subtotal.add(finalUnitPrice.mul(item.quantity));
           return {
             ...item,

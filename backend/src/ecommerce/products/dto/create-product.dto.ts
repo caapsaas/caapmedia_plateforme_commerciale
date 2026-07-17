@@ -70,14 +70,6 @@ export class CreateProductDto {
     @IsPositive()
     stock: number;
 
-    @IsNumber()
-    @IsPositive()
-    price: number;
-
-    @IsNumber()
-    @IsPositive()
-    sellingPrice: number;
-
     @IsString()
     @IsNotEmpty()
     warehouse: string;
@@ -97,16 +89,6 @@ export class CreateProductDto {
     @Type(() => ProductImageDto)
     @IsOptional()
     productImages?: ProductImageDto[];
-}
-
-export class UpdateProductPriceDto {
-    @IsNumber()
-    @IsPositive()
-    price: number;
-
-    @IsNumber()
-    @IsPositive()
-    sellingPrice: number;
 }
 
 export class UpdateProductDto extends PartialType(CreateProductDto) {}

@@ -222,19 +222,9 @@ export class PurchaseOrdersService {
                     data: { quantityReceived: { increment: item.quantityReceived } },
                 });
 
-                // Mettre à jour le stock et potentiellement le prix d'achat du produit
-                const product = await tx.product.findUnique({ where: { id: orderItem.productId } });
-                const dataToUpdate: Prisma.ProductUpdateInput = {
-                    stock: { increment: item.quantityReceived }
-                };
-
-                if (product && product.price.comparedTo(orderItem.purchasePrice) !== 0) {
-                    dataToUpdate.price = orderItem.purchasePrice;
-                }
-
                 await tx.product.update({
                     where: { id: orderItem.productId },
-                    data: dataToUpdate,
+                    data: { stock: { increment: item.quantityReceived } },
                 });
             }
 

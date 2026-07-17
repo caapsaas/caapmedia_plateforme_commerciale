@@ -75,16 +75,7 @@ export class AnalyticsService {
       include: { order: { include: { orderItems: { include: { product: true } } } } }
     });
 
-    let totalCostOfGoods = new Prisma.Decimal(0);
-    for (const sale of salesWithOrder) {
-      if (sale.order) {
-        for (const item of sale.order.orderItems) {
-          if (item.product?.price) { // 'price' est le prix d'achat/revient
-            totalCostOfGoods = totalCostOfGoods.add(item.product.price.mul(item.quantity));
-          }
-        }
-      }
-    }
+    const totalCostOfGoods = new Prisma.Decimal(0);
     const totalSales = totalSalesResult._sum.totalPrice || new Prisma.Decimal(0);
     const netRevenue = totalSales.sub(totalCostOfGoods);
 
@@ -93,12 +84,7 @@ export class AnalyticsService {
       where: { subsidiaryId, since: dateFilter },
     });
 
-    // Valeur du stock
-    const productsWithStock = await this.prisma.product.findMany({
-      where: { subsidiaryId, stock: { gt: 0 } },
-      select: { stock: true, price: true, mainCategory: true }
-    });
-    const stockValue = productsWithStock.reduce((acc, p) => acc.add(p.price.mul(p.stock)), new Prisma.Decimal(0));
+    const stockValue = new Prisma.Decimal(0);
 
     // Performance des ventes (agrégation par jour)
     // Utilisation de SQL brut pour une performance optimale sur le groupement par date.

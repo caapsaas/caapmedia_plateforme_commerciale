@@ -12,7 +12,7 @@ import IconPlus from '../components/icons/IconPlus';
 import IconEdit from '../components/icons/IconEdit';
 import IconDelete from '../components/icons/IconDelete';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getProductsBySubsidiary, createProduct, deleteProduct, updateProductSellingAndPrice } from '../services/apiE-commerce/apiProducts';
+import { getProductsBySubsidiary, createProduct, deleteProduct } from '../services/apiE-commerce/apiProducts';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import ProductFormModal from '../components/configuration/ProductFormModal';
 import IconSaveCheck from '../components/icons/IconSaveCheck';
@@ -25,11 +25,8 @@ const Stock: React.FC = () => {
     const queryClient = useQueryClient();
     const { subsidiary } = useAuth();
     
-    const [editingProductId, setEditingProductId] = useState<string | null>(null);
-    const [editedPrices, setEditedPrices] = useState<{ cost: number; selling: number }>({ cost: 0, selling: 0 });
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [showSaveConfirm, setShowSaveConfirm] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
     // --- TanStack Query: Data Fetching ---
@@ -40,13 +37,6 @@ const Stock: React.FC = () => {
     });
 
     // --- TanStack Query: Mutations ---
-    const { mutate: updatePriceMutate } = useMutation({
-        mutationFn: ({ id, data }: { id: string, data: { price: number, sellingPrice: number } }) => updateProductSellingAndPrice(id, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['products', subsidiary?.id] });
-        },
-    });
-
     const { mutate: createProductMutate } = useMutation({
         mutationFn: (productData: ProductFormData) => createProduct(productData),
         onSuccess: () => {
@@ -79,69 +69,13 @@ const Stock: React.FC = () => {
         );
     }, [products, searchTerm]);
 
-    const totalStockValue = useMemo(() => {
-        return filteredProducts.reduce((total, product) => {
-            return total + product.sellingPrice;
-        }, 0);
-    }, [filteredProducts]);
-
-    const totalInventoryValue = useMemo(() => {
-        return filteredProducts.reduce((total, product) => {
-            return total + (product.stock * product.sellingPrice);
-        }, 0);
-    }, [filteredProducts]);
-
-    const totalCostValue = useMemo(() => {
-        return filteredProducts.reduce((total, product) => {
-            return total + (product.stock * product.price);
-        }, 0);
-    }, [filteredProducts]);
-
-    const totalPotentialProfit = useMemo(() => {
-        return totalInventoryValue - totalCostValue;
-    }, [totalInventoryValue, totalCostValue]);
-
     const lowStockProducts = useMemo(() => {
         return filteredProducts.filter(product => product.stock < 100).length;
     }, [filteredProducts]);
 
-    const averagePrice = useMemo(() => {
-        return filteredProducts.length > 0 ? totalStockValue / filteredProducts.length : 0;
-    }, [totalStockValue, filteredProducts]);
-
-    const handleEdit = (product: Product) => {
-        setEditingProductId(product.id);
-        setEditedPrices({ cost: product.price, selling: product.sellingPrice });
-    };
-
-    const handleCancel = () => {
-        setEditingProductId(null);
-    };
-
-    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'cost' | 'selling') => {
-        const value = parseFloat(e.target.value);
-        setEditedPrices(prev => ({ ...prev, [field]: isNaN(value) ? 0 : value }));
-    };
-
-    const handleSave = () => {
-        if (editingProductId) {
-            setShowSaveConfirm(true);
-        }
-    };
-
-    const confirmSave = () => {
-        if (!editingProductId) return;
-        
-        updatePriceMutate({
-            id: editingProductId,
-            data: {
-            price: editedPrices.cost,
-            sellingPrice: editedPrices.selling,
-            }
-        });
-        setShowSaveConfirm(false);
-        setEditingProductId(null);
-    };
+    const totalQuantity = useMemo(() => {
+        return filteredProducts.reduce((total, product) => total + product.stock, 0);
+    }, [filteredProducts]);
 
     const handleDelete = (product: Product) => {
         setProductToDelete(product);
@@ -168,8 +102,6 @@ const Stock: React.FC = () => {
             { key: 'description', label: t('stock.description')},
             { key: 'warehouse', label: t('stock.warehouse')},
             { key: 'stock', label: t('stock.currentStock')},
-            { key: 'price', label: t('stock.costPrice')},
-            { key: 'sellingPrice', label: t('stock.sellingPrice')},
         ];
         const data = filteredProducts.map(p => ({
             ...p,
@@ -181,26 +113,17 @@ const Stock: React.FC = () => {
     
     const handleExportPdf = () => {
         const headers = [
-            { key: 'name', label: t('stock.name')},
+            { key: 'productName', label: t('stock.name')},
             { key: 'category', label: t('stock.category')},
             { key: 'stock', label: t('stock.currentStock')},
-            { key: 'sellingPrice', label: t('stock.sellingPrice')},
         ];
         const data = filteredProducts.map(p => ({
             ...p,
             category: t(categoryToKeyMap[p.category] || p.category),
-            sellingPrice: formatCurrency(p.sellingPrice)
         }));
         exportToPdf(t('stock.title'), headers, data, 'stock');
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            handleSave();
-        } else if (e.key === 'Escape') {
-            handleCancel();
-        }
-    };
 
     if (isLoadingProducts) {
         return <div>{t('common.loading')}</div>;
@@ -214,51 +137,35 @@ const Stock: React.FC = () => {
         <div className="space-y-6">
             <h2 className="text-3xl font-bold text-slate-800">{t('stock.title')}</h2>
             
-            {/* Tableau de bord - Statistiques complètes du stock */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Valeur totale de l'inventaire */}
+            {/* Tableau de bord - Statistiques du stock */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Total des produits */}
                 <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-xl shadow-lg text-white">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h3 className="text-sm font-medium opacity-90">Valeur inventaire totale</h3>
-                            <p className="text-2xl font-bold mt-1">{formatCurrency(totalInventoryValue)}</p>
-                            <p className="text-xs opacity-75 mt-1">Stock × Prix vente</p>
+                            <h3 className="text-sm font-medium opacity-90">Total des produits</h3>
+                            <p className="text-2xl font-bold mt-1">{filteredProducts.length}</p>
+                            <p className="text-xs opacity-75 mt-1">Références uniques</p>
+                        </div>
+                        <div className="bg-white bg-opacity-20 p-2 rounded-full">
+                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Quantité totale en stock */}
+                <div className="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-xl shadow-lg text-white">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="text-sm font-medium opacity-90">Quantité totale</h3>
+                            <p className="text-2xl font-bold mt-1">{formatNumber(totalQuantity)}</p>
+                            <p className="text-xs opacity-75 mt-1">Unités en stock</p>
                         </div>
                         <div className="bg-white bg-opacity-20 p-2 rounded-full">
                             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 0v8m0-8l-8 8-4-4-6 6"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Coût total des achats */}
-                <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-xl shadow-lg text-white">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h3 className="text-sm font-medium opacity-90">Coût total d'achat</h3>
-                            <p className="text-2xl font-bold mt-1">{formatCurrency(totalCostValue)}</p>
-                            <p className="text-xs opacity-75 mt-1">Stock × Prix coût</p>
-                        </div>
-                        <div className="bg-white bg-opacity-20 p-2 rounded-full">
-                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Profit potentiel */}
-                <div className="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-xl shadow-lg text-white">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h3 className="text-sm font-medium opacity-90">Profit potentiel</h3>
-                            <p className="text-2xl font-bold mt-1">{formatCurrency(totalPotentialProfit)}</p>
-                            <p className="text-xs opacity-75 mt-1">Marge totale attendue</p>
-                        </div>
-                        <div className="bg-white bg-opacity-20 p-2 rounded-full">
-                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                             </svg>
                         </div>
                     </div>
@@ -275,57 +182,6 @@ const Stock: React.FC = () => {
                         <div className="bg-white bg-opacity-20 p-2 rounded-full">
                             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Statistiques additionnelles */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Prix moyen */}
-                <div className="bg-white p-4 rounded-xl shadow-md border border-slate-200">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h3 className="text-sm font-medium text-slate-600">Prix moyen des produits</h3>
-                            <p className="text-xl font-bold text-slate-800 mt-1">{formatCurrency(averagePrice)}</p>
-                            <p className="text-xs text-slate-500 mt-1">Par produit</p>
-                        </div>
-                        <div className="bg-blue-100 p-2 rounded-full">
-                            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Nombre total de produits */}
-                <div className="bg-white p-4 rounded-xl shadow-md border border-slate-200">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h3 className="text-sm font-medium text-slate-600">Total des produits</h3>
-                            <p className="text-xl font-bold text-slate-800 mt-1">{filteredProducts.length}</p>
-                            <p className="text-xs text-slate-500 mt-1">Références uniques</p>
-                        </div>
-                        <div className="bg-green-100 p-2 rounded-full">
-                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Somme des prix de vente */}
-                <div className="bg-white p-4 rounded-xl shadow-md border border-slate-200">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h3 className="text-sm font-medium text-slate-600">Somme des prix vente</h3>
-                            <p className="text-xl font-bold text-slate-800 mt-1">{formatCurrency(totalStockValue)}</p>
-                            <p className="text-xs text-slate-500 mt-1">Sans quantité</p>
-                        </div>
-                        <div className="bg-purple-100 p-2 rounded-full">
-                            <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         </div>
                     </div>
@@ -378,21 +234,11 @@ const Stock: React.FC = () => {
                                 <th scope="col" className="px-6 py-3">{t('stock.category')}</th>
                                 <th scope="col" className="px-6 py-3">{t('stock.warehouse')}</th>
                                 <th scope="col" className="px-6 py-3">{t('stock.currentStock')}</th>
-                                <th scope="col" className="px-6 py-3">{t('stock.costPrice')}</th>
-                                <th scope="col" className="px-6 py-3">{t('stock.sellingPrice')}</th>
-                                <th scope="col" className="px-6 py-3">{t('stock.margin')}</th>
                                 <th scope="col" className="px-6 py-3 text-center no-print">{t('common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredProducts.map((product) => {
-                                const isEditing = editingProductId === product.id;
-                                const costPrice = isEditing ? editedPrices.cost : product.price;
-                                const sellingPrice = isEditing ? editedPrices.selling : product.sellingPrice;
-                                const margin = sellingPrice - costPrice;
-                                const marginPercentage = costPrice > 0 ? (margin / costPrice) * 100 : 0;
-                                
-                                return (
+                            {filteredProducts.map((product) => (
                                 <tr key={product.id} className="bg-white border-b hover:bg-slate-50">
                                     <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{product.id}</th>
                                     <td className="px-6 py-4 font-semibold">{product.productName}</td>
@@ -402,49 +248,15 @@ const Stock: React.FC = () => {
                                     <td className={`px-6 py-4 text-center font-bold ${product.stock < 100 ? 'text-red-500' : 'text-green-600'}`}>
                                         {product.stock}
                                     </td>
-                                    <td className="px-6 py-4">
-                                        {isEditing ? (
-                                            <input type="number" value={editedPrices.cost} onChange={(e) => handlePriceChange(e, 'cost')} onKeyDown={handleKeyDown} className="w-24 p-1 border rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911]" />
-                                        ) : (
-                                            formatCurrency(product.price)
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                         {isEditing ? (
-                                            <input type="number" value={editedPrices.selling} onChange={(e) => handlePriceChange(e, 'selling')} onKeyDown={handleKeyDown} className="w-24 p-1 border rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911]" />
-                                        ) : (
-                                            formatCurrency(product.sellingPrice)
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 font-semibold text-sky-600">
-                                        {`${formatCurrency(margin)} (${formatNumber(marginPercentage, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%)`}
-                                    </td>
                                     <td className="px-6 py-4 text-center">
                                         <div className="flex justify-center items-center space-x-1">
-                                            {isEditing ? (
-                                                <>
-                                                    <button onClick={handleSave} className="p-2 text-green-600 hover:bg-green-100 rounded-full" title={t('common.save')}>
-                                                        <IconSaveCheck className="h-5 w-5" />
-                                                    </button>
-                                                    <button onClick={handleCancel} className="p-2 text-red-600 hover:bg-red-100 rounded-full" title={t('common.cancel')}>
-                                                        <IconCancelX className="h-5 w-5" />
-                                                    </button>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <button onClick={() => handleEdit(product)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full" title={t('common.edit')}>
-                                                        <IconEdit className="h-5 w-5" />
-                                                    </button>
-                                                    <button onClick={() => handleDelete(product)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full" title={t('common.delete')}>
-                                                        <IconDelete className="h-5 w-5" />
-                                                    </button>
-                                                </>
-                                            )}
+                                            <button onClick={() => handleDelete(product)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full" title={t('common.delete')}>
+                                                <IconDelete className="h-5 w-5" />
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
-                                )
-                            })}
+                            ))}
                         </tbody>
                     </table>
                 </div>
@@ -460,22 +272,12 @@ const Stock: React.FC = () => {
             )}
             
             {productToDelete && (
-                <ConfirmationModal 
+                <ConfirmationModal
                     isOpen={!!productToDelete}
                     onClose={() => setProductToDelete(null)}
                     onConfirm={confirmDelete}
                     title={t('configuration.modal.deleteProductTitle')}
                     message={t('configuration.modal.deleteConfirmMessage', { itemName: productToDelete.productName })}
-                />
-            )}
-            
-            {showSaveConfirm && (
-                 <ConfirmationModal 
-                    isOpen={showSaveConfirm}
-                    onClose={() => setShowSaveConfirm(false)}
-                    onConfirm={confirmSave}
-                    title={t('stock.confirmPriceSaveTitle')}
-                    message={t('stock.confirmPriceSaveMessage')}
                 />
             )}
         </div>

@@ -11,16 +11,17 @@ const degressivePricing = [
 ];
 
 export function calculatePrice(
-    product: Product, 
-    options: Partial<ProductOptions>, 
+    product: Product,
+    options: Partial<ProductOptions>,
     quantity: number,
+    basePrice: number,
     taxRate: number = 0 // Default tax rate is 0 if not provided
 ): { unitPriceHT: number; totalPriceHT: number; taxAmount: number; totalPriceTTC: number; } {
     if (quantity <= 0) {
-        return { unitPriceHT: product.sellingPrice, totalPriceHT: 0, taxAmount: 0, totalPriceTTC: 0 };
+        return { unitPriceHT: basePrice, totalPriceHT: 0, taxAmount: 0, totalPriceTTC: 0 };
     }
 
-    let basePrice = product.sellingPrice;
+    let calculatedPrice = basePrice;
     const config = product.configurableOptions;
 
     if (config) {
@@ -47,12 +48,12 @@ export function calculatePrice(
             const selectedValue = (options as any)[opt.key];
             if (selectedValue && opt.items) {
                 const multiplier = Number(opt.items.find(i => i.optionName === selectedValue)?.multiplier) || 1;
-                basePrice *= multiplier;
+                calculatedPrice *= multiplier;
             }
         }
     }
-    
-    const unitPriceWithOptions = basePrice;
+
+    const unitPriceWithOptions = calculatedPrice;
 
     // Apply degressive pricing
     let discount = 0;
