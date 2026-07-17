@@ -639,6 +639,14 @@ const Sales: React.FC = () => {
                         <span>Modifier</span>
                       </button>
                       <button
+                        onClick={() => setBonDeCommandeOrder(order)}
+                        className="px-3 py-1 text-xs font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 rounded-md transition-colors flex items-center gap-1"
+                        title={t("common.viewBonDeCommande")}
+                      >
+                        <IconDocumentText className="h-4 w-4" />
+                        <span>BC</span>
+                      </button>
+                      <button
                         onClick={() => setBlOrder(order)}
                         className="px-3 py-1 text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-md transition-colors flex items-center gap-1"
                         title={t("common.viewBL")}

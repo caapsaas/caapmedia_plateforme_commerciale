@@ -462,6 +462,12 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
                                         </td>
 
+                                        <td className="px-4 py-3 text-right text-slate-500 text-xs">
+
+                                            À définir
+
+                                        </td>
+
                                         <td className="px-4 py-3 text-center">
 
                                             <span className={`text-sm font-medium ${product.stock <= 0 ? 'text-red-600' : 'text-green-600'}`}>

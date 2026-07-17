@@ -33,6 +33,19 @@
     "openMenu": "Open menu",
     "changeRole": "Change role"
   },
+  "filter": {
+    "client": "Client",
+    "noResults": "No results"
+  },
+  "invoice": {
+    "subtotal": "Subtotal",
+    "tax": "Tax"
+  },
+  "cashRegister": {
+    "clientSection": {
+      "selectAdd": "Select or Add"
+    }
+  },
   "common": {
     "cancel": "Cancel",
     "save": "Save",
@@ -42,7 +55,12 @@
     "print": "Print",
     "exportPdf": "Export PDF",
     "loading": "Loading...",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "close": "Close",
+    "email": "Email",
+    "phone": "Phone",
+    "actions": "Actions",
+    "viewBL": "View BL"
   },
   "configuration": {
     "title": "Configuration",
@@ -155,6 +173,38 @@
     "operatingExpenses": "Operating Expenses",
     "taxes": "Taxes",
     "netIncome": "Net Income"
+  },
+  "newOrder": {
+    "productCatalog": "Product Catalog",
+    "searchPlaceholder": "Search for a product...",
+    "price": "Price",
+    "product": "Product",
+    "quantity": "Quantity",
+    "addToCart": "Add to Cart",
+    "orderSummary": "Order Summary",
+    "cartEmpty": "Cart is empty",
+    "total": "Total",
+    "submitOrder": "Place Order",
+    "orderPlacedSuccess": "Order created successfully!"
+  },
+  "bonDeCommande": {
+    "title": "Purchase Order",
+    "orderNum": "Order Number",
+    "date": "Date",
+    "dueDate": "Due Date",
+    "billedTo": "Billed To",
+    "item": "Product",
+    "quantity": "Quantity",
+    "unitPrice": "Unit Price",
+    "totalPrice": "Total Amount",
+    "total": "TOTAL",
+    "paymentMethod": "Payment Method",
+    "paymentDueDate": "Payment Due Date",
+    "print": "Print",
+    "exportPdf": "Export to PDF",
+    "footer": "Thank you for your trust. This order is valid until",
+    "status": "Status",
+    "noData": "No orders"
   },
   "treasuryAccounts": {
     "title": "Treasury Accounts",

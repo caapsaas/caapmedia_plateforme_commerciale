@@ -33,6 +33,19 @@
     "openMenu": "Ouvrir le menu",
     "changeRole": "Changer de rôle"
   },
+  "filter": {
+    "client": "Client",
+    "noResults": "Aucun résultat"
+  },
+  "invoice": {
+    "subtotal": "Sous-total",
+    "tax": "Taxe"
+  },
+  "cashRegister": {
+    "clientSection": {
+      "selectAdd": "Sélectionner ou ajouter"
+    }
+  },
   "common": {
     "cancel": "Annuler",
     "save": "Enregistrer",
@@ -42,7 +55,12 @@
     "print": "Imprimer",
     "exportPdf": "Exporter en PDF",
     "loading": "Chargement...",
-    "saving": "Enregistrement..."
+    "saving": "Enregistrement...",
+    "close": "Fermer",
+    "email": "Email",
+    "phone": "Téléphone",
+    "actions": "Actions",
+    "viewBL": "Voir BL"
   },
   "configuration": {
     "title": "Configuration",
@@ -195,6 +213,39 @@
       "VALIDATED": "Validé",
       "CANCELLED": "Annulé"
     }
+  },
+  "newOrder": {
+    "productCatalog": "Catalogue des produits",
+    "searchPlaceholder": "Rechercher un produit...",
+    "price": "Prix",
+    "product": "Produit",
+    "quantity": "Quantité",
+    "addToCart": "Ajouter au panier",
+    "orderSummary": "Résumé de la commande",
+    "cartEmpty": "Panier vide",
+    "total": "Total",
+    "submitOrder": "Placer la commande",
+    "orderPlacedSuccess": "Commande créée avec succès !",
+    "productCatalog": "Catalogue des produits"
+  },
+  "bonDeCommande": {
+    "title": "Bon de Commande",
+    "orderNum": "Numéro de commande",
+    "date": "Date",
+    "dueDate": "Date d'échéance",
+    "billedTo": "Facturer à",
+    "item": "Produit",
+    "quantity": "Quantité",
+    "unitPrice": "Prix unitaire",
+    "totalPrice": "Montant total",
+    "total": "TOTAL",
+    "paymentMethod": "Méthode de paiement",
+    "paymentDueDate": "Date d'échéance du paiement",
+    "print": "Imprimer",
+    "exportPdf": "Exporter en PDF",
+    "footer": "Merci de votre confiance. Cette commande est valide jusqu'au",
+    "status": "Statut",
+    "noData": "Aucune commande"
   },
   "treasuryAccounts": {
     "title": "Comptes de trésorerie",

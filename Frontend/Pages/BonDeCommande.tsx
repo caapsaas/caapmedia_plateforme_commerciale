@@ -99,9 +99,9 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
                                 </tr>
                             </thead>
                             <tbody>
-                                {order.orderItems.map((item, index) => (
+                                {order.orderItems?.map((item: any, index: number) => (
                                     <tr key={index} className="bg-white border-b border-slate-200">
-                                        <td className="px-6 py-4 font-medium text-slate-900">{item.product.productName}</td>
+                                        <td className="px-6 py-4 font-medium text-slate-900">{item.product?.productName || item.productName || 'Produit inconnu'}</td>
                                         <td className="px-6 py-4 text-center text-slate-800">{item.quantity}</td>
                                         <td className="px-6 py-4 text-right text-slate-800">{formatCurrency(item.unitPrice)}</td>
                                         <td className="px-6 py-4 text-right font-semibold text-slate-900">{formatCurrency(item.unitPrice * item.quantity)}</td>
