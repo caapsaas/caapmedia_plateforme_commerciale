@@ -4,12 +4,14 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
 
     const MOCK_SUPPLIERS = [
         {
+            // Telecom national - relation geree centralement par le siège,
+            // meme si l'adresse reelle du fournisseur reste Yaoundé.
             supplierName: 'CAMTEL',
             company: 'Cameroon Telecommunications',
             email: 'contact@camtel.cm',
             phone: '2333330000',
             address: 'Yaoundé, Cameroun',
-            subsidiaryEmail: 'contact.yaounde@caap.cm',
+            subsidiaryEmail: 'contact.siege@caap.cm',
         },
         {
             supplierName: 'ORANGE',
@@ -36,12 +38,13 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.douala@caap.cm',
         },
         {
+            // Utilite publique nationale - meme logique que CAMTEL, geree par le siège.
             supplierName: 'CAMWATER',
             company: 'Cameroon Water Utilities',
             email: 'services@camwater.cm',
             phone: '2333330004',
             address: 'Yaoundé, Cameroun',
-            subsidiaryEmail: 'contact.yaounde@caap.cm',
+            subsidiaryEmail: 'contact.siege@caap.cm',
         },
         {
             supplierName: 'SONARA',
@@ -68,12 +71,13 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.douala@caap.cm',
         },
         {
+            // Agro-industriel - synergie avec la zone industrielle d'Edéa (ALUCAM).
             supplierName: 'CDC',
             company: 'Cameroon Development Corporation',
             email: 'suppliers@cdc.cm',
             phone: '2333330008',
             address: 'Bamenda, Cameroun',
-            subsidiaryEmail: 'contact.yaounde@caap.cm',
+            subsidiaryEmail: 'contact.edea@caap.cm',
         },
         {
             supplierName: 'AIR LIQUIDE',
@@ -84,12 +88,13 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.douala@caap.cm',
         },
         {
+            // Import/distribution via le port - rattache a Kribi.
             supplierName: 'GUINNESS',
             company: 'Guinness Cameroun',
             email: 'fournisseurs@guinness.cm',
             phone: '2333330010',
             address: 'Yaoundé, Cameroun',
-            subsidiaryEmail: 'contact.yaounde@caap.cm',
+            subsidiaryEmail: 'contact.kribi@caap.cm',
         },
         {
             supplierName: 'CASTEL',
@@ -100,12 +105,13 @@ export async function runSupplierSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.douala@caap.cm',
         },
         {
+            // Distributeur regional - rattache a Kribi.
             supplierName: 'TCHIBOBO',
             company: 'Tchibobo Cameroun',
             email: 'fournisseurs@tchibobo.cm',
             phone: '2333330012',
             address: 'Bafoussam, Cameroun',
-            subsidiaryEmail: 'contact.yaounde@caap.cm',
+            subsidiaryEmail: 'contact.kribi@caap.cm',
         },
         {
             supplierName: 'SOCATRAL',
