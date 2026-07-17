@@ -13,6 +13,7 @@ import SelectFilter from "../filters/SelectFilter";
 import PeriodFilter from "../filters/PeriodFilter";
 import IconDocumentText from "../icons/IconDocumentText";
 import BonDeLivraison from "../../Pages/BonDeLivraison";
+import BonDeCommande from "../../Pages/BonDeCommande";
 import IconInvoice from "../icons/IconInvoice";
 import InvoiceModal from "../../Pages/InvoiceModal";
 import RecordPaymentModal from "./RecordPaymentModal";
@@ -205,9 +206,10 @@ const Sales: React.FC = () => {
 
   const { mutate: createOrderMutate } = useMutation({
     mutationFn: createOrderBySalesRepJson,
-    onSuccess: () => {
+    onSuccess: (newOrder) => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Commande créée!", "La commande a été créée avec succès.");
+      setBonDeCommandeOrder(newOrder);
       setActiveTab("history");
     },
     onError: () => {
@@ -262,6 +264,7 @@ const Sales: React.FC = () => {
   );
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
   const [blOrder, setBlOrder] = useState<Order | null>(null);
+  const [bonDeCommandeOrder, setBonDeCommandeOrder] = useState<Order | null>(null);
 
   // State for UI toggles
   const [showOrderHistory, setShowOrderHistory] = useState(true);
@@ -756,6 +759,13 @@ const Sales: React.FC = () => {
           order={blOrder}
           subsidiary={subsidiary}
           onClose={() => setBlOrder(null)}
+        />
+      )}
+      {bonDeCommandeOrder && (
+        <BonDeCommande
+          order={bonDeCommandeOrder}
+          subsidiary={subsidiary}
+          onClose={() => setBonDeCommandeOrder(null)}
         />
       )}
     </div>

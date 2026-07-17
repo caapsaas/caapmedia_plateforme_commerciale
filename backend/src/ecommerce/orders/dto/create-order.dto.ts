@@ -7,7 +7,6 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  IsUUID,
   Min,
   Max,
   ValidateNested,
@@ -28,7 +27,7 @@ class CreateProductOptionDto {
 }
 
 class CreateOrderItemDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   productId: string;
 
@@ -66,7 +65,7 @@ export class CreateOrderDto {
   paymentDueDate: string; // Sera validé comme une date dans le service
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   opportunityId?: string;
 
   @IsNotEmpty()
@@ -83,7 +82,7 @@ export class CreateOrderDto {
 }
 
 export class CreateOrderBySalesRepDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   customerId: string;
 
@@ -100,7 +99,7 @@ export class CreateOrderBySalesRepDto {
   paymentMethod: CustomerPaymentMethod;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   opportunityId?: string;
 
   @IsNotEmpty()
