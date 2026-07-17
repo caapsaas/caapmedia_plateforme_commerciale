@@ -93,7 +93,7 @@ export class AnalyticsService {
         TO_CHAR("sale_date", 'YYYY-MM-DD') as date,
         SUM("total_price")::float as sales
       FROM "sale"
-      WHERE "subsidiary_id" = ${subsidiaryId}::uuid
+      WHERE "subsidiary_id" = ${subsidiaryId}
         AND status = 'PAID'
         AND (${dateFilter.gte}::timestamp IS NULL OR "sale_date" >= ${dateFilter.gte}::timestamp)
         AND (${dateFilter.lte}::timestamp IS NULL OR "sale_date" <= ${dateFilter.lte}::timestamp)
@@ -191,7 +191,7 @@ export class AnalyticsService {
         SUM(s.total_price)::float as total
       FROM "sale" s -- Utilisation de LOWER() pour une jointure insensible à la casse
       JOIN "products" p ON LOWER(s.product_name) = LOWER(p.product_name) AND s.subsidiary_id = p.subsidiary_id
-      WHERE s.subsidiary_id = ${subsidiaryId}::uuid
+      WHERE s.subsidiary_id = ${subsidiaryId}
         AND (${dateFilter.gte}::timestamp IS NULL OR s.sale_date >= ${dateFilter.gte}::timestamp)
         AND (${dateFilter.lte}::timestamp IS NULL OR s.sale_date <= ${dateFilter.lte}::timestamp)
       GROUP BY p.category

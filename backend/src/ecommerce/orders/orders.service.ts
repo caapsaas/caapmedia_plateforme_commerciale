@@ -760,7 +760,7 @@ export class OrdersService {
       FROM "order_item" oi
       JOIN "products" p ON oi.product_id = p.id
       JOIN "orders" o ON oi.order_id = o.id
-      WHERE o.subsidiary_id = ${subsidiaryId}::uuid
+      WHERE o.subsidiary_id = ${subsidiaryId}
         AND o.status != 'CANCELLED'
         AND oi.product_id IS NOT NULL
       GROUP BY p.id, p.product_name
