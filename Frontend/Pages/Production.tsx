@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useI18n } from '../i18n';
-import { ProductionStatus, Order } from '../types';
+import { ProductionStatus, Order, OrderStatus } from '../types';
 import ProductionOrderCard from '../components/production/ProductionOrderCard';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getOrders, updateProductionStatus } from '../services/apiE-commerce/apiOrders';
@@ -22,8 +22,10 @@ const Production: React.FC = () => {
         }),
         enabled: !!subsidiary,
         // Filtrage côté client pour ne garder que les commandes pertinentes pour la production
-        select: (orders) => orders.filter(o => 
-            o.productionStatus && o.productionStatus !== ProductionStatus.READY_FOR_DELIVERY
+        select: (orders) => orders.filter(o =>
+            o.status === OrderStatus.IN_PRODUCTION &&
+            o.productionStatus &&
+            o.productionStatus !== ProductionStatus.READY_FOR_DELIVERY
         ),
     });
 
