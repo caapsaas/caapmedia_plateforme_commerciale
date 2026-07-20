@@ -202,6 +202,13 @@ export interface Product {
   configurableOptions?: ConfigurableOptions;
 }
 
+export interface TopSellingProduct {
+  id: string;
+  productName: string;
+  quantity: number;
+  totalRevenue: number;
+}
+
 export interface Sale {
   id: string;
   productName: string;
@@ -291,7 +298,6 @@ export interface Order {
   customerName: string;
   customerId: string;
   items: OrderItem[];
-  orderItems: OrderItem[];
   totalAmount: number;
   subtotal: number;
   taxAmount: number;
@@ -307,8 +313,7 @@ export interface Order {
   salesRepId?: string;
   opportunityId?: string;
   paymentMethod: CustomerPaymentMethod;
-  // FIX: Add optional 'source' property to track order origin and resolve type error.
-  source?: 'manual' | 'web_order' | 'quote_request';
+  source?: 'MANUAL' | 'WEB_ORDER' | 'QUOTE_REQUEST';
 }
 
 export interface Kpi {
@@ -791,7 +796,7 @@ export interface Opportunity {
     userId: string;
     subsidiaryId: string;
      productIds: string[];
-    source?: 'manual' | 'web_order' | 'quote_request';
+    source?: 'MANUAL' | 'WEB_ORDER' | 'QUOTE_REQUEST';
 }
 
 export enum InteractionType {

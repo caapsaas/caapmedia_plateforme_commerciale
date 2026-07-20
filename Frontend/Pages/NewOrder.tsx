@@ -408,19 +408,6 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
         setOrderPlaced(true);
 
-        setCart([]);
-        setCartItemPrices({});
-        setUseCustomTaxRate(false);
-        setCustomTaxRate(19.25);
-
-        setTimeout(() => {
-
-            setOrderPlaced(false);
-
-            setSelectedCustomerId(selectedCustomer?.id || '');
-
-        }, 4000);
-
     };
 
 
@@ -629,7 +616,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
                     {orderPlaced ? (
 
-                        <div className="h-full flex items-center justify-center text-green-600 text-center">
+                        <div className="h-full flex items-center justify-center text-green-600 text-center flex-col gap-4">
 
                             <div>
 
@@ -638,6 +625,20 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                                 <p className="font-bold mt-2">{t('newOrder.orderPlacedSuccess')}</p>
 
                             </div>
+
+                            <button
+                              onClick={() => {
+                                setOrderPlaced(false);
+                                setCart([]);
+                                setCartItemPrices({});
+                                setUseCustomTaxRate(false);
+                                setCustomTaxRate(19.25);
+                                setSelectedCustomerId(selectedCustomer?.id || '');
+                              }}
+                              className="px-4 py-2 bg-[#c6e911] text-slate-800 font-semibold rounded-lg hover:bg-[#adc40f] transition-colors"
+                            >
+                              Créer une nouvelle commande
+                            </button>
 
                         </div>
 

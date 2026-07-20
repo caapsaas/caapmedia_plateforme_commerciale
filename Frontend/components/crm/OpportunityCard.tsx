@@ -16,9 +16,9 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({ opportunity, clientNa
 
     const getSourceIcon = () => {
         switch (opportunity.source) {
-            case 'web_order':
+            case 'WEB_ORDER':
                 return <span title="Commande Web"><IconShoppingCart className="h-5 w-5 text-purple-500" /></span>;
-            case 'quote_request':
+            case 'QUOTE_REQUEST':
                 return <span title="Demande de Devis"><IconDocumentText className="h-5 w-5 text-sky-500" /></span>;
             default:
                 return null;

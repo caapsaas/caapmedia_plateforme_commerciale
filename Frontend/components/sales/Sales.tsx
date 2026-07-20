@@ -1,11 +1,13 @@
 import React, { useState, useMemo, useRef } from "react";
 import {
   Order,
+  OrderItem,
   PaymentStatus,
   OrderStatus,
   Product,
   Contact,
   CustomerPaymentMethod,
+  TopSellingProduct,
 } from "../../types";
 import { useI18n } from "../../i18n";
 import { useToast } from "../../context/ToastContext";
@@ -159,7 +161,7 @@ const Sales: React.FC = () => {
   const {
     data: topSellingProducts = [],
     isLoading: isLoadingTopSellingProducts,
-  } = useQuery<Product[]>({
+  } = useQuery<TopSellingProduct[]>({
     queryKey: ["top-selling-products", subsidiary?.id],
     queryFn: () => getTopSellingProducts(),
     enabled: !!subsidiary,
@@ -217,13 +219,14 @@ const Sales: React.FC = () => {
       toast.success("Commande créée!", "La commande a été créée avec succès.");
 
       // Fusionner la réponse de l'API avec les données envoyées (via ref pour éviter race condition)
+      const cachedData = lastOrderDataRef.current;
       const enrichedOrder: Order = {
         ...newOrder,
-        date: newOrder.date || lastOrderDataRef.current?.date || new Date().toISOString(),
-        totalAmount: newOrder.totalAmount ?? (lastOrderDataRef.current?.totalAmount || 0),
-        paymentDueDate: newOrder.paymentDueDate || lastOrderDataRef.current?.paymentDueDate,
-        subtotal: newOrder.subtotal ?? lastOrderDataRef.current?.subtotal,
-        taxAmount: newOrder.taxAmount ?? lastOrderDataRef.current?.taxAmount,
+        date: newOrder.date || cachedData?.date || new Date().toISOString(),
+        totalAmount: newOrder.totalAmount ?? cachedData?.totalAmount ?? 0,
+        paymentDueDate: newOrder.paymentDueDate || cachedData?.paymentDueDate || '',
+        subtotal: newOrder.subtotal ?? cachedData?.subtotal ?? 0,
+        taxAmount: newOrder.taxAmount ?? cachedData?.taxAmount ?? 0,
       };
 
       setBonDeCommandeOrder(enrichedOrder);
@@ -265,22 +268,29 @@ const Sales: React.FC = () => {
       customerName: string;
       paymentDueDate: string;
       paymentMethod: CustomerPaymentMethod;
-      source: 'manual' | 'web_order' | 'quote_request';
+      source: 'MANUAL' | 'WEB_ORDER' | 'QUOTE_REQUEST';
       items: Array<{ productId: string; quantity: number; unitPrice: number; options: Array<{ optionType: string; optionValue: string }> }>;
+      date?: string;
+      subtotal?: number;
+      taxAmount?: number;
+      totalAmount?: number;
       customTaxRate?: number;
     } = {
       customerId: newOrderData.customerId,
       customerName: newOrderData.customerName,
       paymentDueDate: newOrderData.paymentDueDate,
       paymentMethod: newOrderData.paymentMethod,
-      source: "manual",
+      source: "MANUAL",
       items: itemsForJson,
+      date: newOrderData.date,
+      subtotal: newOrderData.subtotal,
+      taxAmount: newOrderData.taxAmount,
+      totalAmount: newOrderData.totalAmount,
     };
 
-    // Ne pas inclure customTaxRate si undefined
-    const customTaxRate = (newOrderData as Order).customTaxRate;
-    if (customTaxRate !== undefined) {
-      orderData.customTaxRate = customTaxRate;
+    // Inclure customTaxRate si présent
+    if ('customTaxRate' in newOrderData && newOrderData.customTaxRate !== undefined) {
+      orderData.customTaxRate = (newOrderData as { customTaxRate?: number }).customTaxRate;
     }
 
     // Logs pour débogage
@@ -301,7 +311,19 @@ const Sales: React.FC = () => {
   const [bonDeCommandeOrder, setBonDeCommandeOrder] = useState<Order | null>(null);
 
   // Ref pour capturer les données de commande sans race condition
-  const lastOrderDataRef = useRef<any>(null);
+  const lastOrderDataRef = useRef<{
+    customerId: string;
+    customerName: string;
+    paymentDueDate: string;
+    paymentMethod: CustomerPaymentMethod;
+    source: 'MANUAL' | 'WEB_ORDER' | 'QUOTE_REQUEST';
+    items: Array<{ productId: string; quantity: number; unitPrice: number; options: Array<{ optionType: string; optionValue: string }> }>;
+    customTaxRate?: number;
+    date?: string;
+    totalAmount?: number;
+    subtotal?: number;
+    taxAmount?: number;
+  } | null>(null);
 
   // State for UI toggles
   const [showOrderHistory, setShowOrderHistory] = useState(true);
@@ -536,7 +558,7 @@ const Sales: React.FC = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-  {isLoadingOrders || isLoadingProducts || !contacts ? (
+  {isLoadingOrders || isLoadingProducts ? (
     <table className="w-full text-sm text-left text-slate-500">
       <thead className="text-xs text-slate-700 uppercase bg-slate-50">
         <tr>
@@ -668,7 +690,7 @@ const Sales: React.FC = () => {
                     </button>
                   ) : (
                     <div className="flex justify-center items-center space-x-2">
-                      {order.paymentStatus !== PaymentStatus.PAID && (
+                      {order.paymentStatus !== PaymentStatus.PAID && order.status !== OrderStatus.CANCELLED && (
                         <button
                           onClick={() => setPayingOrder(order)}
                           className="p-2 text-green-700 hover:bg-green-100 rounded-md transition-colors"
@@ -677,13 +699,15 @@ const Sales: React.FC = () => {
                           <IconCoins className="h-5 w-5" />
                         </button>
                       )}
-                      <button
-                        onClick={() => setUpdatingStatusOrder(order)}
-                        className="p-2 text-blue-700 hover:bg-blue-100 rounded-md transition-colors"
-                        title={t("order.updateStatus")}
-                      >
-                        <IconEdit className="h-5 w-5" />
-                      </button>
+                      {order.status !== OrderStatus.CANCELLED && (
+                        <button
+                          onClick={() => setUpdatingStatusOrder(order)}
+                          className="p-2 text-blue-700 hover:bg-blue-100 rounded-md transition-colors"
+                          title={t("order.updateStatus")}
+                        >
+                          <IconEdit className="h-5 w-5" />
+                        </button>
+                      )}
                       <button
                         onClick={() => setBonDeCommandeOrder(order)}
                         className="p-2 text-amber-700 hover:bg-amber-100 rounded-md transition-colors"

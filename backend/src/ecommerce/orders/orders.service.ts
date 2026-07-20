@@ -526,19 +526,25 @@ export class OrdersService {
 
       // La logique de crédit client est retirée car elle dépend du mode de paiement.
       if (orderGroup) {
-        return tx.orderGroup.findUniqueOrThrow({
+        const group = await tx.orderGroup.findUniqueOrThrow({
           where: { id: orderGroup.id },
           include: { orders: { include: { orderItems: true } } },
         });
+        return {
+          ...group,
+          totalAmount: group.totalAmount.toNumber(),
+          orders: group.orders.map(this.mapOrderToResponse),
+        };
       } else {
         // Vérifier que des commandes ont été créées
         if (createdOrders.length === 0) {
           throw new InternalServerErrorException('Aucune commande n\'a pu être créée. Vérifiez que les produits existent et sont valides.');
         }
-        return tx.order.findUniqueOrThrow({
+        const order = await tx.order.findUniqueOrThrow({
           where: { id: createdOrders[0].id },
           include: { orderItems: true },
         });
+        return this.mapOrderToResponse(order);
       }
     });
   }
@@ -662,7 +668,7 @@ export class OrdersService {
   }
 
   /**
-   * 
+   *
    * @param id // ID de la commande
    * @param updateDto // DTO contenant le statut de la commande à mettre à jour
    * @param user // Utilisateur connecté
@@ -670,7 +676,18 @@ export class OrdersService {
    */
   async updateOrderStatus(id: string, updateDto: UpdateOrderStatusDto, user: any) {
     // Vérifier que la commande existe et appartient à la bonne filiale
-    await this.findOne(id, user);
+    const order = await this.prisma.order.findUnique({
+      where: { id, subsidiaryId: user.subsidiaryId },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Commande avec l'ID "${id}" non trouvée.`);
+    }
+
+    // Empêcher toute modification d'une commande annulée
+    if (order.status === 'CANCELLED') {
+      throw new ConflictException('Une commande annulée ne peut pas être modifiée.');
+    }
 
     return this.prisma.$transaction(async (tx) => {
       const updatedOrder = await tx.order.update({
@@ -683,14 +700,25 @@ export class OrdersService {
   }
 
   /**
-   * 
+   *
    * @param id  ID de la commande
    * @param updateDto DTO contenant le statut de production a mettre a jour
    * @param user Utilisateur connecte
    * @returns Commande mise a jour
    */
   async updateProductionStatus(id: string, updateDto: updateProductionStatusDto, user: any){
-    await this.findOne(id, user);
+    const order = await this.prisma.order.findUnique({
+      where: { id, subsidiaryId: user.subsidiaryId },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Commande avec l'ID "${id}" non trouvée.`);
+    }
+
+    // Empêcher toute modification de production pour une commande annulée
+    if (order.status === 'CANCELLED') {
+      throw new ConflictException('Le statut de production d\'une commande annulée ne peut pas être modifié.');
+    }
 
     return this.prisma.$transaction(async (tx) => {
       const updateProduction = await tx.order.update({
@@ -825,6 +853,11 @@ export class OrdersService {
 
       if (!order) {
         throw new NotFoundException(`Commande avec l'ID "${id}" non trouvée.`);
+      }
+
+      // Empêcher le paiement d'une commande annulée
+      if (order.status === 'CANCELLED') {
+        throw new ConflictException('Le paiement d\'une commande annulée n\'est pas autorisé.');
       }
 
       // 2. Valider le paiement

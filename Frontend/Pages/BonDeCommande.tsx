@@ -45,7 +45,7 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
         try {
             const date = new Date(dateString);
             if (isNaN(date.getTime())) {
-                return dateString;
+                return 'N/A';
             }
             return date.toLocaleDateString(language, {
                 year: 'numeric',
@@ -53,7 +53,7 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
                 day: 'numeric'
             });
         } catch (e) {
-            return dateString || 'N/A';
+            return 'N/A';
         }
     };
 
@@ -105,15 +105,15 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
                     { label: t('bonDeCommande.unitPrice'), key: 'unitPrice', align: 'right', formatter: (v) => formatCurrency(v) },
                     { label: t('bonDeCommande.totalPrice'), key: 'total', align: 'right', formatter: (v) => formatCurrency(v) }
                 ]}
-                data={order.orderItems?.map((item: OrderItem) => ({
-                    productName: item.product.productName || '—',
-                    quantity: item.quantity,
-                    unitPrice: item.price,
-                    total: item.price * item.quantity
+                data={order.items?.map((item: OrderItem) => ({
+                    productName: item.product?.productName || '—',
+                    quantity: item.quantity || 0,
+                    unitPrice: item.price || 0,
+                    total: (item.price || 0) * (item.quantity || 0)
                 })) || []}
                 totalRow={{
                     label: t('bonDeCommande.total'),
-                    value: formatCurrency(order.totalAmount || 0),
+                    value: formatCurrency(order.totalAmount),
                     isHighlighted: true
                 }}
                 emptyMessage={t('bonDeCommande.noData')}

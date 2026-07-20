@@ -1611,27 +1611,6 @@ const frTranslations = {
     "footer": "Merci de votre confiance. Cette commande est valide jusqu'au",
     "status": "Statut",
     "noData": "Aucune commande"
-  },
-  "newOrder": {
-    "productCatalog": "Catalogue des produits",
-    "searchPlaceholder": "Rechercher un produit...",
-    "price": "Prix",
-    "product": "Produit",
-    "quantity": "Quantité",
-    "addToCart": "Ajouter au panier",
-    "orderSummary": "Résumé de la commande",
-    "cartEmpty": "Panier vide",
-    "total": "Total",
-    "submitOrder": "Placer la commande",
-    "orderPlacedSuccess": "Commande créée avec succès !"
-  },
-  "filter": {
-    "client": "Client",
-    "noResults": "Aucun résultat"
-  },
-  "invoice": {
-    "subtotal": "Sous-total",
-    "tax": "Taxe"
   }
 };
 
@@ -3247,27 +3226,6 @@ const enTranslations: Translations = {
         "footer": "Thank you for your trust. This order is valid until",
         "status": "Status",
         "noData": "No orders"
-    },
-    "newOrder": {
-        "productCatalog": "Product Catalog",
-        "searchPlaceholder": "Search for a product...",
-        "price": "Price",
-        "product": "Product",
-        "quantity": "Quantity",
-        "addToCart": "Add to Cart",
-        "orderSummary": "Order Summary",
-        "cartEmpty": "Cart is empty",
-        "total": "Total",
-        "submitOrder": "Place Order",
-        "orderPlacedSuccess": "Order created successfully!"
-    },
-    "filter": {
-        "client": "Client",
-        "noResults": "No results"
-    },
-    "invoice": {
-        "subtotal": "Subtotal",
-        "tax": "Tax"
     }
 };
 
