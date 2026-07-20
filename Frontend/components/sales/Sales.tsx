@@ -330,7 +330,18 @@ const Sales: React.FC = () => {
   const [showTopProducts, setShowTopProducts] = useState(true);
 
   const handleApplyFilters = () => {
-    setAppliedFilters(filters);
+    // Nettoyer les filtres: supprimer les valeurs vides
+    const cleanedFilters: FindAllOrdersDto = {};
+
+    if (filters.customerId) cleanedFilters.customerId = filters.customerId;
+    if (filters.productId) cleanedFilters.productId = filters.productId;
+    if (filters.orderStatus) cleanedFilters.orderStatus = filters.orderStatus;
+    if (filters.paymentStatus) cleanedFilters.paymentStatus = filters.paymentStatus;
+    if (filters.period) cleanedFilters.period = filters.period;
+    if (filters.startDate) cleanedFilters.startDate = filters.startDate;
+    if (filters.endDate) cleanedFilters.endDate = filters.endDate;
+
+    setAppliedFilters(cleanedFilters);
   };
 
   const handleResetFilters = () => {

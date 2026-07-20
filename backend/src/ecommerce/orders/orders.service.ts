@@ -561,22 +561,24 @@ export class OrdersService {
       subsidiaryId: user.subsidiaryId,
     };
 
-    if (customerId) {
+    // Appliquer les filtres uniquement s'ils ont une valeur non-vide
+    if (customerId && customerId.trim()) {
       where.customerId = customerId;
     }
 
-    if (productId) {
+    if (productId && productId.trim()) {
       where.orderItems = { some: { productId } };
     }
 
-    if (orderStatus) {
-      where.status = orderStatus;
+    if (orderStatus && orderStatus.trim()) {
+      where.status = orderStatus as any;
     }
 
-    if (paymentStatus) {
-      where.paymentStatus = paymentStatus;
+    if (paymentStatus && paymentStatus.trim()) {
+      where.paymentStatus = paymentStatus as any;
     }
 
+    // Appliquer le filtre de période
     if (period && period !== OrderPeriod.ALL_TIME) {
       const now = new Date();
       let dateFilter: { gte?: Date; lte?: Date } = {};
@@ -598,7 +600,14 @@ export class OrdersService {
         if (!startDate || !endDate) {
           throw new BadRequestException('Pour une période personnalisée, les dates de début et de fin sont requises.');
         }
-        dateFilter = { gte: new Date(startDate), lte: new Date(endDate) };
+        const parsedStartDate = new Date(startDate);
+        const parsedEndDate = new Date(endDate);
+
+        if (isNaN(parsedStartDate.getTime()) || isNaN(parsedEndDate.getTime())) {
+          throw new BadRequestException('Les dates fournies ne sont pas au bon format.');
+        }
+
+        dateFilter = { gte: parsedStartDate, lte: parsedEndDate };
       }
       where.orderDate = dateFilter;
     }
