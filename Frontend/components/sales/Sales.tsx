@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import {
   Order,
   PaymentStatus,
@@ -215,24 +215,37 @@ const Sales: React.FC = () => {
     onSuccess: (newOrder) => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Commande créée!", "La commande a été créée avec succès.");
-      setBonDeCommandeOrder(newOrder);
+
+      // Fusionner la réponse de l'API avec les données envoyées (via ref pour éviter race condition)
+      const enrichedOrder: Order = {
+        ...newOrder,
+        date: newOrder.date || lastOrderDataRef.current?.date || new Date().toISOString(),
+        totalAmount: newOrder.totalAmount ?? (lastOrderDataRef.current?.totalAmount || 0),
+        paymentDueDate: newOrder.paymentDueDate || lastOrderDataRef.current?.paymentDueDate,
+        subtotal: newOrder.subtotal ?? lastOrderDataRef.current?.subtotal,
+        taxAmount: newOrder.taxAmount ?? lastOrderDataRef.current?.taxAmount,
+      };
+
+      setBonDeCommandeOrder(enrichedOrder);
       setActiveTab("history");
+      lastOrderDataRef.current = null;
     },
     onError: () => {
       toast.error(
         "Erreur de création",
         "Une erreur est survenue lors de la création de la commande.",
       );
+      lastOrderDataRef.current = null;
     },
   });
 
   const handlePlaceOrder = (
     newOrderData: Omit<Order, "id" | "subsidiaryId">,
   ) => {
-    const itemsForJson = newOrderData.items.map((item: any) => {
+    const itemsForJson = newOrderData.items.map((item: OrderItem) => {
       // Convertir les options en tableau d'objets {optionType, optionValue}
       const optionsArray = item.options
-        ? Object.entries(item.options).map(([optionType, optionValue]: any) => ({
+        ? Object.entries(item.options).map(([optionType, optionValue]: [string, string]) => ({
             optionType,
             optionValue: String(optionValue),
           }))
@@ -241,29 +254,40 @@ const Sales: React.FC = () => {
       return {
         productId: item.product.id,
         quantity: item.quantity,
-        unitPrice: item.unitPrice, // ← NOUVEAU: prix unitaire manuel
+        unitPrice: item.price, // ← Prix unitaire depuis item.price
         options: optionsArray,
       };
     });
 
     // Créer l'objet de commande pour l'endpoint JSON
-    const orderData: any = {
+    const orderData: {
+      customerId: string;
+      customerName: string;
+      paymentDueDate: string;
+      paymentMethod: CustomerPaymentMethod;
+      source: 'manual' | 'web_order' | 'quote_request';
+      items: Array<{ productId: string; quantity: number; unitPrice: number; options: Array<{ optionType: string; optionValue: string }> }>;
+      customTaxRate?: number;
+    } = {
       customerId: newOrderData.customerId,
       customerName: newOrderData.customerName,
       paymentDueDate: newOrderData.paymentDueDate,
-      paymentMethod: "PAY_ON_DELIVERY" as CustomerPaymentMethod,
-      source: "MANUAL" as any, // TODO: utiliser OrderSource.MANUAL quand disponible
+      paymentMethod: newOrderData.paymentMethod,
+      source: "manual",
       items: itemsForJson,
     };
 
     // Ne pas inclure customTaxRate si undefined
-    if ((newOrderData as any).customTaxRate !== undefined) {
-      orderData.customTaxRate = (newOrderData as any).customTaxRate;
+    const customTaxRate = (newOrderData as Order).customTaxRate;
+    if (customTaxRate !== undefined) {
+      orderData.customTaxRate = customTaxRate;
     }
 
     // Logs pour débogage
     console.log("Order data being sent:", orderData);
 
+    // Capturer les données pour enrichir la réponse de l'API (via ref pour éviter race condition)
+    lastOrderDataRef.current = orderData;
     createOrderMutate(orderData);
   };
 
@@ -275,6 +299,9 @@ const Sales: React.FC = () => {
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
   const [blOrder, setBlOrder] = useState<Order | null>(null);
   const [bonDeCommandeOrder, setBonDeCommandeOrder] = useState<Order | null>(null);
+
+  // Ref pour capturer les données de commande sans race condition
+  const lastOrderDataRef = useRef<any>(null);
 
   // State for UI toggles
   const [showOrderHistory, setShowOrderHistory] = useState(true);

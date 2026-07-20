@@ -42,6 +42,101 @@ type CartItem = {
 
 
 
+const mapConfigurableOptionKey = (key: string): keyof ProductOptions => {
+    const mappings: Record<string, keyof ProductOptions> = {
+        'FORMATS': 'format',
+        'GRAMMAGES': 'grammage',
+        'PRINTSIDES': 'printSide',
+        'LAMINATIONS': 'lamination',
+        'SIZES': 'size',
+        'COLORS': 'color',
+        'MATERIALS': 'material',
+        'DIMENSIONS': 'dimension',
+        'BINDINGS': 'binding',
+        'FOLDINGS': 'folding',
+        'CORNERS': 'corner',
+        'EYELETS': 'eyelet',
+        'PAGES': 'page',
+        'HANDLES': 'handle',
+        'STUB': 'stub',
+        'NUMBERING': 'numbering',
+    };
+    return mappings[key] || (key.toLowerCase() as keyof ProductOptions);
+};
+
+const mapCartItemToOrderItem = (
+    cartItem: CartItem,
+    cartItemPrices: Record<string, number>
+): OrderItem => {
+    const options: Partial<ProductOptions> = cartItem.product.configurableOptions
+        ? Object.entries(cartItem.product.configurableOptions).reduce((acc, [optionType, optionItems]) => {
+            if (optionItems && optionItems.length > 0) {
+                const mappedKey = mapConfigurableOptionKey(optionType);
+                acc[mappedKey] = optionItems[0].optionName;
+            }
+            return acc;
+        }, {} as Partial<ProductOptions>)
+        : {};
+
+    const unitPrice = cartItemPrices[cartItem.product.id] || 0;
+
+    return {
+        product: cartItem.product,
+        quantity: cartItem.quantity,
+        price: unitPrice,
+        options: options,
+    };
+};
+
+interface OrderValidationError {
+    field: string;
+    message: string;
+}
+
+const validateOrder = (
+    cart: CartItem[],
+    cartItemPrices: Record<string, number>,
+    selectedCustomerId: string,
+    availableProducts: Product[]
+): OrderValidationError[] => {
+    const errors: OrderValidationError[] = [];
+
+    if (!selectedCustomerId) {
+        errors.push({ field: 'customer', message: 'Veuillez sélectionner un client' });
+    }
+
+    if (cart.length === 0) {
+        errors.push({ field: 'cart', message: 'Le panier est vide' });
+        return errors;
+    }
+
+    cart.forEach((item, index) => {
+        const price = cartItemPrices[item.product.id] || 0;
+        if (price <= 0) {
+            errors.push({
+                field: `price_${index}`,
+                message: `Le produit "${item.product.productName}" doit avoir un prix > 0`,
+            });
+        }
+
+        if (item.quantity <= 0) {
+            errors.push({
+                field: `quantity_${index}`,
+                message: `Le produit "${item.product.productName}" doit avoir une quantité > 0`,
+            });
+        }
+
+        if (!availableProducts.find(p => p.id === item.product.id)) {
+            errors.push({
+                field: `product_${index}`,
+                message: `Le produit "${item.product.productName}" n'est plus disponible`,
+            });
+        }
+    });
+
+    return errors;
+};
+
 const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, selectedCustomer, onOrderPlaced }) => {
 
     const { t, formatCurrency } = useI18n();
@@ -132,6 +227,8 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
             setQuantities(prev => ({ ...prev, [productId]: Math.max(0, Math.min(newQuantity, product.stock)) }));
 
+        } else {
+          toast.error("Erreur", "Le produit n'existe plus. Veuillez rafraîchir la page.");
         }
 
     };
@@ -236,12 +333,21 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
     const totalAmount = useMemo(() => subtotal + taxAmount, [subtotal, taxAmount]);
 
 
-
     const handleSubmitOrder = () => {
+        // Valider la commande
+        const validationErrors = validateOrder(cart, cartItemPrices, selectedCustomerId, availableProducts);
+
+        if (validationErrors.length > 0) {
+          const mainError = validationErrors[0];
+          toast.error("Erreur de validation", mainError.message);
+          return;
+        }
 
         const customer = clients.find(c => c.id === selectedCustomerId);
-
-        if (!customer) return;
+        if (!customer) {
+          toast.error("Erreur", "Client non trouvé");
+          return;
+        }
 
 
 
@@ -255,75 +361,14 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
             orderId: `ORD-${Date.now()}`, // Generate unique order ID
 
-            date: new Date().toISOString().split('T')[0],
+            date: new Date().toISOString(),
 
             customerId: customer.id,
 
             customerName: customer.contactName,
 
-            items: cart.map(item => {
-
-                // Extrait les options du produit pour les envoyer au backend.
-
-                const options: Partial<ProductOptions> = item.product.configurableOptions
-
-                    ? Object.entries(item.product.configurableOptions).reduce((acc, [optionType, optionItems]) => {
-                        if (optionItems && optionItems.length > 0) {
-                            // Prendre la première option de chaque type
-                            acc[optionType.toLowerCase() as keyof ProductOptions] = optionItems[0].optionName;
-                        }
-                        return acc;
-                    }, {} as Partial<ProductOptions>)
-
-                    : {};
-
-                const unitPrice = cartItemPrices[item.product.id] || 0;
-
-                return {
-
-                    product: item.product,
-
-                    quantity: item.quantity,
-
-                    price: unitPrice,
-
-                    unitPrice: unitPrice,
-
-                    options: options,
-
-            }}),
-
-            orderItems: cart.map(item => {
-
-                // Extrait les options du produit pour les envoyer au backend.
-
-                const options: Partial<ProductOptions> = item.product.configurableOptions
-
-                    ? Object.entries(item.product.configurableOptions).reduce((acc, [optionType, optionItems]) => {
-                        if (optionItems && optionItems.length > 0) {
-                            // Prendre la première option de chaque type
-                            acc[optionType.toLowerCase() as keyof ProductOptions] = optionItems[0].optionName;
-                        }
-                        return acc;
-                    }, {} as Partial<ProductOptions>)
-
-                    : {};
-
-                const unitPrice = cartItemPrices[item.product.id] || 0;
-
-                return {
-
-                    product: item.product,
-
-                    quantity: item.quantity,
-
-                    price: unitPrice,
-
-                    unitPrice: unitPrice,
-
-                    options: options,
-
-            }}),
+            items: cart.map(item => mapCartItemToOrderItem(item, cartItemPrices)),
+            orderItems: cart.map(item => mapCartItemToOrderItem(item, cartItemPrices)),
 
             subtotal,
 
@@ -337,7 +382,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
             customTaxRate: useCustomTaxRate ? customTaxRate : undefined,
 
-            paymentDueDate: paymentDueDate.toISOString().split('T')[0],
+            paymentDueDate: paymentDueDate.toISOString(),
 
             // Ajout des propriétés manquantes pour correspondre au type Order
 

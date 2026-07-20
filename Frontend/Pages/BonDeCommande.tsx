@@ -1,8 +1,11 @@
 import React from 'react';
-import { Order, Subsidiary } from '../types';
+import { Order, Subsidiary, OrderItem } from '../types';
 import { useI18n } from '../i18n';
 import IconPrint from '../components/icons/IconPrint';
 import IconPdf from '../components/icons/IconPdf';
+import DocumentHeader from '../components/common/DocumentHeader';
+import DocumentTable from '../components/common/DocumentTable';
+import DocumentFooter from '../components/common/DocumentFooter';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -54,6 +57,76 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
         }
     };
 
+    // Contenu du document réutilisable
+    const DocumentContent = () => (
+        <div>
+            {/* Header */}
+            <div className="flex justify-between items-start mb-8 pb-6 border-b-4 border-[#c6e911]">
+                <DocumentHeader subsidiary={subsidiary} showContactIcons={false} />
+                <div className="text-right">
+                    <h2 className="font-bold text-3xl text-[#c6e911] mb-4">{t('bonDeCommande.title')}</h2>
+                    <div className="space-y-2 text-sm">
+                        <p className="text-slate-700 font-semibold">{t('bonDeCommande.orderNum')}: <span className="font-bold text-base text-[#c6e911]">{order.id}</span></p>
+                        <p className="text-slate-600">{t('bonDeCommande.date')}: <span className="font-semibold text-slate-800">{formatDate(order.date)}</span></p>
+                        <p className="text-slate-600 mt-3 text-xs font-semibold">
+                            {order.status === 'PENDING_VALIDATION' ? (
+                                <span className="text-yellow-600 bg-yellow-50 px-2 py-1 rounded">⏳ En attente</span>
+                            ) : (
+                                <span className="text-green-600 bg-green-50 px-2 py-1 rounded">✓ Validée</span>
+                            )}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Customer Info */}
+            <div className="grid grid-cols-2 gap-12 mb-10">
+                <div>
+                    <h5 className="font-semibold text-slate-600 uppercase text-xs tracking-wide mb-3 border-b pb-2">{t('bonDeCommande.billedTo')}</h5>
+                    <p className="font-bold text-lg text-slate-900">{order.customerName}</p>
+                </div>
+                <div>
+                    <h5 className="font-semibold text-slate-600 uppercase text-xs tracking-wide mb-3 border-b pb-2">{t('bonDeCommande.paymentMethod')}</h5>
+                    <p className="font-semibold text-slate-800">{order.paymentMethod || 'N/A'}</p>
+                    {order.paymentDueDate && (
+                        <p className="text-slate-600 text-sm mt-3">
+                            <span className="font-semibold">{t('bonDeCommande.dueDate')}:</span> {formatDate(order.paymentDueDate)}
+                        </p>
+                    )}
+                </div>
+            </div>
+
+            {/* Table */}
+            <DocumentTable
+                title={t('bonDeCommande.items')}
+                columns={[
+                    { label: t('bonDeCommande.item'), key: 'productName', align: 'left' },
+                    { label: t('bonDeCommande.quantity'), key: 'quantity', align: 'center' },
+                    { label: t('bonDeCommande.unitPrice'), key: 'unitPrice', align: 'right', formatter: (v) => formatCurrency(v) },
+                    { label: t('bonDeCommande.totalPrice'), key: 'total', align: 'right', formatter: (v) => formatCurrency(v) }
+                ]}
+                data={order.orderItems?.map((item: OrderItem) => ({
+                    productName: item.product.productName || '—',
+                    quantity: item.quantity,
+                    unitPrice: item.price,
+                    total: item.price * item.quantity
+                })) || []}
+                totalRow={{
+                    label: t('bonDeCommande.total'),
+                    value: formatCurrency(order.totalAmount || 0),
+                    isHighlighted: true
+                }}
+                emptyMessage={t('bonDeCommande.noData')}
+            />
+
+            {/* Footer */}
+            <DocumentFooter
+                message={`${t('bonDeCommande.footer')} ${order.paymentDueDate ? formatDate(order.paymentDueDate) : ''}.`}
+                showSignature={true}
+            />
+        </div>
+    );
+
     return (
         <div
             className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center p-4"
@@ -64,97 +137,7 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
             {/* Wrapper for printable content */}
             <div className="printable-area absolute top-0 left-0 -z-10 w-full bg-white">
                 <div ref={bcContentRef} className="p-12 bg-white" style={{ minHeight: '100vh' }}>
-                    {/* Header avec logo et titre */}
-                    <div className="flex justify-between items-start mb-8 pb-6 border-b-4 border-[#c6e911]">
-                        <div>
-                            {LogoComponent && <LogoComponent className="h-16 w-auto" />}
-                            <p className="font-bold text-xl mt-4 text-slate-900">{subsidiary.name}</p>
-                            {subsidiary.address && <p className="text-sm text-slate-600 mt-1">{subsidiary.address}</p>}
-                            {subsidiary.phone && <p className="text-sm text-slate-600">{t('common.phone')}: {subsidiary.phone}</p>}
-                            {subsidiary.email && <p className="text-sm text-slate-600">{t('common.email')}: {subsidiary.email}</p>}
-                        </div>
-                        <div className="text-right">
-                            <h2 className="font-bold text-3xl text-[#c6e911] mb-4">{t('bonDeCommande.title')}</h2>
-                            <div className="space-y-2 text-sm">
-                                <p className="text-slate-700 font-semibold">{t('bonDeCommande.orderNum')}: <span className="font-bold text-base text-[#c6e911]">{order.id}</span></p>
-                                <p className="text-slate-600">{t('bonDeCommande.date')}: <span className="font-semibold text-slate-800">{formatDate(order.date)}</span></p>
-                                <p className="text-slate-600 mt-3 text-xs font-semibold">
-                                    {order.status === 'PENDING_VALIDATION' ? (
-                                        <span className="text-yellow-600 bg-yellow-50 px-2 py-1 rounded">⏳ En attente</span>
-                                    ) : (
-                                        <span className="text-green-600 bg-green-50 px-2 py-1 rounded">✓ Validée</span>
-                                    )}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Customer Info */}
-                    <div className="grid grid-cols-2 gap-12 mb-10">
-                        <div>
-                            <h5 className="font-semibold text-slate-600 uppercase text-xs tracking-wide mb-3 border-b pb-2">{t('bonDeCommande.billedTo')}</h5>
-                            <p className="font-bold text-lg text-slate-900">{order.customerName}</p>
-                        </div>
-                        <div>
-                            <h5 className="font-semibold text-slate-600 uppercase text-xs tracking-wide mb-3 border-b pb-2">{t('bonDeCommande.paymentMethod')}</h5>
-                            <p className="font-semibold text-slate-800">{order.paymentMethod || 'N/A'}</p>
-                            {order.paymentDueDate && (
-                                <p className="text-slate-600 text-sm mt-3">
-                                    <span className="font-semibold">{t('bonDeCommande.dueDate')}:</span> {formatDate(order.paymentDueDate)}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Items Table */}
-                    <div className="mb-10">
-                        <h3 className="font-semibold text-slate-700 uppercase text-xs tracking-wide mb-4">{t('bonDeCommande.items', 'Détail de la commande')}</h3>
-                        <table className="w-full text-sm text-left text-slate-600">
-                            <thead className="text-xs text-slate-700 uppercase bg-[#c6e911] bg-opacity-25 border-t-2 border-b-2 border-[#c6e911]">
-                                <tr>
-                                    <th scope="col" className="px-6 py-4 font-bold">{t('bonDeCommande.item')}</th>
-                                    <th scope="col" className="px-6 py-4 text-center font-bold">{t('bonDeCommande.quantity')}</th>
-                                    <th scope="col" className="px-6 py-4 text-right font-bold">{t('bonDeCommande.unitPrice')}</th>
-                                    <th scope="col" className="px-6 py-4 text-right font-bold">{t('bonDeCommande.totalPrice')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {order.orderItems && order.orderItems.length > 0 ? (
-                                    order.orderItems.map((item: any, index: number) => (
-                                        <tr key={index} className="bg-white border-b border-slate-100 hover:bg-slate-50">
-                                            <td className="px-6 py-4 font-medium text-slate-900">{item.product?.productName || item.productName || '—'}</td>
-                                            <td className="px-6 py-4 text-center text-slate-800">{item.quantity || 0}</td>
-                                            <td className="px-6 py-4 text-right text-slate-800">{formatCurrency(item.unitPrice || 0)}</td>
-                                            <td className="px-6 py-4 text-right font-semibold text-slate-900">{formatCurrency((item.unitPrice || 0) * (item.quantity || 0))}</td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr className="bg-white border-b border-slate-100">
-                                        <td colSpan={4} className="px-6 py-4 text-center text-slate-500">{t('bonDeCommande.noData')}</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                            <tfoot>
-                                <tr className="font-bold text-slate-900 bg-[#c6e911] bg-opacity-15 border-t-2 border-[#c6e911]">
-                                    <td colSpan={3} className="px-6 py-4 text-right text-base">{t('bonDeCommande.total')}:</td>
-                                    <td className="px-6 py-4 text-right text-lg text-[#c6e911] font-bold">{formatCurrency(order.totalAmount || 0)}</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-
-                    {/* Footer info */}
-                    <div className="border-t-4 border-[#c6e911] pt-8 mt-8">
-                        <p className="text-sm text-slate-600 text-center leading-relaxed">
-                            {t('bonDeCommande.footer')} {order.paymentDueDate && formatDate(order.paymentDueDate)}.
-                        </p>
-                        <p className="text-xs text-slate-400 text-center mt-6">
-                            ___________________________________________________________
-                        </p>
-                        <p className="text-xs text-slate-400 text-center mt-2">
-                            CaapMedia Plateforme Commerciale
-                        </p>
-                    </div>
+                    <DocumentContent />
                 </div>
             </div>
 
@@ -170,71 +153,7 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
                     </button>
                 </div>
                 <div className="p-8 overflow-y-auto flex-1 bg-white">
-                    {bcContentRef.current && (
-                        <div>
-                            {/* Re-render the document content */}
-                            <div className="flex justify-between items-start mb-8 pb-6 border-b-4 border-[#c6e911]">
-                                <div>
-                                    {LogoComponent && <LogoComponent className="h-16 w-auto" />}
-                                    <p className="font-bold text-xl mt-4 text-slate-900">{subsidiary.name}</p>
-                                    {subsidiary.address && <p className="text-sm text-slate-600 mt-1">{subsidiary.address}</p>}
-                                    {subsidiary.phone && <p className="text-sm text-slate-600">{t('common.phone')}: {subsidiary.phone}</p>}
-                                    {subsidiary.email && <p className="text-sm text-slate-600">{t('common.email')}: {subsidiary.email}</p>}
-                                </div>
-                                <div className="text-right">
-                                    <h2 className="font-bold text-3xl text-[#c6e911] mb-4">{t('bonDeCommande.title')}</h2>
-                                    <div className="space-y-2 text-sm">
-                                        <p className="text-slate-700 font-semibold">{t('bonDeCommande.orderNum')}: <span className="font-bold text-base text-[#c6e911]">{order.id}</span></p>
-                                        <p className="text-slate-600">{t('bonDeCommande.date')}: <span className="font-semibold text-slate-800">{formatDate(order.date)}</span></p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-12 mb-10">
-                                <div>
-                                    <h5 className="font-semibold text-slate-600 uppercase text-xs tracking-wide mb-3 border-b pb-2">{t('bonDeCommande.billedTo')}</h5>
-                                    <p className="font-bold text-lg text-slate-900">{order.customerName}</p>
-                                </div>
-                                <div>
-                                    <h5 className="font-semibold text-slate-600 uppercase text-xs tracking-wide mb-3 border-b pb-2">{t('bonDeCommande.paymentMethod')}</h5>
-                                    <p className="font-semibold text-slate-800">{order.paymentMethod || 'N/A'}</p>
-                                </div>
-                            </div>
-                            <div className="mb-10">
-                                <table className="w-full text-sm text-left text-slate-600">
-                                    <thead className="text-xs text-slate-700 uppercase bg-[#c6e911] bg-opacity-25 border-t-2 border-b-2 border-[#c6e911]">
-                                        <tr>
-                                            <th scope="col" className="px-6 py-4 font-bold">{t('bonDeCommande.item')}</th>
-                                            <th scope="col" className="px-6 py-4 text-center font-bold">{t('bonDeCommande.quantity')}</th>
-                                            <th scope="col" className="px-6 py-4 text-right font-bold">{t('bonDeCommande.unitPrice')}</th>
-                                            <th scope="col" className="px-6 py-4 text-right font-bold">{t('bonDeCommande.totalPrice')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {order.orderItems && order.orderItems.length > 0 ? (
-                                            order.orderItems.map((item: any, index: number) => (
-                                                <tr key={index} className="bg-white border-b border-slate-100">
-                                                    <td className="px-6 py-4 font-medium text-slate-900">{item.product?.productName || item.productName || '—'}</td>
-                                                    <td className="px-6 py-4 text-center text-slate-800">{item.quantity || 0}</td>
-                                                    <td className="px-6 py-4 text-right text-slate-800">{formatCurrency(item.unitPrice || 0)}</td>
-                                                    <td className="px-6 py-4 text-right font-semibold text-slate-900">{formatCurrency((item.unitPrice || 0) * (item.quantity || 0))}</td>
-                                                </tr>
-                                            ))
-                                        ) : (
-                                            <tr className="bg-white border-b border-slate-100">
-                                                <td colSpan={4} className="px-6 py-4 text-center text-slate-500">{t('bonDeCommande.noData')}</td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                    <tfoot>
-                                        <tr className="font-bold text-slate-900 bg-[#c6e911] bg-opacity-15 border-t-2 border-[#c6e911]">
-                                            <td colSpan={3} className="px-6 py-4 text-right text-base">{t('bonDeCommande.total')}:</td>
-                                            <td className="px-6 py-4 text-right text-lg text-[#c6e911] font-bold">{formatCurrency(order.totalAmount || 0)}</td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                        </div>
-                    )}
+                    <DocumentContent />
                 </div>
 
                 <div className="p-6 bg-slate-50 border-t-2 border-slate-200 flex justify-end items-center space-x-3 flex-shrink-0">

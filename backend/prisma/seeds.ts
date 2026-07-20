@@ -6,7 +6,7 @@ import { runProductSeeder } from './seeders/product.seeder';
 import { runContactSeeder } from './seeders/contact.seeder';
 import { runEquipmentSeeder } from './seeders/equipement.seeder';
 import { runTaxRateSeeder } from './seeders/tax_rate.seeder';
-import { runOrdersSeeder } from './seeders/order.seeder';
+//import { runOrdersSeeder } from './seeders/order.seeder';
 import { seedTreasuryAccounts } from './seeders/treasury.seeder';
 import { runSupplierSeeder } from './seeders/supplier.seeder';
 import { runContactCitiesSeeder } from './seeders/contact-cities.seeder';
@@ -63,7 +63,7 @@ async function main() {
     await runContactCitiesSeeder(prisma); // Additional clients for Douala and Yaoundé
     await runEquipmentSeeder(prisma);
     await runTaxRateSeeder(prisma);
-    await runOrdersSeeder(prisma);
+   // await runOrdersSeeder(prisma);
     await runSupplierSeeder(prisma);
     await seedTreasuryAccounts();
     // Note: seedEmployeeLeaveBalances is already called inside seedEmployees()
