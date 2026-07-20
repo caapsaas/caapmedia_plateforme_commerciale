@@ -23,18 +23,37 @@ export class OrdersService {
   // Fonction utilitaire pour mapper une commande à son format de réponse
   private mapOrderToResponse(order: any) {
     return {
-      ...order,
       id: order.id,
-      date: order.orderDate, // Mapper orderDate à date pour le frontend
+      date: order.orderDate,
+      customerName: order.customerName,
+      customerId: order.customerId,
+      customer: order.customer,
+      salesRep: order.salesRep,
       subtotal: order.subtotal ? order.subtotal.toNumber() : 0,
       taxAmount: order.taxAmount ? order.taxAmount.toNumber() : 0,
       totalAmount: order.totalAmount ? order.totalAmount.toNumber() : 0,
       amountPaid: order.amountPaid ? order.amountPaid.toNumber() : 0,
+      paymentDueDate: order.paymentDueDate,
+      taxRateId: order.taxRateId,
       taxRateValue: order.taxRateValue ? order.taxRateValue.toNumber() : 0,
       status: order.status,
+      paymentStatus: order.paymentStatus,
+      productionStatus: order.productionStatus,
+      productionHistory: order.productionHistory,
+      paymentMethod: order.paymentMethod,
+      source: order.source,
+      subsidiaryId: order.subsidiaryId,
+      salesRepId: order.salesRepId,
+      opportunityId: order.opportunityId,
       orderItems: order.orderItems?.map((item: any) => ({
-        ...item,
+        id: item.id,
+        quantity: item.quantity,
         unitPrice: item.unitPrice ? item.unitPrice.toNumber() : 0,
+        designFileName: item.designFileName,
+        designFileUrl: item.designFileUrl,
+        productId: item.productId,
+        orderId: item.orderId,
+        product: item.product,
       })) || [],
     };
   }
@@ -325,20 +344,25 @@ export class OrdersService {
 
       // Retourner le groupe de commande avec ses sous-commandes, ou la commande unique
       if (orderGroup) {
-        return tx.orderGroup.findUniqueOrThrow({
+        const group = await tx.orderGroup.findUniqueOrThrow({
           where: { id: orderGroup.id },
-          include: { orders: { include: { orderItems: true } } },
+          include: { orders: { include: { orderItems: true, customer: true, salesRep: true } } },
         });
+        return {
+          ...group,
+          orders: group.orders.map(o => this.mapOrderToResponse(o)),
+        };
       } else {
         // Vérifier que des commandes ont été créées
         if (createdOrders.length === 0) {
           throw new InternalServerErrorException('Aucune commande n\'a pu être créée. Vérifiez que les produits existent et sont valides.');
         }
-        // S'il n'y a qu'une seule commande, on la retourne directement
-        return tx.order.findUniqueOrThrow({
+        // S'il n'y a qu'une seule commande, on la retourne mappée
+        const order = await tx.order.findUniqueOrThrow({
           where: { id: createdOrders[0].id },
-          include: { orderItems: true },
+          include: { orderItems: true, customer: true, salesRep: true },
         });
+        return this.mapOrderToResponse(order);
       }
     });
   }
@@ -622,20 +646,7 @@ export class OrdersService {
       orderBy: { orderDate: 'desc' },
     });
 
-    // Mapper les commandes pour renvoyer les champs attendus par le frontend
-    return orders.map(order => ({
-      ...order,
-      date: order.orderDate, // Mapper orderDate à date pour le frontend
-      totalAmount: order.totalAmount ? order.totalAmount.toNumber() : 0,
-      subtotal: order.subtotal ? order.subtotal.toNumber() : 0,
-      taxAmount: order.taxAmount ? order.taxAmount.toNumber() : 0,
-      amountPaid: order.amountPaid ? order.amountPaid.toNumber() : 0,
-      taxRateValue: order.taxRateValue ? order.taxRateValue.toNumber() : 0,
-      orderItems: order.orderItems.map(item => ({
-        ...item,
-        unitPrice: item.unitPrice ? item.unitPrice.toNumber() : 0,
-      })),
-    }));
+    return orders.map(order => this.mapOrderToResponse(order));
   }
 
   /**
@@ -660,20 +671,7 @@ export class OrdersService {
       throw new NotFoundException(`Commande avec l'ID "${id}" non trouvée.`);
     }
 
-    // Mapper les champs pour le frontend
-    return {
-      ...order,
-      date: order.orderDate,
-      totalAmount: order.totalAmount ? order.totalAmount.toNumber() : 0,
-      subtotal: order.subtotal ? order.subtotal.toNumber() : 0,
-      taxAmount: order.taxAmount ? order.taxAmount.toNumber() : 0,
-      amountPaid: order.amountPaid ? order.amountPaid.toNumber() : 0,
-      taxRateValue: order.taxRateValue ? order.taxRateValue.toNumber() : 0,
-      orderItems: order.orderItems.map(item => ({
-        ...item,
-        unitPrice: item.unitPrice ? item.unitPrice.toNumber() : 0,
-      })),
-    };
+    return this.mapOrderToResponse(order);
   }
 
   /**
@@ -702,9 +700,10 @@ export class OrdersService {
       const updatedOrder = await tx.order.update({
         where: { id },
         data: { status: updateDto.status },
+        include: { orderItems: true, customer: true, salesRep: true },
       });
 
-      return updatedOrder;
+      return this.mapOrderToResponse(updatedOrder);
     });
   }
 
@@ -733,6 +732,7 @@ export class OrdersService {
       const updateProduction = await tx.order.update({
         where: { id },
         data: { productionStatus: updateDto.productionStatus},
+        include: { orderItems: true, customer: true, salesRep: true },
       });
 
       await tx.orderProductionHistory.create({
@@ -743,7 +743,7 @@ export class OrdersService {
         },
       });
 
-      return updateProduction;
+      return this.mapOrderToResponse(updateProduction);
     })
   }
 
@@ -956,7 +956,13 @@ export class OrdersService {
         });
       }
 
-      return updatedOrder;
+      // Re-fetch with all necessary relations for mapping
+      const finalOrder = await tx.order.findUniqueOrThrow({
+        where: { id },
+        include: { orderItems: { include: { product: true } }, customer: true, salesRep: true },
+      });
+
+      return this.mapOrderToResponse(finalOrder);
     });
   }
 
