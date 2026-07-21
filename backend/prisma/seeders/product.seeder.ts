@@ -1,516 +1,1024 @@
 // prisma/seeders/product.seeder.ts
-import { PrismaClient, Prisma, OptionType  } from '@prisma/client';
+import { PrismaClient, Prisma, ItemType } from '@prisma/client';
 
+// Catalogue de services (donnée globale, pas de filiale, pas de stock/prix
+// sur l'article — le prix est négocié à chaque commande, voir Chantier 4).
+// Les spécifications techniques d'un service se configurent via le Builder
+// (Chantier 5, prisma/seeders/product-specs.seeder.ts) — plus de variantes
+// génériques ici (ancien système ConfigurableOption, supprimé).
+interface ServiceSeedData {
+  name: string;
+  category: string;
+  description: string;
+  range: string;
+  imageUrls: string[];
+}
 
-async function runProductSeeder(prisma: PrismaClient) {
+// Produit de stock (matière première/consommable) — scopé filiale : prix
+// d'achat, quantité et entrepôt n'ont de sens que rattachés à une filiale.
+// baseUnit = unité dans laquelle le stock est réellement compté (Chantier 2).
+// packagingUnit, si défini, est l'unité d'achat courante avec son facteur de
+// conversion vers baseUnit (ex. Rame = 500 Feuilles) — voir receiveItems().
+interface StockProductSeedData {
+  name: string;
+  category: string;
+  description: string;
+  stock: number;
+  price: number;
+  warehouse: string;
+  subsidiaryEmail: string;
+  range: string;
+  baseUnit: string;
+  packagingUnit?: { name: string; conversionFactor: number };
+}
 
-    const productsData = [
-        {
-            name: 'Roll-up Classique 85x200cm',
-            mainCategory: 'Signalétique & Display',
-            category: 'Roll-up & Kakemono',
-            description: 'Support d’information et de promotion très polyvalent. Structure en aluminium brossé avec 2 pieds de stabilisation. Livré avec sac de transport. Visuel sur Syntisol 220 microns.',
-            stock: 150,
-            price: 18000,
-            sellingPrice: 35000,
-            warehouse: 'Douala Centre',
-            subsidiaryEmail: 'contact.douala@caap.cm',
-            range: 'Populaire',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {},
-        },
-        {
-            name: 'X-Banner Classique Indoor',
-            mainCategory: 'Signalétique & Display',
-            category: 'Stands & PLV',
-            description: 'Structure en fibre de verre ultra légère pour communiquer efficacement à petit prix. Fixation du visuel avec oeillets. L60 x H160 cm.',
-            stock: 300,
-            price: 8000,
-            sellingPrice: 15000,
-            warehouse: 'Kribi Centre',
-            subsidiaryEmail: 'contact.kribi@caap.cm',
-            range: 'Standard',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {},
-        },
-        {
-            name: 'Flying Banner Feather (Oriflamme Plume)',
-            mainCategory: 'Signalétique & Display',
-            category: 'Drapeaux & Oriflammes',
-            description: "Idéal pour les événementiels. Mât en fibre de carbone, impression sublimation sur maille polyester 120g. Impression traversée visible des deux côtés.",
-            stock: 100,
-            price: 25000,
-            sellingPrice: 45000,
-            warehouse: 'Douala Centre',
-            subsidiaryEmail: 'contact.douala@caap.cm',
-            range: 'Premium',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {
-                dimensions: [
-                    { name: 'H: 2,90m', multiplier: 1.0 },
-                    { name: 'H: 4,10m', multiplier: 1.25 },
-                    { name: 'H: 5,20m', multiplier: 1.5 }
-                ]
-            }
-        },
-        {
-            name: "Backdrop Stand Parapluie Textile",
-            mainCategory: 'Signalétique & Display',
-            category: "Stands & PLV",
-            description: "Mur d'images facile à déplier et replier. Structure en aluminium droite ou courbe. Fixation du visuel par système velcro. Livré avec sac de transport à roulettes.",
-            stock: 20,
-            price: 180000,
-            sellingPrice: 350000,
-            warehouse: 'Douala Centre',
-            subsidiaryEmail: 'contact.douala@caap.cm',
-            range: 'Premium',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {
-                dimensions: [
-                    { name: '3m x 2,25m', multiplier: 1.0 },
-                    { name: '6m x 2,25m', multiplier: 1.8 }
-                ]
-            }
-        },
-        {
-            name: 'Flyers & Dépliants',
-            mainCategory: 'Imprimerie',
-            category: 'Pub',
-            description: 'Impressions Offset de haute qualité pour vos flyers, dépliants, et autres supports de communication. Idéal pour les grandes quantités.',
-            stock: 100000,
-            price: 15,
-            sellingPrice: 30,
-            warehouse: 'Douala Centre',
-            subsidiaryEmail: 'contact.douala@caap.cm',
-            range: 'Populaire',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {
-                formats: [
-                    { name: 'A6', multiplier: 0.8 },
-                    { name: 'A5', multiplier: 1.0 },
-                    { name: 'DL', multiplier: 1.1 }
-                ],
-                grammages: [
-                    { name: '135g', multiplier: 1.0 },
-                    { name: '170g', multiplier: 1.2 },
-                    { name: '300g', multiplier: 1.5 }
-                ],
-                printSides: [
-                    { name: 'Recto', multiplier: 1.0 },
-                    { name: 'Recto/Verso', multiplier: 1.6 }
-                ],
-                laminations: [
-                    { name: 'Aucun', multiplier: 1.0 },
-                    { name: 'Mat', multiplier: 1.2 },
-                    { name: 'Brillant', multiplier: 1.2 }
-                ]
-            },
-        },
-        {
-            name: 'T-Shirt Imprimé',
-            mainCategory: 'Objets publicitaires',
-            category: 'Textile',
-            description: 'T-shirt de haute qualité 100% coton, personnalisé avec votre logo ou design en sérigraphie ou broderie.',
-            stock: 500,
-            price: 4500,
-            sellingPrice: 7500,
-            warehouse: 'Douala Centre',
-            subsidiaryEmail: 'contact.douala@caap.cm',
-            range: 'Populaire',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {
-                sizes: [
-                    { name: 'S', multiplier: 1.0 },
-                    { name: 'M', multiplier: 1.0 },
-                    { name: 'L', multiplier: 1.0 },
-                    { name: 'XL', multiplier: 1.05 },
-                    { name: 'XXL', multiplier: 1.1 }
-                ],
-                colors: [
-                    { name: 'Blanc', multiplier: 1.0 },
-                    { name: 'Noir', multiplier: 1.1 },
-                    { name: 'Couleur', multiplier: 1.2 }
-                ]
-            },
-        },
-        // --- New products added to fill categories ---
-        {
-            name: 'Cartes de visite',
-            mainCategory: 'Imprimerie',
-            category: 'Carterie',
-            description: 'Cartes de visite professionnelles, impression haute qualité sur papier 350g. Finition mate ou brillante.',
-            stock: 10000,
-            price: 20,
-            sellingPrice: 50,
-            warehouse: 'Douala Centre',
-            subsidiaryEmail: 'contact.douala@caap.cm',
-            range: 'Populaire',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {},
-        },
-        {
-            name: 'Packaging Produit',
-            mainCategory: 'Imprimerie',
-            category: 'Packaging',
-            description: 'Solutions d\'emballage sur mesure pour vos produits. Boîtes, étuis, et coffrets personnalisés.',
-            stock: 5000,
-            price: 300,
-            sellingPrice: 700,
-            warehouse: 'Douala Centre',
-            subsidiaryEmail: 'contact.douala@caap.cm',
-            range: 'Premium',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {},
-        },
-        {
-            name: 'Papier à en-tête',
-            mainCategory: 'Imprimerie',
-            category: 'Papeterie',
-            description: 'Papier à en-tête A4 de qualité supérieure pour une correspondance professionnelle.',
-            stock: 20000,
-            price: 40,
-            sellingPrice: 100,
-            warehouse: 'Edéa Centre',
-            subsidiaryEmail: 'contact.edea@caap.cm',
-            range: 'Standard',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {},
-        },
-        {
-            name: 'Menu de Restaurant',
-            mainCategory: 'Imprimerie',
-            category: 'Resto - Hôtels',
-            description: 'Menus de restaurant personnalisés, résistants et élégants. Différents formats et finitions disponibles.',
-            stock: 2000,
-            price: 800,
-            sellingPrice: 2500,
-            warehouse: 'Douala Centre',
-            subsidiaryEmail: 'contact.douala@caap.cm',
-            range: 'Standard',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {},
-        },
-        {
-            name: 'Brochure / Magazine',
-            mainCategory: 'Imprimerie',
-            category: 'Impression livre',
-            description: 'Impression de brochures, catalogues et magazines avec reliure piquée ou dos carré collé.',
-            stock: 1000,
-            price: 1500,
-            sellingPrice: 4000,
-            warehouse: 'Douala Centre',
-            subsidiaryEmail: 'contact.douala@caap.cm',
-            range: 'Premium',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {},
-        },
-        {
-            name: 'Bâche publicitaire',
-            mainCategory: 'Signalétique & Display',
-            category: 'Bâches & Banderoles',
-            description: 'Bâche PVC grand format pour une visibilité maximale en extérieur. Résistante aux intempéries.',
-            stock: 500,
-            price: 5000,
-            sellingPrice: 12000,
-            warehouse: 'Douala Centre',
-            subsidiaryEmail: 'contact.douala@caap.cm',
-            range: 'Standard',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {},
-        },
-        {
-            name: 'Panneau en PVC',
-            mainCategory: 'Signalétique & Display',
-            category: 'Panneaux & Enseignes',
-            description: 'Panneaux en PVC Forex pour signalétique intérieure ou extérieure. Léger et résistant.',
-            stock: 1000,
-            price: 8000,
-            sellingPrice: 18000,
-            warehouse: 'Kribi Centre',
-            subsidiaryEmail: 'contact.kribi@caap.cm',
-            range: 'Standard',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {},
-        },
-        {
-            name: 'Mug Personnalisé',
-            mainCategory: 'Objets publicitaires',
-            category: 'Mugs, gobelets et gourdes',
-            description: 'Mug en céramique blanc personnalisé avec votre logo ou photo. Idéal pour les cadeaux d\'entreprise.',
-            stock: 1000,
-            price: 2000,
-            sellingPrice: 4500,
-            warehouse: 'Douala Centre',
-            subsidiaryEmail: 'contact.douala@caap.cm',
-            range: 'Populaire',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {},
-        },
-        {
-            name: 'Sac en Tissu (Tote Bag)',
-            mainCategory: 'Objets publicitaires',
-            category: 'Sacs personnalisés',
-            description: 'Tote bag en coton personnalisé, un goodies écologique et pratique.',
-            stock: 3000,
-            price: 1500,
-            sellingPrice: 3500,
-            warehouse: 'Douala Centre',
-            subsidiaryEmail: 'contact.douala@caap.cm',
-            range: 'Populaire',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {},
-        },
-        {
-            name: 'Badge Événementiel',
-            mainCategory: 'Objets publicitaires',
-            category: 'Événementiel',
-            description: 'Badges personnalisés avec porte-badge et lanière pour vos événements, salons et conférences.',
-            stock: 5000,
-            price: 500,
-            sellingPrice: 1500,
-            warehouse: 'Edéa Centre',
-            subsidiaryEmail: 'contact.edea@caap.cm',
-            range: 'Standard',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {},
-        },
-        {
-            name: 'Stylo Publicitaire',
-            mainCategory: 'Objets publicitaires',
-            category: 'Écriture & Bureau',
-            description: 'Stylo à bille personnalisé avec votre logo, un classique indémodable.',
-            stock: 10000,
-            price: 150,
-            sellingPrice: 400,
-            warehouse: 'Douala Centre',
-            subsidiaryEmail: 'contact.douala@caap.cm',
-            range: 'Populaire',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {},
-        },
-        {
-            name: "Comptoir d'accueil",
-            mainCategory: 'Objets publicitaires',
-            category: 'Mobilier publicitaire',
-            description: "Comptoir d'accueil portable et personnalisable pour vos stands et événements.",
-            stock: 50,
-            price: 80000,
-            sellingPrice: 150000,
-            warehouse: 'Douala Centre',
-            subsidiaryEmail: 'contact.douala@caap.cm',
-            range: 'Premium',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {},
-        },
-        {
-            name: 'Tableau personnalisé',
-            mainCategory: 'Objets publicitaires',
-            category: 'Maison & Déco',
-            description: 'Impression de vos photos ou designs sur toile pour une décoration unique.',
-            stock: 200,
-            price: 10000,
-            sellingPrice: 25000,
-            warehouse: 'Douala Centre',
-            subsidiaryEmail: 'contact.douala@caap.cm',
-            range: 'Premium',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {},
-        },
-        {
-            name: 'Création de Site Web Vitrine',
-            mainCategory: 'Prestations de services',
-            category: 'Création & gestion de sites web',
-            description: 'Conception et développement d\'un site web professionnel pour présenter votre entreprise.',
-            stock: 300000,
-            price: 250000,
-            sellingPrice: 450000,
-            warehouse: 'Service',
-            subsidiaryEmail: 'contact.douala@caap.cm',
-            range: 'Premium',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {},
-        },
-        {
-            name: 'Campagne Publicitaire Google Ads',
-            mainCategory: 'Prestations de services',
-            category: 'Marketing digital & publicité',
-            description: 'Gestion de campagnes publicitaires sur Google pour augmenter votre visibilité.',
-            stock: 300000,
-            price: 100000,
-            sellingPrice: 180000,
-            warehouse: 'Service',
-            subsidiaryEmail: 'contact.douala@caap.cm',
-            range: 'Standard',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {},
-        },
-        {
-            name: 'Community Management Mensuel',
-            mainCategory: 'Prestations de services',
-            category: 'Réseaux sociaux',
-            description: 'Animation et gestion de vos comptes sur les réseaux sociaux (Facebook, Instagram...).',
-            stock: 100000,
-            price: 80000,
-            sellingPrice: 150000,
-            warehouse: 'Service',
-            subsidiaryEmail: 'contact.douala@caap.cm',
-            range: 'Standard',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {},
-        },
-        {
-            name: 'Création de Logo & Charte Graphique',
-            mainCategory: 'Prestations de services',
-            category: 'Design & identité visuelle',
-            description: 'Conception d\'un logo unique et d\'une charte graphique complète pour votre marque.',
-            stock: 100000,
-            price: 120000,
-            sellingPrice: 200000,
-            warehouse: 'Service',
-            subsidiaryEmail: 'contact.douala@caap.cm',
-            range: 'Premium',
-            imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'],
-            configurableOptions: {},
-        },
-        // --- Raw Materials & Consumables ---
-        { name: 'Cartons pour emballage', mainCategory: 'Matières Premières', category: 'Papiers & Cartons', description: 'Carton rigide ou ondulé utilisé pour emballage et packaging.', stock: 50, price: 5000, sellingPrice: 5000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Plaques pour Insoleuse', mainCategory: 'Matières Premières', category: 'Supports & Bâches', description: 'Plaques aluminium pour impression offset via insoleuse.', stock: 50, price: 12000, sellingPrice: 12000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Encre Offset Jaune', mainCategory: 'Matières Premières', category: 'Encres & Chimiques', description: 'Encre offset couleur jaune pour impressions CMJN.', stock: 50, price: 8000, sellingPrice: 8000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Agrafes', mainCategory: 'Matières Premières', category: 'Finition & Façonnage', description: 'Petites pièces métalliques pour relier brochures et carnets.', stock: 50, price: 500, sellingPrice: 500, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Elastiques', mainCategory: 'Matières Premières', category: 'Finition & Façonnage', description: 'Élastiques pour regroupement et maintien de documents.', stock: 50, price: 300, sellingPrice: 300, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'White Spirit', mainCategory: 'Matières Premières', category: 'Encres & Chimiques', description: 'Solvant utilisé pour nettoyage des machines et encres.', stock: 50, price: 2500, sellingPrice: 2500, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Nettoyeur plaques', mainCategory: 'Matières Premières', category: 'Encres & Chimiques', description: 'Produit chimique pour le nettoyage des plaques offset.', stock: 50, price: 6000, sellingPrice: 6000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Solution de mouillage', mainCategory: 'Matières Premières', category: 'Encres & Chimiques', description: 'Solution chimique utilisée en offset pour équilibrer eau/encre.', stock: 50, price: 7000, sellingPrice: 7000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Gomme de plaque', mainCategory: 'Matières Premières', category: 'Encres & Chimiques', description: 'Produit de protection et de conservation des plaques offset.', stock: 50, price: 3500, sellingPrice: 3500, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Poudre anti maculant', mainCategory: 'Matières Premières', category: 'Encres & Chimiques', description: 'Poudre utilisée pour éviter le maculage des impressions.', stock: 50, price: 4000, sellingPrice: 4000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Révélateur plaque', mainCategory: 'Matières Premières', category: 'Encres & Chimiques', description: 'Produit chimique pour révéler l\'image sur les plaques offset.', stock: 50, price: 7500, sellingPrice: 7500, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Poudre bébé', mainCategory: 'Matières Premières', category: 'Encres & Chimiques', description: 'Utilisée pour certains travaux de façonnage et de finition.', stock: 50, price: 1500, sellingPrice: 1500, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Blanché', mainCategory: 'Matières Premières', category: 'Encres & Chimiques', description: 'Produit de blanchiment ou nettoyage spécial (papier/atelier).', stock: 50, price: 3000, sellingPrice: 3000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Racle', mainCategory: 'Matières Premières', category: 'Finition & Façonnage', description: 'Accessoire pour sérigraphie servant à étaler l\'encre.', stock: 50, price: 8000, sellingPrice: 8000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Bâche', mainCategory: 'Matières Premières', category: 'Supports & Bâches', description: 'Support souple en PVC pour impression grand format.', stock: 50, price: 3500, sellingPrice: 3500, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Vinyle', mainCategory: 'Matières Premières', category: 'Supports & Bâches', description: 'Film autocollant imprimable utilisé pour stickers et covering.', stock: 50, price: 4000, sellingPrice: 4000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Colle', mainCategory: 'Matières Premières', category: 'Finition & Façonnage', description: 'Colle industrielle pour reliure, affiches et packaging.', stock: 50, price: 2000, sellingPrice: 2000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Bâton pour banderole', mainCategory: 'Matières Premières', category: 'Finition & Façonnage', description: 'Tiges ou barres servant de support à une banderole.', stock: 50, price: 2500, sellingPrice: 2500, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Encre Offset noir', mainCategory: 'Matières Premières', category: 'Encres & Chimiques', description: 'Encre offset couleur noire pour impressions.', stock: 50, price: 8000, sellingPrice: 8000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Encre Offset cyan', mainCategory: 'Matières Premières', category: 'Encres & Chimiques', description: 'Encre offset couleur cyan pour impressions CMJN.', stock: 50, price: 8000, sellingPrice: 8000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Encre Offset magenta', mainCategory: 'Matières Premières', category: 'Encres & Chimiques', description: 'Encre offset couleur magenta pour impressions CMJN.', stock: 50, price: 8000, sellingPrice: 8000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Encre noir Roland', mainCategory: 'Matières Premières', category: 'Encres & Chimiques', description: 'Encre spécifique pour traceurs Roland couleur noire.', stock: 50, price: 15000, sellingPrice: 15000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Encre cyan Roland', mainCategory: 'Matières Premières', category: 'Encres & Chimiques', description: 'Encre spécifique pour traceurs Roland couleur cyan.', stock: 50, price: 15000, sellingPrice: 15000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Encre magenta Roland', mainCategory: 'Matières Premières', category: 'Encres & Chimiques', description: 'Encre spécifique pour traceurs Roland couleur magenta.', stock: 50, price: 15000, sellingPrice: 15000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Encre jaune Roland', mainCategory: 'Matières Premières', category: 'Encres & Chimiques', description: 'Encre spécifique pour traceurs Roland couleur jaune.', stock: 50, price: 15000, sellingPrice: 15000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Solvant', mainCategory: 'Matières Premières', category: 'Encres & Chimiques', description: 'Solvant pour entretien et dilution d\'encres.', stock: 50, price: 5000, sellingPrice: 5000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Papier A4', mainCategory: 'Matières Premières', category: 'Papiers & Cartons', description: 'Papier bureautique A4 standard pour usage courant.', stock: 50, price: 2500, sellingPrice: 2500, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Révélateur Plaque CTP', mainCategory: 'Matières Premières', category: 'Encres & Chimiques', description: 'Produit chimique pour révéler plaques CTP.', stock: 50, price: 10000, sellingPrice: 10000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Plaque CTP', mainCategory: 'Matières Premières', category: 'Supports & Bâches', description: 'Plaques aluminium utilisées pour impression offset CTP.', stock: 50, price: 15000, sellingPrice: 15000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Carte de visite', mainCategory: 'Prestations Externes', category: 'Prestations Externes', description: 'Support imprimé standard pour identité professionnelle.', stock: 50, price: 50, sellingPrice: 50, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Films', mainCategory: 'Matières Premières', category: 'Supports & Bâches', description: 'Films transparents pour impression ou pelliculage.', stock: 50, price: 5000, sellingPrice: 5000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Numérotation Carnet', mainCategory: 'Matières Premières', category: 'Finition & Façonnage', description: 'Procédé d\'impression permettant de numéroter carnets.', stock: 50, price: 2000, sellingPrice: 2000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Façonnage', mainCategory: 'Matières Premières', category: 'Finition & Façonnage', description: 'Opérations de finition : pliage, coupe, reliure.', stock: 50, price: 3000, sellingPrice: 3000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Transport lié à un service', mainCategory: 'Prestations Externes', category: 'Prestations Externes', description: 'Frais de livraison ou transport spécifique lié à production.', stock: 50, price: 10000, sellingPrice: 10000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Rouleau vinyle', mainCategory: 'Matières Premières', category: 'Supports & Bâches', description: 'Rouleau de vinyle adhésif imprimable grand format.', stock: 50, price: 35000, sellingPrice: 35000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Achat d\'huile vrac', mainCategory: 'Prestations Externes', category: 'Prestations Externes', description: 'Huile industrielle en vrac pour entretien machines.', stock: 50, price: 12000, sellingPrice: 12000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Transport', mainCategory: 'Prestations Externes', category: 'Prestations Externes', description: 'Frais de transport généraux.', stock: 50, price: 8000, sellingPrice: 8000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Sous-Traitance', mainCategory: 'Prestations Externes', category: 'Prestations Externes', description: 'Travaux confiés à des prestataires externes.', stock: 50, price: 50000, sellingPrice: 50000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Façonnage externe', mainCategory: 'Prestations Externes', category: 'Prestations Externes', description: 'Travaux de finition réalisés par un sous-traitant.', stock: 50, price: 15000, sellingPrice: 15000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Numérotage externe', mainCategory: 'Prestations Externes', category: 'Prestations Externes', description: 'Numérotation de carnets confiée à un prestataire.', stock: 50, price: 10000, sellingPrice: 10000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Flasheuse externe', mainCategory: 'Prestations Externes', category: 'Prestations Externes', description: 'Travaux de flashage réalisés en externe.', stock: 50, price: 20000, sellingPrice: 20000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Pelliculage externe', mainCategory: 'Prestations Externes', category: 'Prestations Externes', description: 'Pelliculage confié à un prestataire externe.', stock: 50, price: 12000, sellingPrice: 12000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Plastification externe', mainCategory: 'Prestations Externes', category: 'Prestations Externes', description: 'Plastification confiée à un prestataire externe.', stock: 50, price: 10000, sellingPrice: 10000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Encollage externe', mainCategory: 'Prestations Externes', category: 'Prestations Externes', description: 'Travaux d\'encollage effectués par un tiers.', stock: 50, price: 8000, sellingPrice: 8000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Articles pour BAT', mainCategory: 'Prestations Externes', category: 'Prestations Externes', description: 'Épreuves imprimées et fournitures pour Bon à Tirer.', stock: 50, price: 5000, sellingPrice: 5000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'T-Shirt', mainCategory: 'Matières Premières', category: 'Textiles', description: 'Support textile pour impression personnalisée.', stock: 50, price: 3500, sellingPrice: 3500, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Rainage', mainCategory: 'Matières Premières', category: 'Finition & Façonnage', description: 'Procédé de façonnage créant un pli net sur papier/carton.', stock: 50, price: 2500, sellingPrice: 2500, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Bristol - Couverture', mainCategory: 'Matières Premières', category: 'Papiers & Cartons', description: 'Carton fort utilisé pour couvertures et supports rigides.', stock: 50, price: 4000, sellingPrice: 4000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Flocage externe', mainCategory: 'Prestations Externes', category: 'Prestations Externes', description: 'Travaux de flocage réalisés en externe.', stock: 50, price: 7000, sellingPrice: 7000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Casquette', mainCategory: 'Matières Premières', category: 'Textiles', description: 'Support textile personnalisable.', stock: 50, price: 2500, sellingPrice: 2500, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Bâche', mainCategory: 'Matières Premières', category: 'Supports & Bâches', description: 'Support PVC souple pour affichage extérieur.', stock: 50, price: 3500, sellingPrice: 3500, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Polo', mainCategory: 'Matières Premières', category: 'Textiles', description: 'Textile personnalisable type polo.', stock: 50, price: 4500, sellingPrice: 4500, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Rame de Papier Offset Blanc 350', mainCategory: 'Matières Premières', category: 'Papiers & Cartons', description: 'Rame de Papier non couché avec surface lisse, haute qualité pour longs tirages.', stock: 50, price: 28500, sellingPrice: 28500, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Rame de Papier Offset Blanc 300', mainCategory: 'Matières Premières', category: 'Papiers & Cartons', description: 'Papier non couché standard, utilisé pour flyers et catalogues.', stock: 50, price: 26000, sellingPrice: 26000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Rame de Papier Offset Blanc 200', mainCategory: 'Matières Premières', category: 'Papiers & Cartons', description: 'Papier issu de fibres recyclées, écologique et imprimable.', stock: 50, price: 26000, sellingPrice: 26000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Rame de Papier Offset Blanc 175', mainCategory: 'Matières Premières', category: 'Papiers & Cartons', description: 'Papier couché satiné, rendu des couleurs optimal, utilisé pour magazines.', stock: 50, price: 26000, sellingPrice: 26000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Rame de Papier Offset Blanc 145', mainCategory: 'Matières Premières', category: 'Papiers & Cartons', description: 'Papier avec face couchée et non couchée, pour catalogues et dos carré collé.', stock: 50, price: 26000, sellingPrice: 26000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Rame de Papier Offset Laser', mainCategory: 'Matières Premières', category: 'Papiers & Cartons', description: 'Papier blanc éclatant, adapté aux impressions laser et offset.', stock: 50, price: 26000, sellingPrice: 26000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Rame de Papier Recyclé Certifié', mainCategory: 'Matières Premières', category: 'Papiers & Cartons', description: 'Papier certifié FSC/PEFC issu de fibres renouvelables.', stock: 50, price: 26000, sellingPrice: 26000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Rame de Papier Création', mainCategory: 'Matières Premières', category: 'Papiers & Cartons', description: 'Papier texturé ou original pour impressions créatives haut de gamme.', stock: 50, price: 26000, sellingPrice: 26000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Rame de Papier Offset Naturel', mainCategory: 'Matières Premières', category: 'Papiers & Cartons', description: 'Papier crème ou beige clair, esthétique naturelle, éco-responsable.', stock: 50, price: 26000, sellingPrice: 26000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-        { name: 'Rame de Papier Offset Supra', mainCategory: 'Matières Premières', category: 'Papiers & Cartons', description: 'Papier offset de qualité supérieure pour ouvrages de prestige.', stock: 50, price: 26000, sellingPrice: 26000, warehouse: 'Douala Centre', subsidiaryEmail: 'contact.douala@caap.cm', range: 'Standard', imageUrls: ['https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png'], configurableOptions: {} },
-    ];
+// Référentiel d'unités global (Chantier 2) — administrable ensuite via
+// Configuration > Unités, mais seedé ici pour que les produits de stock
+// ci-dessous aient tous une unité de base fonctionnelle dès le démarrage.
+const UNITS_DATA: { name: string; symbol?: string }[] = [
+  { name: 'Feuille', symbol: 'f.' },
+  { name: 'Rame', symbol: 'rm' },
+  { name: 'Millilitre', symbol: 'ml' },
+  { name: 'Litre', symbol: 'L' },
+  { name: 'Mètre', symbol: 'm' },
+  { name: 'Rouleau', symbol: 'rlx' },
+  { name: 'Unité', symbol: 'u' },
+  { name: 'Boîte', symbol: 'bte' },
+  { name: 'Kilogramme', symbol: 'kg' },
+  { name: 'Gramme', symbol: 'g' },
+  { name: 'Sachet', symbol: 'sach' },
+  { name: 'Carton', symbol: 'ctn' },
+  { name: 'Paquet', symbol: 'pqt' },
+];
 
-    for (const p of productsData) {
-        // Vérifier la filiale
-        const subsidiary = await prisma.subsidiary.findUnique({ where: { email: p.subsidiaryEmail } });
-        if (!subsidiary) {
-          console.warn(`Subsidiary ${p.subsidiaryEmail} not found for product ${p.name}`);
-          continue;
-        }
-        
-        // Idempotence: product.name n'est pas @unique dans le schema, donc
-        // pas de upsert possible - on verifie manuellement par (nom, filiale)
-        // pour que ce seeder soit rejouable sans dupliquer tout le catalogue
-        // a chaque `npm run seed`.
-        const existingProduct = await prisma.product.findFirst({
-          where: { productName: p.name, subsidiaryId: subsidiary.id },
-        });
-        if (existingProduct) {
-          continue;
-        }
+const SERVICES_DATA: ServiceSeedData[] = [
+  {
+    name: 'Roll-up Classique 85x200cm',
+    category: 'Roll-up & Kakemono',
+    description:
+      'Support d’information et de promotion très polyvalent. Structure en aluminium brossé avec 2 pieds de stabilisation. Livré avec sac de transport. Visuel sur Syntisol 220 microns.',
+    range: 'Populaire',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'X-Banner Classique Indoor',
+    category: 'Stands & PLV',
+    description:
+      'Structure en fibre de verre ultra légère pour communiquer efficacement à petit prix. Fixation du visuel avec oeillets. L60 x H160 cm.',
+    range: 'Standard',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'Flying Banner Feather (Oriflamme Plume)',
+    category: 'Drapeaux & Oriflammes',
+    description:
+      'Idéal pour les événementiels. Mât en fibre de carbone, impression sublimation sur maille polyester 120g. Impression traversée visible des deux côtés.',
+    range: 'Premium',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'Backdrop Stand Parapluie Textile',
+    category: 'Stands & PLV',
+    description:
+      "Mur d'images facile à déplier et replier. Structure en aluminium droite ou courbe. Fixation du visuel par système velcro. Livré avec sac de transport à roulettes.",
+    range: 'Premium',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'Flyers & Dépliants',
+    category: 'Pub',
+    description:
+      'Impressions Offset de haute qualité pour vos flyers, dépliants, et autres supports de communication. Idéal pour les grandes quantités.',
+    range: 'Populaire',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'T-Shirt Imprimé',
+    category: 'Textile',
+    description:
+      'T-shirt de haute qualité 100% coton, personnalisé avec votre logo ou design en sérigraphie ou broderie.',
+    range: 'Populaire',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'Cartes de visite',
+    category: 'Carterie',
+    description:
+      'Cartes de visite professionnelles, impression haute qualité sur papier 350g. Finition mate ou brillante.',
+    range: 'Populaire',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'Packaging Produit',
+    category: 'Packaging',
+    description:
+      "Solutions d'emballage sur mesure pour vos produits. Boîtes, étuis, et coffrets personnalisés.",
+    range: 'Premium',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'Papier à en-tête',
+    category: 'Papeterie',
+    description:
+      'Papier à en-tête A4 de qualité supérieure pour une correspondance professionnelle.',
+    range: 'Standard',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'Menu de Restaurant',
+    category: 'Resto - Hôtels',
+    description:
+      'Menus de restaurant personnalisés, résistants et élégants. Différents formats et finitions disponibles.',
+    range: 'Standard',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'Brochure / Magazine',
+    category: 'Impression livre',
+    description:
+      'Impression de brochures, catalogues et magazines avec reliure piquée ou dos carré collé.',
+    range: 'Premium',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'Bâche publicitaire',
+    category: 'Bâches & Banderoles',
+    description:
+      'Bâche PVC grand format pour une visibilité maximale en extérieur. Résistante aux intempéries.',
+    range: 'Standard',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'Panneau en PVC',
+    category: 'Panneaux & Enseignes',
+    description:
+      'Panneaux en PVC Forex pour signalétique intérieure ou extérieure. Léger et résistant.',
+    range: 'Standard',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'Mug Personnalisé',
+    category: 'Mugs, gobelets et gourdes',
+    description:
+      "Mug en céramique blanc personnalisé avec votre logo ou photo. Idéal pour les cadeaux d'entreprise.",
+    range: 'Populaire',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'Sac en Tissu (Tote Bag)',
+    category: 'Sacs personnalisés',
+    description:
+      'Tote bag en coton personnalisé, un goodies écologique et pratique.',
+    range: 'Populaire',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'Badge Événementiel',
+    category: 'Événementiel',
+    description:
+      'Badges personnalisés avec porte-badge et lanière pour vos événements, salons et conférences.',
+    range: 'Standard',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'Stylo Publicitaire',
+    category: 'Écriture & Bureau',
+    description:
+      'Stylo à bille personnalisé avec votre logo, un classique indémodable.',
+    range: 'Populaire',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: "Comptoir d'accueil",
+    category: 'Mobilier publicitaire',
+    description:
+      "Comptoir d'accueil portable et personnalisable pour vos stands et événements.",
+    range: 'Premium',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'Tableau personnalisé',
+    category: 'Maison & Déco',
+    description:
+      'Impression de vos photos ou designs sur toile pour une décoration unique.',
+    range: 'Premium',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'Création de Site Web Vitrine',
+    category: 'Création & gestion de sites web',
+    description:
+      "Conception et développement d'un site web professionnel pour présenter votre entreprise.",
+    range: 'Premium',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'Campagne Publicitaire Google Ads',
+    category: 'Marketing digital & publicité',
+    description:
+      'Gestion de campagnes publicitaires sur Google pour augmenter votre visibilité.',
+    range: 'Standard',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'Community Management Mensuel',
+    category: 'Réseaux sociaux',
+    description:
+      'Animation et gestion de vos comptes sur les réseaux sociaux (Facebook, Instagram...).',
+    range: 'Standard',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+  {
+    name: 'Création de Logo & Charte Graphique',
+    category: 'Design & identité visuelle',
+    description:
+      "Conception d'un logo unique et d'une charte graphique complète pour votre marque.",
+    range: 'Premium',
+    imageUrls: [
+      'https://storage.googleapis.com/proudcity/mebanenc/uploads/2021/03/placeholder-image.png',
+    ],
+  },
+];
 
-        // Création du produit
-        const product = await prisma.product.create({
-          data: {
-            productName: p.name,
-            mainCategory: p.mainCategory,
-            category: p.category,
-            description: p.description,
-            stock: new Prisma.Decimal(p.stock),
-            price: new Prisma.Decimal(p.price),
-            sellingPrice: new Prisma.Decimal(p.sellingPrice),
-            warehouse: p.warehouse,
-            productRange: p.range,
-            subsidiary: { connect: { id: subsidiary.id } },
+const RAME_500_FEUILLES = { name: 'Rame', conversionFactor: 500 };
+const LITRE_1000_ML = { name: 'Litre', conversionFactor: 1000 };
+const KG_1000_G = { name: 'Kilogramme', conversionFactor: 1000 };
+const ROULEAU_50_M = { name: 'Rouleau', conversionFactor: 50 };
+
+const STOCK_PRODUCTS_DATA: StockProductSeedData[] = [
+  {
+    name: 'Cartons pour emballage',
+    category: 'Papiers & Cartons',
+    description: 'Carton rigide ou ondulé utilisé pour emballage et packaging.',
+    stock: 50,
+    price: 5000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Unité',
+    packagingUnit: { name: 'Paquet', conversionFactor: 25 },
+  },
+  {
+    name: 'Plaques pour Insoleuse',
+    category: 'Supports & Bâches',
+    description: 'Plaques aluminium pour impression offset via insoleuse.',
+    stock: 50,
+    price: 12000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Unité',
+    packagingUnit: { name: 'Boîte', conversionFactor: 10 },
+  },
+  {
+    name: 'Encre Offset Jaune',
+    category: 'Encres & Chimiques',
+    description: 'Encre offset couleur jaune pour impressions CMJN.',
+    stock: 50,
+    price: 8000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Millilitre',
+    packagingUnit: LITRE_1000_ML,
+  },
+  {
+    name: 'Agrafes',
+    category: 'Finition & Façonnage',
+    description: 'Petites pièces métalliques pour relier brochures et carnets.',
+    stock: 50,
+    price: 500,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Unité',
+    packagingUnit: { name: 'Boîte', conversionFactor: 1000 },
+  },
+  {
+    name: 'Elastiques',
+    category: 'Finition & Façonnage',
+    description: 'Élastiques pour regroupement et maintien de documents.',
+    stock: 50,
+    price: 300,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Unité',
+    packagingUnit: { name: 'Sachet', conversionFactor: 100 },
+  },
+  {
+    name: 'White Spirit',
+    category: 'Encres & Chimiques',
+    description: 'Solvant utilisé pour nettoyage des machines et encres.',
+    stock: 50,
+    price: 2500,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Millilitre',
+    packagingUnit: LITRE_1000_ML,
+  },
+  {
+    name: 'Nettoyeur plaques',
+    category: 'Encres & Chimiques',
+    description: 'Produit chimique pour le nettoyage des plaques offset.',
+    stock: 50,
+    price: 6000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Millilitre',
+    packagingUnit: LITRE_1000_ML,
+  },
+  {
+    name: 'Solution de mouillage',
+    category: 'Encres & Chimiques',
+    description:
+      'Solution chimique utilisée en offset pour équilibrer eau/encre.',
+    stock: 50,
+    price: 7000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Millilitre',
+    packagingUnit: LITRE_1000_ML,
+  },
+  {
+    name: 'Gomme de plaque',
+    category: 'Encres & Chimiques',
+    description: 'Produit de protection et de conservation des plaques offset.',
+    stock: 50,
+    price: 3500,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Millilitre',
+    packagingUnit: LITRE_1000_ML,
+  },
+  {
+    name: 'Poudre anti maculant',
+    category: 'Encres & Chimiques',
+    description: 'Poudre utilisée pour éviter le maculage des impressions.',
+    stock: 50,
+    price: 4000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Gramme',
+    packagingUnit: KG_1000_G,
+  },
+  {
+    name: 'Révélateur plaque',
+    category: 'Encres & Chimiques',
+    description:
+      "Produit chimique pour révéler l'image sur les plaques offset.",
+    stock: 50,
+    price: 7500,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Millilitre',
+    packagingUnit: LITRE_1000_ML,
+  },
+  {
+    name: 'Poudre bébé',
+    category: 'Encres & Chimiques',
+    description: 'Utilisée pour certains travaux de façonnage et de finition.',
+    stock: 50,
+    price: 1500,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Gramme',
+    packagingUnit: KG_1000_G,
+  },
+  {
+    name: 'Blanché',
+    category: 'Encres & Chimiques',
+    description:
+      'Produit de blanchiment ou nettoyage spécial (papier/atelier).',
+    stock: 50,
+    price: 3000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Millilitre',
+    packagingUnit: LITRE_1000_ML,
+  },
+  {
+    name: 'Racle',
+    category: 'Finition & Façonnage',
+    description: "Accessoire pour sérigraphie servant à étaler l'encre.",
+    stock: 50,
+    price: 8000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Unité',
+  },
+  {
+    name: 'Bâche',
+    category: 'Supports & Bâches',
+    description: 'Support souple en PVC pour impression grand format.',
+    stock: 50,
+    price: 3500,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Mètre',
+    packagingUnit: ROULEAU_50_M,
+  },
+  {
+    name: 'Vinyle',
+    category: 'Supports & Bâches',
+    description:
+      'Film autocollant imprimable utilisé pour stickers et covering.',
+    stock: 50,
+    price: 4000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Mètre',
+    packagingUnit: ROULEAU_50_M,
+  },
+  {
+    name: 'Colle',
+    category: 'Finition & Façonnage',
+    description: 'Colle industrielle pour reliure, affiches et packaging.',
+    stock: 50,
+    price: 2000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Gramme',
+    packagingUnit: KG_1000_G,
+  },
+  {
+    name: 'Bâton pour banderole',
+    category: 'Finition & Façonnage',
+    description: 'Tiges ou barres servant de support à une banderole.',
+    stock: 50,
+    price: 2500,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Unité',
+    packagingUnit: { name: 'Paquet', conversionFactor: 10 },
+  },
+  {
+    name: 'Encre Offset noir',
+    category: 'Encres & Chimiques',
+    description: 'Encre offset couleur noire pour impressions.',
+    stock: 50,
+    price: 8000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Millilitre',
+    packagingUnit: LITRE_1000_ML,
+  },
+  {
+    name: 'Encre Offset cyan',
+    category: 'Encres & Chimiques',
+    description: 'Encre offset couleur cyan pour impressions CMJN.',
+    stock: 50,
+    price: 8000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Millilitre',
+    packagingUnit: LITRE_1000_ML,
+  },
+  {
+    name: 'Encre Offset magenta',
+    category: 'Encres & Chimiques',
+    description: 'Encre offset couleur magenta pour impressions CMJN.',
+    stock: 50,
+    price: 8000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Millilitre',
+    packagingUnit: LITRE_1000_ML,
+  },
+  {
+    name: 'Encre noir Roland',
+    category: 'Encres & Chimiques',
+    description: 'Encre spécifique pour traceurs Roland couleur noire.',
+    stock: 50,
+    price: 15000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Millilitre',
+    packagingUnit: LITRE_1000_ML,
+  },
+  {
+    name: 'Encre cyan Roland',
+    category: 'Encres & Chimiques',
+    description: 'Encre spécifique pour traceurs Roland couleur cyan.',
+    stock: 50,
+    price: 15000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Millilitre',
+    packagingUnit: LITRE_1000_ML,
+  },
+  {
+    name: 'Encre magenta Roland',
+    category: 'Encres & Chimiques',
+    description: 'Encre spécifique pour traceurs Roland couleur magenta.',
+    stock: 50,
+    price: 15000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Millilitre',
+    packagingUnit: LITRE_1000_ML,
+  },
+  {
+    name: 'Encre jaune Roland',
+    category: 'Encres & Chimiques',
+    description: 'Encre spécifique pour traceurs Roland couleur jaune.',
+    stock: 50,
+    price: 15000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Millilitre',
+    packagingUnit: LITRE_1000_ML,
+  },
+  {
+    name: 'Solvant',
+    category: 'Encres & Chimiques',
+    description: "Solvant pour entretien et dilution d'encres.",
+    stock: 50,
+    price: 5000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Millilitre',
+    packagingUnit: LITRE_1000_ML,
+  },
+  {
+    name: 'Papier A4',
+    category: 'Papiers & Cartons',
+    description: 'Papier bureautique A4 standard pour usage courant.',
+    stock: 50,
+    price: 2500,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Feuille',
+    packagingUnit: RAME_500_FEUILLES,
+  },
+  {
+    name: 'Révélateur Plaque CTP',
+    category: 'Encres & Chimiques',
+    description: 'Produit chimique pour révéler plaques CTP.',
+    stock: 50,
+    price: 10000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Millilitre',
+    packagingUnit: LITRE_1000_ML,
+  },
+  {
+    name: 'Plaque CTP',
+    category: 'Supports & Bâches',
+    description: 'Plaques aluminium utilisées pour impression offset CTP.',
+    stock: 50,
+    price: 15000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Unité',
+    packagingUnit: { name: 'Boîte', conversionFactor: 10 },
+  },
+  {
+    name: 'Films',
+    category: 'Supports & Bâches',
+    description: 'Films transparents pour impression ou pelliculage.',
+    stock: 50,
+    price: 5000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Mètre',
+    packagingUnit: ROULEAU_50_M,
+  },
+  {
+    name: 'Numérotation Carnet',
+    category: 'Finition & Façonnage',
+    description: "Procédé d'impression permettant de numéroter carnets.",
+    stock: 50,
+    price: 2000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Unité',
+  },
+  {
+    name: 'Façonnage',
+    category: 'Finition & Façonnage',
+    description: 'Opérations de finition : pliage, coupe, reliure.',
+    stock: 50,
+    price: 3000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Unité',
+  },
+  {
+    name: 'Rouleau vinyle',
+    category: 'Supports & Bâches',
+    description: 'Rouleau de vinyle adhésif imprimable grand format.',
+    stock: 50,
+    price: 35000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Mètre',
+    packagingUnit: ROULEAU_50_M,
+  },
+  {
+    name: 'T-Shirt',
+    category: 'Textiles',
+    description: 'Support textile pour impression personnalisée.',
+    stock: 50,
+    price: 3500,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Unité',
+    packagingUnit: { name: 'Carton', conversionFactor: 50 },
+  },
+  {
+    name: 'Rainage',
+    category: 'Finition & Façonnage',
+    description: 'Procédé de façonnage créant un pli net sur papier/carton.',
+    stock: 50,
+    price: 2500,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Unité',
+  },
+  {
+    name: 'Bristol - Couverture',
+    category: 'Papiers & Cartons',
+    description: 'Carton fort utilisé pour couvertures et supports rigides.',
+    stock: 50,
+    price: 4000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Feuille',
+    packagingUnit: RAME_500_FEUILLES,
+  },
+  {
+    name: 'Casquette',
+    category: 'Textiles',
+    description: 'Support textile personnalisable.',
+    stock: 50,
+    price: 2500,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Unité',
+    packagingUnit: { name: 'Carton', conversionFactor: 50 },
+  },
+  {
+    name: 'Polo',
+    category: 'Textiles',
+    description: 'Textile personnalisable type polo.',
+    stock: 50,
+    price: 4500,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Unité',
+    packagingUnit: { name: 'Carton', conversionFactor: 50 },
+  },
+  {
+    name: 'Rame de Papier Offset Blanc 350',
+    category: 'Papiers & Cartons',
+    description:
+      'Rame de Papier non couché avec surface lisse, haute qualité pour longs tirages.',
+    stock: 50,
+    price: 28500,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Feuille',
+    packagingUnit: RAME_500_FEUILLES,
+  },
+  {
+    name: 'Rame de Papier Offset Blanc 300',
+    category: 'Papiers & Cartons',
+    description:
+      'Papier non couché standard, utilisé pour flyers et catalogues.',
+    stock: 50,
+    price: 26000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Feuille',
+    packagingUnit: RAME_500_FEUILLES,
+  },
+  {
+    name: 'Rame de Papier Offset Blanc 200',
+    category: 'Papiers & Cartons',
+    description: 'Papier issu de fibres recyclées, écologique et imprimable.',
+    stock: 50,
+    price: 26000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Feuille',
+    packagingUnit: RAME_500_FEUILLES,
+  },
+  {
+    name: 'Rame de Papier Offset Blanc 175',
+    category: 'Papiers & Cartons',
+    description:
+      'Papier couché satiné, rendu des couleurs optimal, utilisé pour magazines.',
+    stock: 50,
+    price: 26000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Feuille',
+    packagingUnit: RAME_500_FEUILLES,
+  },
+  {
+    name: 'Rame de Papier Offset Blanc 145',
+    category: 'Papiers & Cartons',
+    description:
+      'Papier avec face couchée et non couchée, pour catalogues et dos carré collé.',
+    stock: 50,
+    price: 26000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Feuille',
+    packagingUnit: RAME_500_FEUILLES,
+  },
+  {
+    name: 'Rame de Papier Offset Laser',
+    category: 'Papiers & Cartons',
+    description:
+      'Papier blanc éclatant, adapté aux impressions laser et offset.',
+    stock: 50,
+    price: 26000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Feuille',
+    packagingUnit: RAME_500_FEUILLES,
+  },
+  {
+    name: 'Rame de Papier Recyclé Certifié',
+    category: 'Papiers & Cartons',
+    description: 'Papier certifié FSC/PEFC issu de fibres renouvelables.',
+    stock: 50,
+    price: 26000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Feuille',
+    packagingUnit: RAME_500_FEUILLES,
+  },
+  {
+    name: 'Rame de Papier Création',
+    category: 'Papiers & Cartons',
+    description:
+      'Papier texturé ou original pour impressions créatives haut de gamme.',
+    stock: 50,
+    price: 26000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Feuille',
+    packagingUnit: RAME_500_FEUILLES,
+  },
+  {
+    name: 'Rame de Papier Offset Naturel',
+    category: 'Papiers & Cartons',
+    description:
+      'Papier crème ou beige clair, esthétique naturelle, éco-responsable.',
+    stock: 50,
+    price: 26000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Feuille',
+    packagingUnit: RAME_500_FEUILLES,
+  },
+  {
+    name: 'Rame de Papier Offset Supra',
+    category: 'Papiers & Cartons',
+    description:
+      'Papier offset de qualité supérieure pour ouvrages de prestige.',
+    stock: 50,
+    price: 26000,
+    warehouse: 'Douala Centre',
+    subsidiaryEmail: 'contact.douala@caap.cm',
+    range: 'Standard',
+    baseUnit: 'Feuille',
+    packagingUnit: RAME_500_FEUILLES,
+  },
+];
+
+async function seedUnits(prisma: PrismaClient): Promise<Map<string, string>> {
+  const unitIdByName = new Map<string, string>();
+  for (const u of UNITS_DATA) {
+    const unit = await prisma.unit.upsert({
+      where: { name: u.name },
+      update: {},
+      create: { name: u.name, symbol: u.symbol },
+    });
+    unitIdByName.set(unit.name, unit.id);
+  }
+  console.log('Référentiel unités seedé');
+  return unitIdByName;
+}
+
+async function seedServices(prisma: PrismaClient) {
+  for (const s of SERVICES_DATA) {
+    // Catalogue global : pas de filiale, idempotence sur (nom, type) seul.
+    const existing = await prisma.item.findFirst({
+      where: { name: s.name, type: ItemType.SERVICE },
+    });
+    if (existing) continue;
+
+    const item = await prisma.item.create({
+      data: {
+        name: s.name,
+        category: s.category,
+        description: s.description,
+        type: ItemType.SERVICE,
+        productRange: s.range,
+      },
+    });
+
+    for (const url of s.imageUrls) {
+      await prisma.productImage.create({
+        data: {
+          imageName: `${s.name}-${url.split('/').pop()}`,
+          imageUrl: url,
+          product: { connect: { id: item.id } },
+        },
+      });
+    }
+  }
+  console.log('Services (catalogue global) seedés');
+}
+
+async function seedStockProducts(
+  prisma: PrismaClient,
+  unitIdByName: Map<string, string>,
+) {
+  for (const p of STOCK_PRODUCTS_DATA) {
+    const subsidiary = await prisma.subsidiary.findUnique({
+      where: { email: p.subsidiaryEmail },
+    });
+    if (!subsidiary) {
+      console.warn(
+        `Subsidiary ${p.subsidiaryEmail} not found for stock product ${p.name}`,
+      );
+      continue;
+    }
+
+    const baseUnitId = unitIdByName.get(p.baseUnit);
+    if (!baseUnitId) {
+      console.warn(`Unité de base "${p.baseUnit}" introuvable pour ${p.name}`);
+      continue;
+    }
+
+    // Article global : idempotence sur (nom, type) seul — le stock, lui,
+    // est propre à la filiale (voir ItemStock).
+    let item = await prisma.item.findFirst({
+      where: { name: p.name, type: ItemType.STOCK_PRODUCT },
+    });
+
+    if (!item) {
+      item = await prisma.item.create({
+        data: {
+          name: p.name,
+          category: p.category,
+          description: p.description,
+          type: ItemType.STOCK_PRODUCT,
+          productRange: p.range,
+          price: new Prisma.Decimal(p.price),
+          stockManaged: true,
+          baseUnitId,
+        },
+      });
+    } else if (!item.baseUnitId) {
+      // Article seedé avant l'introduction des unités (Chantier 2) : complète.
+      item = await prisma.item.update({
+        where: { id: item.id },
+        data: { baseUnitId },
+      });
+    }
+
+    if (p.packagingUnit) {
+      const packagingUnitId = unitIdByName.get(p.packagingUnit.name);
+      if (!packagingUnitId) {
+        console.warn(
+          `Unité d'emballage "${p.packagingUnit.name}" introuvable pour ${p.name}`,
+        );
+      } else {
+        await prisma.itemPackagingUnit.upsert({
+          where: {
+            itemId_unitId: { itemId: item.id, unitId: packagingUnitId },
+          },
+          update: {
+            conversionFactor: new Prisma.Decimal(
+              p.packagingUnit.conversionFactor,
+            ),
+          },
+          create: {
+            itemId: item.id,
+            unitId: packagingUnitId,
+            conversionFactor: new Prisma.Decimal(
+              p.packagingUnit.conversionFactor,
+            ),
           },
         });
-
-        // Création des images
-        for (const url of p.imageUrls) {
-          await prisma.productImage.create({
-            data: {
-              imageName: `${p.name}-${url.split('/').pop()}`,
-              imageUrl: url,
-              product: { connect: { id: product.id } },
-            },
-          });
-        }
-    
-        // Création des options configurables
-        const optionTypes = Object.keys(p.configurableOptions || {});
-        for (const type of optionTypes) {
-          const items = p.configurableOptions[type];
-          for (const item of items) {
-            // Vérifier si l'option existe déjà
-            let optionItem = await prisma.configurableOptionItem.findFirst({
-              where: { optionName: item.name },
-            });
-    
-            if (!optionItem) {
-              optionItem = await prisma.configurableOptionItem.create({
-                data: { optionName: item.name, multiplier: new Prisma.Decimal(item.multiplier) },
-              });
-            }
-    
-            await prisma.configurableOption.create({
-              data: {
-                optionType: type.toUpperCase() as OptionType,
-                product: { connect: { id: product.id } },
-                item: { connect: { id: optionItem.id } },
-              },
-            });
-          }
-        }
       }
+    }
 
-    console.log('Products, ProductImages & ConfigurableOptions seeded');
+    const existingStock = await prisma.itemStock.findFirst({
+      where: { itemId: item.id, subsidiaryId: subsidiary.id },
+    });
+    if (existingStock) continue;
+
+    await prisma.itemStock.create({
+      data: {
+        itemId: item.id,
+        subsidiaryId: subsidiary.id,
+        stock: new Prisma.Decimal(p.stock),
+        warehouse: p.warehouse,
+      },
+    });
+  }
+  console.log(
+    'Produits de stock (article global + unités + stock par filiale) seedés',
+  );
+}
+
+async function runProductSeeder(prisma: PrismaClient) {
+  const unitIdByName = await seedUnits(prisma);
+  await seedServices(prisma);
+  await seedStockProducts(prisma, unitIdByName);
 }
 
 export { runProductSeeder };
