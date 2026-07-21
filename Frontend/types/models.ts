@@ -162,50 +162,179 @@ export interface User {
   twoFactorEnabled?: boolean;
 }
 
-export interface ConfigurableOptionItem {
-    optionName: string;
-    multiplier: number; // Price multiplier
-}
-
-export interface ConfigurableOptions {
-    FORMATS?: ConfigurableOptionItem[];
-    GRAMMAGES?: ConfigurableOptionItem[];
-    PRINTSIDES?: ConfigurableOptionItem[];
-    LAMINATIONS?: ConfigurableOptionItem[];
-    SIZES?: ConfigurableOptionItem[];
-    COLORS?: ConfigurableOptionItem[];
-    MATERIALS?: ConfigurableOptionItem[];
-    DIMENSIONS?: ConfigurableOptionItem[];
-    BINDINGS?: ConfigurableOptionItem[];
-    FOLDINGS?: ConfigurableOptionItem[];
-    CORNERS?: ConfigurableOptionItem[];
-    EYELETS?: ConfigurableOptionItem[];
-    PAGES?: ConfigurableOptionItem[];
-    HANDLES?: ConfigurableOptionItem[];
-    STUB?: ConfigurableOptionItem[];
-    NUMBERING?: ConfigurableOptionItem[];
-}
-
 export interface ProductImage {
     id: string;
     imageName: string;
     imageUrl: string;
 }
 
+// Catalogue de services (Chantier 1) : donnée globale, sans prix ni stock —
+// le prix est toujours négocié et saisi manuellement à la ligne de commande.
 export interface Product {
   id: string;
-  productName: string;
-  mainCategory: string;
-  category: string; // This is the subcategory
+  name: string;
+  category: string;
   description: string;
-  stock: number;
-  price: number; // Prix de revient
-  sellingPrice: number; // Prix de vente
-  warehouse: string;
-  subsidiaryId: string;
-  range?: string;
+  isActive: boolean;
+  isVisibleOnSite: boolean;
+  displayOrder?: number;
+  productRange?: string;
   productImages?: ProductImage[];
-  configurableOptions?: ConfigurableOptions;
+}
+
+// Produit de stock (matière première/consommable acheté en interne) — scopé
+// filiale, distinct du catalogue de services. Alimente Achats et le module Stock.
+// Référentiel d'unités de mesure (Chantier 2) — ex. Feuille, Rame, Mètre...
+export interface Unit {
+  id: string;
+  name: string;
+  symbol?: string;
+}
+
+// Unité d'emballage/achat d'un produit de stock (ex. Rame = 500 Feuilles) —
+// conversionFactor = combien d'unités de base contient une unité d'achat.
+export interface ItemPackagingUnit {
+  id: string;
+  itemId: string;
+  unitId: string;
+  conversionFactor: number;
+  unit: Unit;
+}
+
+// Journal des mouvements de stock (Chantier 3) — toute variation de stock,
+// entrée ou sortie, en unité de base. Jamais calculé à partir d'une commande :
+// une sortie liée à une commande (orderId) n'est là que pour la traçabilité.
+export enum StockMovementType {
+  PURCHASE_RECEIPT = 'PURCHASE_RECEIPT',
+  CUSTOMER_RETURN = 'CUSTOMER_RETURN',
+  POSITIVE_ADJUSTMENT = 'POSITIVE_ADJUSTMENT',
+  TRANSFER_IN = 'TRANSFER_IN',
+  PRODUCTION_CONSUMPTION = 'PRODUCTION_CONSUMPTION',
+  LOSS = 'LOSS',
+  BREAKAGE = 'BREAKAGE',
+  INTERNAL_CONSUMPTION = 'INTERNAL_CONSUMPTION',
+  NEGATIVE_ADJUSTMENT = 'NEGATIVE_ADJUSTMENT',
+  SUPPLIER_RETURN = 'SUPPLIER_RETURN',
+  TRANSFER_OUT = 'TRANSFER_OUT',
+}
+
+export interface StockMovement {
+  id: string;
+  itemId: string;
+  item?: { name: string };
+  subsidiaryId: string;
+  type: StockMovementType;
+  quantity: number;
+  reason?: string;
+  orderId?: string;
+  purchaseOrderId?: string;
+  createdById?: string;
+  createdAt: string;
+}
+
+export interface StockItem {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  sku?: string;
+  stock: number;
+  price: number;
+  warehouse: string;
+  productRange?: string;
+  minThreshold?: number;
+  stockManaged: boolean;
+  mainSupplierId?: string;
+  subsidiaryId: string;
+  // Unité dans laquelle le stock est réellement compté (Chantier 2).
+  baseUnitId?: string;
+  baseUnit?: Unit;
+  packagingUnits?: ItemPackagingUnit[];
+}
+
+// ---------------------------------------------------------------------------
+// Chantier 5 : moteur de spécifications configurables (Builder de formulaires)
+// ---------------------------------------------------------------------------
+
+export enum SpecFieldType {
+  TEXT = 'TEXT',
+  TEXTAREA = 'TEXTAREA',
+  NUMBER = 'NUMBER',
+  DECIMAL = 'DECIMAL',
+  AMOUNT = 'AMOUNT',
+  SELECT = 'SELECT',
+  MULTISELECT = 'MULTISELECT',
+  RADIO = 'RADIO',
+  CHECKBOX = 'CHECKBOX',
+  BOOLEAN = 'BOOLEAN',
+  DATE = 'DATE',
+  TIME = 'TIME',
+  COLOR = 'COLOR',
+  UPLOAD = 'UPLOAD',
+  URL = 'URL',
+  EMAIL = 'EMAIL',
+  PHONE = 'PHONE',
+  DIMENSIONS = 'DIMENSIONS',
+}
+
+export interface ResolvedOption {
+  value: string;
+  label: string;
+}
+
+// Règle conditionnelle simple : { when: {field, operator, value}, then: {action, target} }
+export interface SpecRule {
+  when: { field: string; operator: 'equals' | 'notEquals' | 'greaterThan' | 'lessThan'; value: unknown };
+  then: { action: 'show' | 'hide' | 'require' | 'readOnly'; target: string };
+}
+
+export interface ProductSpecification {
+  id: string;
+  groupId: string | null;
+  name: string;
+  technicalKey: string;
+  type: SpecFieldType;
+  required: boolean;
+  defaultValue: unknown;
+  possibleValues: ResolvedOption[] | null;
+  order: number;
+  helpText: string | null;
+  placeholder: string | null;
+  unit: string | null;
+  visibleToClient: boolean;
+  visibleToProduction: boolean;
+  editableAfterValidation: boolean;
+  searchable: boolean;
+  typeConfig: Record<string, unknown> | null;
+  rules: SpecRule[] | null;
+}
+
+export interface ProductSpecGroup {
+  id: string;
+  name: string;
+  order: number;
+  specifications: ProductSpecification[];
+}
+
+export interface FormDefinition {
+  productId: string;
+  groups: ProductSpecGroup[];
+  ungroupedSpecifications: ProductSpecification[];
+}
+
+export interface SpecReferenceValue {
+  id: string;
+  listId: string;
+  value: string;
+  label: string;
+  order: number;
+}
+
+export interface SpecReferenceList {
+  id: string;
+  key: string;
+  name: string;
+  values: SpecReferenceValue[];
 }
 
 export interface Sale {
@@ -220,6 +349,8 @@ export interface Sale {
   subsidiaryId: string;
   salesRepId?: string;
   taxRate: number;
+  specValues?: Record<string, unknown> | null;
+  specSnapshot?: FormDefinition | null;
 }
 
 export enum PaymentStatus {
@@ -269,9 +400,15 @@ export interface ProductOptions {
 export interface OrderItem {
   product: Product;
   quantity: number;
-  price: number; // The CALCULATED unit price at the time of order
+  unitPrice: number; // Prix négocié par le commercial pour cette ligne, figé à la création
+  discount?: number; // Remise négociée sur cette ligne (montant, pas %), figée à la création
   options?: Partial<ProductOptions>;
   designFile?: { name: string; url: string; };
+  specValues?: Record<string, unknown>; // Valeurs techniques saisies (Chantier 5), figées à la création
+  // Copie figée de la définition du formulaire au moment de la commande (Chantier 5)
+  // — nécessaire pour afficher specValues en lecture seule (facture/BL/production)
+  // sans dépendre du service tel qu'il est configuré aujourd'hui.
+  specSnapshot?: FormDefinition | null;
 }
 
 export interface OrderGroup{
@@ -372,6 +509,13 @@ export interface PurchaseOrderItem {
   quantity: number;
   quantityReceived: number;
   purchasePrice: number;
+  // Unité dans laquelle "quantity" est exprimée (Chantier 2) — absente =
+  // unité de base du produit.
+  purchaseUnitId?: string;
+  purchaseUnit?: Unit;
+  // Unité de base du produit (Chantier 2) — utilisée pour l'affichage quand
+  // purchaseUnit est absent (la ligne a été commandée en unité de base).
+  product?: { baseUnit?: Unit };
 }
 
 export interface PurchaseOrderHistory {

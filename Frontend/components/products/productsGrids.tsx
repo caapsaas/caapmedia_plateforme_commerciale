@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   getFavoriteProducts,
@@ -6,6 +6,7 @@ import {
   getProduitsSearch,
 } from "../../services/apiE-commerce/apiProducts";
 import { Product } from "../../types";
+import { PRODUCT_HIERARCHY } from "../../constants";
 import ProductCard from "../ecommerce/ProductCard";
 
 interface Props {
@@ -34,6 +35,19 @@ export default function ProductsGrid({
   const [page, setPage] = useState(1);
   const [allLoaded, setAllLoaded] = useState<Product[]>([]);
 
+  // Le catalogue n'a plus qu'un seul niveau de catégorie côté backend (Chantier 1) —
+  // ce mapping sert uniquement à filtrer côté client quand une catégorie principale
+  // (sans sous-catégorie précise) est sélectionnée dans le sélecteur du site vitrine.
+  const subCategoryToMainCategoryMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    PRODUCT_HIERARCHY.forEach((mainCat) => {
+      mainCat.subcategories.forEach((subCat) => {
+        map[subCat.name] = mainCat.category;
+      });
+    });
+    return map;
+  }, []);
+
   // Réinitialise la pagination et les produits chargés quand la catégorie change
   useEffect(() => {
     setPage(1);
@@ -46,12 +60,7 @@ export default function ProductsGrid({
     data: pageData,
   } = useQuery<Product[]>({
     queryKey: ["products", page, selectedMainCategory, selectedSubcategory],
-    queryFn: () =>
-      getProducts(
-        page,
-        selectedMainCategory || undefined,
-        selectedSubcategory || undefined,
-      ),
+    queryFn: () => getProducts(page, selectedSubcategory || undefined),
   });
 
   const { data: searchData, isLoading: searchLoading } = useQuery<Product[]>({
@@ -89,11 +98,15 @@ export default function ProductsGrid({
     // Filtre les résultats de recherche par catégorie si une catégorie est sélectionnée
     filtered = (searchData ?? []).filter((p) => {
       if (selectedSubcategory) return p.category === selectedSubcategory;
-      if (selectedMainCategory) return p.mainCategory === selectedMainCategory;
+      if (selectedMainCategory) return subCategoryToMainCategoryMap[p.category] === selectedMainCategory;
       return true;
     });
+  } else if (selectedMainCategory && !selectedSubcategory) {
+    // Le backend ne connaît que la catégorie fine (Chantier 1) — filtre client
+    // pour une sélection au niveau de la catégorie principale uniquement.
+    filtered = allLoaded.filter((p) => subCategoryToMainCategoryMap[p.category] === selectedMainCategory);
   } else {
-    // Le backend a déjà filtré par catégorie, on affiche tel quel
+    // Le backend a déjà filtré par catégorie (fine), on affiche tel quel
     filtered = allLoaded;
   }
 

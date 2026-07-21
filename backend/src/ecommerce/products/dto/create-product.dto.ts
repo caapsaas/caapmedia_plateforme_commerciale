@@ -1,18 +1,15 @@
 // src/products/dto/create-product.dto.ts
 import {
   IsArray,
-  IsEnum,
+  IsBoolean,
+  IsInt,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
-  IsPositive,
   IsString,
   IsUrl,
-  IsUUID,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { OptionType } from '@prisma/client'; // Assurez-vous que Prisma Client est généré
 import { PartialType } from '@nestjs/mapped-types';
 
 export class ProductImageDto {
@@ -25,36 +22,12 @@ export class ProductImageDto {
   imageUrl: string;
 }
 
-export class ConfigurableOptionItemDataDto {
-  @IsString()
-  @IsNotEmpty()
-  optionName: string;
-
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @IsPositive()
-  @Type(() => Number)
-  multiplier: number;
-}
-
-export class ConfigurableOptionDto {
-  @IsEnum(OptionType)
-  @IsNotEmpty()
-  optionType: OptionType;
-
-  @ValidateNested()
-  @Type(() => ConfigurableOptionItemDataDto)
-  @IsNotEmpty()
-  item: ConfigurableOptionItemDataDto;
-}
-
+// Catalogue de services (Chantier 1) : aucun prix, aucun stock — ces notions
+// n'ont de sens que pour les produits de stock (voir purchase/stock-items).
 export class CreateProductDto {
   @IsString()
   @IsNotEmpty()
-  productName: string;
-
-  @IsString()
-  @IsNotEmpty()
-  mainCategory: string;
+  name: string;
 
   @IsString()
   @IsNotEmpty()
@@ -64,47 +37,23 @@ export class CreateProductDto {
   @IsNotEmpty()
   description: string;
 
-  @IsNumber()
-  @IsPositive()
-  stock: number;
-
-  @IsNumber()
-  @IsPositive()
-  price: number;
-
-  @IsNumber()
-  @IsPositive()
-  sellingPrice: number;
-
-  @IsString()
-  @IsNotEmpty()
-  warehouse: string;
-
-  @IsString()
+  @IsBoolean()
   @IsOptional()
-  productRange?: string;
+  isActive?: boolean;
 
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ConfigurableOptionDto)
+  @IsBoolean()
   @IsOptional()
-  configurableOptions?: ConfigurableOptionDto[];
+  isVisibleOnSite?: boolean;
+
+  @IsInt()
+  @IsOptional()
+  displayOrder?: number;
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ProductImageDto)
   @IsOptional()
   productImages?: ProductImageDto[];
-}
-
-export class UpdateProductPriceDto {
-  @IsNumber()
-  @IsPositive()
-  price: number;
-
-  @IsNumber()
-  @IsPositive()
-  sellingPrice: number;
 }
 
 export class UpdateProductDto extends PartialType(CreateProductDto) {}

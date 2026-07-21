@@ -223,7 +223,7 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
                                     </option>
                                     {products.map(p => (
                                         <option key={p.id} value={p.id}>
-                                            {p.productName}
+                                            {p.name}
                                         </option>
                                     ))}
                                 </select>

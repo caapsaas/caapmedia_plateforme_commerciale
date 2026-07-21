@@ -20,7 +20,7 @@ import { Order, Product, ExpenseRecord, Sale, Equipment, SupplierDebt, Financial
 import { PnlStatement, BalanceSheet as BalanceSheetType } from '../services/apiStatistic/apiFinanceStats';
 import { PeriodFilterDto, PeriodFilter } from '../services/apiStatistic/apiAnalytics';
 import { getOrders } from '../services/apiE-commerce/apiOrders';
-import { getProductsBySubsidiary as getProducts } from '../services/apiE-commerce/apiProducts';
+import { getServicesCatalog as getProducts } from '../services/apiE-commerce/apiProducts';
 import { getSales } from '../services/apiE-commerce/apiSales'; // à créer
 import { getExpenses } from '../services/apiFinance/apiExpense'; // à créer
 import { getPnlStatement, getBalanceSheet } from '../services/apiStatistic/apiFinanceStats';

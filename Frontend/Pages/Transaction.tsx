@@ -10,7 +10,7 @@ import IconCheckCircle from '../components/icons/IconCheckCircle';
 import IconExclamationTriangle from '../components/icons/IconExclamationTriangle';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSales, FindAllSalesDto } from '../services/apiE-commerce/apiSales';
-import { getProductsBySubsidiary } from '../services/apiE-commerce/apiProducts';
+import { getServicesCatalog } from '../services/apiE-commerce/apiProducts';
 import { getContacts } from '../services/apiCrm/apicontacts';
 
 const Transaction: React.FC = () => {
@@ -35,7 +35,7 @@ const Transaction: React.FC = () => {
 
     const { data: products = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
         queryKey: ['products', subsidiary?.id],
-        queryFn: getProductsBySubsidiary,
+        queryFn: getServicesCatalog,
         enabled: !!subsidiary,
     });
 

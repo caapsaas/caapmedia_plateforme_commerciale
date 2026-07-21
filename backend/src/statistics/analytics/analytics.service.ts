@@ -141,13 +141,17 @@ export class AnalyticsService {
       where: { ...subsidiaryFilter, since: dateFilter },
     });
 
-    // Valeur du stock
-    const productsWithStock = await this.prisma.product.findMany({
-      where: { ...subsidiaryFilter, stock: { gt: 0 } },
-      select: { stock: true, price: true, mainCategory: true },
+    // Valeur du stock (matières premières uniquement — les services n'ont pas de stock).
+    // L'Item est global ; c'est ItemStock qui porte la quantité par filiale.
+    const stockLevels = await this.prisma.itemStock.findMany({
+      where: {
+        ...subsidiaryFilter,
+        stock: { gt: 0 },
+      },
+      select: { stock: true, item: { select: { price: true, category: true } } },
     });
-    const stockValue = productsWithStock.reduce(
-      (acc, p) => acc.add(p.price.mul(p.stock)),
+    const stockValue = stockLevels.reduce(
+      (acc, s) => acc.add((s.item.price ?? new Prisma.Decimal(0)).mul(s.stock)),
       new Prisma.Decimal(0),
     );
 
@@ -172,25 +176,29 @@ export class AnalyticsService {
       ORDER BY date ASC;
     `;
 
-    // Répartition du stock par catégorie
-    const stockByCategoryResult = await this.prisma.product.groupBy({
-      by: ['category'],
-      where: {
-        ...subsidiaryFilter,
-        stock: { gt: 0 },
-      },
-      _sum: {
-        stock: true, // Quantité totale d'articles par catégorie
-      },
-    });
+    // Répartition du stock par catégorie (quantité + valeur monétaire) — la
+    // catégorie vit sur Item, pas ItemStock, donc pas de groupBy Prisma direct
+    // possible ici : agrégation manuelle sur les niveaux de stock déjà chargés.
+    const categoryTotals = new Map<string, { stockSum: Prisma.Decimal; valueSum: Prisma.Decimal }>();
+    for (const s of stockLevels) {
+      const category = s.item.category || 'Non catégorisé';
+      const entry = categoryTotals.get(category) ?? {
+        stockSum: new Prisma.Decimal(0),
+        valueSum: new Prisma.Decimal(0),
+      };
+      entry.stockSum = entry.stockSum.add(s.stock);
+      entry.valueSum = entry.valueSum.add((s.item.price ?? new Prisma.Decimal(0)).mul(s.stock));
+      categoryTotals.set(category, entry);
+    }
 
-    // Pour obtenir la valeur, il faut une autre requête ou un calcul manuel.
-    // Ici, nous calculons la valeur monétaire.
-    const stockDistribution = productsWithStock.reduce(
-      (acc, product) => {
-        const category = product.mainCategory || 'Non catégorisé';
-        const value = product.price.mul(product.stock);
-        acc[category] = (acc[category] || new Prisma.Decimal(0)).add(value);
+    const stockByCategoryResult = [...categoryTotals.entries()].map(([category, { stockSum }]) => ({
+      category,
+      _sum: { stock: stockSum },
+    }));
+
+    const stockDistribution = [...categoryTotals.entries()].reduce(
+      (acc, [category, { valueSum }]) => {
+        acc[category] = valueSum;
         return acc;
       },
       {} as Record<string, Prisma.Decimal>,
@@ -268,7 +276,9 @@ export class AnalyticsService {
     });
 
     // Répartition des ventes par catégorie de produits
-    // On utilise une requête SQL brute pour joindre `Sale` et `Product` afin d'accéder à la catégorie.
+    // On utilise une requête SQL brute pour joindre `Sale` et `Item` afin d'accéder à la catégorie.
+    // Le catalogue de services étant désormais global (sans filiale), le filtre filiale
+    // porte uniquement sur `s.subsidiary_id` — la jointure ne peut plus filtrer sur `p.subsidiary_id`.
     const subsidiarySqlFilter = subsidiaryId
       ? Prisma.sql`s.subsidiary_id = ${subsidiaryId}::uuid`
       : Prisma.sql`TRUE`;
@@ -278,7 +288,7 @@ export class AnalyticsService {
         p.category as "category",
         SUM(s.total_price)::float as total
       FROM "sale" s -- Utilisation de LOWER() pour une jointure insensible à la casse
-      JOIN "products" p ON LOWER(s.product_name) = LOWER(p.product_name) AND s.subsidiary_id = p.subsidiary_id
+      JOIN "items" p ON LOWER(s.product_name) = LOWER(p.name)
       WHERE ${subsidiarySqlFilter}
         AND (${dateFilter.gte}::timestamp IS NULL OR s.sale_date >= ${dateFilter.gte}::timestamp)
         AND (${dateFilter.lte}::timestamp IS NULL OR s.sale_date <= ${dateFilter.lte}::timestamp)

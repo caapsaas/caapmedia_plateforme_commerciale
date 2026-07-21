@@ -93,12 +93,14 @@ export class BalancesheetService {
    * Valorisation des stocks au coût d'achat (product.price), pas au prix de vente.
    */
   async getInventoryValue(subsidiaryId?: string): Promise<number> {
-    const products = await this.prisma.product.findMany({
+    // Item est global (catalogue partagé) ; seule la quantité en stock
+    // (ItemStock) est propre à une filiale — absence de filtre = consolidé.
+    const stockLevels = await this.prisma.itemStock.findMany({
       where: subsidiaryId ? { subsidiaryId } : {},
-      select: { price: true, stock: true },
+      select: { stock: true, item: { select: { price: true } } },
     });
-    return products.reduce(
-      (sum, p) => sum + Number(p.price) * Number(p.stock),
+    return stockLevels.reduce(
+      (sum, s) => sum + Number(s.item.price) * Number(s.stock),
       0,
     );
   }

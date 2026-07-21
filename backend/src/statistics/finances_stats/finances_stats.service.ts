@@ -4,7 +4,12 @@ import {
   PeriodFilterDto,
   PeriodFilter,
 } from '../analytics/dto/period-filter.dto';
-import { Prisma, User, OpportunityStage, DebtStatus } from '@prisma/client';
+import {
+  Prisma,
+  User,
+  OpportunityStage,
+  DebtStatus,
+} from '@prisma/client';
 import {
   sub,
   startOfMonth,
@@ -216,9 +221,9 @@ export class FinancesStatsService {
         where: { subsidiaryId },
       }),
       this.getCustomerReceivables(user, { period: PeriodFilter.ALL_TIME }),
-      this.prisma.product.findMany({
+      this.prisma.itemStock.findMany({
         where: { subsidiaryId, stock: { gt: 0 } },
-        select: { stock: true, price: true },
+        select: { stock: true, item: { select: { price: true } } },
       }),
       this.prisma.fixedAsset.aggregate({
         _sum: { acquisitionCost: true },
@@ -234,7 +239,7 @@ export class FinancesStatsService {
     ]);
 
     const inventory = inventoryValue.reduce(
-      (acc, p) => acc.add(p.price.mul(p.stock)),
+      (acc, s) => acc.add((s.item.price ?? new Prisma.Decimal(0)).mul(s.stock)),
       new Prisma.Decimal(0),
     );
 

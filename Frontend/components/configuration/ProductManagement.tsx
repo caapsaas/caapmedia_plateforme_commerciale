@@ -3,19 +3,16 @@ import { categoryToKeyMap, rangeToKeyMap } from '../../constants';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
-import IconSparkles from '../icons/IconSparkles';
-import { Product } from '../../types/models';
-import { ProductFormData } from '../../types/forms';
+import IconUpload from '../icons/IconUpload';
+import { StockItem } from '../../types/models';
+import { StockItemFormData } from '../../types/forms';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
-import ProductFormModal from './ProductFormModal';
+import StockItemFormModal from './StockItemFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
-import { useAppContext } from '../../context/AppContext';
-import IconUpload from '../icons/IconUpload';
 import ProductImportModal from './ProductImportModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getProductsBySubsidiary, createProduct, updateProduct, deleteProduct, generateProductImage } from '../../services/apiE-commerce/apiProducts'; 
-import { getImageUrl } from '../../utils/imageUtils';
+import { getStockItemsBySubsidiary, createStockItem, updateStockItem, deleteStockItem } from '../../services/apiPurchasing/apiStockItems';
 import { useAuth } from '../../context/AuthContext';
 
 const ProductManagement: React.FC = () => {
@@ -26,21 +23,21 @@ const ProductManagement: React.FC = () => {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-    const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+    const [editingItem, setEditingItem] = useState<StockItem | null>(null);
+    const [deletingItem, setDeletingItem] = useState<StockItem | null>(null);
 
     // --- TanStack Query: Data Fetching ---
-    const { data: products = [], isLoading, isError } = useQuery<Product[]>({
-        queryKey: ['products', subsidiary?.id],
-        queryFn: getProductsBySubsidiary,
+    const { data: items = [], isLoading, isError } = useQuery<StockItem[]>({
+        queryKey: ['stockItems', subsidiary?.id],
+        queryFn: getStockItemsBySubsidiary,
         enabled: !!subsidiary,
     });
 
     // --- TanStack Query: Mutations ---
-    const { mutate: saveProductMutate } = useMutation({
-        mutationFn: ({ id, data }: { id?: string, data: ProductFormData }) => id ? updateProduct(id, data) : createProduct(data),
+    const { mutate: saveItemMutate } = useMutation({
+        mutationFn: ({ id, data }: { id?: string, data: StockItemFormData }) => id ? updateStockItem(id, data) : createStockItem(data),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['products', subsidiary?.id] });
+            queryClient.invalidateQueries({ queryKey: ['stockItems', subsidiary?.id] });
             const action = variables.id ? 'modifié' : 'ajouté';
             toast.success('Produit sauvegardé!', `Le produit a été ${action} avec succès.`);
             handleCloseModals();
@@ -50,10 +47,10 @@ const ProductManagement: React.FC = () => {
         }
     });
 
-    const { mutate: deleteProductMutate } = useMutation({
-        mutationFn: deleteProduct,
+    const { mutate: deleteItemMutate } = useMutation({
+        mutationFn: deleteStockItem,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['products', subsidiary?.id] });
+            queryClient.invalidateQueries({ queryKey: ['stockItems', subsidiary?.id] });
             toast.success('Produit supprimé!', 'Le produit a été supprimé avec succès.');
             handleCloseModals();
         },
@@ -62,47 +59,36 @@ const ProductManagement: React.FC = () => {
         }
     });
 
-    const { mutate: generateImageMutate, isPending: isGeneratingImage, variables: generatingImageId } = useMutation({
-        mutationFn: generateProductImage,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['products', subsidiary?.id] });
-            toast.success('Image générée!', 'L\'image a été générée avec succès par l\'IA.');
-        },
-        onError: () => {
-            toast.error('Erreur de génération', 'Une erreur est survenue lors de la génération de l\'image.');
-        }
-    });
-
     const handleOpenAddModal = () => {
-        setEditingProduct(null);
+        setEditingItem(null);
         setIsModalOpen(true);
     };
 
-    const handleOpenEditModal = (product: Product) => {
-        setEditingProduct(product);
+    const handleOpenEditModal = (item: StockItem) => {
+        setEditingItem(item);
         setIsModalOpen(true);
     };
-    
-    const handleOpenDeleteModal = (product: Product) => {
-        setDeletingProduct(product);
+
+    const handleOpenDeleteModal = (item: StockItem) => {
+        setDeletingItem(item);
     };
 
     const handleCloseModals = () => {
         setIsModalOpen(false);
-        setDeletingProduct(null);
-        setEditingProduct(null);
+        setDeletingItem(null);
+        setEditingItem(null);
     };
 
-    const handleSave = (productData: ProductFormData & { id?: string }) => {
-        saveProductMutate({ id: productData.id, data: productData });
+    const handleSave = (itemData: StockItemFormData & { id?: string }) => {
+        saveItemMutate({ id: itemData.id, data: itemData });
     };
 
     const handleDeleteConfirm = () => {
-        if(deletingProduct) {
-            deleteProductMutate(deletingProduct.id);
+        if (deletingItem) {
+            deleteItemMutate(deletingItem.id);
         }
     };
-    
+
     if (isLoading) {
         return <div>{t('common.loading')}</div>;
     }
@@ -130,50 +116,31 @@ const ProductManagement: React.FC = () => {
                 <table className="w-full text-sm text-left text-slate-500">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50">
                         <tr>
-                            <th scope="col" className="px-6 py-3">Image</th>
                             <th scope="col" className="px-6 py-3">{t('configuration.name')}</th>
                             <th scope="col" className="px-6 py-3">{t('stock.range')}</th>
                             <th scope="col" className="px-6 py-3">{t('configuration.category')}</th>
-                            <th scope="col" className="px-6 py-3">{t('configuration.sellingPrice')}</th>
+                            <th scope="col" className="px-6 py-3">{t('stock.costPrice')}</th>
                             <th scope="col" className="px-6 py-3">{t('configuration.stock')}</th>
                             <th scope="col" className="px-6 py-3 text-center">{t('common.actions')}</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {products.map((product) => (
-                            <tr key={product.id} className="bg-white border-b hover:bg-slate-50">
-                                <td className="px-6 py-4">
-                                    <img 
-                                        src={product.productImages && product.productImages.length > 0 ? getImageUrl(product.productImages[0].imageUrl) : 'https://via.placeholder.com/100'} 
-                                        alt={product.productName} 
-                                        className="h-12 w-12 object-cover rounded-md"/>
-                                </td>
-                                <td className="px-6 py-4 font-semibold">{product.productName}</td>
-                                <td className="px-6 py-4">{product.range ? t(rangeToKeyMap[product.range] || product.range) : 'Non specifie'}</td>
-                                <td className="px-6 py-4">{t(categoryToKeyMap[product.category] || product.category)}</td>
-                                <td className="px-6 py-4">{formatCurrency(product.sellingPrice)}</td>
-                                <td className={`px-6 py-4 font-bold ${product.stock < 100 ? 'text-red-500' : 'text-green-600'}`}>
-                                    {product.stock}
+                        {items.map((item) => (
+                            <tr key={item.id} className="bg-white border-b hover:bg-slate-50">
+                                <td className="px-6 py-4 font-semibold">{item.name}</td>
+                                <td className="px-6 py-4">{item.productRange ? t(rangeToKeyMap[item.productRange] || item.productRange) : 'Non specifie'}</td>
+                                <td className="px-6 py-4">{t(categoryToKeyMap[item.category] || item.category)}</td>
+                                <td className="px-6 py-4">{formatCurrency(item.price)}</td>
+                                <td className={`px-6 py-4 font-bold ${item.stock < 100 ? 'text-red-500' : 'text-green-600'}`}>
+                                    {item.stock}
                                 </td>
                                 <td className="px-6 py-4 text-center">
                                      <div className="flex flex-col items-center justify-center">
                                         <div className="flex items-center justify-center space-x-1">
-                                            <button
-                                                onClick={() => generateImageMutate(product.id)}
-                                                className="p-2 text-slate-500 hover:text-purple-600 hover:bg-purple-100 rounded-full transition-colors disabled:opacity-50"
-                                                aria-label={t('configuration.form.generateWithAI')}
-                                                disabled={isGeneratingImage}
-                                            >
-                                                {generatingImageId === product.id ? (
-                                                     <svg className="animate-spin h-5 w-5 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                                ) : (
-                                                    <IconSparkles className="h-5 w-5" />
-                                                )}
-                                            </button>
-                                            <button onClick={() => handleOpenEditModal(product)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
+                                            <button onClick={() => handleOpenEditModal(item)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
                                                 <IconEdit className="h-5 w-5" />
                                             </button>
-                                            <button onClick={() => handleOpenDeleteModal(product)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" aria-label={t('common.delete')}>
+                                            <button onClick={() => handleOpenDeleteModal(item)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" aria-label={t('common.delete')}>
                                                 <IconDelete className="h-5 w-5" />
                                             </button>
                                         </div>
@@ -184,29 +151,29 @@ const ProductManagement: React.FC = () => {
                     </tbody>
                 </table>
             </div>
-            
+
             {isImportModalOpen && (
-                <ProductImportModal 
+                <ProductImportModal
                     isOpen={isImportModalOpen}
                     onClose={() => setIsImportModalOpen(false)}
                 />
             )}
 
             {isModalOpen && (
-                <ProductFormModal 
+                <StockItemFormModal
                     isOpen={isModalOpen}
                     onClose={handleCloseModals}
                     onSave={handleSave}
-                    product={editingProduct}
+                    item={editingItem}
                 />
             )}
-            {deletingProduct && (
+            {deletingItem && (
                  <ConfirmationModal
-                    isOpen={!!deletingProduct}
+                    isOpen={!!deletingItem}
                     onClose={handleCloseModals}
                     onConfirm={handleDeleteConfirm}
                     title={t('configuration.modal.deleteProductTitle')}
-                    message={t('configuration.modal.deleteConfirmMessage', {itemName: deletingProduct.productName})}
+                    message={t('configuration.modal.deleteConfirmMessage', {itemName: deletingItem.name})}
                 />
             )}
         </div>
