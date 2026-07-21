@@ -13,7 +13,7 @@ import {
     getInteractions, logInteraction 
 } from '../services/apiCrm/apiCrm'; // Assurez-vous que apiCrm exporte bien tout ça
 import { getCrmAnalysis, CrmAnalysis } from '../services/apiStatistic/apiFinanceStats';
-import { getProductsBySubsidiary } from '../services/apiE-commerce/apiProducts';
+import { getServicesCatalog } from '../services/apiE-commerce/apiProducts';
 import { getAllUsers } from '../services/apiCommon/apiUserAuth';
 import CrmDashboard from '../components/crm/CrmDashboard';
 import OpportunityPipeline from '../components/crm/OpportunityPipeline';
@@ -23,6 +23,7 @@ import LeadsManagement from '../components/crm/LeadsManagement';
 import AccountManagement from '../components/crm/AccountManagement';
 import ContractManagement from '../components/crm/ContractManagement';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 type CrmView = 'dashboard' | 'leads' | 'accounts' | 'contacts' | 'pipeline' | 'activities' | 'contracts';
 
@@ -30,6 +31,7 @@ const Crm: React.FC = () => {
     const { t } = useI18n();
     const { user, subsidiary } = useAuth();
     const queryClient = useQueryClient();
+    const toast = useToast();
     const [activeTab, setActiveTab] = useState<CrmView>('leads');
     
     if (!user || !subsidiary) {
@@ -47,7 +49,7 @@ const Crm: React.FC = () => {
     const { data: crmTasks = [], isLoading: l6 } = useQuery<CrmTask[]>({ queryKey: queryKey('crmTasks'), queryFn: () => getCrmTasks(subsidiary.id) });
     const { data: interactions = [], isLoading: l7 } = useQuery<Interaction[]>({ queryKey: queryKey('interactions'), queryFn: () => getInteractions(subsidiary.id) });
     const { data: users = [], isLoading: l8 } = useQuery<User[]>({ queryKey: ['users', subsidiary.id], queryFn: () => getAllUsers() });
-    const { data: products = [], isLoading: l9 } = useQuery<Product[]>({ queryKey: queryKey('products'), queryFn: () => getProductsBySubsidiary() });
+    const { data: products = [], isLoading: l9 } = useQuery<Product[]>({ queryKey: queryKey('products'), queryFn: () => getServicesCatalog() });
 
     // Récupération des données d'analyse pour le tableau de bord CRM.
     // 'enabled: activeTab === 'dashboard'' signifie que cette requête ne sera exécutée que si l'onglet du tableau de bord est actif.
@@ -74,7 +76,25 @@ const Crm: React.FC = () => {
         queryClient.invalidateQueries({ queryKey: queryKey('crmAnalysis') }); // Invalider aussi les stats
     };
 
-    const { mutateAsync: onSaveContact } = useMutation({ mutationFn: saveContact, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('contacts') }) });
+    const { mutateAsync: onSaveContact } = useMutation({
+        mutationFn: saveContact,
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('contacts') }),
+        onError: (error: any) => {
+            // Client global (Chantier 6) : l'email est unique dans toute
+            // l'entreprise. Un doublon détecté ici vient forcément d'une autre
+            // filiale (voir subsidiary dans la réponse) — on l'explique plutôt
+            // que de laisser l'erreur s'afficher brute.
+            const existingContact = error?.response?.data?.existingContact;
+            if (existingContact) {
+                toast.error(
+                    'Client déjà existant',
+                    `${existingContact.contactName} existe déjà (filiale ${existingContact.subsidiary?.subsidiaryName}). Utilisez la recherche globale lors de la création d'une commande pour le rattacher.`,
+                );
+            } else {
+                toast.error('Erreur', 'Une erreur est survenue lors de la sauvegarde du client.');
+            }
+        },
+    });
     const { mutate: onDeleteContact } = useMutation({ mutationFn: deleteContact, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('contacts') }) });
     const { mutate: onSaveLead } = useMutation({ mutationFn: saveLead, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('leads') }) });
     const { mutate: onDeleteLead } = useMutation({ mutationFn: deleteLead, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('leads') }) });

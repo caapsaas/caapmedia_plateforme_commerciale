@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   UseGuards,
   ParseUUIDPipe,
   HttpCode,
@@ -98,6 +99,24 @@ export class ContactsController {
   )
   findAll(@CurrentUser() user: User) {
     return this.contactsService.findAll(user);
+  }
+
+  // Recherche globale (Chantier 6) : DOIT être déclarée avant ':id' pour que
+  // Nest ne capture pas "search" comme un paramètre :id.
+  @Get('search')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.SECRETARY,
+    UserRole.FINANCIAL_DIRECTOR,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.HR_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+  )
+  searchGlobal(@Query('q') query: string) {
+    return this.contactsService.searchGlobal(query);
   }
 
   @Get('public/:id')

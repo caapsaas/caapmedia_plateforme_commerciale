@@ -24,17 +24,28 @@ export class ContactsService {
   ) {}
 
   async create(createContactDto: CreateContactDto, user: User) {
-    const existingContact = await this.prisma.contact.findFirst({
-      where: {
-        email: createContactDto.email,
-        subsidiaryId: user.subsidiaryId,
+    // Le client est une entité globale (Chantier 6) : l'email est unique dans
+    // toute l'entreprise, pas seulement dans la filiale courante. Si le client
+    // existe déjà (potentiellement dans une autre filiale), on ne le recrée pas
+    // en doublon — on renvoie ses infos pour proposer un rattachement direct.
+    const existingContact = await this.prisma.contact.findUnique({
+      where: { email: createContactDto.email },
+      select: {
+        id: true,
+        contactName: true,
+        company: true,
+        email: true,
+        phone: true,
+        subsidiaryId: true,
+        subsidiary: { select: { subsidiaryName: true } },
       },
     });
 
     if (existingContact) {
-      throw new ConflictException(
-        `A contact with email "${createContactDto.email}" already exists in this subsidiary.`,
-      );
+      throw new ConflictException({
+        message: `Un client avec l'email "${createContactDto.email}" existe déjà.`,
+        existingContact,
+      });
     }
 
     // Générer un mot de passe temporaire pour le portail client
@@ -95,6 +106,37 @@ export class ContactsService {
     });
   }
 
+  /**
+   * Recherche globale de clients par email/téléphone (Chantier 6), sans filtre
+   * de filiale — permet à un commercial de retrouver un client déjà créé dans
+   * une autre filiale pour le rattacher à une nouvelle commande.
+   */
+  async searchGlobal(query: string) {
+    if (!query || query.trim().length < 2) {
+      return [];
+    }
+
+    return this.prisma.contact.findMany({
+      where: {
+        OR: [
+          { email: { contains: query, mode: 'insensitive' } },
+          { phone: { contains: query, mode: 'insensitive' } },
+          { contactName: { contains: query, mode: 'insensitive' } },
+        ],
+      },
+      select: {
+        id: true,
+        contactName: true,
+        company: true,
+        email: true,
+        phone: true,
+        subsidiaryId: true,
+        subsidiary: { select: { subsidiaryName: true } },
+      },
+      take: 10,
+    });
+  }
+
   async findOne(id: string, user: User) {
     const contact = await this.prisma.contact.findUnique({
       where: { id },
@@ -138,13 +180,13 @@ export class ContactsService {
       ...otherData
     } = updateContactDto as any;
 
-    // 3. Vérifier l'unicité de l'email si celui-ci est modifié.
+    // 3. Vérifier l'unicité de l'email si celui-ci est modifié (email globalement
+    // unique, Chantier 6 — pas seulement au sein de la filiale).
     if (otherData.email) {
       const existing = await this.prisma.contact.findFirst({
         where: {
           email: otherData.email,
           id: { not: id },
-          subsidiaryId: user.subsidiaryId,
         },
       });
       if (existing)
