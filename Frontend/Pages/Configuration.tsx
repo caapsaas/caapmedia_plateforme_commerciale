@@ -7,9 +7,10 @@ import ClientManagement from '../components/configuration/ClientManagement'; // 
 import { useI18n } from '../i18n';
 import TaxManagement from '../components/configuration/TaxManagement';
 import TreasuryAccountManagement from '../components/configuration/TreasuryAccountManagement';
+import PayrollScaleManagement from '../components/configuration/PayrollScaleManagement';
 import { useAuth } from '../context/AuthContext';
 
-type ConfigView = 'products' | 'users' | 'suppliers' | 'taxes' | 'clients' | 'treasury';
+type ConfigView = 'products' | 'users' | 'suppliers' | 'taxes' | 'clients' | 'treasury' | 'payroll';
 
 const Configuration: React.FC = () => {
     const { t } = useI18n();
@@ -18,7 +19,7 @@ const Configuration: React.FC = () => {
 
     const renderActiveView = () => {
         if (!subsidiary) return <div>{t('common.loading')}</div>;
-        
+
         switch (activeTab) {
             case 'products':
                 return <ProductManagement />;
@@ -32,6 +33,8 @@ const Configuration: React.FC = () => {
                 return <TaxManagement />;
             case 'treasury':
                 return <TreasuryAccountManagement subsidiary={subsidiary} />;
+            case 'payroll':
+                return <PayrollScaleManagement />;
             default:
                 return <ProductManagement />;
         }
@@ -54,13 +57,14 @@ const Configuration: React.FC = () => {
         <div className="space-y-6">
             <div className="flex justify-between items-center no-print flex-wrap gap-4">
                 <h2 className="text-3xl font-bold text-slate-800">{t('configuration.title')}</h2>
-                <div className="flex items-center space-x-2 p-1 bg-slate-200 rounded-lg">
+                <div className="flex items-center space-x-2 p-1 bg-slate-200 rounded-lg flex-wrap">
                     <TabButton view="products" label={t('configuration.products')} />
                     <TabButton view="users" label={t('configuration.users')} />
                     <TabButton view="suppliers" label={t('configuration.suppliers')} />
                     <TabButton view="clients" label={t('configuration.clientManagement')} />
                     <TabButton view="taxes" label={t('configuration.taxes')} />
                     <TabButton view="treasury" label={t('configuration.treasury')} />
+                    <TabButton view="payroll" label={t('payroll.title')} />
                 </div>
             </div>
             

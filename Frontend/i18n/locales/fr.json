@@ -53,6 +53,7 @@
     "logout": "Déconnexion",
     "version": "Version",
     "print": "Imprimer",
+    "export": "Exporter",
     "exportPdf": "Exporter en PDF",
     "loading": "Chargement...",
     "saving": "Enregistrement...",
@@ -60,8 +61,12 @@
     "email": "Email",
     "phone": "Téléphone",
     "actions": "Actions",
+    "view": "Afficher",
+    "edit": "Modifier",
+    "search": "Rechercher",
     "viewBL": "Voir BL",
-    "viewBonDeCommande": "Voir BC"
+    "viewBonDeCommande": "Voir BC",
+    "error": "Une erreur s'est produite"
   },
   "configuration": {
     "title": "Configuration",
@@ -73,7 +78,9 @@
     "treasury": "Trésorerie",
     "modal": {
       "editEmployeeTitle": "Modifier l'employé",
-      "addEmployeeTitle": "Ajouter un employé"
+      "addEmployeeTitle": "Ajouter un employé",
+      "deleteEmployeeTitle": "Supprimer l'employé",
+      "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer {{itemName}} ? Cette action ne peut pas être annulée."
     },
     "form": {
       "formSection": {
@@ -105,6 +112,49 @@
     }
   },
   "hr": {
+    "title": "Gestion RH",
+    "management": "Gestion RH",
+    "employeeManagement": "Gestion des employés",
+    "addEmployee": "Ajouter un employé",
+    "editEmployee": "Modifier l'employé",
+    "updateEmployee": "Mettre à jour l'employé",
+    "deleteEmployee": "Supprimer l'employé",
+    "foundEmployees": "employé(s) trouvé(s)",
+    "employees": {
+      "title": "Employés",
+      "id": "ID",
+      "fullName": "Nom complet",
+      "position": "Poste",
+      "department": "Département",
+      "contractType": "Type de contrat",
+      "status": "Statut",
+      "add": "Ajouter un employé"
+    },
+    "tabs": {
+      "employees": "Employés",
+      "attendance": "Présences",
+      "payroll": "Paie",
+      "absences": "Absences"
+    },
+    "table": {
+      "name": "Nom",
+      "email": "Email",
+      "department": "Département",
+      "position": "Poste",
+      "status": "Statut",
+      "salary": "Salaire",
+      "contract": "Contrat",
+      "actions": "Actions"
+    },
+    "actions": {
+      "export": "Exporter",
+      "csv": "CSV",
+      "pdf": "PDF",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "view": "Afficher",
+      "confirm": "Êtes-vous sûr ?"
+    },
     "gender": {
       "MALE": "Homme",
       "FEMALE": "Femme",
@@ -127,6 +177,61 @@
       "CHECK": "Chèque",
       "CASH": "Espèces"
     },
+    "bankingDetails": "Coordonnées bancaires",
+    "bankName": "Nom de la banque",
+    "bankAccountNumber": "Numéro de compte (RIB/IBAN)",
+    "maritalStatus": "Situation matrimoniale",
+    "maritalStatusOptions": {
+      "SINGLE": "Célibataire",
+      "MARRIED": "Marié(e)",
+      "DIVORCED": "Divorcé(e)",
+      "WIDOWED": "Veuf/Veuve"
+    },
+    "numberDependents": "Nombre de dépendants",
+    "dependentsHelperText": "Pour le calcul de la déduction fiscale",
+    "cancel": "Annuler",
+    "form": {
+      "sections": {
+        "personal": "Informations personnelles",
+        "professional": "Informations professionnelles",
+        "salary": "Salaire et rémunération",
+        "documents": "Documents",
+        "leaves": "Droits aux congés"
+      },
+      "salarySection": {
+        "title": "Salaire et rémunération",
+        "subtitle": "Informations financières",
+        "baseSalary": "Salaire de base",
+        "baseSalaryHelper": "Salaire minimum (FCFA)",
+        "bonus": "Prime",
+        "bonusHelper": "Rémunération supplémentaire (FCFA)",
+        "paymentMethod": "Mode de paiement"
+      },
+      "documentsSection": {
+        "title": "Documents",
+        "subtitle": "Documentation de l'employé",
+        "uploadMessage": "📄 La fonctionnalité de téléchargement de documents sera implémentée ici"
+      },
+      "leavesSection": {
+        "title": "Droits aux congés",
+        "subtitle": "Configuration du solde des congés",
+        "tabBalance": "Soldes",
+        "tabRecords": "Historique des congés"
+      }
+    },
+    "leaves": {
+      "leaveHistory": "Historique des congés",
+      "addLeaveRecord": "Enregistrer un congé",
+      "noRecords": "Aucun enregistrement de congé",
+      "daysHelper": "Nombre de jours de congé",
+      "unpaidHelperText": "Jours de congé non payés",
+      "balanceInfo": "Solde des congés disponibles",
+      "leaveType": "Type de congé",
+      "days": "Jours",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "configureBalance": "Configurer le solde des congés"
+    },
     "documents": {
       "title": "Documents",
       "addDocument": "Ajouter un document",
@@ -136,7 +241,20 @@
       "expiryDate": "Date d'expiration",
       "status": "Statut",
       "selectType": "Sélectionner un type",
-      "noDocuments": "Aucun document ajouté"
+      "noDocuments": "Aucun document ajouté",
+      "contract": "Contrat de travail",
+      "idCard": "Carte d'identité / CNI",
+      "workPermit": "Permis de travail",
+      "diplomas": "Diplômes et certifications",
+      "uploaded": "✓ Importé",
+      "download": "Télécharger",
+      "remove": "Supprimer",
+      "dragOrClick": "Glissez-déposez votre fichier ici, ou cliquez pour sélectionner",
+      "selectFile": "Sélectionner un fichier",
+      "addDiplomas": "Ajouter des diplômes et certifications",
+      "diplomasHelper": "Vous pouvez importer plusieurs diplômes et documents de certification",
+      "uploadedDiplomas": "Diplômes importés",
+      "requirements": "Documents requis : Contrat de travail, Carte d'identité/CNI et Permis de travail. Les diplômes sont optionnels mais recommandés."
     },
     "documentType": {
       "idCard": "Carte d'identité",
@@ -163,7 +281,82 @@
       "title": "Solde des congés",
       "summary": "Résumé",
       "totalDays": "Total des jours",
-      "days": "jours"
+      "days": "jours",
+      "totalEntitlements": "Total des droits",
+      "unpaidLeave": "Congés non payés"
+    },
+    "leaves": {
+      "leaveType": "Type de congé",
+      "currentBalance": "Solde actuel des congés",
+      "configureBalance": "Configurer les droits aux congés",
+      "daysHelper": "Nombre de jours auquel l'employé a droit",
+      "unpaidHelperText": "Jours de congé supplémentaires non payés",
+      "balanceInfo": "Les droits aux congés sont généralement configurés selon le contrat de travail. Les congés annuels sont généralement 30 jours minimum au Cameroun, maternité 56 jours, paternité 3 jours.",
+      "leaveHistory": "Enregistrements des congés",
+      "addLeaveRecord": "Ajouter un enregistrement de congé",
+      "addRecord": "Ajouter",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "days": "Nombre de jours",
+      "noRecords": "Aucun enregistrement de congé pour le moment",
+      "available": "Disponible",
+      "validation": {
+        "startDateRequired": "La date de début est requise",
+        "endDateRequired": "La date de fin est requise",
+        "endDateAfterStart": "La date de fin doit être après la date de début",
+        "daysRequired": "Le nombre de jours est requis et doit être supérieur à 0",
+        "insufficientBalance": "Solde de congés insuffisant"
+      }
+    },
+    "stats": {
+      "totalEmployees": "Total des employés",
+      "totalEmployeesSubtitle": "Actifs & tous les statuts",
+      "active": "Actifs",
+      "activeSubtitle": "% de la main-d'œuvre",
+      "onLeave": "En congé",
+      "onLeaveSubtitle": "Actuellement absent",
+      "recentlyAdded": "Récemment ajoutés",
+      "recentlyAddedSubtitle": "30 derniers jours"
+    },
+    "details": {
+      "personalInfo": "Informations personnelles",
+      "professionalInfo": "Informations professionnelles",
+      "status": "Statut",
+      "contractType": "Type de contrat",
+      "yearsOfService": "Années de service",
+      "email": "Email",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "birthDate": "Date de naissance",
+      "gender": "Genre",
+      "nationality": "Nationalité",
+      "phone": "Téléphone",
+      "address": "Adresse",
+      "department": "Département",
+      "position": "Poste",
+      "workLocation": "Lieu de travail",
+      "hireDate": "Date d'embauche",
+      "salary": "Salaire",
+      "baseSalary": "Salaire de base",
+      "bonus": "Prime",
+      "paymentMethod": "Mode de paiement",
+      "lastSalaryAdjustment": "Dernière augmentation",
+      "benefits": "Avantages",
+      "bankAccount": "Coordonnées bancaires",
+      "bankName": "Nom de la banque",
+      "bankAccountNumber": "Numéro de compte",
+      "leaveEntitlements": "Droits aux congés",
+      "leaveHistory": "Historique des congés",
+      "documents": "Documents",
+      "contract": "Contrat de travail",
+      "idCard": "Carte d'identité",
+      "workPermit": "Permis de travail",
+      "diplomas": "Diplômes",
+      "positionHistory": "Historique des postes",
+      "trainings": "Formations",
+      "performanceReviews": "Évaluations de performance",
+      "reviewer": "Évaluateur",
+      "rating": "Note"
     }
   },
   "pnl": {
@@ -226,8 +419,7 @@
     "cartEmpty": "Panier vide",
     "total": "Total",
     "submitOrder": "Placer la commande",
-    "orderPlacedSuccess": "Commande créée avec succès !",
-    "productCatalog": "Catalogue des produits"
+    "orderPlacedSuccess": "Commande créée avec succès !"
   },
   "bonDeCommande": {
     "title": "Bon de Commande",
@@ -306,6 +498,68 @@
       "create": "Erreur lors de la création du compte de trésorerie",
       "update": "Erreur lors de la mise à jour du compte de trésorerie",
       "delete": "Erreur lors de la suppression du compte de trésorerie"
+    }
+  },
+  "payroll": {
+    "title": "Barèmes de paie",
+    "configuration": "Configuration",
+    "components": "Composants de salaire",
+    "taxBrackets": "Tranches d'imposition",
+    "allowances": "Allocations",
+    "salaryComponents": "Composants du salaire",
+    "minWage": "Salaire minimum",
+    "wagePeriod": "Période de salaire",
+    "cnpsEmployeeRate": "Taux CNPS employé",
+    "cnpsEmployerRate": "Taux CNPS employeur",
+    "rate": "Taux",
+    "type": "Type",
+    "cameroonLaw": "Références légales",
+    "taxBracketsDesc": "Gestion des tranches d'imposition sur les revenus",
+    "modal": {
+      "updateSmigTitle": "Mettre à jour le Salaire Minimum (SMIG)",
+      "updateSmigDesc": "Mettre à jour le salaire minimum garanti au Cameroun",
+      "updateCnpsTitle": "Mettre à jour les taux de cotisation CNPS",
+      "updateCnpsDesc": "Mettre à jour les taux de cotisation des employés et employeurs à la CNPS",
+      "updateIrppTitle": "Mettre à jour les tranches d'imposition IRPP",
+      "updateIrppDesc": "Configurer les tranches d'imposition sur le revenu pour le calcul de paie",
+      "updateLeaveTitle": "Mettre à jour les droits aux congés",
+      "updateLeaveDesc": "Configurer les droits aux congés et durées pour tous les types de congés"
+    },
+    "form": {
+      "minWage": "Salaire minimum",
+      "effectiveDate": "Date d'effet",
+      "employeeRate": "Taux employé",
+      "employerRate": "Taux employeur",
+      "minAmount": "Montant min (FCFA)",
+      "maxAmount": "Montant max (FCFA)",
+      "rate": "Taux d'imposition",
+      "leaveType": "Type de congé",
+      "daysPerYear": "Jours par an",
+      "isPaid": "Congé payé",
+      "paid": "Payé",
+      "unpaid": "Non payé",
+      "description": "Description",
+      "above": "Au-dessus de",
+      "leaveTypePlaceholder": "Ex: Congé annuel, Congé maladie",
+      "descriptionPlaceholder": "Description optionnelle"
+    },
+    "infoBox": {
+      "title": "Note"
+    },
+    "infoBoxText": "Ce sont les taux standards au Cameroun pour 2024. Toutes les valeurs sont utilisées automatiquement lors du calcul de la paie des employés. Les modifications s'appliqueront aux futures paies.",
+    "errors": {
+      "invalidAmount": "Veuillez entrer un montant valide supérieur à 0",
+      "invalidRate": "Veuillez entrer un taux valide entre 0 et 100%",
+      "invalidBracket": "Veuillez vérifier les valeurs des tranches d'imposition",
+      "invalidEntitlement": "Veuillez vérifier les valeurs des droits aux congés",
+      "emptyBrackets": "Au moins une tranche d'imposition est requise",
+      "emptyEntitlements": "Au moins un droit aux congés est requis"
+    },
+    "success": {
+      "updated": "Configuration de paie mise à jour avec succès"
+    },
+    "error": {
+      "update": "Erreur lors de la mise à jour de la configuration de paie"
     }
   }
 }

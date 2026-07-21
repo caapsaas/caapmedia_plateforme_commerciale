@@ -24,6 +24,7 @@ import { AnalyticsModule } from './statistics/analytics/analytics.module';
 import { StatisticsModule } from './statistics/statistics.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
 import { AccountingModule } from './accounting/accounting.module';
+import { ConfigurationModule } from './configuration/configuration.module';
 
 @Module({
   imports: [
@@ -58,7 +59,8 @@ import { AccountingModule } from './accounting/accounting.module';
     AnalyticsModule,
     StatisticsModule,
     NewsletterModule,
-    AccountingModule
+    AccountingModule,
+    ConfigurationModule
 
   ],
   controllers: [AppController],

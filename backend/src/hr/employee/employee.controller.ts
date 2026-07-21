@@ -9,12 +9,15 @@ import {
   UseGuards,
   Request,
   Query,
-  ParseBoolPipe,
-  ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { EmployeeService } from './employee.service';
 import { CreateEmployeeDto, UpdateEmployeeDto, LeaveBalanceDto } from './dto/employee.dto';
+import { CreateEmployeeDocumentDto } from './dto/employee-document.dto';
+import { CreateEmployeeTrainingDto } from './dto/employee-training.dto';
+import { CreateEmployeePositionHistoryDto } from './dto/employee-position-history.dto';
+import { CreateEmployeePerformanceReviewDto } from './dto/employee-performance-review.dto';
+import { AddLeaveRecordDto } from './dto/add-leave-record.dto';
 import { DocumentType, LeaveType } from '@prisma/client';
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles } from '../../common/auth/role/role.decorator';
@@ -105,13 +108,18 @@ export class EmployeeController {
   // ---------------------------
 
   @Post(':id/documents')
-  @Roles('HR_MANAGER')
+  @Roles('ADMIN', 'HR_MANAGER')
   @ApiOperation({ summary: 'Add a document to an employee' })
   async addDocument(
     @Param('id') id: string,
-    @Body() body: { documentName: string; url: string; docType: DocumentType },
+    @Body() createEmployeeDocumentDto: CreateEmployeeDocumentDto,
   ) {
-    return this.employeeService.addDocument(id, body.documentName, body.url, body.docType);
+    return this.employeeService.addDocument(
+      id,
+      createEmployeeDocumentDto.documentName,
+      createEmployeeDocumentDto.url,
+      createEmployeeDocumentDto.docType,
+    );
   }
 
   @Post(':id/trainings')
@@ -119,12 +127,9 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Add a training record to an employee' })
   async addTraining(
     @Param('id') id: string,
-    @Body() body: { trainingName: string; trainingDate: string; provider?: string },
+    @Body() createEmployeeTrainingDto: CreateEmployeeTrainingDto,
   ) {
-    return this.employeeService.addTraining(id, {
-      ...body,
-      trainingDate: new Date(body.trainingDate),
-    });
+    return this.employeeService.addTraining(id, createEmployeeTrainingDto);
   }
 
   @Post(':id/position-history')
@@ -132,19 +137,9 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Add a position history entry' })
   async addPositionHistory(
     @Param('id') id: string,
-    @Body()
-    body: {
-      employeePosition: string;
-      department?: string;
-      startDate: string;
-      endDate?: string;
-    },
+    @Body() createEmployeePositionHistoryDto: CreateEmployeePositionHistoryDto,
   ) {
-    return this.employeeService.addPositionHistory(id, {
-      ...body,
-      startDate: new Date(body.startDate),
-      endDate: body.endDate ? new Date(body.endDate) : undefined,
-    });
+    return this.employeeService.addPositionHistory(id, createEmployeePositionHistoryDto);
   }
 
   @Post(':id/performance-reviews')
@@ -152,33 +147,19 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Add a performance review' })
   async addPerformanceReview(
     @Param('id') id: string,
-    @Body()
-    body: {
-      reviewDate: string;
-      reviewer?: string;
-      rating?: number;
-      reviewComments?: string;
-    },
+    @Body() createEmployeePerformanceReviewDto: CreateEmployeePerformanceReviewDto,
   ) {
-    return this.employeeService.addPerformanceReview(id, {
-      ...body,
-      reviewDate: new Date(body.reviewDate),
-    });
+    return this.employeeService.addPerformanceReview(id, createEmployeePerformanceReviewDto);
   }
 
   @Post(':id/leaves')
-  @Roles('HR_MANAGER','ADMIN')
+  @Roles('HR_MANAGER', 'ADMIN')
   @ApiOperation({ summary: 'Add a leave record' })
   async addLeaveRecord(
     @Param('id') id: string,
-    @Body()
-    body: { startDate: string; endDate: string; days: number; leaveRecordType: LeaveType },
+    @Body() addLeaveRecordDto: AddLeaveRecordDto,
   ) {
-    return this.employeeService.addLeaveRecord(id, {
-      ...body,
-      startDate: new Date(body.startDate),
-      endDate: new Date(body.endDate),
-    });
+    return this.employeeService.addLeaveRecord(id, addLeaveRecordDto);
   }
 
   @Get(':id/leave-balances')

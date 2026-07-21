@@ -9,7 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAttendanceRecords, saveAttendanceRecord } from '../services/apihr/apiAttendance';
 import { getAbsenceRecords, saveAbsenceRecord, deleteAbsenceRecord } from '../services/apihr/apiAbsences';
 import { getPayrollRecords, processPayroll, signPayrollRecord } from '../services/apihr/apiPayroll';
-import { getEmployees, saveEmployee, deleteEmployee } from '../services/apihr/apiEmployees';
+import { getEmployees, saveEmployee, deleteEmployee, saveEmployeeWithDocumentsAndLeaves, getEmployeeWithRelations } from '../services/apihr/apiEmployees';
 import { useAuth } from '../context/AuthContext';
 import EmployeeDatabaseModern from '../components/hr/EmployeeDatabaseModern';
 
@@ -26,13 +26,32 @@ const HrManagement: React.FC = () => {
     }
 
     // --- Data Fetching ---
-    const { data: employees = [], isLoading: isLoadingEmployees } = useQuery<Employee[]>({ queryKey: ['employees', subsidiary.id], queryFn: () => getEmployees() });
+    // Charger les employés avec les relations (documents, congés, etc.)
+    const { data: employees = [], isLoading: isLoadingEmployees } = useQuery<Employee[]>({
+        queryKey: ['employees', subsidiary.id],
+        queryFn: () => getEmployees(true)  // ✓ includeRelations = true
+    });
     const { data: attendances = [], isLoading: isLoadingAttendances } = useQuery<AttendanceRecord[]>({ queryKey: ['attendances', subsidiary.id], queryFn: () => getAttendanceRecords() });
     const { data: absences = [], isLoading: isLoadingAbsences } = useQuery<AbsenceRecord[]>({ queryKey: ['absences', subsidiary.id], queryFn: () => getAbsenceRecords() });
     const { data: payrolls = [], isLoading: isLoadingPayrolls } = useQuery<PayrollRecord[]>({ queryKey: ['payrolls', subsidiary.id], queryFn: () => getPayrollRecords() });
 
     // --- Mutations ---
-    const { mutate: onSaveEmployee } = useMutation({ mutationFn: saveEmployee, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['employees', subsidiary.id] }) });
+    // Wrapper pour saveEmployeeWithDocumentsAndLeaves qui recharge ensuite l'employé avec relations
+    const saveEmployeeWithCompleteData = async (employeeData: any) => {
+        // 1. Sauvegarder l'employé + documents + congés
+        const savedEmployee = await saveEmployeeWithDocumentsAndLeaves(employeeData);
+
+        // 2. Recharger l'employé avec TOUTES ses relations
+        // (documents, leaveRecords, leaveBalances, etc.)
+        const completeEmployee = await getEmployeeWithRelations(savedEmployee.id);
+
+        return completeEmployee;
+    };
+
+    const { mutate: onSaveEmployee } = useMutation({
+        mutationFn: saveEmployeeWithCompleteData,
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['employees', subsidiary.id] }),
+    });
     const { mutate: onDeleteEmployee } = useMutation({ mutationFn: deleteEmployee, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['employees', subsidiary.id] }) });
     const { mutate: onSaveAttendance } = useMutation({ mutationFn: saveAttendanceRecord, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['attendances', subsidiary.id] }) });
     const { mutate: onSaveAbsence } = useMutation({ mutationFn: saveAbsenceRecord, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['absences', subsidiary.id] }) });

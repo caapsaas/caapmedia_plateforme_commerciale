@@ -1,19 +1,85 @@
 import { api } from '../api';
 import { PayrollRecord } from '../../types';
 
-/**
- * Données pour la création d'une fiche de paie.
- * Les champs gérés par le backend sont omis.
- */
-export type PayrollRecordCreationData = Omit<PayrollRecord, 'id' | 'subsidiaryId' | 'createdAt' | 'updatedAt'>;
+export interface PayrollConfig {
+  id: string;
+  subsidiaryId: string;
+  minWage: number;
+  minWagePeriod?: string;
+  minWageEffectiveDate: string;
+  cnpsEmployeeRate?: number;
+  cnpsEmployerRate?: number;
+  taxBrackets?: TaxBracket[];
+  salaryComponents?: any[];
+  allowanceRules?: any[];
+  irppBrackets?: TaxBracket[];
+  leaveEntitlements?: LeaveEntitlement[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TaxBracket {
+  id?: string;
+  minSalary?: number;
+  maxSalary?: number | null;
+  minAmount?: number;
+  maxAmount?: number | null;
+  rate: number;
+  deductible?: number;
+  effectiveDate?: string;
+  expiryDate?: string | null;
+}
+
+export interface LeaveEntitlement {
+  id?: string;
+  type: string;
+  daysPerYear: number;
+  isPaid: boolean;
+  description?: string;
+}
+
+export interface UpdatePayrollConfigDto {
+  minWage?: number;
+  minWagePeriod?: string;
+  minWageEffectiveDate?: string;
+  cnpsEmployeeRate?: number;
+  cnpsEmployerRate?: number;
+  irppBrackets?: TaxBracket[];
+  leaveEntitlements?: LeaveEntitlement[];
+}
+
+export const getPayrollConfiguration = async (subsidiaryId: string): Promise<PayrollConfig> => {
+  try {
+    // Essayer d'abord le endpoint avec /full
+    const { data } = await api.get<PayrollConfig>(`/configuration/payroll/${subsidiaryId}/full`);
+    return data;
+  } catch (error: any) {
+    // Fallback au endpoint simple si /full n'existe pas
+    if (error.response?.status === 404) {
+      const { data } = await api.get<PayrollConfig>(`/configuration/payroll/${subsidiaryId}`);
+      return data;
+    }
+    throw error;
+  }
+};
+
+export const getFullPayrollConfiguration = async (subsidiaryId: string): Promise<PayrollConfig> => {
+  return getPayrollConfiguration(subsidiaryId);
+};
+
+export const updatePayrollConfiguration = async (
+  subsidiaryId: string,
+  config: UpdatePayrollConfigDto
+): Promise<PayrollConfig> => {
+  const { data } = await api.put<PayrollConfig>(
+    `/configuration/payroll/${subsidiaryId}`,
+    config
+  );
+  return data;
+};
 
 /**
- * Données pour la mise à jour d'une fiche de paie.
- */
-export type PayrollRecordUpdateData = Partial<PayrollRecordCreationData>;
-
-/**
- * Récupère toutes les fiches de paie pour la filiale de l'utilisateur connecté.
+ * Récupère tous les enregistrements de paie pour la filiale de l'utilisateur connecté.
  * Protégé par rôle (HR_MANAGER, ADMIN).
  */
 export const getPayrollRecords = async (): Promise<PayrollRecord[]> => {
@@ -22,44 +88,25 @@ export const getPayrollRecords = async (): Promise<PayrollRecord[]> => {
 };
 
 /**
- * Récupère une fiche de paie spécifique par son ID.
+ * Traite la paie pour une période donnée.
  * Protégé par rôle (HR_MANAGER, ADMIN).
+ * @param period - La période de paie (ex: "2024-07")
  */
-export const getPayrollRecordById = async (id: string): Promise<PayrollRecord> => {
-  const { data } = await api.get<PayrollRecord>(`/hr/payroll-records/${id}`);
+export const processPayroll = async (period: string): Promise<PayrollRecord[]> => {
+  const { data } = await api.post<PayrollRecord[]>('/hr/payroll/process', { period });
   return data;
 };
 
 /**
- * Crée ou met à jour une fiche de paie.
+ * Signe un enregistrement de paie.
  * Protégé par rôle (HR_MANAGER, ADMIN).
- * @param payrollData - Les données de la fiche de paie.
+ * @param payrollId - L'ID de l'enregistrement de paie
+ * @param signature - La signature (URL ou données)
  */
-export const savePayrollRecord = async (payrollData: Partial<PayrollRecord>): Promise<PayrollRecord> => {
-  return payrollData.id
-    ? (await api.patch<PayrollRecord>(`/hr/payroll-records/${payrollData.id}`, payrollData)).data
-    : (await api.post<PayrollRecord>('/hr/payroll-records', payrollData)).data;
-};
-
-/**
- * Supprime une fiche de paie par son ID.
- * Protégé par rôle (HR_MANAGER, ADMIN).
- */
-export const deletePayrollRecord = async (id: string): Promise<PayrollRecord> => {
-  const { data } = await api.delete<PayrollRecord>(`/hr/payroll-records/${id}`);
+export const signPayrollRecord = async (payrollId: string, signature: string): Promise<PayrollRecord> => {
+  const { data } = await api.patch<PayrollRecord>(
+    `/hr/payroll-records/${payrollId}/sign`,
+    { signature }
+  );
   return data;
-};
-
-export const processPayroll = async (data: { period: string }): Promise<{ count: number }> => {
-  return (await api.post('/hr/payroll-records/process', data)).data;
-};
-
-/**
- * Signe une fiche de paie avec la signature de l'employé.
- * Protégé par rôle (HR_MANAGER, ADMIN).
- * @param payrollId - L'ID de la fiche de paie.
- * @param signature - La signature (base64).
- */
-export const signPayrollRecord = async (data: { payrollId: string; signature: string }): Promise<PayrollRecord> => {
-  return (await api.patch<PayrollRecord>(`/hr/payroll-records/${data.payrollId}/sign`, { signature: data.signature })).data;
 };

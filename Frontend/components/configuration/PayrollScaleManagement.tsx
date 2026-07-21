@@ -180,7 +180,7 @@ const PayrollScaleManagement: React.FC = () => {
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <h4 className="font-semibold text-slate-900">
-                    SMIG ({t('payroll.minWage')})
+                    {t('payroll.form.minWage')}
                   </h4>
                   <p className="text-sm text-slate-600">{t('payroll.modal.updateSmigDesc')}</p>
                 </div>
@@ -205,7 +205,7 @@ const PayrollScaleManagement: React.FC = () => {
             {/* CNPS Rates */}
             <div className="border border-slate-200 rounded-lg p-4">
               <h4 className="font-semibold text-slate-900 mb-4">
-                {t('payroll.modal.updateCnpsTitle')}
+                {t('payroll.cnpsEmployeeRate')} {t('payroll.form.employeeRate')} & {t('payroll.form.employerRate')}
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-slate-50 rounded-lg p-4">
@@ -213,7 +213,7 @@ const PayrollScaleManagement: React.FC = () => {
                     {t('payroll.form.employeeRate')}
                   </p>
                   <p className="text-2xl font-bold mt-2">
-                    {((config.cnpsEmployeeRate || 0.11) * 100).toFixed(2)}%
+                    {((config.cnpsEmployeeRate || 0.054) * 100).toFixed(2)}%
                   </p>
                 </div>
                 <div className="bg-slate-50 rounded-lg p-4">
@@ -221,7 +221,7 @@ const PayrollScaleManagement: React.FC = () => {
                     {t('payroll.form.employerRate')}
                   </p>
                   <p className="text-2xl font-bold mt-2">
-                    {((config.cnpsEmployerRate || 0.176) * 100).toFixed(2)}%
+                    {((config.cnpsEmployerRate || 0.064) * 100).toFixed(2)}%
                   </p>
                 </div>
               </div>
@@ -257,10 +257,10 @@ const PayrollScaleManagement: React.FC = () => {
                   <tbody>
                     {(
                       config.taxBrackets || [
-                        { minSalary: 0, maxSalary: 355000, rate: 0 },
-                        { minSalary: 355000, maxSalary: 545000, rate: 10 },
-                        { minSalary: 545000, maxSalary: 1000000, rate: 15 },
-                        { minSalary: 1000000, maxSalary: null, rate: 20 },
+                        { minSalary: 0, maxSalary: 355000, rate: 0, deductible: 0 },
+                        { minSalary: 355000, maxSalary: 545000, rate: 10, deductible: 35500 },
+                        { minSalary: 545000, maxSalary: 1000000, rate: 15, deductible: 89000 },
+                        { minSalary: 1000000, maxSalary: null, rate: 20, deductible: 170000 },
                       ]
                     ).map((bracket, idx) => (
                       <tr key={idx} className="border-b">
@@ -298,14 +298,14 @@ const PayrollScaleManagement: React.FC = () => {
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {(config.leaveEntitlements || [
-                  { type: 'Annual', daysPerYear: 30, isPaid: true },
-                  { type: 'Sick', daysPerYear: 15, isPaid: true },
-                  { type: 'Maternity', daysPerYear: 56, isPaid: true },
-                  { type: 'Paternity', daysPerYear: 3, isPaid: true },
+                  { type: t('hr.leaveType.annual'), daysPerYear: 30, isPaid: true },
+                  { type: t('hr.leaveType.sick'), daysPerYear: 15, isPaid: true },
+                  { type: t('hr.leaveType.maternity'), daysPerYear: 56, isPaid: true },
+                  { type: t('hr.leaveType.paternity'), daysPerYear: 3, isPaid: true },
                 ]).map((leave, idx) => (
                   <div key={idx} className="bg-slate-50 rounded-lg p-4">
                     <p className="text-sm text-slate-600">
-                      {leave.type} {leave.isPaid ? '(Paid)' : '(Unpaid)'}
+                      {leave.type} {leave.isPaid ? `(${t('payroll.form.paid')})` : `(${t('payroll.form.unpaid')})`}
                     </p>
                     <p className="text-2xl font-bold mt-2">
                       {leave.daysPerYear} {t('payroll.form.daysPerYear')}
@@ -330,9 +330,7 @@ const PayrollScaleManagement: React.FC = () => {
         <CardBody>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-700">
-              ℹ️ <strong>Note:</strong> These are the standard rates for Cameroon 2024. All values
-              are used automatically when calculating employee payroll. Changes will apply to future
-              payroll calculations.
+              ℹ️ <strong>{t('payroll.infoBox.title')}:</strong> {t('payroll.infoBoxText')}
             </p>
           </div>
         </CardBody>
@@ -382,10 +380,10 @@ const PayrollScaleManagement: React.FC = () => {
         onSave={handleSaveLeave}
         entitlements={
           config.leaveEntitlements || [
-            { type: 'Annual', daysPerYear: 30, isPaid: true },
-            { type: 'Sick', daysPerYear: 15, isPaid: true },
-            { type: 'Maternity', daysPerYear: 56, isPaid: true },
-            { type: 'Paternity', daysPerYear: 3, isPaid: true },
+            { type: t('hr.leaveType.annual'), daysPerYear: 30, isPaid: true },
+            { type: t('hr.leaveType.sick'), daysPerYear: 15, isPaid: true },
+            { type: t('hr.leaveType.maternity'), daysPerYear: 56, isPaid: true },
+            { type: t('hr.leaveType.paternity'), daysPerYear: 3, isPaid: true },
           ]
         }
         isLoading={saving}

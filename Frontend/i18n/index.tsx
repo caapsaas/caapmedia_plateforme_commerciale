@@ -1034,6 +1034,15 @@ const frTranslations = {
       "contractType": "Contrat",
       "status": "Statut"
     },
+    "table": {
+      "name": "Nom",
+      "email": "Email",
+      "department": "Département",
+      "position": "Poste",
+      "status": "Statut",
+      "salary": "Salaire",
+      "actions": "Actions"
+    },
     "attendance": {
       "title": "Gestion des Présences",
       "record": "Pointer une présence",
@@ -1052,7 +1061,8 @@ const frTranslations = {
       "notSigned": "Non signé"
     },
     "payroll": {
-      "title": "Gestion de la Paie",
+      "title": "Échelles et Configuration de Paie",
+      "taxBracketsDesc": "Configurez les paramètres de paie standard pour le Cameroun",
       "process": "Traiter la paie du mois",
       "employee": "Employé",
       "period": "Période",
@@ -1070,7 +1080,37 @@ const frTranslations = {
       "deductions": "Déductions",
       "socialDeductions": "Cotisations Sociales",
       "taxDeductions": "Prélèvements Fiscaux",
-      "absenceDeductions": "Déductions pour Absences"
+      "absenceDeductions": "Déductions pour Absences",
+      "minWage": "Salaire Minimum",
+      "cnpsEmployeeRate": "Taux CNPS",
+      "success": {
+        "updated": "Configuration mise à jour avec succès"
+      },
+      "error": {
+        "update": "Erreur lors de la mise à jour de la configuration"
+      },
+      "modal": {
+        "updateSmigDesc": "Mettre à jour le salaire minimum interprofessionnel garanti (SMIG) en vigueur",
+        "updateCnpsTitle": "Modifier les Taux CNPS",
+        "updateIrppTitle": "Modifier les Tranches IRPP",
+        "updateLeaveTitle": "Modifier les Droits aux Congés"
+      },
+      "form": {
+        "minWage": "Salaire Minimum",
+        "minAmount": "Montant Minimum",
+        "maxAmount": "Montant Maximum",
+        "rate": "Taux",
+        "above": "Au-dessus de",
+        "daysPerYear": "jours par an",
+        "employeeRate": "Taux Employé",
+        "employerRate": "Taux Employeur",
+        "paid": "Payé",
+        "unpaid": "Non payé"
+      },
+      "infoBox": {
+        "title": "Note"
+      },
+      "infoBoxText": "Ce sont les taux standards au Cameroun pour 2024. Toutes les valeurs sont utilisées automatiquement lors du calcul de la paie des employés. Les modifications s'appliqueront aux futures paies."
     },
     "modals": {
       "sign": {
@@ -1101,6 +1141,61 @@ const frTranslations = {
       "CHECK": "Chèque",
       "CASH": "Espèces"
     },
+    "bankingDetails": "Coordonnées bancaires",
+    "bankName": "Nom de la banque",
+    "bankAccountNumber": "Numéro de compte (RIB/IBAN)",
+    "maritalStatus": "Situation matrimoniale",
+    "maritalStatusOptions": {
+      "SINGLE": "Célibataire",
+      "MARRIED": "Marié(e)",
+      "DIVORCED": "Divorcé(e)",
+      "WIDOWED": "Veuf/Veuve"
+    },
+    "numberDependents": "Nombre de dépendants",
+    "dependentsHelperText": "Pour le calcul de la déduction fiscale",
+    "form": {
+      "sections": {
+        "personal": "Informations personnelles",
+        "professional": "Informations professionnelles",
+        "salary": "Salaire et rémunération",
+        "documents": "Documents",
+        "leaves": "Droits aux congés"
+      },
+      "salarySection": {
+        "title": "Salaire et rémunération",
+        "subtitle": "Informations financières",
+        "baseSalary": "Salaire de base",
+        "baseSalaryHelper": "Salaire minimum (FCFA)",
+        "bonus": "Prime",
+        "bonusHelper": "Rémunération supplémentaire (FCFA)",
+        "paymentMethod": "Mode de paiement"
+      },
+      "documentsSection": {
+        "title": "Documents",
+        "subtitle": "Documentation de l'employé",
+        "uploadMessage": "📄 La fonctionnalité de téléchargement de documents sera implémentée ici"
+      },
+      "leavesSection": {
+        "title": "Droits aux congés",
+        "subtitle": "Configuration du solde des congés",
+        "tabBalance": "Solde des congés",
+        "tabRecords": "Historique des congés"
+      }
+    },
+    "leaves": {
+      "leaveHistory": "Historique des congés",
+      "addLeaveRecord": "Enregistrer un congé",
+      "noRecords": "Aucun enregistrement de congé",
+      "daysHelper": "Nombre de jours de congé",
+      "unpaidHelperText": "Jours de congé non payés",
+      "balanceInfo": "Solde des congés disponibles",
+      "leaveType": "Type de congé",
+      "days": "Jours",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "configureBalance": "Configurer le solde des congés"
+    },
+    "cancel": "Annuler",
     "documents": {
       "title": "Documents",
       "addDocument": "Ajouter un document",
@@ -1114,7 +1209,19 @@ const frTranslations = {
       "file": "Fichier",
       "selectFile": "Sélectionner un fichier",
       "fileSelected": "Fichier sélectionné",
-      "noFileSelected": "Aucun fichier sélectionné"
+      "noFileSelected": "Aucun fichier sélectionné",
+      "contract": "Contrat de travail",
+      "idCard": "Carte d'identité / CNI",
+      "workPermit": "Permis de travail",
+      "diplomas": "Diplômes et certifications",
+      "uploaded": "✓ Importé",
+      "download": "Télécharger",
+      "remove": "Supprimer",
+      "dragOrClick": "Glissez-déposez votre fichier ici, ou cliquez pour sélectionner",
+      "addDiplomas": "Ajouter des diplômes et certifications",
+      "diplomasHelper": "Vous pouvez importer plusieurs diplômes et documents de certification",
+      "uploadedDiplomas": "Diplômes importés",
+      "requirements": "Documents requis : Contrat de travail, Carte d'identité/CNI et Permis de travail. Les diplômes sont optionnels mais recommandés."
     },
     "documentType": {
       "idCard": "Carte d'identité",
@@ -1135,49 +1242,16 @@ const frTranslations = {
       "personal": "Congés personnels",
       "maternity": "Congés maternité",
       "paternity": "Congés paternité",
-      "other": "Autres congés"
+      "other": "Autres congés",
+      "unpaid": "Congés non payés"
     },
     "leaveBalance": {
       "title": "Solde des congés",
       "summary": "Résumé",
       "totalDays": "Total des jours",
-      "days": "jours"
-    },
-    "details": {
-      "personalInfo": "Informations personnelles",
-      "lastName": "Nom",
-      "firstName": "Prénom",
-      "birthDate": "Date de naissance",
-      "gender": "Sexe",
-      "nationality": "Nationalité",
-      "ssn": "N° de sécurité sociale",
-      "phone": "Téléphone",
-      "email": "Email",
-      "address": "Adresse",
-      "professionalInfo": "Informations professionnelles",
-      "position": "Poste",
-      "department": "Département",
-      "hireDate": "Date d'embauche",
-      "contractType": "Type de contrat",
-      "status": "Statut",
-      "workLocation": "Lieu de travail",
-      "manager": "Manager",
-      "none": "Aucun",
-      "salaryInfo": "Informations salariales",
-      "baseSalary": "Salaire de base",
-      "bonus": "Bonus",
-      "benefits": "Avantages",
-      "paymentMethod": "Mode de paiement",
-      "lastSalaryAdjustment": "Dernier ajustement",
-      "notApplicable": "N/A",
-      "documents": "Documents administratifs",
-      "contract": "Contrat de travail",
-      "idCard": "Pièce d'identité",
-      "workPermit": "Permis de travail",
-      "diplomas": "Diplômes",
-      "noDocument": "Aucun document",
-      "leaveInfo": "Informations sur les congés",
-      "leaveBalance": "Solde de congés"
+      "days": "jours",
+      "unpaidLeave": "Congés non payés",
+      "totalEntitlements": "Droits aux congés totaux"
     },
     "absences": {
       "title": "Gestion des Absences",
@@ -1196,7 +1270,78 @@ const frTranslations = {
     "absenceType": {
       "JUSTIFIED": "Justifiée",
       "UNJUSTIFIED": "Non justifiée"
-    }
+    },
+    "stats": {
+      "totalEmployees": "Total des employés",
+      "totalEmployeesSubtitle": "Actifs & tous les statuts",
+      "active": "Actifs",
+      "activeSubtitle": "% de la main-d'œuvre",
+      "onLeave": "En congé",
+      "onLeaveSubtitle": "Actuellement absent",
+      "recentlyAdded": "Récemment ajoutés",
+      "recentlyAddedSubtitle": "30 derniers jours"
+    },
+    "actions": {
+      "export": "Exporter",
+      "csv": "CSV",
+      "pdf": "PDF",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "view": "Afficher",
+      "confirm": "Êtes-vous sûr ?"
+    },
+    "details": {
+      "personalInfo": "Informations personnelles",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "birthDate": "Date de naissance",
+      "nationality": "Nationalité",
+      "phone": "Téléphone",
+      "email": "Email",
+      "address": "Adresse",
+      "professionalInfo": "Informations professionnelles",
+      "department": "Département",
+      "position": "Poste",
+      "workLocation": "Lieu de travail",
+      "hireDate": "Date d'embauche",
+      "contractType": "Type de contrat",
+      "status": "Statut",
+      "yearsOfService": "Années de service",
+      "contract": "Contrat",
+      "salary": "Salaire & Rémunération",
+      "baseSalary": "Salaire de base",
+      "bonus": "Prime",
+      "paymentMethod": "Mode de paiement",
+      "lastSalaryAdjustment": "Dernier ajustement",
+      "leaveEntitlements": "Droits aux congés",
+      "cameroonInfo": "Informations Cameroun",
+      "cnpsNumber": "Numéro CNPS",
+      "cnpsCategory": "Catégorie CNPS",
+      "taxId": "N-tif",
+      "maritalStatus": "Situation matrimoniale",
+      "bankAccount": "Compte bancaire",
+      "bankAccountNumber": "Numéro de compte bancaire",
+      "documents": "Documents",
+      "idCard": "Carte d'identité",
+      "workPermit": "Permis de travail",
+      "diplomas": "Diplômes"
+    },
+    "payrollInfo": {
+      "cameroonPayroll": "Paie Cameroun",
+      "belowSmig": "Salaire en dessous du SMIG",
+      "grossSalary": "Salaire brut",
+      "smig": "SMIG 2024",
+      "deductions": "Déductions",
+      "cnpsEmployee": "CNPS Employé (11%)",
+      "cnpsEmployer": "Contribution employeur (17.6%)",
+      "fcfa": "FCFA",
+      "taxInfo": "Informations fiscales",
+      "dependents": "Personnes à charge",
+      "taxReduction": "Réduction fiscale"
+    },
+    "editEmployee": "Modifier l'employé",
+    "addEmployee": "Ajouter un employé",
+    "updateEmployee": "Mettre à jour l'employé"
   },
   "secretariat": {
     "title": "Secrétariat",
@@ -2647,6 +2792,15 @@ const enTranslations: Translations = {
             "contractType": "Contract",
             "status": "Status"
         },
+        "table": {
+            "name": "Name",
+            "email": "Email",
+            "department": "Department",
+            "position": "Position",
+            "status": "Status",
+            "salary": "Salary",
+            "actions": "Actions"
+        },
         "attendance": {
             "title": "Attendance Management",
             "record": "Record Attendance",
@@ -2665,7 +2819,8 @@ const enTranslations: Translations = {
             "notSigned": "Not signed"
         },
         "payroll": {
-            "title": "Payroll Management",
+            "title": "Payroll Scales & Configuration",
+            "taxBracketsDesc": "Configure standard payroll parameters for Cameroon",
             "process": "Process this month's payroll",
             "employee": "Employee",
             "period": "Period",
@@ -2683,7 +2838,37 @@ const enTranslations: Translations = {
             "deductions": "Deductions",
             "socialDeductions": "Social Contributions",
             "taxDeductions": "Tax Deductions",
-            "absenceDeductions": "Absence Deductions"
+            "absenceDeductions": "Absence Deductions",
+            "minWage": "Minimum Wage",
+            "cnpsEmployeeRate": "CNPS Employee Rate",
+            "success": {
+                "updated": "Configuration updated successfully"
+            },
+            "error": {
+                "update": "Error updating configuration"
+            },
+            "modal": {
+                "updateSmigDesc": "Update the minimum wage (SMIG) currently in effect",
+                "updateCnpsTitle": "Update CNPS Rates",
+                "updateIrppTitle": "Update IRPP Tax Brackets",
+                "updateLeaveTitle": "Update Leave Entitlements"
+            },
+            "form": {
+                "minWage": "Minimum Wage",
+                "minAmount": "Minimum Amount",
+                "maxAmount": "Maximum Amount",
+                "rate": "Rate",
+                "above": "Above",
+                "daysPerYear": "days per year",
+                "employeeRate": "Employee Rate",
+                "employerRate": "Employer Rate",
+                "paid": "Paid",
+                "unpaid": "Unpaid"
+            },
+            "infoBox": {
+                "title": "Note"
+            },
+            "infoBoxText": "These are the standard rates for Cameroon 2024. All values are used automatically when calculating employee payroll. Changes will apply to future payroll calculations."
         },
         "modals": {
             "sign": {
@@ -2714,6 +2899,61 @@ const enTranslations: Translations = {
             "CHECK": "Check",
             "CASH": "Cash"
         },
+        "bankingDetails": "Banking Details",
+        "bankName": "Bank Name",
+        "bankAccountNumber": "Account Number (RIB/IBAN)",
+        "maritalStatus": "Marital Status",
+        "maritalStatusOptions": {
+            "SINGLE": "Single",
+            "MARRIED": "Married",
+            "DIVORCED": "Divorced",
+            "WIDOWED": "Widowed"
+        },
+        "numberDependents": "Number of Dependents",
+        "dependentsHelperText": "For tax deduction calculation",
+        "form": {
+            "sections": {
+                "personal": "Personal Information",
+                "professional": "Professional Information",
+                "salary": "Salary & Compensation",
+                "documents": "Documents",
+                "leaves": "Leave Entitlements"
+            },
+            "salarySection": {
+                "title": "Salary & Compensation",
+                "subtitle": "Financial information",
+                "baseSalary": "Base Salary",
+                "baseSalaryHelper": "Minimum salary (FCFA)",
+                "bonus": "Bonus",
+                "bonusHelper": "Additional compensation (FCFA)",
+                "paymentMethod": "Payment Method"
+            },
+            "documentsSection": {
+                "title": "Documents",
+                "subtitle": "Employee documentation",
+                "uploadMessage": "📄 Document upload functionality would be implemented here"
+            },
+            "leavesSection": {
+                "title": "Leave Entitlements",
+                "subtitle": "Leave balance configuration",
+                "tabBalance": "Leave Balance",
+                "tabRecords": "Leave History"
+            }
+        },
+        "cancel": "Cancel",
+        "leaves": {
+            "leaveHistory": "Leave History",
+            "addLeaveRecord": "Record Leave",
+            "noRecords": "No leave records",
+            "daysHelper": "Number of leave days",
+            "unpaidHelperText": "Unpaid leave days",
+            "balanceInfo": "Available leave balance",
+            "leaveType": "Leave Type",
+            "days": "Days",
+            "startDate": "Start Date",
+            "endDate": "End Date",
+            "configureBalance": "Configure Leave Balance"
+        },
         "documents": {
             "title": "Documents",
             "addDocument": "Add Document",
@@ -2727,7 +2967,19 @@ const enTranslations: Translations = {
             "file": "File",
             "selectFile": "Select a file",
             "fileSelected": "File selected",
-            "noFileSelected": "No file selected"
+            "noFileSelected": "No file selected",
+            "contract": "Employment Contract",
+            "idCard": "ID Card / National ID",
+            "workPermit": "Work Permit",
+            "diplomas": "Diplomas & Certifications",
+            "uploaded": "✓ Uploaded",
+            "download": "Download",
+            "remove": "Remove",
+            "dragOrClick": "Drag and drop your file here, or click to select",
+            "addDiplomas": "Add Diplomas & Certifications",
+            "diplomasHelper": "You can upload multiple diplomas and certification documents",
+            "uploadedDiplomas": "Uploaded Diplomas",
+            "requirements": "Required documents: Employment Contract, ID Card/National ID, and Work Permit. Diplomas are optional but recommended."
         },
         "documentType": {
             "idCard": "ID Card",
@@ -2748,49 +3000,16 @@ const enTranslations: Translations = {
             "personal": "Personal Leave",
             "maternity": "Maternity Leave",
             "paternity": "Paternity Leave",
-            "other": "Other Leave"
+            "other": "Other Leave",
+            "unpaid": "Unpaid Leave"
         },
         "leaveBalance": {
             "title": "Leave Balance",
             "summary": "Summary",
             "totalDays": "Total Days",
-            "days": "days"
-        },
-        "details": {
-            "personalInfo": "Personal Information",
-            "lastName": "Last Name",
-            "firstName": "First Name",
-            "birthDate": "Birth Date",
-            "gender": "Gender",
-            "nationality": "Nationality",
-            "ssn": "Social Security Number",
-            "phone": "Phone",
-            "email": "Email",
-            "address": "Address",
-            "professionalInfo": "Professional Information",
-            "position": "Position",
-            "department": "Department",
-            "hireDate": "Hire Date",
-            "contractType": "Contract Type",
-            "status": "Status",
-            "workLocation": "Work Location",
-            "manager": "Manager",
-            "none": "None",
-            "salaryInfo": "Salary Information",
-            "baseSalary": "Base Salary",
-            "bonus": "Bonus",
-            "benefits": "Benefits",
-            "paymentMethod": "Payment Method",
-            "lastSalaryAdjustment": "Last Adjustment",
-            "notApplicable": "N/A",
-            "documents": "Administrative Documents",
-            "contract": "Employment Contract",
-            "idCard": "ID Card",
-            "workPermit": "Work Permit",
-            "diplomas": "Diplomas",
-            "noDocument": "No document",
-            "leaveInfo": "Leave Information",
-            "leaveBalance": "Leave Balance"
+            "days": "days",
+            "unpaidLeave": "Unpaid Leave",
+            "totalEntitlements": "Total Leave Entitlements"
         },
         "absences": {
             "title": "Absence Management",
@@ -2809,7 +3028,112 @@ const enTranslations: Translations = {
         "absenceType": {
             "JUSTIFIED": "Justified",
             "UNJUSTIFIED": "Unjustified"
-        }
+        },
+        "stats": {
+            "totalEmployees": "Total Employees",
+            "totalEmployeesSubtitle": "Active & all statuses",
+            "active": "Active",
+            "activeSubtitle": "% of workforce",
+            "onLeave": "On Leave",
+            "onLeaveSubtitle": "Currently away",
+            "recentlyAdded": "Recently Added",
+            "recentlyAddedSubtitle": "Last 30 days"
+        },
+        "actions": {
+            "export": "Export",
+            "csv": "CSV",
+            "pdf": "PDF",
+            "edit": "Edit",
+            "delete": "Delete",
+            "view": "View",
+            "confirm": "Are you sure?"
+        },
+        "details": {
+            "personalInfo": "Personal Information",
+            "firstName": "First Name",
+            "lastName": "Last Name",
+            "birthDate": "Birth Date",
+            "nationality": "Nationality",
+            "phone": "Phone",
+            "email": "Email",
+            "address": "Address",
+            "professionalInfo": "Professional Information",
+            "department": "Department",
+            "position": "Position",
+            "workLocation": "Work Location",
+            "hireDate": "Hire Date",
+            "contractType": "Contract Type",
+            "status": "Status",
+            "yearsOfService": "Years of Service",
+            "contract": "Contract",
+            "salary": "Salary & Compensation",
+            "baseSalary": "Base Salary",
+            "bonus": "Bonus",
+            "paymentMethod": "Payment Method",
+            "lastSalaryAdjustment": "Last Salary Adjustment",
+            "leaveEntitlements": "Leave Entitlements",
+            "cameroonInfo": "Cameroon Information",
+            "cnpsNumber": "CNPS Number",
+            "cnpsCategory": "CNPS Category",
+            "taxId": "N-tif",
+            "maritalStatus": "Marital Status",
+            "bankAccount": "Bank Account",
+            "bankAccountNumber": "Bank Account Number",
+            "documents": "Documents",
+            "idCard": "ID Card",
+            "workPermit": "Work Permit",
+            "diplomas": "Diplomas"
+        },
+        "form": {
+            "sections": {
+                "personal": "Personal Information",
+                "professional": "Professional Information",
+                "salary": "Salary & Compensation",
+                "cameroon": "Cameroon Information",
+                "documents": "Documents",
+                "leaves": "Leaves"
+            },
+            "labels": {
+                "firstName": "First Name",
+                "lastName": "Last Name",
+                "birthDate": "Birth Date",
+                "gender": "Gender",
+                "nationality": "Nationality",
+                "phone": "Phone",
+                "email": "Email",
+                "address": "Address",
+                "position": "Position",
+                "department": "Department",
+                "hireDate": "Hire Date",
+                "contractType": "Contract Type",
+                "status": "Status",
+                "workLocation": "Work Location",
+                "baseSalary": "Base Salary",
+                "bonus": "Bonus",
+                "paymentMethod": "Payment Method",
+                "cnpsNumber": "CNPS Number",
+                "categoryCodeCNPS": "CNPS Category",
+                "taxIdNTif": "N-tif",
+                "situationMatrimony": "Marital Status",
+                "bankAccountNumber": "Bank Account"
+            }
+        },
+        "payrollInfo": {
+            "cameroonPayroll": "Cameroon Payroll",
+            "belowSmig": "Salary below SMIG",
+            "grossSalary": "Gross Salary",
+            "smig": "SMIG 2024",
+            "deductions": "Deductions",
+            "cnpsEmployee": "CNPS Employee (11%)",
+            "cnpsEmployer": "Employer Contribution (17.6%)",
+            "fcfa": "FCFA",
+            "taxInfo": "Tax Info",
+            "dependents": "Dependents",
+            "taxReduction": "Tax reduction"
+        },
+        "editEmployee": "Edit Employee",
+        "addEmployee": "Add Employee",
+        "updateEmployee": "Update Employee"
     },
     "secretariat": {
         "title": "Secretariat",

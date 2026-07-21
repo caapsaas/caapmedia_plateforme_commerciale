@@ -583,6 +583,9 @@ export interface Employee {
     benefits: string[];
     lastSalaryAdjustmentDate: string | null;
     paymentMethod: PaymentMethod;
+    // Banking Info
+    bankName?: string;
+    bankAccountNumber?: string;
     // Documents
     documents: {
         contract: EmployeeDocument | null;
@@ -615,30 +618,32 @@ export interface Employee {
         maternity: number;
         paternity: number;
         other: number;
+        unpaid: number;
     };
     leaveRecords: LeaveRecord[];
+    // Personal Information
+    numberDependents?: number;
+    situationMatrimony?: string;
 }
 
 export enum LeaveType {
   ANNUAL = 'ANNUAL',
   SICK = 'SICK',
+  PERSONAL = 'PERSONAL',
+  MATERNITY = 'MATERNITY',
+  PATERNITY = 'PATERNITY',
+  OTHER = 'OTHER',
   UNPAID = 'UNPAID',
 }
 
 export interface LeaveRecord {
-  type: LeaveType;
+  leaveRecordType: LeaveType;
   startDate: string;
   endDate: string;
   days: number;
 }
 
 export type EmployeeFormData = Omit<Employee, 'id' | 'subsidiaryId' | 'positionHistory' | 'trainings' | 'performanceReviews'> & {
-    documents: {
-        contract: {name: string, url: string, file: File | null} | null;
-        idCard: {name: string, url: string, file: File | null} | null;
-        workPermit: {name: string, url: string, file: File | null} | null;
-        diplomas: {name: string, url: string, file: File | null}[];
-    };
     leaveBalance: {
         annual: number;
         sick: number;
@@ -646,8 +651,8 @@ export type EmployeeFormData = Omit<Employee, 'id' | 'subsidiaryId' | 'positionH
         maternity: number;
         paternity: number;
         other: number;
+        unpaid: number;
     };
-    leaveRecords: LeaveRecord[];
 };
 
 

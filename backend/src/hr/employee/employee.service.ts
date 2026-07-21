@@ -31,6 +31,20 @@ export class EmployeeService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * Helper method to convert Prisma Decimal to number for API response
+   */
+  private convertEmployeeToDTO(employee: any): any {
+    if (!employee) return employee;
+
+    return {
+      ...employee,
+      baseSalary: employee.baseSalary ? Number(employee.baseSalary) : 0,
+      bonus: employee.bonus ? Number(employee.bonus) : 0,
+      leaveBalance: employee.leaveBalance ? Number(employee.leaveBalance) : 0,
+    };
+  }
+
+  /**
    * Helper method to convert leave balances from database format to frontend format
    */
   private convertLeaveBalancesToFrontendFormat(leaveBalances: any[]): {
@@ -40,6 +54,7 @@ export class EmployeeService {
     maternity: number;
     paternity: number;
     other: number;
+    unpaid: number;
   } {
     const leaveBalanceObj = {
       annual: 0,
@@ -48,6 +63,7 @@ export class EmployeeService {
       maternity: 0,
       paternity: 0,
       other: 0,
+      unpaid: 0,
     };
 
     leaveBalances.forEach((balance) => {
@@ -72,6 +88,7 @@ export class EmployeeService {
       maternity: number;
       paternity: number;
       other: number;
+      unpaid?: number;
     }
   ) {
     const leaveTypeMapping = {
@@ -81,11 +98,12 @@ export class EmployeeService {
       maternity: 'MATERNITY' as LeaveType,
       paternity: 'PATERNITY' as LeaveType,
       other: 'OTHER' as LeaveType,
+      unpaid: 'UNPAID' as LeaveType,
     };
 
     for (const [key, days] of Object.entries(leaveBalance)) {
-      const leaveType = leaveTypeMapping[key];
-      if (leaveType) {
+      const leaveType = leaveTypeMapping[key as keyof typeof leaveTypeMapping];
+      if (leaveType && days !== undefined) {
         await this.updateLeaveBalance(employeeId, leaveType, days, 'set');
       }
     }
@@ -96,8 +114,7 @@ export class EmployeeService {
    */
   async create(
     createEmployeeDto: CreateEmployeeDto,
-    subsidiaryId: string,
-    employeeId?: string // Ajouter un paramètre optionnel pour l'ID de l'employé
+    subsidiaryId: string
   ): Promise<Employee> {
     this.logger.log(`Attempting to create employee for subsidiary ${subsidiaryId}`);
 
@@ -107,21 +124,16 @@ export class EmployeeService {
       throw new BadRequestException(`Subsidiary with ID ${subsidiaryId} not found.`);
     }
 
-    // Vérifier si un employé avec cet e-mail existe déjà (en excluant l'employé actuel si ID fourni)
+    // Vérifier si un employé avec cet e-mail existe déjà
     this.logger.log(`Checking email existence for: ${createEmployeeDto.email}`);
     const existingEmployee = await this.prisma.employee.findUnique({
       where: { email: createEmployeeDto.email },
     });
     this.logger.log(`Existing employee found: ${JSON.stringify(existingEmployee)}`);
-    
-    if (existingEmployee && (!employeeId || existingEmployee.id !== employeeId)) {
+
+    if (existingEmployee) {
       this.logger.warn(`Email conflict detected for email: ${createEmployeeDto.email}`);
       throw new ConflictException(`An employee with the email ${createEmployeeDto.email} already exists.`);
-    }
-
-    // Si un employeeId est fourni, c'est une mise à jour déguisée
-    if (employeeId) {
-      return this.update(employeeId, createEmployeeDto as any);
     }
 
     try {
@@ -153,6 +165,10 @@ export class EmployeeService {
             positions: createEmployeeDto.positions,
             subsidiaryId,
             leaveBalance: 0,
+            // Personal information fields
+            numberDependents: createEmployeeDto.numberDependents || 0,
+            situationMatrimony: createEmployeeDto.situationMatrimony || 'SINGLE',
+            bankAccountNumber: createEmployeeDto.bankAccountNumber,
           },
           include: {
             manager: true,
@@ -161,7 +177,7 @@ export class EmployeeService {
         });
 
         // Initialize leave balances for all leave types
-        const leaveTypes = ['ANNUAL', 'SICK', 'PERSONAL', 'MATERNITY', 'PATERNITY', 'OTHER'] as LeaveType[];
+        const leaveTypes = ['ANNUAL', 'SICK', 'PERSONAL', 'MATERNITY', 'PATERNITY', 'OTHER', 'UNPAID'] as LeaveType[];
 
         for (const leaveType of leaveTypes) {
           const balanceKey = leaveType.toLowerCase();
@@ -181,7 +197,7 @@ export class EmployeeService {
       });
 
       this.logger.log(`Employee created with ID: ${employee.id}`);
-      return employee;
+      return this.convertEmployeeToDTO(employee);
     } catch (error) {
       this.logger.error(`Failed to create employee: ${error.message}`, error.stack);
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -222,11 +238,13 @@ export class EmployeeService {
         }
       : {};
 
-    return this.prisma.employee.findMany({
+    const employees = await this.prisma.employee.findMany({
       where: { subsidiaryId },
       include,
       orderBy: { lastName: 'asc' },
     });
+
+    return employees.map(emp => this.convertEmployeeToDTO(emp));
   }
 
   /**
@@ -255,7 +273,7 @@ export class EmployeeService {
     if (!employee) {
       throw new NotFoundException(`Employee with ID ${id} not found`);
     }
-    return employee;
+    return this.convertEmployeeToDTO(employee);
   }
 
   /**
@@ -383,7 +401,7 @@ export class EmployeeService {
         const existingEmployee = await this.prisma.employee.findUnique({
           where: { email: updateEmployeeDto.email },
         });
-        
+
         if (existingEmployee && existingEmployee.id !== id) {
           throw new ConflictException(`An employee with the email ${updateEmployeeDto.email} already exists.`);
         }
@@ -393,10 +411,14 @@ export class EmployeeService {
 
       // Filtrer les champs valides uniquement
       const validFields = [
-        'lastName', 'firstName', 'address', 'phone', 'email', 'nationality', 
-        'socialSecurityNumber', 'department', 'workLocation', 'positions',
-        'gender', 'contractType', 'status', 'paymentMethod', 'managerId',
-        'baseSalary', 'bonus', 'benefits', 'lastSalaryAdjustmentDate'
+        'lastName', 'firstName', 'birthDate', 'address', 'phone', 'email', 'nationality',
+        'socialSecurityNumber', 'department', 'hireDate', 'workLocation', 'positions',
+        'gender', 'contractType', 'status', 'paymentMethod',
+        'baseSalary', 'bonus', 'benefits', 'lastSalaryAdjustmentDate',
+        // Personal information fields
+        'numberDependents', 'situationMatrimony', 'bankAccountNumber', 'bankName',
+        // Cameroon-specific fields
+        'cnpsNumber', 'cnpsNumberEncrypted', 'categoryCodeCNPS', 'taxIdNTif'
       ];
 
       // Copier uniquement les champs valides
@@ -416,13 +438,151 @@ export class EmployeeService {
         }
       });
 
-      const employee = await this.prisma.employee.update({
-        where: { id },
-        data: dataToUpdate,
-        include: { manager: true, subsidiary: true },
+      // Handle relation: managerId
+      if (updateEmployeeDto.managerId !== undefined) {
+        if (updateEmployeeDto.managerId === null) {
+          dataToUpdate.manager = { disconnect: true };
+        } else {
+          dataToUpdate.manager = { connect: { id: updateEmployeeDto.managerId } };
+        }
+      }
+
+      await this.prisma.$transaction(async (prisma) => {
+        // Update employee base data
+        await prisma.employee.update({
+          where: { id },
+          data: dataToUpdate,
+        });
+
+        // Update leave balances if provided
+        if (updateEmployeeDto.leaveBalance) {
+          // Delete existing leave balances
+          await prisma.employeeLeaveBalance.deleteMany({ where: { employeeId: id } });
+
+          // Create new leave balances
+          const leaveTypeMapping = {
+            annual: 'ANNUAL' as LeaveType,
+            sick: 'SICK' as LeaveType,
+            personal: 'PERSONAL' as LeaveType,
+            maternity: 'MATERNITY' as LeaveType,
+            paternity: 'PATERNITY' as LeaveType,
+            other: 'OTHER' as LeaveType,
+            unpaid: 'UNPAID' as LeaveType,
+          };
+
+          for (const [leaveKey, days] of Object.entries(updateEmployeeDto.leaveBalance)) {
+            const leaveType = leaveTypeMapping[leaveKey] || 'OTHER';
+            await prisma.employeeLeaveBalance.create({
+              data: {
+                id: generateId(ID_PREFIXES.EMPLOYEELEAVEBALANCE),
+                employeeId: id,
+                leaveType,
+                days: Number(days),
+              },
+            });
+          }
+        }
+
+        // Update leave records if provided
+        if (updateEmployeeDto.leaveRecords && Array.isArray(updateEmployeeDto.leaveRecords)) {
+          // Clear existing records and create new ones
+          await prisma.employeeLeaveRecord.deleteMany({ where: { employeeId: id } });
+
+          for (const record of updateEmployeeDto.leaveRecords) {
+            await prisma.employeeLeaveRecord.create({
+              data: {
+                id: generateId(ID_PREFIXES.EMPLOYEELEAVERECORD),
+                employeeId: id,
+                leaveRecordType: record.leaveRecordType,
+                startDate: new Date(record.startDate),
+                endDate: new Date(record.endDate),
+                days: record.days,
+              },
+            });
+          }
+        }
+
+        // Update documents if provided
+        // Handle both formats: frontend format { contract, idCard, workPermit, diplomas } and backend format [{ documentName, url, docType }]
+        if (updateEmployeeDto.documents) {
+          // Clear existing documents
+          await prisma.employeeDocument.deleteMany({ where: { employeeId: id } });
+
+          // Handle frontend format: { contract, idCard, workPermit, diplomas }
+          const docsData = updateEmployeeDto.documents as any;
+
+          if (Array.isArray(docsData)) {
+            // Handle backend format: array of { documentName, url, docType }
+            for (const doc of docsData) {
+              await prisma.employeeDocument.create({
+                data: {
+                  id: generateId(ID_PREFIXES.EMPLOYEEDOCUMENT),
+                  employeeId: id,
+                  documentName: doc.documentName,
+                  url: doc.url,
+                  docType: doc.docType,
+                },
+              });
+            }
+          } else {
+            // Handle frontend format: { contract: { name, url }, idCard: { name, url }, workPermit: { name, url }, diplomas: [...] }
+            if (docsData.contract) {
+              await prisma.employeeDocument.create({
+                data: {
+                  id: generateId(ID_PREFIXES.EMPLOYEEDOCUMENT),
+                  employeeId: id,
+                  documentName: docsData.contract.name || 'Contract',
+                  url: docsData.contract.url,
+                  docType: 'CONTRACT' as DocumentType,
+                },
+              });
+            }
+
+            if (docsData.idCard) {
+              await prisma.employeeDocument.create({
+                data: {
+                  id: generateId(ID_PREFIXES.EMPLOYEEDOCUMENT),
+                  employeeId: id,
+                  documentName: docsData.idCard.name || 'ID Card',
+                  url: docsData.idCard.url,
+                  docType: 'ID_CARD' as DocumentType,
+                },
+              });
+            }
+
+            if (docsData.workPermit) {
+              await prisma.employeeDocument.create({
+                data: {
+                  id: generateId(ID_PREFIXES.EMPLOYEEDOCUMENT),
+                  employeeId: id,
+                  documentName: docsData.workPermit.name || 'Work Permit',
+                  url: docsData.workPermit.url,
+                  docType: 'WORK_PERMIT' as DocumentType,
+                },
+              });
+            }
+
+            if (docsData.diplomas && Array.isArray(docsData.diplomas)) {
+              for (const diploma of docsData.diplomas) {
+                await prisma.employeeDocument.create({
+                  data: {
+                    id: generateId(ID_PREFIXES.EMPLOYEEDOCUMENT),
+                    employeeId: id,
+                    documentName: diploma.name || 'Diploma',
+                    url: diploma.url,
+                    docType: 'DIPLOMA' as DocumentType,
+                  },
+                });
+              }
+            }
+          }
+        }
       });
+
       this.logger.log(`Employee ${id} updated successfully`);
-      return employee;
+
+      // Fetch full employee with all relations for response
+      return this.findOne(id, true);
     } catch (error) {
       this.logger.error(`Failed to update employee ${id}: ${error.message}`, error.stack);
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -452,7 +612,7 @@ export class EmployeeService {
         where: { id },
       });
       this.logger.log(`Employee ${id} deleted successfully`);
-      return employee;
+      return this.convertEmployeeToDTO(employee);
     } catch (error) {
       this.logger.error(`Failed to delete employee ${id}: ${error.message}`, error.stack);
       if (error instanceof Prisma.PrismaClientKnownRequestError) {

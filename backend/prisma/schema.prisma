@@ -56,6 +56,7 @@ model Subsidiary {
   accountingJournals            AccountingJournal[]
   accountMappings               AccountMapping[]
   proformas                     Proforma[]
+  payrollConfiguration          PayrollConfiguration?
 
   @@index([subsidiaryName]) // Ajout de cet index
   @@map("subsidiaries")
@@ -181,6 +182,21 @@ model Employee {
   benefits                 String[]                    @map("benefits")
   lastSalaryAdjustmentDate DateTime?                   @map("last_salary_adjustment_date")
   leaveBalance             Decimal?                    @default(0) @map("leave_balance") @db.Decimal(5, 2)
+
+  // Banking Information
+  bankName                 String?                     @map("bank_name") @db.VarChar(100)
+  bankAccountNumber        String?                     @map("bank_account_number") @db.VarChar(50)
+
+  // Personal Information
+  numberDependents         Int                         @default(0) @map("number_dependents")
+  situationMatrimony       String                      @default("SINGLE") @map("situation_matrimony") @db.VarChar(20)
+
+  // Cameroon-specific fields
+  cnpsNumber               String?                     @map("cnps_number") @db.VarChar(20)
+  cnpsNumberEncrypted      String?                     @map("cnps_number_encrypted")
+  categoryCodeCNPS         String                      @default("B") @map("category_code_cnps") @db.VarChar(1)
+  taxIdNTif                String?                     @map("tax_id_ntif") @db.VarChar(15)
+
   subsidiaryId             String                      @map("subsidiary_id")
   managerId                String?                     @map("manager_id")
   gender                   Gender                      @map("gender")
@@ -1549,4 +1565,110 @@ model ProformaItem {
   @@index([proformaId])
   @@index([productId])
   @@map("proforma_items")
+}
+
+enum SalaryComponentType {
+  EARNING
+  DEDUCTION
+  TAX
+  CONTRIBUTION
+}
+
+enum ContributionType {
+  EMPLOYEE
+  EMPLOYER
+  BOTH
+}
+
+model PayrollConfiguration {
+  id                    String     @id @map("id") @db.Text
+  subsidiaryId          String     @unique @map("subsidiary_id") @db.Text
+  subsidiary            Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  minWage               Decimal    @default(0) @map("min_wage") @db.Decimal(12, 2)
+  minWagePeriod         String     @default("monthly") @map("min_wage_period") @db.VarChar(50)
+  minWageEffectiveDate  DateTime   @map("min_wage_effective_date")
+
+  cnpsEmployeeRate      Decimal    @default(5.4) @map("cnps_employee_rate") @db.Decimal(5, 2)
+  cnpsEmployerRate      Decimal    @default(6.4) @map("cnps_employer_rate") @db.Decimal(5, 2)
+
+  createdAt             DateTime   @default(now()) @map("created_at")
+  updatedAt             DateTime   @updatedAt @map("updated_at")
+
+  salaryComponents      SalaryComponent[]
+  taxBrackets           TaxBracket[]
+  allowanceRules        AllowanceRule[]
+
+  @@map("payroll_configurations")
+}
+
+model SalaryComponent {
+  id                      String                  @id @map("id") @db.Text
+  payrollConfigId         String                  @map("payroll_config_id") @db.Text
+  payrollConfig           PayrollConfiguration    @relation(fields: [payrollConfigId], references: [id], onDelete: Cascade)
+
+  name                    String                  @map("name") @db.VarChar(255)
+  description             String?                 @map("description")
+  type                    SalaryComponentType     @map("type")
+
+  rate                    Decimal?                @map("rate") @db.Decimal(5, 2)
+  fixedAmount             Decimal?                @map("fixed_amount") @db.Decimal(12, 2)
+  contributionType        ContributionType?       @map("contribution_type")
+
+  isActive                Boolean                 @default(true) @map("is_active")
+  displayOrder            Int                     @map("display_order")
+
+  createdAt               DateTime                @default(now()) @map("created_at")
+  updatedAt               DateTime                @updatedAt @map("updated_at")
+
+  @@index([payrollConfigId])
+  @@map("salary_components")
+}
+
+model TaxBracket {
+  id                    String                  @id @map("id") @db.Text
+  payrollConfigId       String                  @map("payroll_config_id") @db.Text
+  payrollConfig         PayrollConfiguration    @relation(fields: [payrollConfigId], references: [id], onDelete: Cascade)
+
+  minSalary             Decimal                 @map("min_salary") @db.Decimal(12, 2)
+  maxSalary             Decimal?                @map("max_salary") @db.Decimal(12, 2)
+  rate                  Decimal                 @map("rate") @db.Decimal(5, 2)
+  deductible            Decimal                 @default(0) @map("deductible") @db.Decimal(12, 2)
+
+  effectiveDate         DateTime                @map("effective_date")
+  expiryDate            DateTime?               @map("expiry_date")
+
+  createdAt             DateTime                @default(now()) @map("created_at")
+  updatedAt             DateTime                @updatedAt @map("updated_at")
+
+  @@index([payrollConfigId, effectiveDate])
+  @@map("tax_brackets")
+}
+
+model AllowanceRule {
+  id                    String                  @id @map("id") @db.Text
+  payrollConfigId       String                  @map("payroll_config_id") @db.Text
+  payrollConfig         PayrollConfiguration    @relation(fields: [payrollConfigId], references: [id], onDelete: Cascade)
+
+  name                  String                  @map("name") @db.VarChar(255)
+  description           String?                 @map("description")
+
+  minAge                Int?                    @map("min_age")
+  maxAge                Int?                    @map("max_age")
+  minSalary             Decimal?                @map("min_salary") @db.Decimal(12, 2)
+  numberOfDependents   Int?                    @map("number_of_dependents")
+
+  amount                Decimal?                @map("amount") @db.Decimal(12, 2)
+  percentageOfSalary    Decimal?                @map("percentage_of_salary") @db.Decimal(5, 2)
+
+  effectiveDate         DateTime                @map("effective_date")
+  expiryDate            DateTime?               @map("expiry_date")
+
+  isActive              Boolean                 @default(true) @map("is_active")
+
+  createdAt             DateTime                @default(now()) @map("created_at")
+  updatedAt             DateTime                @updatedAt @map("updated_at")
+
+  @@index([payrollConfigId, effectiveDate])
+  @@map("allowance_rules")
 }

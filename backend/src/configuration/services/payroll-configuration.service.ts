@@ -182,19 +182,6 @@ export class PayrollConfigurationService {
       };
     }
 
-    // Handle leave entitlements update if provided
-    if (dto.leaveEntitlements) {
-      updateData.leaveEntitlements = {
-        deleteMany: { payrollConfigId: config.id },
-        create: dto.leaveEntitlements.map((leave) => ({
-          id: `leave_${Date.now()}_${Math.random()}`,
-          type: leave.type,
-          daysPerYear: leave.daysPerYear,
-          isPaid: leave.isPaid,
-          description: leave.description,
-        })),
-      };
-    }
 
     const updated = await this.prisma.payrollConfiguration.update({
       where: { subsidiaryId },
@@ -203,7 +190,6 @@ export class PayrollConfigurationService {
         salaryComponents: { where: { isActive: true } },
         taxBrackets: { orderBy: { minSalary: 'asc' } },
         allowanceRules: true,
-        leaveEntitlements: true,
       },
     });
 

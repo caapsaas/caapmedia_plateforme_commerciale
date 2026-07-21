@@ -14,7 +14,7 @@ import { CreateSalaryComponentDto, UpdateSalaryComponentDto } from '../dto/salar
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles, CurrentUser } from '../../common/auth/role/role.decorator';
-import { JwtUser } from '../../common/auth/jwt/jwt-user.interface';
+import type { JwtUser } from '../../common/auth/jwt/jwt-user.interface';
 import { UserRole } from '@prisma/client';
 
 @Controller('configuration/salary-components')

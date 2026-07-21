@@ -1,4 +1,5 @@
-import { IsDecimal, IsString, IsDate, IsOptional, Min, Max, Matches, IsArray, ValidateNested, Type, IsBoolean } from 'class-validator';
+import { IsDecimal, IsString, IsDate, IsOptional, Min, Max, Matches, IsArray, ValidateNested, IsBoolean } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class TaxBracketDto {
   @IsDecimal({ decimal_digits: '1,2' })
