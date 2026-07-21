@@ -11,6 +11,7 @@ import {
 } from './dto/create-purchase-order.dto';
 import {
   DebtStatus,
+  ItemType,
   PaymentStatus,
   Prisma,
   PurchaseOrderStatus,
@@ -80,8 +81,8 @@ export class PurchaseOrdersService {
 
       // 2. Valider les produits et calculer le montant total
       const productIds = items.map((item) => item.productId);
-      const products = await tx.product.findMany({
-        where: { id: { in: productIds } },
+      const products = await tx.item.findMany({
+        where: { id: { in: productIds }, type: ItemType.STOCK_PRODUCT },
       });
 
       if (products.length !== productIds.length) {
@@ -111,12 +112,13 @@ export class PurchaseOrdersService {
           purchaseOrderItems: {
             create: items.map((item) => ({
               productName:
-                products.find((p) => p.id === item.productId)?.productName ||
+                products.find((p) => p.id === item.productId)?.name ||
                 'Produit inconnu', // Ajout d'une valeur par défaut
               quantity: item.quantity,
               quantityReceived: 0,
               purchasePrice: item.purchasePrice,
               productId: item.productId,
+              purchaseUnitId: item.purchaseUnitId,
             })),
           },
           purchaseOrderHistory: {
@@ -199,7 +201,12 @@ export class PurchaseOrdersService {
       where,
       include: {
         supplier: true,
-        purchaseOrderItems: true,
+        purchaseOrderItems: {
+          include: {
+            purchaseUnit: true,
+            product: { include: { baseUnit: true } },
+          },
+        },
         purchaseOrderHistory: true,
       },
       orderBy: { orderDate: 'desc' },
@@ -217,7 +224,12 @@ export class PurchaseOrdersService {
       where: { id },
       include: {
         supplier: true,
-        purchaseOrderItems: { include: { product: true } },
+        purchaseOrderItems: {
+          include: {
+            purchaseUnit: true,
+            product: { include: { baseUnit: true } },
+          },
+        },
         purchaseOrderHistory: { orderBy: { eventDate: 'desc' } },
       },
     });
@@ -288,25 +300,69 @@ export class PurchaseOrdersService {
           data: { quantityReceived: { increment: item.quantityReceived } },
         });
 
-        // Mettre à jour le stock et potentiellement le prix d'achat du produit
-        const product = await tx.product.findUnique({
-          where: { id: orderItem.productId },
-        });
-        const dataToUpdate: Prisma.ProductUpdateInput = {
-          stock: { increment: item.quantityReceived },
-        };
-
-        if (
-          product &&
-          product.price.comparedTo(orderItem.purchasePrice) !== 0
-        ) {
-          dataToUpdate.price = orderItem.purchasePrice;
+        // Conversion automatique vers l'unité de base (Chantier 2) : la
+        // quantité reçue est saisie dans l'unité d'achat de la ligne (ex.
+        // "2 rames") — jamais convertie à la main par le magasinier.
+        let baseQuantityReceived = new Decimal(item.quantityReceived);
+        if (orderItem.purchaseUnitId) {
+          const packagingUnit = await tx.itemPackagingUnit.findUnique({
+            where: {
+              itemId_unitId: {
+                itemId: orderItem.productId,
+                unitId: orderItem.purchaseUnitId,
+              },
+            },
+          });
+          if (packagingUnit) {
+            baseQuantityReceived = baseQuantityReceived.mul(
+              packagingUnit.conversionFactor,
+            );
+          }
         }
 
-        await tx.product.update({
-          where: { id: orderItem.productId },
-          data: dataToUpdate,
+        // Le stock reçu est crédité sur la filiale de CE bon de commande —
+        // l'Item est global, seul son niveau de stock est propre à une filiale.
+        await tx.itemStock.upsert({
+          where: {
+            itemId_subsidiaryId: {
+              itemId: orderItem.productId,
+              subsidiaryId: order.subsidiaryId,
+            },
+          },
+          update: { stock: { increment: baseQuantityReceived } },
+          create: {
+            itemId: orderItem.productId,
+            subsidiaryId: order.subsidiaryId,
+            stock: baseQuantityReceived,
+          },
         });
+
+        // Journal des mouvements de stock (Chantier 3) — chaque réception
+        // génère automatiquement une entrée, en unité de base.
+        await tx.stockMovement.create({
+          data: {
+            itemId: orderItem.productId,
+            subsidiaryId: order.subsidiaryId,
+            type: 'PURCHASE_RECEIPT',
+            quantity: baseQuantityReceived,
+            purchaseOrderId: order.id,
+            createdById: authenticatedUser.id,
+          },
+        });
+
+        // Répercute le prix d'achat réel sur le prix par défaut global de l'article.
+        const product = await tx.item.findUnique({
+          where: { id: orderItem.productId },
+        });
+        if (
+          product?.price &&
+          product.price.comparedTo(orderItem.purchasePrice) !== 0
+        ) {
+          await tx.item.update({
+            where: { id: orderItem.productId },
+            data: { price: orderItem.purchasePrice },
+          });
+        }
       }
 
       // Mettre à jour le statut global de la commande

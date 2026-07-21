@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useI18n } from '../i18n';
 import { ProductionStatus, Order } from '../types';
 import ProductionOrderCard from '../components/production/ProductionOrderCard';
+import WithdrawMaterialsModal from '../components/production/WithdrawMaterialsModal';
+import ProductionOrderDetailsModal from '../components/production/ProductionOrderDetailsModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getOrders, updateProductionStatus } from '../services/apiE-commerce/apiOrders';
 import { useAuth } from '../context/AuthContext';
@@ -11,6 +13,8 @@ const Production: React.FC = () => {
     const { subsidiary } = useAuth();
     const queryClient = useQueryClient();
     const [draggedOverColumn, setDraggedOverColumn] = useState<ProductionStatus | null>(null);
+    const [withdrawOrderId, setWithdrawOrderId] = useState<string | null>(null);
+    const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
 
     const queryKey = ['productionOrders', subsidiary?.id];
 
@@ -92,12 +96,28 @@ const Production: React.FC = () => {
                                         key={order.id}
                                         order={order}
                                         onDragStart={(e) => handleDragStart(e, order.id)}
+                                        onWithdrawMaterials={setWithdrawOrderId}
+                                        onViewDetails={setDetailsOrder}
                                     />
                                 ))}
                         </div>
                     </div>
                 ))}
             </div>
+
+            {withdrawOrderId && (
+                <WithdrawMaterialsModal
+                    isOpen={!!withdrawOrderId}
+                    onClose={() => setWithdrawOrderId(null)}
+                    orderId={withdrawOrderId}
+                />
+            )}
+
+            <ProductionOrderDetailsModal
+                isOpen={!!detailsOrder}
+                onClose={() => setDetailsOrder(null)}
+                order={detailsOrder}
+            />
         </div>
     );
 };

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Subsidiary, PurchaseOrder, PurchaseOrderStatus, PaymentStatus, Product, Supplier } from '../../types/models';
+import { Subsidiary, PurchaseOrder, PurchaseOrderStatus, PaymentStatus, StockItem, Supplier } from '../../types/models';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import { getPurchaseOrders, createPurchaseOrder, receivePurchaseOrderItems, recordPurchaseOrderPayment } from '../../services/apiPurchasing/apiPurchase_order';
 import { getSuppliers } from '../../services/apiPurchasing/apiSupplier';
-import { getProductsBySubsidiary } from '../../services/apiE-commerce/apiProducts';
+import { getStockItemsBySubsidiary } from '../../services/apiPurchasing/apiStockItems';
 import { CreatePurchaseOrderDto, ReceiveItemsDto } from '../../services/apiPurchasing/apiPurchase_order';
 import IconPlus from '../icons/IconPlus';
 import IconEye from '../icons/IconEye';
@@ -39,9 +39,9 @@ const Purchasing: React.FC = () => {
         enabled: !!subsidiary,
     });
 
-    const { data: products = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
-        queryKey: ['products', subsidiary?.id],
-        queryFn: () => getProductsBySubsidiary(),
+    const { data: stockItems = [], isLoading: isLoadingStockItems } = useQuery<StockItem[]>({
+        queryKey: ['stockItems', subsidiary?.id],
+        queryFn: () => getStockItemsBySubsidiary(),
         enabled: !!subsidiary,
     });
 
@@ -131,7 +131,7 @@ const Purchasing: React.FC = () => {
         }
     };
 
-    if (!subsidiary || isLoadingPOs || isLoadingProducts || isLoadingSuppliers) {
+    if (!subsidiary || isLoadingPOs || isLoadingStockItems || isLoadingSuppliers) {
         return <div>{t('common.loading')}</div>;
     }
 
@@ -205,7 +205,7 @@ const Purchasing: React.FC = () => {
                     isOpen={isFormModalOpen}
                     onClose={handleCloseModals}
                     onSave={(data: CreatePurchaseOrderDto) => createPurchaseOrderMutate(data)}
-                    products={products}
+                    stockItems={stockItems}
                     suppliers={suppliers}
                 />
             )}
