@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Employee, AttendanceRecord, PayrollRecord, AbsenceRecord } from '../types';
 import { useAppContext } from '../context/AppContext';
 import { useI18n } from '../i18n';
-import EmployeeDatabase from '../components/hr/EmployeeDatabase';
 import AttendanceManagement from '../components/hr/AttendanceManagement';
 import PayrollManagement from '../components/hr/PayrollManagement';
 import AbsenceManagement from '../components/hr/AbsenceManagement';
@@ -12,6 +11,7 @@ import { getAbsenceRecords, saveAbsenceRecord, deleteAbsenceRecord } from '../se
 import { getPayrollRecords, processPayroll, signPayrollRecord } from '../services/apihr/apiPayroll';
 import { getEmployees, saveEmployee, deleteEmployee } from '../services/apihr/apiEmployees';
 import { useAuth } from '../context/AuthContext';
+import EmployeeDatabaseModern from '../components/hr/EmployeeDatabaseModern';
 
 type HrView = 'employees' | 'attendance' | 'payroll' | 'absences';
 
@@ -49,8 +49,8 @@ const HrManagement: React.FC = () => {
 
         switch (activeTab) {
             case 'employees':
-                return <EmployeeDatabase 
-                            subsidiary={subsidiary} 
+                return <EmployeeDatabaseModern
+                            subsidiary={subsidiary}
                             employees={employees}
                             onSave={onSaveEmployee}
                             onDelete={onDeleteEmployee}
@@ -67,15 +67,13 @@ const HrManagement: React.FC = () => {
                             onSaveSignature={onSaveSignature}
                         />;
             case 'absences':
-                return <AbsenceManagement 
-                            subsidiary={subsidiary} 
-                            employees={employees} 
+                return <AbsenceManagement
+                            subsidiary={subsidiary}
+                            employees={employees}
                             absences={absences}
                             onSave={onSaveAbsence}
                             onDelete={onDeleteAbsence}
                         />;
-            default:
-                return <EmployeeDatabase subsidiary={subsidiary} employees={employees} onSave={onSaveEmployee} onDelete={onDeleteEmployee} />;
         }
     };
 
