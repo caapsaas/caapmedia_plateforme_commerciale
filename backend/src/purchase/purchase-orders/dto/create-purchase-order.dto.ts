@@ -6,6 +6,7 @@ import {
   IsInt,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsUUID,
   Min,
   ValidateNested,
@@ -24,6 +25,13 @@ class CreatePurchaseOrderItemDto {
   @IsNumber()
   @Min(0)
   purchasePrice: number;
+
+  // Unité dans laquelle "quantity" est exprimée (Chantier 2) — absente =
+  // unité de base du produit. La conversion se fait automatiquement à la
+  // réception (voir PurchaseOrdersService.receiveItems), jamais ici.
+  @IsUUID()
+  @IsOptional()
+  purchaseUnitId?: string;
 }
 
 export class CreatePurchaseOrderDto {

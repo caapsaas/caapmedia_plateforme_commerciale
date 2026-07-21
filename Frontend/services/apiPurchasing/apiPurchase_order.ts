@@ -13,6 +13,9 @@ export interface CreatePurchaseOrderDto {
         productId: string;
         quantity: number;
         purchasePrice: number;
+        // Unité dans laquelle "quantity" est exprimée (Chantier 2) — absente =
+        // unité de base du produit.
+        purchaseUnitId?: string;
     }[];
 }
 

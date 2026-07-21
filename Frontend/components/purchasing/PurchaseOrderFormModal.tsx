@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Subsidiary, Product, PurchaseOrderItem, PaymentTerms, Supplier } from '../../types';
+import { Subsidiary, StockItem, PurchaseOrderItem, PaymentTerms, Supplier } from '../../types';
 import { useI18n } from '../../i18n';
 import IconDelete from '../icons/IconDelete';
 import { CreatePurchaseOrderDto } from '../../services/apiPurchasing/apiPurchase_order';
@@ -8,11 +8,11 @@ interface PurchaseOrderFormModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: (data: CreatePurchaseOrderDto) => void;
-    products: Product[];
+    stockItems: StockItem[];
     suppliers: Supplier[];
 }
 
-const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen, onClose, onSave, products, suppliers }) => {
+const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen, onClose, onSave, stockItems, suppliers }) => {
     const { t, formatCurrency } = useI18n();
     const [supplierId, setSupplierId] = useState('');
     const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
@@ -22,24 +22,37 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
     const [selectedProduct, setSelectedProduct] = useState('');
     const [quantity, setQuantity] = useState(1);
     const [purchasePrice, setPurchasePrice] = useState(0);
+    const [purchaseUnitId, setPurchaseUnitId] = useState('');
+
+    const selectedProductData = stockItems.find(p => p.id === selectedProduct);
+    // Unité de base (pas de conversion) + unités d'emballage disponibles pour ce produit (Chantier 2).
+    const availablePurchaseUnits = selectedProductData
+        ? [
+            ...(selectedProductData.baseUnit ? [{ id: '', name: selectedProductData.baseUnit.name }] : []),
+            ...(selectedProductData.packagingUnits ?? []).map(pu => ({ id: pu.unitId, name: pu.unit.name })),
+        ]
+        : [];
 
     const handleAddProduct = () => {
         if (!selectedProduct || quantity <= 0 || purchasePrice <= 0) return;
-        const product = products.find(p => p.id === selectedProduct);
+        const product = stockItems.find(p => p.id === selectedProduct);
         if (!product) return;
 
         setItems(prev => [...prev, {
             productId: product.id,
-            productName: product.productName,
+            productName: product.name,
             quantity,
             purchasePrice,
             quantityReceived: 0,
+            purchaseUnitId: purchaseUnitId || undefined,
+            purchaseUnit: availablePurchaseUnits.find(u => u.id === purchaseUnitId) as PurchaseOrderItem['purchaseUnit'],
         }]);
 
         // Reset fields
         setSelectedProduct('');
         setQuantity(1);
         setPurchasePrice(0);
+        setPurchaseUnitId('');
     };
 
     const handleRemoveItem = (productId: string) => {
@@ -101,12 +114,18 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
                         {/* Add Item Section */}
                         <div className="p-4 bg-slate-50 rounded-lg space-y-2">
                              <h4 className="font-semibold text-slate-700">{t('purchasing.form.addProduct')}</h4>
-                             <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                             <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
                                 <div className="md:col-span-2">
                                      <label htmlFor="product" className="sr-only">{t('purchasing.form.product')}</label>
-                                     <select id="product" value={selectedProduct} onChange={e => { setPurchasePrice(products.find(p => p.id === e.target.value)?.price || 0); setSelectedProduct(e.target.value); }} className="w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border">
+                                     <select id="product" value={selectedProduct} onChange={e => { setPurchasePrice(stockItems.find(p => p.id === e.target.value)?.price || 0); setSelectedProduct(e.target.value); setPurchaseUnitId(''); }} className="w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border">
                                         <option value="">{t('purchasing.form.selectProduct')}</option>
-                                        {products.map(p => <option key={p.id} value={p.id}>{p.productName}</option>)}
+                                        {stockItems.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                     <label htmlFor="purchaseUnit" className="sr-only">{t('purchasing.form.purchaseUnit')}</label>
+                                     <select id="purchaseUnit" value={purchaseUnitId} onChange={e => setPurchaseUnitId(e.target.value)} disabled={!selectedProduct} className="w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border disabled:bg-slate-100">
+                                        {availablePurchaseUnits.map(u => <option key={u.id || 'base'} value={u.id}>{u.name}</option>)}
                                     </select>
                                 </div>
                                 <div>
@@ -139,7 +158,7 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
                                         {items.map(item => (
                                             <tr key={item.productId}>
                                                 <td className="px-4 py-2 font-medium">{item.productName}</td>
-                                                <td className="px-4 py-2 text-center">{item.quantity}</td>
+                                                <td className="px-4 py-2 text-center">{item.quantity}{item.purchaseUnit ? ` ${item.purchaseUnit.name}` : ''}</td>
                                                 <td className="px-4 py-2 text-right">{formatCurrency(item.purchasePrice)}</td>
                                                 <td className="px-4 py-2 text-right font-semibold">{formatCurrency(item.quantity * item.purchasePrice)}</td>
                                                 <td className="px-4 py-2 text-center">
