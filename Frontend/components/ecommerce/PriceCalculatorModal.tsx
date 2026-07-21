@@ -1,68 +1,57 @@
 import React, { useState, useEffect } from 'react';
-import { Product, ProductOptions } from '../../types';
+import { useQueryClient } from '@tanstack/react-query';
+import { Product } from '../../types';
 import { useI18n } from '../../i18n';
-import { calculatePrice } from '../../utils/priceCalculator';
 import { CartItem } from './ShoppingCart';
 import IconUpload from '../icons/IconUpload';
 import IconFile from '../icons/IconFile';
 import IconDelete from '../icons/IconDelete';
 import { getImageUrl } from '../../utils/imageUtils';
 import { LazyLoadImage } from 'react-lazy-load-image-component';
+import { getFormDefinition } from '../../services/apiE-commerce/apiProductSpecs';
+import SpecValuesModal from '../common/SpecValuesModal';
+import { SpecValues } from '../common/FormRenderer';
+import { FormDefinition } from '../../types/models';
 
 interface PriceCalculatorModalProps {
     isOpen: boolean;
     onClose: () => void;
     product: Product | null;
     onAddToCart: (item: CartItem) => void;
+    // Caisse (POS) saisit un prix négocié obligatoire ; le site vitrine ne fait
+    // que collecter les spécifications choisies pour une demande de devis WhatsApp,
+    // le prix restant à négocier plus tard — pas de saisie de prix dans ce cas.
+    requirePrice?: boolean;
 }
 
-const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onClose, product, onAddToCart }) => {
+// Sélection des spécifications + (selon le contexte) saisie du prix négocié pour
+// une ligne. Le prix n'est jamais dérivé du catalogue — voir Chantier 4 (prix manuel).
+const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onClose, product, onAddToCart, requirePrice = true }) => {
     const { t, formatCurrency } = useI18n();
-    
-    const [options, setOptions] = useState<Partial<ProductOptions>>({});
-    const [quantity, setQuantity] = useState(100);
-    const [price, setPrice] = useState({ unitPriceHT: 0, totalPriceHT: 0 , totalPriceTTC: 0, taxAmount: 0 });
+    const queryClient = useQueryClient();
+
+    const [quantity, setQuantity] = useState(1);
+    const [unitPrice, setUnitPrice] = useState(0);
     const [designFile, setDesignFile] = useState<File | null>(null);
     const [activeImageIndex, setActiveImageIndex] = useState(0);
-
-    useEffect(() => {
-        if (product?.configurableOptions) {
-            const defaults: Partial<ProductOptions> = {};
-            const config = product.configurableOptions;
-            if (config.FORMATS?.[0]) defaults.format = config.FORMATS[0].optionName;
-            if (config.GRAMMAGES?.[0]) defaults.grammage = config.GRAMMAGES[0].optionName;
-            if (config.PRINTSIDES?.[0]) defaults.printSide = config.PRINTSIDES[0].optionName;
-            if (config.LAMINATIONS?.[0]) defaults.lamination = config.LAMINATIONS[0].optionName;
-            if (config.SIZES?.[0]) defaults.size = config.SIZES[0].optionName;
-            if (config.COLORS?.[0]) defaults.color = config.COLORS[0].optionName;
-            if (config.MATERIALS?.[0]) defaults.material = config.MATERIALS[0].optionName;
-            if (config.DIMENSIONS?.[0]) defaults.dimension = config.DIMENSIONS[0].optionName;
-            if (config.BINDINGS?.[0]) defaults.binding = config.BINDINGS[0].optionName;
-            if (config.FOLDINGS?.[0]) defaults.folding = config.FOLDINGS[0].optionName;
-            if (config.CORNERS?.[0]) defaults.corner = config.CORNERS[0].optionName;
-            if (config.EYELETS?.[0]) defaults.eyelet = config.EYELETS[0].optionName;
-            if (config.PAGES?.[0]) defaults.page = config.PAGES[0].optionName;
-            if (config.HANDLES?.[0]) defaults.handle = config.HANDLES[0].optionName;
-            if (config.STUB?.[0]) defaults.stub = config.STUB[0].optionName;
-            if (config.NUMBERING?.[0]) defaults.numbering = config.NUMBERING[0].optionName;
-            
-            setOptions(defaults);
-            setQuantity(100);
-            setDesignFile(null);
-            setActiveImageIndex(0);
-        }
-    }, [product]);
+    // Spécifications techniques (Chantier 5) : le schéma n'est chargé qu'au
+    // moment de l'ajout au panier, pas à l'ouverture — évite un fetch inutile
+    // pour un produit qu'on ne fait finalement que consulter.
+    const [specSchema, setSpecSchema] = useState<FormDefinition | null>(null);
 
     useEffect(() => {
         if (product) {
-            const newPrice = calculatePrice(product, options, quantity);
-            setPrice(newPrice);
+            setQuantity(1);
+            setUnitPrice(0);
+            setDesignFile(null);
+            setActiveImageIndex(0);
+            setSpecSchema(null);
         }
-    }, [product, options, quantity]);
-    
-    const handleOptionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setOptions(prev => ({ ...prev, [name]: value }));
+    }, [product]);
+
+    const handleUnitPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = parseFloat(e.target.value);
+        setUnitPrice(isNaN(value) ? 0 : Math.max(0, value));
     };
 
     const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,55 +71,56 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
         if(fileInput) fileInput.value = '';
     };
 
-    const handleSubmit = () => {
+    const finalizeAddToCart = (specValues?: SpecValues) => {
         if (!product) return;
-        const optionString = Object.entries(options)
-            .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-            .map(([key, value]) => `${key}:${value}`)
-            .join('|');
-            
-        const cartItemId = `${product.id}-${optionString}-${designFile?.name || ''}`;
+        const cartItemId = `${product.id}-${designFile?.name || ''}-${specValues ? Date.now() : ''}`;
 
         onAddToCart({
             id: cartItemId,
             product,
-            options,
+            options: {},
             quantity,
-            unitPrice: price.unitPriceHT,
-            totalPrice: price.totalPriceHT,
+            unitPrice,
+            totalPrice: unitPrice * quantity,
             designFile: designFile ? { name: designFile.name, url: URL.createObjectURL(designFile) } : undefined,
-            designFileObject: designFile || undefined
+            designFileObject: designFile || undefined,
+            specValues,
         });
         onClose();
     };
 
+    const handleSubmit = async () => {
+        if (!product || (requirePrice && unitPrice <= 0)) return;
+
+        const schema = await queryClient.fetchQuery({
+            queryKey: ['form-definition', product.id],
+            queryFn: () => getFormDefinition(product.id),
+        });
+        const hasSpecs = schema.groups.some(g => g.specifications.length > 0) || schema.ungroupedSpecifications.length > 0;
+
+        if (hasSpecs) {
+            setSpecSchema(schema);
+        } else {
+            finalizeAddToCart();
+        }
+    };
+
+    const handleConfirmSpecValues = (values: SpecValues) => {
+        setSpecSchema(null);
+        finalizeAddToCart(values);
+    };
+
     if (!isOpen || !product) return null;
-    
-    const config = product.configurableOptions;
+
     const hasImages = product.productImages && product.productImages.length > 0;
     const activeImageUrl = hasImages && product.productImages ? getImageUrl(product.productImages[activeImageIndex].imageUrl) : 'https://via.placeholder.com/400x300?text=Image+Indisponible';
 
-    const renderSelect = (name: keyof ProductOptions, labelKey: string, items: {optionName: string}[]) => (
-        <div key={name}>
-            <label htmlFor={name} className="block text-sm font-medium text-slate-700">{t(labelKey)}</label>
-            <select
-                id={name}
-                name={name}
-                value={(options as any)[name] || ''}
-                onChange={handleOptionChange}
-                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
-            >
-                {items.map(item => <option key={item.optionName} value={item.optionName}>{item.optionName}</option>)}
-            </select>
-        </div>
-    );
-    
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
-                    <h3 className="text-xl font-bold text-slate-800">{product.productName}</h3>
+                    <h3 className="text-xl font-bold text-slate-800">{product.name}</h3>
                     <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
@@ -143,7 +133,7 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
                         <div>
                             <div className="w-full aspect-[4/3] rounded-lg overflow-hidden bg-slate-100 mb-2">
                                 <LazyLoadImage
-                                    alt={product.productName}
+                                    alt={product.name}
                                     src={activeImageUrl}
                                     effect="blur"
                                     wrapperClassName="w-full h-full"
@@ -174,38 +164,34 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
 
                         {/* Options Column */}
                         <div className="space-y-8">
-                             <div>
-                                <h4 className="text-lg font-semibold text-slate-800 mb-3 border-b pb-2">{t('calculator.title')}</h4>
-                                <div className="space-y-4">
-                                    {config?.FORMATS && renderSelect('format', 'calculator.format', config.FORMATS)}
-                                    {config?.GRAMMAGES && renderSelect('grammage', 'calculator.grammage', config.GRAMMAGES)}
-                                    {config?.PRINTSIDES && renderSelect('printSide', 'calculator.printSide', config.PRINTSIDES)}
-                                    {config?.LAMINATIONS && renderSelect('lamination', 'calculator.lamination', config.LAMINATIONS)}
-                                    {config?.SIZES && renderSelect('size', 'calculator.size', config.SIZES)}
-                                    {config?.COLORS && renderSelect('color', 'calculator.color', config.COLORS)}
-                                    {config?.MATERIALS && renderSelect('material', 'calculator.material', config.MATERIALS)}
-                                    {config?.DIMENSIONS && renderSelect('dimension', 'calculator.dimension', config.DIMENSIONS)}
-                                    {config?.BINDINGS && renderSelect('binding', 'calculator.binding', config.BINDINGS)}
-                                    {config?.FOLDINGS && renderSelect('folding', 'calculator.folding', config.FOLDINGS)}
-                                    {config?.CORNERS && renderSelect('corner', 'calculator.corners', config.CORNERS)}
-                                    {config?.EYELETS && renderSelect('eyelet', 'calculator.eyelets', config.EYELETS)}
-                                    {config?.PAGES && renderSelect('page', 'calculator.pages', config.PAGES)}
-                                    {config?.HANDLES && renderSelect('handle', 'calculator.handles', config.HANDLES)}
-                                    {config?.STUB && renderSelect('stub', 'calculator.stub', config.STUB)}
-                                    {config?.NUMBERING && renderSelect('numbering', 'calculator.numbering', config.NUMBERING)}
+                            <div className={requirePrice ? "grid grid-cols-2 gap-4" : ""}>
+                                <div>
+                                    <label htmlFor="quantity" className="block text-sm font-medium text-slate-700">{t('calculator.quantity')}</label>
+                                    <input
+                                        type="number"
+                                        id="quantity"
+                                        name="quantity"
+                                        value={quantity}
+                                        onChange={handleQuantityChange}
+                                        min="1"
+                                        className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                                    />
                                 </div>
-                            </div>
-                            <div>
-                                <label htmlFor="quantity" className="block text-sm font-medium text-slate-700">{t('calculator.quantity')}</label>
-                                <input
-                                    type="number"
-                                    id="quantity"
-                                    name="quantity"
-                                    value={quantity}
-                                    onChange={handleQuantityChange}
-                                    min="1"
-                                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
-                                />
+                                {requirePrice && (
+                                    <div>
+                                        <label htmlFor="unitPrice" className="block text-sm font-medium text-slate-700">{t('calculator.unitPrice')}</label>
+                                        <input
+                                            type="number"
+                                            id="unitPrice"
+                                            name="unitPrice"
+                                            value={unitPrice || ''}
+                                            onChange={handleUnitPriceChange}
+                                            min="0"
+                                            step="0.01"
+                                            className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                                        />
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700">{t('calculator.uploadFile')}</label>
@@ -240,16 +226,28 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
 
                 {/* Footer */}
                 <div className="p-4 bg-slate-50 border-t flex-shrink-0 flex justify-between items-center">
-                    <div className="text-left">
-                         <p className="text-sm font-medium text-slate-500">{t('calculator.totalPrice')}</p>
-                         <p className="text-3xl font-bold text-slate-800">{formatCurrency(price.totalPriceHT)}</p>
-                         <p className="text-sm text-slate-600">~{formatCurrency(price.unitPriceHT)} / {t('calculator.unitPrice')}</p>
-                    </div>
-                    <button onClick={handleSubmit} className="px-8 py-4 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f] transition-colors text-base">
+                    {requirePrice ? (
+                        <div className="text-left">
+                             <p className="text-sm font-medium text-slate-500">{t('calculator.totalPrice')}</p>
+                             <p className="text-3xl font-bold text-slate-800">{formatCurrency(unitPrice * quantity)}</p>
+                             <p className="text-sm text-slate-600">{formatCurrency(unitPrice)} / {t('calculator.unitPrice')}</p>
+                        </div>
+                    ) : <div />}
+                    <button onClick={handleSubmit} disabled={requirePrice && unitPrice <= 0} className="px-8 py-4 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f] disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors text-base">
                         {t('calculator.addToCart')}
                     </button>
                 </div>
             </div>
+
+            {specSchema && (
+                <SpecValuesModal
+                    isOpen={!!specSchema}
+                    onClose={() => setSpecSchema(null)}
+                    onConfirm={handleConfirmSpecValues}
+                    productName={product.name}
+                    schema={specSchema}
+                />
+            )}
         </div>
     );
 };

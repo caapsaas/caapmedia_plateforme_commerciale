@@ -5,6 +5,7 @@ import IconPrint from '../components/icons/IconPrint';
 import IconPdf from '../components/icons/IconPdf';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import SpecValuesSummary from '../components/common/SpecValuesSummary';
 
 
 interface BonDeLivraisonProps {
@@ -81,10 +82,13 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
                             <tbody>
                                 {order.orderItems.map((item, index) => (
                                     <tr key={index} className="bg-white border-b">
-                                        <td className="px-6 py-4 font-medium text-slate-900">{item.product.productName}</td>
+                                        <td className="px-6 py-4 font-medium text-slate-900">
+                                            {item.product.name}
+                                            <SpecValuesSummary schema={item.specSnapshot} values={item.specValues} audience="client" />
+                                        </td>
                                         <td className="px-6 py-4 text-center">{item.quantity}</td>
-                                        <td className="px-6 py-4 text-right">{formatCurrency(item.price)}</td>
-                                        <td className="px-6 py-4 text-right font-semibold">{formatCurrency(item.price * item.quantity)}</td>
+                                        <td className="px-6 py-4 text-right">{formatCurrency(item.unitPrice)}</td>
+                                        <td className="px-6 py-4 text-right font-semibold">{formatCurrency(item.unitPrice * item.quantity)}</td>
                                     </tr>
                                 ))}
                             </tbody>

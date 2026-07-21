@@ -7,7 +7,10 @@ import { CustomerPaymentMethod, Sale } from '../../types';
 export interface CreateDirectSaleDto {
     items: {
         productId: string;
+        productName: string;
         quantity: number;
+        unitPrice: number; // Prix négocié au comptoir, jamais tiré du catalogue.
+        specValues?: Record<string, unknown>; // Spécifications techniques (Chantier 5)
     }[];
     paymentMethod: CustomerPaymentMethod;
     customerId: string;

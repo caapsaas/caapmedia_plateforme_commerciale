@@ -6,7 +6,8 @@ import {
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateDirectSaleDto } from './dto/create-sale.dto';
 import { FindAllSalesDto, OrderPeriod } from './dto/find-all-sales.dto';
-import { Prisma, SaleStatus, UserRole } from '@prisma/client';
+import { ItemType, Prisma, SaleStatus, UserRole } from '@prisma/client';
+import { ProductSpecsService } from '../products/product-specs/product-specs.service';
 import {
   sub,
   startOfMonth,
@@ -18,7 +19,10 @@ import {
 
 @Injectable()
 export class SalesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly productSpecsService: ProductSpecsService,
+  ) {}
 
   /**
    * Crée une vente directe (vente au comptoir).
@@ -36,10 +40,12 @@ export class SalesService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      // 1. Récupérer les données de référence (Produits, Taxe, Client)
+      // 1. Récupérer les données de référence (services du catalogue, Taxe, Client)
       const productIds = items.map((item) => item.productId);
       const [products, taxRate, customer] = await Promise.all([
-        tx.product.findMany({ where: { id: { in: productIds } } }),
+        tx.item.findMany({
+          where: { id: { in: productIds }, type: ItemType.SERVICE },
+        }),
         tx.taxRate.findFirstOrThrow({ where: { isDefault: true } }),
         tx.contact.findUnique({ where: { id: customerId } }),
       ]);
@@ -58,7 +64,32 @@ export class SalesService {
 
       const productMap = new Map(products.map((p) => [p.id, p]));
 
-      // 2. Préparer les données pour la création des ventes
+      // Chantier 5 (Caisse) : même principe que orders.service.ts — récupère
+      // la définition de formulaire de chaque produit distinct, valide les
+      // valeurs saisies au comptoir, et fige un instantané sur la vente.
+      const distinctProductIds = [...new Set<string>(productIds)];
+      const formDefinitionByProductId = new Map(
+        await Promise.all(
+          distinctProductIds.map(async (productId) => {
+            const definition =
+              await this.productSpecsService.getFormDefinition(productId);
+            return [productId, definition] as const;
+          }),
+        ),
+      );
+
+      for (const item of items) {
+        const definition = formDefinitionByProductId.get(item.productId);
+        if (definition) {
+          this.productSpecsService.validateAgainstDefinition(
+            definition,
+            item.specValues,
+          );
+        }
+      }
+
+      // 2. Préparer les données pour la création des ventes.
+      // Le prix est celui négocié au comptoir, jamais tiré du catalogue.
       const salesToCreate: Prisma.SaleCreateManyInput[] = items.map((item) => {
         const product = productMap.get(item.productId);
         if (!product) {
@@ -67,20 +98,13 @@ export class SalesService {
           );
         }
 
-        // Vérifier que tous les produits appartiennent à la filiale du caissier
-        if (product.subsidiaryId !== subsidiaryId) {
-          throw new BadRequestException(
-            `Le produit "${product.productName}" n'appartient pas à cette filiale.`,
-          );
-        }
-
-        const unitPrice = product.sellingPrice;
+        const unitPrice = new Prisma.Decimal(item.unitPrice);
         const subtotal = unitPrice.mul(item.quantity);
         const taxAmount = subtotal.mul(taxRate.rate);
         const totalPrice = subtotal.add(taxAmount);
 
         return {
-          productName: product.productName,
+          productName: product.name,
           quantity: item.quantity,
           totalPrice: totalPrice,
           saleDate: new Date(),
@@ -92,22 +116,15 @@ export class SalesService {
           salesRepId: salesRepId,
           orderId: null, // Pas de commande associée pour une vente directe
           status: SaleStatus.PAID, // Une vente directe est toujours considérée comme payée
+          specValues: item.specValues as Prisma.InputJsonValue | undefined,
+          specSnapshot: formDefinitionByProductId.get(
+            item.productId,
+          ) as unknown as Prisma.InputJsonValue | undefined,
         };
       });
 
-      // 3. Mettre à jour le stock des produits
-      for (const item of items) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: {
-              decrement: item.quantity,
-            },
-          },
-        });
-      }
-
-      // 4. Créer les enregistrements de vente
+      // 3. Créer les enregistrements de vente (le stock de matières n'est jamais
+      // décrémenté automatiquement — voir le flux manuel "Prélever les matières")
       const result = await tx.sale.createMany({
         data: salesToCreate,
       });
