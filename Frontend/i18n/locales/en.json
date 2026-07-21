@@ -48,6 +48,9 @@
   "configuration": {
     "title": "Configuration",
     "products": "Products",
+    "services": "Services",
+    "referenceLists": "Reference lists",
+    "addService": "Add a service",
     "users": "Users",
     "suppliers": "Suppliers",
     "clientManagement": "Clients",
@@ -55,7 +58,25 @@
     "treasury": "Treasury",
     "modal": {
       "editEmployeeTitle": "Edit Employee",
-      "addEmployeeTitle": "Add Employee"
+      "addEmployeeTitle": "Add Employee",
+      "editServiceTitle": "Edit service",
+      "addServiceTitle": "Add service",
+      "deleteServiceTitle": "Delete service"
+    },
+    "serviceForm": {
+      "name": "Name",
+      "category": "Category",
+      "range": "Range",
+      "description": "Description",
+      "generateWithAI": "Generate with AI",
+      "isActive": "Active",
+      "isVisibleOnSite": "Visible on storefront",
+      "displayOrder": "Display order",
+      "images": "Images"
+    },
+    "builder": {
+      "back": "Back to services",
+      "configureFields": "Configure fields"
     },
     "form": {
       "formSection": {

@@ -423,6 +423,7 @@ const frTranslations = {
     },
     "receiveItemsModal": {
         "title": "Réceptionner les articles",
+        "unit": "Unité",
         "ordered": "Commandé",
         "alreadyReceived": "Déjà Reçu",
         "quantityToReceive": "Quantité à réceptionner"
@@ -448,6 +449,7 @@ const frTranslations = {
       "product": "Produit",
       "selectProduct": "Sélectionnez un produit",
       "quantity": "Quantité",
+      "purchaseUnit": "Unité d'achat",
       "purchasePrice": "Prix d'achat unitaire",
       "total": "Total",
       "orderSummary": "Résumé de la commande"
@@ -468,6 +470,7 @@ const frTranslations = {
     "range": "Gamme",
     "confirmPriceSaveTitle": "Confirmer la sauvegarde",
     "confirmPriceSaveMessage": "Voulez-vous enregistrer les nouveaux prix ?",
+    "belowThreshold": "Sous le seuil minimum",
     "available": "Disponible",
     "categories": {
       "pub": "Pub",
@@ -498,6 +501,72 @@ const frTranslations = {
       "finitionFaconnage": "Finition & Façonnage",
       "prestationsExternes": "Prestations Externes",
       "textilesRaw": "Textiles (Matière Première)"
+    }
+  },
+  "stockMovements": {
+    "title": "Mouvements de stock",
+    "allTypes": "Tous les types",
+    "date": "Date",
+    "product": "Produit",
+    "type": "Type",
+    "direction": "Sens",
+    "quantity": "Quantité",
+    "reason": "Motif",
+    "in": "Entrée",
+    "out": "Sortie",
+    "empty": "Aucun mouvement enregistré pour l'instant.",
+    "tabs": {
+      "levels": "Niveau de stock",
+      "movements": "Mouvements",
+      "inventory": "Inventaire"
+    },
+    "types": {
+      "PURCHASE_RECEIPT": "Réception d'achat",
+      "CUSTOMER_RETURN": "Retour client",
+      "POSITIVE_ADJUSTMENT": "Ajustement positif",
+      "TRANSFER_IN": "Transfert entrant",
+      "PRODUCTION_CONSUMPTION": "Consommation production",
+      "LOSS": "Perte",
+      "BREAKAGE": "Casse",
+      "INTERNAL_CONSUMPTION": "Consommation interne",
+      "NEGATIVE_ADJUSTMENT": "Ajustement négatif",
+      "SUPPLIER_RETURN": "Retour fournisseur",
+      "TRANSFER_OUT": "Transfert sortant"
+    },
+    "inventory": {
+      "title": "Inventaire",
+      "subtitle": "Saisissez le stock réellement compté — l'écart est calculé et enregistré automatiquement.",
+      "product": "Produit",
+      "selectProduct": "Sélectionner un produit...",
+      "theoreticalStock": "Stock théorique",
+      "countedStock": "Stock compté",
+      "reason": "Motif (optionnel)",
+      "submit": "Valider l'inventaire",
+      "successTitle": "Inventaire enregistré",
+      "successMessage": "Le stock a été mis à jour.",
+      "noDeviation": "Aucun écart constaté — pas de mouvement créé.",
+      "deviationRecorded": "Écart de {{delta}} enregistré."
+    },
+    "withdraw": {
+      "title": "Prélever les matières",
+      "subtitle": "Saisissez les quantités réellement utilisées pour cette commande.",
+      "addLine": "Ajouter une ligne",
+      "product": "Produit",
+      "quantity": "Quantité",
+      "submit": "Valider le prélèvement",
+      "successTitle": "Matières prélevées",
+      "successMessage": "Le stock a été mis à jour.",
+      "empty": "Ajoutez au moins une matière à prélever."
+    },
+    "manual": {
+      "newMovement": "Nouveau mouvement",
+      "title": "Nouveau mouvement de stock",
+      "subtitle": "Retour client, transfert, perte, casse, consommation interne ou retour fournisseur.",
+      "product": "Produit",
+      "selectProduct": "Sélectionner un produit...",
+      "submit": "Enregistrer le mouvement",
+      "successTitle": "Mouvement enregistré",
+      "successMessage": "Le stock a été mis à jour."
     }
   },
   "productRange": {
@@ -944,6 +1013,25 @@ const frTranslations = {
   "configuration": {
     "title": "Configuration Générale",
     "products": "Produits",
+    "units": "Unités",
+    "unitsManagement": {
+      "title": "Unités de mesure",
+      "subtitle": "Référentiel partagé — unité de base et unités d'emballage des produits de stock.",
+      "addNew": "Nouvelle unité",
+      "name": "Nom",
+      "namePlaceholder": "Feuille",
+      "symbol": "Symbole (optionnel)",
+      "symbolPlaceholder": "u",
+      "create": "Créer",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "empty": "Aucune unité créée pour l'instant.",
+      "createError": "Impossible de créer l'unité (nom déjà utilisé ?).",
+      "deleteError": "Cette unité est utilisée par au moins un produit de stock."
+    },
+    "services": "Services",
+    "addService": "Ajouter un service",
+    "referenceLists": "Référentiels",
     "users": "Utilisateurs",
     "suppliers": "Fournisseurs",
     "taxes": "Taxes",
@@ -993,7 +1081,25 @@ const frTranslations = {
       "deleteAbsenceTitle": "Supprimer une absence",
       "editTaxTitle": "Modifier la taxe",
       "addTaxTitle": "Ajouter une nouvelle taxe",
-      "deleteTaxTitle": "Supprimer la taxe"
+      "deleteTaxTitle": "Supprimer la taxe",
+      "editServiceTitle": "Modifier le service",
+      "addServiceTitle": "Ajouter un service",
+      "deleteServiceTitle": "Supprimer le service"
+    },
+    "serviceForm": {
+      "name": "Nom",
+      "category": "Catégorie",
+      "range": "Gamme",
+      "description": "Description",
+      "generateWithAI": "Générer avec l'IA",
+      "isActive": "Actif",
+      "isVisibleOnSite": "Visible sur le site vitrine",
+      "displayOrder": "Ordre d'affichage",
+      "images": "Images"
+    },
+    "builder": {
+      "back": "Retour aux services",
+      "configureFields": "Configurer les champs"
     },
     "form": {
       "name": "Nom",
@@ -1043,7 +1149,111 @@ const frTranslations = {
       "uploadFile": "Charger un fichier",
       "generateWithAI": "Générer avec l'IA",
       "rate": "Taux (%)",
-      "isDefault": "Taxe par défaut"
+      "isDefault": "Taxe par défaut",
+      "minThreshold": "Seuil minimum",
+      "baseUnit": "Unité de base",
+      "selectUnit": "Sélectionner une unité...",
+      "packagingUnits": "Unités d'emballage",
+      "packagingUnitsHelp": "Unités d'achat (ex. Rame, Carton) et leur équivalence en unité de base.",
+      "conversionFactor": "Facteur de conversion"
+    }
+  },
+  "specBuilder": {
+    "fieldTypes": {
+      "TEXT": "Texte", "TEXTAREA": "Texte long", "NUMBER": "Nombre", "DECIMAL": "Nombre décimal",
+      "AMOUNT": "Montant", "SELECT": "Liste déroulante", "MULTISELECT": "Sélection multiple",
+      "RADIO": "Boutons radio", "CHECKBOX": "Case à cocher", "BOOLEAN": "Oui / Non", "DATE": "Date",
+      "TIME": "Heure", "COLOR": "Couleur", "UPLOAD": "Upload", "URL": "URL", "EMAIL": "Email",
+      "PHONE": "Téléphone", "DIMENSIONS": "Dimensions (Largeur × Hauteur)"
+    },
+    "card": {
+      "required": "Obligatoire",
+      "reorder": "Réordonner"
+    },
+    "drawer": {
+      "editTitle": "Modifier la spécification",
+      "addTitle": "Nouvelle spécification",
+      "nameRequired": "Le nom est requis",
+      "technicalKeyRequired": "La clé technique est requise",
+      "technicalKeyPattern": "snake_case requis (ex: paper_weight)",
+      "fieldRequired": "Requis",
+      "name": "Nom",
+      "technicalKey": "Clé technique",
+      "technicalKeyPlaceholder": "ex: paper_weight",
+      "type": "Type",
+      "group": "Groupe",
+      "noGroup": "Aucun groupe",
+      "helpText": "Texte d'aide",
+      "placeholder": "Placeholder",
+      "unit": "Unité (mm, cm, g, kg, pages...)",
+      "internalDescription": "Description interne",
+      "required": "Obligatoire",
+      "visibleToClient": "Visible client",
+      "visibleToProduction": "Visible production",
+      "editableAfterValidation": "Modifiable après validation",
+      "searchable": "Utilisable dans les recherches",
+      "possibleValues": "Valeurs possibles",
+      "optionsSourceInline": "Saisies ici",
+      "optionsSourceReference": "Référentiel partagé",
+      "selectReferenceList": "Sélectionner un référentiel...",
+      "optionValuePlaceholder": "Valeur (ex: A4)",
+      "optionLabelPlaceholder": "Libellé affiché",
+      "addOption": "Ajouter une valeur",
+      "uploadConfigTitle": "Configuration de l'upload",
+      "uploadExtensions": "Extensions autorisées (séparées par virgule)",
+      "uploadExtensionsPlaceholder": "PDF, AI, PSD, CDR",
+      "uploadMaxSize": "Taille max (Mo)",
+      "uploadMaxFiles": "Nombre de fichiers max",
+      "dimensionsConfigTitle": "Bornes des dimensions",
+      "dimMinWidth": "Largeur min",
+      "dimMaxWidth": "Largeur max",
+      "dimMinHeight": "Hauteur min",
+      "dimMaxHeight": "Hauteur max",
+      "cancel": "Annuler",
+      "save": "Enregistrer"
+    },
+    "groupList": {
+      "addField": "Ajouter un champ",
+      "noGroup": "Sans groupe",
+      "emptyGroup": "Aucun champ dans ce groupe.",
+      "addGroup": "Ajouter un groupe",
+      "deleteGroupTooltip": "Supprimer le groupe"
+    },
+    "builder": {
+      "fieldsTitle": "Champs techniques — {{productName}}",
+      "previewTitle": "Aperçu — vue commerciale",
+      "loading": "Chargement du Builder...",
+      "loadError": "Impossible de charger la configuration de ce service.",
+      "noFields": "Aucun champ configuré pour ce service pour l'instant.",
+      "newGroupPlaceholder": "Nom du groupe (ex: Papeterie)",
+      "cancel": "Annuler",
+      "confirmDeleteSpec": "Supprimer la spécification \"{{name}}\" ? Cette action est irréversible.",
+      "confirmDeleteGroup": "Supprimer le groupe \"{{name}}\" ? Les champs qu'il contient seront déplacés vers \"Sans groupe\"."
+    },
+    "referenceLists": {
+      "title": "Référentiels de valeurs",
+      "subtitle": "Listes de valeurs partagées entre plusieurs services (ex : types de papier, grammages).",
+      "addNew": "Nouveau référentiel",
+      "technicalKey": "Clé technique",
+      "technicalKeyPlaceholder": "paper_types",
+      "displayName": "Nom affiché",
+      "displayNamePlaceholder": "Types de papier",
+      "create": "Créer",
+      "cancel": "Annuler",
+      "valueCount": "valeur(s)",
+      "empty": "Aucun référentiel créé pour l'instant.",
+      "valuePlaceholder": "Valeur (ex: A4)",
+      "labelPlaceholder": "Libellé affiché",
+      "createError": "Impossible de créer le référentiel (clé déjà utilisée ?)."
+    },
+    "valuesModal": {
+      "title": "Spécifications techniques — {{productName}}",
+      "subtitle": "Renseignez les caractéristiques de cette ligne avant de l'ajouter au panier.",
+      "cancel": "Annuler",
+      "confirm": "Ajouter au panier"
+    },
+    "formRenderer": {
+      "selectPlaceholder": "Sélectionner..."
     }
   },
   "hr": {
@@ -2047,6 +2257,7 @@ const enTranslations: Translations = {
         },
         "receiveItemsModal": {
             "title": "Receive Items",
+            "unit": "Unit",
             "ordered": "Ordered",
             "alreadyReceived": "Already Received",
             "quantityToReceive": "Quantity to Receive"
@@ -2072,6 +2283,7 @@ const enTranslations: Translations = {
             "product": "Product",
             "selectProduct": "Select a product",
             "quantity": "Quantity",
+            "purchaseUnit": "Purchase unit",
             "purchasePrice": "Unit Purchase Price",
             "total": "Total",
             "orderSummary": "Order Summary"
@@ -2092,6 +2304,7 @@ const enTranslations: Translations = {
         "range": "Range",
         "confirmPriceSaveTitle": "Confirm Save",
         "confirmPriceSaveMessage": "Do you want to save the new prices?",
+        "belowThreshold": "Below minimum threshold",
         "available": "Available",
         "categories": {
             "pub": "Advertising",
@@ -2122,6 +2335,72 @@ const enTranslations: Translations = {
             "finitionFaconnage": "Finishing & Shaping",
             "prestationsExternes": "External Services",
             "textilesRaw": "Textiles (Raw Material)"
+        }
+    },
+    "stockMovements": {
+        "title": "Stock movements",
+        "allTypes": "All types",
+        "date": "Date",
+        "product": "Product",
+        "type": "Type",
+        "direction": "Direction",
+        "quantity": "Quantity",
+        "reason": "Reason",
+        "in": "In",
+        "out": "Out",
+        "empty": "No movement recorded yet.",
+        "tabs": {
+            "levels": "Stock levels",
+            "movements": "Movements",
+            "inventory": "Inventory"
+        },
+        "types": {
+            "PURCHASE_RECEIPT": "Purchase receipt",
+            "CUSTOMER_RETURN": "Customer return",
+            "POSITIVE_ADJUSTMENT": "Positive adjustment",
+            "TRANSFER_IN": "Transfer in",
+            "PRODUCTION_CONSUMPTION": "Production consumption",
+            "LOSS": "Loss",
+            "BREAKAGE": "Breakage",
+            "INTERNAL_CONSUMPTION": "Internal consumption",
+            "NEGATIVE_ADJUSTMENT": "Negative adjustment",
+            "SUPPLIER_RETURN": "Supplier return",
+            "TRANSFER_OUT": "Transfer out"
+        },
+        "inventory": {
+            "title": "Inventory",
+            "subtitle": "Enter the actually counted stock — the deviation is calculated and recorded automatically.",
+            "product": "Product",
+            "selectProduct": "Select a product...",
+            "theoreticalStock": "Theoretical stock",
+            "countedStock": "Counted stock",
+            "reason": "Reason (optional)",
+            "submit": "Validate inventory",
+            "successTitle": "Inventory recorded",
+            "successMessage": "Stock has been updated.",
+            "noDeviation": "No deviation found — no movement created.",
+            "deviationRecorded": "Deviation of {{delta}} recorded."
+        },
+        "withdraw": {
+            "title": "Withdraw materials",
+            "subtitle": "Enter the quantities actually used for this order.",
+            "addLine": "Add a line",
+            "product": "Product",
+            "quantity": "Quantity",
+            "submit": "Validate withdrawal",
+            "successTitle": "Materials withdrawn",
+            "successMessage": "Stock has been updated.",
+            "empty": "Add at least one material to withdraw."
+        },
+        "manual": {
+            "newMovement": "New movement",
+            "title": "New stock movement",
+            "subtitle": "Customer return, transfer, loss, breakage, internal consumption or supplier return.",
+            "product": "Product",
+            "selectProduct": "Select a product...",
+            "submit": "Save movement",
+            "successTitle": "Movement recorded",
+            "successMessage": "Stock has been updated."
         }
     },
     "productRange": {
@@ -2568,6 +2847,25 @@ const enTranslations: Translations = {
     "configuration": {
         "title": "General Configuration",
         "products": "Products",
+        "units": "Units",
+        "unitsManagement": {
+            "title": "Units of measure",
+            "subtitle": "Shared reference list — base unit and packaging units for stock products.",
+            "addNew": "New unit",
+            "name": "Name",
+            "namePlaceholder": "Sheet",
+            "symbol": "Symbol (optional)",
+            "symbolPlaceholder": "u",
+            "create": "Create",
+            "save": "Save",
+            "cancel": "Cancel",
+            "empty": "No unit created yet.",
+            "createError": "Could not create the unit (name already used?).",
+            "deleteError": "This unit is used by at least one stock product."
+        },
+        "services": "Services",
+        "addService": "Add a service",
+        "referenceLists": "Reference lists",
         "users": "Users",
         "suppliers": "Suppliers",
         "taxes": "Taxes",
@@ -2617,7 +2915,25 @@ const enTranslations: Translations = {
             "deleteAbsenceTitle": "Delete an Absence",
             "editTaxTitle": "Edit Tax",
             "addTaxTitle": "Add New Tax",
-            "deleteTaxTitle": "Delete Tax"
+            "deleteTaxTitle": "Delete Tax",
+            "editServiceTitle": "Edit service",
+            "addServiceTitle": "Add service",
+            "deleteServiceTitle": "Delete service"
+        },
+        "serviceForm": {
+            "name": "Name",
+            "category": "Category",
+            "range": "Range",
+            "description": "Description",
+            "generateWithAI": "Generate with AI",
+            "isActive": "Active",
+            "isVisibleOnSite": "Visible on storefront",
+            "displayOrder": "Display order",
+            "images": "Images"
+        },
+        "builder": {
+            "back": "Back to services",
+            "configureFields": "Configure fields"
         },
         "form": {
             "name": "Name",
@@ -2667,7 +2983,111 @@ const enTranslations: Translations = {
             "uploadFile": "Upload a file",
             "generateWithAI": "Generate with AI",
             "rate": "Rate (%)",
-            "isDefault": "Default Tax"
+            "isDefault": "Default Tax",
+            "minThreshold": "Minimum threshold",
+            "baseUnit": "Base unit",
+            "selectUnit": "Select a unit...",
+            "packagingUnits": "Packaging units",
+            "packagingUnitsHelp": "Purchase units (e.g. Ream, Box) and their equivalence in the base unit.",
+            "conversionFactor": "Conversion factor"
+        }
+    },
+    "specBuilder": {
+        "fieldTypes": {
+            "TEXT": "Text", "TEXTAREA": "Long text", "NUMBER": "Number", "DECIMAL": "Decimal number",
+            "AMOUNT": "Amount", "SELECT": "Dropdown list", "MULTISELECT": "Multi-select",
+            "RADIO": "Radio buttons", "CHECKBOX": "Checkbox", "BOOLEAN": "Yes / No", "DATE": "Date",
+            "TIME": "Time", "COLOR": "Color", "UPLOAD": "Upload", "URL": "URL", "EMAIL": "Email",
+            "PHONE": "Phone", "DIMENSIONS": "Dimensions (Width x Height)"
+        },
+        "card": {
+            "required": "Required",
+            "reorder": "Reorder"
+        },
+        "drawer": {
+            "editTitle": "Edit specification",
+            "addTitle": "New specification",
+            "nameRequired": "Name is required",
+            "technicalKeyRequired": "Technical key is required",
+            "technicalKeyPattern": "snake_case required (e.g. paper_weight)",
+            "fieldRequired": "Required",
+            "name": "Name",
+            "technicalKey": "Technical key",
+            "technicalKeyPlaceholder": "e.g. paper_weight",
+            "type": "Type",
+            "group": "Group",
+            "noGroup": "No group",
+            "helpText": "Help text",
+            "placeholder": "Placeholder",
+            "unit": "Unit (mm, cm, g, kg, pages...)",
+            "internalDescription": "Internal description",
+            "required": "Required",
+            "visibleToClient": "Visible to client",
+            "visibleToProduction": "Visible to production",
+            "editableAfterValidation": "Editable after validation",
+            "searchable": "Usable in search",
+            "possibleValues": "Possible values",
+            "optionsSourceInline": "Entered here",
+            "optionsSourceReference": "Shared reference list",
+            "selectReferenceList": "Select a reference list...",
+            "optionValuePlaceholder": "Value (e.g. A4)",
+            "optionLabelPlaceholder": "Displayed label",
+            "addOption": "Add a value",
+            "uploadConfigTitle": "Upload configuration",
+            "uploadExtensions": "Allowed extensions (comma-separated)",
+            "uploadExtensionsPlaceholder": "PDF, AI, PSD, CDR",
+            "uploadMaxSize": "Max size (MB)",
+            "uploadMaxFiles": "Max number of files",
+            "dimensionsConfigTitle": "Dimension bounds",
+            "dimMinWidth": "Min width",
+            "dimMaxWidth": "Max width",
+            "dimMinHeight": "Min height",
+            "dimMaxHeight": "Max height",
+            "cancel": "Cancel",
+            "save": "Save"
+        },
+        "groupList": {
+            "addField": "Add a field",
+            "noGroup": "No group",
+            "emptyGroup": "No fields in this group.",
+            "addGroup": "Add a group",
+            "deleteGroupTooltip": "Delete group"
+        },
+        "builder": {
+            "fieldsTitle": "Technical fields — {{productName}}",
+            "previewTitle": "Preview — sales view",
+            "loading": "Loading Builder...",
+            "loadError": "Unable to load this service's configuration.",
+            "noFields": "No fields configured for this service yet.",
+            "newGroupPlaceholder": "Group name (e.g. Paper)",
+            "cancel": "Cancel",
+            "confirmDeleteSpec": "Delete specification \"{{name}}\"? This action cannot be undone.",
+            "confirmDeleteGroup": "Delete group \"{{name}}\"? Its fields will be moved to \"No group\"."
+        },
+        "referenceLists": {
+            "title": "Value reference lists",
+            "subtitle": "Value lists shared across several services (e.g. paper types, weights).",
+            "addNew": "New reference list",
+            "technicalKey": "Technical key",
+            "technicalKeyPlaceholder": "paper_types",
+            "displayName": "Display name",
+            "displayNamePlaceholder": "Paper types",
+            "create": "Create",
+            "cancel": "Cancel",
+            "valueCount": "value(s)",
+            "empty": "No reference list created yet.",
+            "valuePlaceholder": "Value (e.g. A4)",
+            "labelPlaceholder": "Displayed label",
+            "createError": "Could not create the reference list (key already used?)."
+        },
+        "valuesModal": {
+            "title": "Technical specifications — {{productName}}",
+            "subtitle": "Fill in this line's specifications before adding it to the cart.",
+            "cancel": "Cancel",
+            "confirm": "Add to cart"
+        },
+        "formRenderer": {
+            "selectPlaceholder": "Select..."
         }
     },
     "hr": {

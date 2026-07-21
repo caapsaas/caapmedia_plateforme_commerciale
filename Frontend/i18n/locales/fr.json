@@ -48,6 +48,9 @@
   "configuration": {
     "title": "Configuration",
     "products": "Produits",
+    "services": "Services",
+    "referenceLists": "Référentiels",
+    "addService": "Ajouter un service",
     "users": "Utilisateurs",
     "suppliers": "Fournisseurs",
     "clientManagement": "Clients",
@@ -55,7 +58,25 @@
     "treasury": "Trésorerie",
     "modal": {
       "editEmployeeTitle": "Modifier l'employé",
-      "addEmployeeTitle": "Ajouter un employé"
+      "addEmployeeTitle": "Ajouter un employé",
+      "editServiceTitle": "Modifier le service",
+      "addServiceTitle": "Ajouter un service",
+      "deleteServiceTitle": "Supprimer le service"
+    },
+    "serviceForm": {
+      "name": "Nom",
+      "category": "Catégorie",
+      "range": "Gamme",
+      "description": "Description",
+      "generateWithAI": "Générer avec l'IA",
+      "isActive": "Actif",
+      "isVisibleOnSite": "Visible sur le site vitrine",
+      "displayOrder": "Ordre d'affichage",
+      "images": "Images"
+    },
+    "builder": {
+      "back": "Retour aux services",
+      "configureFields": "Configurer les champs"
     },
     "form": {
       "formSection": {
