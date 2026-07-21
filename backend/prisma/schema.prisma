@@ -39,7 +39,8 @@ model Subsidiary {
   opportunities                 Opportunity[]
   orders                        Order[]
   payrollRecords                PayrollRecord[]
-  products                      Product[]
+  itemStocks                    ItemStock[]
+  stockMovements                StockMovement[]
   purchaseOrders                PurchaseOrder[]
   sales                         Sale[]
   secretariatTasks              SecretariatTask[]
@@ -93,6 +94,7 @@ model User {
   prefinancementTransactions    PrefinancementTransaction[]
   journalEntries                JournalEntry[]
   refreshTokens                 RefreshToken[]
+  stockMovements                StockMovement[]
 
   @@map("users")
 }
@@ -170,58 +172,261 @@ model Notification {
   @@map("notifications")
 }
 
-model ConfigurableOptionItem {
-  id                  Int                  @id @default(autoincrement()) @map("id")
-  optionName          String               @unique @map("option_name") @db.VarChar(150)
-  multiplier          Decimal              @map("multiplier") @db.Decimal(15, 2)
-  configurableOptions ConfigurableOption[]
-
-  @@map("configurable_option_item")
+enum ItemType {
+  SERVICE
+  STOCK_PRODUCT
 }
 
-model Product {
+// Article unifié (Chantier 1) : un service vendu au client (type=SERVICE) ou
+// une matière/consommable achetée en interne (type=STOCK_PRODUCT). Les DEUX
+// types sont des catalogues globaux, partagés par toutes les filiales — seule
+// la QUANTITÉ en stock (et son entrepôt) est propre à chaque filiale, voir
+// ItemStock. Les champs propres à un seul type restent nullable pour l'autre —
+// l'écran d'édition les masque selon le type.
+model Item {
   id                   String               @id @default(uuid()) @map("id") @db.Uuid
-  productName          String               @map("product_name") @db.VarChar(255)
-  mainCategory         String               @map("main_category") @db.VarChar(255)
+  type                 ItemType             @map("type")
+  name                 String               @map("name") @db.VarChar(255)
   category             String               @map("category") @db.VarChar(255)
   description          String               @map("description")
-  stock                Decimal              @map("stock")
-  price                Decimal              @map("price") @db.Decimal(15, 2)
-  sellingPrice         Decimal              @map("selling_price") @db.Decimal(15, 2)
-  warehouse            String               @map("warehouse") @db.VarChar(255)
   productRange         String?              @map("product_range") @db.VarChar(255)
-  subsidiaryId         String               @map("subsidiary_id") @db.Uuid
-  configurableOptions  ConfigurableOption[]
+  isActive             Boolean              @default(true) @map("is_active")
+
+  // Champs SERVICE uniquement
+  isVisibleOnSite      Boolean              @default(true) @map("is_visible_on_site")
+  displayOrder         Int?                 @map("display_order")
+
+  // Champs STOCK_PRODUCT uniquement — valeurs globales par défaut (prix
+  // d'achat, seuil, fournisseur principal) ; la quantité réelle est dans ItemStock.
+  sku                  String?              @map("sku") @db.VarChar(100)
+  price                Decimal?             @map("price") @db.Decimal(15, 2)
+  minThreshold         Decimal?             @map("min_threshold")
+  stockManaged         Boolean              @default(false) @map("stock_managed")
+  mainSupplierId       String?              @map("main_supplier_id") @db.Uuid
+  // Unité dans laquelle le stock est réellement enregistré (Chantier 2) — ex.
+  // Papier -> Feuille. Les unités d'achat (ItemPackagingUnit) convertissent vers elle.
+  baseUnitId           String?              @map("base_unit_id") @db.Uuid
+
   opportunitieProducts OpportunityProduct[]
   orderItems           OrderItem[]
   productImages        ProductImage[]
-  subsidiary           Subsidiary           @relation(fields: [subsidiaryId], references: [id])
+  mainSupplier         Supplier?            @relation(fields: [mainSupplierId], references: [id])
+  baseUnit             Unit?                @relation("ItemBaseUnit", fields: [baseUnitId], references: [id])
+  packagingUnits       ItemPackagingUnit[]
   purchaseOrderItems   PurchaseOrderItem[]
+  // Chantier 5 : un service (SERVICE) définit son propre modèle de formulaire.
+  specGroups           ProductSpecGroup[]
+  specifications       ProductSpecification[]
+  // Stock par filiale (STOCK_PRODUCT uniquement) — voir ItemStock.
+  stockLevels          ItemStock[]
+  // Journal des mouvements de stock (Chantier 3) — voir StockMovement.
+  stockMovements       StockMovement[]
 
-  @@index([subsidiaryId])
-  @@index([subsidiaryId, stock])
-  @@map("products")
+  @@unique([name, type])
+  @@index([type])
+  @@map("items")
 }
 
-model ConfigurableOption {
-  id         Int                     @id @default(autoincrement()) @map("id")
-  productId  String?                 @map("product_id") @db.Uuid
-  itemId     Int?                    @map("item_id")
-  optionType OptionType              @map("option_type")
-  item       ConfigurableOptionItem? @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  product    Product?                @relation(fields: [productId], references: [id], onDelete: Cascade)
+// Référentiel d'unités de mesure administrable (Chantier 2) — ex. Feuille,
+// Rame, Rouleau, Kilogramme, Mètre... partagé par tous les produits de stock.
+model Unit {
+  id     String  @id @default(uuid()) @map("id") @db.Uuid
+  name   String  @unique @map("name") @db.VarChar(100)
+  symbol String? @map("symbol") @db.VarChar(20)
 
-  @@map("configurable_options")
+  itemsAsBaseUnit    Item[]              @relation("ItemBaseUnit")
+  packagingUnits     ItemPackagingUnit[]
+  purchaseOrderItems PurchaseOrderItem[]
+
+  @@map("units")
+}
+
+// Unité d'emballage/achat d'un produit de stock (ex. Rame = 500 Feuilles) —
+// conversionFactor = combien d'unités de base contient une unité d'achat.
+// À la réception d'un achat, la quantité reçue (dans cette unité) est
+// convertie automatiquement en unité de base avant d'incrémenter ItemStock.
+model ItemPackagingUnit {
+  id               String  @id @default(uuid()) @map("id") @db.Uuid
+  itemId           String  @map("item_id") @db.Uuid
+  unitId           String  @map("unit_id") @db.Uuid
+  conversionFactor Decimal @map("conversion_factor") @db.Decimal(15, 4)
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  unit Unit @relation(fields: [unitId], references: [id])
+
+  @@unique([itemId, unitId])
+  @@map("item_packaging_units")
+}
+
+// Quantité en stock d'un produit de stock (Item.type=STOCK_PRODUCT), propre à
+// une filiale — l'Item lui-même est global (catalogue partagé), seule cette
+// table distingue "combien chaque filiale en a, et où".
+model ItemStock {
+  id           String     @id @default(uuid()) @map("id") @db.Uuid
+  itemId       String     @map("item_id") @db.Uuid
+  subsidiaryId String     @map("subsidiary_id") @db.Uuid
+  stock        Decimal    @default(0) @map("stock")
+  warehouse    String?    @map("warehouse") @db.VarChar(255)
+  item         Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, subsidiaryId])
+  @@index([subsidiaryId])
+  @@map("item_stocks")
+}
+
+// Journal des mouvements de stock (Chantier 3) — TOUTE variation de stock
+// (entrée ou sortie) passe par une ligne ici, en unité de base, jamais
+// calculée automatiquement à partir d'une commande. Une sortie liée à une
+// commande (orderId) ne sert qu'à la traçabilité, jamais à un calcul.
+enum StockMovementType {
+  PURCHASE_RECEIPT
+  CUSTOMER_RETURN
+  POSITIVE_ADJUSTMENT
+  TRANSFER_IN
+  PRODUCTION_CONSUMPTION
+  LOSS
+  BREAKAGE
+  INTERNAL_CONSUMPTION
+  NEGATIVE_ADJUSTMENT
+  SUPPLIER_RETURN
+  TRANSFER_OUT
+}
+
+model StockMovement {
+  id              String            @id @default(uuid()) @map("id") @db.Uuid
+  itemId          String            @map("item_id") @db.Uuid
+  subsidiaryId    String            @map("subsidiary_id") @db.Uuid
+  type            StockMovementType @map("type")
+  // Toujours positif, en unité de base — le sens (entrée/sortie) se déduit du type.
+  quantity        Decimal           @map("quantity") @db.Decimal(15, 4)
+  reason          String?           @map("reason")
+  // Lien facultatif, traçabilité uniquement (jamais utilisé pour calculer quoi que ce soit).
+  orderId         String?           @map("order_id") @db.Uuid
+  purchaseOrderId String?           @map("purchase_order_id") @db.Uuid
+  createdById     String?           @map("created_by_id") @db.Uuid
+  createdAt       DateTime          @default(now()) @map("created_at")
+
+  item          Item           @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  subsidiary    Subsidiary     @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  order         Order?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  purchaseOrder PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
+  createdBy     User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([itemId, subsidiaryId])
+  @@index([subsidiaryId, createdAt])
+  @@index([orderId])
+  @@map("stock_movements")
 }
 
 model ProductImage {
-  id        Int      @id @default(autoincrement()) @map("id")
-  imageName String   @map("image_name") @db.VarChar(255)
-  imageUrl  String   @map("image_url")
-  productId String?  @map("product_id") @db.Uuid
-  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id        Int     @id @default(autoincrement()) @map("id")
+  imageName String  @map("image_name") @db.VarChar(255)
+  imageUrl  String  @map("image_url")
+  productId String? @map("product_id") @db.Uuid
+  product   Item?   @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("product_image")
+}
+
+// ---------------------------------------------------------------------------
+// Chantier 5 : moteur de spécifications configurables (Builder de formulaires)
+// Un produit (Item, type=SERVICE) définit son propre modèle de formulaire :
+// groupes + spécifications typées. Le commercial ne fait que remplir les
+// valeurs — jamais configurer les champs (voir OrderItem.specValues/specSnapshot
+// pour l'instantané figé à la commande).
+// ---------------------------------------------------------------------------
+
+enum SpecFieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  DECIMAL
+  AMOUNT
+  SELECT
+  MULTISELECT
+  RADIO
+  CHECKBOX
+  BOOLEAN
+  DATE
+  TIME
+  COLOR
+  UPLOAD
+  URL
+  EMAIL
+  PHONE
+  DIMENSIONS
+}
+
+model ProductSpecGroup {
+  id             String                  @id @default(uuid()) @map("id") @db.Uuid
+  productId      String                  @map("product_id") @db.Uuid
+  name           String                  @map("name") @db.VarChar(150)
+  order          Int                     @map("order")
+  product        Item                    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  specifications ProductSpecification[]
+
+  @@index([productId])
+  @@map("product_spec_groups")
+}
+
+model ProductSpecification {
+  id                      String            @id @default(uuid()) @map("id") @db.Uuid
+  productId               String            @map("product_id") @db.Uuid
+  groupId                 String?           @map("group_id") @db.Uuid
+  name                    String            @map("name") @db.VarChar(150)
+  // Clé technique utilisée dans specValues (ex: "paper_weight") — unique par produit.
+  technicalKey            String            @map("technical_key") @db.VarChar(100)
+  type                    SpecFieldType     @map("type")
+  required                Boolean           @default(false) @map("required")
+  defaultValue            Json?             @map("default_value")
+  // Options inline pour SELECT/MULTISELECT/RADIO, ou { referenceListKey: "paper_type" }
+  // pour puiser dans un référentiel partagé (voir SpecReferenceList).
+  possibleValues          Json?             @map("possible_values")
+  order                   Int               @map("order")
+  helpText                String?           @map("help_text")
+  placeholder             String?           @map("placeholder")
+  unit                    String?           @map("unit") @db.VarChar(50)
+  visibleToClient         Boolean           @default(true) @map("visible_to_client")
+  visibleToProduction     Boolean           @default(true) @map("visible_to_production")
+  editableAfterValidation Boolean           @default(false) @map("editable_after_validation")
+  searchable              Boolean           @default(false) @map("searchable")
+  internalDescription     String?           @map("internal_description")
+  // Réglages spécifiques au type : extensions/taille/nombre (UPLOAD),
+  // min/max largeur-hauteur (DIMENSIONS), etc.
+  typeConfig              Json?             @map("type_config")
+  // Règles conditionnelles simples : [{ when: {field, operator, value}, then: {action, target} }]
+  rules                   Json?             @map("rules")
+  product                 Item              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  group                   ProductSpecGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+
+  @@unique([productId, technicalKey])
+  @@index([productId])
+  @@index([groupId])
+  @@map("product_specifications")
+}
+
+// Référentiels partagés entre produits (Types de papier, Grammages, Couleurs...)
+// — administrables sans toucher au code, référencés par ProductSpecification.possibleValues.
+model SpecReferenceList {
+  id     String               @id @default(uuid()) @map("id") @db.Uuid
+  key    String               @unique @map("key") @db.VarChar(100)
+  name   String               @map("name") @db.VarChar(150)
+  values SpecReferenceValue[]
+
+  @@map("spec_reference_lists")
+}
+
+model SpecReferenceValue {
+  id     String            @id @default(uuid()) @map("id") @db.Uuid
+  listId String            @map("list_id") @db.Uuid
+  value  String            @map("value") @db.VarChar(150)
+  label  String            @map("label") @db.VarChar(150)
+  order  Int               @map("order")
+  list   SpecReferenceList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@index([listId])
+  @@map("spec_reference_values")
 }
 
 model Employee {
@@ -409,6 +614,10 @@ model Sale {
   status        SaleStatus            @map("status")
   orderId       String?               @map("order_id") @db.Uuid
   paymentMethod CustomerPaymentMethod @map("payment_method")
+  // Chantier 5 (Caisse) : mêmes champs que OrderItem.specValues/specSnapshot —
+  // valeurs saisies au comptoir + copie figée de la définition du formulaire.
+  specValues    Json?                 @map("spec_values")
+  specSnapshot  Json?                 @map("spec_snapshot")
   customer      Contact               @relation(fields: [customerId], references: [id])
   order         Order?                @relation(fields: [orderId], references: [id])
   salesRep      User?                 @relation(fields: [salesRepId], references: [id])
@@ -460,7 +669,7 @@ model OpportunityProduct {
   opportunityId String      @map("opportunity_id") @db.Uuid
   productId     String      @map("product_id") @db.Uuid
   opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product       Item        @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("opportunity_products")
 }
@@ -507,6 +716,9 @@ model Order {
   subsidiary        Subsidiary               @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
   taxRate           TaxRate                  @relation(fields: [taxRateId], references: [id])
   sales             Sale[]
+  // Sorties de stock liées à cette commande (Chantier 3, "Prélever les
+  // matières") — traçabilité facultative uniquement, jamais un calcul.
+  stockMovements    StockMovement[]
 
   @@index([subsidiaryId, customerId, orderDate(sort: Desc)])
   @@index([subsidiaryId, status])
@@ -528,12 +740,21 @@ model OrderItem {
   id             String          @id @default(uuid()) @map("id") @db.Uuid
   quantity       Int             @map("quantity")
   unitPrice      Decimal         @map("unit_price") @db.Decimal(15, 2)
+  // Remise négociée sur cette ligne (montant, pas %) et total figé historiquement
+  // (unitPrice * quantity - discount) — jamais recalculés après coup (Chantier 4).
+  discount       Decimal         @default(0) @map("discount") @db.Decimal(15, 2)
+  total          Decimal         @map("total") @db.Decimal(15, 2)
   designFileName String?         @map("design_file_name") @db.VarChar(255)
   designFileUrl  String?         @map("design_file_url")
+  // Chantier 5 : valeurs saisies par le commercial (technicalKey -> valeur) et
+  // copie figée de la définition (groupes+specs) utilisée au moment de la
+  // commande — le produit peut évoluer ensuite sans jamais affecter cette ligne.
+  specValues     Json?           @map("spec_values")
+  specSnapshot   Json?           @map("spec_snapshot")
   productId      String?         @map("product_id") @db.Uuid
   orderId        String?         @map("order_id") @db.Uuid
   order          Order?          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product        Product?        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product        Item?           @relation(fields: [productId], references: [id], onDelete: Cascade)
   productOptions ProductOption[]
 
   @@index([productId])
@@ -571,6 +792,7 @@ model Supplier {
   subsidiaryId   String          @map("subsidiary_id") @db.Uuid
   purchaseOrders PurchaseOrder[]
   subsidiary     Subsidiary      @relation(fields: [subsidiaryId], references: [id])
+  suppliedItems  Item[]
 
   @@unique([supplierName, subsidiaryId])
   @@map("suppliers")
@@ -593,6 +815,8 @@ model PurchaseOrder {
   subsidiary           Subsidiary             @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
   supplier             Supplier               @relation(fields: [supplierId], references: [id], onDelete: Cascade)
   supplierDebts        SupplierDebt[]
+  // Entrées de stock générées automatiquement à la réception (Chantier 3).
+  stockMovements       StockMovement[]
 
   @@index([subsidiaryId, orderDate(sort: Desc)])
   @@index([subsidiaryId, supplierId])
@@ -609,8 +833,13 @@ model PurchaseOrderItem {
   purchasePrice    Decimal       @map("purchase_price") @db.Decimal(15, 2)
   purchaseOrderId  String        @map("purchase_order_id") @db.Uuid
   productId        String        @map("product_id") @db.Uuid
-  product          Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  // Unité dans laquelle "quantity"/"quantityReceived" sont exprimées (Chantier
+  // 2) — null = unité de base du produit. La conversion vers l'unité de base
+  // (ItemStock) se fait automatiquement à la réception, jamais saisie à la main.
+  purchaseUnitId   String?       @map("purchase_unit_id") @db.Uuid
+  product          Item          @relation(fields: [productId], references: [id], onDelete: Cascade)
   purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  purchaseUnit     Unit?         @relation(fields: [purchaseUnitId], references: [id])
 
   @@index([productId])
   @@map("purchase_order_items")
@@ -1324,25 +1553,6 @@ enum EquipmentStatus {
   OPERATIONAL
   NEEDS_MAINTENANCE
   OUT_OF_SERVICE
-}
-
-enum OptionType {
-  FORMATS
-  GRAMMAGES
-  PRINTSIDES
-  LAMINATIONS
-  SIZES
-  COLORS
-  MATERIALS
-  DIMENSIONS
-  BINDINGS
-  FOLDINGS
-  CORNERS
-  EYELETS
-  PAGES
-  HANDLES
-  STUD
-  NUMBERING
 }
 
 enum SaleStatus {
