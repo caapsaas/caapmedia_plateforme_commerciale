@@ -17,7 +17,6 @@ import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { Roles } from 'src/common/auth/role/role.decorator';
 import {
-  CreateOrderDto,
   CreateOrderBySalesRepDto,
   RecordPaymentDto,
   UpdateOrderStatusDto,
@@ -33,39 +32,6 @@ import { extname } from 'path';
 @Controller('ecommerce/orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
-
-  /**
-   * Endpoint pour créer une commande
-   * Exemple d'URL : /ecommerce/orders
-   */
-  @Post()
-  @UseGuards(ContactJwtAuthGuard)
-  @UseInterceptors(
-    FileFieldsInterceptor([{ name: 'designFiles', maxCount: 10 }], {
-      storage: diskStorage({
-        destination: './public/order_item_img',
-        filename: (req, file, cb) => {
-          const randomName = Array(32)
-            .fill(null)
-            .map(() => Math.round(Math.random() * 16).toString(16))
-            .join('');
-          cb(null, `${randomName}${extname(file.originalname)}`);
-        },
-      }),
-    }),
-  )
-  create(
-    @Body() createOrderDto: CreateOrderDto,
-    @UploadedFiles() files: { designFiles?: Express.Multer.File[] },
-    @Req() req,
-  ) {
-    // Le DTO est parsé à partir du corps du formulaire, et les fichiers sont injectés.
-    return this.ordersService.create(
-      createOrderDto,
-      req.user,
-      files.designFiles,
-    );
-  }
 
   /**
    * Endpoint pour créer une commande par un commercial (avec fichiers)

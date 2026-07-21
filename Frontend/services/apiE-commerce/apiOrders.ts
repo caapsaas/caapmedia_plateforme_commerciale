@@ -17,20 +17,6 @@ export interface FindAllOrdersDto {
 
 
 /**
- * Crée une nouvelle commande (pour un client).
- * Utilise FormData pour gérer l'upload de fichiers.
- * @param orderData - Les données de la commande à créer, incluant les fichiers.
- */
-export const createOrder = async (orderData: FormData) => {
-    const { data } = await api.post('/ecommerce/orders', orderData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
-    });
-    return data;
-};
-
-/**
  * Crée une nouvelle commande (pour un commercial).
  * Utilise FormData pour gérer l'upload de fichiers.
  * @param orderData - Les données de la commande à créer, incluant les fichiers.

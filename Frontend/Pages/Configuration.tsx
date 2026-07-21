@@ -1,6 +1,9 @@
 
 import React, { useState } from 'react';
 import ProductManagement from '../components/configuration/ProductManagement';
+import UnitsManagement from '../components/configuration/UnitsManagement';
+import ServicesCatalogManagement from '../components/configuration/ServicesCatalogManagement';
+import SpecReferenceListsManagement from '../components/configuration/SpecReferenceListsManagement';
 import UserManagement from '../components/configuration/UserManagement';
 import SupplierManagement from '../components/configuration/SupplierManagement';
 import ClientManagement from '../components/configuration/ClientManagement'; // Importer ClientManagement
@@ -9,7 +12,7 @@ import TaxManagement from '../components/configuration/TaxManagement';
 import TreasuryAccountManagement from '../components/configuration/TreasuryAccountManagement';
 import { useAuth } from '../context/AuthContext';
 
-type ConfigView = 'products' | 'users' | 'suppliers' | 'taxes' | 'clients' | 'treasury';
+type ConfigView = 'products' | 'units' | 'services' | 'referenceLists' | 'users' | 'suppliers' | 'taxes' | 'clients' | 'treasury';
 
 const Configuration: React.FC = () => {
     const { t } = useI18n();
@@ -22,6 +25,12 @@ const Configuration: React.FC = () => {
         switch (activeTab) {
             case 'products':
                 return <ProductManagement />;
+            case 'units':
+                return <UnitsManagement />;
+            case 'services':
+                return <ServicesCatalogManagement />;
+            case 'referenceLists':
+                return <SpecReferenceListsManagement />;
             case 'users':
                 return <UserManagement />;
             case 'suppliers':
@@ -56,6 +65,9 @@ const Configuration: React.FC = () => {
                 <h2 className="text-3xl font-bold text-slate-800">{t('configuration.title')}</h2>
                 <div className="flex items-center space-x-2 p-1 bg-slate-200 rounded-lg">
                     <TabButton view="products" label={t('configuration.products')} />
+                    <TabButton view="units" label={t('configuration.units')} />
+                    <TabButton view="services" label={t('configuration.services')} />
+                    <TabButton view="referenceLists" label={t('configuration.referenceLists')} />
                     <TabButton view="users" label={t('configuration.users')} />
                     <TabButton view="suppliers" label={t('configuration.suppliers')} />
                     <TabButton view="clients" label={t('configuration.clientManagement')} />

@@ -1,9 +1,10 @@
 import { PrismaClient } from '@prisma/client';
-import { OrderStatus, ProductionStatus, PaymentStatus, OrderSource } from '@prisma/client';
+import { OrderStatus, ProductionStatus, PaymentStatus, OrderSource, ItemType } from '@prisma/client';
 
 interface OrderItemData {
     quantity: number;
     unitPrice: number;
+    discount?: number;
     productOptions?: {
         optionType: string;
         optionValue: string;
@@ -55,9 +56,9 @@ export async function runOrdersSeeder(prisma: PrismaClient) {
         // Ajouter d'autres commandes ici si nécessaire
     ];
 
-    // Récupérer un produit existant pour les OrderItems
-    const product = await prisma.product.findFirst();
-    if (!product) throw new Error('Aucun produit trouvé pour créer un OrderItem');
+    // Récupérer un service existant pour les OrderItems
+    const product = await prisma.item.findFirst({ where: { type: ItemType.SERVICE } });
+    if (!product) throw new Error('Aucun service trouvé pour créer un OrderItem');
 
     // Récupérer un taux de taxe existant pour les Orders
     const taxRate = await prisma.taxRate.findFirst();
@@ -122,6 +123,8 @@ export async function runOrdersSeeder(prisma: PrismaClient) {
                 create: o.items.map(item => ({
                     quantity: item.quantity,
                     unitPrice: item.unitPrice,
+                    discount: item.discount ?? 0,
+                    total: item.quantity * item.unitPrice - (item.discount ?? 0),
                     productId: product.id,
                     ...(item.productOptions && {
                         productOptions: {

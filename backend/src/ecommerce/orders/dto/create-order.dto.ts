@@ -5,6 +5,7 @@ import {
   IsNotEmpty,
   IsEnum,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
@@ -34,6 +35,17 @@ class CreateOrderItemDto {
   @Min(1)
   quantity: number;
 
+  // Prix négocié par le commercial pour cette ligne (jamais tiré du catalogue).
+  @IsNumber()
+  @Min(0)
+  unitPrice: number;
+
+  // Remise négociée sur cette ligne (montant, pas %), figée historiquement avec le total.
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  discount?: number;
+
   @IsOptional()
   @IsString()
   designFileName?: string;
@@ -47,32 +59,12 @@ class CreateOrderItemDto {
   @ValidateNested({ each: true })
   @Type(() => CreateProductOptionDto)
   options?: CreateProductOptionDto[];
-}
 
-export class CreateOrderDto {
-  @IsString()
-  @IsNotEmpty()
-  customerName: string;
-
-  @IsString()
-  @IsNotEmpty()
-  paymentDueDate: string; // Sera validé comme une date dans le service
-
+  // Valeurs des spécifications techniques du produit (Chantier 5) —
+  // { technicalKey: valeur }, validées server-side contre la définition du produit.
   @IsOptional()
-  @IsUUID()
-  opportunityId?: string;
-
-  @IsNotEmpty()
-  source: OrderSource;
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => CreateOrderItemDto)
-  items: CreateOrderItemDto[];
-
-  @IsNotEmpty()
-  @IsEnum(CustomerPaymentMethod)
-  paymentMethod: CustomerPaymentMethod;
+  @IsObject()
+  specValues?: Record<string, unknown>;
 }
 
 export class CreateOrderBySalesRepDto {

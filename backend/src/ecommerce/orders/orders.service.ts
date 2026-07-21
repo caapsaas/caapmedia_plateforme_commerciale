@@ -6,21 +6,18 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import {
-  CreateOrderDto,
   CreateOrderBySalesRepDto,
   RecordPaymentDto,
   UpdateOrderStatusDto,
   updateProductionStatusDto,
 } from './dto/create-order.dto';
 import {
-  Order,
-  OrderGroup,
   OrderStatus,
   PaymentStatus,
   Prisma,
   ProductionStatus,
-  CustomerPaymentMethod,
   SaleStatus,
+  ItemType,
 } from '@prisma/client';
 import { FindAllOrdersDto, OrderPeriod } from './dto/find-all-orders.dto';
 import {
@@ -32,18 +29,14 @@ import {
   subMonths,
 } from 'date-fns';
 import { Decimal } from '@prisma/client/runtime/library';
-
-// Degressive pricing table: [quantity, discount percentage]
-const degressivePricing = [
-  { threshold: 1000, discount: new Decimal(0.2) },
-  { threshold: 500, discount: new Decimal(0.15) },
-  { threshold: 250, discount: new Decimal(0.1) },
-  { threshold: 100, discount: new Decimal(0.05) },
-];
+import { ProductSpecsService } from '../products/product-specs/product-specs.service';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly productSpecsService: ProductSpecsService,
+  ) {}
 
   // Fonction utilitaire pour mapper une commande à son format de réponse
   private mapOrderToResponse(order: any) {
@@ -55,7 +48,7 @@ export class OrdersService {
       totalAmount: order.totalAmount.toNumber(),
       status: order.status,
       orderItems: order.orderItems.map((item: any) => ({
-        productName: item.product?.productName,
+        productName: item.product?.name,
         quantity: item.quantity,
         unitPrice: item.unitPrice.toNumber(),
         options: item.productOptions?.map((opt: any) => ({
@@ -105,338 +98,9 @@ export class OrdersService {
   }
 
   /**
-   *
-   * @param createOrderDto // DTO contenant les données de la commande à créer
-   * @param user // Utilisateur connecté
-   * @param designFiles // Fichiers uploadés
-   * @returns // Commande créée
-   */
-  async create(
-    createOrderDto: CreateOrderDto,
-    user: any,
-    designFiles?: Express.Multer.File[],
-  ) {
-    const {
-      items,
-      customerName,
-      paymentDueDate,
-      source,
-      opportunityId,
-      paymentMethod,
-    } = createOrderDto;
-
-    const paymentDue = new Date(paymentDueDate);
-    if (isNaN(paymentDue.getTime())) {
-      throw new BadRequestException('Date de paiement invalide');
-    }
-
-    // Le corps d'un formulaire multipart est toujours en string, il faut parser les items.
-    const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
-
-    const { id: customerId, contactName, company } = user; // L'utilisateur connecté est le client
-
-    if (!items || items.length === 0) {
-      throw new BadRequestException(
-        'Une commande doit contenir au moins un article.',
-      );
-    }
-
-    // 1. Récupérer toutes les données de référence (Produits, Taxe par défaut)
-    const productIds = parsedItems
-      .map((item) => item.productId)
-      .filter((id) => id !== undefined);
-    const [products, taxRate] = await Promise.all([
-      this.prisma.product.findMany({ where: { id: { in: productIds } } }),
-      this.prisma.taxRate.findFirstOrThrow({ where: { isDefault: true } }),
-    ]);
-
-    if (products.length !== productIds.length) {
-      throw new NotFoundException(
-        'Un ou plusieurs produits sont introuvables.',
-      );
-    }
-
-    const productMap = new Map(products.map((p) => [p.id, p]));
-
-    // 2. Regrouper les articles par filiale (subsidiaryId)
-    const itemsBySubsidiary = new Map<string, any[]>();
-    const validItems = parsedItems.filter(
-      (item) => item.productId !== undefined,
-    );
-
-    // Validation améliorée: vérifier que tous les produits existent
-    for (const item of validItems) {
-      const product = productMap.get(item.productId);
-      if (!product) {
-        throw new NotFoundException(
-          `Produit avec l'ID ${item.productId} introuvable`,
-        );
-      }
-      const subsidiaryId = product.subsidiaryId;
-      if (!itemsBySubsidiary.has(subsidiaryId)) {
-        itemsBySubsidiary.set(subsidiaryId, []);
-      }
-      itemsBySubsidiary.get(subsidiaryId)!.push({ ...item, product });
-    }
-
-    // Pré-charger tous les items d'options configurables nécessaires pour le calcul du prix
-    const allOptionValues = validItems.flatMap((item) => {
-      if (!item.options) return [];
-      // Transformer l'objet ProductOptions en tableau d'optionValues
-      return item.options
-        .map((option) => option.optionValue)
-        .filter((value) => value !== undefined);
-    });
-    const configurableOptionItems =
-      await this.prisma.configurableOptionItem.findMany({
-        where: { optionName: { in: allOptionValues } },
-      });
-    const optionItemMap = new Map(
-      configurableOptionItems.map((item) => [item.optionName, item]),
-    );
-
-    // 3. Exécuter la création dans une transaction globale
-    return this.prisma.$transaction(async (tx) => {
-      const createdOrders: Order[] = [];
-      let orderGroup: OrderGroup | null = null;
-      let overallTotalAmount = new Decimal(0);
-
-      // Calculer le montant total global pour le groupe de commandes
-      for (const item of validItems) {
-        const product = productMap.get(item.productId);
-        if (!product) {
-          throw new NotFoundException(
-            `Produit avec l'ID ${item.productId} introuvable`,
-          );
-        }
-        let unitPrice = new Decimal(product.sellingPrice);
-
-        if (item.options) {
-          for (const option of item.options) {
-            const optionItem = optionItemMap.get(option.optionValue);
-            if (optionItem) {
-              unitPrice = unitPrice.mul(optionItem.multiplier);
-            }
-          }
-        }
-
-        // Appliquer la tarification dégressive
-        let discount = new Decimal(0);
-        for (const tier of degressivePricing) {
-          if (item.quantity >= tier.threshold) {
-            discount = tier.discount;
-            break; // La table est triée, on prend la première correspondance
-          }
-        }
-        const finalUnitPrice = unitPrice.mul(new Decimal(1).sub(discount));
-        overallTotalAmount = overallTotalAmount.add(
-          finalUnitPrice.mul(item.quantity),
-        );
-      }
-      // Ajouter la taxe au montant total global
-      const overallTotalWithTax = overallTotalAmount.mul(
-        new Decimal(1).add(taxRate.rate),
-      );
-
-      // Si plusieurs filiales sont concernées, créer un OrderGroup
-      if (itemsBySubsidiary.size > 1) {
-        orderGroup = await tx.orderGroup.create({
-          data: {
-            groupCode: `GRP-${Date.now()}`, // Générer un code de groupe unique
-            customerId: customerId, // Utiliser l'ID de l'utilisateur connecté
-            totalAmount: overallTotalWithTax,
-          },
-        });
-      }
-
-      // Créer une commande (ou sous-commande) pour chaque filiale
-      for (const [
-        subsidiaryId,
-        subsidiaryItems,
-      ] of itemsBySubsidiary.entries()) {
-        // Calculer les totaux pour cette sous-commande
-        let subtotal = new Decimal(0);
-        const orderItemsData = subsidiaryItems.map((item) => {
-          let unitPrice = new Decimal(item.product.sellingPrice);
-          if (item.options) {
-            for (const opt of item.options) {
-              const optionItem = optionItemMap.get(opt.optionValue);
-              if (optionItem) {
-                unitPrice = unitPrice.mul(optionItem.multiplier);
-              }
-            }
-          }
-
-          // Appliquer la tarification dégressive
-          let discount = new Decimal(0);
-          for (const tier of degressivePricing) {
-            if (item.quantity >= tier.threshold) {
-              discount = tier.discount;
-              break; // La table est triée, on prend la première correspondance
-            }
-          }
-          const finalUnitPrice = unitPrice.mul(new Decimal(1).sub(discount));
-          subtotal = subtotal.add(finalUnitPrice.mul(item.quantity));
-          return {
-            ...item,
-            unitPrice: finalUnitPrice, // Utiliser le prix unitaire final
-          };
-        });
-
-        const taxAmount = subtotal.mul(taxRate.rate);
-        const totalAmount = subtotal.add(taxAmount);
-
-        // Déterminer le statut de paiement initial
-        const unpaidMethods: CustomerPaymentMethod[] = [
-          CustomerPaymentMethod.PAY_ON_DELIVERY,
-          CustomerPaymentMethod.CUSTOMER_CREDIT,
-        ];
-        const isPaidImmediately = !unpaidMethods.includes(paymentMethod);
-        const initialPaymentStatus = isPaidImmediately
-          ? PaymentStatus.PAID
-          : PaymentStatus.UNPAID;
-        const initialAmountPaid = isPaidImmediately ? totalAmount : 0;
-        // Créer la commande
-        const createdOrder = await tx.order.create({
-          data: {
-            customerName,
-            paymentDueDate: paymentDue,
-            source,
-            subtotal,
-            taxAmount,
-            totalAmount,
-            taxRateValue: taxRate.rate,
-            status: OrderStatus.NEW,
-            paymentMethod: paymentMethod,
-            productionStatus: ProductionStatus.PREPRESS,
-            paymentStatus: initialPaymentStatus,
-            amountPaid: initialAmountPaid,
-            customerId: customerId,
-            subsidiaryId,
-            taxRateId: taxRate.id,
-            opportunityId,
-            groupId: orderGroup?.id,
-            // Création imbriquée des articles et de l'historique
-            orderItems: {
-              create: orderItemsData.map((item, index) => {
-                // Associer le fichier au bon article.
-                // On suppose que l'ordre des fichiers correspond à l'ordre des articles.
-                const file = designFiles?.[index];
-                return {
-                  quantity: item.quantity,
-                  unitPrice: item.unitPrice,
-                  designFileName: file?.originalname
-                    ? file.originalname
-                    : item.designFileName,
-                  designFileUrl: file
-                    ? `/public/order_item_img/${file.filename}`
-                    : item.designFileUrl,
-                  productId: item.productId,
-                  productOptions: item.options
-                    ? {
-                        create: Object.entries(item.options).map(
-                          ([optionType, optionValue]) => ({
-                            optionType,
-                            optionValue: String(optionValue),
-                          }),
-                        ),
-                      }
-                    : undefined,
-                };
-              }),
-            },
-            productionHistory: {
-              create: {
-                status: ProductionStatus.PREPRESS,
-              },
-            },
-          },
-        });
-
-        // Récupérer la commande avec ses articles pour le typage correct
-        const newOrder = await tx.order.findUnique({
-          where: { id: createdOrder.id },
-          include: {
-            orderItems: true,
-          },
-        });
-
-        if (!newOrder) {
-          throw new InternalServerErrorException(
-            'Erreur lors de la récupération de la commande créée',
-          );
-        }
-
-        // Si la commande est payée immédiatement, décrémenter le stock et créer la vente
-        if (isPaidImmediately) {
-          for (const item of newOrder.orderItems) {
-            if (item.productId) {
-              await tx.product.update({
-                where: { id: item.productId },
-                data: { stock: { decrement: item.quantity } },
-              });
-            }
-          }
-
-          const salesToCreate = newOrder.orderItems.map((item) => ({
-            productName: productMap.get(item.productId!)!.productName,
-            quantity: item.quantity,
-            totalPrice: new Decimal(item.unitPrice).mul(item.quantity),
-            saleDate: new Date(),
-            customerName: newOrder.customerName,
-            taxRate: newOrder.taxRateValue,
-            paymentMethod: newOrder.paymentMethod || paymentMethod,
-            customerId: newOrder.customerId,
-            subsidiaryId: newOrder.subsidiaryId,
-            salesRepId: newOrder.salesRepId,
-            orderId: newOrder.id,
-            status: SaleStatus.PAID,
-          }));
-
-          await tx.sale.createMany({
-            data: salesToCreate,
-          });
-        }
-
-        createdOrders.push(newOrder);
-      }
-
-      // Si le paiement est à crédit, on met à jour le compte crédit du client avec le montant total
-      if (paymentMethod === CustomerPaymentMethod.CUSTOMER_CREDIT) {
-        await this.updateCustomerCredit(
-          tx,
-          customerId,
-          itemsBySubsidiary.keys().next().value,
-          overallTotalWithTax,
-          contactName,
-          company,
-        );
-      }
-
-      // Retourner le groupe de commande avec ses sous-commandes, ou la commande unique
-      if (orderGroup) {
-        return tx.orderGroup.findUniqueOrThrow({
-          where: { id: orderGroup.id },
-          include: { orders: { include: { orderItems: true } } },
-        });
-      } else {
-        // Vérifier que des commandes ont été créées
-        if (createdOrders.length === 0) {
-          throw new InternalServerErrorException(
-            "Aucune commande n'a pu être créée. Vérifiez que les produits existent et sont valides.",
-          );
-        }
-        // S'il n'y a qu'une seule commande, on la retourne directement
-        return tx.order.findUniqueOrThrow({
-          where: { id: createdOrders[0].id },
-          include: { orderItems: true },
-        });
-      }
-    });
-  }
-
-  /**
-   *
+   * Crée une commande pour le compte d'un client, à l'initiative d'un commercial.
+   * Le prix de chaque ligne est celui négocié par le commercial (jamais tiré du
+   * catalogue) et la commande est toujours rattachée à la filiale du commercial connecté.
    * @param createOrderDto // DTO contenant les données de la commande à créer
    * @param user // Utilisateur connecté
    * @param designFiles // Fichiers uploadés
@@ -454,7 +118,6 @@ export class OrdersService {
       paymentDueDate,
       source,
       opportunityId,
-      paymentMethod,
     } = createOrderDto;
 
     // Le corps d'un formulaire multipart est toujours en string, il faut parser les items.
@@ -468,11 +131,6 @@ export class OrdersService {
       );
     }
 
-    // 1. Récupérer toutes les données de référence (Produits, Taxe par défaut, Client)
-    const productIds = parsedItems
-      .map((item) => item.productId)
-      .filter((id) => id !== undefined);
-
     // Validation explicite: vérifier que tous les articles ont un productId
     const itemsWithoutProductId = parsedItems.filter((item) => !item.productId);
     if (itemsWithoutProductId.length > 0) {
@@ -482,231 +140,138 @@ export class OrdersService {
       );
     }
 
+    const productIds = parsedItems.map((item) => item.productId);
+
     const [products, taxRate, customer] = await Promise.all([
-      this.prisma.product.findMany({ where: { id: { in: productIds } } }),
+      this.prisma.item.findMany({
+        where: { id: { in: productIds }, type: ItemType.SERVICE },
+      }),
       this.prisma.taxRate.findFirstOrThrow({ where: { isDefault: true } }),
       this.prisma.contact.findUniqueOrThrow({ where: { id: customerId } }),
     ]);
 
-    // Valider que le client appartient à la même filiale que le commercial
-    if (customer.subsidiaryId !== salesRepSubsidiaryId) {
-      throw new BadRequestException(
-        "Le client sélectionné n'appartient pas à votre filiale.",
-      );
-    }
+    // Le client est une entité globale (Chantier 6) : il peut avoir été créé
+    // dans une autre filiale, la commande reste tout de même rattachée à la
+    // filiale du commercial connecté (pas de blocage sur l'origine du client).
 
     if (products.length !== productIds.length) {
       throw new NotFoundException(
-        'Un ou plusieurs produits sont introuvables.',
+        'Un ou plusieurs services sont introuvables.',
       );
     }
 
     const productMap = new Map(products.map((p) => [p.id, p]));
 
-    // 2. Regrouper les articles par filiale (subsidiaryId) du produit
-    const itemsBySubsidiary = new Map<string, any[]>();
-    const validItems = parsedItems.filter(
-      (item) => item.productId !== undefined,
+    // Chantier 5 : récupère la définition de formulaire de chaque produit
+    // distinct (une seule requête par produit) puis valide CHAQUE ligne
+    // individuellement — deux lignes du même produit peuvent avoir des
+    // spécifications différentes. La définition figée sert d'instantané,
+    // jamais affectée par une modification ultérieure du produit. Ne jamais
+    // faire confiance à la validation frontend seule.
+    const distinctProductIds = [...new Set<string>(productIds)];
+    const formDefinitionByProductId = new Map(
+      await Promise.all(
+        distinctProductIds.map(async (productId) => {
+          const definition =
+            await this.productSpecsService.getFormDefinition(productId);
+          return [productId, definition] as const;
+        }),
+      ),
     );
 
-    // Validation améliorée: vérifier que tous les produits existent
-    for (const item of validItems) {
-      const product = productMap.get(item.productId);
-      if (!product) {
+    for (const item of parsedItems) {
+      const definition = formDefinitionByProductId.get(item.productId);
+      if (definition) {
+        this.productSpecsService.validateAgainstDefinition(
+          definition,
+          item.specValues,
+        );
+      }
+    }
+
+    // Le prix de chaque ligne est celui saisi par le commercial (négocié via WhatsApp),
+    // jamais dérivé du catalogue. La remise et le total sont figés ici, historiquement.
+    let subtotal = new Decimal(0);
+    const orderItemsData = parsedItems.map((item) => {
+      if (!productMap.has(item.productId)) {
         throw new NotFoundException(
           `Produit avec l'ID ${item.productId} introuvable`,
         );
       }
-      const productSubsidiaryId = product.subsidiaryId;
-      if (!itemsBySubsidiary.has(productSubsidiaryId)) {
-        itemsBySubsidiary.set(productSubsidiaryId, []);
-      }
-      itemsBySubsidiary.get(productSubsidiaryId)!.push({ ...item, product });
-    }
-
-    // Pré-charger tous les items d'options configurables nécessaires pour le calcul du prix
-    const allOptionValues = validItems.flatMap((item) => {
-      if (!item.options) return [];
-      // Transformer l'objet ProductOptions en tableau d'optionValues
-      return item.options
-        .map((option) => option.optionValue)
-        .filter((value) => value !== undefined);
+      const unitPrice = new Decimal(item.unitPrice);
+      const discount = new Decimal(item.discount ?? 0);
+      const total = unitPrice.mul(item.quantity).sub(discount);
+      subtotal = subtotal.add(total);
+      return {
+        ...item,
+        unitPrice,
+        discount,
+        total,
+        specSnapshot: formDefinitionByProductId.get(item.productId),
+      };
     });
-    const configurableOptionItems =
-      await this.prisma.configurableOptionItem.findMany({
-        where: { optionName: { in: allOptionValues } },
-      });
-    const optionItemMap = new Map(
-      configurableOptionItems.map((item) => [item.optionName, item]),
-    );
 
-    // 3. Exécuter la création dans une transaction globale
+    const taxAmount = subtotal.mul(taxRate.rate);
+    const totalAmount = subtotal.add(taxAmount);
+
     return this.prisma.$transaction(async (tx) => {
-      const createdOrders: Order[] = [];
-      let orderGroup: OrderGroup | null = null;
-      let overallTotalAmount = new Decimal(0);
-
-      // Calculer le montant total global pour le groupe de commandes
-      for (const item of validItems) {
-        const product = productMap.get(item.productId);
-        if (!product) {
-          throw new NotFoundException(
-            `Produit avec l'ID ${item.productId} introuvable`,
-          );
-        }
-        let unitPrice = new Decimal(product.sellingPrice);
-
-        if (item.options) {
-          for (const option of item.options) {
-            const optionItem = optionItemMap.get(option.optionValue);
-            if (optionItem) {
-              unitPrice = unitPrice.mul(optionItem.multiplier);
-            }
-          }
-        }
-
-        // Appliquer la tarification dégressive
-        let discount = new Decimal(0);
-        for (const tier of degressivePricing) {
-          if (item.quantity >= tier.threshold) {
-            discount = tier.discount;
-            break; // La table est triée, on prend la première correspondance
-          }
-        }
-        const finalUnitPrice = unitPrice.mul(new Decimal(1).sub(discount));
-        overallTotalAmount = overallTotalAmount.add(
-          finalUnitPrice.mul(item.quantity),
-        );
-      }
-      const overallTotalWithTax = overallTotalAmount.mul(
-        new Decimal(1).add(taxRate.rate),
-      );
-
-      // Si plusieurs filiales sont concernées, créer un OrderGroup
-      if (itemsBySubsidiary.size > 1) {
-        orderGroup = await tx.orderGroup.create({
-          data: {
-            groupCode: `GRP-${Date.now()}`,
-            customerId: customerId,
-            totalAmount: overallTotalWithTax,
+      const newOrder = await tx.order.create({
+        data: {
+          customerName,
+          paymentDueDate: new Date(paymentDueDate),
+          source,
+          subtotal,
+          taxAmount,
+          totalAmount,
+          taxRateValue: taxRate.rate,
+          status: OrderStatus.NEW,
+          paymentMethod: null, // Le mode de paiement sera défini lors de l'encaissement.
+          productionStatus: ProductionStatus.PREPRESS,
+          paymentStatus: PaymentStatus.UNPAID,
+          amountPaid: 0,
+          customerId,
+          subsidiaryId: salesRepSubsidiaryId, // Filiale du commercial connecté
+          taxRateId: taxRate.id,
+          salesRepId,
+          opportunityId,
+          orderItems: {
+            create: orderItemsData.map((item, index) => {
+              const file = designFiles?.[index];
+              return {
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                discount: item.discount,
+                total: item.total,
+                specValues: item.specValues,
+                specSnapshot: item.specSnapshot,
+                designFileName: file?.originalname,
+                designFileUrl: file
+                  ? `/public/order_item_img/${file.filename}`
+                  : undefined,
+                productId: item.productId,
+                productOptions: item.options
+                  ? {
+                      create: Object.entries(item.options).map(
+                        ([optionType, optionValue]) => ({
+                          optionType,
+                          optionValue: String(optionValue),
+                        }),
+                      ),
+                    }
+                  : undefined,
+              };
+            }),
           },
-        });
-      }
-
-      // Créer une commande (ou sous-commande) pour chaque filiale
-      for (const [
-        subsidiaryId,
-        subsidiaryItems,
-      ] of itemsBySubsidiary.entries()) {
-        let subtotal = new Decimal(0);
-        const orderItemsData = subsidiaryItems.map((item) => {
-          let unitPrice = new Decimal(item.product.sellingPrice);
-          if (item.options) {
-            for (const opt of item.options) {
-              const optionItem = optionItemMap.get(opt.optionValue);
-              if (optionItem) {
-                unitPrice = unitPrice.mul(optionItem.multiplier);
-              }
-            }
-          }
-
-          // Appliquer la tarification dégressive
-          let discount = new Decimal(0);
-          for (const tier of degressivePricing) {
-            if (item.quantity >= tier.threshold) {
-              discount = tier.discount;
-              break; // La table est triée, on prend la première correspondance
-            }
-          }
-          const finalUnitPrice = unitPrice.mul(new Decimal(1).sub(discount));
-          subtotal = subtotal.add(finalUnitPrice.mul(item.quantity));
-          return {
-            ...item,
-            unitPrice: finalUnitPrice,
-          };
-        });
-
-        const taxAmount = subtotal.mul(taxRate.rate);
-        const totalAmount = subtotal.add(taxAmount);
-
-        // Pour les commandes manuelles, le paiement n'est pas géré à la création.
-        const initialPaymentStatus = PaymentStatus.UNPAID;
-        const initialAmountPaid = 0;
-
-        const newOrder = await tx.order.create({
-          data: {
-            customerName,
-            paymentDueDate: new Date(paymentDueDate),
-            source,
-            subtotal,
-            taxAmount,
-            totalAmount,
-            taxRateValue: taxRate.rate,
-            status: OrderStatus.NEW,
-            paymentMethod: null, // Le mode de paiement sera défini lors de l'encaissement.
-            productionStatus: ProductionStatus.PREPRESS,
-            paymentStatus: initialPaymentStatus,
-            amountPaid: initialAmountPaid,
-            customerId: customerId,
-            subsidiaryId, // Filiale du produit
-            taxRateId: taxRate.id,
-            salesRepId: salesRepId, // ID du commercial connecté
-            opportunityId,
-            groupId: orderGroup?.id,
-            orderItems: {
-              create: orderItemsData.map((item, index) => {
-                const file = designFiles?.[index];
-                return {
-                  quantity: item.quantity,
-                  unitPrice: item.unitPrice,
-                  designFileName: file?.originalname,
-                  designFileUrl: file
-                    ? `/public/order_item_img/${file.filename}`
-                    : undefined,
-                  productId: item.productId,
-                  productOptions: item.options
-                    ? {
-                        create: Object.entries(item.options).map(
-                          ([optionType, optionValue]) => ({
-                            optionType,
-                            optionValue: String(optionValue),
-                          }),
-                        ),
-                      }
-                    : undefined,
-                };
-              }),
-            },
-            productionHistory: {
-              create: { status: ProductionStatus.PREPRESS },
-            },
+          productionHistory: {
+            create: { status: ProductionStatus.PREPRESS },
           },
-          include: {
-            orderItems: true, // Inclure les articles de commande dans la réponse
-          },
-        });
+        },
+        include: {
+          orderItems: true, // Inclure les articles de commande dans la réponse
+        },
+      });
 
-        createdOrders.push(newOrder);
-      }
-
-      // La logique de crédit client est retirée car elle dépend du mode de paiement.
-      if (orderGroup) {
-        return tx.orderGroup.findUniqueOrThrow({
-          where: { id: orderGroup.id },
-          include: { orders: { include: { orderItems: true } } },
-        });
-      } else {
-        // Vérifier que des commandes ont été créées
-        if (createdOrders.length === 0) {
-          throw new InternalServerErrorException(
-            "Aucune commande n'a pu être créée. Vérifiez que les produits existent et sont valides.",
-          );
-        }
-        return tx.order.findUniqueOrThrow({
-          where: { id: createdOrders[0].id },
-          include: { orderItems: true },
-        });
-      }
+      return newOrder;
     });
   }
 
@@ -942,16 +507,16 @@ export class OrdersService {
     }[] = await this.prisma.$queryRaw`
       SELECT
         p.id AS product_id,
-        p.product_name,
+        p.name AS product_name,
         SUM(oi.quantity)::float AS total_quantity,
         SUM(oi.quantity * oi.unit_price)::float AS total_revenue
       FROM "order_item" oi
-      JOIN "products" p ON oi.product_id = p.id
+      JOIN "items" p ON oi.product_id = p.id
       JOIN "orders" o ON oi.order_id = o.id
       WHERE o.subsidiary_id = ${subsidiaryId}::uuid
         AND o.status != 'CANCELLED'
         AND oi.product_id IS NOT NULL
-      GROUP BY p.id, p.product_name
+      GROUP BY p.id, p.name
       ORDER BY total_revenue DESC
       LIMIT ${limit};
     `;
@@ -1012,23 +577,10 @@ export class OrdersService {
         include: { orderItems: { include: { product: true } }, customer: true },
       });
 
-      // 4. Si la commande est entièrement payée, mettre à jour le stock et créer les ventes
+      // 4. Si la commande est entièrement payée, créer les enregistrements de vente
+      // (le stock de matières n'est jamais décrémenté automatiquement depuis une commande —
+      // voir le flux manuel "Prélever les matières" du module Stock)
       if (newPaymentStatus === PaymentStatus.PAID) {
-        // D'abord, mettre à jour le stock
-        for (const item of updatedOrder.orderItems) {
-          if (item.productId) {
-            await tx.product.update({
-              where: { id: item.productId },
-              data: {
-                stock: {
-                  decrement: item.quantity,
-                },
-              },
-            });
-          }
-        }
-
-        // Ensuite, créer les enregistrements de vente
         const salesToCreate = updatedOrder.orderItems.map((item) => {
           if (!item.product) {
             // Ce cas ne devrait pas arriver si la base est cohérente, mais c'est une sécurité.
@@ -1037,7 +589,7 @@ export class OrdersService {
             );
           }
           return {
-            productName: item.product.productName,
+            productName: item.product.name,
             quantity: item.quantity,
             totalPrice: new Decimal(item.unitPrice).mul(item.quantity),
             saleDate: new Date(),

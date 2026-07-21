@@ -33,7 +33,7 @@ import {
   getTopSellingProducts,
   TopSellingProduct,
 } from "../../services/apiE-commerce/apiOrders";
-import { getProductsBySubsidiary } from "../../services/apiE-commerce/apiProducts";
+import { getServicesCatalog } from "../../services/apiE-commerce/apiProducts";
 import { getContacts } from "../../services/apiCrm/apicontacts";
 import { useAuth } from "../../context/AuthContext";
 
@@ -132,8 +132,8 @@ const Sales: React.FC = () => {
   const { data: products = [], isLoading: isLoadingProducts } = useQuery<
     Product[]
   >({
-    queryKey: ["products", subsidiary?.id],
-    queryFn: () => getProductsBySubsidiary(),
+    queryKey: ["services-catalog"],
+    queryFn: () => getServicesCatalog(),
     enabled: !!subsidiary,
   });
 
@@ -234,7 +234,10 @@ const Sales: React.FC = () => {
       return {
         productId: item.product.id,
         quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        discount: item.discount,
         options: optionsArray,
+        specValues: item.specValues,
       };
     });
 
@@ -284,7 +287,7 @@ const Sales: React.FC = () => {
     [contacts],
   );
   const productOptions = useMemo(
-    () => products.map((p) => ({ value: p.id, label: p.productName })),
+    () => products.map((p) => ({ value: p.id, label: p.name })),
     [products],
   );
   const orderStatusOptions = useMemo(

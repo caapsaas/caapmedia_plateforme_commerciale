@@ -9,7 +9,7 @@ import PeriodFilter from '../components/filters/PeriodFilter';
 import { useAuth } from '../context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getOrders, createOrderBySalesRep, createOrderBySalesRepJson, FindAllOrdersDto } from '../services/apiE-commerce/apiOrders';
-import { getProductsBySubsidiary } from '../services/apiE-commerce/apiProducts';
+import { getServicesCatalog } from '../services/apiE-commerce/apiProducts';
 import { getContacts } from '../services/apiCrm/apicontacts';
 
 const MesCommandes: React.FC = () => {
@@ -48,8 +48,8 @@ const MesCommandes: React.FC = () => {
     });
 
     const { data: products = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
-        queryKey: ['products', subsidiary?.id],
-        queryFn: getProductsBySubsidiary,
+        queryKey: ['services-catalog'],
+        queryFn: getServicesCatalog,
         enabled: !!subsidiary,
     });
 
@@ -79,9 +79,7 @@ const MesCommandes: React.FC = () => {
         setFilters({ customerId: currentCustomer?.id, period: 'all_time' });
     };
 
-    const productOptions = products
-        .filter(p => p.subsidiaryId === subsidiary.id)
-        .map(p => ({ value: p.id, label: p.productName }));
+    const productOptions = products.map(p => ({ value: p.id, label: p.name }));
 
     const handlePlaceOrder = (newOrderData: Omit<Order, 'id' | 'subsidiaryId'>) => {
         // Préparer les données selon la structure attendue par CreateOrderBySalesRepDto
@@ -94,11 +92,13 @@ const MesCommandes: React.FC = () => {
             items: newOrderData.items.map(item => ({
                 productId: item.product.id,
                 quantity: item.quantity,
-                price: item.price,
+                unitPrice: item.unitPrice,
+                discount: item.discount,
                 options: item.options ? Object.entries(item.options).map(([key, value]) => ({
                     optionType: key,
                     optionValue: value
                 })) : [],
+                specValues: item.specValues,
             })),
             opportunityId: newOrderData.opportunityId || undefined
         };
