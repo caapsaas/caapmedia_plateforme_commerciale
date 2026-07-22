@@ -66,7 +66,9 @@
     "search": "Search",
     "viewBL": "View BL",
     "viewBonDeCommande": "View PO",
-    "error": "An error occurred"
+    "error": "An error occurred",
+    "success": "Success",
+    "warning": "Warning"
   },
   "configuration": {
     "title": "Configuration",
@@ -154,6 +156,22 @@
       "delete": "Delete",
       "view": "View",
       "confirm": "Are you sure?"
+    },
+    "employee": {
+      "saved": "Employee saved successfully",
+      "savedWithDocs": "Employee, documents and leaves saved successfully",
+      "saveFailed": "Failed to save employee",
+      "deleted": "Employee deleted successfully",
+      "deleteFailed": "Failed to delete employee"
+    },
+    "noEmployeesToExport": "No employees to export",
+    "noEmployeesFound": "No employees found",
+    "exportedCsv": "Employees exported to CSV",
+    "exportedPdf": "Employees exported to PDF",
+    "exportFailed": "Export failed",
+    "viewMode": {
+      "table": "Table",
+      "cards": "Cards"
     },
     "gender": {
       "MALE": "Male",

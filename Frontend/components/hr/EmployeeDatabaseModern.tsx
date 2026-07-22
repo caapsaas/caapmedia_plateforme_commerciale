@@ -25,27 +25,38 @@ interface EmployeeDatabaseModernProps {
   employees: Employee[];
   onSave: UseMutateFunction<Employee, Error, Partial<Employee>, unknown>;
   onDelete: UseMutateFunction<Employee, Error, string, unknown>;
+  isLoading?: boolean;
 }
 
 type ViewMode = 'table' | 'cards';
 type SortMode = 'name-asc' | 'name-desc' | 'hire-date' | 'salary';
+
+const hasFileObject = (obj: any): boolean => {
+  return obj && typeof obj === 'object' && 'file' in obj;
+};
 
 const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
   subsidiary,
   employees,
   onSave,
   onDelete,
+  isLoading = false,
 }) => {
   const { t, formatCurrency } = useI18n();
   const toast = useToast();
 
   // State
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(() => {
+    return localStorage.getItem('employeeSearchTerm') || '';
+  });
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const saved = localStorage.getItem('employeeViewMode');
     return (saved as ViewMode) || 'table';
   });
-  const [sortMode, setSortMode] = useState<SortMode>('name-asc');
+  const [sortMode, setSortMode] = useState<SortMode>(() => {
+    const saved = localStorage.getItem('employeeSortMode');
+    return (saved as SortMode) || 'name-asc';
+  });
 
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -94,81 +105,81 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
 
   const handleSaveEmployee = async (employeeData: Partial<Employee>) => {
     try {
-      // Vérifier s'il y a des fichiers ou des congés à gérer
-      const hasFilesToUpload =
-        (employeeData.documents?.contract as any)?.file ||
-        (employeeData.documents?.idCard as any)?.file ||
-        (employeeData.documents?.workPermit as any)?.file ||
-        (employeeData.documents?.diplomas?.some((d) => (d as any).file));
+      const documents = employeeData.documents;
+      const hasFilesToUpload = documents && (
+        hasFileObject(documents.contract) ||
+        hasFileObject(documents.idCard) ||
+        hasFileObject(documents.workPermit) ||
+        (Array.isArray(documents.diplomas) && documents.diplomas.some(hasFileObject))
+      );
 
-      const hasLeaves = employeeData.leaveRecords && (employeeData.leaveRecords as any[]).length > 0;
+      const hasLeaves = employeeData.leaveRecords && Array.isArray(employeeData.leaveRecords) && employeeData.leaveRecords.length > 0;
 
       if (hasFilesToUpload || hasLeaves) {
-        // Utiliser la fonction de sauvegarde avec documents et congés
-        await saveEmployeeWithDocumentsAndLeaves(employeeData as any);
-        toast.success('Employé enregistré', 'L\'employé, ses documents et congés ont été sauvegardés avec succès');
-        setIsFormModalOpen(false);
-        // Refetch les employés via React Query
-        setTimeout(() => {
-          onSave(employeeData as any);
-        }, 500);
+        await saveEmployeeWithDocumentsAndLeaves(employeeData);
+        toast.success(t('common.success'), t('hr.employee.savedWithDocs'));
       } else {
-        // Sauvegarde standard sans fichiers ni congés
-        onSave(employeeData as any);
-        toast.success('Employé enregistré', 'L\'employé a été sauvegardé avec succès');
-        setIsFormModalOpen(false);
+        await onSave(employeeData);
+        toast.success(t('common.success'), t('hr.employee.saved'));
       }
+      setIsFormModalOpen(false);
+      setEditingEmployee(null);
     } catch (error) {
       console.error('Error saving employee:', error);
-      toast.error('Erreur', 'Échec de la sauvegarde de l\'employé');
+      toast.error(t('common.error'), t('hr.employee.saveFailed'));
     }
-  };
 
-  const handleDeleteEmployee = () => {
+  const handleDeleteEmployee = async () => {
     if (deletingEmployee) {
       try {
-        onDelete(deletingEmployee.id);
-        toast.success('Success', 'Employee deleted successfully');
+        await onDelete(deletingEmployee.id);
+        toast.success(t('common.success'), t('hr.employee.deleted'));
         setDeletingEmployee(null);
       } catch (error) {
-        toast.error('Error', 'Failed to delete employee');
+        console.error('Error deleting employee:', error);
+        toast.error(t('common.error'), t('hr.employee.deleteFailed'));
       }
     }
   };
 
   const handleExportCsv = () => {
     try {
+      if (filteredAndSortedEmployees.length === 0) {
+        toast.warning(t('common.warning'), t('hr.noEmployeesToExport'));
+        return;
+      }
       const headers = [
-        { key: 'firstName', label: 'First Name' },
-        { key: 'lastName', label: 'Last Name' },
-        { key: 'email', label: 'Email' },
-        { key: 'department', label: 'Department' },
-        { key: 'positions', label: 'Position' },
-        { key: 'contractType', label: 'Contract Type' },
-        { key: 'status', label: 'Status' },
+        { key: 'firstName', label: t('configuration.form.firstName') },
+        { key: 'lastName', label: t('configuration.form.lastName') },
+        { key: 'email', label: t('common.email') },
+        { key: 'department', label: t('configuration.form.department') },
+        { key: 'positions', label: t('configuration.form.position') },
+        { key: 'contractType', label: t('configuration.form.contractType') },
+        { key: 'status', label: t('hr.table.status') },
       ];
       exportToCsv(`employees-${subsidiary.id}`, headers, filteredAndSortedEmployees);
-      toast.success('Success', 'Exported to CSV');
+      toast.success(t('common.success'), t('hr.exportedCsv'));
     } catch (error) {
-      toast.error('Error', 'Failed to export');
+      console.error('CSV export error:', error);
+      toast.error(t('common.error'), t('hr.exportFailed'));
     }
   };
 
   const handleExportPdf = () => {
     try {
       if (filteredAndSortedEmployees.length === 0) {
-        toast.warning('Warning', 'No employees to export');
+        toast.warning(t('common.warning'), t('hr.noEmployeesToExport'));
         return;
       }
 
       const headers = [
-        { key: 'firstName', label: 'First Name' },
-        { key: 'lastName', label: 'Last Name' },
-        { key: 'email', label: 'Email' },
-        { key: 'department', label: 'Department' },
-        { key: 'positions', label: 'Position' },
-        { key: 'contractType', label: 'Contract' },
-        { key: 'status', label: 'Status' },
+        { key: 'firstName', label: t('configuration.form.firstName') },
+        { key: 'lastName', label: t('configuration.form.lastName') },
+        { key: 'email', label: t('common.email') },
+        { key: 'department', label: t('configuration.form.department') },
+        { key: 'positions', label: t('configuration.form.position') },
+        { key: 'contractType', label: t('hr.table.contract') },
+        { key: 'status', label: t('hr.table.status') },
       ];
       const formattedData = filteredAndSortedEmployees.map((e) => ({
         firstName: e.firstName,
@@ -179,17 +190,27 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
         contractType: e.contractType,
         status: e.status,
       }));
-      exportToPdf('Employee List', headers, formattedData, `employees-${subsidiary.id}`);
-      toast.success('Success', 'Employees exported to PDF successfully');
+      exportToPdf(t('hr.employees.title'), headers, formattedData, `employees-${subsidiary.id}`);
+      toast.success(t('common.success'), t('hr.exportedPdf'));
     } catch (error) {
       console.error('PDF export error:', error);
-      toast.error('Error', `Failed to export PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(t('common.error'), t('hr.exportFailed'));
     }
   };
 
   const handleViewModeChange = (mode: ViewMode) => {
     setViewMode(mode);
     localStorage.setItem('employeeViewMode', mode);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    localStorage.setItem('employeeSearchTerm', value);
+  };
+
+  const handleSortChange = (mode: SortMode) => {
+    setSortMode(mode);
+    localStorage.setItem('employeeSortMode', mode);
   };
 
   return (
@@ -208,7 +229,7 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
           <CardBody>
             <div className="flex flex-col lg:flex-row gap-4 items-end">
               <div className="flex-1">
-                <SearchBar value={searchTerm} onChange={setSearchTerm} />
+                <SearchBar value={searchTerm} onChange={handleSearchChange} />
               </div>
               <div className="flex gap-2 flex-wrap">
                 <Button variant="primary" leftIcon={<Plus size={18} />} onClick={handleOpenAddModal}>
@@ -220,6 +241,28 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
                 <Button variant="secondary" leftIcon={<FileText size={18} />} onClick={handleExportPdf}>
                   {t('hr.actions.pdf')}
                 </Button>
+                <div className="flex gap-1 border border-slate-200 rounded-lg p-1">
+                  <button
+                    onClick={() => handleViewModeChange('table')}
+                    className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                      viewMode === 'table'
+                        ? 'bg-[#c6e911] text-slate-900'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    {t('hr.viewMode.table')}
+                  </button>
+                  <button
+                    onClick={() => handleViewModeChange('cards')}
+                    className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                      viewMode === 'cards'
+                        ? 'bg-[#c6e911] text-slate-900'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    {t('hr.viewMode.cards')}
+                  </button>
+                </div>
               </div>
             </div>
           </CardBody>
@@ -273,9 +316,7 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
                         </Badge>
                       </td>
                       <td className="px-6 py-4 text-sm font-semibold text-slate-900">
-                        {typeof employee.baseSalary === 'number'
-                          ? formatCurrency(employee.baseSalary)
-                          : formatCurrency(Number(employee.baseSalary) || 0)}
+                        {formatCurrency(Number(employee.baseSalary) || 0)}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
@@ -331,10 +372,10 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
           </div>
         )}
 
-        {filteredAndSortedEmployees.length === 0 && (
+        {!isLoading && filteredAndSortedEmployees.length === 0 && (
           <Card>
             <CardBody className="text-center py-12">
-              <p className="text-slate-500 text-lg">No employees found</p>
+              <p className="text-slate-500 text-lg">{t('hr.noEmployeesFound')}</p>
             </CardBody>
           </Card>
         )}
@@ -353,9 +394,11 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
 
       <ConfirmationModal
         isOpen={!!deletingEmployee}
-        title="Supprimer l'employé ?"
-        message={`Êtes-vous sûr de vouloir supprimer ${deletingEmployee?.firstName} ${deletingEmployee?.lastName} ? Cette action ne peut pas être annulée.`}
-        confirmButtonText="Supprimer"
+        title={t('configuration.modal.deleteEmployeeTitle')}
+        message={t('configuration.modal.deleteConfirmMessage', {
+          itemName: `${deletingEmployee?.firstName} ${deletingEmployee?.lastName}`,
+        })}
+        confirmButtonText={t('common.delete')}
         isDangerous={true}
         onConfirm={handleDeleteEmployee}
         onClose={() => setDeletingEmployee(null)}
