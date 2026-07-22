@@ -1,4 +1,4 @@
-import { IsString, IsDate, IsEnum, IsOptional } from 'class-validator';
+import { IsString, IsDate, IsEnum, IsOptional, IsNumber } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
 import { AttendanceStatus } from '@prisma/client';
@@ -13,7 +13,7 @@ export class CreateAttendanceRecordDto {
 
   @IsDate()
   @Transform(({ value }) => new Date(value))
-  attendanceDate: string;
+  attendanceDate: Date;
 
   @IsOptional()
   @IsDate()
@@ -44,4 +44,21 @@ export class CreateAttendanceRecordDto {
   status: AttendanceStatus;
 }
 
-export class UpdateAttendanceRecordDto extends PartialType(CreateAttendanceRecordDto) {}
+export class UpdateAttendanceRecordDto extends PartialType(CreateAttendanceRecordDto) {
+  @IsOptional()
+  @IsDate()
+  @Transform(({ value }) => (value ? new Date(value) : null))
+  departureTime?: Date;
+
+  @IsOptional()
+  @IsNumber()
+  departureLatitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  departureLongitude?: number;
+
+  @IsOptional()
+  @IsEnum(AttendanceStatus)
+  status?: AttendanceStatus;
+}

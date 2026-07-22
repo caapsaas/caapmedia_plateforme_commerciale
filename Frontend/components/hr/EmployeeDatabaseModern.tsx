@@ -94,22 +94,26 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
 
   const handleSaveEmployee = async (employeeData: Partial<Employee>) => {
     try {
-      // Vérifier s'il y a des fichiers à uploader
+      // Vérifier s'il y a des fichiers ou des congés à gérer
       const hasFilesToUpload =
         (employeeData.documents?.contract as any)?.file ||
         (employeeData.documents?.idCard as any)?.file ||
         (employeeData.documents?.workPermit as any)?.file ||
         (employeeData.documents?.diplomas?.some((d) => (d as any).file));
 
-      if (hasFilesToUpload) {
-        // Utiliser la fonction de sauvegarde avec upload de documents
-        const savedEmployee = await saveEmployeeWithDocumentsAndLeaves(employeeData as any);
-        toast.success('Employé enregistré', 'L\'employé et ses documents ont été sauvegardés avec succès');
+      const hasLeaves = employeeData.leaveRecords && (employeeData.leaveRecords as any[]).length > 0;
+
+      if (hasFilesToUpload || hasLeaves) {
+        // Utiliser la fonction de sauvegarde avec documents et congés
+        await saveEmployeeWithDocumentsAndLeaves(employeeData as any);
+        toast.success('Employé enregistré', 'L\'employé, ses documents et congés ont été sauvegardés avec succès');
         setIsFormModalOpen(false);
-        // Refetch la liste des employés
-        onSave(savedEmployee);
+        // Refetch les employés via React Query
+        setTimeout(() => {
+          onSave(employeeData as any);
+        }, 500);
       } else {
-        // Sauvegarde standard sans fichiers
+        // Sauvegarde standard sans fichiers ni congés
         onSave(employeeData as any);
         toast.success('Employé enregistré', 'L\'employé a été sauvegardé avec succès');
         setIsFormModalOpen(false);

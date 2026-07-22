@@ -213,49 +213,34 @@ export const addLeaveRecordToEmployee = async (
 
 /**
  * Sauvegarde complètement un employé avec tous ses documents et congés.
- * Upload les fichiers d'abord, puis les attache à l'employé.
+ * Stocke les documents et crée les enregistrements de congés.
  */
 export const saveEmployeeWithDocumentsAndLeaves = async (employeeData: EmployeeSaveData): Promise<Employee> => {
     // 1. D'abord, sauvegarder l'employé sans documents/congés
     const savedEmployee = await saveEmployee(employeeData);
 
     try {
-        // 2. Ajouter les documents (upload les fichiers d'abord si nécessaire)
+        // 2. Ajouter les documents
         if (employeeData.documents) {
-            const docTypeMap: Record<string, 'contract' | 'idCard' | 'workPermit' | 'diploma'> = {
-                contract: 'contract',
-                idCard: 'idCard',
-                workPermit: 'workPermit',
+            const docFields = ['contract', 'idCard', 'workPermit'] as const;
+            const docTypeMap: Record<string, string> = {
+                contract: 'CONTRACT',
+                idCard: 'ID_CARD',
+                workPermit: 'WORK_PERMIT',
             };
 
-            const docFields = ['contract', 'idCard', 'workPermit'] as const;
             for (const field of docFields) {
                 const doc = employeeData.documents[field];
-                if (doc) {
-                    let docUrl = doc.url;
-
-                    // Si c'est un nouveau fichier (blob URL), uploader le fichier
-                    if (doc.url && doc.url.startsWith('blob:') && (doc as any).file) {
-                        try {
-                            const uploadResult = await uploadDocumentFile(
-                                savedEmployee.id,
-                                (doc as any).file,
-                                docTypeMap[field]
-                            );
-                            docUrl = uploadResult.url;
-                        } catch (uploadError) {
-                            console.error(`Error uploading ${field}:`, uploadError);
-                            continue;
-                        }
-                    }
-
-                    // Ajouter le document avec l'URL (locale ou uploadée)
-                    if (docUrl) {
+                if (doc && doc.name) {
+                    try {
                         await addDocumentToEmployee(savedEmployee.id, {
                             documentName: doc.name,
-                            url: docUrl,
-                            docType: field === 'contract' ? 'CONTRACT' : field === 'idCard' ? 'ID_CARD' : 'WORK_PERMIT' as any,
+                            url: doc.url || '', // Peut être une blob URL ou vide
+                            docType: docTypeMap[field] as any,
                         });
+                    } catch (docError) {
+                        console.warn(`Warning adding ${field} document:`, docError);
+                        // Continuer même si un document échoue
                     }
                 }
             }
@@ -263,31 +248,16 @@ export const saveEmployeeWithDocumentsAndLeaves = async (employeeData: EmployeeS
             // Ajouter les diplômes
             if (employeeData.documents.diplomas && Array.isArray(employeeData.documents.diplomas)) {
                 for (const diploma of employeeData.documents.diplomas) {
-                    if (diploma) {
-                        let diplomaUrl = diploma.url;
-
-                        // Si c'est un nouveau fichier, uploader le fichier
-                        if (diploma.url && diploma.url.startsWith('blob:') && (diploma as any).file) {
-                            try {
-                                const uploadResult = await uploadDocumentFile(
-                                    savedEmployee.id,
-                                    (diploma as any).file,
-                                    'diploma'
-                                );
-                                diplomaUrl = uploadResult.url;
-                            } catch (uploadError) {
-                                console.error('Error uploading diploma:', uploadError);
-                                continue;
-                            }
-                        }
-
-                        // Ajouter le diplôme avec l'URL
-                        if (diplomaUrl) {
+                    if (diploma && diploma.name) {
+                        try {
                             await addDocumentToEmployee(savedEmployee.id, {
                                 documentName: diploma.name,
-                                url: diplomaUrl,
+                                url: diploma.url || '', // Peut être une blob URL ou vide
                                 docType: 'DIPLOMA' as any,
                             });
+                        } catch (diplomaError) {
+                            console.warn('Warning adding diploma document:', diplomaError);
+                            // Continuer même si un diplôme échoue
                         }
                     }
                 }
@@ -297,16 +267,21 @@ export const saveEmployeeWithDocumentsAndLeaves = async (employeeData: EmployeeS
         // 3. Ajouter les enregistrements de congés
         if (employeeData.leaveRecords && Array.isArray(employeeData.leaveRecords)) {
             for (const record of employeeData.leaveRecords) {
-                await addLeaveRecordToEmployee(savedEmployee.id, {
-                    startDate: typeof record.startDate === 'string'
-                        ? record.startDate
-                        : new Date(record.startDate).toISOString().split('T')[0],
-                    endDate: typeof record.endDate === 'string'
-                        ? record.endDate
-                        : new Date(record.endDate).toISOString().split('T')[0],
-                    days: record.days,
-                    leaveRecordType: record.leaveRecordType,
-                });
+                try {
+                    await addLeaveRecordToEmployee(savedEmployee.id, {
+                        startDate: typeof record.startDate === 'string'
+                            ? record.startDate
+                            : new Date(record.startDate).toISOString().split('T')[0],
+                        endDate: typeof record.endDate === 'string'
+                            ? record.endDate
+                            : new Date(record.endDate).toISOString().split('T')[0],
+                        days: record.days,
+                        leaveRecordType: record.leaveRecordType,
+                    });
+                } catch (leaveError) {
+                    console.warn('Warning adding leave record:', leaveError);
+                    // Continuer même si un congé échoue
+                }
             }
         }
 
