@@ -128,6 +128,7 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
       console.error('Error saving employee:', error);
       toast.error(t('common.error'), t('hr.employee.saveFailed'));
     }
+  };
 
   const handleDeleteEmployee = async () => {
     if (deletingEmployee) {
