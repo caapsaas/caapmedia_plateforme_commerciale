@@ -129,20 +129,34 @@ export const saveEmployee = async (employeeData: EmployeeSaveData): Promise<Empl
             }))
             : [],
 
-        // Documents - NE PAS envoyer les objets File (upload séparé)
-        // Nettoyer les documents pour ne garder que les URLs valides
+        // Documents - Envoyer seulement les documents avec URLs valides (pas de File objects)
+        // Les fichiers doivent être uploadés séparément d'abord
         documents: employeeData.documents ? {
-            contract: employeeData.documents.contract && !(employeeData.documents.contract as any).file
-                ? employeeData.documents.contract
+            contract: employeeData.documents.contract && !((employeeData.documents.contract as any).file)
+                ? {
+                    name: employeeData.documents.contract.name,
+                    url: employeeData.documents.contract.url,
+                  }
                 : null,
-            idCard: employeeData.documents.idCard && !(employeeData.documents.idCard as any).file
-                ? employeeData.documents.idCard
+            idCard: employeeData.documents.idCard && !((employeeData.documents.idCard as any).file)
+                ? {
+                    name: employeeData.documents.idCard.name,
+                    url: employeeData.documents.idCard.url,
+                  }
                 : null,
-            workPermit: employeeData.documents.workPermit && !(employeeData.documents.workPermit as any).file
-                ? employeeData.documents.workPermit
+            workPermit: employeeData.documents.workPermit && !((employeeData.documents.workPermit as any).file)
+                ? {
+                    name: employeeData.documents.workPermit.name,
+                    url: employeeData.documents.workPermit.url,
+                  }
                 : null,
             diplomas: employeeData.documents.diplomas
-                ? employeeData.documents.diplomas.filter((d) => !(d as any).file)
+                ? employeeData.documents.diplomas
+                    .filter((d) => !((d as any).file))
+                    .map((d) => ({
+                        name: d.name,
+                        url: d.url,
+                      }))
                 : [],
         } : undefined,
     };

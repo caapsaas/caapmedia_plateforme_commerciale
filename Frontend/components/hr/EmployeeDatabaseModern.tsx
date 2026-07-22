@@ -105,21 +105,89 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
 
   const handleSaveEmployee = async (employeeData: Partial<Employee>) => {
     try {
-      const documents = employeeData.documents;
-      const hasFilesToUpload = documents && (
-        hasFileObject(documents.contract) ||
-        hasFileObject(documents.idCard) ||
-        hasFileObject(documents.workPermit) ||
-        (Array.isArray(documents.diplomas) && documents.diplomas.some(hasFileObject))
-      );
+      const processedData = { ...employeeData };
 
-      const hasLeaves = employeeData.leaveRecords && Array.isArray(employeeData.leaveRecords) && employeeData.leaveRecords.length > 0;
+      // Upload documents first if any files are pending
+      if (processedData.documents && employeeData.id) {
+        const documents = processedData.documents;
 
-      if (hasFilesToUpload || hasLeaves) {
-        await saveEmployeeWithDocumentsAndLeaves(employeeData);
+        // Upload contract if it has a File object
+        if (hasFileObject(documents.contract)) {
+          try {
+            const uploaded = await uploadDocumentFile(
+              employeeData.id,
+              (documents.contract as any).file,
+              'contract'
+            );
+            documents.contract = { name: uploaded.name, url: uploaded.url };
+          } catch (err) {
+            console.warn('Warning uploading contract:', err);
+            toast.warning(t('common.warning'), t('hr.documents.contractUploadFailed'));
+          }
+        }
+
+        // Upload idCard if it has a File object
+        if (hasFileObject(documents.idCard)) {
+          try {
+            const uploaded = await uploadDocumentFile(
+              employeeData.id,
+              (documents.idCard as any).file,
+              'idCard'
+            );
+            documents.idCard = { name: uploaded.name, url: uploaded.url };
+          } catch (err) {
+            console.warn('Warning uploading idCard:', err);
+            toast.warning(t('common.warning'), t('hr.documents.idCardUploadFailed'));
+          }
+        }
+
+        // Upload workPermit if it has a File object
+        if (hasFileObject(documents.workPermit)) {
+          try {
+            const uploaded = await uploadDocumentFile(
+              employeeData.id,
+              (documents.workPermit as any).file,
+              'workPermit'
+            );
+            documents.workPermit = { name: uploaded.name, url: uploaded.url };
+          } catch (err) {
+            console.warn('Warning uploading workPermit:', err);
+            toast.warning(t('common.warning'), t('hr.documents.workPermitUploadFailed'));
+          }
+        }
+
+        // Upload diplomas if they have File objects
+        if (Array.isArray(documents.diplomas)) {
+          const uploadedDiplomas = [];
+          for (let i = 0; i < documents.diplomas.length; i++) {
+            const diploma = documents.diplomas[i];
+            if (hasFileObject(diploma)) {
+              try {
+                const uploaded = await uploadDocumentFile(
+                  employeeData.id,
+                  (diploma as any).file,
+                  'diploma'
+                );
+                uploadedDiplomas.push({ name: uploaded.name, url: uploaded.url });
+              } catch (err) {
+                console.warn(`Warning uploading diploma ${i}:`, err);
+              }
+            } else {
+              uploadedDiplomas.push(diploma);
+            }
+          }
+          documents.diplomas = uploadedDiplomas;
+        }
+      }
+
+      // Now save the employee with uploaded document URLs
+      const hasLeaves = processedData.leaveRecords && Array.isArray(processedData.leaveRecords) && processedData.leaveRecords.length > 0;
+
+      if (hasLeaves) {
+        await saveEmployeeWithDocumentsAndLeaves(processedData);
         toast.success(t('common.success'), t('hr.employee.savedWithDocs'));
       } else {
-        await onSave(employeeData);
+        await onSave(processedData);
         toast.success(t('common.success'), t('hr.employee.saved'));
       }
       setIsFormModalOpen(false);

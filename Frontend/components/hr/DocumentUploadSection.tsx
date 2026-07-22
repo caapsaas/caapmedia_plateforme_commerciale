@@ -28,17 +28,17 @@ const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
     {
       key: 'contract',
       label: t('hr.documents.contract'),
-      description: 'Contrat d\'emploi ou accord'
+      description: t('hr.documents.contractDesc')
     },
     {
       key: 'idCard',
       label: t('hr.documents.idCard'),
-      description: 'Carte d\'identité ou passeport'
+      description: t('hr.documents.idCardDesc')
     },
     {
       key: 'workPermit',
       label: t('hr.documents.workPermit'),
-      description: 'Permis de travail ou visa'
+      description: t('hr.documents.workPermitDesc')
     },
   ];
 
@@ -74,7 +74,6 @@ const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
 
     const fileData = {
       name: file.name,
-      url: URL.createObjectURL(file), // Preview URL
       file: file,
       size: file.size,
       uploadedAt: new Date().toISOString(),
@@ -182,13 +181,13 @@ const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
                 </p>
               )}
               <p className="text-xs text-green-600 font-medium mt-1">
-                ✓ Fichier sélectionné
+                ✓ {t('hr.documents.fileSelected')}
               </p>
             </div>
             <div className="flex gap-2 justify-center flex-wrap">
-              {doc.url && doc.url.startsWith('blob:') && (
+              {(doc as any).file && (
                 <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
-                  À uploader
+                  {t('hr.documents.toUpload')}
                 </span>
               )}
               <button
@@ -196,7 +195,7 @@ const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
                 className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 text-xs font-medium rounded hover:bg-red-200 transition"
               >
                 <X size={16} />
-                Retirer
+                {t('hr.documents.remove')}
               </button>
             </div>
           </div>
@@ -212,7 +211,7 @@ const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
                 <p className="text-xs text-slate-500 mt-0.5">{description}</p>
               )}
               <p className="text-xs text-slate-500 mt-2">
-                Glissez-déposez un fichier ou cliquez
+                {t('hr.documents.dragDrop')}
               </p>
             </div>
             <button
@@ -221,7 +220,7 @@ const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
               className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium bg-blue-500 text-white rounded hover:bg-blue-600 transition"
             >
               <Plus size={16} />
-              Sélectionner
+              {t('hr.documents.selectFile')}
             </button>
           </div>
         )}
@@ -252,7 +251,7 @@ const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
       {/* Single Document Fields */}
       <div>
         <h3 className="text-base font-semibold text-slate-900 mb-4">
-          Documents principaux
+          {t('hr.documents.mainDocuments')}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {documentFields.map(({ key, label, description }) => (
@@ -267,10 +266,10 @@ const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
       <div className="border-t pt-8">
         <div>
           <h3 className="text-base font-semibold text-slate-900 mb-2">
-            Diplômes et qualifications
+            {t('hr.documents.diplomasTitle')}
           </h3>
           <p className="text-xs text-slate-500 mb-4">
-            Vous pouvez ajouter plusieurs diplômes
+            {t('hr.documents.diplomasHelper')}
           </p>
 
           <div
@@ -285,10 +284,10 @@ const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
           >
             <FileText className="mx-auto text-slate-400 mb-3" size={40} />
             <p className="text-sm font-medium text-slate-900">
-              Ajouter des diplômes
+              {t('hr.documents.addDiplomas')}
             </p>
             <p className="text-xs text-slate-500 mt-2">
-              Glissez-déposez vos fichiers ou cliquez pour sélectionner
+              {t('hr.documents.dragDrop')}
             </p>
             <button
               type="button"
@@ -296,7 +295,7 @@ const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
               className="mt-4 inline-flex items-center gap-1 px-4 py-2 text-sm font-medium bg-blue-500 text-white rounded hover:bg-blue-600 transition"
             >
               <Plus size={16} />
-              Ajouter un diplôme
+              {t('hr.documents.addDiploma')}
             </button>
             <input
               ref={diplomasInputRef}
@@ -317,7 +316,7 @@ const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
           <div className="mt-6">
             <h4 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
               <CheckCircle size={18} className="text-green-600" />
-              Diplômes ajoutés ({documents.diplomas.length})
+              {t('hr.documents.uploaddedDiplomas')} ({documents.diplomas.length})
             </h4>
             <div className="space-y-2">
               {(documents.diplomas || []).map((diploma, index) => (
@@ -344,7 +343,7 @@ const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
                     <button
                       onClick={() => handleRemoveDocument('diplomas', index)}
                       className="inline-flex items-center justify-center p-2 text-red-600 hover:text-red-800 hover:bg-red-100 rounded transition"
-                      title="Retirer ce diplôme"
+                      title={t('hr.documents.removeDocument')}
                     >
                       <X size={18} />
                     </button>
@@ -361,10 +360,10 @@ const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
         <AlertTriangle size={18} className="text-blue-600 flex-shrink-0 mt-0.5" />
         <div>
           <p className="text-sm font-medium text-blue-900 mb-1">
-            Formats acceptés
+            {t('hr.documents.acceptedFormats')}
           </p>
           <p className="text-xs text-blue-800">
-            PDF, DOC, DOCX, JPG, PNG (Max 10MB par fichier). Les documents seront uploadés lors de la sauvegarde de l'employé.
+            {t('hr.documents.formatInfo')}
           </p>
         </div>
       </div>
