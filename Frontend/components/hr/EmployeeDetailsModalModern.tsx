@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Employee } from '../../types';
 import { useI18n } from '../../i18n';
 import Card, { CardBody, CardHeader } from '../ui/Card';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
-import { Edit, User, Briefcase, DollarSign, Umbrella, Globe, FileText, Card as CardIcon, Award, Shield, X } from '../ui/Icons';
+import { Edit, User, Briefcase, DollarSign, Umbrella, Globe, FileText, Card as CardIcon, Award, Shield, X, Download } from '../ui/Icons';
 import LeaveBalanceWidget from './LeaveBalanceWidget';
 import CameroonPayrollWidget from './CameroonPayrollWidget';
+import { getEmployeeWithRelations } from '../../services/apihr/apiEmployees';
+import { useToast } from '../../context/ToastContext';
 
 interface EmployeeDetailsModalModernProps {
   isOpen: boolean;
@@ -81,8 +83,29 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
   onEdit,
 }) => {
   const { t, formatCurrency } = useI18n();
+  const toast = useToast();
+  const [employeeData, setEmployeeData] = useState<Employee | null>(employee);
+  const [isLoading, setIsLoading] = useState(false);
 
-  if (!isOpen || !employee) return null;
+  // Charger les données complètes de l'employé quand la modale s'ouvre
+  useEffect(() => {
+    if (isOpen && employee?.id) {
+      setIsLoading(true);
+      getEmployeeWithRelations(employee.id)
+        .then((fullEmployee) => {
+          setEmployeeData(fullEmployee);
+          setIsLoading(false);
+        })
+        .catch((error) => {
+          console.error('Error loading employee details:', error);
+          toast.error('Erreur', 'Impossible de charger les détails de l\'employé');
+          setEmployeeData(employee);
+          setIsLoading(false);
+        });
+    }
+  }, [isOpen, employee?.id, toast]);
+
+  if (!isOpen || !employeeData) return null;
 
   const calculateYearsOfService = (hireDate: string | Date): number => {
     try {
@@ -104,7 +127,7 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
     }
   };
 
-  const yearsOfService = calculateYearsOfService(employee.hireDate);
+  const yearsOfService = calculateYearsOfService(employeeData.hireDate);
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4 overflow-y-auto backdrop-blur-sm">
@@ -119,22 +142,22 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-4">
                 <div className="h-16 w-16 rounded-full bg-gradient-to-br from-white to-white/80 flex items-center justify-center font-bold text-2xl shadow-lg ring-4 ring-white/30">
-                  {employee.firstName.charAt(0)}
-                  {employee.lastName.charAt(0)}
+                  {employeeData.firstName.charAt(0)}
+                  {employeeData.lastName.charAt(0)}
                 </div>
                 <div>
                   <h2 className="text-3xl font-bold text-slate-900">
-                    {employee.firstName} {employee.lastName}
+                    {employeeData.firstName} {employeeData.lastName}
                   </h2>
                   <p className="text-slate-800 text-sm font-semibold mt-0.5 flex items-center gap-2">
                     <Briefcase size={16} />
-                    {employee.positions}
+                    {employeeData.positions}
                   </p>
                 </div>
               </div>
               <div className="flex gap-2 flex-shrink-0">
                 {onEdit && (
-                  <Button variant="secondary" onClick={() => onEdit(employee)} leftIcon={<Edit size={16} />}>
+                  <Button variant="secondary" onClick={() => onEdit(employeeData)} leftIcon={<Edit size={16} />}>
                     {t('hr.actions.edit')}
                   </Button>
                 )}
@@ -152,11 +175,11 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-white/15 backdrop-blur-sm rounded-lg p-3 border border-white/20">
                 <p className="text-xs font-bold opacity-85 uppercase tracking-wide">{t('hr.details.status')}</p>
-                <p className="text-base font-bold mt-1 text-slate-900">{t(`hr.employeeStatus.${employee.status}`)}</p>
+                <p className="text-base font-bold mt-1 text-slate-900">{t(`hr.employeeStatus.${employeeData.status}`)}</p>
               </div>
               <div className="bg-white/15 backdrop-blur-sm rounded-lg p-3 border border-white/20">
                 <p className="text-xs font-bold opacity-85 uppercase tracking-wide">{t('hr.details.contractType')}</p>
-                <p className="text-base font-bold mt-1 text-slate-900">{t(`hr.contractType.${employee.contractType}`)}</p>
+                <p className="text-base font-bold mt-1 text-slate-900">{t(`hr.contractType.${employeeData.contractType}`)}</p>
               </div>
               <div className="bg-white/15 backdrop-blur-sm rounded-lg p-3 border border-white/20">
                 <p className="text-xs font-bold opacity-85 uppercase tracking-wide">{t('hr.details.yearsOfService')}</p>
@@ -164,7 +187,7 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
               </div>
               <div className="bg-white/15 backdrop-blur-sm rounded-lg p-3 border border-white/20">
                 <p className="text-xs font-bold opacity-85 uppercase tracking-wide">{t('hr.details.email')}</p>
-                <p className="text-xs font-semibold mt-1 text-slate-900 truncate">{employee.email}</p>
+                <p className="text-xs font-semibold mt-1 text-slate-900 truncate">{employeeData.email}</p>
               </div>
             </div>
           </div>
@@ -175,16 +198,16 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
           <CollapsibleSection title={t('hr.details.personalInfo')} icon={User} defaultOpen>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-3">
-                <DetailRow label={t('hr.details.firstName')} value={employee.firstName} />
-                <DetailRow label={t('hr.details.lastName')} value={employee.lastName} />
-                <DetailRow label={t('hr.details.birthDate')} value={new Date(employee.birthDate).toLocaleDateString()} />
-                <DetailRow label={t('configuration.form.gender')} value={t(`hr.gender.${employee.gender}`)} />
+                <DetailRow label={t('hr.details.firstName')} value={employeeData.firstName} />
+                <DetailRow label={t('hr.details.lastName')} value={employeeData.lastName} />
+                <DetailRow label={t('hr.details.birthDate')} value={new Date(employeeData.birthDate).toLocaleDateString()} />
+                <DetailRow label={t('configuration.form.gender')} value={t(`hr.gender.${employeeData.gender}`)} />
               </div>
               <div className="space-y-3">
-                <DetailRow label={t('hr.details.nationality')} value={employee.nationality} />
-                <DetailRow label={t('hr.details.phone')} value={employee.phone} />
-                <DetailRow label={t('hr.details.email')} value={employee.email} />
-                <DetailRow label={t('hr.details.address')} value={employee.address} />
+                <DetailRow label={t('hr.details.nationality')} value={employeeData.nationality} />
+                <DetailRow label={t('hr.details.phone')} value={employeeData.phone} />
+                <DetailRow label={t('hr.details.email')} value={employeeData.email} />
+                <DetailRow label={t('hr.details.address')} value={employeeData.address} />
               </div>
             </div>
           </CollapsibleSection>
@@ -193,14 +216,14 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
           <CollapsibleSection title={t('hr.details.professionalInfo')} icon={Briefcase} defaultOpen>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-3">
-                <DetailRow label={t('hr.details.department')} value={employee.department} />
-                <DetailRow label={t('hr.details.position')} value={employee.positions} />
-                <DetailRow label={t('hr.details.workLocation')} value={employee.workLocation} />
-                <DetailRow label={t('hr.details.hireDate')} value={new Date(employee.hireDate).toLocaleDateString()} />
+                <DetailRow label={t('hr.details.department')} value={employeeData.department} />
+                <DetailRow label={t('hr.details.position')} value={employeeData.positions} />
+                <DetailRow label={t('hr.details.workLocation')} value={employeeData.workLocation} />
+                <DetailRow label={t('hr.details.hireDate')} value={new Date(employeeData.hireDate).toLocaleDateString()} />
               </div>
               <div className="space-y-3">
-                <DetailRow label={t('hr.details.contractType')} value={t(`hr.contractType.${employee.contractType}`)} />
-                <DetailRow label={t('hr.details.status')} value={<Badge variant="primary">{t(`hr.employeeStatus.${employee.status}`)}</Badge>} />
+                <DetailRow label={t('hr.details.contractType')} value={t(`hr.contractType.${employeeData.contractType}`)} />
+                <DetailRow label={t('hr.details.status')} value={<Badge variant="primary">{t(`hr.employeeStatus.${employeeData.status}`)}</Badge>} />
                 <DetailRow label={t('hr.details.yearsOfService')} value={yearsOfService} />
               </div>
             </div>
@@ -212,50 +235,50 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
               <div className="space-y-3">
                 <DetailRow
                   label={t('hr.details.baseSalary')}
-                  value={typeof employee.baseSalary === 'number' ? formatCurrency(employee.baseSalary) : formatCurrency(Number(employee.baseSalary) || 0)}
+                  value={typeof employeeData.baseSalary === 'number' ? formatCurrency(employeeData.baseSalary) : formatCurrency(Number(employeeData.baseSalary) || 0)}
                 />
                 <DetailRow
                   label={t('hr.details.bonus')}
-                  value={typeof employee.bonus === 'number' ? formatCurrency(employee.bonus) : formatCurrency(Number(employee.bonus) || 0)}
+                  value={typeof employeeData.bonus === 'number' ? formatCurrency(employeeData.bonus) : formatCurrency(Number(employeeData.bonus) || 0)}
                 />
-                <DetailRow label={t('hr.details.paymentMethod')} value={employee.paymentMethod ? t(`hr.paymentMethod.${employee.paymentMethod}`) : t('common.notAvailable')} />
+                <DetailRow label={t('hr.details.paymentMethod')} value={employeeData.paymentMethod ? t(`hr.paymentMethod.${employeeData.paymentMethod}`) : t('common.notAvailable')} />
               </div>
               <div className="space-y-3">
                 <DetailRow
                   label={t('hr.details.lastSalaryAdjustment')}
                   value={
-                    employee.lastSalaryAdjustmentDate
-                      ? new Date(employee.lastSalaryAdjustmentDate).toLocaleDateString()
+                    employeeData.lastSalaryAdjustmentDate
+                      ? new Date(employeeData.lastSalaryAdjustmentDate).toLocaleDateString()
                       : t('common.notAvailable')
                   }
                 />
-                {employee.benefits && employee.benefits.length > 0 && (
+                {employeeData.benefits && employeeData.benefits.length > 0 && (
                   <DetailRow
                     label={t('hr.details.benefits')}
-                    value={employee.benefits.join(', ')}
+                    value={employeeData.benefits.join(', ')}
                   />
                 )}
               </div>
             </div>
 
             {/* Banking Details */}
-            {(employee.bankName || employee.bankAccountNumber) && (
+            {(employeeData.bankName || employeeData.bankAccountNumber) && (
               <div className="mt-4 p-5 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-lg border border-blue-200 shadow-sm">
                 <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-3 flex items-center gap-2">
                   <CardIcon size={16} />
                   {t('hr.details.bankAccount')}
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {employee.bankName && (
+                  {employeeData.bankName && (
                     <div>
                       <p className="text-xs text-blue-600 font-semibold">{t('hr.details.bankName')}</p>
-                      <p className="text-sm font-semibold text-blue-900 mt-1">{employee.bankName}</p>
+                      <p className="text-sm font-semibold text-blue-900 mt-1">{employeeData.bankName}</p>
                     </div>
                   )}
-                  {employee.bankAccountNumber && (
+                  {employeeData.bankAccountNumber && (
                     <div>
                       <p className="text-xs text-blue-600 font-semibold">{t('hr.details.bankAccountNumber')}</p>
-                      <p className="text-sm font-mono font-semibold text-blue-900 mt-1">{employee.bankAccountNumber}</p>
+                      <p className="text-sm font-mono font-semibold text-blue-900 mt-1">{employeeData.bankAccountNumber}</p>
                     </div>
                   )}
                 </div>
@@ -265,20 +288,20 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
             {/* Cameroon Payroll Widget */}
             <div className="mt-6">
               <CameroonPayrollWidget
-                baseSalary={employee.baseSalary || 0}
-                bonus={employee.bonus || 0}
-                numberDependents={employee.numberDependents || 0}
+                baseSalary={employeeData.baseSalary || 0}
+                bonus={employeeData.bonus || 0}
+                numberDependents={employeeData.numberDependents || 0}
               />
             </div>
           </CollapsibleSection>
 
           {/* Leave Information */}
           <CollapsibleSection title={t('hr.details.leaveEntitlements')} icon={Umbrella} defaultOpen={true}>
-            {employee.leaveBalance && (
+            {employeeData.leaveBalance && (
               <LeaveBalanceWidget
                 leaveBalance={
-                  typeof employee.leaveBalance === 'object'
-                    ? (employee.leaveBalance as any)
+                  typeof employeeData.leaveBalance === 'object'
+                    ? (employeeData.leaveBalance as any)
                     : {
                         annual: 0,
                         sick: 0,
@@ -294,10 +317,10 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
           </CollapsibleSection>
 
           {/* Leave Records */}
-          {employee.leaveRecords && employee.leaveRecords.length > 0 && (
+          {employeeData.leaveRecords && employeeData.leaveRecords.length > 0 && (
             <CollapsibleSection title={t('hr.details.leaveHistory')} icon={Umbrella} defaultOpen={true}>
               <div className="space-y-2">
-                {employee.leaveRecords.map((record, index) => (
+                {employeeData.leaveRecords.map((record, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg">
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-slate-900">{t(`hr.leaveType.${record.leaveRecordType}`)}</p>
@@ -315,10 +338,10 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
           )}
 
           {/* Position History */}
-          {employee.positionHistory && employee.positionHistory.length > 0 && (
+          {employeeData.positionHistory && employeeData.positionHistory.length > 0 && (
             <CollapsibleSection title={t('hr.details.positionHistory')} icon={Briefcase} defaultOpen={true}>
               <div className="space-y-2">
-                {employee.positionHistory.map((history, index) => (
+                {employeeData.positionHistory.map((history, index) => (
                   <div key={index} className="border-l-4 border-[#c6e911] pl-4 py-3">
                     <p className="text-sm font-bold text-slate-900">{history.position}</p>
                     <p className="text-xs text-slate-600 mt-1">{history.department}</p>
@@ -333,10 +356,10 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
           )}
 
           {/* Trainings */}
-          {employee.trainings && employee.trainings.length > 0 && (
+          {employeeData.trainings && employeeData.trainings.length > 0 && (
             <CollapsibleSection title={t('hr.details.trainings')} icon={Award} defaultOpen={true}>
               <div className="space-y-2">
-                {employee.trainings.map((training, index) => (
+                {employeeData.trainings.map((training, index) => (
                   <div key={index} className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
                     <p className="text-sm font-bold text-slate-900">{training.name}</p>
                     <p className="text-xs text-slate-600 mt-1">{training.provider}</p>
@@ -348,10 +371,10 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
           )}
 
           {/* Performance Reviews */}
-          {employee.performanceReviews && employee.performanceReviews.length > 0 && (
+          {employeeData.performanceReviews && employeeData.performanceReviews.length > 0 && (
             <CollapsibleSection title={t('hr.details.performanceReviews')} icon={Shield} defaultOpen={true}>
               <div className="space-y-2">
-                {employee.performanceReviews.map((review, index) => (
+                {employeeData.performanceReviews.map((review, index) => (
                   <div key={index} className="p-4 bg-gradient-to-r from-purple-50 to-purple-100/50 border border-purple-200 rounded-lg">
                     <div className="flex items-start justify-between mb-2">
                       <div>
@@ -382,51 +405,118 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
 
 
           {/* Documents */}
-          {employee.documents && (
+          {employeeData.documents && (
             <CollapsibleSection title={t('hr.details.documents')} icon={FileText} defaultOpen={true}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {employee.documents.contract && (
-                  <div className="border border-blue-200 rounded-lg p-4 flex items-start gap-3 bg-blue-50/50 hover:bg-blue-50 transition-colors">
-                    <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
-                      <FileText size={20} className="text-blue-600" />
+              <div className="space-y-3">
+                {/* Contract */}
+                {employeeData.documents.contract && (
+                  <div className="border border-blue-200 rounded-lg p-4 flex items-center justify-between bg-blue-50/50 hover:bg-blue-50 transition-colors group">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
+                        <FileText size={20} className="text-blue-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-900">{t('hr.details.contract')}</p>
+                        <p className="text-xs text-slate-600 mt-0.5 truncate">{employeeData.documents.contract.name}</p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-900">{t('hr.details.contract')}</p>
-                      <p className="text-xs text-slate-600 mt-1 truncate">{employee.documents.contract.name}</p>
+                    {employeeData.documents.contract.url && (
+                      <a
+                        href={employeeData.documents.contract.url}
+                        download={employeeData.documents.contract.name}
+                        className="ml-2 p-2 text-blue-600 hover:bg-blue-100 rounded transition-colors flex-shrink-0"
+                        title="Télécharger"
+                      >
+                        <Download size={18} />
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* ID Card */}
+                {employeeData.documents.idCard && (
+                  <div className="border border-purple-200 rounded-lg p-4 flex items-center justify-between bg-purple-50/50 hover:bg-purple-50 transition-colors group">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
+                        <CardIcon size={20} className="text-purple-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-900">{t('hr.details.idCard')}</p>
+                        <p className="text-xs text-slate-600 mt-0.5 truncate">{employeeData.documents.idCard.name}</p>
+                      </div>
+                    </div>
+                    {employeeData.documents.idCard.url && (
+                      <a
+                        href={employeeData.documents.idCard.url}
+                        download={employeeData.documents.idCard.name}
+                        className="ml-2 p-2 text-purple-600 hover:bg-purple-100 rounded transition-colors flex-shrink-0"
+                        title="Télécharger"
+                      >
+                        <Download size={18} />
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Work Permit */}
+                {employeeData.documents.workPermit && (
+                  <div className="border border-green-200 rounded-lg p-4 flex items-center justify-between bg-green-50/50 hover:bg-green-50 transition-colors group">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
+                        <Shield size={20} className="text-green-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-900">{t('hr.details.workPermit')}</p>
+                        <p className="text-xs text-slate-600 mt-0.5 truncate">{employeeData.documents.workPermit.name}</p>
+                      </div>
+                    </div>
+                    {employeeData.documents.workPermit.url && (
+                      <a
+                        href={employeeData.documents.workPermit.url}
+                        download={employeeData.documents.workPermit.name}
+                        className="ml-2 p-2 text-green-600 hover:bg-green-100 rounded transition-colors flex-shrink-0"
+                        title="Télécharger"
+                      >
+                        <Download size={18} />
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Diplomas */}
+                {employeeData.documents.diplomas && employeeData.documents.diplomas.length > 0 && (
+                  <div className="border border-amber-200 rounded-lg p-4 bg-amber-50/50">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
+                        <Award size={20} className="text-amber-600" />
+                      </div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        {t('hr.details.diplomas')} ({employeeData.documents.diplomas.length})
+                      </p>
+                    </div>
+                    <div className="space-y-2 ml-10">
+                      {employeeData.documents.diplomas.map((diploma, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-amber-100 hover:border-amber-200 transition-colors">
+                          <p className="text-xs font-medium text-slate-700 truncate flex-1">{diploma.name}</p>
+                          {diploma.url && (
+                            <a
+                              href={diploma.url}
+                              download={diploma.name}
+                              className="ml-2 p-1 text-amber-600 hover:bg-amber-100 rounded transition-colors flex-shrink-0"
+                              title="Télécharger"
+                            >
+                              <Download size={16} />
+                            </a>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
-                {employee.documents.idCard && (
-                  <div className="border border-purple-200 rounded-lg p-4 flex items-start gap-3 bg-purple-50/50 hover:bg-purple-50 transition-colors">
-                    <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
-                      <CardIcon size={20} className="text-purple-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-900">{t('hr.details.idCard')}</p>
-                      <p className="text-xs text-slate-600 mt-1 truncate">{employee.documents.idCard.name}</p>
-                    </div>
-                  </div>
-                )}
-                {employee.documents.workPermit && (
-                  <div className="border border-green-200 rounded-lg p-4 flex items-start gap-3 bg-green-50/50 hover:bg-green-50 transition-colors">
-                    <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
-                      <Shield size={20} className="text-green-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-900">{t('hr.details.workPermit')}</p>
-                      <p className="text-xs text-slate-600 mt-1 truncate">{employee.documents.workPermit.name}</p>
-                    </div>
-                  </div>
-                )}
-                {employee.documents.diplomas && employee.documents.diplomas.length > 0 && (
-                  <div className="border border-amber-200 rounded-lg p-4 flex items-start gap-3 bg-amber-50/50 hover:bg-amber-50 transition-colors">
-                    <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
-                      <Award size={20} className="text-amber-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-900">{t('hr.details.diplomas')}</p>
-                      <p className="text-xs text-slate-600 mt-1">{employee.documents.diplomas.length} document(s)</p>
-                    </div>
+
+                {!employeeData.documents.contract && !employeeData.documents.idCard && !employeeData.documents.workPermit && (!employeeData.documents.diplomas || employeeData.documents.diplomas.length === 0) && (
+                  <div className="p-4 text-center bg-slate-50 border border-slate-200 rounded-lg">
+                    <p className="text-sm text-slate-600">Aucun document n'a été ajouté pour cet employé.</p>
                   </div>
                 )}
               </div>
