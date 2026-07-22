@@ -93,6 +93,14 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
       setIsLoading(true);
       getEmployeeWithRelations(employee.id)
         .then((fullEmployee) => {
+          console.log('Employee data loaded:', {
+            id: fullEmployee.id,
+            name: `${fullEmployee.firstName} ${fullEmployee.lastName}`,
+            hasDocuments: !!fullEmployee.documents,
+            hasLeaveBalance: !!fullEmployee.leaveBalance,
+            leaveBalance: fullEmployee.leaveBalance,
+            documents: fullEmployee.documents,
+          });
           setEmployeeData(fullEmployee);
           setIsLoading(false);
         })
