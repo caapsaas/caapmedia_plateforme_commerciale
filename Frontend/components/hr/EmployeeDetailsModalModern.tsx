@@ -93,15 +93,39 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
       setIsLoading(true);
       getEmployeeWithRelations(employee.id)
         .then((fullEmployee) => {
+          // Normaliser le format des documents si le backend retourne un array
+          const normalizedEmployee = { ...fullEmployee };
+          if (Array.isArray(fullEmployee.documents)) {
+            normalizedEmployee.documents = {
+              contract: null,
+              idCard: null,
+              workPermit: null,
+              diplomas: [],
+            };
+          }
+
+          // Normaliser leaveBalance si c'est un nombre ou null
+          if (typeof fullEmployee.leaveBalance === 'number' || !fullEmployee.leaveBalance) {
+            normalizedEmployee.leaveBalance = {
+              annual: 0,
+              sick: 0,
+              personal: 0,
+              maternity: 0,
+              paternity: 0,
+              other: 0,
+              unpaid: 0,
+            };
+          }
+
           console.log('Employee data loaded:', {
-            id: fullEmployee.id,
-            name: `${fullEmployee.firstName} ${fullEmployee.lastName}`,
-            hasDocuments: !!fullEmployee.documents,
-            hasLeaveBalance: !!fullEmployee.leaveBalance,
-            leaveBalance: fullEmployee.leaveBalance,
-            documents: fullEmployee.documents,
+            id: normalizedEmployee.id,
+            name: `${normalizedEmployee.firstName} ${normalizedEmployee.lastName}`,
+            hasDocuments: !!normalizedEmployee.documents && typeof normalizedEmployee.documents === 'object',
+            hasLeaveBalance: !!normalizedEmployee.leaveBalance && typeof normalizedEmployee.leaveBalance === 'object',
+            leaveBalance: normalizedEmployee.leaveBalance,
+            documents: normalizedEmployee.documents,
           });
-          setEmployeeData(fullEmployee);
+          setEmployeeData(normalizedEmployee);
           setIsLoading(false);
         })
         .catch((error) => {
