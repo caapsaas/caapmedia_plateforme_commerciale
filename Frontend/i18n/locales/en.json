@@ -68,7 +68,8 @@
     "viewBonDeCommande": "View PO",
     "error": "An error occurred",
     "success": "Success",
-    "warning": "Warning"
+    "warning": "Warning",
+    "info": "Information"
   },
   "configuration": {
     "title": "Configuration",
@@ -287,6 +288,7 @@
       "contractUploadFailed": "Error uploading contract",
       "idCardUploadFailed": "Error uploading ID card",
       "workPermitUploadFailed": "Error uploading work permit",
+      "fileNotYetUploaded": "Selected files will not be saved. A file upload endpoint must be implemented in the backend first.",
       "requirements": "Required documents: Employment Contract, ID Card/National ID, and Work Permit. Diplomas are optional but recommended."
     },
     "documentType": {

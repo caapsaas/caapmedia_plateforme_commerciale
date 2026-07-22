@@ -68,7 +68,8 @@
     "viewBonDeCommande": "Voir BC",
     "error": "Une erreur s'est produite",
     "success": "Succès",
-    "warning": "Attention"
+    "warning": "Attention",
+    "info": "Information"
   },
   "configuration": {
     "title": "Configuration",
@@ -135,6 +136,7 @@
     "tabs": {
       "employees": "Employés",
       "attendance": "Présences",
+      "attendances": "Présences",
       "payroll": "Paie",
       "absences": "Absences"
     },
@@ -287,6 +289,7 @@
       "contractUploadFailed": "Erreur lors de l'upload du contrat",
       "idCardUploadFailed": "Erreur lors de l'upload de la carte d'identité",
       "workPermitUploadFailed": "Erreur lors de l'upload du permis de travail",
+      "fileNotYetUploaded": "Les fichiers sélectionnés ne seront pas sauvegardés. Un endpoint d'upload de fichier doit d'abord être implémenté au backend.",
       "requirements": "Documents requis : Contrat de travail, Carte d'identité/CNI et Permis de travail. Les diplômes sont optionnels mais recommandés."
     },
     "documentType": {

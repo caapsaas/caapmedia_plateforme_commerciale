@@ -107,80 +107,28 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
     try {
       const processedData = { ...employeeData };
 
-      // Upload documents first if any files are pending
-      if (processedData.documents && employeeData.id) {
+      // Filter out File objects from documents (they cannot be sent as JSON)
+      // Files stay local until backend file upload endpoint is implemented
+      if (processedData.documents) {
         const documents = processedData.documents;
 
-        // Upload contract if it has a File object
+        // Keep documents with URL, discard those with File objects
         if (hasFileObject(documents.contract)) {
-          try {
-            const uploaded = await uploadDocumentFile(
-              employeeData.id,
-              (documents.contract as any).file,
-              'contract'
-            );
-            documents.contract = { name: uploaded.name, url: uploaded.url };
-          } catch (err) {
-            console.warn('Warning uploading contract:', err);
-            toast.warning(t('common.warning'), t('hr.documents.contractUploadFailed'));
-          }
+          toast.info(t('common.info'), t('hr.documents.fileNotYetUploaded'));
+          documents.contract = null;
         }
-
-        // Upload idCard if it has a File object
         if (hasFileObject(documents.idCard)) {
-          try {
-            const uploaded = await uploadDocumentFile(
-              employeeData.id,
-              (documents.idCard as any).file,
-              'idCard'
-            );
-            documents.idCard = { name: uploaded.name, url: uploaded.url };
-          } catch (err) {
-            console.warn('Warning uploading idCard:', err);
-            toast.warning(t('common.warning'), t('hr.documents.idCardUploadFailed'));
-          }
+          documents.idCard = null;
         }
-
-        // Upload workPermit if it has a File object
         if (hasFileObject(documents.workPermit)) {
-          try {
-            const uploaded = await uploadDocumentFile(
-              employeeData.id,
-              (documents.workPermit as any).file,
-              'workPermit'
-            );
-            documents.workPermit = { name: uploaded.name, url: uploaded.url };
-          } catch (err) {
-            console.warn('Warning uploading workPermit:', err);
-            toast.warning(t('common.warning'), t('hr.documents.workPermitUploadFailed'));
-          }
+          documents.workPermit = null;
         }
-
-        // Upload diplomas if they have File objects
         if (Array.isArray(documents.diplomas)) {
-          const uploadedDiplomas = [];
-          for (let i = 0; i < documents.diplomas.length; i++) {
-            const diploma = documents.diplomas[i];
-            if (hasFileObject(diploma)) {
-              try {
-                const uploaded = await uploadDocumentFile(
-                  employeeData.id,
-                  (diploma as any).file,
-                  'diploma'
-                );
-                uploadedDiplomas.push({ name: uploaded.name, url: uploaded.url });
-              } catch (err) {
-                console.warn(`Warning uploading diploma ${i}:`, err);
-              }
-            } else {
-              uploadedDiplomas.push(diploma);
-            }
-          }
-          documents.diplomas = uploadedDiplomas;
+          documents.diplomas = documents.diplomas.filter((d) => !hasFileObject(d));
         }
       }
 
-      // Now save the employee with uploaded document URLs
+      // Save the employee with cleaned documents
       const hasLeaves = processedData.leaveRecords && Array.isArray(processedData.leaveRecords) && processedData.leaveRecords.length > 0;
 
       if (hasLeaves) {
