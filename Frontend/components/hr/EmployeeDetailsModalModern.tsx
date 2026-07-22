@@ -297,7 +297,11 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
 
           {/* Leave Information */}
           <CollapsibleSection title={t('hr.details.leaveEntitlements')} icon={Umbrella} defaultOpen={true}>
-            {employeeData.leaveBalance && (
+            {isLoading ? (
+              <div className="text-center py-4">
+                <p className="text-sm text-slate-600">Chargement des congés...</p>
+              </div>
+            ) : employeeData?.leaveBalance ? (
               <LeaveBalanceWidget
                 leaveBalance={
                   typeof employeeData.leaveBalance === 'object'
@@ -313,6 +317,10 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
                       }
                 }
               />
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-slate-600">Pas de données de congés disponibles</p>
+              </div>
             )}
           </CollapsibleSection>
 
@@ -405,8 +413,12 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
 
 
           {/* Documents */}
-          {employeeData.documents && (
-            <CollapsibleSection title={t('hr.details.documents')} icon={FileText} defaultOpen={true}>
+          <CollapsibleSection title={t('hr.details.documents')} icon={FileText} defaultOpen={true}>
+            {isLoading ? (
+              <div className="text-center py-4">
+                <p className="text-sm text-slate-600">Chargement des documents...</p>
+              </div>
+            ) : employeeData?.documents ? (
               <div className="space-y-3">
                 {/* Contract */}
                 {employeeData.documents.contract && (
@@ -520,8 +532,12 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
                   </div>
                 )}
               </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-slate-600">Pas de documents disponibles</p>
+              </div>
+            )}
             </CollapsibleSection>
-          )}
         </CardBody>
       </Card>
     </div>
