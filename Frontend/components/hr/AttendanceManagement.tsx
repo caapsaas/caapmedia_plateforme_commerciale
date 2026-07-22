@@ -8,6 +8,7 @@ import ViewSignatureModal from './ViewSignatureModal';
 import AttendanceActionModal from './AttendanceActionModal';
 import { exportToCsv } from '../../utils/csvExporter';
 import { exportToPdf } from '../../utils/pdfExporter';
+import { formatDateTime } from '../../utils/dateFormatter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
@@ -407,7 +408,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary,
                         {filteredAttendances.map((record) => (
                             <tr key={record.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{record.employeeName}</td>
-                                <td className="px-6 py-4">{record.attendanceDate}</td>
+                                <td className="px-6 py-4">{formatDateTime(record.attendanceDate)}</td>
                                 <td className="px-6 py-4">
                                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(record.status)}`}>
                                         {t(`hr.attendance.status_${record.status}`)}

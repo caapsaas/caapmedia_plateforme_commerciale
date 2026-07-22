@@ -92,39 +92,31 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
     setIsFormModalOpen(true);
   };
 
-  const handleSaveEmployee = (employeeData: Partial<Employee>) => {
+  const handleSaveEmployee = async (employeeData: Partial<Employee>) => {
     try {
-      // Nettoyer les données pour supprimer les objets File avant envoi
-      // Les fichiers seront uploadés séparément après la création de l'employé
-      const cleanedData = { ...employeeData };
+      // Vérifier s'il y a des fichiers à uploader
+      const hasFilesToUpload =
+        (employeeData.documents?.contract as any)?.file ||
+        (employeeData.documents?.idCard as any)?.file ||
+        (employeeData.documents?.workPermit as any)?.file ||
+        (employeeData.documents?.diplomas?.some((d) => (d as any).file));
 
-      // Nettoyer les documents pour ne garder que les URLs valides
-      if (cleanedData.documents) {
-        cleanedData.documents = {
-          contract: (cleanedData.documents.contract as any)?.file
-            ? null
-            : cleanedData.documents.contract,
-          idCard: (cleanedData.documents.idCard as any)?.file
-            ? null
-            : cleanedData.documents.idCard,
-          workPermit: (cleanedData.documents.workPermit as any)?.file
-            ? null
-            : cleanedData.documents.workPermit,
-          diplomas: cleanedData.documents.diplomas
-            ? cleanedData.documents.diplomas.filter((d) => !(d as any).file)
-            : [],
-        };
+      if (hasFilesToUpload) {
+        // Utiliser la fonction de sauvegarde avec upload de documents
+        const savedEmployee = await saveEmployeeWithDocumentsAndLeaves(employeeData as any);
+        toast.success('Employé enregistré', 'L\'employé et ses documents ont été sauvegardés avec succès');
+        setIsFormModalOpen(false);
+        // Refetch la liste des employés
+        onSave(savedEmployee);
+      } else {
+        // Sauvegarde standard sans fichiers
+        onSave(employeeData as any);
+        toast.success('Employé enregistré', 'L\'employé a été sauvegardé avec succès');
+        setIsFormModalOpen(false);
       }
-
-      // Sauvegarder l'employé
-      onSave(cleanedData as any);
-
-      // NOTE: Les fichiers uploadés seront traités via un endpoint séparé
-      toast.success('Success', 'Employee saved successfully');
-      setIsFormModalOpen(false);
     } catch (error) {
       console.error('Error saving employee:', error);
-      toast.error('Error', 'Failed to save employee');
+      toast.error('Erreur', 'Échec de la sauvegarde de l\'employé');
     }
   };
 

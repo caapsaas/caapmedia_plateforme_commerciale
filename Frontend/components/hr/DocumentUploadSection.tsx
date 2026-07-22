@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { EmployeeDocument } from '../../types';
 import { useI18n } from '../../i18n';
-import { Plus, X, FileText, Download } from '../ui/Icons';
+import { Plus, X, FileText, Download, CheckCircle, AlertTriangle } from '../ui/Icons';
 import Button from '../ui/Button';
 
 interface DocumentUploadSectionProps {
@@ -19,32 +19,65 @@ const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
   onUpdate,
 }) => {
   const { t } = useI18n();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const diplomasInputRef = useRef<HTMLInputElement>(null);
   const [dragOverField, setDragOverField] = React.useState<string | null>(null);
+  const [errors, setErrors] = React.useState<{ [key: string]: string }>({});
 
   const documentFields = [
-    { key: 'contract', label: t('hr.documents.contract'), icon: FileText },
-    { key: 'idCard', label: t('hr.documents.idCard'), icon: FileText },
-    { key: 'workPermit', label: t('hr.documents.workPermit'), icon: FileText },
+    {
+      key: 'contract',
+      label: t('hr.documents.contract'),
+      description: 'Contrat d\'emploi ou accord'
+    },
+    {
+      key: 'idCard',
+      label: t('hr.documents.idCard'),
+      description: 'Carte d\'identité ou passeport'
+    },
+    {
+      key: 'workPermit',
+      label: t('hr.documents.workPermit'),
+      description: 'Permis de travail ou visa'
+    },
   ];
+
+  const validateFile = (file: File): string | null => {
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+    const ALLOWED_TYPES = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png', 'image/jpg'];
+
+    if (file.size > MAX_SIZE) {
+      return `Fichier trop volumineux (${(file.size / 1024 / 1024).toFixed(2)}MB). Max: 10MB`;
+    }
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return 'Format non autorisé. Acceptés: PDF, DOC, DOCX, JPG, PNG';
+    }
+
+    return null;
+  };
 
   const handleFileSelect = (field: string, file: File) => {
     if (!file) return;
 
-    // Validation de taille (max 5MB par fichier)
-    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
-    if (file.size > MAX_SIZE) {
-      alert(`File too large! Max size is 5MB. Your file is ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+    const error = validateFile(file);
+    if (error) {
+      setErrors(prev => ({ ...prev, [field]: error }));
       return;
     }
 
-    // Store file for later upload during employee save
-    // On va uploader les fichiers quand l'employé sera créé
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[field];
+      return newErrors;
+    });
+
     const fileData = {
       name: file.name,
-      url: '', // URL sera remplie après upload
-      file: file, // Stocker le fichier pour l'upload ultérieur
+      url: URL.createObjectURL(file), // Preview URL
+      file: file,
+      size: file.size,
+      uploadedAt: new Date().toISOString(),
     };
 
     if (field === 'diplomas') {
@@ -97,51 +130,73 @@ const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
     }
   };
 
-  const DocumentCard = ({ field, label }: { field: string; label: string }) => {
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const DocumentCard = ({ field, label, description }: { field: string; label: string; description?: string }) => {
     const doc = documents[field as keyof typeof documents];
     const isDragOver = dragOverField === field;
+    const hasError = errors[field];
 
     return (
       <div
-        className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+        className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 ${
           isDragOver
-            ? 'border-blue-500 bg-blue-50'
+            ? 'border-blue-500 bg-blue-50 shadow-md'
             : doc
-            ? 'border-green-300 bg-green-50'
-            : 'border-slate-300 hover:border-slate-400'
+            ? 'border-green-300 bg-green-50 shadow-sm'
+            : hasError
+            ? 'border-red-300 bg-red-50'
+            : 'border-slate-300 hover:border-slate-400 bg-white hover:bg-slate-50'
         }`}
         onDragOver={(e) => handleDragOver(e, field)}
         onDragLeave={(e) => handleDragLeave(e)}
         onDrop={(e) => handleDrop(e, field)}
       >
+        {hasError && (
+          <div className="absolute top-2 right-2">
+            <AlertTriangle size={20} className="text-red-500" />
+          </div>
+        )}
+
         {doc ? (
           <div className="space-y-3">
             <div className="flex justify-center">
-              <FileText className="text-green-600" size={40} />
+              <div className="relative">
+                <FileText className="text-green-600" size={40} />
+                <CheckCircle size={20} className="text-green-600 absolute bottom-0 right-0" />
+              </div>
             </div>
             <div>
               <p className="font-semibold text-slate-900 truncate text-sm">
                 {doc.name}
               </p>
-              <p className="text-xs text-slate-500 mt-1">
-                {t('hr.documents.uploaded')}
+              {doc.size && (
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {formatFileSize(doc.size)}
+                </p>
+              )}
+              <p className="text-xs text-green-600 font-medium mt-1">
+                ✓ Fichier sélectionné
               </p>
             </div>
-            <div className="flex gap-2 justify-center">
-              <a
-                href={doc.url}
-                download={doc.name}
-                className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
-              >
-                <Download size={16} />
-                {t('hr.documents.download')}
-              </a>
+            <div className="flex gap-2 justify-center flex-wrap">
+              {doc.url && doc.url.startsWith('blob:') && (
+                <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                  À uploader
+                </span>
+              )}
               <button
                 onClick={() => handleRemoveDocument(field)}
-                className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 text-xs"
+                className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 text-xs font-medium rounded hover:bg-red-200 transition"
               >
                 <X size={16} />
-                {t('hr.documents.remove')}
+                Retirer
               </button>
             </div>
           </div>
@@ -149,87 +204,99 @@ const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
           <div className="space-y-2">
             <FileText
               className="mx-auto text-slate-400"
-              size={32}
+              size={40}
             />
             <div>
               <p className="text-sm font-medium text-slate-900">{label}</p>
-              <p className="text-xs text-slate-500 mt-1">
-                {t('hr.documents.dragOrClick')}
+              {description && (
+                <p className="text-xs text-slate-500 mt-0.5">{description}</p>
+              )}
+              <p className="text-xs text-slate-500 mt-2">
+                Glissez-déposez un fichier ou cliquez
               </p>
             </div>
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
+              onClick={() => fileInputRefs.current[field]?.click()}
+              className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium bg-blue-500 text-white rounded hover:bg-blue-600 transition"
             >
               <Plus size={16} />
-              {t('hr.documents.selectFile')}
+              Sélectionner
             </button>
           </div>
         )}
+
+        {hasError && (
+          <div className="text-xs text-red-600 mt-2 font-medium">
+            {hasError}
+          </div>
+        )}
+
+        <input
+          ref={(el) => { if (el) fileInputRefs.current[field] = el; }}
+          type="file"
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files?.[0]) {
+              handleFileSelect(field, e.target.files[0]);
+            }
+          }}
+          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+        />
       </div>
     );
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Single Document Fields */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {documentFields.map(({ key, label }) => (
-          <div key={key}>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              {label}
-            </label>
-            <DocumentCard field={key} label={label} />
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              onChange={(e) => {
-                if (e.target.files?.[0]) {
-                  handleFileSelect(key, e.target.files[0]);
-                }
-              }}
-              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-            />
-          </div>
-        ))}
+      <div>
+        <h3 className="text-base font-semibold text-slate-900 mb-4">
+          Documents principaux
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {documentFields.map(({ key, label, description }) => (
+            <div key={key}>
+              <DocumentCard field={key} label={label} description={description} />
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Diplomas Section */}
-      <div className="border-t pt-6">
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            {t('hr.documents.diplomas')}
-          </label>
+      <div className="border-t pt-8">
+        <div>
+          <h3 className="text-base font-semibold text-slate-900 mb-2">
+            Diplômes et qualifications
+          </h3>
           <p className="text-xs text-slate-500 mb-4">
-            {t('hr.documents.diplomasHelper')}
+            Vous pouvez ajouter plusieurs diplômes
           </p>
 
           <div
-            className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 ${
               dragOverField === 'diplomas'
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-slate-300 hover:border-slate-400'
+                ? 'border-blue-500 bg-blue-50 shadow-md'
+                : 'border-slate-300 hover:border-slate-400 bg-white hover:bg-slate-50'
             }`}
             onDragOver={(e) => handleDragOver(e, 'diplomas')}
             onDragLeave={(e) => handleDragLeave(e)}
             onDrop={(e) => handleDrop(e, 'diplomas')}
           >
-            <FileText className="mx-auto text-slate-400 mb-2" size={32} />
+            <FileText className="mx-auto text-slate-400 mb-3" size={40} />
             <p className="text-sm font-medium text-slate-900">
-              {t('hr.documents.addDiplomas')}
+              Ajouter des diplômes
             </p>
-            <p className="text-xs text-slate-500 mt-1">
-              {t('hr.documents.dragOrClick')}
+            <p className="text-xs text-slate-500 mt-2">
+              Glissez-déposez vos fichiers ou cliquez pour sélectionner
             </p>
             <button
               type="button"
               onClick={() => diplomasInputRef.current?.click()}
-              className="mt-3 inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
+              className="mt-4 inline-flex items-center gap-1 px-4 py-2 text-sm font-medium bg-blue-500 text-white rounded hover:bg-blue-600 transition"
             >
               <Plus size={16} />
-              {t('hr.documents.selectFile')}
+              Ajouter un diplôme
             </button>
             <input
               ref={diplomasInputRef}
@@ -247,33 +314,37 @@ const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
 
         {/* Uploaded Diplomas List */}
         {documents.diplomas && documents.diplomas.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-slate-900">
-              {t('hr.documents.uploadedDiplomas')} ({documents.diplomas.length})
+          <div className="mt-6">
+            <h4 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+              <CheckCircle size={18} className="text-green-600" />
+              Diplômes ajoutés ({documents.diplomas.length})
             </h4>
             <div className="space-y-2">
               {(documents.diplomas || []).map((diploma, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg"
+                  className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-green-50 border border-green-200 rounded-lg hover:shadow-sm transition"
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <FileText size={20} className="text-blue-600 flex-shrink-0" />
-                    <span className="text-sm text-slate-700 truncate">
-                      {diploma.name}
-                    </span>
+                    <div className="flex-shrink-0">
+                      <FileText size={20} className="text-blue-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-900 truncate">
+                        {diploma.name}
+                      </p>
+                      {diploma.size && (
+                        <p className="text-xs text-slate-500">
+                          {formatFileSize(diploma.size)}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <div className="flex gap-2 ml-2 flex-shrink-0">
-                    <a
-                      href={diploma.url}
-                      download={diploma.name}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      <Download size={18} />
-                    </a>
                     <button
                       onClick={() => handleRemoveDocument('diplomas', index)}
-                      className="text-red-600 hover:text-red-800"
+                      className="inline-flex items-center justify-center p-2 text-red-600 hover:text-red-800 hover:bg-red-100 rounded transition"
+                      title="Retirer ce diplôme"
                     >
                       <X size={18} />
                     </button>
@@ -286,10 +357,16 @@ const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
       </div>
 
       {/* Info Box */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-        <p className="text-xs text-amber-800">
-          {t('hr.documents.requirements')}
-        </p>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
+        <AlertTriangle size={18} className="text-blue-600 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-medium text-blue-900 mb-1">
+            Formats acceptés
+          </p>
+          <p className="text-xs text-blue-800">
+            PDF, DOC, DOCX, JPG, PNG (Max 10MB par fichier). Les documents seront uploadés lors de la sauvegarde de l'employé.
+          </p>
+        </div>
       </div>
     </div>
   );

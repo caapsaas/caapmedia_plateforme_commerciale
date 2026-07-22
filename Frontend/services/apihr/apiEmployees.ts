@@ -213,44 +213,82 @@ export const addLeaveRecordToEmployee = async (
 
 /**
  * Sauvegarde complètement un employé avec tous ses documents et congés.
- * Utilise les endpoints séparés pour créer les sous-entités après l'employé.
+ * Upload les fichiers d'abord, puis les attache à l'employé.
  */
 export const saveEmployeeWithDocumentsAndLeaves = async (employeeData: EmployeeSaveData): Promise<Employee> => {
     // 1. D'abord, sauvegarder l'employé sans documents/congés
     const savedEmployee = await saveEmployee(employeeData);
 
     try {
-        // 2. Ajouter les documents
+        // 2. Ajouter les documents (upload les fichiers d'abord si nécessaire)
         if (employeeData.documents) {
-            // Mapper les noms des champs aux valeurs d'enum correctes
-            const docTypeMap: Record<string, string> = {
-                contract: 'CONTRACT',
-                idCard: 'ID_CARD',
-                workPermit: 'WORK_PERMIT',
+            const docTypeMap: Record<string, 'contract' | 'idCard' | 'workPermit' | 'diploma'> = {
+                contract: 'contract',
+                idCard: 'idCard',
+                workPermit: 'workPermit',
             };
 
             const docFields = ['contract', 'idCard', 'workPermit'] as const;
             for (const field of docFields) {
                 const doc = employeeData.documents[field];
-                if (doc && doc.url && !doc.url.startsWith('data:')) {
-                    // C'est une URL valide (pas base64)
-                    await addDocumentToEmployee(savedEmployee.id, {
-                        documentName: doc.name,
-                        url: doc.url,
-                        docType: docTypeMap[field] as any,  // ✓ Utiliser le mapping
-                    });
+                if (doc) {
+                    let docUrl = doc.url;
+
+                    // Si c'est un nouveau fichier (blob URL), uploader le fichier
+                    if (doc.url && doc.url.startsWith('blob:') && (doc as any).file) {
+                        try {
+                            const uploadResult = await uploadDocumentFile(
+                                savedEmployee.id,
+                                (doc as any).file,
+                                docTypeMap[field]
+                            );
+                            docUrl = uploadResult.url;
+                        } catch (uploadError) {
+                            console.error(`Error uploading ${field}:`, uploadError);
+                            continue;
+                        }
+                    }
+
+                    // Ajouter le document avec l'URL (locale ou uploadée)
+                    if (docUrl) {
+                        await addDocumentToEmployee(savedEmployee.id, {
+                            documentName: doc.name,
+                            url: docUrl,
+                            docType: field === 'contract' ? 'CONTRACT' : field === 'idCard' ? 'ID_CARD' : 'WORK_PERMIT' as any,
+                        });
+                    }
                 }
             }
 
             // Ajouter les diplômes
-            if (employeeData.documents.diplomas) {
+            if (employeeData.documents.diplomas && Array.isArray(employeeData.documents.diplomas)) {
                 for (const diploma of employeeData.documents.diplomas) {
-                    if (diploma.url && !diploma.url.startsWith('data:')) {
-                        await addDocumentToEmployee(savedEmployee.id, {
-                            documentName: diploma.name,
-                            url: diploma.url,
-                            docType: 'DIPLOMA' as any,
-                        });
+                    if (diploma) {
+                        let diplomaUrl = diploma.url;
+
+                        // Si c'est un nouveau fichier, uploader le fichier
+                        if (diploma.url && diploma.url.startsWith('blob:') && (diploma as any).file) {
+                            try {
+                                const uploadResult = await uploadDocumentFile(
+                                    savedEmployee.id,
+                                    (diploma as any).file,
+                                    'diploma'
+                                );
+                                diplomaUrl = uploadResult.url;
+                            } catch (uploadError) {
+                                console.error('Error uploading diploma:', uploadError);
+                                continue;
+                            }
+                        }
+
+                        // Ajouter le diplôme avec l'URL
+                        if (diplomaUrl) {
+                            await addDocumentToEmployee(savedEmployee.id, {
+                                documentName: diploma.name,
+                                url: diplomaUrl,
+                                docType: 'DIPLOMA' as any,
+                            });
+                        }
                     }
                 }
             }

@@ -10,6 +10,7 @@ import AbsenceFormModal from './AbsenceFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
 import { exportToCsv } from '../../utils/csvExporter';
 import { exportToPdf } from '../../utils/pdfExporter';
+import { formatDate } from '../../utils/dateFormatter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
@@ -245,8 +246,8 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({ subsidiary, emplo
                                         {t(`hr.absenceType.${record.typeAbsence}`)}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4">{record.startDate}</td>
-                                <td className="px-6 py-4">{record.endDate}</td>
+                                <td className="px-6 py-4">{formatDate(record.startDate)}</td>
+                                <td className="px-6 py-4">{formatDate(record.endDate)}</td>
                                 <td className="px-6 py-4 max-w-xs truncate">{record.reason}</td>
                                 <td className="px-6 py-4 text-center no-print">
                                     {record.documentUrl ? (

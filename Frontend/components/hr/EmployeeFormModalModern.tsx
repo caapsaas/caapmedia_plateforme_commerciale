@@ -80,12 +80,24 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
         ...employee,
         birthDate: employee.birthDate ? new Date(employee.birthDate).toISOString().split('T')[0] : '',
         hireDate: employee.hireDate ? new Date(employee.hireDate).toISOString().split('T')[0] : '',
+        bankName: employee.bankName || '',
+        bankAccountNumber: employee.bankAccountNumber || '',
         documents: {
           contract: employee.documents?.contract || null,
           idCard: employee.documents?.idCard || null,
           workPermit: employee.documents?.workPermit || null,
-          diplomas: employee.documents?.diplomas || [],
+          diplomas: Array.isArray(employee.documents?.diplomas) ? employee.documents.diplomas : [],
         },
+        leaveBalance: {
+          annual: employee.leaveBalance?.annual ?? 0,
+          sick: employee.leaveBalance?.sick ?? 0,
+          personal: employee.leaveBalance?.personal ?? 0,
+          maternity: employee.leaveBalance?.maternity ?? 0,
+          paternity: employee.leaveBalance?.paternity ?? 0,
+          other: employee.leaveBalance?.other ?? 0,
+          unpaid: employee.leaveBalance?.unpaid ?? 0,
+        },
+        leaveRecords: Array.isArray(employee.leaveRecords) ? employee.leaveRecords : [],
       });
     } else {
       setFormData(initialFormState);
@@ -182,7 +194,30 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
     }
 
     try {
-      onSave(formData);
+      // Ensure data persistence by explicitly including all nested objects
+      const dataToSave = {
+        ...formData,
+        bankName: formData.bankName || '',
+        bankAccountNumber: formData.bankAccountNumber || '',
+        documents: {
+          contract: formData.documents?.contract || null,
+          idCard: formData.documents?.idCard || null,
+          workPermit: formData.documents?.workPermit || null,
+          diplomas: Array.isArray(formData.documents?.diplomas) ? formData.documents.diplomas : [],
+        },
+        leaveBalance: {
+          annual: formData.leaveBalance?.annual ?? 0,
+          sick: formData.leaveBalance?.sick ?? 0,
+          personal: formData.leaveBalance?.personal ?? 0,
+          maternity: formData.leaveBalance?.maternity ?? 0,
+          paternity: formData.leaveBalance?.paternity ?? 0,
+          other: formData.leaveBalance?.other ?? 0,
+          unpaid: formData.leaveBalance?.unpaid ?? 0,
+        },
+        leaveRecords: Array.isArray(formData.leaveRecords) ? formData.leaveRecords : [],
+      };
+
+      onSave(dataToSave);
     } catch (error) {
       console.error('Error saving employee:', error);
     } finally {

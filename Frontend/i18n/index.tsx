@@ -3084,40 +3084,6 @@ const enTranslations: Translations = {
             "workPermit": "Work Permit",
             "diplomas": "Diplomas"
         },
-        "form": {
-            "sections": {
-                "personal": "Personal Information",
-                "professional": "Professional Information",
-                "salary": "Salary & Compensation",
-                "cameroon": "Cameroon Information",
-                "documents": "Documents",
-                "leaves": "Leaves"
-            },
-            "labels": {
-                "firstName": "First Name",
-                "lastName": "Last Name",
-                "birthDate": "Birth Date",
-                "gender": "Gender",
-                "nationality": "Nationality",
-                "phone": "Phone",
-                "email": "Email",
-                "address": "Address",
-                "position": "Position",
-                "department": "Department",
-                "hireDate": "Hire Date",
-                "contractType": "Contract Type",
-                "status": "Status",
-                "workLocation": "Work Location",
-                "baseSalary": "Base Salary",
-                "bonus": "Bonus",
-                "paymentMethod": "Payment Method",
-                "cnpsNumber": "CNPS Number",
-                "categoryCodeCNPS": "CNPS Category",
-                "taxIdNTif": "N-tif",
-                "situationMatrimony": "Marital Status",
-                "bankAccountNumber": "Bank Account"
-            }
-        },
         "payrollInfo": {
             "cameroonPayroll": "Cameroon Payroll",
             "belowSmig": "Salary below SMIG",
