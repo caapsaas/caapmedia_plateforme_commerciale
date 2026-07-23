@@ -50,6 +50,17 @@ export class AttendanceCheckInController {
     return result;
   }
 
+  // Récupérer les QR codes de tous les employés de la filiale (protégé par JWT)
+  @Get('daily-qr-all')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles('HR_MANAGER', 'ADMIN')
+  async getAllDailyQr(@Request() req) {
+    this.logger.log(`📍 getAllDailyQr - subsidiaryId: ${req.user.subsidiaryId}`);
+    const result = await this.qrService.getAllQrCodesForSubsidiary(req.user.subsidiaryId);
+    this.logger.log(`✅ All QR Codes Response: ${result.length} codes`);
+    return result;
+  }
+
   // Check-in avec QR Code + Géolocalisation (PAS DE JWT REQUIS)
   @Post('check-in')
   async checkIn(@Body() dto: CheckInDto) {

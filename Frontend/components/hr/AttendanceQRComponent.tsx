@@ -1,30 +1,29 @@
-import React, { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useEffect, useState, useRef } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
+import jsQR from 'jsqr';
 import { useAuth } from '../../context/AuthContext';
 import IconCheckCircle from '../icons/IconCheckCircle';
 import IconCancelX from '../icons/IconCancelX';
 import IconMapPin from '../icons/IconMapPin';
 import IconUserClock from '../icons/IconUserClock';
-import IconTrendingUp from '../icons/IconTrendingUp';
-import IconSignature from '../icons/IconSignature';
 
-interface EmployeeInfo {
+interface Employee {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
   department: string;
-  positions: string;
+  positions?: string;
 }
 
-interface DailyQrCode {
+interface EmployeeWithQr {
   token: string;
   issuedAt: string;
   expiresAt: string;
   subsidiaryId: string;
   employeeId: string;
-  employee: EmployeeInfo;
+  employee: Employee;
 }
 
 interface AttendanceRecord {
@@ -38,30 +37,37 @@ interface AttendanceRecord {
   accuracyMeters?: number;
 }
 
-interface AttendanceSummary {
-  presentDays: number;
-  absentDays: number;
-  lateDays: number;
-  averageArrivalTime: string;
-}
-
 interface AttendanceQRComponentProps {
   subsidiary: any;
 }
 
+interface CheckInResponse {
+  success: boolean;
+  message: string;
+  employeeName: string;
+  status: string;
+  distance: string;
+  accuracy: string;
+}
+
 export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ subsidiary }) => {
   const { api } = useAuth();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [currentLocation, setCurrentLocation] = useState<GeolocationCoordinates | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [scannerActive, setScannerActive] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const scanningRef = useRef(false);
 
-  const { data: dailyQr, isLoading: qrLoading } = useQuery({
-    queryKey: ['daily-qr'],
+  const { data: employeesWithQr, isLoading: employeesLoading } = useQuery({
+    queryKey: ['employees-with-qr'],
     queryFn: async () => {
-      const response = await api.get<DailyQrCode>('/hr/attendance-checkin/daily-qr');
+      const response = await api.get<EmployeeWithQr[]>('/hr/attendance-checkin/daily-qr-all');
       return response.data;
-    },
-    refetchInterval: 60000
+    }
   });
 
   const { data: attendanceHistory, isLoading: historyLoading } = useQuery({
@@ -78,14 +84,12 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
     }
   });
 
-  const { data: summary } = useQuery({
-    queryKey: ['attendance-summary'],
-    queryFn: async () => {
-      const response = await api.get<AttendanceSummary>('/hr/attendance-checkin/summary');
+  const checkInMutation = useMutation({
+    mutationFn: async (dto: { qrToken: string; latitude: number; longitude: number; accuracy: number }) => {
+      const response = await api.post<CheckInResponse>('/hr/attendance-checkin/check-in', dto);
       return response.data;
     }
   });
-
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -108,59 +112,96 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
   }, []);
 
 
+  const [qrTokenToScan, setQrTokenToScan] = useState<string>('');
+
+  const startScanner = async (employee: Employee, token: string) => {
+    setSelectedEmployee(employee);
+    setQrTokenToScan(token);
+    setScannerActive(true);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        scanningRef.current = true;
+        scanQRCode();
+      }
+    } catch (error) {
+      setErrorMessage('Impossible d\'accéder à la caméra');
+      setScannerActive(false);
+    }
+  };
+
+  const stopScanner = () => {
+    scanningRef.current = false;
+    setScannerActive(false);
+
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+    }
+
+    setSelectedEmployee(null);
+  };
+
+  const scanQRCode = () => {
+    if (!scanningRef.current || !videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    if (ctx) {
+      ctx.drawImage(video, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+      if (code && selectedEmployee && currentLocation && qrTokenToScan) {
+        if (code.data === qrTokenToScan) {
+          scanningRef.current = false;
+          handleCheckIn(qrTokenToScan, selectedEmployee);
+          stopScanner();
+          return;
+        } else {
+          setErrorMessage('QR code non valide. Assurez-vous de scanner le QR code correct.');
+          setTimeout(() => setErrorMessage(null), 2000);
+        }
+      }
+    }
+
+    requestAnimationFrame(scanQRCode);
+  };
+
+  const handleCheckIn = async (qrToken: string, employee: Employee) => {
+    if (!currentLocation) {
+      setErrorMessage('Position GPS non disponible');
+      return;
+    }
+
+    try {
+      const response = await checkInMutation.mutateAsync({
+        qrToken,
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
+        accuracy: currentLocation.accuracy
+      });
+
+      setSuccessMessage(response.message);
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (error: any) {
+      setErrorMessage(error.response?.data?.message || 'Erreur lors de l\'enregistrement');
+      setTimeout(() => setErrorMessage(null), 3000);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Present Days */}
-        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md p-5 border border-green-200 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between mb-3">
-            <div className="bg-green-200 p-3 rounded-lg">
-              <IconCheckCircle className="w-6 h-6 text-green-700" />
-            </div>
-            <span className="text-xs font-semibold text-green-700 bg-white px-2 py-1 rounded-full">Ce mois</span>
-          </div>
-          <p className="text-sm text-green-700 font-medium mb-1">Jours présents</p>
-          <p className="text-3xl font-bold text-green-700">{summary?.presentDays || 0}</p>
-        </div>
-
-        {/* Absent Days */}
-        <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl shadow-md p-5 border border-red-200 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between mb-3">
-            <div className="bg-red-200 p-3 rounded-lg">
-              <IconCancelX className="w-6 h-6 text-red-700" />
-            </div>
-            <span className="text-xs font-semibold text-red-700 bg-white px-2 py-1 rounded-full">Ce mois</span>
-          </div>
-          <p className="text-sm text-red-700 font-medium mb-1">Jours absents</p>
-          <p className="text-3xl font-bold text-red-700">{summary?.absentDays || 0}</p>
-        </div>
-
-        {/* Late Days */}
-        <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl shadow-md p-5 border border-amber-200 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between mb-3">
-            <div className="bg-amber-200 p-3 rounded-lg">
-              <IconUserClock className="w-6 h-6 text-amber-700" />
-            </div>
-            <span className="text-xs font-semibold text-amber-700 bg-white px-2 py-1 rounded-full">Ce mois</span>
-          </div>
-          <p className="text-sm text-amber-700 font-medium mb-1">Jours en retard</p>
-          <p className="text-3xl font-bold text-amber-700">{summary?.lateDays || 0}</p>
-        </div>
-
-        {/* Average Arrival */}
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-5 border border-blue-200 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between mb-3">
-            <div className="bg-blue-200 p-3 rounded-lg">
-              <IconTrendingUp className="w-6 h-6 text-blue-700" />
-            </div>
-            <span className="text-xs font-semibold text-blue-700 bg-white px-2 py-1 rounded-full">Moyenne</span>
-          </div>
-          <p className="text-sm text-blue-700 font-medium mb-1">Arrivée moyenne</p>
-          <p className="text-3xl font-bold text-blue-700">{summary?.averageArrivalTime || '08:30'}</p>
-        </div>
-      </div>
-
       {/* Messages */}
       {errorMessage && (
         <div className="bg-red-50 border-l-4 border-red-600 rounded-lg p-4 flex items-center gap-3">
@@ -169,169 +210,205 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
         </div>
       )}
 
-      {/* QR Code Display Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* QR Code Display */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="bg-indigo-100 p-2 rounded-lg">
-                  <IconSignature className="w-5 h-5 text-indigo-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-slate-800">Votre QR Code Personnel</h3>
+      {successMessage && (
+        <div className="bg-green-50 border-l-4 border-green-600 rounded-lg p-4 flex items-center gap-3">
+          <IconCheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
+          <p className="text-green-800 font-semibold">{successMessage}</p>
+        </div>
+      )}
+
+      {/* Scanner Modal */}
+      {scannerActive && selectedEmployee && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-lg max-w-md w-full">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-slate-800">Scanner le QR Code</h3>
+                <button onClick={stopScanner} className="text-slate-500 hover:text-slate-700">
+                  <IconCancelX className="w-6 h-6" />
+                </button>
               </div>
 
-              {qrLoading ? (
-                <div className="text-center py-12 text-slate-500">
-                  <div className="animate-spin w-8 h-8 border-4 border-slate-300 border-t-[#c6e911] rounded-full mx-auto"></div>
-                  <p className="mt-3">Chargement...</p>
-                </div>
-              ) : (
-                  <>
-                    {dailyQr?.employee && (
-                      <div className="mb-4 p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg border border-indigo-200">
-                        <div className="mb-3">
-                          <p className="text-xs text-indigo-600 font-semibold uppercase">Employé</p>
-                          <p className="text-lg font-bold text-indigo-900">{dailyQr.employee.firstName} {dailyQr.employee.lastName}</p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div>
-                            <p className="text-xs text-indigo-600 font-semibold">Email</p>
-                            <p className="text-indigo-800 truncate">{dailyQr.employee.email}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-indigo-600 font-semibold">Département</p>
-                            <p className="text-indigo-800">{dailyQr.employee.department}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center gap-2">
-                      <IconUserClock className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                      <span className="text-sm text-blue-700 font-medium">
-                        Valide jusqu'à minuit
-                      </span>
-                    </div>
-
-                    <div className="flex justify-center bg-white p-6 rounded-lg border-2 border-slate-200">
-                      <QRCode value={dailyQr?.token || ''} size={220} level="H" includeMargin />
-                    </div>
-                  </>
-              )}
-            </div>
-
-            {/* Location Info */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="bg-purple-100 p-2 rounded-lg">
-                  <IconMapPin className="w-5 h-5 text-purple-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-slate-800">Votre Position</h3>
+              <div className="relative bg-black rounded-lg overflow-hidden mb-4">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full h-64 object-cover"
+                />
+                <canvas ref={canvasRef} className="hidden" />
+                <div className="absolute inset-0 border-2 border-yellow-400 opacity-50"></div>
               </div>
 
-              {currentLocation ? (
-                <div className="space-y-3">
-                  <div className="bg-slate-50 p-4 rounded-lg">
-                    <p className="text-xs text-slate-600 font-semibold mb-1">Latitude</p>
-                    <p className="text-sm font-mono text-slate-800">{currentLocation.latitude.toFixed(6)}°</p>
-                  </div>
-                  <div className="bg-slate-50 p-4 rounded-lg">
-                    <p className="text-xs text-slate-600 font-semibold mb-1">Longitude</p>
-                    <p className="text-sm font-mono text-slate-800">{currentLocation.longitude.toFixed(6)}°</p>
-                  </div>
-                  <div className="bg-slate-50 p-4 rounded-lg">
-                    <p className="text-xs text-slate-600 font-semibold mb-1">Précision GPS</p>
-                    <p className="text-sm font-mono text-slate-800">±{Math.round(currentLocation.accuracy)}m</p>
-                  </div>
-                  <div className="mt-4 pt-4 border-t border-slate-200">
-                    {currentLocation.accuracy < 50 ? (
-                      <span className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-semibold">
-                        <span className="w-2 h-2 bg-green-600 rounded-full"></span>
-                        Excellente
-                      </span>
-                    ) : currentLocation.accuracy < 100 ? (
-                      <span className="inline-flex items-center gap-2 bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full text-sm font-semibold">
-                        <span className="w-2 h-2 bg-yellow-600 rounded-full"></span>
-                        Acceptable
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-2 bg-red-100 text-red-800 px-4 py-2 rounded-full text-sm font-semibold">
-                        <span className="w-2 h-2 bg-red-600 rounded-full"></span>
-                        Faible
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-12 text-slate-500">
-                  <div className="animate-pulse w-12 h-12 border-4 border-purple-300 border-t-purple-600 rounded-full mx-auto"></div>
-                  <p className="mt-3">Localisation en cours...</p>
-                </div>
-              )}
+              <p className="text-sm text-slate-600 text-center">
+                Pointez votre caméra sur le QR code de {selectedEmployee.firstName} {selectedEmployee.lastName}
+              </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Location Status */}
+      <div className="bg-white rounded-xl shadow-md p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="bg-purple-100 p-2 rounded-lg">
+            <IconMapPin className="w-5 h-5 text-purple-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-800">Position Actuelle</h3>
+        </div>
+
+        {currentLocation ? (
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-slate-50 p-3 rounded-lg">
+              <p className="text-xs text-slate-600 font-semibold mb-1">Latitude</p>
+              <p className="text-sm font-mono text-slate-800">{currentLocation.latitude.toFixed(4)}°</p>
+            </div>
+            <div className="bg-slate-50 p-3 rounded-lg">
+              <p className="text-xs text-slate-600 font-semibold mb-1">Longitude</p>
+              <p className="text-sm font-mono text-slate-800">{currentLocation.longitude.toFixed(4)}°</p>
+            </div>
+            <div className="bg-slate-50 p-3 rounded-lg">
+              <p className="text-xs text-slate-600 font-semibold mb-1">Précision</p>
+              <p className="text-sm font-mono text-slate-800">±{Math.round(currentLocation.accuracy)}m</p>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-slate-500">
+            <div className="animate-pulse w-12 h-12 border-4 border-purple-300 border-t-purple-600 rounded-full mx-auto"></div>
+            <p className="mt-3">Localisation en cours...</p>
+          </div>
+        )}
+      </div>
+
+      {/* Employees Grid */}
+      <div>
+        <h2 className="text-2xl font-bold text-slate-800 mb-6">Liste des Employés</h2>
+
+        {employeesLoading ? (
+          <div className="text-center py-12 text-slate-500">
+            <div className="animate-spin w-8 h-8 border-4 border-slate-300 border-t-[#c6e911] rounded-full mx-auto"></div>
+            <p className="mt-3">Chargement des employés...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {employeesWithQr && employeesWithQr.length > 0 ? (
+              employeesWithQr.map((item) => {
+                const employee = item.employee;
+                return (
+                  <div key={employee.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                    {/* Employee Header */}
+                    <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 p-6 text-white">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold">{employee.firstName} {employee.lastName}</h3>
+                        <p className="text-sm text-indigo-100">{employee.positions || 'Position non définie'}</p>
+                        <p className="text-xs text-indigo-100">{employee.department || 'Département non défini'}</p>
+                      </div>
+                    </div>
+
+                    {/* QR Code */}
+                    <div className="p-6">
+                      <p className="text-xs font-semibold text-slate-600 mb-3 uppercase">Code QR Personnel</p>
+                      <div className="bg-white p-4 rounded-lg border-2 border-slate-200 flex justify-center mb-4">
+                        <QRCode
+                          value={item.token}
+                          size={120}
+                          level="H"
+                          includeMargin
+                        />
+                      </div>
+
+                      <p className="text-xs text-slate-600 text-center mb-4">
+                        Valide jusqu'à {new Date(item.expiresAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+
+                      <button
+                        onClick={() => startScanner(employee, item.token)}
+                        disabled={checkInMutation.isPending || !currentLocation}
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
+                      >
+                        <IconUserClock className="w-5 h-5" />
+                        {checkInMutation.isPending ? 'Enregistrement...' : 'Scanner Présence'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="col-span-full text-center py-12 text-slate-500">
+                Aucun employé trouvé
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* History Section */}
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          {historyLoading ? (
-            <div className="text-center py-12 text-slate-500">
-              <div className="animate-spin w-8 h-8 border-4 border-slate-300 border-t-[#c6e911] rounded-full mx-auto"></div>
-              <p className="mt-3">Chargement...</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gradient-to-r from-slate-50 to-slate-100 border-b-2 border-slate-200">
-                  <tr>
-                    <th className="px-6 py-4 text-left font-semibold text-slate-700">Date</th>
-                    <th className="px-6 py-4 text-left font-semibold text-slate-700">Arrivée</th>
-                    <th className="px-6 py-4 text-left font-semibold text-slate-700">Départ</th>
-                    <th className="px-6 py-4 text-left font-semibold text-slate-700">Statut</th>
-                    <th className="px-6 py-4 text-left font-semibold text-slate-700">GPS</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {attendanceHistory && attendanceHistory.length > 0 ? (
-                    attendanceHistory.map((record) => (
-                      <tr key={record.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4 text-slate-800">{new Date(record.attendanceDate).toLocaleDateString('fr-FR')}</td>
-                        <td className="px-6 py-4 text-slate-800">
-                          {record.arrivalTime
-                            ? new Date(record.arrivalTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-                            : '—'}
-                        </td>
-                        <td className="px-6 py-4 text-slate-800">
-                          {record.departureTime
-                            ? new Date(record.departureTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-                            : '—'}
-                        </td>
-                        <td className="px-6 py-4">
-                          {record.status === 'PRESENT' && <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold"><span className="w-2 h-2 bg-green-600 rounded-full"></span>Présent</span>}
-                          {record.status === 'LATE' && <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-semibold"><span className="w-2 h-2 bg-yellow-600 rounded-full"></span>Retard</span>}
-                          {record.status === 'ABSENT' && <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-semibold"><span className="w-2 h-2 bg-red-600 rounded-full"></span>Absent</span>}
-                          {record.status === 'LEFT' && <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold"><span className="w-2 h-2 bg-blue-600 rounded-full"></span>Parti</span>}
-                          {record.status === 'LEFT_OUTSIDE_GEOFENCE' && <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-semibold"><span className="w-2 h-2 bg-red-600 rounded-full"></span>Hors zone</span>}
-                        </td>
-                        <td className="px-6 py-4">
-                          {record.isGeolocationValid ? (
-                            <span className="text-green-600 font-semibold">✓ ±{record.accuracyMeters}m</span>
-                          ) : (
-                            <span className="text-red-600 font-semibold">✕ Non validée</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                        Aucun enregistrement pour ce mois
+        <div className="p-6 border-b-2 border-slate-200">
+          <h2 className="text-2xl font-bold text-slate-800">Historique des Présences</h2>
+        </div>
+
+        {historyLoading ? (
+          <div className="text-center py-12 text-slate-500">
+            <div className="animate-spin w-8 h-8 border-4 border-slate-300 border-t-[#c6e911] rounded-full mx-auto"></div>
+            <p className="mt-3">Chargement...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gradient-to-r from-slate-50 to-slate-100 border-b-2 border-slate-200">
+                <tr>
+                  <th className="px-6 py-4 text-left font-semibold text-slate-700">Employé</th>
+                  <th className="px-6 py-4 text-left font-semibold text-slate-700">Date</th>
+                  <th className="px-6 py-4 text-left font-semibold text-slate-700">Arrivée</th>
+                  <th className="px-6 py-4 text-left font-semibold text-slate-700">Départ</th>
+                  <th className="px-6 py-4 text-left font-semibold text-slate-700">Statut</th>
+                  <th className="px-6 py-4 text-left font-semibold text-slate-700">GPS</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {attendanceHistory && attendanceHistory.length > 0 ? (
+                  attendanceHistory.map((record) => (
+                    <tr key={record.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 text-slate-800 font-medium">{record.employeeName}</td>
+                      <td className="px-6 py-4 text-slate-800">{new Date(record.attendanceDate).toLocaleDateString('fr-FR')}</td>
+                      <td className="px-6 py-4 text-slate-800">
+                        {record.arrivalTime
+                          ? new Date(record.arrivalTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                          : '—'}
+                      </td>
+                      <td className="px-6 py-4 text-slate-800">
+                        {record.departureTime
+                          ? new Date(record.departureTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                          : '—'}
+                      </td>
+                      <td className="px-6 py-4">
+                        {record.status === 'PRESENT' && <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold"><span className="w-2 h-2 bg-green-600 rounded-full"></span>Présent</span>}
+                        {record.status === 'LATE' && <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-semibold"><span className="w-2 h-2 bg-yellow-600 rounded-full"></span>Retard</span>}
+                        {record.status === 'ABSENT' && <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-semibold"><span className="w-2 h-2 bg-red-600 rounded-full"></span>Absent</span>}
+                        {record.status === 'LEFT' && <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold"><span className="w-2 h-2 bg-blue-600 rounded-full"></span>Parti</span>}
+                        {record.status === 'LEFT_OUTSIDE_GEOFENCE' && <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-semibold"><span className="w-2 h-2 bg-red-600 rounded-full"></span>Hors zone</span>}
+                      </td>
+                      <td className="px-6 py-4">
+                        {record.isGeolocationValid ? (
+                          <span className="text-green-600 font-semibold">✓ ±{record.accuracyMeters}m</span>
+                        ) : (
+                          <span className="text-red-600 font-semibold">✕ Non validée</span>
+                        )}
                       </td>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                      Aucun enregistrement pour ce mois
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

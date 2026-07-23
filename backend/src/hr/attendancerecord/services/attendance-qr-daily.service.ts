@@ -170,4 +170,37 @@ export class AttendanceQrDailyService {
       }
     });
   }
+
+  // Récupérer tous les QR codes actifs des employés d'une filiale
+  async getAllQrCodesForSubsidiary(subsidiaryId: string) {
+    const qrCodes = await this.prisma.dailyQrCode.findMany({
+      where: {
+        subsidiaryId,
+        isActive: true,
+        expiresAt: { gt: new Date() }
+      },
+      orderBy: { issuedAt: 'desc' },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            department: true,
+            positions: true
+          }
+        }
+      }
+    });
+
+    return qrCodes.map(qr => ({
+      token: qr.token,
+      issuedAt: qr.issuedAt,
+      expiresAt: qr.expiresAt,
+      subsidiaryId: qr.subsidiaryId,
+      employeeId: qr.employeeId,
+      employee: qr.employee
+    }));
+  }
 }
