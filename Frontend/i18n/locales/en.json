@@ -69,7 +69,8 @@
     "error": "An error occurred",
     "success": "Success",
     "warning": "Warning",
-    "info": "Information"
+    "info": "Information",
+    "notAvailable": "Not available"
   },
   "configuration": {
     "title": "Configuration",
@@ -163,7 +164,8 @@
       "savedWithDocs": "Employee, documents and leaves saved successfully",
       "saveFailed": "Failed to save employee",
       "deleted": "Employee deleted successfully",
-      "deleteFailed": "Failed to delete employee"
+      "deleteFailed": "Failed to delete employee",
+      "detailsLoadFailed": "Failed to load employee details"
     },
     "noEmployeesToExport": "No employees to export",
     "noEmployeesFound": "No employees found",
@@ -272,6 +274,7 @@
       "download": "Download",
       "remove": "Remove",
       "removeDocument": "Remove this document",
+      "noDocuments": "No documents have been added for this employee",
       "dragOrClick": "Drag and drop your file here, or click to select",
       "dragDrop": "Drag and drop a file or click",
       "selectFile": "Select",

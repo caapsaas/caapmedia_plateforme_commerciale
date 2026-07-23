@@ -69,7 +69,8 @@
     "error": "Une erreur s'est produite",
     "success": "Succès",
     "warning": "Attention",
-    "info": "Information"
+    "info": "Information",
+    "notAvailable": "Non disponible"
   },
   "configuration": {
     "title": "Configuration",
@@ -164,7 +165,8 @@
       "savedWithDocs": "L'employé, ses documents et congés ont été sauvegardés avec succès",
       "saveFailed": "Échec de la sauvegarde de l'employé",
       "deleted": "Employé supprimé avec succès",
-      "deleteFailed": "Échec de la suppression de l'employé"
+      "deleteFailed": "Échec de la suppression de l'employé",
+      "detailsLoadFailed": "Impossible de charger les détails de l'employé"
     },
     "noEmployeesToExport": "Aucun employé à exporter",
     "noEmployeesFound": "Aucun employé trouvé",
@@ -272,6 +274,7 @@
       "uploaded": "✓ Importé",
       "download": "Télécharger",
       "remove": "Supprimer",
+      "noDocuments": "Aucun document n'a été ajouté pour cet employé",
       "removeDocument": "Retirer ce document",
       "dragOrClick": "Glissez-déposez votre fichier ici, ou cliquez pour sélectionner",
       "dragDrop": "Glissez-déposez un fichier ou cliquez",

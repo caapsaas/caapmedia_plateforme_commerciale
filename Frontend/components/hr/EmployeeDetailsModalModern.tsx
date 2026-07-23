@@ -159,7 +159,7 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
         })
         .catch((error) => {
           console.error('Error loading employee details:', error);
-          toast.error('Erreur', 'Impossible de charger les détails de l\'employé');
+          toast.error(t('common.error'), t('hr.employee.detailsLoadFailed'));
           setEmployeeData(employee);
           setIsLoading(false);
         });
@@ -360,7 +360,7 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
           <CollapsibleSection title={t('hr.details.leaveEntitlements')} icon={Umbrella} defaultOpen={true}>
             {isLoading ? (
               <div className="text-center py-4">
-                <p className="text-sm text-slate-600">Chargement des congés...</p>
+                <p className="text-sm text-slate-600">{t('common.loading')}</p>
               </div>
             ) : employeeData?.leaveBalance ? (
               <LeaveBalanceWidget
@@ -380,7 +380,7 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
               />
             ) : (
               <div className="text-center py-4">
-                <p className="text-sm text-slate-600">Pas de données de congés disponibles</p>
+                <p className="text-sm text-slate-600">{t('common.notAvailable')}</p>
               </div>
             )}
           </CollapsibleSection>
@@ -477,7 +477,7 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
           <CollapsibleSection title={t('hr.details.documents')} icon={FileText} defaultOpen={true}>
             {isLoading ? (
               <div className="text-center py-4">
-                <p className="text-sm text-slate-600">Chargement des documents...</p>
+                <p className="text-sm text-slate-600">{t('common.loading')}</p>
               </div>
             ) : employeeData?.documents ? (
               <div className="space-y-3">
@@ -498,7 +498,7 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
                         href={employeeData.documents.contract.url}
                         download={employeeData.documents.contract.name}
                         className="ml-2 p-2 text-blue-600 hover:bg-blue-100 rounded transition-colors flex-shrink-0"
-                        title="Télécharger"
+                        title={t('hr.documents.download')}
                       >
                         <Download size={18} />
                       </a>
@@ -589,13 +589,13 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
 
                 {!employeeData.documents.contract && !employeeData.documents.idCard && !employeeData.documents.workPermit && (!employeeData.documents.diplomas || employeeData.documents.diplomas.length === 0) && (
                   <div className="p-4 text-center bg-slate-50 border border-slate-200 rounded-lg">
-                    <p className="text-sm text-slate-600">Aucun document n'a été ajouté pour cet employé.</p>
+                    <p className="text-sm text-slate-600">{t('hr.documents.noDocuments')}</p>
                   </div>
                 )}
               </div>
             ) : (
               <div className="text-center py-4">
-                <p className="text-sm text-slate-600">Pas de documents disponibles</p>
+                <p className="text-sm text-slate-600">{t('common.notAvailable')}</p>
               </div>
             )}
             </CollapsibleSection>
