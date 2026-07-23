@@ -6,7 +6,6 @@ export { default as CameroonPayrollWidget } from './CameroonPayrollWidget';
 export { default as LeaveBalanceWidget } from './LeaveBalanceWidget';
 export { default as LeaveManagementSection } from './LeaveManagementSection';
 export { default as SearchBar } from './SearchBar';
-export { default as AttendanceManagement } from './AttendanceManagement';
 export { default as PayrollManagement } from './PayrollManagement';
 export { default as AbsenceManagement } from './AbsenceManagement';
 export { default as EmployeeFormModalModern } from './EmployeeFormModalModern';
