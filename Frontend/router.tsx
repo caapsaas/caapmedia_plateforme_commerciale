@@ -3,6 +3,7 @@ import App from './App'; // Nous allons refactorer App.tsx pour qu'il devienne n
 import { useAppContext } from './context/AppContext';
 import { useAuth } from './context/AuthContext'; // Importez le hook d'authentification
 import LoginPage from './Pages/LoginPage';
+import CheckInPage from './Pages/CheckInPage';
 import ECommercePage from './components/ecommerce/ECommercePage';
 import RealisationsPage from './components/ecommerce/RealisationsPage';
 import CustomerAccountPage from './components/customer/CustomerAccountPage';
@@ -49,6 +50,12 @@ const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
   component: LoginPage,
+});
+
+const checkInRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/check-in',
+  component: CheckInPage,
 });
 
 // 3. Routes protégées pour le compte client
@@ -136,6 +143,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   realisationsRoute,
   loginRoute,
+  checkInRoute,
   customerAccountRoute,
   dashboardRoute.addChildren([
     dashboardIndexRoute,

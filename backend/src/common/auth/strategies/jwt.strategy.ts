@@ -23,6 +23,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       this.logger.error(`User with ID ${payload.sub} not found`, 'JwtStrategy');
       return null;
     }
+
+    let employeeId: string | null = null;
+    try {
+      const employee = await this.prisma.employee.findUnique({
+        where: { email: user.email }
+      });
+      if (employee) {
+        employeeId = employee.id;
+      }
+    } catch (error) {
+      this.logger.warn(`Could not find employee for email ${user.email}`, 'JwtStrategy');
+    }
+
     const roles = [user.userRole, ...user.additionalRoles.filter(r => r !== user.userRole)];
     return {
       id: user.id,
@@ -30,6 +43,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       role: user.userRole,
       roles,
       subsidiaryId: user.subsidiaryId,
+      employeeId,
     };
   }
 }

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import IconGmoLogo from '../icons/IconGmoLogo';
 import IconUserCircle from '../icons/IconUserCircle';
 import IconSearch from '../icons/IconSearch';
 import { useI18n } from '../../i18n';
@@ -90,7 +89,7 @@ const ECommerceHeader: React.FC<ECommerceHeaderProps> = (props) => {
             {/* Top Bar */}
             <div className="container mx-auto px-4 py-4 flex justify-between items-center">
                 <button onClick={props.onSelectAllCategories} className="p-2 rounded-full hover:bg-slate-100" aria-label={t('ecommerce.backToHome')}>
-                    <IconGmoLogo className="h-10 w-auto" />
+                    <img src="/CaaMedia.png" alt="CaapMedia Logo" className="h-10 w-10 rounded-full object-cover" />
                 </button>
                 <div className="flex-1 px-8 hidden md:block">
                     <div className="relative">

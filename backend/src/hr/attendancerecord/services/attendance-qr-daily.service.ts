@@ -12,10 +12,10 @@ export class AttendanceQrDailyService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  // Générer les QR codes quotidiens à minuit
+  // Générer les QR codes quotidiens à minuit (UN PER EMPLOYEE)
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async generateDailyQrCodes() {
-    this.logger.log('🔄 Generating daily QR codes for all subsidiaries');
+    this.logger.log('🔄 Generating daily QR codes for all employees');
 
     try {
       const subsidiaries = await this.prisma.subsidiary.findMany();
@@ -34,23 +34,39 @@ export class AttendanceQrDailyService {
           }
         );
 
-        // Générer un nouveau token JWT signé
-        const token = this.generateQrToken(subsidiary.id);
-        const expiresAt = new Date(Date.now() + this.QR_EXPIRATION * 1000);
-
-        // Créer le nouvel enregistrement
-        await this.prisma.dailyQrCode.create({
-          data: {
-            id: uuidv4(),
+        // Récupérer tous les employés de la filiale
+        const employees = await this.prisma.employee.findMany({
+          where: {
             subsidiaryId: subsidiary.id,
-            token,
-            issuedAt: new Date(),
-            expiresAt,
-            isActive: true
+            status: 'ACTIVE'
           }
         });
 
-        this.logger.debug(`✓ QR code generated for ${subsidiary.subsidiaryName}`);
+        // Générer UN QR code par employé
+        for (const employee of employees) {
+          const token = this.generateQrToken(subsidiary.id, employee.id);
+          const expiresAt = new Date(Date.now() + this.QR_EXPIRATION * 1000);
+
+          // Créer l'URL du check-in
+          const checkInUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/check-in?token=${token}`;
+
+          await this.prisma.dailyQrCode.create({
+            data: {
+              id: uuidv4(),
+              subsidiaryId: subsidiary.id,
+              employeeId: employee.id,
+              token,
+              qrUrl: checkInUrl,
+              issuedAt: new Date(),
+              expiresAt,
+              isActive: true
+            }
+          });
+
+          this.logger.debug(`✓ QR code generated for ${employee.firstName} ${employee.lastName}`);
+        }
+
+        this.logger.debug(`✓ Generated ${employees.length} QR codes for ${subsidiary.subsidiaryName}`);
       }
 
       this.logger.log('✓ Daily QR code generation completed successfully');
@@ -59,10 +75,11 @@ export class AttendanceQrDailyService {
     }
   }
 
-  // Générer un JWT signé avec expiration
-  private generateQrToken(subsidiaryId: string): string {
+  // Générer un JWT signé avec expiration (avec employeeId)
+  private generateQrToken(subsidiaryId: string, employeeId: string): string {
     const payload = {
       subsidiaryId,
+      employeeId,
       type: 'attendance_qr',
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + this.QR_EXPIRATION
@@ -75,31 +92,46 @@ export class AttendanceQrDailyService {
     });
   }
 
-  // Récupérer le QR code actif d'une filiale
-  async getCurrentQrCode(subsidiaryId: string) {
+  // Récupérer le QR code actif d'une filiale pour un employé spécifique
+  async getCurrentQrCode(subsidiaryId: string, employeeId: string) {
     const qrCode = await this.prisma.dailyQrCode.findFirst({
       where: {
         subsidiaryId,
+        employeeId,
         isActive: true,
         expiresAt: { gt: new Date() }
       },
-      orderBy: { issuedAt: 'desc' }
+      orderBy: { issuedAt: 'desc' },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            department: true,
+            positions: true
+          }
+        }
+      }
     });
 
     if (!qrCode) {
-      throw new NotFoundException('No active QR code for this subsidiary');
+      throw new NotFoundException('No active QR code for this employee');
     }
 
     return {
       token: qrCode.token,
       issuedAt: qrCode.issuedAt,
       expiresAt: qrCode.expiresAt,
-      subsidiaryId: qrCode.subsidiaryId
+      subsidiaryId: qrCode.subsidiaryId,
+      employeeId: qrCode.employeeId,
+      employee: qrCode.employee
     };
   }
 
-  // Valider un QR token (vérifie signature et expiration)
-  async validateQrToken(token: string): Promise<{ subsidiaryId: string }> {
+  // Valider un QR token (vérifie signature et expiration) + retourne employeeId
+  async validateQrToken(token: string): Promise<{ subsidiaryId: string; employeeId: string }> {
     try {
       const decoded = jwt.verify(token, this.QR_SECRET) as any;
 
@@ -116,7 +148,10 @@ export class AttendanceQrDailyService {
         throw new UnauthorizedException('QR code has expired');
       }
 
-      return { subsidiaryId: decoded.subsidiaryId };
+      return {
+        subsidiaryId: decoded.subsidiaryId,
+        employeeId: decoded.employeeId
+      };
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;
       throw new UnauthorizedException('Invalid or malformed QR code token');

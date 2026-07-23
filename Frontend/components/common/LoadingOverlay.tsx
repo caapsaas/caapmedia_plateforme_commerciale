@@ -44,7 +44,7 @@ const LoadingOverlay: React.FC = () => {
             {/* Pulsing core with logo */}
             <div className="logo-container">
               <img
-                src="/CaapSaaS.png"
+                src="/CaaMedia.png"
                 alt="CaapMedia"
                 className="logo-image"
               />

@@ -226,6 +226,7 @@ model Employee {
   meetingParticipants      MeetingParticipant[]
   payrollRecords           PayrollRecord[]
   secretariatTasks         SecretariatTask[]
+  dailyQrCodes             DailyQrCode[]
 
   @@index([subsidiaryId, lastName])
   @@index([status])
@@ -1701,14 +1702,18 @@ model AllowanceRule {
 model DailyQrCode {
   id            String     @id @default(uuid())
   subsidiaryId  String     @map("subsidiary_id")
+  employeeId    String?    @map("employee_id")
   token         String     @unique
   issuedAt      DateTime   @default(now()) @map("issued_at")
   expiresAt     DateTime   @map("expires_at")
   isActive      Boolean    @default(true) @map("is_active")
+  qrUrl         String?    @map("qr_url")
 
   subsidiary    Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  employee      Employee?  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@index([subsidiaryId, isActive])
+  @@index([employeeId, isActive])
   @@index([expiresAt])
   @@map("daily_qr_codes")
 }

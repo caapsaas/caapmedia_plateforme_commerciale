@@ -31,7 +31,6 @@ interface CheckOutDto {
 }
 
 @Controller('hr/attendance-checkin')
-@UseGuards(JwtAuthGuard, RoleGuard)
 export class AttendanceCheckInController {
   private readonly logger = new Logger(AttendanceCheckInController.name);
 
@@ -41,25 +40,25 @@ export class AttendanceCheckInController {
     private readonly geoService: AttendanceGeolocationService
   ) {}
 
-  // Récupérer le QR code du jour
+  // Récupérer le QR code du jour (protégé par JWT)
   @Get('daily-qr')
+  @UseGuards(JwtAuthGuard, RoleGuard)
   async getDailyQr(@Request() req) {
-    return this.qrService.getCurrentQrCode(req.user.subsidiaryId);
+    this.logger.log(`📍 getDailyQr - employeeId: ${req.user.employeeId}, userId: ${req.user.id}`);
+    const result = await this.qrService.getCurrentQrCode(req.user.subsidiaryId, req.user.employeeId || req.user.id);
+    this.logger.log(`✅ QR Code Response: ${JSON.stringify(result)}`);
+    return result;
   }
 
-  // Check-in avec QR Code + Géolocalisation
+  // Check-in avec QR Code + Géolocalisation (PAS DE JWT REQUIS)
   @Post('check-in')
-  async checkIn(@Body() dto: CheckInDto, @Request() req) {
-    this.logger.log(`Check-in attempt for employee ${req.user.employeeId}`);
-
-    // 1️⃣ Valider le QR Code
+  async checkIn(@Body() dto: CheckInDto) {
+    // 1️⃣ Valider le QR Code (contient déjà l'employeeId et subsidiaryId)
     const qrValidation = await this.qrService.validateQrToken(dto.qrToken);
+    const employeeId = qrValidation.employeeId;
+    const subsidiaryId = qrValidation.subsidiaryId;
 
-    if (qrValidation.subsidiaryId !== req.user.subsidiaryId) {
-      throw new BadRequestException(
-        'QR code does not match your subsidiary'
-      );
-    }
+    this.logger.log(`Check-in attempt for employee ${employeeId}`);
 
     // 2️⃣ Valider l'accuracy GPS (rejeter si trop faible)
     if (!this.geoService.isAccuracyAcceptable(dto.accuracy)) {
@@ -71,7 +70,7 @@ export class AttendanceCheckInController {
     // 3️⃣ Valider la géolocalisation
     const proximityCheck = await this.geoService.validateProximity(
       { lat: dto.latitude, lng: dto.longitude },
-      req.user.subsidiaryId,
+      subsidiaryId,
       100 // Rayon de 100m
     );
 
@@ -84,8 +83,8 @@ export class AttendanceCheckInController {
 
     // 4️⃣ Vérifier qu'il n'y a pas déjà un check-in aujourd'hui
     const todayRecord = await this.attendanceService.findTodayRecord(
-      req.user.employeeId,
-      req.user.subsidiaryId
+      employeeId,
+      subsidiaryId
     );
 
     if (todayRecord && todayRecord.arrivalTime) {
@@ -97,19 +96,25 @@ export class AttendanceCheckInController {
     // 5️⃣ Vérifier si en retard
     const isLate = await this.geoService.isArrivalLate(new Date());
 
-    // 6️⃣ Créer l'enregistrement
+    // 6️⃣ Récupérer les infos de l'employé
+    const employee = await this.attendanceService.findEmployeeById(employeeId);
+    if (!employee) {
+      throw new BadRequestException('Employé non trouvé');
+    }
+
+    // 7️⃣ Créer l'enregistrement
     const attendanceData: CreateAttendanceRecordDto = {
-      employeeId: req.user.employeeId,
+      employeeId,
       attendanceDate: new Date(),
       arrivalTime: new Date(),
       status: isLate ? 'LATE' : 'PRESENT',
-      employeeName: `${req.user.firstName} ${req.user.lastName}`
+      employeeName: `${employee.firstName} ${employee.lastName}`
     };
 
     const result = await this.attendanceService.create(
       attendanceData,
-      req.user.employeeId,
-      req.user.subsidiaryId,
+      employeeId,
+      subsidiaryId,
       {
         arrivalLatitude: dto.latitude,
         arrivalLongitude: dto.longitude,
@@ -119,11 +124,12 @@ export class AttendanceCheckInController {
       }
     );
 
-    this.logger.log(`✓ Check-in successful for employee ${req.user.employeeId}`);
+    this.logger.log(`✓ Check-in successful for employee ${employeeId}`);
 
     return {
       success: true,
       message: `Arrivée enregistrée à ${new Date().toLocaleTimeString('fr-FR')}`,
+      employeeName: `${employee.firstName} ${employee.lastName}`,
       status: isLate ? 'EN RETARD' : 'PRÉSENT',
       distance: `±${proximityCheck.distanceMeters}m`,
       accuracy: `±${Math.round(dto.accuracy)}m`,
@@ -131,8 +137,9 @@ export class AttendanceCheckInController {
     };
   }
 
-  // Check-out avec Géolocalisation
+  // Check-out avec Géolocalisation (protégé par JWT)
   @Post('check-out')
+  @UseGuards(JwtAuthGuard, RoleGuard)
   async checkOut(@Body() dto: CheckOutDto, @Request() req) {
     this.logger.log(`Check-out attempt for employee ${req.user.employeeId}`);
 
@@ -194,8 +201,9 @@ export class AttendanceCheckInController {
     };
   }
 
-  // Récupérer l'historique des présences
+  // Récupérer l'historique des présences (protégé par JWT)
   @Get('history')
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles('HR_MANAGER', 'ADMIN')
   async getAttendanceHistory(
     @Request() req,
@@ -217,8 +225,9 @@ export class AttendanceCheckInController {
     );
   }
 
-  // Récupérer les statistiques du mois
+  // Récupérer les statistiques du mois (protégé par JWT)
   @Get('summary')
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles('HR_MANAGER', 'ADMIN')
   async getAttendanceSummary(@Request() req) {
     const now = new Date();

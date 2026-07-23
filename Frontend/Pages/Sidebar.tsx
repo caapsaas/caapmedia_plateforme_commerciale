@@ -20,7 +20,6 @@ import { useAppContext } from '../context/AppContext';
 import IconBuildingStorefront from '../components/icons/IconBuildingStorefront';
 import IconAccounting from '../components/icons/IconAccounting';
 import { useAuth } from '../context/AuthContext';
-import IconGmoLogo from '../components/icons/IconGmoLogo';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -361,8 +360,8 @@ const Sidebar: React.FC = () => {
       <div className={sidebarClasses}>
         {/* ── Logo & filiale ── */}
         <div className={`flex flex-col items-center justify-center transition-all duration-300 border-b border-white/5 ${isSidebarCollapsed ? 'p-3 py-4' : 'p-5'}`}>
-          <div className={`transition-all duration-300 ${isSidebarCollapsed ? 'h-9 w-9' : 'h-14 w-auto'}`}>
-            <IconGmoLogo className="w-full h-full" />
+          <div className={`transition-all duration-300 ${isSidebarCollapsed ? 'h-9 w-9' : 'h-14 w-14'}`}>
+            <img src="/CaaMedia.png" alt="CaapMedia Logo" className="w-full h-full rounded-full object-cover" />
           </div>
           {!isSidebarCollapsed && (
             <div className="mt-3 text-center w-full">

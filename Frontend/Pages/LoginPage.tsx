@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import IconGmoLogo from '../components/icons/IconGmoLogo';
 import IconAtSymbol from '../components/icons/IconAtSymbol';
 import IconLock from '../components/icons/IconLock';
 import IconBuilding from '../components/icons/IconBuilding';
@@ -172,7 +171,7 @@ const LoginPage: React.FC = () => {
       </div>
       <div className="w-full max-w-4xl flex flex-col md:flex-row bg-white rounded-2xl shadow-2xl overflow-hidden">
         <div className="w-full md:w-1/2 bg-[#231F20] p-12 flex flex-col justify-center items-center text-white">
-          <IconGmoLogo className="w-48 h-auto mb-8" />
+          <img src="/CaaMedia.png" alt="CaapMedia Logo" className="w-32 h-32 rounded-full object-cover mb-8 shadow-lg" />
           <h1 className="text-3xl font-bold text-center">{t('login.platformTitle')}</h1>
           <p className="mt-4 text-center text-gray-300">{t('login.platformSubtitle')}</p>
         </div>

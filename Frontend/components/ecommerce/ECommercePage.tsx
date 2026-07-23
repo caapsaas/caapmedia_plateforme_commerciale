@@ -4,7 +4,6 @@ import { useI18n } from "../../i18n";
 import { useToast } from "../../context/ToastContext";
 import ECommerceHeader from "./ECommerceHeader";
 import { PRODUCT_HIERARCHY } from "../../constants";
-import IconGmoLogo from "../icons/IconGmoLogo";
 import HeroBanner from "./HeroBanner";
 import QuoteRequestModal from "./QuoteRequestModal";
 import ECommerceFooter from "./ECommerceFooter";
@@ -624,7 +623,7 @@ const ECommercePage: React.FC = () => {
                 />
                 {/* Logo Overlay on Shirt */}
                 <div className="absolute top-[65%] left-[50%] -translate-x-1/2 w-10 md:w-12 opacity-90 mix-blend-multiply pointer-events-none">
-                  <IconGmoLogo className="w-full h-full drop-shadow-sm" />
+                  <img src="/CaaMedia.png" alt="CaapMedia Logo" className="w-full h-full rounded-full object-cover drop-shadow-sm" />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
               </div>
@@ -642,7 +641,7 @@ const ECommercePage: React.FC = () => {
                                      */}
                 <div className="absolute top-[10%] left-[50%] -translate-x-1/2 w-8 md:w-10 opacity-80 mix-blend-screen pointer-events-none">
                   {/* Simulating logo on forehead/cap area if image allows, or just branding watermark style */}
-                  <IconGmoLogo className="w-full h-full drop-shadow-md" />
+                  <img src="/CaaMedia.png" alt="CaapMedia Logo" className="w-full h-full rounded-full object-cover drop-shadow-md" />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
               </div>

@@ -134,6 +134,19 @@ export class AttendanceRecordService {
   }
 
   // Calculer les statistiques du mois
+  async findEmployeeById(employeeId: string) {
+    return this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        subsidiaryId: true
+      }
+    });
+  }
+
   async getMonthlyStats(
     employeeId: string,
     subsidiaryId: string,

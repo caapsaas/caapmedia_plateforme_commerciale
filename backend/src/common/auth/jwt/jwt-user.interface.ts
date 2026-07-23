@@ -6,4 +6,5 @@ export interface JwtUser {
   role: UserRole;
   roles: UserRole[];
   subsidiaryId: string;
+  employeeId?: string;
 }
