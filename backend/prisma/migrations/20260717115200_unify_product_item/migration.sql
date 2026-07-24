@@ -31,13 +31,24 @@ ALTER TABLE "items" DROP COLUMN "main_category";
 
 -- 6. selling_price disparaît : un service n'a plus de prix catalogue, un produit de
 -- stock ne garde qu'un unique "price" (prix d'achat par défaut, optionnel)
-ALTER TABLE "items" DROP COLUMN "selling_price";
+ALTER TABLE "items" DROP COLUMN IF EXISTS "selling_price";
 
 -- 7. stock / price / warehouse / subsidiary_id ne concernent que les STOCK_PRODUCT
-ALTER TABLE "items" ALTER COLUMN "stock" DROP NOT NULL;
-ALTER TABLE "items" ALTER COLUMN "price" DROP NOT NULL;
-ALTER TABLE "items" ALTER COLUMN "warehouse" DROP NOT NULL;
-ALTER TABLE "items" ALTER COLUMN "subsidiary_id" DROP NOT NULL;
+-- Certaines colonnes ont pu être déjà supprimées par des migrations antérieures (carelle_caapsaas)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='items' AND column_name='stock') THEN
+    ALTER TABLE "items" ALTER COLUMN "stock" DROP NOT NULL;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='items' AND column_name='price') THEN
+    ALTER TABLE "items" ALTER COLUMN "price" DROP NOT NULL;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='items' AND column_name='warehouse') THEN
+    ALTER TABLE "items" ALTER COLUMN "warehouse" DROP NOT NULL;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='items' AND column_name='subsidiary_id') THEN
+    ALTER TABLE "items" ALTER COLUMN "subsidiary_id" DROP NOT NULL;
+  END IF;
+END $$;
 
 -- 8. Nouveaux champs
 ALTER TABLE "items" ADD COLUMN "is_active" BOOLEAN NOT NULL DEFAULT true;
@@ -46,7 +57,7 @@ ALTER TABLE "items" ADD COLUMN "display_order" INTEGER;
 ALTER TABLE "items" ADD COLUMN "sku" VARCHAR(100);
 ALTER TABLE "items" ADD COLUMN "min_threshold" DECIMAL;
 ALTER TABLE "items" ADD COLUMN "stock_managed" BOOLEAN NOT NULL DEFAULT false;
-ALTER TABLE "items" ADD COLUMN "main_supplier_id" UUID;
+ALTER TABLE "items" ADD COLUMN "main_supplier_id" TEXT;
 
 -- 9. Les anciennes lignes "matière" avaient déjà un stock suivi
 UPDATE "items" SET "stock_managed" = true WHERE "type" = 'STOCK_PRODUCT';

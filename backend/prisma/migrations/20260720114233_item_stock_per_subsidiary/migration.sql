@@ -7,9 +7,9 @@
 
 -- CreateTable
 CREATE TABLE "item_stocks" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "item_id" UUID NOT NULL,
-    "subsidiary_id" UUID NOT NULL,
+    "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+    "item_id" TEXT NOT NULL,
+    "subsidiary_id" TEXT NOT NULL,
     "stock" DECIMAL(65,30) NOT NULL DEFAULT 0,
     "warehouse" VARCHAR(255),
 

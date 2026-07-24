@@ -1,4 +1,5 @@
 -- Chantier 5 : moteur de spécifications configurables (Builder de formulaires)
+-- IDs en TEXT (cohérent avec migration 20260717100439_complete_uuid_to_text_fixed)
 
 CREATE TYPE "SpecFieldType" AS ENUM (
   'TEXT', 'TEXTAREA', 'NUMBER', 'DECIMAL', 'AMOUNT', 'SELECT', 'MULTISELECT',
@@ -7,17 +8,17 @@ CREATE TYPE "SpecFieldType" AS ENUM (
 );
 
 CREATE TABLE "product_spec_groups" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-  "product_id" UUID NOT NULL,
+  "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+  "product_id" TEXT NOT NULL,
   "name" VARCHAR(150) NOT NULL,
   "order" INTEGER NOT NULL,
   CONSTRAINT "product_spec_groups_pkey" PRIMARY KEY ("id")
 );
 
 CREATE TABLE "product_specifications" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-  "product_id" UUID NOT NULL,
-  "group_id" UUID,
+  "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+  "product_id" TEXT NOT NULL,
+  "group_id" TEXT,
   "name" VARCHAR(150) NOT NULL,
   "technical_key" VARCHAR(100) NOT NULL,
   "type" "SpecFieldType" NOT NULL,
@@ -39,15 +40,15 @@ CREATE TABLE "product_specifications" (
 );
 
 CREATE TABLE "spec_reference_lists" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+  "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
   "key" VARCHAR(100) NOT NULL,
   "name" VARCHAR(150) NOT NULL,
   CONSTRAINT "spec_reference_lists_pkey" PRIMARY KEY ("id")
 );
 
 CREATE TABLE "spec_reference_values" (
-  "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-  "list_id" UUID NOT NULL,
+  "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+  "list_id" TEXT NOT NULL,
   "value" VARCHAR(150) NOT NULL,
   "label" VARCHAR(150) NOT NULL,
   "order" INTEGER NOT NULL,

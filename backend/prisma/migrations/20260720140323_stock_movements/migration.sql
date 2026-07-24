@@ -20,15 +20,15 @@ CREATE TYPE "StockMovementType" AS ENUM (
 
 -- CreateTable
 CREATE TABLE "stock_movements" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "item_id" UUID NOT NULL,
-    "subsidiary_id" UUID NOT NULL,
+    "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+    "item_id" TEXT NOT NULL,
+    "subsidiary_id" TEXT NOT NULL,
     "type" "StockMovementType" NOT NULL,
     "quantity" DECIMAL(15,4) NOT NULL,
     "reason" TEXT,
-    "order_id" UUID,
-    "purchase_order_id" UUID,
-    "created_by_id" UUID,
+    "order_id" TEXT,
+    "purchase_order_id" TEXT,
+    "created_by_id" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "stock_movements_pkey" PRIMARY KEY ("id")

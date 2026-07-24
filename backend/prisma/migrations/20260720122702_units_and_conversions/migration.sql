@@ -5,7 +5,7 @@
 
 -- CreateTable
 CREATE TABLE "units" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
     "name" VARCHAR(100) NOT NULL,
     "symbol" VARCHAR(20),
 
@@ -15,9 +15,9 @@ CREATE UNIQUE INDEX "units_name_key" ON "units"("name");
 
 -- CreateTable
 CREATE TABLE "item_packaging_units" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "item_id" UUID NOT NULL,
-    "unit_id" UUID NOT NULL,
+    "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+    "item_id" TEXT NOT NULL,
+    "unit_id" TEXT NOT NULL,
     "conversion_factor" DECIMAL(15,4) NOT NULL,
 
     CONSTRAINT "item_packaging_units_pkey" PRIMARY KEY ("id")
@@ -29,9 +29,9 @@ ALTER TABLE "item_packaging_units" ADD CONSTRAINT "item_packaging_units_item_id_
 ALTER TABLE "item_packaging_units" ADD CONSTRAINT "item_packaging_units_unit_id_fkey" FOREIGN KEY ("unit_id") REFERENCES "units"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AlterTable: unité de base d'un article (Item)
-ALTER TABLE "items" ADD COLUMN "base_unit_id" UUID;
+ALTER TABLE "items" ADD COLUMN "base_unit_id" TEXT;
 ALTER TABLE "items" ADD CONSTRAINT "items_base_unit_id_fkey" FOREIGN KEY ("base_unit_id") REFERENCES "units"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AlterTable: unité d'achat d'une ligne de bon de commande
-ALTER TABLE "purchase_order_items" ADD COLUMN "purchase_unit_id" UUID;
+ALTER TABLE "purchase_order_items" ADD COLUMN "purchase_unit_id" TEXT;
 ALTER TABLE "purchase_order_items" ADD CONSTRAINT "purchase_order_items_purchase_unit_id_fkey" FOREIGN KEY ("purchase_unit_id") REFERENCES "units"("id") ON DELETE SET NULL ON UPDATE CASCADE;

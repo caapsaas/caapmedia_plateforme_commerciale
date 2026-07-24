@@ -12,21 +12,21 @@ ALTER TABLE "public"."units" ALTER COLUMN "id" DROP DEFAULT;
 
 -- CreateTable
 CREATE TABLE "public"."equipement_cost_config" (
-    "id" UUID NOT NULL,
-    "equipment_id" UUID NOT NULL,
+    "id" TEXT NOT NULL,
+    "equipment_id" TEXT NOT NULL,
     "hourly_rate" DECIMAL(15,2) NOT NULL,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "updated_by_id" UUID,
+    "updated_by_id" TEXT,
 
     CONSTRAINT "equipement_cost_config_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."production_workflows" (
-    "id" UUID NOT NULL,
+    "id" TEXT NOT NULL,
     "name" VARCHAR(255) NOT NULL,
     "description" TEXT,
-    "item_id" UUID,
+    "item_id" TEXT,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -36,9 +36,9 @@ CREATE TABLE "public"."production_workflows" (
 
 -- CreateTable
 CREATE TABLE "public"."production_workflow_steps" (
-    "id" UUID NOT NULL,
-    "workflow_id" UUID NOT NULL,
-    "equipment_id" UUID NOT NULL,
+    "id" TEXT NOT NULL,
+    "workflow_id" TEXT NOT NULL,
+    "equipment_id" TEXT NOT NULL,
     "step_order" INTEGER NOT NULL,
 
     CONSTRAINT "production_workflow_steps_pkey" PRIMARY KEY ("id")
@@ -46,20 +46,20 @@ CREATE TABLE "public"."production_workflow_steps" (
 
 -- CreateTable
 CREATE TABLE "public"."commercial_params" (
-    "id" UUID NOT NULL,
+    "id" TEXT NOT NULL,
     "min_margin_percent" DECIMAL(5,2) NOT NULL,
     "max_margin_percent" DECIMAL(5,2) NOT NULL,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "updated_by_id" UUID,
+    "updated_by_id" TEXT,
 
     CONSTRAINT "commercial_params_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."order_item_production_steps" (
-    "id" UUID NOT NULL,
-    "order_item_id" UUID NOT NULL,
-    "equipment_id" UUID NOT NULL,
+    "id" TEXT NOT NULL,
+    "order_item_id" TEXT NOT NULL,
+    "equipment_id" TEXT NOT NULL,
     "equipment_name_snapshot" VARCHAR(255) NOT NULL,
     "step_order" INTEGER NOT NULL,
     "estimated_time_hours" DECIMAL(5,2) NOT NULL,
@@ -71,8 +71,8 @@ CREATE TABLE "public"."order_item_production_steps" (
 
 -- CreateTable
 CREATE TABLE "public"."order_item_production_summary" (
-    "id" UUID NOT NULL,
-    "order_item_id" UUID NOT NULL,
+    "id" TEXT NOT NULL,
+    "order_item_id" TEXT NOT NULL,
     "total_production_cost" DECIMAL(15,2) NOT NULL,
     "margin_percent" DECIMAL(5,2) NOT NULL,
     "final_price" DECIMAL(15,2) NOT NULL,
