@@ -29,7 +29,7 @@ export class CreateFinancialTransactionDto {
   @IsNotEmpty()
   amount: number;
 
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   treasuryAccountId: string;
 

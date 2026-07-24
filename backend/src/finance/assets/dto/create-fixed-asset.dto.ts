@@ -24,7 +24,7 @@ export class CreateFixedAssetDto {
   @IsPositive()
   depreciationRate: number;
 
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   treasuryAccountId: string;
 }

@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { LeadsService } from './leads.service';
 import { CreateLeadDto } from './dto/create-lead.dto';
+import { PublicQuoteRequestDto } from './dto/public-quote-request.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { CurrentUser, Roles } from '../../common/auth/role/role.decorator';
@@ -19,10 +20,15 @@ import { type User, UserRole } from '@prisma/client';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 
 @Controller('crm/leads')
-@UseGuards(JwtAuthGuard, RoleGuard)
 export class LeadsController {
   constructor(private readonly leadsService: LeadsService) {}
 
+  @Post('quote-request')
+  createPublicQuoteRequest(@Body() publicQuoteRequestDto: PublicQuoteRequestDto) {
+    return this.leadsService.createPublicLead(publicQuoteRequestDto);
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @Post()
   @Roles(
     UserRole.ADMIN,
@@ -34,6 +40,7 @@ export class LeadsController {
     return this.leadsService.create(createLeadDto, user);
   }
 
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @Get()
   @Roles(
     UserRole.ADMIN,
@@ -45,6 +52,7 @@ export class LeadsController {
     return this.leadsService.findAll(user);
   }
 
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @Get(':id')
   @Roles(
     UserRole.ADMIN,
@@ -56,6 +64,7 @@ export class LeadsController {
     return this.leadsService.findOne(id);
   }
 
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @Patch(':id')
   @Roles(
     UserRole.ADMIN,
@@ -71,6 +80,7 @@ export class LeadsController {
     return this.leadsService.update(id, updateLeadDto);
   }
 
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @Delete(':id')
   @Roles(
     UserRole.ADMIN,
@@ -82,6 +92,7 @@ export class LeadsController {
     return this.leadsService.remove(id);
   }
 
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @Post(':id/convert')
   @Roles(
     UserRole.ADMIN,
@@ -93,3 +104,5 @@ export class LeadsController {
     return this.leadsService.convert(id, user);
   }
 }
+
+

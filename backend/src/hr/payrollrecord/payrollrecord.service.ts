@@ -11,6 +11,8 @@ import {
 } from './dto/payrollrecord.dto';
 import { PayrollRecord, EmployeeStatus, PayrollStatus } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 // Extended type for payroll records with employee data
 type PayrollRecordWithEmployee = PayrollRecord & {
@@ -46,6 +48,7 @@ export class PayrollRecordService {
 
     return this.prisma.payrollRecord.create({
       data: {
+        id: generateId(ID_PREFIXES.PAYROLL),
         employeeName: dto.employeeName,
         payrollPeriod: dto.payrollPeriod,
         grossSalary: dto.grossSalary,

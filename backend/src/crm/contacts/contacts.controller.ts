@@ -8,7 +8,6 @@ import {
   Delete,
   Query,
   UseGuards,
-  ParseUUIDPipe,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -121,7 +120,7 @@ export class ContactsController {
 
   @Get('public/:id')
   // Endpoint public pour récupérer les informations de base d'un contact
-  findPublic(@Param('id', ParseUUIDPipe) id: string) {
+  findPublic(@Param('id') id: string) {
     return this.contactsService.findPublic(id);
   }
 
@@ -154,7 +153,7 @@ export class ContactsController {
     UserRole.PRODUCTION_DIRECTOR,
   )
   update(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('id') id: string,
     @Body() updateContactDto: UpdateContactDto,
     @CurrentUser() user: User,
   ) {

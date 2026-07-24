@@ -58,6 +58,6 @@ export class CreateExternalTransactionDto {
   createdBy: string;
 
   @ApiProperty({ description: 'ID de la filiale' })
-  @IsUUID()
+  @IsString()
   subsidiaryId: string;
 }

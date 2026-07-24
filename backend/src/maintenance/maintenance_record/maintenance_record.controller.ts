@@ -95,3 +95,5 @@ export class MaintenanceRecordController {
     return this.service.remove(id);
   }
 }
+
+

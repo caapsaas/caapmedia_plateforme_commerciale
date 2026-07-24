@@ -3,7 +3,6 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUUID,
   IsEnum,
   IsDateString,
 } from 'class-validator';
@@ -43,11 +42,11 @@ export class CreateContactDto {
   @IsOptional()
   status?: ContactStatus;
 
-  @IsUUID('4', { message: 'L’ID du compte doit être un UUID valide.' })
+  @IsString()
   @IsOptional()
   accountId?: string;
 
-  @IsUUID('4', { message: 'L’ID de la filiale doit être un UUID valide.' })
+  @IsString()
   @IsOptional()
   subsidiaryId?: string;
 

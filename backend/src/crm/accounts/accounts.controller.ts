@@ -7,8 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+  } from '@nestjs/common';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { AccountsService } from './accounts.service';
 import { CreateAccountDto } from './dto/create-account.dto';
@@ -92,3 +91,5 @@ export class AccountsController {
     return this.accountsService.remove(id, user);
   }
 }
+
+

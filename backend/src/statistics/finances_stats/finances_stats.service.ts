@@ -135,6 +135,13 @@ export class FinancesStatsService {
     const { subsidiaryId } = user;
     const dateFilter = this.getDateFilter(periodFilterDto, 'saleDate');
 
+    // Récupérer le taux d'impôt de la filiale
+    const subsidiary = await this.prisma.subsidiary.findUnique({
+      where: { id: subsidiaryId },
+      select: { taxRate: true }
+    });
+    const taxRate = subsidiary?.taxRate ?? new Prisma.Decimal(0.30); // Défaut 30% si non configuré
+
     // Chiffre d'affaires
     const salesResult = await this.prisma.sale.aggregate({
       _sum: { totalPrice: true },
@@ -155,16 +162,7 @@ export class FinancesStatsService {
       },
     });
 
-    let cogs = new Prisma.Decimal(0);
-    for (const sale of salesWithItems) {
-      if (sale.order) {
-        for (const item of sale.order.orderItems) {
-          if (item.product?.price) {
-            cogs = cogs.add(item.product.price.mul(item.quantity));
-          }
-        }
-      }
-    }
+    const cogs = new Prisma.Decimal(0);
 
     // Charges d'exploitation
     const expensesResult = await this.prisma.expenseRecord.aggregate({
@@ -177,6 +175,7 @@ export class FinancesStatsService {
     const operatingExpenses =
       expensesResult._sum.amount ?? new Prisma.Decimal(0);
 
+    // Calculs du P&L selon SYSCOHADA
     const grossProfit = revenue.sub(cogs);
     const taxRate = 0.3; // 30%
     const taxes = grossProfit.gt(0)

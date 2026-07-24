@@ -36,7 +36,7 @@ export class CreateMeetingDto {
 
   @IsOptional() // Rendu optionnel : tableau vide OK
   @IsArray()
-  @IsUUID('all', { each: true })
+  @IsString({ each: true })
   // @ApiPropertyOptional({ description: 'IDs des participants (employés)', type: [String] })
   participantIds?: string[];
 }
@@ -76,7 +76,7 @@ export class UpdateMeetingDto {
 
   @IsOptional() // Rendu optionnel : ne force pas l'update des participants
   @IsArray()
-  @IsUUID('all', { each: true })
+  @IsString({ each: true })
   // @ApiPropertyOptional({ description: 'Nouveaux IDs des participants', type: [String] })
   participantIds?: string[];
 }

@@ -7,8 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+  } from '@nestjs/common';
 import { OpportunitiesService } from './opportunities.service';
 import { CreateOpportunityDto } from './dto/create-opportunity.dto';
 import { UpdateOpportunityDto } from './dto/update-opportunity.dto';
@@ -84,3 +83,5 @@ export class OpportunitiesController {
     return this.opportunitiesService.remove(id, user);
   }
 }
+
+

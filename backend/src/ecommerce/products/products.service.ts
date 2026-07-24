@@ -40,10 +40,7 @@ export class ProductsService {
         type: ItemType.SERVICE,
         productImages: files?.length
           ? {
-              create: files.map((file) => ({
-                imageName: file.originalname,
-                imageUrl: `/public/products/${file.filename}`,
-              })),
+              create: productImageData,
             }
           : undefined,
       },
@@ -153,13 +150,17 @@ export class ProductsService {
       if (files?.length) {
         await tx.productImage.deleteMany({ where: { productId: id } });
 
-        await tx.productImage.createMany({
-          data: files.map((file) => ({
-            imageName: file.originalname,
-            imageUrl: `/public/products/${file.filename}`,
-            productId: id,
-          })),
-        });
+        const newImageData = files.map((file) => ({
+          id: generateId(ID_PREFIXES.PRODUCTIMAGE),
+          imageName: file.originalname,
+          imageUrl: buildRelativeImagePath(
+            FILE_UPLOAD_CONFIG.UPLOAD_DIRS.PRODUCTS,
+            file.filename,
+          ),
+          productId: id,
+        }));
+
+        await tx.productImage.createMany({ data: newImageData });
       }
 
       // Retourne le service mis à jour
@@ -168,6 +169,13 @@ export class ProductsService {
         include: this.includeAll,
       });
     });
+
+    // Cleanup des anciennes images après succès de la transaction
+    if (files?.length) {
+      for (const image of oldImages) {
+        await deleteImageFile(image.imageUrl);
+      }
+    }
 
     return this.mapDecimals(product);
   }
@@ -183,6 +191,12 @@ export class ProductsService {
     const deleted = await this.prisma.item.delete({
       where: { id },
     });
-    return { id: deleted.id };
+
+    // Cleanup des fichiers physiques après suppression en BD
+    for (const image of product.productImages) {
+      await deleteImageFile(image.imageUrl);
+    }
+
+    return { success: true, id };
   }
 }

@@ -14,7 +14,7 @@ import {
 import { PaymentTerms, PurchaseOrderStatus } from '@prisma/client';
 
 class CreatePurchaseOrderItemDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   productId: string;
 
@@ -35,7 +35,7 @@ class CreatePurchaseOrderItemDto {
 }
 
 export class CreatePurchaseOrderDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   supplierId: string;
 

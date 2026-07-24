@@ -87,3 +87,4 @@ api.interceptors.response.use(
 );
 
 export { api };
+export const apiClient = api; // Export for loading interceptors

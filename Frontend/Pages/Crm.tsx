@@ -22,10 +22,11 @@ import ActivitiesView from '../components/crm/ActivitiesView';
 import LeadsManagement from '../components/crm/LeadsManagement';
 import AccountManagement from '../components/crm/AccountManagement';
 import ContractManagement from '../components/crm/ContractManagement';
+import ProformasManagement from '../components/crm/ProformasManagement';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
-type CrmView = 'dashboard' | 'leads' | 'accounts' | 'contacts' | 'pipeline' | 'activities' | 'contracts';
+type CrmView = 'dashboard' | 'leads' | 'accounts' | 'contacts' | 'pipeline' | 'activities' | 'contracts' | 'proformas';
 
 const Crm: React.FC = () => {
     const { t } = useI18n();

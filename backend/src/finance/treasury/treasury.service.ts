@@ -13,6 +13,8 @@ import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 import { checkRole } from 'src/common/auth/role/check-role.util';
 import { JournalizationService } from 'src/accounting/journalization/journalization.service';
 
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 @Injectable()
 export class TreasuryService {
   constructor(
@@ -47,6 +49,7 @@ export class TreasuryService {
 
     return this.prisma.treasuryAccount.create({
       data: {
+        id: generateId(ID_PREFIXES.TREASURY),
         accountName: dto.accountName,
         balance: new Prisma.Decimal(dto.initialBalance),
         currency: dto.currency,
@@ -151,6 +154,7 @@ export class TreasuryService {
 
     return this.prisma.treasuryAccount.create({
       data: {
+        id: generateId(ID_PREFIXES.TREASURY),
         accountName: 'Compte de Préfinancement',
         balance: new Prisma.Decimal(0),
         currency: 'XOF',
@@ -361,6 +365,7 @@ export class TreasuryService {
 
     return tx.financialTransaction.create({
       data: {
+        id: generateId(ID_PREFIXES.TREASURY),
         description: dto.description,
         relatedDocumentId: dto.relatedDocumentId,
         amount: decimalAmount,

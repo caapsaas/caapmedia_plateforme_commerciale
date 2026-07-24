@@ -8,14 +8,14 @@ import {
   IsObject,
   IsOptional,
   IsString,
-  IsUUID,
+  IsNumber,
   Min,
   ValidateNested,
 } from 'class-validator';
 import { CustomerPaymentMethod } from '@prisma/client';
 
 class DirectSaleItemDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   productId: string;
 
@@ -41,7 +41,7 @@ class DirectSaleItemDto {
 
 export class CreateDirectSaleDto {
   @IsNotEmpty()
-  @IsUUID()
+  @IsString()
   customerId: string;
 
   @IsNotEmpty()

@@ -47,7 +47,7 @@ export class AbsencerecordController {
 
   @Get(':id')
   @Roles('HR_MANAGER', 'ADMIN')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
+  findOne(@Param('id') id: string) {
     return this.absenceRecordService.findOne(id);
   }
 
@@ -62,7 +62,9 @@ export class AbsencerecordController {
 
   @Delete(':id')
   @Roles('HR_MANAGER', 'ADMIN')
-  remove(@Param('id', ParseUUIDPipe) id: string) {
+  remove(@Param('id') id: string) {
     return this.absenceRecordService.remove(id);
   }
 }
+
+

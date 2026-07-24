@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Product } from '../../types';
 import { useI18n } from '../../i18n';
 import IconHeart from '../icons/IconHeart';
@@ -20,15 +20,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, isLiked
     const { t, formatCurrency } = useI18n();
     const [activeImageIndex, setActiveImageIndex] = useState(0);
     const [isZoomModalOpen, setIsZoomModalOpen] = useState(false);
-    
-    const discount = useMemo(() => {
-        const hasPromo = Math.random() > 0.4; // 60% de chance d'avoir une promotion
-        if (!hasPromo) {
-            return null;
-        }
-        // Entier aléatoire entre 2 et 5 (inclus)
-        return Math.floor(Math.random() * (5 - 2 + 1)) + 2;
-    }, []);
 
     const hasImages = product.productImages && product.productImages.length > 0;
     const activeImageUrl = hasImages && product.productImages? getImageUrl(product.productImages[activeImageIndex].imageUrl) : 'https://via.placeholder.com/400x300?text=Image+Indisponible';
@@ -50,16 +41,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, isLiked
                     {/* Overlay for icons */}
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3">
                         <div className="flex justify-between items-start">
-                            <button 
-                                onClick={(e) => { e.stopPropagation(); setIsZoomModalOpen(true); }} 
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setIsZoomModalOpen(true); }}
                                 className="p-2.5 bg-white/80 rounded-full hover:bg-white text-[#c6e911] shadow-lg backdrop-blur-sm transition-all transform hover:scale-110"
                                 aria-label="Zoom image"
                             >
                                 <IconSearch className="h-5 w-5"/>
                             </button>
-                             {discount && (
-                                <span className="bg-[#c6e911] text-slate-800 text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">PROMO : -{discount}%</span>
-                             )}
                         </div>
                         {/* Bouton favori masqué temporairement */}
                     </div>

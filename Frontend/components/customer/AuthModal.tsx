@@ -108,7 +108,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegis
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md relative" onClick={e => e.stopPropagation()}>
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 left-4 p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors"
+                    title="Retour à l'e-commerce"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                    </svg>
+                </button>
                 {view !== 'forgotPassword' && (
                     <div className="flex border-b">
                         <button onClick={() => switchView('login')} className={`flex-1 py-3 font-semibold text-center ${view === 'login' ? 'text-[#c6e911] border-b-2 border-[#c6e911]' : 'text-slate-500'}`}>{t('customerAccount.login')}</button>

@@ -8,6 +8,8 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { JournalEntryStatus, Prisma } from '@prisma/client';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 export interface CreateJournalEntryDto {
   entryDate: string;
   description: string;
@@ -54,6 +56,7 @@ export class EntriesService {
 
     return this.prisma.journalEntry.create({
       data: {
+        id: generateId(ID_PREFIXES.JOURNALENTRY),
         entryNumber,
         entryDate: new Date(dto.entryDate),
         description: dto.description,
@@ -64,6 +67,7 @@ export class EntriesService {
         createdBy: user.id,
         lines: {
           create: dto.lines.map((line) => ({
+            id: generateId(ID_PREFIXES.JOURNALENTRYLINE),
             accountId: line.accountId,
             description: line.description,
             debitAmount: new Prisma.Decimal(line.debitAmount),
@@ -161,6 +165,7 @@ export class EntriesService {
         const entryNumber = await this.generateEntryNumber(user.subsidiaryId);
         await tx.journalEntry.create({
           data: {
+        id: generateId(ID_PREFIXES.JOURNALENTRY),
             entryNumber,
             entryDate: new Date(),
             description: `Contre-passation de ${entry.entryNumber} : ${entry.description}`,
@@ -171,6 +176,7 @@ export class EntriesService {
             createdBy: user.id,
             lines: {
               create: entry.lines.map((line) => ({
+                id: generateId(ID_PREFIXES.JOURNALENTRYLINE),
                 accountId: line.accountId,
                 description: line.description,
                 debitAmount: line.creditAmount, // inversé

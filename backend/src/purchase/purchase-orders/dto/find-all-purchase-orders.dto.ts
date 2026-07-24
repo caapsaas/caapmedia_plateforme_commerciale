@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 import { PaymentStatus, PurchaseOrderStatus } from '@prisma/client';
 
 // Réutilisation de l'enum de période pour la cohérence

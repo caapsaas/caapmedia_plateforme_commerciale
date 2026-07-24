@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 import { EquipmentStatus } from '@prisma/client';
 
 
@@ -142,6 +144,7 @@ export async function runEquipmentSeeder(prisma: PrismaClient) {
         } else {
             equipment = await prisma.equipment.create({
                 data: {
+                    id: generateId(ID_PREFIXES.EQUIPMENT),
                     equipmentName: e.name,
                     status: e.status,
                     lastMaintenanceDate: new Date(e.lastMaintenanceDate),
@@ -174,6 +177,7 @@ export async function runEquipmentSeeder(prisma: PrismaClient) {
             if (existingRecord) continue;
             await prisma.maintenanceRecord.create({
                 data: {
+                    id: generateId(ID_PREFIXES.MAINTENANCERECORD),
                     maintenanceDate: new Date(m.date),
                     technician: m.technician,
                     description: m.description,

@@ -1,11 +1,13 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import {
   Order,
+  OrderItem,
   PaymentStatus,
   OrderStatus,
   Product,
   Contact,
   CustomerPaymentMethod,
+  TopSellingProduct,
 } from "../../types";
 import { useI18n } from "../../i18n";
 import { useToast } from "../../context/ToastContext";
@@ -13,6 +15,7 @@ import SelectFilter from "../filters/SelectFilter";
 import PeriodFilter from "../filters/PeriodFilter";
 import IconDocumentText from "../icons/IconDocumentText";
 import BonDeLivraison from "../../Pages/BonDeLivraison";
+import BonDeCommande from "../../Pages/BonDeCommande";
 import IconInvoice from "../icons/IconInvoice";
 import InvoiceModal from "../../Pages/InvoiceModal";
 import RecordPaymentModal from "./RecordPaymentModal";
@@ -41,6 +44,12 @@ import { useAuth } from "../../context/AuthContext";
 import { UserRole } from "../../types";
 
 const initialFilterState: FindAllOrdersDto = { period: "all_time" };
+const parseDate = (dateStr: string | undefined): Date | null => {
+  if (!dateStr) return null;
+  const date = new Date(dateStr);
+  return isNaN(date.getTime()) ? null : date;
+};
+
 const getPeriodDates = (period: FindAllOrdersDto["period"]) => {
   const now = new Date();
 
@@ -253,26 +262,41 @@ const Sales: React.FC = () => {
 
   const { mutate: createOrderMutate } = useMutation({
     mutationFn: createOrderBySalesRepJson,
-    onSuccess: () => {
+    onSuccess: (newOrder) => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Commande créée!", "La commande a été créée avec succès.");
+
+      // Fusionner la réponse de l'API avec les données envoyées (via ref pour éviter race condition)
+      const cachedData = lastOrderDataRef.current;
+      const enrichedOrder: Order = {
+        ...newOrder,
+        date: newOrder.date || cachedData?.date || new Date().toISOString(),
+        totalAmount: newOrder.totalAmount ?? cachedData?.totalAmount ?? 0,
+        paymentDueDate: newOrder.paymentDueDate || cachedData?.paymentDueDate || '',
+        subtotal: newOrder.subtotal ?? cachedData?.subtotal ?? 0,
+        taxAmount: newOrder.taxAmount ?? cachedData?.taxAmount ?? 0,
+      };
+
+      setBonDeCommandeOrder(enrichedOrder);
       setActiveTab("history");
+      lastOrderDataRef.current = null;
     },
     onError: () => {
       toast.error(
         "Erreur de création",
         "Une erreur est survenue lors de la création de la commande.",
       );
+      lastOrderDataRef.current = null;
     },
   });
 
   const handlePlaceOrder = (
     newOrderData: Omit<Order, "id" | "subsidiaryId">,
   ) => {
-    const itemsForJson = newOrderData.items.map((item) => {
+    const itemsForJson = newOrderData.items.map((item: OrderItem) => {
       // Convertir les options en tableau d'objets {optionType, optionValue}
       const optionsArray = item.options
-        ? Object.entries(item.options).map(([optionType, optionValue]) => ({
+        ? Object.entries(item.options).map(([optionType, optionValue]: [string, string]) => ({
             optionType,
             optionValue: String(optionValue),
           }))
@@ -289,18 +313,41 @@ const Sales: React.FC = () => {
     });
 
     // Créer l'objet de commande pour l'endpoint JSON
-    const orderData = {
+    const orderData: {
+      customerId: string;
+      customerName: string;
+      paymentDueDate: string;
+      paymentMethod: CustomerPaymentMethod;
+      source: 'MANUAL' | 'WEB_ORDER' | 'QUOTE_REQUEST';
+      items: Array<{ productId: string; quantity: number; unitPrice: number; options: Array<{ optionType: string; optionValue: string }> }>;
+      date?: string;
+      subtotal?: number;
+      taxAmount?: number;
+      totalAmount?: number;
+      customTaxRate?: number;
+    } = {
       customerId: newOrderData.customerId,
       customerName: newOrderData.customerName,
       paymentDueDate: newOrderData.paymentDueDate,
-      paymentMethod: "PAY_ON_DELIVERY" as CustomerPaymentMethod,
-      source: "MANUAL" as any, // TODO: utiliser OrderSource.MANUAL quand disponible
+      paymentMethod: newOrderData.paymentMethod,
+      source: "MANUAL",
       items: itemsForJson,
+      date: newOrderData.date,
+      subtotal: newOrderData.subtotal,
+      taxAmount: newOrderData.taxAmount,
+      totalAmount: newOrderData.totalAmount,
     };
+
+    // Inclure customTaxRate si présent
+    if ('customTaxRate' in newOrderData && newOrderData.customTaxRate !== undefined) {
+      orderData.customTaxRate = (newOrderData as { customTaxRate?: number }).customTaxRate;
+    }
 
     // Logs pour débogage
     console.log("Order data being sent:", orderData);
 
+    // Capturer les données pour enrichir la réponse de l'API (via ref pour éviter race condition)
+    lastOrderDataRef.current = orderData;
     createOrderMutate(orderData);
   };
 
@@ -318,7 +365,18 @@ const Sales: React.FC = () => {
   const [showTopProducts, setShowTopProducts] = useState(true);
 
   const handleApplyFilters = () => {
-    setAppliedFilters(filters);
+    // Nettoyer les filtres: supprimer les valeurs vides
+    const cleanedFilters: FindAllOrdersDto = {};
+
+    if (filters.customerId) cleanedFilters.customerId = filters.customerId;
+    if (filters.productId) cleanedFilters.productId = filters.productId;
+    if (filters.orderStatus) cleanedFilters.orderStatus = filters.orderStatus;
+    if (filters.paymentStatus) cleanedFilters.paymentStatus = filters.paymentStatus;
+    if (filters.period) cleanedFilters.period = filters.period;
+    if (filters.startDate) cleanedFilters.startDate = filters.startDate;
+    if (filters.endDate) cleanedFilters.endDate = filters.endDate;
+
+    setAppliedFilters(cleanedFilters);
   };
 
   const handleResetFilters = () => {
@@ -899,6 +957,13 @@ const Sales: React.FC = () => {
           order={blOrder}
           subsidiary={subsidiary}
           onClose={() => setBlOrder(null)}
+        />
+      )}
+      {bonDeCommandeOrder && (
+        <BonDeCommande
+          order={bonDeCommandeOrder}
+          subsidiary={subsidiary}
+          onClose={() => setBonDeCommandeOrder(null)}
         />
       )}
     </div>

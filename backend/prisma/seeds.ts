@@ -7,7 +7,7 @@ import { runProductSpecsSeeder } from './seeders/product-specs.seeder';
 import { runContactSeeder } from './seeders/contact.seeder';
 import { runEquipmentSeeder } from './seeders/equipement.seeder';
 import { runTaxRateSeeder } from './seeders/tax_rate.seeder';
-import { runOrdersSeeder } from './seeders/order.seeder';
+//import { runOrdersSeeder } from './seeders/order.seeder';
 import { seedTreasuryAccounts } from './seeders/treasury.seeder';
 import { runSupplierSeeder } from './seeders/supplier.seeder';
 import { runMovementsSeeder } from './seeders/movements.seeder';

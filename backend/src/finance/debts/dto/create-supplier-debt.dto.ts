@@ -24,7 +24,7 @@ export class CreateSupplierDebtDto {
   @IsPositive()
   amount: number;
 
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   purchaseOrderId: string;
 

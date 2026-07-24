@@ -31,6 +31,7 @@ export class AbsenceRecordService {
     }
     return this.prisma.absenceRecord.create({
       data: {
+        id: generateId(ID_PREFIXES.ABSENCE),
         employeeName: dto.employeeName,
         typeAbsence: dto.typeAbsence,
         startDate: new Date(dto.startDate),

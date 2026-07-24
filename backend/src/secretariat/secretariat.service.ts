@@ -809,6 +809,7 @@ export class SecretariatService {
     // Créer la tâche
     const task = await this.prisma.secretariatTask.create({
       data: {
+        id: generateId(ID_PREFIXES.SECRETARIATASK),
         ...dto,
         dueDate: new Date(dto.dueDate), // S'assurer que c'est un objet Date
       },

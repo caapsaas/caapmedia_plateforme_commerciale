@@ -4,7 +4,6 @@ import {
   Delete,
   Get,
   Param,
-  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -33,18 +32,42 @@ export class ProductsController {
    */
   @Post()
   @UseInterceptors(
-    FilesInterceptor('productImages', 5, {
-      storage: diskStorage({
-        destination: './public/products',
-        filename: (req, file, cb) => {
-          const randomName = Array(32)
-            .fill(null)
-            .map(() => Math.round(Math.random() * 16).toString(16))
-            .join('');
-          cb(null, `${randomName}${extname(file.originalname)}`);
+    FilesInterceptor(
+      'productImages',
+      FILE_UPLOAD_CONFIG.LIMITS.MAX_FILES_PER_UPLOAD,
+      {
+        storage: diskStorage({
+          destination: FILE_UPLOAD_CONFIG.UPLOAD_DIRS.PRODUCTS,
+          filename: (req, file, cb) => {
+            try {
+              validateImageFile(file);
+              const filename = generateSecureFilename(file, 'product');
+              cb(null, filename);
+            } catch (error) {
+              cb(error as Error, '');
+            }
+          },
+        }),
+        limits: {
+          fileSize: FILE_UPLOAD_CONFIG.LIMITS.MAX_FILE_SIZE,
         },
-      }),
-    }),
+        fileFilter: (req, file, cb) => {
+          const isValidMime = FILE_UPLOAD_CONFIG.ALLOWED_MIME_TYPES.IMAGES.includes(
+            file.mimetype,
+          );
+          if (!isValidMime) {
+            cb(
+              new BadRequestException(
+                FILE_UPLOAD_CONFIG.ERRORS.INVALID_MIME_TYPE,
+              ) as any,
+              false,
+            );
+          } else {
+            cb(null, true);
+          }
+        },
+      },
+    ),
   )
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(
@@ -127,18 +150,42 @@ export class ProductsController {
    */
   @Patch(':id')
   @UseInterceptors(
-    FilesInterceptor('productImages', 5, {
-      storage: diskStorage({
-        destination: './public/products',
-        filename: (req, file, cb) => {
-          const randomName = Array(32)
-            .fill(null)
-            .map(() => Math.round(Math.random() * 16).toString(16))
-            .join('');
-          cb(null, `${randomName}${extname(file.originalname)}`);
+    FilesInterceptor(
+      'productImages',
+      FILE_UPLOAD_CONFIG.LIMITS.MAX_FILES_PER_UPLOAD,
+      {
+        storage: diskStorage({
+          destination: FILE_UPLOAD_CONFIG.UPLOAD_DIRS.PRODUCTS,
+          filename: (req, file, cb) => {
+            try {
+              validateImageFile(file);
+              const filename = generateSecureFilename(file, 'product');
+              cb(null, filename);
+            } catch (error) {
+              cb(error as Error, '');
+            }
+          },
+        }),
+        limits: {
+          fileSize: FILE_UPLOAD_CONFIG.LIMITS.MAX_FILE_SIZE,
         },
-      }),
-    }),
+        fileFilter: (req, file, cb) => {
+          const isValidMime = FILE_UPLOAD_CONFIG.ALLOWED_MIME_TYPES.IMAGES.includes(
+            file.mimetype,
+          );
+          if (!isValidMime) {
+            cb(
+              new BadRequestException(
+                FILE_UPLOAD_CONFIG.ERRORS.INVALID_MIME_TYPE,
+              ) as any,
+              false,
+            );
+          } else {
+            cb(null, true);
+          }
+        },
+      },
+    ),
   )
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(
@@ -150,7 +197,7 @@ export class ProductsController {
     UserRole.FINANCIAL_DIRECTOR,
   )
   update(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('') id: string,
     @Body() updateProductDto: UpdateProductDto,
     @UploadedFiles() files: Express.Multer.File[],
   ) {

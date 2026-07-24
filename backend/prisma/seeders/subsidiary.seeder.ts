@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 
 // Architecture de reference multi-filiale (voir Doc/architecture-multi-filiale-auth-rbac.md):
 // - CAAP Siege (isHeadquarter: true) porte le SUPER_ADMIN. Un SUPER_ADMIN a
@@ -13,6 +15,7 @@ import { PrismaClient } from '@prisma/client';
 export async function runSubsidiarySeeder(prisma: PrismaClient) {
     const subsidiaries = [
         {
+            id: generateId(ID_PREFIXES.SUBSIDIARY),
             subsidiaryName: 'CAAP Douala',
             logoSvg: '<svg>...</svg>',
             address: 'CAAP Douala',

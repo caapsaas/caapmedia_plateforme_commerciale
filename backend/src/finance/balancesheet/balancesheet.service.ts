@@ -90,7 +90,8 @@ export class BalancesheetService {
   }
 
   /**
-   * Valorisation des stocks au coût d'achat (product.price), pas au prix de vente.
+   * Valorisation des stocks: non applicable car les coûts d'achat ne sont plus stockés sur les produits.
+   * Les prix sont maintenant définis uniquement lors de la création des commandes/ventes par le commercial.
    */
   async getInventoryValue(subsidiaryId?: string): Promise<number> {
     // Item est global (catalogue partagé) ; seule la quantité en stock

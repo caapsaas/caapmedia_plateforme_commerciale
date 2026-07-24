@@ -9,8 +9,7 @@ import {
   Req,
   SetMetadata,
   Query,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+  } from '@nestjs/common';
 import { PurchaseOrdersService } from './purchase-orders.service';
 import {
   CreatePurchaseOrderDto,

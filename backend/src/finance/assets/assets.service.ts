@@ -8,6 +8,8 @@ import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 import { checkRole } from 'src/common/auth/role/check-role.util';
 import { JournalizationService } from 'src/accounting/journalization/journalization.service';
 
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 @Injectable()
 export class AssetsService {
   constructor(
@@ -27,6 +29,7 @@ export class AssetsService {
 
     const asset = await this.prisma.fixedAsset.create({
       data: {
+        id: generateId(ID_PREFIXES.FIXEDASSET),
         ...assetData,
         acquisitionDate: new Date(dto.acquisitionDate),
         subsidiaryId: user.subsidiaryId,

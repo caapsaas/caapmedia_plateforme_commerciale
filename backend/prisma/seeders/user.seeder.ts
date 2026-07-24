@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 
 type SeedUser = {
   userName: string;
@@ -152,6 +154,7 @@ export async function runUserSeeder(prisma: PrismaClient) {
         subsidiaryId: subsidiary.id,
       },
       create: {
+        id: generateId(ID_PREFIXES.USER),
         userName: u.userName,
         email: u.email,
         passwordHash,

@@ -22,6 +22,7 @@ export class MaintenanceRecordService {
   async create(createMaintenanceRecordDto: CreateMaintenanceRecordDto) {
     const maintenanceRecord = await this.prisma.maintenanceRecord.create({
       data: {
+        id: generateId(ID_PREFIXES.MAINTENANCERECORD),
         ...createMaintenanceRecordDto,
         maintenanceDate: new Date(createMaintenanceRecordDto.maintenanceDate),
       },

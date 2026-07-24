@@ -48,8 +48,8 @@ export class IncomestatementService {
   }
 
   /**
-   * COGS = coût d'achat (product.price) × quantité vendue.
-   * product.price est le prix d'achat, product.sellingPrice est le prix de vente.
+   * COGS: non applicable car les coûts d'achat ne sont plus stockés sur les produits.
+   * Les prix sont maintenant définis uniquement lors de la création des commandes/ventes par le commercial.
    */
   private async getCostOfGoodsSold(
     subsidiaryId?: string,

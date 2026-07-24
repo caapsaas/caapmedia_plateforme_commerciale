@@ -41,21 +41,30 @@ export class OrdersService {
   // Fonction utilitaire pour mapper une commande à son format de réponse
   private mapOrderToResponse(order: any) {
     return {
-      orderId: order.id,
-      subsidiaryId: order.subsidiaryId,
-      subtotal: order.subtotal.toNumber(),
-      taxAmount: order.taxAmount.toNumber(),
-      totalAmount: order.totalAmount.toNumber(),
+      id: order.id,
+      date: order.orderDate,
+      customerName: order.customerName,
+      customerId: order.customerId,
+      customer: order.customer,
+      salesRep: order.salesRep,
+      subtotal: order.subtotal ? order.subtotal.toNumber() : 0,
+      taxAmount: order.taxAmount ? order.taxAmount.toNumber() : 0,
+      totalAmount: order.totalAmount ? order.totalAmount.toNumber() : 0,
+      amountPaid: order.amountPaid ? order.amountPaid.toNumber() : 0,
+      paymentDueDate: order.paymentDueDate,
+      taxRateId: order.taxRateId,
+      taxRateValue: order.taxRateValue ? order.taxRateValue.toNumber() : 0,
       status: order.status,
       orderItems: order.orderItems.map((item: any) => ({
         productName: item.product?.name,
         quantity: item.quantity,
-        unitPrice: item.unitPrice.toNumber(),
-        options: item.productOptions?.map((opt: any) => ({
-          optionType: opt.optionType,
-          optionValue: opt.optionValue,
-        })),
-      })),
+        unitPrice: item.unitPrice ? item.unitPrice.toNumber() : 0,
+        designFileName: item.designFileName,
+        designFileUrl: item.designFileUrl,
+        productId: item.productId,
+        orderId: item.orderId,
+        product: item.product,
+      })) || [],
     };
   }
 
@@ -86,6 +95,7 @@ export class OrdersService {
     } else {
       await tx.creditAccount.create({
         data: {
+          id: generateId(ID_PREFIXES.CREDITACCOUNT),
           balance: amount,
           lastPaymentDate: new Date(),
           contact: { connect: { id: contactId } },
@@ -372,7 +382,8 @@ export class OrdersService {
         : {}
       : { subsidiaryId: user.subsidiaryId };
 
-    if (customerId) {
+    // Appliquer les filtres uniquement s'ils ont une valeur non-vide
+    if (customerId && customerId.trim()) {
       where.customerId = customerId;
     }
 
@@ -384,14 +395,15 @@ export class OrdersService {
       where.orderItems = { some: { productId } };
     }
 
-    if (orderStatus) {
-      where.status = orderStatus;
+    if (orderStatus && orderStatus.trim()) {
+      where.status = orderStatus as any;
     }
 
-    if (paymentStatus) {
-      where.paymentStatus = paymentStatus;
+    if (paymentStatus && paymentStatus.trim()) {
+      where.paymentStatus = paymentStatus as any;
     }
 
+    // Appliquer le filtre de période
     if (period && period !== OrderPeriod.ALL_TIME) {
       const now = new Date();
       let dateFilter: { gte?: Date; lte?: Date } = {};
@@ -418,12 +430,19 @@ export class OrdersService {
             'Pour une période personnalisée, les dates de début et de fin sont requises.',
           );
         }
-        dateFilter = { gte: new Date(startDate), lte: new Date(endDate) };
+        const parsedStartDate = new Date(startDate);
+        const parsedEndDate = new Date(endDate);
+
+        if (isNaN(parsedStartDate.getTime()) || isNaN(parsedEndDate.getTime())) {
+          throw new BadRequestException('Les dates fournies ne sont pas au bon format.');
+        }
+
+        dateFilter = { gte: parsedStartDate, lte: parsedEndDate };
       }
       where.orderDate = dateFilter;
     }
 
-    return this.prisma.order.findMany({
+    const orders = await this.prisma.order.findMany({
       where,
       include: {
         customer: true,
@@ -432,6 +451,8 @@ export class OrdersService {
       },
       orderBy: { orderDate: 'desc' },
     });
+
+    return orders.map(order => this.mapOrderToResponse(order));
   }
 
   /**
@@ -462,7 +483,8 @@ export class OrdersService {
     if (!order) {
       throw new NotFoundException(`Commande avec l'ID "${id}" non trouvée.`);
     }
-    return order;
+
+    return this.mapOrderToResponse(order);
   }
 
   /**
@@ -478,15 +500,27 @@ export class OrdersService {
     user: any,
   ) {
     // Vérifier que la commande existe et appartient à la bonne filiale
-    await this.findOne(id, user);
+    const order = await this.prisma.order.findUnique({
+      where: { id, subsidiaryId: user.subsidiaryId },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Commande avec l'ID "${id}" non trouvée.`);
+    }
+
+    // Empêcher toute modification d'une commande annulée
+    if (order.status === 'CANCELLED') {
+      throw new ConflictException('Une commande annulée ne peut pas être modifiée.');
+    }
 
     return this.prisma.$transaction(async (tx) => {
       const updatedOrder = await tx.order.update({
         where: { id },
         data: { status: updateDto.status },
+        include: { orderItems: true, customer: true, salesRep: true },
       });
 
-      return updatedOrder;
+      return this.mapOrderToResponse(updatedOrder);
     });
   }
 
@@ -512,6 +546,7 @@ export class OrdersService {
 
       await tx.orderProductionHistory.create({
         data: {
+          id: generateId(ID_PREFIXES.ORDERPRODUCTIONHISTORY),
           orderId: id,
           status: updateDto.productionStatus,
         },
@@ -664,6 +699,11 @@ export class OrdersService {
         throw new NotFoundException(`Commande avec l'ID "${id}" non trouvée.`);
       }
 
+      // Empêcher le paiement d'une commande annulée
+      if (order.status === 'CANCELLED') {
+        throw new ConflictException('Le paiement d\'une commande annulée n\'est pas autorisé.');
+      }
+
       // 2. Valider le paiement
       const newAmountPaid = order.amountPaid.add(paymentAmount);
       if (newAmountPaid.greaterThan(order.totalAmount)) {
@@ -677,13 +717,28 @@ export class OrdersService {
         ? PaymentStatus.PAID
         : PaymentStatus.PARTIALLY_PAID;
 
-      const updatedOrder = await tx.order.update({
-        where: { id },
+      // Utiliser updateMany avec verrou optimiste pour éviter les race conditions
+      const updateCount = await tx.order.updateMany({
+        where: {
+          id,
+          amountPaid: order.amountPaid, // Vérifier que amountPaid n'a pas changé
+          paymentStatus: order.paymentStatus, // Vérifier que paymentStatus n'a pas changé
+        },
         data: {
           amountPaid: newAmountPaid,
           paymentStatus: newPaymentStatus,
           paymentMethod: paymentMethod,
         },
+      });
+
+      // Si l'update a échoué (count === 0), la commande a été modifiée par une autre requête
+      if (updateCount.count === 0) {
+        throw new ConflictException('Cette commande a été modifiée entre-temps. Veuillez réessayer.');
+      }
+
+      // Re-récupérer la commande mise à jour
+      const updatedOrder = await tx.order.findUniqueOrThrow({
+        where: { id },
         include: { orderItems: { include: { product: true } }, customer: true },
       });
 
@@ -720,7 +775,13 @@ export class OrdersService {
         });
       }
 
-      return updatedOrder;
+      // Re-fetch with all necessary relations for mapping
+      const finalOrder = await tx.order.findUniqueOrThrow({
+        where: { id },
+        include: { orderItems: { include: { product: true } }, customer: true, salesRep: true },
+      });
+
+      return this.mapOrderToResponse(finalOrder);
     });
   }
 

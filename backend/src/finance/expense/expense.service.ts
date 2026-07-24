@@ -10,6 +10,8 @@ import { UserRole } from '@prisma/client';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 import { checkRole } from 'src/common/auth/role/check-role.util';
 import { JournalizationService } from 'src/accounting/journalization/journalization.service';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class ExpensesService {
@@ -27,6 +29,7 @@ export class ExpensesService {
 
     const record = await this.prisma.expenseRecord.create({
       data: {
+        id: generateId(ID_PREFIXES.EXPENSE),
         ...createExpenseDto,
         expenseDate: new Date(createExpenseDto.expenseDate),
         subsidiaryId: user.subsidiaryId,

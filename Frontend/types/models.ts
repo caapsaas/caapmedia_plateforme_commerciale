@@ -337,6 +337,13 @@ export interface SpecReferenceList {
   values: SpecReferenceValue[];
 }
 
+export interface TopSellingProduct {
+  id: string;
+  productName: string;
+  quantity: number;
+  totalRevenue: number;
+}
+
 export interface Sale {
   id: string;
   productName: string;
@@ -376,6 +383,15 @@ export enum ProductionStatus {
   READY_FOR_DELIVERY = 'READY_FOR_DELIVERY',
 }
 
+export enum ProformaStatus {
+  DRAFT = 'DRAFT',
+  SENT = 'SENT',
+  VIEWED = 'VIEWED',
+  ACCEPTED = 'ACCEPTED',
+  REJECTED = 'REJECTED',
+  EXPIRED = 'EXPIRED',
+  CONVERTED = 'CONVERTED',
+}
 
 export interface ProductOptions {
     format?: string;
@@ -448,7 +464,6 @@ export interface Order {
   salesRep?: { id: string; firstName?: string; lastName?: string; fullName?: string; email?: string };
   subsidiary?: { subsidiaryName: string };
   items: OrderItem[];
-  orderItems: OrderItem[];
   totalAmount: number;
   subtotal: number;
   taxAmount: number;
@@ -464,7 +479,7 @@ export interface Order {
   salesRepId?: string;
   opportunityId?: string;
   paymentMethod: CustomerPaymentMethod;
-  source?: 'manual' | 'web_order' | 'quote_request';
+  source?: 'MANUAL' | 'WEB_ORDER' | 'QUOTE_REQUEST';
 }
 
 export interface Kpi {
@@ -741,6 +756,9 @@ export interface Employee {
     benefits: string[];
     lastSalaryAdjustmentDate: string | null;
     paymentMethod: PaymentMethod;
+    // Banking Info
+    bankName?: string;
+    bankAccountNumber?: string;
     // Documents
     documents: {
         contract: EmployeeDocument | null;
@@ -773,30 +791,32 @@ export interface Employee {
         maternity: number;
         paternity: number;
         other: number;
+        unpaid: number;
     };
     leaveRecords: LeaveRecord[];
+    // Personal Information
+    numberDependents?: number;
+    situationMatrimony?: string;
 }
 
 export enum LeaveType {
   ANNUAL = 'ANNUAL',
   SICK = 'SICK',
+  PERSONAL = 'PERSONAL',
+  MATERNITY = 'MATERNITY',
+  PATERNITY = 'PATERNITY',
+  OTHER = 'OTHER',
   UNPAID = 'UNPAID',
 }
 
 export interface LeaveRecord {
-  type: LeaveType;
+  leaveRecordType: LeaveType;
   startDate: string;
   endDate: string;
   days: number;
 }
 
 export type EmployeeFormData = Omit<Employee, 'id' | 'subsidiaryId' | 'positionHistory' | 'trainings' | 'performanceReviews'> & {
-    documents: {
-        contract: {name: string, url: string, file: File | null} | null;
-        idCard: {name: string, url: string, file: File | null} | null;
-        workPermit: {name: string, url: string, file: File | null} | null;
-        diplomas: {name: string, url: string, file: File | null}[];
-    };
     leaveBalance: {
         annual: number;
         sick: number;
@@ -804,8 +824,8 @@ export type EmployeeFormData = Omit<Employee, 'id' | 'subsidiaryId' | 'positionH
         maternity: number;
         paternity: number;
         other: number;
+        unpaid: number;
     };
-    leaveRecords: LeaveRecord[];
 };
 
 
@@ -954,7 +974,7 @@ export interface Opportunity {
     userId: string;
     subsidiaryId: string;
      productIds: string[];
-    source?: 'manual' | 'web_order' | 'quote_request';
+    source?: 'MANUAL' | 'WEB_ORDER' | 'QUOTE_REQUEST';
 }
 
 export enum InteractionType {

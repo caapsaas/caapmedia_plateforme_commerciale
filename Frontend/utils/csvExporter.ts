@@ -43,10 +43,10 @@ export const exportToCsv = (filename: string, headers: CsvHeader[], data: any[])
 };
 
 export const downloadCsvTemplate = () => {
-    const headers = ['name', 'category', 'description', 'stock', 'price', 'sellingPrice', 'warehouse', 'range'];
+    const headers = ['name', 'category', 'description', 'stock', 'warehouse', 'range'];
     const exampleData = [
-        '"T-Shirt Personnalisé","Textile","T-shirt de haute qualité 100% coton.",500,5000,12000,"Douala Centre","Standard"',
-        '"Flyers A5","Pub","Flyers couleur format A5, papier 135g.",10000,25,75,"Yaoundé Centre","Populaire"'
+        '"T-Shirt Personnalisé","Textile","T-shirt de haute qualité 100% coton.",500,"Douala Centre","Standard"',
+        '"Flyers A5","Pub","Flyers couleur format A5, papier 135g.",10000,"Yaoundé Centre","Populaire"'
     ];
     
     const csvContent = [headers.join(','), ...exampleData].join('\n');

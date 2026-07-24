@@ -7,8 +7,7 @@ import {
   Patch,
   Post,
   Query,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+  } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { Roles } from 'src/common/auth/role/role.decorator';
@@ -59,7 +58,7 @@ export class EquipementController {
 
   @Patch(':id')
   update(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('') id: string,
     @Body() updateEquipementDto: UpdateEquipmentDto,
     @Req() req: any,
   ) {
@@ -71,3 +70,5 @@ export class EquipementController {
     return this.equipementService.remove(id);
   }
 }
+
+

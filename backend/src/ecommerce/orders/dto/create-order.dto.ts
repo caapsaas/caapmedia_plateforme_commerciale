@@ -8,7 +8,6 @@ import {
   IsObject,
   IsOptional,
   IsString,
-  IsUUID,
   Min,
   Max,
   ValidateNested,
@@ -73,7 +72,7 @@ export class CreateProductionSummaryDto {
 }
 
 class CreateOrderItemDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   productId: string;
 
@@ -127,7 +126,7 @@ class CreateOrderItemDto {
 }
 
 export class CreateOrderBySalesRepDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   customerId: string;
 
@@ -144,7 +143,7 @@ export class CreateOrderBySalesRepDto {
   paymentMethod: CustomerPaymentMethod;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   opportunityId?: string;
 
   @IsNotEmpty()
@@ -155,6 +154,12 @@ export class CreateOrderBySalesRepDto {
   @ValidateNested({ each: true })
   @Type(() => CreateOrderItemDto)
   items: CreateOrderItemDto[];
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  customTaxRate?: number;
 }
 
 export class RecordPaymentDto {

@@ -58,6 +58,11 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
         const newQuantity = parseInt(e.target.value, 10);
         setQuantity(isNaN(newQuantity) || newQuantity < 1 ? 1 : newQuantity);
     };
+
+    const handleBasePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newPrice = parseFloat(e.target.value);
+        setBasePrice(isNaN(newPrice) || newPrice < 0 ? 0 : newPrice);
+    };
     
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {

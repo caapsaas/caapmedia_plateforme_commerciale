@@ -49,7 +49,7 @@ export class PayrollrecordController {
 
   @Get(':id')
   @Roles('HR_MANAGER', 'ADMIN')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
+  findOne(@Param('id') id: string) {
     return this.payrollRecordService.findOne(id);
   }
 
@@ -64,7 +64,7 @@ export class PayrollrecordController {
 
   @Delete(':id')
   @Roles('HR_MANAGER', 'ADMIN')
-  remove(@Param('id', ParseUUIDPipe) id: string) {
+  remove(@Param('id') id: string) {
     return this.payrollRecordService.remove(id);
   }
 
@@ -86,3 +86,5 @@ export class PayrollrecordController {
     return this.payrollRecordService.signPayrollRecord(id, body.signature);
   }
 }
+
+

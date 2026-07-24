@@ -3,13 +3,14 @@ import {
   IsArray,
   IsDefined,
   IsInt,
+  IsString,
   Min,
   ValidateNested,
 } from 'class-validator';
 
 class ReceiveItemDto {
-  @IsInt()
-  purchaseOrderItemId: number;
+  @IsString()
+  purchaseOrderItemId: string;
 
   @IsInt()
   @Min(1)

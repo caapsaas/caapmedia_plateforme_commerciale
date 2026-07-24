@@ -44,15 +44,12 @@ const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, onClose, 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
-        // Simulate API call to send email and save lead
+        onSave({ ...formData, file });
+        setIsSubmitting(false);
+        setIsSuccess(true);
         setTimeout(() => {
-            onSave({ ...formData, file });
-            setIsSubmitting(false);
-            setIsSuccess(true);
-            setTimeout(() => {
-                onClose();
-                setIsSuccess(false); // Reset for next use
-            }, 3000);
+            onClose();
+            setIsSuccess(false);
         }, 2000);
     };
 

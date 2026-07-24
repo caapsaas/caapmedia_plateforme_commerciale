@@ -26,6 +26,7 @@ import { StatisticsModule } from './statistics/statistics.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
 import { AccountingModule } from './accounting/accounting.module';
 import { validate } from './config/env.validation';
+import { ConfigurationModule } from './configuration/configuration.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { validate } from './config/env.validation';
     StatisticsModule,
     NewsletterModule,
     AccountingModule,
+    ConfigurationModule,
   ],
   controllers: [AppController],
   providers: [

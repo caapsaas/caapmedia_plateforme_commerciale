@@ -9,8 +9,7 @@ import {
   UseGuards,
   Req,
   SetMetadata,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+  } from '@nestjs/common';
 import { SuppliersService } from './suppliers.service';
 import {
   CreateSupplierDto,

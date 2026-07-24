@@ -9,6 +9,8 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
 import { Prisma, User, UserRole } from '@prisma/client';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class AccountsService {
@@ -52,6 +54,7 @@ export class AccountsService {
 
     return this.prisma.account.create({
       data: {
+        id: generateId(ID_PREFIXES.ACCOUNT),
         ...createAccountDto,
         subsidiaryId: subsidiaryId,
       },

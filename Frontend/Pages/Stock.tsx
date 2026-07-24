@@ -53,7 +53,6 @@ const Stock: React.FC = () => {
     const [editedPrice, setEditedPrice] = useState<number>(0);
     const [itemToDelete, setItemToDelete] = useState<StockItem | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [showSaveConfirm, setShowSaveConfirm] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
     // Filiale effective : pour le SUPER_ADMIN, l'utilisateur choisit

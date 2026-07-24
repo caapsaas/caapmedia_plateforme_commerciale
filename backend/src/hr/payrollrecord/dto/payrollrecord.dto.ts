@@ -17,7 +17,8 @@ export class CreatePayrollRecordDto {
   @Length(1, 255)
   employeeName: string;
 
-  @IsUUID()
+  @IsString()
+  @Length(1, 255)
   employeeId: string;
 
   @IsString()

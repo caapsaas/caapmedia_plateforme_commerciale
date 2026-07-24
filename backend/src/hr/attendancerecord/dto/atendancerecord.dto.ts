@@ -1,10 +1,10 @@
-import { IsString, IsDate, IsEnum, IsOptional, IsUUID } from 'class-validator';
+import { IsString, IsDate, IsEnum, IsOptional, IsNumber } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
 import { AttendanceStatus } from '@prisma/client';
 
 export class CreateAttendanceRecordDto {
-  @IsUUID()
+  @IsString()
   employeeId: string;
 
   @IsOptional()
@@ -13,7 +13,7 @@ export class CreateAttendanceRecordDto {
 
   @IsDate()
   @Transform(({ value }) => new Date(value))
-  attendanceDate: string;
+  attendanceDate: Date;
 
   @IsOptional()
   @IsDate()

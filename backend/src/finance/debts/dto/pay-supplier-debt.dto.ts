@@ -1,7 +1,7 @@
-import { IsNotEmpty, IsUUID, IsDateString } from 'class-validator';
+import { IsNotEmpty, IsDateString, IsString } from 'class-validator';
 
 export class PaySupplierDebtDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   treasuryAccountId: string;
 

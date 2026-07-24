@@ -21,11 +21,11 @@ export class CreateSecretariatTaskDto {
   status: SecretariatTaskStatus;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   assignedToId?: string;
 
   // ✅ Requis à la création
-  @IsUUID()
+  @IsString()
   subsidiaryId: string;
 }
 
@@ -47,12 +47,12 @@ export class UpdateSecretariatTaskDto {
   status?: SecretariatTaskStatus;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   assignedToId?: string;
 
   // ✅ Optionnel ici, car on ne change généralement pas de filiale
   @IsOptional()
-  @IsUUID()
+  @IsString()
   subsidiaryId?: string;
 }
 

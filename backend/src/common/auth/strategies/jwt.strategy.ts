@@ -51,6 +51,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       this.logger.error(`User with ID ${payload.sub} not found`, 'JwtStrategy');
       return null;
     }
+    // employeeId pour les fonctionnalités RH géolocalisées (carelle)
+    let employeeId: string | null = null;
+    try {
+      const employee = await this.prisma.employee.findUnique({
+        where: { email: user.email },
+      });
+      if (employee) {
+        employeeId = employee.id;
+      }
+    } catch (error) {
+      this.logger.warn(`Could not find employee for email ${user.email}`, 'JwtStrategy');
+    }
+
     // roles[] est la source de verite RBAC (backfillee/maintenue en synchro avec userRole+additionalRoles)
     const roles =
       user.roles.length > 0
@@ -72,6 +85,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       // re-emettre l'access token.
       activeRole: user.activeRole ?? user.userRole,
       subsidiaryId: user.subsidiaryId,
+      employeeId,
     };
   }
 }

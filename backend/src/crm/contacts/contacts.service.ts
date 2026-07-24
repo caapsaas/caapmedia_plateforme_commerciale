@@ -14,6 +14,8 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { ContactLoginDto } from './dto/contact-login.dto';
 import { RegisterContactDto } from './dto/register-contact.dto';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class ContactsService {
@@ -56,6 +58,7 @@ export class ContactsService {
 
     const newContact = await this.prisma.contact.create({
       data: {
+        id: generateId(ID_PREFIXES.CONTACT),
         ...createContactDto,
         // Si accountId est une chaîne vide, on le remplace par undefined
         // pour que Prisma ne tente pas de créer une relation invalide.
@@ -246,6 +249,7 @@ export class ContactsService {
 
     const newContact = await this.prisma.contact.create({
       data: {
+        id: generateId(ID_PREFIXES.CONTACT),
         ...rest,
         email,
         since: registerContactDto.since

@@ -1,0 +1,10 @@
+# Ignore uploaded images to prevent large binary files in git
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+*.svg
+
+# But keep the directory structure
+!.gitignore

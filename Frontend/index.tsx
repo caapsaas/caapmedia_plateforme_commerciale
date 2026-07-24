@@ -4,8 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { I18nProvider } from './i18n';
 import { AppProvider, useAppContext } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { LoadingProvider } from './context/LoadingContext';
 import { RouterProvider } from '@tanstack/react-router';
 import { createMyRouter } from './router';
+import LoadingOverlay from './components/common/LoadingOverlay';
+import { useHttpLoading } from './hooks/useHttpLoading';
 
 // Créer une instance du client
 
@@ -15,6 +18,12 @@ const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error("L'élément racine est introuvable.");
 }
+
+// Component to initialize HTTP loading interceptors
+const HttpLoadingInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  useHttpLoading();
+  return <>{children}</>;
+};
 
 const Root = () => {
   // On récupère le contexte d'authentification ici
@@ -36,15 +45,20 @@ const Root = () => {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <I18nProvider>
-        <AppProvider>
-          {/* AuthProvider doit englober le composant qui utilise useAuth */}
-          <AuthProvider>
-            <Root />
-          </AuthProvider>
-        </AppProvider>
-      </I18nProvider>
-    </QueryClientProvider>
+    <LoadingProvider>
+      <QueryClientProvider client={queryClient}>
+        <I18nProvider>
+          <AppProvider>
+            {/* AuthProvider doit englober le composant qui utilise useAuth */}
+            <AuthProvider>
+              <HttpLoadingInitializer>
+                <LoadingOverlay />
+                <Root />
+              </HttpLoadingInitializer>
+            </AuthProvider>
+          </AppProvider>
+        </I18nProvider>
+      </QueryClientProvider>
+      </LoadingProvider>
   </React.StrictMode>
 );

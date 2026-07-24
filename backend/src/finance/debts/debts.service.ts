@@ -14,6 +14,8 @@ import { validate as isUUID } from 'uuid';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 import { checkRole } from 'src/common/auth/role/check-role.util';
 
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 @Injectable()
 export class DebtsService {
   constructor(
@@ -47,6 +49,7 @@ export class DebtsService {
 
     return this.prisma.supplierDebt.create({
       data: {
+        id: generateId(ID_PREFIXES.LONGTERDEBT),
         ...dto,
         dueDate: new Date(dto.dueDate),
         status: DebtStatus.A_PAYER,
@@ -126,6 +129,7 @@ export class DebtsService {
 
     return this.prisma.longTermDebt.create({
       data: {
+        id: generateId(ID_PREFIXES.LONGTERDEBT),
         ...dto,
         currentBalance: dto.initialAmount,
         maturityDate: new Date(dto.maturityDate),

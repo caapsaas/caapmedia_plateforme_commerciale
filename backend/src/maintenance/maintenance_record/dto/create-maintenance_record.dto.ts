@@ -23,7 +23,7 @@ export class CreateMaintenanceRecordDto {
   @Min(0)
   maintenanceCost: number;
 
-  @IsUUID()
+  @IsString()
   equipmentId: string;
 }
 
@@ -35,7 +35,7 @@ export class UpdateMaintenanceRecordDto extends PartialType(
 // DTO de recherche/filtre
 export class SearchMaintenanceRecordDto {
   @IsOptional()
-  @IsUUID()
+  @IsString()
   equipmentId?: string;
 
   @IsOptional()

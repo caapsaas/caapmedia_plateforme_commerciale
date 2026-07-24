@@ -56,7 +56,7 @@ class RegisterDto {
   @IsEnum(UserRole, { each: true })
   additionalRoles?: UserRole[];
 
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   subsidiaryId: string;
 }
@@ -102,7 +102,7 @@ class UpdateUserDto {
   additionalRoles?: UserRole[];
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   subsidiaryId?: string;
 }
 

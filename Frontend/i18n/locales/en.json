@@ -34,6 +34,19 @@
     "openMenu": "Open menu",
     "changeRole": "Change role"
   },
+  "filter": {
+    "client": "Client",
+    "noResults": "No results"
+  },
+  "invoice": {
+    "subtotal": "Subtotal",
+    "tax": "Tax"
+  },
+  "cashRegister": {
+    "clientSection": {
+      "selectAdd": "Select or Add"
+    }
+  },
   "common": {
     "cancel": "Cancel",
     "save": "Save",
@@ -43,11 +56,20 @@
     "logout": "Logout",
     "version": "Version",
     "print": "Print",
+    "export": "Export",
     "exportPdf": "Export PDF",
     "loading": "Loading...",
     "saving": "Saving...",
     "accessDenied": "Access denied",
     "viewBL": "View delivery note",
+    "viewBonDeCommande": "View PO",
+    "close": "Close",
+    "view": "View",
+    "search": "Search",
+    "notAvailable": "Not available",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Information",
     "error": {
       "load": "Error loading data."
     }
@@ -108,6 +130,7 @@
       "addClientTitle": "Add client",
       "editClientTitle": "Edit client",
       "deleteClientTitle": "Delete client",
+      "deleteEmployeeTitle": "Delete Employee",
       "deleteConfirmMessage": "This action is irreversible. Are you sure?"
     },
     "serviceForm": {
@@ -279,6 +302,66 @@
     "range": "Range"
   },
   "hr": {
+    "title": "HR Management",
+    "management": "HR Management",
+    "employeeManagement": "Employee Management",
+    "addEmployee": "Add Employee",
+    "editEmployee": "Edit Employee",
+    "updateEmployee": "Update Employee",
+    "deleteEmployee": "Delete Employee",
+    "foundEmployees": "employee(s) found",
+    "employees": {
+      "title": "Employees",
+      "id": "ID",
+      "fullName": "Full Name",
+      "position": "Position",
+      "department": "Department",
+      "contractType": "Contract Type",
+      "status": "Status",
+      "add": "Add Employee"
+    },
+    "tabs": {
+      "employees": "Employees",
+      "attendance": "Attendance",
+      "payroll": "Payroll",
+      "absences": "Absences"
+    },
+    "table": {
+      "name": "Name",
+      "email": "Email",
+      "department": "Department",
+      "position": "Position",
+      "status": "Status",
+      "salary": "Salary",
+      "contract": "Contract",
+      "actions": "Actions"
+    },
+    "actions": {
+      "export": "Export",
+      "csv": "CSV",
+      "pdf": "PDF",
+      "edit": "Edit",
+      "delete": "Delete",
+      "view": "View",
+      "confirm": "Are you sure?"
+    },
+    "employee": {
+      "saved": "Employee saved successfully",
+      "savedWithDocs": "Employee, documents and leaves saved successfully",
+      "saveFailed": "Failed to save employee",
+      "deleted": "Employee deleted successfully",
+      "deleteFailed": "Failed to delete employee",
+      "detailsLoadFailed": "Failed to load employee details"
+    },
+    "noEmployeesToExport": "No employees to export",
+    "noEmployeesFound": "No employees found",
+    "exportedCsv": "Employees exported to CSV",
+    "exportedPdf": "Employees exported to PDF",
+    "exportFailed": "Export failed",
+    "viewMode": {
+      "table": "Table",
+      "cards": "Cards"
+    },
     "gender": {
       "MALE": "Male",
       "FEMALE": "Female",
@@ -301,6 +384,61 @@
       "CHECK": "Check",
       "CASH": "Cash"
     },
+    "bankingDetails": "Banking Details",
+    "bankName": "Bank Name",
+    "bankAccountNumber": "Account Number (RIB/IBAN)",
+    "maritalStatus": "Marital Status",
+    "maritalStatusOptions": {
+      "SINGLE": "Single",
+      "MARRIED": "Married",
+      "DIVORCED": "Divorced",
+      "WIDOWED": "Widowed"
+    },
+    "numberDependents": "Number of Dependents",
+    "dependentsHelperText": "For tax deduction calculation",
+    "cancel": "Cancel",
+    "form": {
+      "sections": {
+        "personal": "Personal Information",
+        "professional": "Professional Information",
+        "salary": "Salary & Compensation",
+        "documents": "Documents",
+        "leaves": "Leave Entitlements"
+      },
+      "salarySection": {
+        "title": "Salary & Compensation",
+        "subtitle": "Financial information",
+        "baseSalary": "Base Salary",
+        "baseSalaryHelper": "Minimum salary (FCFA)",
+        "bonus": "Bonus",
+        "bonusHelper": "Additional compensation (FCFA)",
+        "paymentMethod": "Payment Method"
+      },
+      "documentsSection": {
+        "title": "Documents",
+        "subtitle": "Employee documentation",
+        "uploadMessage": "📄 Document upload functionality would be implemented here"
+      },
+      "leavesSection": {
+        "title": "Leave Entitlements",
+        "subtitle": "Leave balance configuration",
+        "tabBalance": "Balance",
+        "tabRecords": "Leave History"
+      }
+    },
+    "leaves": {
+      "leaveHistory": "Leave History",
+      "addLeaveRecord": "Record Leave",
+      "noRecords": "No leave records",
+      "daysHelper": "Number of leave days",
+      "unpaidHelperText": "Unpaid leave days",
+      "balanceInfo": "Available leave balance",
+      "leaveType": "Leave Type",
+      "days": "Days",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "configureBalance": "Configure Leave Balance"
+    },
     "documents": {
       "title": "Documents",
       "addDocument": "Add Document",
@@ -310,7 +448,37 @@
       "expiryDate": "Expiry Date",
       "status": "Status",
       "selectType": "Select a type",
-      "noDocuments": "No documents added"
+      "noDocuments": "No documents added",
+      "contract": "Employment Contract",
+      "contractDesc": "Employment contract or agreement",
+      "idCard": "ID Card / National ID",
+      "idCardDesc": "ID card or passport",
+      "workPermit": "Work Permit",
+      "workPermitDesc": "Work permit or visa",
+      "diplomas": "Diplomas & Certifications",
+      "uploaded": "✓ Uploaded",
+      "download": "Download",
+      "remove": "Remove",
+      "removeDocument": "Remove this document",
+      "noDocuments": "No documents have been added for this employee",
+      "dragOrClick": "Drag and drop your file here, or click to select",
+      "dragDrop": "Drag and drop a file or click",
+      "selectFile": "Select",
+      "addDiplomas": "Add Diplomas",
+      "addDiploma": "Add Diploma",
+      "diplomasTitle": "Diplomas & Qualifications",
+      "diplomasHelper": "You can add multiple diplomas",
+      "uploadedDiplomas": "Added Diplomas",
+      "fileSelected": "File selected",
+      "toUpload": "To upload",
+      "mainDocuments": "Main Documents",
+      "acceptedFormats": "Accepted Formats",
+      "formatInfo": "PDF, DOC, DOCX, JPG, PNG (Max 10MB per file). Documents will be uploaded when saving the employee.",
+      "contractUploadFailed": "Error uploading contract",
+      "idCardUploadFailed": "Error uploading ID card",
+      "workPermitUploadFailed": "Error uploading work permit",
+      "fileNotYetUploaded": "Selected files will not be saved. A file upload endpoint must be implemented in the backend first.",
+      "requirements": "Required documents: Employment Contract, ID Card/National ID, and Work Permit. Diplomas are optional but recommended."
     },
     "documentType": {
       "idCard": "ID Card",
@@ -337,7 +505,82 @@
       "title": "Leave Balance",
       "summary": "Summary",
       "totalDays": "Total Days",
-      "days": "days"
+      "days": "days",
+      "totalEntitlements": "Total Entitlements",
+      "unpaidLeave": "Unpaid Leave"
+    },
+    "leaves": {
+      "leaveType": "Leave Type",
+      "currentBalance": "Current Leave Balance",
+      "configureBalance": "Configure Leave Entitlements",
+      "daysHelper": "Number of days the employee is entitled to",
+      "unpaidHelperText": "Additional unpaid leave days",
+      "balanceInfo": "Leave entitlements are typically configured based on the employment contract. Annual leave is usually 30 days minimum in Cameroon, maternity 56 days, paternity 3 days.",
+      "leaveHistory": "Leave Records",
+      "addLeaveRecord": "Add Leave Record",
+      "addRecord": "Add Record",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "days": "Number of Days",
+      "noRecords": "No leave records yet",
+      "available": "Available",
+      "validation": {
+        "startDateRequired": "Start date is required",
+        "endDateRequired": "End date is required",
+        "endDateAfterStart": "End date must be after start date",
+        "daysRequired": "Number of days is required and must be greater than 0",
+        "insufficientBalance": "Insufficient leave balance"
+      }
+    },
+    "stats": {
+      "totalEmployees": "Total Employees",
+      "totalEmployeesSubtitle": "Active & all statuses",
+      "active": "Active",
+      "activeSubtitle": "% of workforce",
+      "onLeave": "On Leave",
+      "onLeaveSubtitle": "Currently away",
+      "recentlyAdded": "Recently Added",
+      "recentlyAddedSubtitle": "Last 30 days"
+    },
+    "details": {
+      "personalInfo": "Personal Information",
+      "professionalInfo": "Professional Information",
+      "status": "Status",
+      "contractType": "Contract Type",
+      "yearsOfService": "Years of Service",
+      "email": "Email",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "birthDate": "Birth Date",
+      "gender": "Gender",
+      "nationality": "Nationality",
+      "phone": "Phone",
+      "address": "Address",
+      "department": "Department",
+      "position": "Position",
+      "workLocation": "Work Location",
+      "hireDate": "Hire Date",
+      "salary": "Salary",
+      "baseSalary": "Base Salary",
+      "bonus": "Bonus",
+      "paymentMethod": "Payment Method",
+      "lastSalaryAdjustment": "Last Salary Adjustment",
+      "benefits": "Benefits",
+      "bankAccount": "Bank Account Details",
+      "bankName": "Bank Name",
+      "bankAccountNumber": "Account Number",
+      "leaveEntitlements": "Leave Entitlements",
+      "leaveHistory": "Leave History",
+      "documents": "Documents",
+      "contract": "Employment Contract",
+      "idCard": "ID Card",
+      "workPermit": "Work Permit",
+      "diplomas": "Diplomas",
+      "positionHistory": "Position History",
+      "trainings": "Trainings",
+      "performanceReviews": "Performance Reviews",
+      "reviewer": "Reviewer",
+      "rating": "Rating"
     }
   },
   "pnl": {
@@ -388,6 +631,39 @@
       "VALIDATED": "Validated",
       "CANCELLED": "Cancelled"
     }
+  },
+  "newOrder": {
+    "productCatalog": "Product Catalog",
+    "searchPlaceholder": "Search for a product...",
+    "price": "Price",
+    "product": "Product",
+    "quantity": "Quantity",
+    "addToCart": "Add to Cart",
+    "orderSummary": "Order Summary",
+    "cartEmpty": "Cart is empty",
+    "total": "Total",
+    "submitOrder": "Place Order",
+    "orderPlacedSuccess": "Order created successfully!"
+  },
+  "bonDeCommande": {
+    "title": "Purchase Order",
+    "orderNum": "Order Number",
+    "date": "Date",
+    "dueDate": "Due Date",
+    "billedTo": "Billed To",
+    "item": "Product",
+    "items": "Order Details",
+    "quantity": "Quantity",
+    "unitPrice": "Unit Price",
+    "totalPrice": "Total",
+    "total": "TOTAL",
+    "paymentMethod": "Payment Method",
+    "paymentDueDate": "Payment Due Date",
+    "print": "Print",
+    "exportPdf": "Export to PDF",
+    "footer": "Thank you for your trust. This order is valid until",
+    "status": "Status",
+    "noData": "No orders"
   },
   "treasuryAccounts": {
     "title": "Treasury Accounts",
@@ -658,5 +934,67 @@
     "paymentMethod_MOBILE_MONEY": "Mobile Money",
     "paymentMethod_PAYCAAP": "PayCaap",
     "paymentMethod_CUSTOMER_CREDIT": "Customer credit"
+  },
+  "payroll": {
+    "title": "Payroll Scales",
+    "configuration": "Configuration",
+    "components": "Salary Components",
+    "taxBrackets": "Tax Brackets",
+    "allowances": "Allowances",
+    "salaryComponents": "Salary Components",
+    "minWage": "Minimum Wage",
+    "wagePeriod": "Wage Period",
+    "cnpsEmployeeRate": "CNPS Employee Rate",
+    "cnpsEmployerRate": "CNPS Employer Rate",
+    "rate": "Rate",
+    "type": "Type",
+    "cameroonLaw": "Legal References",
+    "taxBracketsDesc": "Income tax brackets management",
+    "modal": {
+      "updateSmigTitle": "Update Minimum Wage (SMIG)",
+      "updateSmigDesc": "Update the minimum guaranteed salary for Cameroon",
+      "updateCnpsTitle": "Update CNPS Contribution Rates",
+      "updateCnpsDesc": "Update employee and employer contribution rates to CNPS",
+      "updateIrppTitle": "Update IRPP Tax Brackets",
+      "updateIrppDesc": "Configure income tax brackets for payroll calculations",
+      "updateLeaveTitle": "Update Leave Entitlements",
+      "updateLeaveDesc": "Configure leave entitlements and durations for all leave types"
+    },
+    "form": {
+      "minWage": "Minimum Wage",
+      "effectiveDate": "Effective Date",
+      "employeeRate": "Employee Rate",
+      "employerRate": "Employer Rate",
+      "minAmount": "Min Amount (FCFA)",
+      "maxAmount": "Max Amount (FCFA)",
+      "rate": "Tax Rate",
+      "leaveType": "Leave Type",
+      "daysPerYear": "Days Per Year",
+      "isPaid": "Paid Leave",
+      "paid": "Paid",
+      "unpaid": "Unpaid",
+      "description": "Description",
+      "above": "Above",
+      "leaveTypePlaceholder": "e.g. Annual Leave, Sick Leave",
+      "descriptionPlaceholder": "Optional description"
+    },
+    "infoBox": {
+      "title": "Note"
+    },
+    "infoBoxText": "These are the standard rates for Cameroon 2024. All values are used automatically when calculating employee payroll. Changes will apply to future payroll calculations.",
+    "errors": {
+      "invalidAmount": "Please enter a valid amount greater than 0",
+      "invalidRate": "Please enter a valid rate between 0 and 100%",
+      "invalidBracket": "Please verify tax bracket values",
+      "invalidEntitlement": "Please verify leave entitlement values",
+      "emptyBrackets": "At least one tax bracket is required",
+      "emptyEntitlements": "At least one leave entitlement is required"
+    },
+    "success": {
+      "updated": "Payroll configuration updated successfully"
+    },
+    "error": {
+      "update": "Error updating payroll configuration"
+    }
   }
 }

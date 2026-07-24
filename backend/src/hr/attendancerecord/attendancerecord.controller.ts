@@ -50,7 +50,7 @@ export class AttendanceRecordController {
 
   @Get(':id')
   @Roles('HR_MANAGER', 'ADMIN') // Ajout de la protection pour la cohérence
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
+  findOne(@Param('id') id: string) {
     return this.attendanceRecordService.findOne(id);
   }
 
@@ -65,7 +65,7 @@ export class AttendanceRecordController {
 
   @Delete(':id')
   @Roles('HR_MANAGER', 'ADMIN')
-  remove(@Param('id', ParseUUIDPipe) id: string) {
+  remove(@Param('id') id: string) {
     return this.attendanceRecordService.remove(id);
   }
 }
