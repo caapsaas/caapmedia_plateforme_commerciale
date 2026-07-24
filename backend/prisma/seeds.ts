@@ -42,10 +42,11 @@ async function seedEmployeeLeaveBalances() {
         },
         update: {},
         create: {
+          id: `${employee.id}-${leaveType}`,
           employeeId: employee.id,
           leaveType: leaveType as LeaveType,
           days: days,
-        },
+        } as any,
       });
     }
   }
@@ -64,7 +65,7 @@ async function main() {
   await runContactSeeder(prisma);
   await runEquipmentSeeder(prisma);
   await runTaxRateSeeder(prisma);
-  await runOrdersSeeder(prisma);
+  //await runOrdersSeeder(prisma);
   await runSupplierSeeder(prisma);
   await seedTreasuryAccounts();
   // Apres subsidiary/user/product/contact/tax_rate: cree les mouvements

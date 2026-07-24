@@ -956,7 +956,6 @@ async function seedStockProducts(
           description: p.description,
           type: ItemType.STOCK_PRODUCT,
           productRange: p.range,
-          price: new Prisma.Decimal(p.price),
           stockManaged: true,
           baseUnitId,
         },

@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Subsidiary {
-  id                            String                         @id @map("id") @db.Text
+  id                            String                         @id @map("id") @db.Text @default(uuid())
   subsidiaryName                String                         @map("subsidiary_name") @db.VarChar(255)
   logoSvg                       String                         @map("logo_svg")
   address                       String                         @map("address")
@@ -72,7 +72,7 @@ model Subsidiary {
 }
 
 model User {
-  id                            String                         @id @map("id") @db.Text
+  id                            String                         @id @map("id") @db.Text @default(uuid())
   userName                      String                         @map("user_name") @db.VarChar(255)
   email                         String                         @unique @map("email") @db.VarChar(255)
   passwordHash                  String                         @map("password_hash")
@@ -164,7 +164,7 @@ model AuthAuditLog {
 }
 
 model Notification {
-  id            String           @id @map("id")
+  id            String           @id @map("id") @default(uuid())
   title         String           @map("title") @db.VarChar(255)
   message       String           @map("message")
   read          Boolean          @default(false) @map("read")
@@ -213,7 +213,6 @@ model Item {
   // Champs STOCK_PRODUCT uniquement — valeurs globales par défaut (prix
   // d'achat, seuil, fournisseur principal) ; la quantité réelle est dans ItemStock.
   sku                  String?              @map("sku") @db.VarChar(100)
-  price                Decimal?             @map("price") @db.Decimal(15, 2)
   minThreshold         Decimal?             @map("min_threshold")
   stockManaged         Boolean              @default(false) @map("stock_managed")
   mainSupplierId       String?              @map("main_supplier_id") @db.Uuid
@@ -338,7 +337,7 @@ model StockMovement {
 }
 
 model ProductImage {
-  id        Int     @id @default(autoincrement()) @map("id")
+  id        String  @id @default(uuid()) @map("id")
   imageName String  @map("image_name") @db.VarChar(255)
   imageUrl  String  @map("image_url")
   productId String? @map("product_id") @db.Uuid
@@ -448,7 +447,7 @@ model SpecReferenceValue {
 }
 
 model Employee {
-  id                       String                      @id @map("id")
+  id                       String                      @id @map("id") @default(uuid())
   lastName                 String                      @map("last_name") @db.VarChar(100)
   firstName                String                      @map("first_name") @db.VarChar(100)
   birthDate                DateTime                    @map("birth_date")
@@ -511,7 +510,7 @@ model Employee {
 }
 
 model EmployeeDocument {
-  id           String       @id @map("id") @db.Text
+  id           String       @id @map("id") @db.Text @default(uuid())
   documentName String       @map("document_name") @db.VarChar(255)
   url          String       @map("url")
   employeeId   String       @map("employee_id")
@@ -522,7 +521,7 @@ model EmployeeDocument {
 }
 
 model EmployeePositionHistory {
-  id               String    @id @map("id") @db.Text
+  id               String    @id @map("id") @db.Text @default(uuid())
   employeePosition String    @map("employee_position") @db.VarChar(100)
   department       String?   @map("department") @db.VarChar(100)
   startDate        DateTime  @map("start_date")
@@ -534,7 +533,7 @@ model EmployeePositionHistory {
 }
 
 model EmployeeTraining {
-  id           String   @id @map("id") @db.Text
+  id           String   @id @map("id") @db.Text @default(uuid())
   trainingName String   @map("training_name") @db.VarChar(255)
   trainingDate DateTime @map("training_date")
   provider     String?  @map("provider") @db.VarChar(255)
@@ -545,7 +544,7 @@ model EmployeeTraining {
 }
 
 model EmployeePerformanceReview {
-  id             String   @id @map("id") @db.Text
+  id             String   @id @map("id") @db.Text @default(uuid())
   reviewDate     DateTime @map("review_date")
   reviewer       String?  @map("reviewer") @db.VarChar(255)
   rating         Int?     @map("rating")
@@ -557,7 +556,7 @@ model EmployeePerformanceReview {
 }
 
 model EmployeeLeaveRecord {
-  id              String    @id @map("id") @db.Text
+  id              String    @id @map("id") @db.Text @default(uuid())
   startDate       DateTime  @map("start_date")
   endDate         DateTime  @map("end_date")
   days            Int       @map("days")
@@ -569,7 +568,7 @@ model EmployeeLeaveRecord {
 }
 
 model EmployeeLeaveBalance {
-  id          String    @id @map("id")
+  id          String    @id @map("id") @default(uuid())
   employeeId  String    @map("employee_id")
   leaveType   LeaveType @map("leave_type")
   days        Decimal   @default(0) @map("days") @db.Decimal(5, 2)
@@ -582,7 +581,7 @@ model EmployeeLeaveBalance {
 }
 
 model Account {
-  id            String        @id @map("id")
+  id            String        @id @map("id") @default(uuid())
   accountName   String        @map("account_name") @db.VarChar(255)
   industry      String        @map("industry") @db.VarChar(255)
   phone         String        @map("phone") @db.VarChar(255)
@@ -602,7 +601,7 @@ model Account {
 }
 
 model Contact {
-  id            String         @id @map("id")
+  id            String         @id @map("id") @default(uuid())
   contactName   String         @map("contact_name") @db.VarChar(255)
   company       String         @map("company") @db.VarChar(255)
   email         String         @unique @map("email") @db.VarChar(255)
@@ -635,7 +634,7 @@ model Contact {
 }
 
 model Sale {
-  id            String                @id @map("id")
+  id            String                @id @map("id") @default(uuid())
   productName   String                @map("product_name") @db.VarChar(255)
   quantity      Int                   @map("quantity")
   totalPrice    Decimal               @map("total_price") @db.Decimal(15, 2)
@@ -665,7 +664,7 @@ model Sale {
 }
 
 model TaxRate {
-  id           String  @id @map("id") @db.Text
+  id           String  @id @map("id") @db.Text @default(uuid())
   taxRatesName String  @map("tax_rates_name") @db.VarChar(255)
   rate         Decimal @map("rate") @db.Decimal(5, 4)
   isDefault    Boolean @default(false) @map("is_default")
@@ -677,7 +676,7 @@ model TaxRate {
 }
 
 model Opportunity {
-  id                String               @id @map("id")
+  id                String               @id @map("id") @default(uuid())
   opportunityName   String               @map("opportunity_name") @db.VarChar(255)
   opportunityValue  Decimal              @map("opportunity_value") @db.Decimal(15, 2)
   closeDate         DateTime             @map("close_date")
@@ -700,7 +699,7 @@ model Opportunity {
 }
 
 model OpportunityProduct {
-  id            String      @id @map("id")
+  id            String      @id @map("id") @default(uuid())
   opportunityId String      @map("opportunity_id")
   productId     String      @map("product_id")
   opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
@@ -710,7 +709,7 @@ model OpportunityProduct {
 }
 
 model OrderGroup {
-  id          String   @id @map("id")
+  id          String   @id @map("id") @default(uuid())
   groupCode   String   @unique @map("group_code")
   customerId  String   @map("customer_id")
   totalAmount Decimal  @default(0) @map("total_amount") @db.Decimal(15, 2)
@@ -722,7 +721,7 @@ model OrderGroup {
 }
 
 model Order {
-  id                String                   @id @map("id")
+  id                String                   @id @map("id") @default(uuid())
   orderDate         DateTime                 @default(now()) @map("order_date")
   customerName      String                   @map("customer_name") @db.VarChar(255)
   subtotal          Decimal                  @default(0) @map("subtotal") @db.Decimal(15, 2)
@@ -762,7 +761,7 @@ model Order {
 }
 
 model OrderProductionHistory {
-  id         String           @id @map("id") @db.Text
+  id         String           @id @map("id") @db.Text @default(uuid())
   changeDate DateTime         @default(now()) @map("change_date")
   orderId    String           @map("order_id")
   status     ProductionStatus @map("status")
@@ -772,7 +771,7 @@ model OrderProductionHistory {
 }
 
 model OrderItem {
-  id             String          @id @map("id")
+  id             String          @id @map("id") @default(uuid())
   quantity       Int             @map("quantity")
   unitPrice      Decimal         @map("unit_price") @db.Decimal(15, 2)
   // Remise négociée sur cette ligne (montant, pas %) et total figé historiquement
@@ -801,7 +800,7 @@ model OrderItem {
 }
 
 model ProductOption {
-  id          String     @id @map("id") @db.Text
+  id          String     @id @map("id") @db.Text @default(uuid())
   optionType  String     @map("option_type")
   optionValue String     @map("option_value") @db.VarChar(150)
   orderItemId String?    @map("order_item_id")
@@ -811,7 +810,7 @@ model ProductOption {
 }
 
 model Kpi {
-  id         String     @id @map("id")
+  id         String     @id @map("id") @default(uuid())
   titleKey   String     @map("title_key") @db.VarChar(100)
   kpiValue   String     @map("kpi_value") @db.VarChar(50)
   change     String     @map("change") @db.VarChar(50)
@@ -821,7 +820,7 @@ model Kpi {
 }
 
 model Supplier {
-  id             String          @id @map("id")
+  id             String          @id @map("id") @default(uuid())
   supplierName   String          @map("supplier_name") @db.VarChar(255)
   company        String          @map("company") @db.VarChar(255)
   email          String          @map("email") @db.VarChar(255)
@@ -837,7 +836,7 @@ model Supplier {
 }
 
 model PurchaseOrder {
-  id                   String                 @id @map("id")
+  id                   String                 @id @map("id") @default(uuid())
   supplierName         String                 @map("supplier_name") @db.VarChar(255)
   orderDate            DateTime               @map("order_date")
   expectedDeliveryDate DateTime               @map("expected_delivery_date")
@@ -864,7 +863,7 @@ model PurchaseOrder {
 }
 
 model PurchaseOrderItem {
-  id               String        @id @map("id") @db.Text
+  id               String        @id @map("id") @db.Text @default(uuid())
   productName      String        @map("product_name") @db.VarChar(255)
   quantity         Int           @map("quantity")
   quantityReceived Int           @map("quantity_received")
@@ -884,7 +883,7 @@ model PurchaseOrderItem {
 }
 
 model PurchaseOrderHistory {
-  id              String        @id @map("id") @db.Text
+  id              String        @id @map("id") @db.Text @default(uuid())
   eventName       String        @map("event_name") @db.VarChar(255)
   eventDate       DateTime      @default(now()) @map("event_date")
   purchaseOrderId String        @map("purchase_order_id")
@@ -894,7 +893,7 @@ model PurchaseOrderHistory {
 }
 
 model CreditAccount {
-  id              String     @id @map("id")
+  id              String     @id @map("id") @default(uuid())
   clientName      String     @map("client_name") @db.VarChar(255)
   companyName     String     @map("company_name") @db.VarChar(255)
   balance         Decimal    @map("balance") @db.Decimal(15, 2)
@@ -908,7 +907,7 @@ model CreditAccount {
 }
 
 model TreasuryAccount {
-  id                    String                 @id @map("id")
+  id                    String                 @id @map("id") @default(uuid())
   accountName           String                 @map("account_name") @db.VarChar(255)
   balance               Decimal                @map("balance") @db.Decimal(15, 2)
   currency              String                 @map("currency") @db.VarChar(10)
@@ -922,7 +921,7 @@ model TreasuryAccount {
 }
 
 model FinancialTransaction {
-  id                       String          @id @map("id")
+  id                       String          @id @map("id") @default(uuid())
   transactionDate          DateTime        @map("transaction_date")
   description              String?         @map("description")
   amount                   Decimal         @map("amount") @db.Decimal(15, 2)
@@ -942,7 +941,7 @@ model FinancialTransaction {
 }
 
 model ExternalFinancialTransaction {
-  id                          String                      @id @map("id")
+  id                          String                      @id @map("id") @default(uuid())
   transactionDate             DateTime                    @map("transaction_date")
   description                 String                      @map("description")
   amount                      Decimal                     @map("amount") @db.Decimal(15, 2)
@@ -967,7 +966,7 @@ model ExternalFinancialTransaction {
 }
 
 model CompanyDocument {
-  id           String           @id @map("id")
+  id           String           @id @map("id") @default(uuid())
   documentName String           @map("document_name") @db.VarChar(255)
   uploadDate   DateTime         @default(now()) @map("upload_date")
   fileUrl      String           @map("file_url")
@@ -983,7 +982,7 @@ model CompanyDocument {
 }
 
 model Meeting {
-  id              String               @id @map("id")
+  id              String               @id @map("id") @default(uuid())
   title           String               @db.VarChar(255)
   meetingDate     DateTime             @map("meeting_date")
   meetingTime     DateTime             @map("meeting_time")
@@ -999,7 +998,7 @@ model Meeting {
 }
 
 model MeetingParticipant {
-  id         String   @id @map("id") @db.Text
+  id         String   @id @map("id") @db.Text @default(uuid())
   meetingId  String   @map("meeting_id")
   employeeId String   @map("employee_id")
   employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
@@ -1010,7 +1009,7 @@ model MeetingParticipant {
 }
 
 model SecretariatTask {
-  id           String                @id @map("id")
+  id           String                @id @map("id") @default(uuid())
   title        String                @db.VarChar(255)
   description  String
   dueDate      DateTime              @map("due_date")
@@ -1027,7 +1026,7 @@ model SecretariatTask {
 }
 
 model Interaction {
-  id               String          @id @map("id")
+  id               String          @id @map("id") @default(uuid())
   interactionDate  DateTime        @map("interaction_date")
   notes            String
   contactId        String          @map("contact_id")
@@ -1040,7 +1039,7 @@ model Interaction {
 }
 
 model CrmTask {
-  id            String          @id @map("id")
+  id            String          @id @map("id") @default(uuid())
   title         String          @db.VarChar(255)
   description   String?
   dueDate       DateTime        @map("due_date")
@@ -1057,7 +1056,7 @@ model CrmTask {
 }
 
 model Lead {
-  id           String     @id @map("id")
+  id           String     @id @map("id") @default(uuid())
   leadName     String     @map("lead_name") @db.VarChar(255)
   company      String     @db.VarChar(255)
   email        String     @unique @db.VarChar(255)
@@ -1077,7 +1076,7 @@ model Lead {
 }
 
 model Contract {
-  id           String         @id @map("id")
+  id           String         @id @map("id") @default(uuid())
   title        String
   startDate    DateTime       @map("start_date")
   endDate      DateTime       @map("end_date")
@@ -1092,7 +1091,7 @@ model Contract {
 }
 
 model FixedAsset {
-  id               String     @id @map("id")
+  id               String     @id @map("id") @default(uuid())
   fixedAssetsName  String     @map("fixed_assets_name") @db.VarChar(255)
   acquisitionDate  DateTime   @map("acquisition_date")
   acquisitionCost  Decimal    @map("acquisition_cost") @db.Decimal(15, 2)
@@ -1105,7 +1104,7 @@ model FixedAsset {
 }
 
 model LongTermDebt {
-  id             String     @id @map("id")
+  id             String     @id @map("id") @default(uuid())
   debtsName      String     @map("debts_name") @db.VarChar(255)
   initialAmount  Decimal    @map("initial_amount") @db.Decimal(15, 2)
   currentBalance Decimal    @map("current_balance") @db.Decimal(15, 2)
@@ -1119,7 +1118,7 @@ model LongTermDebt {
 }
 
 model Equipment {
-  id                  String              @id @map("id")
+  id                  String              @id @map("id") @default(uuid())
   equipmentName       String              @map("equipment_name") @db.VarChar(255)
   lastMaintenanceDate DateTime            @map("last_maintenance_date")
   nextMaintenanceDate DateTime            @map("next_maintenance_date")
@@ -1142,7 +1141,7 @@ model Equipment {
 }
 
 model MaintenanceRecord {
-  id              String    @id @map("id")
+  id              String    @id @map("id") @default(uuid())
   maintenanceDate DateTime  @map("maintenance_date")
   technician      String    @db.VarChar(255)
   description     String
@@ -1251,7 +1250,7 @@ model OrderItemProductionSummary {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model AbsenceRecord {
-  id           String      @id @map("id")
+  id           String      @id @map("id") @default(uuid())
   employeeName String      @map("employee_name") @db.VarChar(255)
   startDate    DateTime    @map("start_date")
   endDate      DateTime    @map("end_date")
@@ -1270,7 +1269,7 @@ model AbsenceRecord {
 }
 
 model AttendanceRecord {
-  id                    String           @id @map("id")
+  id                    String           @id @map("id") @default(uuid())
   employeeName          String           @map("employee_name") @db.VarChar(255)
   attendanceDate        DateTime         @map("attendance_date")
   arrivalTime           DateTime?        @map("arrival_time")
@@ -1304,7 +1303,7 @@ model AttendanceRecord {
 }
 
 model PayrollRecord {
-  id            String        @id @map("id")
+  id            String        @id @map("id") @default(uuid())
   employeeName  String        @map("employee_name") @db.VarChar(255)
   payrollPeriod String        @map("payroll_period") @db.VarChar(7)
   grossSalary   Decimal       @map("gross_salary") @db.Decimal(12, 2)
@@ -1325,7 +1324,7 @@ model PayrollRecord {
 }
 
 model SupplierDebt {
-  id              String        @id @map("id")
+  id              String        @id @map("id") @default(uuid())
   supplierName    String        @map("supplier_name") @db.VarChar(255)
   invoiceId       String        @map("invoice_id") @db.VarChar(50)
   dueDate         DateTime      @map("due_date")
@@ -1344,7 +1343,7 @@ model SupplierDebt {
 }
 
 model ExpenseRecord {
-  id                String          @id @map("id")
+  id                String          @id @map("id") @default(uuid())
   expenseDate       DateTime        @map("expense_date")
   description       String
   amount            Decimal         @db.Decimal(12, 2)
@@ -1361,7 +1360,7 @@ model ExpenseRecord {
 
 // Plan comptable
 model AccountingAccount {
-  id              String                @id @map("id")
+  id              String                @id @map("id") @default(uuid())
   accountNumber   String                @unique @map("account_number") @db.VarChar(10)
   accountName     String                @map("account_name") @db.VarChar(255)
   accountType     AccountingAccountType @map("account_type")
@@ -1382,7 +1381,7 @@ model AccountingAccount {
 
 // Exercices fiscaux
 model FiscalYear {
-  id           String   @id @map("id")
+  id           String   @id @map("id") @default(uuid())
   name         String   @map("name") @db.VarChar(100)
   startDate    DateTime @map("start_date")
   endDate      DateTime @map("end_date")
@@ -1402,7 +1401,7 @@ model FiscalYear {
 
 // Journaux comptables (JV, JA, JB, JOD)
 model AccountingJournal {
-  id           String         @id @map("id")
+  id           String         @id @map("id") @default(uuid())
   code         String         @map("code") @db.VarChar(10)
   name         String         @map("name") @db.VarChar(100)
   journalType  JournalType    @map("journal_type")
@@ -1417,7 +1416,7 @@ model AccountingJournal {
 
 // Règles de journalisation automatique Finance → Comptabilité
 model AccountMapping {
-  id               String     @id @map("id")
+  id               String     @id @map("id") @default(uuid())
   operationType    String     @map("operation_type") @db.VarChar(100)
   journalCode      String     @map("journal_code") @db.VarChar(10)
   debitAccountNum  String     @map("debit_account_num") @db.VarChar(10)
@@ -1432,7 +1431,7 @@ model AccountMapping {
 
 // Écritures comptables
 model JournalEntry {
-  id           String             @id @map("id")
+  id           String             @id @map("id") @default(uuid())
   entryNumber  String             @unique @map("entry_number") @db.VarChar(50)
   entryDate    DateTime           @map("entry_date")
   description  String             @map("description")
@@ -1463,7 +1462,7 @@ model JournalEntry {
 
 // Lignes d'écriture comptable
 model JournalEntryLine {
-  id             String  @id @map("id")
+  id             String  @id @map("id") @default(uuid())
   journalEntryId String  @map("journal_entry_id")
   accountId      String  @map("account_id")
   description    String  @map("description")
@@ -1502,7 +1501,7 @@ enum JournalType {
 }
 
 model Newsletter {
-  id        String   @id @map("id")
+  id        String   @id @map("id") @default(uuid())
   email     String   @unique
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -1909,7 +1908,7 @@ enum ProformaStatus {
 }
 
 model Proforma {
-  id              String   @id @map("id")
+  id              String   @id @map("id") @default(uuid())
   proformaNumber  String   @unique @map("proforma_number") @db.VarChar(50)
 
   // Lien au Lead
@@ -1960,7 +1959,7 @@ model Proforma {
 }
 
 model ProformaItem {
-  id              String   @id @map("id")
+  id              String   @id @map("id") @default(uuid())
 
   proformaId      String   @map("proforma_id")
   proforma        Proforma @relation(fields: [proformaId], references: [id], onDelete: Cascade)
@@ -1991,7 +1990,7 @@ enum ContributionType {
 }
 
 model PayrollConfiguration {
-  id                    String     @id @map("id") @db.Text
+  id                    String     @id @map("id") @db.Text @default(uuid())
   subsidiaryId          String     @unique @map("subsidiary_id") @db.Text
   subsidiary            Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
@@ -2013,7 +2012,7 @@ model PayrollConfiguration {
 }
 
 model SalaryComponent {
-  id                      String                  @id @map("id") @db.Text
+  id                      String                  @id @map("id") @db.Text @default(uuid())
   payrollConfigId         String                  @map("payroll_config_id") @db.Text
   payrollConfig           PayrollConfiguration    @relation(fields: [payrollConfigId], references: [id], onDelete: Cascade)
 
@@ -2036,7 +2035,7 @@ model SalaryComponent {
 }
 
 model TaxBracket {
-  id                    String                  @id @map("id") @db.Text
+  id                    String                  @id @map("id") @db.Text @default(uuid())
   payrollConfigId       String                  @map("payroll_config_id") @db.Text
   payrollConfig         PayrollConfiguration    @relation(fields: [payrollConfigId], references: [id], onDelete: Cascade)
 
@@ -2056,7 +2055,7 @@ model TaxBracket {
 }
 
 model AllowanceRule {
-  id                    String                  @id @map("id") @db.Text
+  id                    String                  @id @map("id") @db.Text @default(uuid())
   payrollConfigId       String                  @map("payroll_config_id") @db.Text
   payrollConfig         PayrollConfiguration    @relation(fields: [payrollConfigId], references: [id], onDelete: Cascade)
 
