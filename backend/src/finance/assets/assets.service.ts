@@ -8,6 +8,8 @@ import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 import { checkRole } from 'src/common/auth/role/check-role.util';
 import { JournalizationService } from 'src/accounting/journalization/journalization.service';
 
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 @Injectable()
 export class AssetsService {
   constructor(
@@ -17,12 +19,17 @@ export class AssetsService {
   ) {}
 
   async create(dto: CreateFixedAssetDto, user: JwtUser) {
-    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR], 'Permission denied to create fixed assets.');
+    checkRole(
+      user,
+      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
+      'Permission denied to create fixed assets.',
+    );
 
     const { treasuryAccountId, ...assetData } = dto;
 
     const asset = await this.prisma.fixedAsset.create({
       data: {
+        id: generateId(ID_PREFIXES.FIXEDASSET),
         ...assetData,
         acquisitionDate: new Date(dto.acquisitionDate),
         subsidiaryId: user.subsidiaryId,
@@ -30,13 +37,16 @@ export class AssetsService {
     });
 
     // Crée la transaction de dépense trésorerie correspondante
-    await this.treasuryService.createExpenseTransaction({
-      transactionDate: new Date(dto.acquisitionDate).toISOString(),
-      description: `Achat immobilisation: ${asset.fixedAssetsName}`,
-      amount: dto.acquisitionCost,
-      treasuryAccountId,
-      relatedDocumentId: asset.id,
-    }, user);
+    await this.treasuryService.createExpenseTransaction(
+      {
+        transactionDate: new Date(dto.acquisitionDate).toISOString(),
+        description: `Achat immobilisation: ${asset.fixedAssetsName}`,
+        amount: dto.acquisitionCost,
+        treasuryAccountId,
+        relatedDocumentId: asset.id,
+      },
+      user,
+    );
 
     // Journalisation SYSCOHADA spécifique immobilisation
     await this.journalization.journalize({
@@ -63,26 +73,37 @@ export class AssetsService {
     const asset = await this.prisma.fixedAsset.findFirst({
       where: { id, subsidiaryId: user.subsidiaryId },
     });
-    if (!asset) throw new NotFoundException(`Fixed asset with ID "${id}" not found.`);
+    if (!asset)
+      throw new NotFoundException(`Fixed asset with ID "${id}" not found.`);
     return asset;
   }
 
   async update(id: string, dto: UpdateFixedAssetDto, user: JwtUser) {
     await this.findOne(id, user);
-    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR], 'Permission denied to update fixed assets.');
+    checkRole(
+      user,
+      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
+      'Permission denied to update fixed assets.',
+    );
 
     return this.prisma.fixedAsset.update({
       where: { id },
       data: {
         ...dto,
-        acquisitionDate: dto.acquisitionDate ? new Date(dto.acquisitionDate) : undefined,
+        acquisitionDate: dto.acquisitionDate
+          ? new Date(dto.acquisitionDate)
+          : undefined,
       },
     });
   }
 
   async remove(id: string, user: JwtUser) {
     await this.findOne(id, user);
-    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR], 'Permission denied to delete fixed assets.');
+    checkRole(
+      user,
+      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
+      'Permission denied to delete fixed assets.',
+    );
 
     return this.prisma.fixedAsset.delete({ where: { id } });
   }

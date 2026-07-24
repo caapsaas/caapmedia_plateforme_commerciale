@@ -4,6 +4,6 @@ import { BalancesheetController } from './balancesheet.controller';
 
 @Module({
   providers: [BalancesheetService],
-  controllers: [BalancesheetController]
+  controllers: [BalancesheetController],
 })
 export class BalancesheetModule {}

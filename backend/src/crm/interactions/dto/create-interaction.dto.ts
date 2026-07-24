@@ -1,8 +1,8 @@
-import { IsEnum, IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 import { InteractionType } from '@prisma/client';
 
 export class CreateInteractionDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   contactId: string;
 
@@ -13,4 +13,3 @@ export class CreateInteractionDto {
   @IsString()
   notes: string;
 }
-

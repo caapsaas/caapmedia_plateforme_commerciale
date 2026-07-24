@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Order, CustomerPaymentMethod } from '../../types';
 import { useI18n } from '../../i18n';
-import IconCash from '../icons/IconCash';
 import IconCreditCard from '../icons/IconCreditCard';
 import IconMobilePayment from '../icons/IconMobilePayment';
-import IconCheck from '../icons/IconCheck';
+import IconOrangeMoney from '../icons/IconOrangeMoney';
+import IconWave from '../icons/IconWave';
 import IconPaycaap from '../icons/IconPaycaap';
 import IconTruckCoins from '../icons/IconTruckCoins';
 import IconUserClock from '../icons/IconUserClock';
@@ -33,9 +33,9 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
     };
     
     const paymentOptions: { id: CustomerPaymentMethod; label: string; icon: React.ReactNode }[] = [
-        { id: CustomerPaymentMethod.CASH, label: t('payment.CASH'), icon: <IconCash className="h-6 w-6" /> },
         { id: CustomerPaymentMethod.CARD, label: t('payment.CARD'), icon: <IconCreditCard className="h-6 w-6" /> },
-        { id: CustomerPaymentMethod.CHECK, label: t('payment.CHECK'), icon: <IconCheck className="h-6 w-6" /> },
+        { id: CustomerPaymentMethod.ORANGE_MONEY, label: t('payment.ORANGE_MONEY'), icon: <IconOrangeMoney className="h-6 w-6" /> },
+        { id: CustomerPaymentMethod.WAVE, label: t('payment.WAVE'), icon: <IconWave className="h-6 w-6" /> },
         { id: CustomerPaymentMethod.MOBILE_MONEY, label: t('payment.MOBILE_MONEY'), icon: <IconMobilePayment className="h-6 w-6" /> },
         { id: CustomerPaymentMethod.PAYCAAP, label: t('payment.PAYCAAP'), icon: <IconPaycaap className="h-5" /> },
         { id: CustomerPaymentMethod.PAY_ON_DELIVERY, label: t('payment.PAY_ON_DELIVERY'), icon: <IconTruckCoins className="h-6 w-6" /> },
@@ -83,7 +83,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
                                 max={remainingBalance}
                                 min="0"
                                 required 
-                                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" 
+                                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" 
                             />
                         </div>
                         <div>

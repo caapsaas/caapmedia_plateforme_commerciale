@@ -1,8 +1,14 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { User, UserRole, Prisma } from '@prisma/client';
 import { CreateInteractionDto } from './dto/create-interaction.dto';
 import { UpdateInteractionDto } from './dto/update-interaction.dto';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class InteractionsService {
@@ -15,11 +21,14 @@ export class InteractionsService {
     });
 
     if (!contact || contact.subsidiaryId !== user.subsidiaryId) {
-      throw new ForbiddenException('Contact not found or does not belong to your subsidiary.');
+      throw new ForbiddenException(
+        'Contact not found or does not belong to your subsidiary.',
+      );
     }
 
     return this.prisma.interaction.create({
       data: {
+        id: generateId(ID_PREFIXES.INTERACTION),
         notes: createInteractionDto.notes,
         contactId: createInteractionDto.contactId,
         userId: user.id,
@@ -29,15 +38,14 @@ export class InteractionsService {
     });
   }
 
- async findAll(user: User) {
-    // Construire la clause where pour contact de manière explicite pour éviter les problèmes de type avec le spread
-    const contactWhere: Prisma.ContactWhereInput = {
-      subsidiaryId: user.subsidiaryId,
-    };
+  async findAll(user: User) {
+    const isSuperAdmin = user.userRole === UserRole.SUPER_ADMIN;
+    const contactWhere: Prisma.ContactWhereInput = isSuperAdmin
+      ? {}
+      : { subsidiaryId: user.subsidiaryId };
 
-    // Les commerciaux ne voient que les interactions liées à leurs propres contacts
-    if (user.userRole === UserRole.COMMERCIAL) {
-      contactWhere.salesRepId = { equals: user.id }; // Utiliser un filtre explicite pour respecter le type nullable UUID
+    if (!isSuperAdmin && user.userRole === UserRole.COMMERCIAL) {
+      contactWhere.salesRepId = { equals: user.id };
     }
 
     const where: Prisma.InteractionWhereInput = {
@@ -47,13 +55,13 @@ export class InteractionsService {
     return this.prisma.interaction.findMany({
       where: where, // Propriété explicite pour éviter l'erreur de shorthand
       include: {
-        user: { 
-          select: { 
+        user: {
+          select: {
             // Sélection de champs existants dans User (ajustez selon votre schéma Prisma)
             id: true,
-            email: true // Ou 'firstName', 'lastName' si disponibles
-          } 
-        }, 
+            email: true, // Ou 'firstName', 'lastName' si disponibles
+          },
+        },
         contact: { select: { contactName: true } }, // Inclure le nom du contact
       },
       orderBy: {
@@ -85,7 +93,9 @@ export class InteractionsService {
       user.userRole === UserRole.COMMERCIAL &&
       interaction.contact.salesRepId !== user.id
     ) {
-      throw new ForbiddenException('You are not allowed to view this interaction.');
+      throw new ForbiddenException(
+        'You are not allowed to view this interaction.',
+      );
     }
 
     return interaction;
@@ -96,16 +106,25 @@ export class InteractionsService {
 
     // Seul l'admin ou le créateur de l'interaction peut la supprimer
     if (user.userRole !== UserRole.ADMIN && interaction.userId !== user.id) {
-      throw new ForbiddenException('You are not allowed to delete this interaction.');
+      throw new ForbiddenException(
+        'You are not allowed to delete this interaction.',
+      );
     }
 
     return this.prisma.interaction.delete({ where: { id } });
   }
 
-  async update(id: string, updateInteractionDto: UpdateInteractionDto, user: User) {
+  async update(
+    id: string,
+    updateInteractionDto: UpdateInteractionDto,
+    user: User,
+  ) {
     // findOne vérifie que l'utilisateur a le droit de voir l'interaction.
     await this.findOne(id, user);
-    return this.prisma.interaction.update({ where: { id }, data: updateInteractionDto });
+    return this.prisma.interaction.update({
+      where: { id },
+      data: updateInteractionDto,
+    });
 
     // Mapper explicitement les champs du DTO pour éviter les erreurs de type.
     const dataToUpdate: Prisma.InteractionUpdateInput = {};
@@ -117,6 +136,9 @@ export class InteractionsService {
     }
     // On ne permet pas de changer le contactId d'une interaction existante.
 
-    return this.prisma.interaction.update({ where: { id }, data: dataToUpdate });
+    return this.prisma.interaction.update({
+      where: { id },
+      data: dataToUpdate,
+    });
   }
 }

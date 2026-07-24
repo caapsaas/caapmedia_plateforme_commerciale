@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { useI18n } from '../../i18n';
-import IconGmoLogo from '../icons/IconGmoLogo';
 import { PRODUCT_HIERARCHY } from '../../constants';
 import IconMapPin from '../icons/IconMapPin';
 import IconPhone from '../icons/IconPhone';
@@ -46,7 +45,7 @@ const ECommerceFooter: React.FC<ECommerceFooterProps> = ({ onNavigateToRealisati
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     {/* Column 1: Logo & Description */}
                     <div className="space-y-4">
-                        <IconGmoLogo className="h-16 w-auto" />
+                        <img src="/CaaMedia.png" alt="CaapMedia Logo" className="h-16 w-16 rounded-full object-cover" />
                         <p className="text-sm">{t('footer.description')}</p>
                     </div>
 

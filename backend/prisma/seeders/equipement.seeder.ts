@@ -1,10 +1,13 @@
 import { PrismaClient } from '@prisma/client';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 import { EquipmentStatus } from '@prisma/client';
 
 
 export async function runEquipmentSeeder(prisma: PrismaClient) {
 
     const equipmentsData = [
+        // ── Douala ────────────────────────────────────────────────────────────
         {
             name: 'MO-Heldelberg 2 Tetes',
             status: EquipmentStatus.OPERATIONAL,
@@ -13,6 +16,7 @@ export async function runEquipmentSeeder(prisma: PrismaClient) {
             acquisitionDate: '2020-01-15',
             acquisitionValue: 25000000,
             subsidiaryEmail: 'contact.douala@caap.cm',
+            hourlyRate: 5000,
             maintenanceHistory: [
                 { date: '2024-05-15', technician: 'Service Interne', description: 'Maintenance préventive semestrielle.', cost: 150000 },
                 { date: '2023-11-10', technician: 'Heidelberg Tech', description: 'Changement des rouleaux.', cost: 800000 },
@@ -26,6 +30,7 @@ export async function runEquipmentSeeder(prisma: PrismaClient) {
             acquisitionDate: '2018-03-20',
             acquisitionValue: 15000000,
             subsidiaryEmail: 'contact.douala@caap.cm',
+            hourlyRate: 3000,
             maintenanceHistory: [
                 { date: '2024-06-01', technician: 'Service Interne', description: 'Graissage et nettoyage.', cost: 50000 },
             ],
@@ -38,6 +43,7 @@ export async function runEquipmentSeeder(prisma: PrismaClient) {
             acquisitionDate: '2019-07-01',
             acquisitionValue: 5000000,
             subsidiaryEmail: 'contact.douala@caap.cm',
+            hourlyRate: 1200,
             maintenanceHistory: [],
         },
         {
@@ -51,6 +57,7 @@ export async function runEquipmentSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.douala@caap.cm',
             acquisitionDate: '2021-02-10',
             acquisitionValue: 1200000,
+            hourlyRate: 1500,
         },
         {
             name: 'Rolande RX 640',
@@ -61,6 +68,7 @@ export async function runEquipmentSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.douala@caap.cm',
             acquisitionDate: '2022-08-05',
             acquisitionValue: 8500000,
+            hourlyRate: 2500,
         },
         {
             name: 'DGF-Epson I3200',
@@ -73,8 +81,31 @@ export async function runEquipmentSeeder(prisma: PrismaClient) {
             subsidiaryEmail: 'contact.douala@caap.cm',
             acquisitionDate: '2023-01-20',
             acquisitionValue: 4000000,
+            hourlyRate: null,
         },
-        // … ajouter les autres équipements ici
+        // ── Siège (Yaoundé) ───────────────────────────────────────────────────
+        {
+            name: 'Presse Numérique Xerox',
+            status: EquipmentStatus.OPERATIONAL,
+            lastMaintenanceDate: '2024-09-01',
+            nextMaintenanceDate: '2025-03-01',
+            acquisitionDate: '2022-05-10',
+            acquisitionValue: 18000000,
+            subsidiaryEmail: 'contact.siege@caap.cm',
+            hourlyRate: 4000,
+            maintenanceHistory: [],
+        },
+        {
+            name: 'Massicot Polar',
+            status: EquipmentStatus.OPERATIONAL,
+            lastMaintenanceDate: '2024-08-15',
+            nextMaintenanceDate: '2025-02-15',
+            acquisitionDate: '2021-11-20',
+            acquisitionValue: 6000000,
+            subsidiaryEmail: 'contact.siege@caap.cm',
+            hourlyRate: 2000,
+            maintenanceHistory: [],
+        },
     ];
 
 
@@ -97,28 +128,6 @@ export async function runEquipmentSeeder(prisma: PrismaClient) {
             },
         });
 
-        // // Création ou mise à jour de l'équipement
-        // const equipment = await prisma.equipment.upsert({
-        //     where: { id: existingEquipment?.id },
-        //     update: {
-        //         status: e.status,
-        //         lastMaintenanceDate: new Date(e.lastMaintenanceDate),
-        //         nextMaintenanceDate: new Date(e.nextMaintenanceDate),
-        //         acquisitionDate: new Date(e.acquisitionDate),
-        //         acquisitionValue: e.acquisitionValue,
-        //         subsidiaryId: subsidiary.id,
-        //     },
-        //     create: {
-        //         equipmentName: e.name,
-        //         status: e.status,
-        //         lastMaintenanceDate: new Date(e.lastMaintenanceDate),
-        //         nextMaintenanceDate: new Date(e.nextMaintenanceDate),
-        //         acquisitionDate: new Date(e.acquisitionDate),
-        //         acquisitionValue: e.acquisitionValue,
-        //         subsidiaryId: subsidiary.id,
-        //     },
-        // });
-
         let equipment;
         if (existingEquipment) {
             equipment = await prisma.equipment.update({
@@ -135,6 +144,7 @@ export async function runEquipmentSeeder(prisma: PrismaClient) {
         } else {
             equipment = await prisma.equipment.create({
                 data: {
+                    id: generateId(ID_PREFIXES.EQUIPMENT),
                     equipmentName: e.name,
                     status: e.status,
                     lastMaintenanceDate: new Date(e.lastMaintenanceDate),
@@ -146,10 +156,28 @@ export async function runEquipmentSeeder(prisma: PrismaClient) {
             });
         }
 
-        // Création des maintenance records
+        // Coût horaire (EquipementCostConfig) — idempotent via upsert
+        if (e.hourlyRate !== null && e.hourlyRate !== undefined) {
+            await prisma.equipementCostConfig.upsert({
+                where: { equipmentId: equipment.id },
+                create: { equipmentId: equipment.id, hourlyRate: e.hourlyRate },
+                update: { hourlyRate: e.hourlyRate },
+            });
+        }
+
+        // Historique de maintenance — idempotent
         for (const m of e.maintenanceHistory) {
+            const existingRecord = await prisma.maintenanceRecord.findFirst({
+                where: {
+                    equipmentId: equipment.id,
+                    maintenanceDate: new Date(m.date),
+                    technician: m.technician,
+                },
+            });
+            if (existingRecord) continue;
             await prisma.maintenanceRecord.create({
                 data: {
+                    id: generateId(ID_PREFIXES.MAINTENANCERECORD),
                     maintenanceDate: new Date(m.date),
                     technician: m.technician,
                     description: m.description,
@@ -160,5 +188,5 @@ export async function runEquipmentSeeder(prisma: PrismaClient) {
         }
     }
 
-    console.log('Equipment & MaintenanceRecords seeded');
+    console.log('Equipment, CostConfigs & MaintenanceRecords seeded');
 }

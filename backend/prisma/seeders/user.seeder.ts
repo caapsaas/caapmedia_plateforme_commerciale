@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 
 type SeedUser = {
   userName: string;
@@ -9,12 +11,33 @@ type SeedUser = {
   subsidiaryEmail: string; // lien via email unique de Subsidiary
 };
 
+// Un seul utilisateur porte le role SUPER_ADMIN (nalobert, rattache au
+// siège) - c'est le seul a avoir la vue consolidee toutes filiales. Chaque
+// filiale (y compris le siège) a son propre ADMIN, qui ne voit que SA
+// filiale: ca permet d'observer concretement la difference entre les deux
+// niveaux d'acces (voir Doc/architecture-multi-filiale-auth-rbac.md).
 export async function runUserSeeder(prisma: PrismaClient) {
   const users: SeedUser[] = [
+    // --- Siège (HQ) ---
     {
       userName: 'Nalobert',
       email: 'nalobert@gmail.com',
       password: 'a1234578o',
+      userRole: 'SUPER_ADMIN',
+      subsidiaryEmail: 'contact.siege@caap.cm',
+    },
+    {
+      userName: 'Aline Admin Siège',
+      email: 'admin.siege@caap.cm',
+      password: 'password',
+      userRole: 'ADMIN',
+      subsidiaryEmail: 'contact.siege@caap.cm',
+    },
+    // --- Douala ---
+    {
+      userName: 'Paul Admin Douala',
+      email: 'admin.douala@caap.cm',
+      password: 'password',
       userRole: 'ADMIN',
       subsidiaryEmail: 'contact.douala@caap.cm',
     },
@@ -24,13 +47,6 @@ export async function runUserSeeder(prisma: PrismaClient) {
       password: 'password',
       userRole: 'COMMERCIAL',
       subsidiaryEmail: 'contact.douala@caap.cm',
-    },
-    {
-      userName: 'Marie Caissiere',
-      email: 'marie.caissiere@caap.cm',
-      password: 'password',
-      userRole: 'CAISSIER',
-      subsidiaryEmail: 'contact.yaounde@caap.cm',
     },
     {
       userName: 'Serge Production',
@@ -67,6 +83,52 @@ export async function runUserSeeder(prisma: PrismaClient) {
       userRole: 'PURCHASING_MANAGER',
       subsidiaryEmail: 'contact.douala@caap.cm',
     },
+    // --- Kribi ---
+    {
+      userName: 'Brice Admin Kribi',
+      email: 'admin.kribi@caap.cm',
+      password: 'password',
+      userRole: 'ADMIN',
+      subsidiaryEmail: 'contact.kribi@caap.cm',
+    },
+    {
+      userName: 'Junior Commercial Kribi',
+      email: 'commercial.kribi@caap.cm',
+      password: 'password',
+      userRole: 'COMMERCIAL',
+      subsidiaryEmail: 'contact.kribi@caap.cm',
+    },
+    {
+      // Anciennement rattachee a CAAP Yaoundé (filiale supprimee) - reprend
+      // le meme role a Kribi pour ne pas perdre ce compte de demo.
+      userName: 'Marie Caissiere',
+      email: 'marie.caissiere@caap.cm',
+      password: 'password',
+      userRole: 'CAISSIER',
+      subsidiaryEmail: 'contact.kribi@caap.cm',
+    },
+    // --- Edéa ---
+    {
+      userName: 'Carine Admin Edéa',
+      email: 'admin.edea@caap.cm',
+      password: 'password',
+      userRole: 'ADMIN',
+      subsidiaryEmail: 'contact.edea@caap.cm',
+    },
+    {
+      userName: 'Sandrine Commercial Edéa',
+      email: 'commercial.edea@caap.cm',
+      password: 'password',
+      userRole: 'COMMERCIAL',
+      subsidiaryEmail: 'contact.edea@caap.cm',
+    },
+    {
+      userName: 'Odette Caissière Edéa',
+      email: 'caissier.edea@caap.cm',
+      password: 'password',
+      userRole: 'CAISSIER',
+      subsidiaryEmail: 'contact.edea@caap.cm',
+    },
   ];
 
   for (const u of users) {
@@ -92,6 +154,7 @@ export async function runUserSeeder(prisma: PrismaClient) {
         subsidiaryId: subsidiary.id,
       },
       create: {
+        id: generateId(ID_PREFIXES.USER),
         userName: u.userName,
         email: u.email,
         passwordHash,

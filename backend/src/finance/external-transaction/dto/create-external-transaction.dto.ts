@@ -1,6 +1,18 @@
-import { IsString, IsNumber, IsOptional, IsEnum, IsDateString, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsEnum,
+  IsDateString,
+  IsUUID,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ExternalTransactionType, ExternalTransactionCategory, ExternalTransactionStatus, PaymentMethod } from '@prisma/client';
+import {
+  ExternalTransactionType,
+  ExternalTransactionCategory,
+  ExternalTransactionStatus,
+  PaymentMethod,
+} from '@prisma/client';
 
 export class CreateExternalTransactionDto {
   @ApiProperty({ description: 'Date de la transaction (YYYY-MM-DD)' })
@@ -15,23 +27,23 @@ export class CreateExternalTransactionDto {
   @IsNumber()
   amount: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     enum: ExternalTransactionType,
-    description: 'Type de transaction externe'
+    description: 'Type de transaction externe',
   })
   @IsEnum(ExternalTransactionType)
   externalTransactionType: ExternalTransactionType;
 
-  @ApiProperty({ 
+  @ApiProperty({
     enum: ExternalTransactionCategory,
-    description: 'Catégorie de la transaction'
+    description: 'Catégorie de la transaction',
   })
   @IsEnum(ExternalTransactionCategory)
   externalTransactionCategory: ExternalTransactionCategory;
 
-  @ApiProperty({ 
+  @ApiProperty({
     enum: PaymentMethod,
-    description: 'Méthode de paiement'
+    description: 'Méthode de paiement',
   })
   @IsEnum(PaymentMethod)
   paymentMethod: PaymentMethod;
@@ -41,11 +53,11 @@ export class CreateExternalTransactionDto {
   @IsString()
   referenceNumber?: string;
 
-  @ApiProperty({ description: 'ID de l\'utilisateur qui crée la transaction' })
+  @ApiProperty({ description: "ID de l'utilisateur qui crée la transaction" })
   @IsUUID()
   createdBy: string;
 
   @ApiProperty({ description: 'ID de la filiale' })
-  @IsUUID()
+  @IsString()
   subsidiaryId: string;
 }

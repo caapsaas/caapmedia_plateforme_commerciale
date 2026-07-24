@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { User, UserRole, Subsidiary } from '../../types';
 import { useI18n } from '../../i18n';
 
+// SUPER_ADMIN n'est jamais attribuable depuis ce formulaire: c'est un role
+// d'exception (vue consolidee toutes filiales) attribue manuellement en base,
+// pas via la gestion courante des utilisateurs.
+const ASSIGNABLE_ROLES = Object.values(UserRole).filter(r => r !== UserRole.SUPER_ADMIN);
+
 interface UserFormModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -121,7 +126,7 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
 
     if (!isOpen) return null;
 
-    const secondaryRoles = Object.values(UserRole).filter(r => r !== formData.userRole);
+    const secondaryRoles = ASSIGNABLE_ROLES.filter(r => r !== formData.userRole);
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
@@ -134,24 +139,33 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
                         <div className="mt-4 space-y-4">
                             <div>
                                 <label htmlFor="userName" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
-                                <input type="text" name="userName" id="userName" value={formData.userName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <input type="text" name="userName" id="userName" value={formData.userName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
                                 <label htmlFor="email" className="block text-sm font-medium text-slate-700">{t('configuration.form.email')}</label>
-                                <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="userRole" className="block text-sm font-medium text-slate-700">Rôle principal</label>
-                                    <select name="userRole" id="userRole" value={formData.userRole} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
-                                        {Object.values(UserRole).map(roleValue => (
-                                            <option key={roleValue} value={roleValue}>{t(`roles.${roleValue}`)}</option>
-                                        ))}
-                                    </select>
+                                    {formData.userRole === UserRole.SUPER_ADMIN ? (
+                                        // Cas d'un compte deja SUPER_ADMIN (attribue manuellement hors de
+                                        // cette UI): affiche sans permettre de le changer ici, plutot que
+                                        // de casser le select (SUPER_ADMIN n'est pas dans ASSIGNABLE_ROLES).
+                                        <select disabled value={UserRole.SUPER_ADMIN} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm bg-slate-100 text-slate-500 sm:text-sm">
+                                            <option value={UserRole.SUPER_ADMIN}>{t(`roles.${UserRole.SUPER_ADMIN}`)}</option>
+                                        </select>
+                                    ) : (
+                                        <select name="userRole" id="userRole" value={formData.userRole} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                            {ASSIGNABLE_ROLES.map(roleValue => (
+                                                <option key={roleValue} value={roleValue}>{t(`roles.${roleValue}`)}</option>
+                                            ))}
+                                        </select>
+                                    )}
                                 </div>
                                 <div>
                                     <label htmlFor="subsidiaryId" className="block text-sm font-medium text-slate-700">Filiale</label>
-                                    <select name="subsidiaryId" id="subsidiaryId" value={formData.subsidiaryId} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                    <select name="subsidiaryId" id="subsidiaryId" value={formData.subsidiaryId} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                         {subsidiaries.map(sub => (
                                             <option key={sub.id} value={sub.id}>{sub.name}</option>
                                         ))}
@@ -189,11 +203,11 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
                                     <hr className="my-2"/>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700">{user ? 'Nouveau mot de passe' : 'Mot de passe'}</label>
-                                        <input type="password" value={password} onChange={e => setPassword(e.target.value)} required={!user} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                        <input type="password" value={password} onChange={e => setPassword(e.target.value)} required={!user} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700">Confirmer le mot de passe</label>
-                                        <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required={!user} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                        <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required={!user} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                     </div>
                                 </>
                             )}

@@ -4,6 +4,7 @@ import React, {
   useContext,
   ReactNode,
   useEffect,
+  useRef,
 } from "react";
 import { AppState, AppAction } from "../types/context";
 
@@ -17,7 +18,6 @@ const initialState: AppState = {
   isRestored: false, // Ajout pour suivre l'état de réhydratation
   isSidebarCollapsed: window.innerWidth < 768,
   showIdleModal: false,
-  previewRole: null,
 };
 
 const appReducer = (
@@ -41,16 +41,25 @@ const appReducer = (
     case "SET_IDLE_MODAL":
       return { ...state, showIdleModal: action.payload };
 
-    case "SET_PREVIEW_ROLE": // 👈 AJOUTE ÇA
-      return { ...state, previewRole: action.payload };
-
     default:
       return state;
   }
 };
 
 const AppContext = createContext<
-  | { state: AppState; dispatch: React.Dispatch<AppAction | RehydrateAction> }
+  | {
+      state: AppState;
+      dispatch: React.Dispatch<AppAction | RehydrateAction>;
+      /**
+       * Ref stable miroitant state.isRestored en temps reel - a lire depuis
+       * router.tsx (loader du dashboard) au lieu de state.isRestored: le
+       * contexte passe au loader est un instantane fige au moment de
+       * l'invocation, voir le meme correctif sur AuthContext.authLive pour
+       * le detail du bug que ca evite (page bloquee indefiniment sur un
+       * refresh direct sur /dashboard/*).
+       */
+      isRestoredLive: React.MutableRefObject<boolean>;
+    }
   | undefined
 >(undefined);
 
@@ -58,6 +67,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const isRestoredLive = useRef(false);
+  isRestoredLive.current = state.isRestored;
 
   useEffect(() => {
     // Au premier chargement de l'app, on essaie de restaurer l'état de l'UI depuis le localStorage
@@ -81,7 +92,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
   }, []);
 
   return (
-    <AppContext.Provider value={{ state, dispatch }}>
+    <AppContext.Provider value={{ state, dispatch, isRestoredLive }}>
       {children}
     </AppContext.Provider>
   );

@@ -8,6 +8,8 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateOpportunityDto } from './dto/create-opportunity.dto';
 import { UpdateOpportunityDto } from './dto/update-opportunity.dto';
 import { Prisma, User, UserRole } from '@prisma/client';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class OpportunitiesService {
@@ -24,10 +26,16 @@ export class OpportunitiesService {
     // Vérifier que le contact et le compte existent et appartiennent à la filiale
     const [contact, account] = await Promise.all([
       this.prisma.contact.findFirst({
-        where: { id: opportunityData.contactId, subsidiaryId: user.subsidiaryId },
+        where: {
+          id: opportunityData.contactId,
+          subsidiaryId: user.subsidiaryId,
+        },
       }),
       this.prisma.account.findFirst({
-        where: { id: opportunityData.accountId, subsidiaryId: user.subsidiaryId },
+        where: {
+          id: opportunityData.accountId,
+          subsidiaryId: user.subsidiaryId,
+        },
       }),
     ]);
 
@@ -39,12 +47,14 @@ export class OpportunitiesService {
 
     return this.prisma.opportunity.create({
       data: {
+        id: generateId(ID_PREFIXES.OPPORTUNITY),
         ...opportunityData,
         userId: user.id,
         subsidiaryId: user.subsidiaryId,
         products: productIds
           ? {
               create: productIds.map((id) => ({
+                id: generateId(ID_PREFIXES.OPPORTUNITYPRODUCT),
                 product: { connect: { id } },
               })),
             }
@@ -55,15 +65,16 @@ export class OpportunitiesService {
   }
 
   async findAll(user: User) {
-    const where: Prisma.OpportunityWhereInput = {
-      subsidiaryId: user.subsidiaryId,
-    };
+    const isSuperAdmin = user.userRole === UserRole.SUPER_ADMIN;
+    const where: Prisma.OpportunityWhereInput = isSuperAdmin
+      ? {}
+      : { subsidiaryId: user.subsidiaryId };
 
-    // Les admins et secrétaires voient toutes les opportunités de la filiale.
-    // Les autres (commerciaux) ne voient que les leurs.
-    const privilegedRoles: UserRole[] = [UserRole.ADMIN, UserRole.SECRETARY];
-    if (!privilegedRoles.includes(user.userRole)) {
-      where.userId = user.id;
+    if (!isSuperAdmin) {
+      const privilegedRoles: UserRole[] = [UserRole.ADMIN, UserRole.SECRETARY];
+      if (!privilegedRoles.includes(user.userRole)) {
+        where.userId = user.id;
+      }
     }
 
     return this.prisma.opportunity.findMany({
@@ -96,7 +107,8 @@ export class OpportunitiesService {
     const privilegedRoles: UserRole[] = [UserRole.ADMIN, UserRole.SECRETARY];
     if (
       opportunity.subsidiaryId !== user.subsidiaryId ||
-      (!privilegedRoles.includes(user.userRole) && opportunity.userId !== user.id)
+      (!privilegedRoles.includes(user.userRole) &&
+        opportunity.userId !== user.id)
     ) {
       throw new ForbiddenException(
         'You do not have permission to view this opportunity.',
@@ -127,6 +139,7 @@ export class OpportunitiesService {
               deleteMany: {},
               // Crée de nouvelles relations OpportunityProduct pour chaque productId
               create: productIds.map((productId) => ({
+                id: generateId(ID_PREFIXES.OPPORTUNITYPRODUCT),
                 product: { connect: { id: productId } },
               })),
             }

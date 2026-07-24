@@ -79,14 +79,14 @@ const MaintenanceLogModal: React.FC<MaintenanceLogModalProps> = ({ isOpen, onClo
                         </form>
                     ) : (
                         <ul className="space-y-3">
-                            {equipment.maintenanceHistory.map(record => (
+                            {equipment.maintenanceRecords.map(record => (
                                 <li key={record.id} className="text-sm border-l-4 border-slate-200 pl-4">
                                     <p className="font-semibold">{new Date(record.maintenanceDate).toLocaleDateString('fr-FR')} - <span className="text-slate-600">{record.technician}</span></p>
                                     <p className="text-slate-800">{record.description}</p>
                                     <p className="text-xs text-slate-500 font-medium">Coût: {formatCurrency(record.maintenanceCost)}</p>
                                 </li>
                             ))}
-                            {equipment.maintenanceHistory.length === 0 && <p>Aucun historique de maintenance.</p>}
+                            {equipment.maintenanceRecords.length === 0 && <p>Aucun historique de maintenance.</p>}
                         </ul>
                     )}
                 </div>

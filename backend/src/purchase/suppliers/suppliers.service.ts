@@ -1,11 +1,21 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
-import { CreateSupplierDto, UpdateSupplierDto } from './dto/create-supplier.dto';
+import {
+  CreateSupplierDto,
+  UpdateSupplierDto,
+} from './dto/create-supplier.dto';
 import { User } from '@prisma/client';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class SuppliersService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Methode pour creer un fournisseur
@@ -24,11 +34,14 @@ export class SuppliersService {
     });
 
     if (existingSupplier) {
-      throw new ConflictException(`Un fournisseur avec le nom "${createSupplierDto.supplierName}" existe déjà dans cette filiale.`);
+      throw new ConflictException(
+        `Un fournisseur avec le nom "${createSupplierDto.supplierName}" existe déjà dans cette filiale.`,
+      );
     }
 
     return this.prisma.supplier.create({
       data: {
+        id: generateId(ID_PREFIXES.SUPPLIER),
         ...createSupplierDto,
         subsidiaryId: subsidiaryId,
       },
@@ -73,7 +86,10 @@ export class SuppliersService {
    */
   async update(id: string, updateSupplierDto: UpdateSupplierDto, user: User) {
     await this.findOne(id, user);
-    return this.prisma.supplier.update({ where: { id }, data: updateSupplierDto });
+    return this.prisma.supplier.update({
+      where: { id },
+      data: updateSupplierDto,
+    });
   }
 
   /**
@@ -87,4 +103,3 @@ export class SuppliersService {
     return this.prisma.supplier.delete({ where: { id } });
   }
 }
-

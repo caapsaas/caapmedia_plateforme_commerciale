@@ -6,8 +6,8 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   UseGuards,
-  ParseUUIDPipe,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -18,7 +18,7 @@ import { UpdateContactDto } from './dto/update-contact.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { CurrentUser, Roles } from 'src/common/auth/role/role.decorator';
 import type { User } from '@prisma/client';
-import {  UserRole } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 import { RegisterContactDto } from './dto/register-contact.dto';
 import { ContactLoginDto } from './dto/contact-login.dto';
 import { ContactJwtAuthGuard } from 'src/common/auth/jwt/contact-jwt.guard';
@@ -62,42 +62,98 @@ export class ContactsController {
     return this.contactsService.getContactOrders(contact.id);
   }
 
-
   // --- Routes existantes pour les employés (gardées) ---
 
   @Post()
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.HR_MANAGER, UserRole.PRODUCTION_DIRECTOR)
-  create(@Body() createContactDto: CreateContactDto, @CurrentUser() user: User) {
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.SECRETARY,
+    UserRole.FINANCIAL_DIRECTOR,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.HR_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+  )
+  create(
+    @Body() createContactDto: CreateContactDto,
+    @CurrentUser() user: User,
+  ) {
     // Route interne pour la création de contact par un employé
     return this.contactsService.create(createContactDto, user);
   }
 
   @Get()
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.HR_MANAGER, UserRole.PRODUCTION_DIRECTOR)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.SECRETARY,
+    UserRole.FINANCIAL_DIRECTOR,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.HR_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+  )
   findAll(@CurrentUser() user: User) {
     return this.contactsService.findAll(user);
   }
 
+  // Recherche globale (Chantier 6) : DOIT être déclarée avant ':id' pour que
+  // Nest ne capture pas "search" comme un paramètre :id.
+  @Get('search')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.SECRETARY,
+    UserRole.FINANCIAL_DIRECTOR,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.HR_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+  )
+  searchGlobal(@Query('q') query: string) {
+    return this.contactsService.searchGlobal(query);
+  }
+
   @Get('public/:id')
   // Endpoint public pour récupérer les informations de base d'un contact
-  findPublic(@Param('id', ParseUUIDPipe) id: string) {
+  findPublic(@Param('id') id: string) {
     return this.contactsService.findPublic(id);
   }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.HR_MANAGER, UserRole.PRODUCTION_DIRECTOR)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.SECRETARY,
+    UserRole.FINANCIAL_DIRECTOR,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.HR_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+  )
   findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     return this.contactsService.findOne(id, user);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.HR_MANAGER, UserRole.PRODUCTION_DIRECTOR)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.SECRETARY,
+    UserRole.FINANCIAL_DIRECTOR,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.HR_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+  )
   update(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('id') id: string,
     @Body() updateContactDto: UpdateContactDto,
     @CurrentUser() user: User,
   ) {
@@ -106,24 +162,57 @@ export class ContactsController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.HR_MANAGER, UserRole.PRODUCTION_DIRECTOR)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.SECRETARY,
+    UserRole.FINANCIAL_DIRECTOR,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.HR_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+  )
   remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     return this.contactsService.remove(id, user);
   }
 
   @Post(':id/reset-password')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.HR_MANAGER, UserRole.PRODUCTION_DIRECTOR)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.SECRETARY,
+    UserRole.FINANCIAL_DIRECTOR,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.HR_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+  )
   @HttpCode(HttpStatus.OK)
-  resetPassword(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  resetPassword(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: User,
+  ) {
     return this.contactsService.resetContactPassword(id, user);
   }
 
   @Post(':id/enable-portal')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER, UserRole.PURCHASING_MANAGER, UserRole.HR_MANAGER, UserRole.PRODUCTION_DIRECTOR)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.SECRETARY,
+    UserRole.FINANCIAL_DIRECTOR,
+    UserRole.CAISSIER,
+    UserRole.PURCHASING_MANAGER,
+    UserRole.HR_MANAGER,
+    UserRole.PRODUCTION_DIRECTOR,
+  )
   @HttpCode(HttpStatus.OK)
-  enablePortalAccess(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  enablePortalAccess(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: User,
+  ) {
     return this.contactsService.enablePortalAccess(id, user);
   }
 }

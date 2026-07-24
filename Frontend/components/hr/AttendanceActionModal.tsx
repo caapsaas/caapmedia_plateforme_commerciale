@@ -76,19 +76,19 @@ const AttendanceActionModal: React.FC<AttendanceActionModalProps> = ({ isOpen, o
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label htmlFor="employeeId" className="block text-sm font-medium text-slate-700">{t('hr.attendance.employee')}</label>
-                                        <select name="employeeId" id="employeeId" value={selectedEmployeeId} onChange={e => setSelectedEmployeeId(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                        <select name="employeeId" id="employeeId" value={selectedEmployeeId} onChange={e => setSelectedEmployeeId(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                             <option value="" disabled>Select an employee</option>
                                             {employees.map(emp => <option key={emp.id} value={emp.id}>{`${emp.firstName} ${emp.lastName}`}</option>)}
                                         </select>
                                     </div>
                                     <div>
                                         <label htmlFor="attendanceDate" className="block text-sm font-medium text-slate-700">{t('hr.attendance.date')}</label>
-                                        <input type="date" name="attendanceDate" id="attendanceDate" value={date} onChange={e => setDate(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                        <input type="date" name="attendanceDate" id="attendanceDate" value={date} onChange={e => setDate(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                     </div>
                                 </div>
                                 <div>
                                     <label htmlFor="status" className="block text-sm font-medium text-slate-700">{t('hr.attendance.status')}</label>
-                                    <select name="status" id="status" value={status} onChange={e => setStatus(e.target.value as AttendanceStatus)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                    <select name="status" id="status" value={status} onChange={e => setStatus(e.target.value as AttendanceStatus)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                         <option value="PRESENT">{t('hr.attendance.status_PRESENT')}</option>
                                         <option value="ABSENT_JUSTIFIED">{t('hr.attendance.status_ABSENT_JUSTIFIED')}</option>
                                         <option value="ABSENT_UNJUSTIFIED">{t('hr.attendance.status_ABSENT_UNJUSTIFIED')}</option>
@@ -99,19 +99,19 @@ const AttendanceActionModal: React.FC<AttendanceActionModalProps> = ({ isOpen, o
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label htmlFor="arrivalTime" className="block text-sm font-medium text-slate-700">{t('hr.attendance.arrivalTime')}</label>
-                                            <input type="time" name="arrivalTime" id="arrivalTime" value={times.arrivalTime} onChange={handleTimeChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                            <input type="time" name="arrivalTime" id="arrivalTime" value={times.arrivalTime} onChange={handleTimeChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                          <div>
                                             <label htmlFor="departureTime" className="block text-sm font-medium text-slate-700">{t('hr.attendance.departureTime')}</label>
-                                            <input type="time" name="departureTime" id="departureTime" value={times.departureTime} onChange={handleTimeChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                            <input type="time" name="departureTime" id="departureTime" value={times.departureTime} onChange={handleTimeChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                          <div>
                                             <label htmlFor="breakStartTime" className="block text-sm font-medium text-slate-700">Début Pause</label>
-                                            <input type="time" name="breakStartTime" id="breakStartTime" value={times.breakStartTime} onChange={handleTimeChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                            <input type="time" name="breakStartTime" id="breakStartTime" value={times.breakStartTime} onChange={handleTimeChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                         <div>
                                             <label htmlFor="breakEndTime" className="block text-sm font-medium text-slate-700">Fin Pause</label>
-                                            <input type="time" name="breakEndTime" id="breakEndTime" value={times.breakEndTime} onChange={handleTimeChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                            <input type="time" name="breakEndTime" id="breakEndTime" value={times.breakEndTime} onChange={handleTimeChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                     </div>
                                 )}

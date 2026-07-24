@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateAccountDto {
   @IsString()
@@ -17,11 +17,11 @@ export class CreateAccountDto {
   @IsNotEmpty()
   address: string;
 
-  @IsUUID()
+  @IsString()
   @IsOptional()
   salesRepId?: string;
 
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   subsidiaryId?: string;
 }

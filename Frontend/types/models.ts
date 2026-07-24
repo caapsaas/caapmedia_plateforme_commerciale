@@ -9,6 +9,7 @@ export enum AppMode {
 }
 
 export enum UserRole {
+  SUPER_ADMIN = 'SUPER_ADMIN',
   ADMIN = 'ADMIN',
   COMMERCIAL = 'COMMERCIAL',
   CAISSIER = 'CAISSIER',
@@ -154,32 +155,11 @@ export interface User {
   email: string;
   userRole: UserRole;
   additionalRoles?: UserRole[];
+  /** Role actif pour un utilisateur multi-role (POST /auth/switch-role) - retombe sur userRole si absent. */
+  activeRole?: UserRole;
   subsidiaryId: string;
   password?: string;
-}
-
-export interface ConfigurableOptionItem {
-    optionName: string;
-    multiplier: number; // Price multiplier
-}
-
-export interface ConfigurableOptions {
-    FORMATS?: ConfigurableOptionItem[];
-    GRAMMAGES?: ConfigurableOptionItem[];
-    PRINTSIDES?: ConfigurableOptionItem[];
-    LAMINATIONS?: ConfigurableOptionItem[];
-    SIZES?: ConfigurableOptionItem[];
-    COLORS?: ConfigurableOptionItem[];
-    MATERIALS?: ConfigurableOptionItem[];
-    DIMENSIONS?: ConfigurableOptionItem[];
-    BINDINGS?: ConfigurableOptionItem[];
-    FOLDINGS?: ConfigurableOptionItem[];
-    CORNERS?: ConfigurableOptionItem[];
-    EYELETS?: ConfigurableOptionItem[];
-    PAGES?: ConfigurableOptionItem[];
-    HANDLES?: ConfigurableOptionItem[];
-    STUB?: ConfigurableOptionItem[];
-    NUMBERING?: ConfigurableOptionItem[];
+  twoFactorEnabled?: boolean;
 }
 
 export interface ProductImage {
@@ -188,20 +168,180 @@ export interface ProductImage {
     imageUrl: string;
 }
 
+// Catalogue de services (Chantier 1) : donnée globale, sans prix ni stock —
+// le prix est toujours négocié et saisi manuellement à la ligne de commande.
 export interface Product {
   id: string;
-  productName: string;
-  mainCategory: string;
-  category: string; // This is the subcategory
+  name: string;
+  category: string;
   description: string;
-  stock: number;
-  price: number; // Prix de revient
-  sellingPrice: number; // Prix de vente
-  warehouse: string;
-  subsidiaryId: string;
-  range?: string;
+  isActive: boolean;
+  isVisibleOnSite: boolean;
+  displayOrder?: number;
+  productRange?: string;
   productImages?: ProductImage[];
-  configurableOptions?: ConfigurableOptions;
+}
+
+// Produit de stock (matière première/consommable acheté en interne) — scopé
+// filiale, distinct du catalogue de services. Alimente Achats et le module Stock.
+// Référentiel d'unités de mesure (Chantier 2) — ex. Feuille, Rame, Mètre...
+export interface Unit {
+  id: string;
+  name: string;
+  symbol?: string;
+}
+
+// Unité d'emballage/achat d'un produit de stock (ex. Rame = 500 Feuilles) —
+// conversionFactor = combien d'unités de base contient une unité d'achat.
+export interface ItemPackagingUnit {
+  id: string;
+  itemId: string;
+  unitId: string;
+  conversionFactor: number;
+  unit: Unit;
+}
+
+// Journal des mouvements de stock (Chantier 3) — toute variation de stock,
+// entrée ou sortie, en unité de base. Jamais calculé à partir d'une commande :
+// une sortie liée à une commande (orderId) n'est là que pour la traçabilité.
+export enum StockMovementType {
+  PURCHASE_RECEIPT = 'PURCHASE_RECEIPT',
+  CUSTOMER_RETURN = 'CUSTOMER_RETURN',
+  POSITIVE_ADJUSTMENT = 'POSITIVE_ADJUSTMENT',
+  TRANSFER_IN = 'TRANSFER_IN',
+  PRODUCTION_CONSUMPTION = 'PRODUCTION_CONSUMPTION',
+  LOSS = 'LOSS',
+  BREAKAGE = 'BREAKAGE',
+  INTERNAL_CONSUMPTION = 'INTERNAL_CONSUMPTION',
+  NEGATIVE_ADJUSTMENT = 'NEGATIVE_ADJUSTMENT',
+  SUPPLIER_RETURN = 'SUPPLIER_RETURN',
+  TRANSFER_OUT = 'TRANSFER_OUT',
+}
+
+export interface StockMovement {
+  id: string;
+  itemId: string;
+  item?: { name: string };
+  subsidiaryId: string;
+  type: StockMovementType;
+  quantity: number;
+  reason?: string;
+  orderId?: string;
+  purchaseOrderId?: string;
+  createdById?: string;
+  createdAt: string;
+}
+
+export interface StockItem {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  sku?: string;
+  stock: number;
+  price: number | null;
+  warehouse: string;
+  productRange?: string;
+  minThreshold?: number;
+  stockManaged: boolean;
+  mainSupplierId?: string;
+  subsidiaryId: string;
+  // Unité dans laquelle le stock est réellement compté (Chantier 2).
+  baseUnitId?: string;
+  baseUnit?: Unit;
+  packagingUnits?: ItemPackagingUnit[];
+}
+
+// ---------------------------------------------------------------------------
+// Chantier 5 : moteur de spécifications configurables (Builder de formulaires)
+// ---------------------------------------------------------------------------
+
+export enum SpecFieldType {
+  TEXT = 'TEXT',
+  TEXTAREA = 'TEXTAREA',
+  NUMBER = 'NUMBER',
+  DECIMAL = 'DECIMAL',
+  AMOUNT = 'AMOUNT',
+  SELECT = 'SELECT',
+  MULTISELECT = 'MULTISELECT',
+  RADIO = 'RADIO',
+  CHECKBOX = 'CHECKBOX',
+  BOOLEAN = 'BOOLEAN',
+  DATE = 'DATE',
+  TIME = 'TIME',
+  COLOR = 'COLOR',
+  UPLOAD = 'UPLOAD',
+  URL = 'URL',
+  EMAIL = 'EMAIL',
+  PHONE = 'PHONE',
+  DIMENSIONS = 'DIMENSIONS',
+}
+
+export interface ResolvedOption {
+  value: string;
+  label: string;
+}
+
+// Règle conditionnelle simple : { when: {field, operator, value}, then: {action, target} }
+export interface SpecRule {
+  when: { field: string; operator: 'equals' | 'notEquals' | 'greaterThan' | 'lessThan'; value: unknown };
+  then: { action: 'show' | 'hide' | 'require' | 'readOnly'; target: string };
+}
+
+export interface ProductSpecification {
+  id: string;
+  groupId: string | null;
+  name: string;
+  technicalKey: string;
+  type: SpecFieldType;
+  required: boolean;
+  defaultValue: unknown;
+  possibleValues: ResolvedOption[] | null;
+  order: number;
+  helpText: string | null;
+  placeholder: string | null;
+  unit: string | null;
+  visibleToClient: boolean;
+  visibleToProduction: boolean;
+  editableAfterValidation: boolean;
+  searchable: boolean;
+  typeConfig: Record<string, unknown> | null;
+  rules: SpecRule[] | null;
+}
+
+export interface ProductSpecGroup {
+  id: string;
+  name: string;
+  order: number;
+  specifications: ProductSpecification[];
+}
+
+export interface FormDefinition {
+  productId: string;
+  groups: ProductSpecGroup[];
+  ungroupedSpecifications: ProductSpecification[];
+}
+
+export interface SpecReferenceValue {
+  id: string;
+  listId: string;
+  value: string;
+  label: string;
+  order: number;
+}
+
+export interface SpecReferenceList {
+  id: string;
+  key: string;
+  name: string;
+  values: SpecReferenceValue[];
+}
+
+export interface TopSellingProduct {
+  id: string;
+  productName: string;
+  quantity: number;
+  totalRevenue: number;
 }
 
 export interface Sale {
@@ -216,6 +356,8 @@ export interface Sale {
   subsidiaryId: string;
   salesRepId?: string;
   taxRate: number;
+  specValues?: Record<string, unknown> | null;
+  specSnapshot?: FormDefinition | null;
 }
 
 export enum PaymentStatus {
@@ -241,6 +383,15 @@ export enum ProductionStatus {
   READY_FOR_DELIVERY = 'READY_FOR_DELIVERY',
 }
 
+export enum ProformaStatus {
+  DRAFT = 'DRAFT',
+  SENT = 'SENT',
+  VIEWED = 'VIEWED',
+  ACCEPTED = 'ACCEPTED',
+  REJECTED = 'REJECTED',
+  EXPIRED = 'EXPIRED',
+  CONVERTED = 'CONVERTED',
+}
 
 export interface ProductOptions {
     format?: string;
@@ -262,12 +413,37 @@ export interface ProductOptions {
 }
 
 
+export interface OrderItemProductionStep {
+  id?: string;
+  stepOrder: number;
+  equipmentNameSnapshot: string;
+  estimatedTimeHours: number;
+  hourlyRateSnapshot: number;
+  calculatedCost: number;
+}
+
+export interface OrderItemProductionSummary {
+  totalProductionCost: number;
+  marginPercent: number;
+  finalPrice: number;
+}
+
 export interface OrderItem {
+  id?: string;
   product: Product;
   quantity: number;
-  price: number; // The CALCULATED unit price at the time of order
+  unitPrice: number;
+  discount?: number;
+  total?: number;
   options?: Partial<ProductOptions>;
+  productOptions?: { optionType: string; optionValue: string }[];
+  designFileName?: string;
+  designFileUrl?: string;
   designFile?: { name: string; url: string; };
+  specValues?: Record<string, unknown>;
+  specSnapshot?: FormDefinition | null;
+  productionSteps?: OrderItemProductionStep[];
+  productionSummary?: OrderItemProductionSummary | null;
 }
 
 export interface OrderGroup{
@@ -280,11 +456,14 @@ export interface OrderGroup{
 
 export interface Order {
   id: string;
+  orderDate?: string;
   date: string;
   customerName: string;
   customerId: string;
+  customer?: { id: string; contactName: string; email?: string; phone?: string };
+  salesRep?: { id: string; firstName?: string; lastName?: string; fullName?: string; email?: string };
+  subsidiary?: { subsidiaryName: string };
   items: OrderItem[];
-  orderItems: OrderItem[];
   totalAmount: number;
   subtotal: number;
   taxAmount: number;
@@ -292,7 +471,7 @@ export interface Order {
   taxRateValue: number;
   status: OrderStatus;
   productionStatus: ProductionStatus;
-  productionHistory: { status: ProductionStatus, date: string }[];
+  productionHistory: { status: ProductionStatus; changeDate?: string; date?: string }[];
   paymentStatus: PaymentStatus;
   amountPaid: number;
   subsidiaryId: string;
@@ -300,8 +479,7 @@ export interface Order {
   salesRepId?: string;
   opportunityId?: string;
   paymentMethod: CustomerPaymentMethod;
-  // FIX: Add optional 'source' property to track order origin and resolve type error.
-  source?: 'manual' | 'web_order' | 'quote_request';
+  source?: 'MANUAL' | 'WEB_ORDER' | 'QUOTE_REQUEST';
 }
 
 export interface Kpi {
@@ -368,6 +546,13 @@ export interface PurchaseOrderItem {
   quantity: number;
   quantityReceived: number;
   purchasePrice: number;
+  // Unité dans laquelle "quantity" est exprimée (Chantier 2) — absente =
+  // unité de base du produit.
+  purchaseUnitId?: string;
+  purchaseUnit?: Unit;
+  // Unité de base du produit (Chantier 2) — utilisée pour l'affichage quand
+  // purchaseUnit est absent (la ligne a été commandée en unité de base).
+  product?: { baseUnit?: Unit };
 }
 
 export interface PurchaseOrderHistory {
@@ -571,6 +756,9 @@ export interface Employee {
     benefits: string[];
     lastSalaryAdjustmentDate: string | null;
     paymentMethod: PaymentMethod;
+    // Banking Info
+    bankName?: string;
+    bankAccountNumber?: string;
     // Documents
     documents: {
         contract: EmployeeDocument | null;
@@ -603,30 +791,32 @@ export interface Employee {
         maternity: number;
         paternity: number;
         other: number;
+        unpaid: number;
     };
     leaveRecords: LeaveRecord[];
+    // Personal Information
+    numberDependents?: number;
+    situationMatrimony?: string;
 }
 
 export enum LeaveType {
   ANNUAL = 'ANNUAL',
   SICK = 'SICK',
+  PERSONAL = 'PERSONAL',
+  MATERNITY = 'MATERNITY',
+  PATERNITY = 'PATERNITY',
+  OTHER = 'OTHER',
   UNPAID = 'UNPAID',
 }
 
 export interface LeaveRecord {
-  type: LeaveType;
+  leaveRecordType: LeaveType;
   startDate: string;
   endDate: string;
   days: number;
 }
 
 export type EmployeeFormData = Omit<Employee, 'id' | 'subsidiaryId' | 'positionHistory' | 'trainings' | 'performanceReviews'> & {
-    documents: {
-        contract: {name: string, url: string, file: File | null} | null;
-        idCard: {name: string, url: string, file: File | null} | null;
-        workPermit: {name: string, url: string, file: File | null} | null;
-        diplomas: {name: string, url: string, file: File | null}[];
-    };
     leaveBalance: {
         annual: number;
         sick: number;
@@ -634,8 +824,8 @@ export type EmployeeFormData = Omit<Employee, 'id' | 'subsidiaryId' | 'positionH
         maternity: number;
         paternity: number;
         other: number;
+        unpaid: number;
     };
-    leaveRecords: LeaveRecord[];
 };
 
 
@@ -784,7 +974,7 @@ export interface Opportunity {
     userId: string;
     subsidiaryId: string;
      productIds: string[];
-    source?: 'manual' | 'web_order' | 'quote_request';
+    source?: 'MANUAL' | 'WEB_ORDER' | 'QUOTE_REQUEST';
 }
 
 export enum InteractionType {
@@ -906,14 +1096,14 @@ export interface MaintenanceRecord {
     maintenanceCost: number;
 }
 export interface Equipment {
-    id: string; 
+    id: string;
     equipmentName: string;
     status: EquipmentStatus;
-    lastMaintenanceDate: Date;
-    nextMaintenanceDate: Date;
-    maintenanceHistory: MaintenanceRecord[];
+    lastMaintenanceDate: string;
+    nextMaintenanceDate: string;
+    maintenanceRecords: MaintenanceRecord[];
     subsidiaryId: string;
-    acquisitionDate: Date;
+    acquisitionDate: string;
     acquisitionValue: number;
 }
 

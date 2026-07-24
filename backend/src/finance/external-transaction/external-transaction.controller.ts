@@ -12,7 +12,13 @@ import {
   HttpCode,
   Request,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { ExternalTransactionService } from './external-transaction.service';
 import { CreateExternalTransactionDto } from './dto/create-external-transaction.dto';
 import { UpdateExternalTransactionDto } from './dto/update-external-transaction.dto';
@@ -22,7 +28,9 @@ import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 @UseGuards(JwtAuthGuard)
 @Controller('finance/external-transactions')
 export class ExternalTransactionController {
-  constructor(private readonly externalTransactionService: ExternalTransactionService) {}
+  constructor(
+    private readonly externalTransactionService: ExternalTransactionService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Créer une nouvelle transaction externe' })
@@ -34,13 +42,40 @@ export class ExternalTransactionController {
 
   @Get()
   @ApiOperation({ summary: 'Récupérer toutes les transactions externes' })
-  @ApiResponse({ status: 200, description: 'Liste des transactions récupérée avec succès.' })
-  @ApiQuery({ name: 'type', required: false, description: 'Filtrer par type de transaction' })
-  @ApiQuery({ name: 'category', required: false, description: 'Filtrer par catégorie' })
-  @ApiQuery({ name: 'status', required: false, description: 'Filtrer par statut' })
-  @ApiQuery({ name: 'startDate', required: false, description: 'Date de début (YYYY-MM-DD)' })
-  @ApiQuery({ name: 'endDate', required: false, description: 'Date de fin (YYYY-MM-DD)' })
-  @ApiQuery({ name: 'search', required: false, description: 'Rechercher dans description ou référence' })
+  @ApiResponse({
+    status: 200,
+    description: 'Liste des transactions récupérée avec succès.',
+  })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    description: 'Filtrer par type de transaction',
+  })
+  @ApiQuery({
+    name: 'category',
+    required: false,
+    description: 'Filtrer par catégorie',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Filtrer par statut',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Date de début (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    description: 'Date de fin (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Rechercher dans description ou référence',
+  })
   async findAll(
     @Query('subsidiaryId') subsidiaryId: string,
     @Query('type') type?: string,
@@ -61,16 +96,28 @@ export class ExternalTransactionController {
   }
 
   @Get('statistics')
-  @ApiOperation({ summary: 'Récupérer les statistiques des transactions externes' })
-  @ApiResponse({ status: 200, description: 'Statistiques récupérées avec succès.' })
-  @ApiQuery({ name: 'subsidiaryId', required: true, description: 'ID de la filiale' })
+  @ApiOperation({
+    summary: 'Récupérer les statistiques des transactions externes',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Statistiques récupérées avec succès.',
+  })
+  @ApiQuery({
+    name: 'subsidiaryId',
+    required: true,
+    description: 'ID de la filiale',
+  })
   async getStatistics(@Query('subsidiaryId') subsidiaryId: string) {
     return await this.externalTransactionService.getStatistics(subsidiaryId);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Récupérer une transaction externe par son ID' })
-  @ApiResponse({ status: 200, description: 'Transaction récupérée avec succès.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction récupérée avec succès.',
+  })
   @ApiResponse({ status: 404, description: 'Transaction non trouvée.' })
   @ApiParam({ name: 'id', description: 'ID de la transaction' })
   async findOne(@Param('id') id: string) {
@@ -79,10 +126,16 @@ export class ExternalTransactionController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Mettre à jour une transaction externe' })
-  @ApiResponse({ status: 200, description: 'Transaction mise à jour avec succès.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction mise à jour avec succès.',
+  })
   @ApiResponse({ status: 404, description: 'Transaction non trouvée.' })
   @ApiParam({ name: 'id', description: 'ID de la transaction' })
-  async update(@Param('id') id: string, @Body() updateDto: UpdateExternalTransactionDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateExternalTransactionDto,
+  ) {
     return await this.externalTransactionService.update(id, updateDto);
   }
 
@@ -90,7 +143,10 @@ export class ExternalTransactionController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Valider une transaction externe' })
   @ApiResponse({ status: 200, description: 'Transaction validée avec succès.' })
-  @ApiResponse({ status: 400, description: 'Transaction déjà validée ou annulée.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Transaction déjà validée ou annulée.',
+  })
   @ApiResponse({ status: 404, description: 'Transaction non trouvée.' })
   @ApiParam({ name: 'id', description: 'ID de la transaction' })
   async validate(@Param('id') id: string, @Request() req: any) {
@@ -112,8 +168,14 @@ export class ExternalTransactionController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Supprimer une transaction externe' })
-  @ApiResponse({ status: 200, description: 'Transaction supprimée avec succès.' })
-  @ApiResponse({ status: 400, description: 'Impossible de supprimer une transaction validée.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction supprimée avec succès.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Impossible de supprimer une transaction validée.',
+  })
   @ApiResponse({ status: 404, description: 'Transaction non trouvée.' })
   @ApiParam({ name: 'id', description: 'ID de la transaction' })
   async remove(@Param('id') id: string) {
@@ -122,21 +184,47 @@ export class ExternalTransactionController {
 
   @Patch(':id/admin-update')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Mettre à jour une transaction validée (Admin/Directeur Financier uniquement)' })
-  @ApiResponse({ status: 200, description: 'Transaction mise à jour avec succès.' })
-  @ApiResponse({ status: 400, description: 'Accès refusé ou transaction non trouvée.' })
+  @ApiOperation({
+    summary:
+      'Mettre à jour une transaction validée (Admin/Directeur Financier uniquement)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction mise à jour avec succès.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Accès refusé ou transaction non trouvée.',
+  })
   @ApiResponse({ status: 404, description: 'Transaction non trouvée.' })
   @ApiParam({ name: 'id', description: 'ID de la transaction' })
-  async adminUpdate(@Param('id') id: string, @Body() updateDto: UpdateExternalTransactionDto, @Request() req: any) {
+  async adminUpdate(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateExternalTransactionDto,
+    @Request() req: any,
+  ) {
     const userId = req.user?.id;
-    return await this.externalTransactionService.adminUpdate(id, updateDto, userId);
+    return await this.externalTransactionService.adminUpdate(
+      id,
+      updateDto,
+      userId,
+    );
   }
 
   @Delete(':id/admin-delete')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Supprimer une transaction validée (Admin/Directeur Financier uniquement)' })
-  @ApiResponse({ status: 200, description: 'Transaction supprimée avec succès.' })
-  @ApiResponse({ status: 400, description: 'Accès refusé ou transaction non trouvée.' })
+  @ApiOperation({
+    summary:
+      'Supprimer une transaction validée (Admin/Directeur Financier uniquement)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction supprimée avec succès.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Accès refusé ou transaction non trouvée.',
+  })
   @ApiResponse({ status: 404, description: 'Transaction non trouvée.' })
   @ApiParam({ name: 'id', description: 'ID de la transaction' })
   async adminRemove(@Param('id') id: string, @Request() req: any) {

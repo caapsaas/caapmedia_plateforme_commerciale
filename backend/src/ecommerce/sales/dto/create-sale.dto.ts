@@ -4,15 +4,18 @@ import {
   IsInt,
   IsNotEmpty,
   IsEnum,
+  IsNumber,
+  IsObject,
+  IsOptional,
   IsString,
-  IsUUID,
+  IsNumber,
   Min,
   ValidateNested,
 } from 'class-validator';
 import { CustomerPaymentMethod } from '@prisma/client';
 
 class DirectSaleItemDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   productId: string;
 
@@ -23,11 +26,22 @@ class DirectSaleItemDto {
   @IsString()
   @IsNotEmpty()
   productName: string;
+
+  // Prix négocié pour cette vente au comptoir (jamais tiré du catalogue).
+  @IsNumber()
+  @Min(0)
+  unitPrice: number;
+
+  // Spécifications techniques saisies au comptoir (Chantier 5), validées
+  // côté serveur contre la définition du service — voir sales.service.ts.
+  @IsOptional()
+  @IsObject()
+  specValues?: Record<string, unknown>;
 }
 
 export class CreateDirectSaleDto {
   @IsNotEmpty()
-  @IsUUID()
+  @IsString()
   customerId: string;
 
   @IsNotEmpty()

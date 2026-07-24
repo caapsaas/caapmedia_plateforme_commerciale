@@ -6,7 +6,8 @@ import { PrismaModule } from './common/utils/prisma/prisma.module';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './common/auth/auth.module';
 import { SubsidiariesModule } from './common/subsidiaries/subsidiaries.module';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { ProductsModule } from './ecommerce/products/products.module';
 import { SecretariatModule } from './secretariat/secretariat.module';
 import { HrModule } from './hr/hr.module';
@@ -24,28 +25,37 @@ import { AnalyticsModule } from './statistics/analytics/analytics.module';
 import { StatisticsModule } from './statistics/statistics.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
 import { AccountingModule } from './accounting/accounting.module';
+import { validate } from './config/env.validation';
+import { ConfigurationModule } from './configuration/configuration.module';
 
 @Module({
   imports: [
     // La configuration se fait maintenant via un tableau d'objets.
     // ttl est maintenant en millisecondes.
-    ThrottlerModule.forRoot([{
-      ttl: 60000, // 60 secondes
-      limit: 10,
-    }]),
-    ConfigModule.forRoot({ isGlobal: true }), // Charge .env globalement
+    // Defaut global genereux (couvre le trafic normal d'un dashboard: chargement
+    // de page = plusieurs GET en parallele, et une IP de bureau est souvent
+    // partagee par plusieurs employes via NAT). Les endpoints sensibles
+    // (login, refresh, forgot-password) ont leur propre @Throttle() plus
+    // strict qui prend le dessus sur ce defaut, voir auth.controller.ts.
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // 60 secondes
+        limit: 300,
+      },
+    ]),
+    ConfigModule.forRoot({ isGlobal: true, validate }), // Charge .env globalement, échoue au démarrage si invalide
     PrismaModule,
     CommonModule,
     SecretariatModule,
-    AuthModule, 
+    AuthModule,
     SubsidiariesModule,
-    EcommerceModule, 
+    EcommerceModule,
 
-    HrModule, 
+    HrModule,
     AuthModule,
     SubsidiariesModule,
     SecretariatModule,
-    MaintenanceModule, 
+    MaintenanceModule,
     EquipementModule,
     MaintenanceRecordModule,
     OrdersModule,
@@ -58,10 +68,16 @@ import { AccountingModule } from './accounting/accounting.module';
     AnalyticsModule,
     StatisticsModule,
     NewsletterModule,
-    AccountingModule
-
+    AccountingModule,
+    ConfigurationModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // ThrottlerModule.forRoot() ne fait qu'enregistrer la config: sans ce
+    // guard applique globalement, aucune limite n'est jamais appliquee
+    // (@Throttle() sur une route n'a d'effet que si ce guard tourne).
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}

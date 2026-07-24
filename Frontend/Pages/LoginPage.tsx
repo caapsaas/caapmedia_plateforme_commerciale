@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import IconGmoLogo from '../components/icons/IconGmoLogo';
 import IconAtSymbol from '../components/icons/IconAtSymbol';
 import IconLock from '../components/icons/IconLock';
 import IconBuilding from '../components/icons/IconBuilding';
 import { useI18n } from '../i18n';
 import { useAppContext } from '../context/AppContext';
-import { loginUser as apiLogin, forgotPassword as apiForgotPassword } from '../services/apiCommon/apiUserAuth';
+import { loginUser as apiLogin, forgotPassword as apiForgotPassword, completeTwoFactorLogin } from '../services/apiCommon/apiUserAuth';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { getSubsidiaries } from '../services/apiCommon/apiSubsidiaries'; // Importation depuis le nouveau fichier
 import { Subsidiary } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { UserRole } from '../types';
+import { getDefaultViewForRole } from '../utils/roleViews';
 
 const LoginPage: React.FC = () => {
   const { t } = useI18n();
@@ -22,6 +21,14 @@ const LoginPage: React.FC = () => {
   const [selectedSubsidiary, setSelectedSubsidiary] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Etape 2FA: si le login renvoie twoFactorRequired, on bascule sur ce
+  // formulaire au lieu du formulaire email/mot de passe.
+  const [pendingToken, setPendingToken] = useState<string | null>(null);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
+  const [twoFactorError, setTwoFactorError] = useState('');
+  const [isVerifying2Fa, setIsVerifying2Fa] = useState(false);
 
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
@@ -35,21 +42,7 @@ const LoginPage: React.FC = () => {
     // Ce `useEffect` réagit au changement de l'état d'authentification.
     // Si l'utilisateur est authentifié, on le redirige selon son rôle.
     if (authUser) {
-      // Déterminer la page par défaut selon le rôle
-      const getDefaultViewForRole = (role: UserRole): string => {
-        switch (role) {
-          case UserRole.CAISSIER: return '/dashboard/caisse';
-          case UserRole.COMMERCIAL: return '/dashboard/crm';
-          case UserRole.PURCHASING_MANAGER: return '/dashboard/purchasing';
-          case UserRole.SECRETARY: return '/dashboard/secretariat';
-          case UserRole.HR_MANAGER: return '/dashboard/hr';
-          case UserRole.PRODUCTION_DIRECTOR: return '/dashboard/production';
-          case UserRole.FINANCIAL_DIRECTOR: return '/dashboard/finance';
-          default: return '/dashboard';
-        }
-      };
-
-      const destination = redirect || getDefaultViewForRole(authUser.role);
+      const destination = redirect || getDefaultViewForRole(authUser.activeRole ?? authUser.userRole);
       navigate({ to: destination, replace: true });
     }
   }, [authUser, navigate, redirect]);
@@ -75,16 +68,42 @@ const LoginPage: React.FC = () => {
   setIsLoading(true);
 
   try {
-    // 1️⃣ Appel à l’API d’authentification
-    const { user, access_token, subsidiary } = await apiLogin({ email, password });
+    // 1️⃣ Appel à l'API d'authentification (le serveur pose les cookies httpOnly)
+    const result = await apiLogin({ email, password });
 
-    // 2️⃣ Mise à jour complète du contexte Auth (token + user)
-    login({ user, token: access_token, subsidiary });
+    if (result.twoFactorRequired) {
+      // Mot de passe correct mais 2FA active: pas de session tant que le
+      // code n'est pas verifie, on bascule sur le formulaire dedie.
+      setPendingToken(result.pendingToken);
+      return;
+    }
+
+    // 2️⃣ Mise à jour du contexte Auth
+    login({ user: result.user, subsidiary: result.subsidiary });
 
   } catch (err: any) {
     setError(err.message || t('login.errorIncorrectCredentials'));
   } finally {
     setIsLoading(false);
+  }
+};
+
+const handleTwoFactorSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!pendingToken) return;
+  setTwoFactorError('');
+  setIsVerifying2Fa(true);
+
+  try {
+    const { user, subsidiary } = await completeTwoFactorLogin(
+      pendingToken,
+      useRecoveryCode ? { recoveryCode: twoFactorCode } : { code: twoFactorCode },
+    );
+    login({ user, subsidiary });
+  } catch (err: any) {
+    setTwoFactorError(err.message || t('login.twoFactor.errorInvalidCode'));
+  } finally {
+    setIsVerifying2Fa(false);
   }
 };
 
@@ -157,16 +176,93 @@ const LoginPage: React.FC = () => {
     </div>
   );
 
+  const TwoFactorForm = () => (
+    <form onSubmit={handleTwoFactorSubmit} className="space-y-6">
+      <div>
+        <label htmlFor="two-factor-code" className="block text-sm font-medium text-slate-700">
+          {useRecoveryCode ? t('login.twoFactor.recoveryCodeLabel') : t('login.twoFactor.codeLabel')}
+        </label>
+        <div className="mt-1 relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <IconLock className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            id="two-factor-code"
+            name="two-factor-code"
+            type="text"
+            inputMode={useRecoveryCode ? 'text' : 'numeric'}
+            autoComplete="one-time-code"
+            required
+            autoFocus
+            value={twoFactorCode}
+            onChange={(e) => setTwoFactorCode(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#c6e911] focus:border-transparent transition"
+            placeholder={useRecoveryCode ? t('login.twoFactor.recoveryCodePlaceholder') : '123456'}
+            disabled={isVerifying2Fa}
+          />
+        </div>
+      </div>
+
+      {twoFactorError && <p role="alert" className="text-red-500 text-sm text-center">{twoFactorError}</p>}
+
+      <div>
+        <button
+          type="submit"
+          disabled={isVerifying2Fa}
+          className="w-full flex justify-center items-center px-4 py-3 bg-[#c6e911] text-slate-800 font-semibold rounded-md hover:bg-[#adc40f] disabled:bg-lime-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#c6e911]"
+        >
+          {isVerifying2Fa ? t('login.loggingIn') : t('login.twoFactor.verifyButton')}
+        </button>
+      </div>
+
+      <div className="flex justify-between text-sm">
+        <button
+          type="button"
+          onClick={() => { setUseRecoveryCode((v) => !v); setTwoFactorCode(''); setTwoFactorError(''); }}
+          className="font-medium text-[#c6e911] hover:text-[#adc40f]"
+        >
+          {useRecoveryCode ? t('login.twoFactor.useCodeInstead') : t('login.twoFactor.useRecoveryCodeInstead')}
+        </button>
+        <button
+          type="button"
+          onClick={() => { setPendingToken(null); setTwoFactorCode(''); setTwoFactorError(''); setUseRecoveryCode(false); }}
+          className="text-slate-500 hover:text-slate-700"
+        >
+          {t('common.cancel')}
+        </button>
+      </div>
+    </form>
+  );
+
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="absolute top-4 left-4">
+        <a
+          href="/"
+          className="inline-flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-[#c6e911] hover:bg-white rounded-lg transition-colors font-medium"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+          </svg>
+          Retour à l'e-commerce
+        </a>
+      </div>
       <div className="w-full max-w-4xl flex flex-col md:flex-row bg-white rounded-2xl shadow-2xl overflow-hidden">
         <div className="w-full md:w-1/2 bg-[#231F20] p-12 flex flex-col justify-center items-center text-white">
-          <IconGmoLogo className="w-48 h-auto mb-8" />
+          <img src="/CaaMedia.png" alt="CaapMedia Logo" className="w-32 h-32 rounded-full object-cover mb-8 shadow-lg" />
           <h1 className="text-3xl font-bold text-center">{t('login.platformTitle')}</h1>
           <p className="mt-4 text-center text-gray-300">{t('login.platformSubtitle')}</p>
         </div>
 
         <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
+          {pendingToken ? (
+            <>
+              <h2 className="text-3xl font-bold text-slate-800 mb-2">{t('login.twoFactor.title')}</h2>
+              <p className="text-slate-600 mb-8">{t('login.twoFactor.subtitle')}</p>
+              <TwoFactorForm />
+            </>
+          ) : (
+          <>
           <h2 className="text-3xl font-bold text-slate-800 mb-2">{t('login.title')}</h2>
           <p className="text-slate-600 mb-8">{t('login.subtitle')}</p>
 
@@ -269,6 +365,8 @@ const LoginPage: React.FC = () => {
               </button>
             </div>
           </form>
+          </>
+          )}
         </div>
       </div>
       {showForgotPassword && <ForgotPasswordModal />}

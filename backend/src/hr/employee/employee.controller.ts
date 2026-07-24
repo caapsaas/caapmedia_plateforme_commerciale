@@ -9,12 +9,19 @@ import {
   UseGuards,
   Request,
   Query,
-  ParseBoolPipe,
-  ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { EmployeeService } from './employee.service';
-import { CreateEmployeeDto, UpdateEmployeeDto, LeaveBalanceDto } from './dto/employee.dto';
+import {
+  CreateEmployeeDto,
+  UpdateEmployeeDto,
+  LeaveBalanceDto,
+} from './dto/employee.dto';
 import { DocumentType, LeaveType } from '@prisma/client';
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles } from '../../common/auth/role/role.decorator';
@@ -38,25 +45,22 @@ export class EmployeeController {
   async create(@Body() createEmployeeDto: CreateEmployeeDto, @Request() req) {
     const subsidiaryId = req.user.subsidiaryId;
     this.logger.log(`Creating employee in subsidiary ${subsidiaryId}`);
-    
+
     // Log pour déboguer
     this.logger.log(`Received DTO: ${JSON.stringify(createEmployeeDto)}`);
-    
+
     // Extraire l'ID des données si présent (pour gérer les mises à jour déguisées)
     const dtoAsAny = createEmployeeDto as any;
     const employeeId = dtoAsAny.id;
-    
+
     this.logger.log(`Extracted employeeId: ${employeeId}`);
-    
+
     if (employeeId) {
       this.logger.log(`Redirecting to update for employee ${employeeId}`);
       return this.employeeService.update(employeeId, dtoAsAny);
     }
-    
-    return this.employeeService.create(
-      createEmployeeDto,
-      subsidiaryId
-    );
+
+    return this.employeeService.create(createEmployeeDto, subsidiaryId);
   }
 
   @Get()
@@ -64,11 +68,12 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Get all employees of a subsidiary' })
   async findAll(
     @Request() req,
-    @Query('includeRelations', ParseBoolPipe) includeRelations = false,
+    @Query('includeRelations') includeRelations?: string,
   ) {
     const subsidiaryId = req.user.subsidiaryId;
     this.logger.log(`Fetching employees for subsidiary ${subsidiaryId}`);
-    return this.employeeService.findAll(subsidiaryId, includeRelations);
+    const includeRel = includeRelations === 'true';
+    return this.employeeService.findAll(subsidiaryId, includeRel);
   }
 
   @Get(':id')
@@ -76,16 +81,20 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Get a single employee by ID' })
   async findOne(
     @Param('id') id: string,
-    @Query('includeRelations', ParseBoolPipe) includeRelations = false,
+    @Query('includeRelations') includeRelations?: string,
   ) {
     this.logger.log(`Fetching employee ${id}`);
-    return this.employeeService.findOne(id, includeRelations);
+    const includeRel = includeRelations === 'true';
+    return this.employeeService.findOne(id, includeRel);
   }
 
   @Patch(':id')
   @Roles('ADMIN', 'HR_MANAGER')
   @ApiOperation({ summary: 'Update employee by ID' })
-  async update(@Param('id') id: string, @Body() updateEmployeeDto: UpdateEmployeeDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateEmployeeDto: UpdateEmployeeDto,
+  ) {
     this.logger.log(`Updating employee ${id}`);
     return this.employeeService.update(id, updateEmployeeDto);
   }
@@ -103,13 +112,18 @@ export class EmployeeController {
   // ---------------------------
 
   @Post(':id/documents')
-  @Roles('HR_MANAGER')
+  @Roles('ADMIN', 'HR_MANAGER')
   @ApiOperation({ summary: 'Add a document to an employee' })
   async addDocument(
     @Param('id') id: string,
-    @Body() body: { documentName: string; url: string; docType: DocumentType },
+    @Body() createEmployeeDocumentDto: CreateEmployeeDocumentDto,
   ) {
-    return this.employeeService.addDocument(id, body.documentName, body.url, body.docType);
+    return this.employeeService.addDocument(
+      id,
+      body.documentName,
+      body.url,
+      body.docType,
+    );
   }
 
   @Post(':id/trainings')
@@ -117,12 +131,10 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Add a training record to an employee' })
   async addTraining(
     @Param('id') id: string,
-    @Body() body: { trainingName: string; trainingDate: string; provider?: string },
+    @Body()
+    body: { trainingName: string; trainingDate: string; provider?: string },
   ) {
-    return this.employeeService.addTraining(id, {
-      ...body,
-      trainingDate: new Date(body.trainingDate),
-    });
+    return this.employeeService.addTraining(id, createEmployeeTrainingDto);
   }
 
   @Post(':id/position-history')
@@ -130,19 +142,9 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Add a position history entry' })
   async addPositionHistory(
     @Param('id') id: string,
-    @Body()
-    body: {
-      employeePosition: string;
-      department?: string;
-      startDate: string;
-      endDate?: string;
-    },
+    @Body() createEmployeePositionHistoryDto: CreateEmployeePositionHistoryDto,
   ) {
-    return this.employeeService.addPositionHistory(id, {
-      ...body,
-      startDate: new Date(body.startDate),
-      endDate: body.endDate ? new Date(body.endDate) : undefined,
-    });
+    return this.employeeService.addPositionHistory(id, createEmployeePositionHistoryDto);
   }
 
   @Post(':id/performance-reviews')
@@ -150,33 +152,25 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Add a performance review' })
   async addPerformanceReview(
     @Param('id') id: string,
-    @Body()
-    body: {
-      reviewDate: string;
-      reviewer?: string;
-      rating?: number;
-      reviewComments?: string;
-    },
+    @Body() createEmployeePerformanceReviewDto: CreateEmployeePerformanceReviewDto,
   ) {
-    return this.employeeService.addPerformanceReview(id, {
-      ...body,
-      reviewDate: new Date(body.reviewDate),
-    });
+    return this.employeeService.addPerformanceReview(id, createEmployeePerformanceReviewDto);
   }
 
   @Post(':id/leaves')
-  @Roles('HR_MANAGER','ADMIN')
+  @Roles('HR_MANAGER', 'ADMIN')
   @ApiOperation({ summary: 'Add a leave record' })
   async addLeaveRecord(
     @Param('id') id: string,
     @Body()
-    body: { startDate: string; endDate: string; days: number; leaveRecordType: LeaveType },
+    body: {
+      startDate: string;
+      endDate: string;
+      days: number;
+      leaveRecordType: LeaveType;
+    },
   ) {
-    return this.employeeService.addLeaveRecord(id, {
-      ...body,
-      startDate: new Date(body.startDate),
-      endDate: new Date(body.endDate),
-    });
+    return this.employeeService.addLeaveRecord(id, addLeaveRecordDto);
   }
 
   @Get(':id/leave-balances')
@@ -198,7 +192,7 @@ export class EmployeeController {
       id,
       leaveType,
       body.days,
-      body.operation || 'set'
+      body.operation || 'set',
     );
   }
 

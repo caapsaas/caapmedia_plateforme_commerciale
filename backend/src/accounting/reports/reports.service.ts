@@ -27,15 +27,15 @@ export class ReportsService {
         status: JournalEntryStatus.POSTED,
         ...(journalCode ? { journal: { code: journalCode } } : {}),
       },
-      ...(accountNumber
-        ? { account: { accountNumber } }
-        : {}),
+      ...(accountNumber ? { account: { accountNumber } } : {}),
     };
 
     const lines = await this.prisma.journalEntryLine.findMany({
       where,
       include: {
-        account: { select: { accountNumber: true, accountName: true, accountType: true } },
+        account: {
+          select: { accountNumber: true, accountName: true, accountType: true },
+        },
         journalEntry: {
           select: {
             entryNumber: true,
@@ -52,12 +52,27 @@ export class ReportsService {
     });
 
     // Regrouper par compte et calculer les soldes cumulatifs
-    const grouped = new Map<string, { account: any; mouvements: any[]; totalDebit: number; totalCredit: number; solde: number }>();
+    const grouped = new Map<
+      string,
+      {
+        account: any;
+        mouvements: any[];
+        totalDebit: number;
+        totalCredit: number;
+        solde: number;
+      }
+    >();
 
     for (const line of lines) {
       const num = line.account.accountNumber;
       if (!grouped.has(num)) {
-        grouped.set(num, { account: line.account, mouvements: [], totalDebit: 0, totalCredit: 0, solde: 0 });
+        grouped.set(num, {
+          account: line.account,
+          mouvements: [],
+          totalDebit: 0,
+          totalCredit: 0,
+          solde: 0,
+        });
       }
       const entry = grouped.get(num)!;
       const debit = Number(line.debitAmount);
@@ -102,13 +117,16 @@ export class ReportsService {
       },
     });
 
-    const map = new Map<string, {
-      accountNumber: string;
-      accountName: string;
-      accountType: string;
-      mouvDebit: number;
-      mouvCredit: number;
-    }>();
+    const map = new Map<
+      string,
+      {
+        accountNumber: string;
+        accountName: string;
+        accountType: string;
+        mouvDebit: number;
+        mouvCredit: number;
+      }
+    >();
 
     for (const line of lines) {
       const num = line.account.accountNumber;
@@ -144,7 +162,12 @@ export class ReportsService {
         totalSoldeDebiteur: t.totalSoldeDebiteur + r.soldeDebiteur,
         totalSoldeCrediteur: t.totalSoldeCrediteur + r.soldeCrediteur,
       }),
-      { totalMouvDebit: 0, totalMouvCredit: 0, totalSoldeDebiteur: 0, totalSoldeCrediteur: 0 },
+      {
+        totalMouvDebit: 0,
+        totalMouvCredit: 0,
+        totalSoldeDebiteur: 0,
+        totalSoldeCrediteur: 0,
+      },
     );
 
     return { balance, totaux };
@@ -156,7 +179,11 @@ export class ReportsService {
   /**
    * Récapitulatif des écritures par journal sur la période.
    */
-  async getJournalCentralisateur(user: JwtUser, fiscalYearId: string, journalCode?: string) {
+  async getJournalCentralisateur(
+    user: JwtUser,
+    fiscalYearId: string,
+    journalCode?: string,
+  ) {
     const entries = await this.prisma.journalEntry.findMany({
       where: {
         subsidiaryId: user.subsidiaryId,
@@ -176,16 +203,35 @@ export class ReportsService {
     });
 
     // Grouper par journal
-    const grouped = new Map<string, { journal: any; écritures: any[]; totalDebit: number; totalCredit: number }>();
+    const grouped = new Map<
+      string,
+      {
+        journal: any;
+        écritures: any[];
+        totalDebit: number;
+        totalCredit: number;
+      }
+    >();
 
     for (const entry of entries) {
       const code = entry.journal?.code ?? 'JOD';
       if (!grouped.has(code)) {
-        grouped.set(code, { journal: entry.journal, écritures: [], totalDebit: 0, totalCredit: 0 });
+        grouped.set(code, {
+          journal: entry.journal,
+          écritures: [],
+          totalDebit: 0,
+          totalCredit: 0,
+        });
       }
       const g = grouped.get(code)!;
-      const totDebit = entry.lines.reduce((s, l) => s + Number(l.debitAmount), 0);
-      const totCredit = entry.lines.reduce((s, l) => s + Number(l.creditAmount), 0);
+      const totDebit = entry.lines.reduce(
+        (s, l) => s + Number(l.debitAmount),
+        0,
+      );
+      const totCredit = entry.lines.reduce(
+        (s, l) => s + Number(l.creditAmount),
+        0,
+      );
       g.totalDebit += totDebit;
       g.totalCredit += totCredit;
       g.écritures.push({
@@ -226,7 +272,8 @@ export class ReportsService {
     // ── BILAN ACTIF ──────────────────────────────────────────────────
     const bilan = {
       actif: {
-        immobilisationsNettes: getBalance(['21', '22']) - Math.abs(getBalance(['28'])),
+        immobilisationsNettes:
+          getBalance(['21', '22']) - Math.abs(getBalance(['28'])),
         stocks: getBalance(['31', '32']),
         creancesClients: getBalance('411'),
         tvaDeductible: getBalance(['4451', '4452']),
@@ -242,7 +289,10 @@ export class ReportsService {
         autresDettes: Math.abs(getBalance(['421', '431', '447'])),
       },
     };
-    bilan.actif['totalActif'] = Object.values(bilan.actif).reduce((s, v: any) => s + (typeof v === 'number' ? v : 0), 0);
+    bilan.actif['totalActif'] = Object.values(bilan.actif).reduce(
+      (s, v: any) => s + (typeof v === 'number' ? v : 0),
+      0,
+    );
 
     // ── COMPTE DE RÉSULTAT ───────────────────────────────────────────
     const comptResultat = {
@@ -262,12 +312,21 @@ export class ReportsService {
       },
     };
 
-    const totalProduits = Object.values(comptResultat.produits).reduce((s, v) => s + v, 0);
-    const totalCharges = Object.values(comptResultat.charges).reduce((s, v) => s + v, 0);
+    const totalProduits = Object.values(comptResultat.produits).reduce(
+      (s, v) => s + v,
+      0,
+    );
+    const totalCharges = Object.values(comptResultat.charges).reduce(
+      (s, v) => s + v,
+      0,
+    );
     const resultatNet = totalProduits - totalCharges;
 
     bilan.passif.resultatExercice = resultatNet;
-    bilan.passif['totalPassif'] = Object.values(bilan.passif).reduce((s, v: any) => s + (typeof v === 'number' ? v : 0), 0);
+    bilan.passif['totalPassif'] = Object.values(bilan.passif).reduce(
+      (s, v: any) => s + (typeof v === 'number' ? v : 0),
+      0,
+    );
 
     return {
       bilan,
@@ -276,8 +335,14 @@ export class ReportsService {
         totalProduits,
         totalCharges,
         resultatNet,
-        margeCommerciale: comptResultat.produits.ventesMarchandises - comptResultat.charges.achatsMarchandises,
-        ebe: (totalProduits - comptResultat.charges.achatsMarchandises - comptResultat.charges.chargesExternes - comptResultat.charges.chargesPersonnel),
+        margeCommerciale:
+          comptResultat.produits.ventesMarchandises -
+          comptResultat.charges.achatsMarchandises,
+        ebe:
+          totalProduits -
+          comptResultat.charges.achatsMarchandises -
+          comptResultat.charges.chargesExternes -
+          comptResultat.charges.chargesPersonnel,
       },
     };
   }

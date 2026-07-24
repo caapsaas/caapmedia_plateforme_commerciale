@@ -1,4 +1,6 @@
 import { PrismaClient, AccountType } from '@prisma/client';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 
 const prisma = new PrismaClient();
 
@@ -35,7 +37,7 @@ export async function seedTreasuryAccounts() {
       accountType: AccountType.BANQUE,
     },
   ];
-
+   
   // 3. Boucler sur chaque filiale pour créer les comptes
   for (const subsidiary of subsidiaries) {
     for (const acc of defaultAccounts) {
@@ -50,6 +52,7 @@ export async function seedTreasuryAccounts() {
       if (!existingAccount) {
         await prisma.treasuryAccount.create({
           data: {
+            id: generateId(ID_PREFIXES.TREASURY),
             accountName: acc.accountName,
             balance: acc.balance,
             currency: acc.currency,

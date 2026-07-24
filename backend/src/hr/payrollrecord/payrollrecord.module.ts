@@ -3,8 +3,8 @@ import { PayrollRecordService } from './payrollrecord.service';
 import { PayrollrecordController } from './payrollrecord.controller';
 
 @Module({
-   // On importe le PrismaModule, pas les services directement
+  // On importe le PrismaModule, pas les services directement
   controllers: [PayrollrecordController],
-  providers: [PayrollRecordService]
+  providers: [PayrollRecordService],
 })
 export class PayrollrecordModule {}

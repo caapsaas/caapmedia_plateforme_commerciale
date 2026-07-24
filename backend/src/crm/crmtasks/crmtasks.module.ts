@@ -4,6 +4,6 @@ import { CrmtasksController } from './crmtasks.controller';
 
 @Module({
   providers: [CrmtasksService],
-  controllers: [CrmtasksController]
+  controllers: [CrmtasksController],
 })
 export class CrmtasksModule {}

@@ -28,7 +28,7 @@ const InteractionForm: React.FC<InteractionFormProps> = ({ onSave }) => {
                  <select 
                     value={type} 
                     onChange={e => setType(e.target.value as InteractionType)}
-                    className="w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                    className="w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                 >
                     {Object.values(InteractionType).map(it => (
                         <option key={it} value={it}>{t(`crm.interactions.types.${it}`)}</option>
@@ -39,7 +39,7 @@ const InteractionForm: React.FC<InteractionFormProps> = ({ onSave }) => {
                     onChange={e => setNotes(e.target.value)}
                     placeholder={t('crm.interactions.form.notesPlaceholder')}
                     rows={3}
-                    className="w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                    className="w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                 />
                 <div className="text-right">
                     <button type="submit" className="px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">

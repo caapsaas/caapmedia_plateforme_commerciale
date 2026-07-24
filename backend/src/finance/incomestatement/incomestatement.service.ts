@@ -31,7 +31,11 @@ export class IncomestatementService {
     return { revenue, cogs, grossProfit, operatingExpenses, taxes, netIncome };
   }
 
-  private async getRevenue(subsidiaryId?: string, startDate?: string, endDate?: string): Promise<number> {
+  private async getRevenue(
+    subsidiaryId?: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<number> {
     const sales = await this.prisma.sale.findMany({
       where: {
         ...(subsidiaryId ? { subsidiaryId } : {}),
@@ -44,8 +48,8 @@ export class IncomestatementService {
   }
 
   /**
-   * COGS = coût d'achat (product.price) × quantité vendue.
-   * product.price est le prix d'achat, product.sellingPrice est le prix de vente.
+   * COGS: non applicable car les coûts d'achat ne sont plus stockés sur les produits.
+   * Les prix sont maintenant définis uniquement lors de la création des commandes/ventes par le commercial.
    */
   private async getCostOfGoodsSold(
     subsidiaryId?: string,
@@ -72,9 +76,15 @@ export class IncomestatementService {
     });
 
     return sales.reduce((sum, sale) => {
-      const itemsCost = (sale.order?.orderItems ?? []).reduce((itemSum, item) => {
-        return itemSum + Number(item.product?.price ?? 0) * Number(item.quantity ?? 0);
-      }, 0);
+      const itemsCost = (sale.order?.orderItems ?? []).reduce(
+        (itemSum, item) => {
+          return (
+            itemSum +
+            Number(item.product?.price ?? 0) * Number(item.quantity ?? 0)
+          );
+        },
+        0,
+      );
       return sum + itemsCost;
     }, 0);
   }
@@ -102,7 +112,10 @@ export class IncomestatementService {
       }),
     ]);
 
-    const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+    const totalExpenses = expenses.reduce(
+      (sum, e) => sum + Number(e.amount),
+      0,
+    );
     const totalPayroll = payrolls.reduce(
       (sum, p) => sum + Number(p.netSalary) + Number(p.deductions),
       0,
@@ -115,7 +128,11 @@ export class IncomestatementService {
    * Taxes calculées à partir du taxRate réel de chaque vente, pas un taux fixe hardcodé.
    * taxAmount = totalPrice * (taxRate / 100)
    */
-  private async getTaxes(subsidiaryId?: string, startDate?: string, endDate?: string): Promise<number> {
+  private async getTaxes(
+    subsidiaryId?: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<number> {
     const sales = await this.prisma.sale.findMany({
       where: {
         ...(subsidiaryId ? { subsidiaryId } : {}),
@@ -135,7 +152,10 @@ export class IncomestatementService {
    * Construit un filtre de plage de dates pour les champs DateTime Prisma.
    * Retourne undefined si aucune date n'est fournie (pas de filtre).
    */
-  private buildDateRange(startDate?: string, endDate?: string): { gte?: Date; lte?: Date } | undefined {
+  private buildDateRange(
+    startDate?: string,
+    endDate?: string,
+  ): { gte?: Date; lte?: Date } | undefined {
     if (!startDate && !endDate) return undefined;
 
     const range: { gte?: Date; lte?: Date } = {};
@@ -145,19 +165,35 @@ export class IncomestatementService {
   }
 
   // Méthodes publiques pour les endpoints individuels
-  async getRevenueData(subsidiaryId?: string, startDate?: string, endDate?: string): Promise<number> {
+  async getRevenueData(
+    subsidiaryId?: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<number> {
     return this.getRevenue(subsidiaryId, startDate, endDate);
   }
 
-  async getCogsData(subsidiaryId?: string, startDate?: string, endDate?: string): Promise<number> {
+  async getCogsData(
+    subsidiaryId?: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<number> {
     return this.getCostOfGoodsSold(subsidiaryId, startDate, endDate);
   }
 
-  async getOperatingExpensesData(subsidiaryId?: string, startDate?: string, endDate?: string): Promise<number> {
+  async getOperatingExpensesData(
+    subsidiaryId?: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<number> {
     return this.getOperatingExpenses(subsidiaryId, startDate, endDate);
   }
 
-  async getTaxesData(subsidiaryId?: string, startDate?: string, endDate?: string): Promise<number> {
+  async getTaxesData(
+    subsidiaryId?: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<number> {
     return this.getTaxes(subsidiaryId, startDate, endDate);
   }
 }

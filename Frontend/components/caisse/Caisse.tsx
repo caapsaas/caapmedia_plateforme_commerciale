@@ -8,6 +8,7 @@ import IconPlus from '../icons/IconPlus';
 import IconMinus from '../icons/IconMinus';
 import IconDelete from '../icons/IconDelete';
 import { useI18n } from '../../i18n';
+import { useToast } from '../../context/ToastContext';
 import ClientSelectionModal from './ClientSelectionModal';
 import IconPaycaap from '../icons/IconPaycaap';
 import OrderSelectionModal from './OrderSelectionModal';
@@ -15,8 +16,8 @@ import IconSearchDocument from '../icons/IconSearchDocument';
 import PriceCalculatorModal from '../ecommerce/PriceCalculatorModal';
 import { CartItem } from '../ecommerce/ShoppingCart';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getProductsBySubsidiary } from '../../services/apiE-commerce/apiProducts';
-import { getContacts, createContactByEmployee, ContactCreationData } from '../../services/apiCrm/apiContacts';
+import { getServicesCatalog } from '../../services/apiE-commerce/apiProducts';
+import { getContacts, createContactByEmployee, ContactCreationData } from '../../services/apiCrm/apicontacts';
 import { getOrders, recordOrderPayment, FindAllOrdersDto } from '../../services/apiE-commerce/apiOrders';
 import { createDirectSale, CreateDirectSaleDto } from '../../services/apiE-commerce/apiSales';
 import { getImageUrl } from '../../utils/imageUtils';
@@ -27,6 +28,7 @@ type CaisseMode = 'new_sale' | 'payment';
 const Caisse: React.FC = () => {
     const { subsidiary } = useAuth();
     const { t, formatCurrency } = useI18n();
+    const toast = useToast();
     const queryClient = useQueryClient();
     
     // Global state for mode and modals
@@ -49,8 +51,8 @@ const Caisse: React.FC = () => {
 
     // --- TanStack Query Data Fetching & Mutations ---
     const { data: products = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
-        queryKey: ['products', subsidiary?.id],
-        queryFn: () => getProductsBySubsidiary(),
+        queryKey: ['services-catalog'],
+        queryFn: () => getServicesCatalog(),
         enabled: !!subsidiary,
     });
 
@@ -93,42 +95,35 @@ const Caisse: React.FC = () => {
         onSuccess: (newContact) => {
             queryClient.invalidateQueries({ queryKey: ['contacts'] });
             handleClientSelected(newContact);
-        }
+        },
+        onError: (error: any) => {
+            // Client global (Chantier 6) : un email déjà utilisé dans une autre
+            // filiale n'est pas un doublon à rejeter — on rattache directement
+            // le client existant plutôt que d'obliger une recherche manuelle.
+            const existingContact = error?.response?.data?.existingContact;
+            if (existingContact) {
+                toast.success(
+                    'Client déjà existant',
+                    `${existingContact.contactName} existe déjà (${existingContact.subsidiary?.subsidiaryName}) — rattaché à cette vente.`,
+                );
+                handleClientSelected(existingContact as Contact);
+            } else {
+                toast.error('Erreur', 'Une erreur est survenue lors de la création du client.');
+            }
+        },
     });
 
     // Memoized data
-    const filteredProducts = useMemo(() => products.filter(p => p.productName.toLowerCase().includes(searchTerm.toLowerCase())), [products, searchTerm]);
+    const filteredProducts = useMemo(() => products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())), [products, searchTerm]);
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CustomerPaymentMethod | null>(null);
 
     // --- NEW SALE MODE LOGIC ---
-     const addSimpleProductToCart = (product: Product) => {
-        const cartItem: CartItem = {
-            id: product.id,
-            product,
-            quantity: 1,
-            options: {},
-            unitPrice: product.sellingPrice,
-            totalPrice: product.sellingPrice,
-        };
-        setCart(currentCart => {
-            const existingItem = currentCart.find(item => item.id === cartItem.id);
-            if (existingItem) {
-                const newQuantity = existingItem.quantity + 1;
-                if (newQuantity > product.stock) return currentCart; // Do not add if stock is exceeded
-                return currentCart.map(item => item.id === product.id ? { ...item, quantity: newQuantity, totalPrice: item.unitPrice * newQuantity } : item);
-            }
-            return [...currentCart, cartItem];
-        });
+    // Le prix est toujours négocié au comptoir (jamais tiré du catalogue) : chaque
+    // ajout au panier passe par PriceCalculatorModal pour saisir quantité + prix.
+    const handleProductClick = (product: Product) => {
+        setConfiguringProduct(product);
     };
 
-    const handleProductClick = (product: Product) => {
-        if (product.configurableOptions) {
-            setConfiguringProduct(product);
-        } else {
-            addSimpleProductToCart(product);
-        }
-    };
-    
     const handleAddToCartFromModal = (item: CartItem) => {
         setCart(currentCart => {
             // For configured items, we assume each configuration is unique and add as a new line.
@@ -142,13 +137,13 @@ const Caisse: React.FC = () => {
         setCart(currentCart => {
             const itemToUpdate = currentCart.find(item => item.id === cartItemId);
             if (!itemToUpdate) return currentCart;
-            
-            const clampedQuantity = Math.max(0, Math.min(newQuantity, itemToUpdate.product.stock));
-            
+
+            const clampedQuantity = Math.max(0, newQuantity);
+
             if (clampedQuantity <= 0) {
                 return currentCart.filter(item => item.id !== cartItemId);
             }
-            
+
             return currentCart.map(item =>
                 item.id === cartItemId ? { ...item, quantity: clampedQuantity, totalPrice: item.unitPrice * clampedQuantity } : item
             );
@@ -164,7 +159,10 @@ const Caisse: React.FC = () => {
         const saleData: CreateDirectSaleDto = {
             items: cart.map(item => ({
                 productId: item.product.id,
+                productName: item.product.name,
                 quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                specValues: item.specValues,
             })),
             customerId: selectedContact.id,
             paymentMethod: selectedPaymentMethod,
@@ -270,39 +268,25 @@ const Caisse: React.FC = () => {
                             </div>
                             <div className="flex-grow overflow-y-auto pr-2">
                                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                                    {filteredProducts.map(p => {
-                                        const isService = p.mainCategory === 'Prestations de services';
-                                        const isOutOfStock = !isService && p.stock <= 0;
-
-                                        return (
-                                            <button 
-                                                key={p.id} 
-                                                onClick={() => handleProductClick(p)} 
-                                                className="border rounded-lg p-2 text-left hover:shadow-lg hover:border-[#c6e911] transition-all flex flex-col justify-start disabled:opacity-50 disabled:cursor-not-allowed" 
-                                                disabled={isOutOfStock}
-                                            >
-                                                <div className="w-full h-20 mb-2 rounded overflow-hidden bg-slate-100">
-                                                    <img src={p.productImages && p.productImages.length > 0 ? getImageUrl(p.productImages[0].imageUrl) : 'https://via.placeholder.com/150'} alt={p.name} className="w-full h-full object-cover"/>
-                                                </div>
-                                                <div className="flex-grow flex flex-col">
-                                                    <h3 className="font-semibold text-sm leading-tight">{p.productName}</h3>
-                                                    <p className="font-bold text-[#c6e911] mt-1 text-sm">{formatCurrency(p.sellingPrice)}</p>
-                                                </div>
-                                                {isService ? (
-                                                     <p className="text-xs mt-auto pt-1 text-green-600 font-semibold">{t('stock.available')}</p>
-                                                ) : (
-                                                     <p className={`text-xs mt-auto pt-1 ${p.stock < 10 ? 'text-red-500 font-bold' : 'text-slate-500'}`}>
-                                                        {t('stock.currentStock')}: {p.stock}
-                                                     </p>
-                                                )}
-                                            </button>
-                                        );
-                                    })}
+                                    {filteredProducts.map(p => (
+                                        <button
+                                            key={p.id}
+                                            onClick={() => handleProductClick(p)}
+                                            className="border rounded-lg p-2 text-left hover:shadow-lg hover:border-[#c6e911] transition-all flex flex-col justify-start"
+                                        >
+                                            <div className="w-full h-20 mb-2 rounded overflow-hidden bg-slate-100">
+                                                <img src={p.productImages && p.productImages.length > 0 ? getImageUrl(p.productImages[0].imageUrl) : 'https://via.placeholder.com/150'} alt={p.name} className="w-full h-full object-cover"/>
+                                            </div>
+                                            <div className="flex-grow flex flex-col">
+                                                <h3 className="font-semibold text-sm leading-tight">{p.name}</h3>
+                                                <p className="text-xs text-slate-500 mt-1">{t('cashRegister.negotiatedPrice')}</p>
+                                            </div>
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
                         </>
                     ) : loadedOrder && (
-                        console.log(loadedOrder),
                         <div className="flex-grow overflow-y-auto pr-2">
                             <h3 className="text-xl font-bold text-slate-800 border-b pb-2 mb-4">{t('cashRegister.loadedOrder.title')}</h3>
                             <div className="space-y-2 mb-4 text-sm">
@@ -310,7 +294,7 @@ const Caisse: React.FC = () => {
                                 <p><strong>{t('cashRegister.clientSection.title')}:</strong> {loadedOrder.customerName}</p>
                             </div>
                              <ul className="divide-y divide-slate-200">
-                                {loadedOrder.orderItems.map((item, index) => <li key={index} className="py-2 flex justify-between items-center"><p>{item.product.productName} (x{item.quantity})</p><p className="font-semibold">{formatCurrency(item.unitPrice * item.quantity)}</p></li>)}
+                                {loadedOrder.orderItems.map((item, index) => <li key={index} className="py-2 flex justify-between items-center"><p>{item.product.name} (x{item.quantity})</p><p className="font-semibold">{formatCurrency(item.unitPrice * item.quantity)}</p></li>)}
                             </ul>
                         </div>
                     )}
@@ -330,7 +314,7 @@ const Caisse: React.FC = () => {
                         <div className="flex-grow overflow-y-auto">
                             {(mode === 'new_sale' && cart.length === 0) ? <p className="h-full flex items-center justify-center text-slate-500">{t('cashRegister.cartEmpty')}</p> : (
                                 <ul className="divide-y divide-slate-200">
-                                    {mode === 'new_sale' ? cart.map(item => <li key={item.id} className="py-3 flex items-center justify-between"><div><p className="font-semibold text-slate-800">{item.product.productName}</p><p className="text-xs text-slate-500">{formatOptions(item.options)}</p><p className="text-sm text-slate-500 mt-1">{formatCurrency(item.unitPrice)}</p></div><div className="flex items-center space-x-2"><button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="p-1 rounded-full bg-slate-200 hover:bg-slate-300"><IconMinus className="h-4 w-4" /></button><span className="font-bold w-6 text-center">{item.quantity}</span><button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1 rounded-full bg-slate-200 hover:bg-slate-300"><IconPlus className="h-4 w-4" /></button><button onClick={() => updateQuantity(item.id, 0)} className="p-1 rounded-full hover:bg-red-100 text-red-500"><IconDelete className="h-4 w-4" /></button></div></li>) : null}
+                                    {mode === 'new_sale' ? cart.map(item => <li key={item.id} className="py-3 flex items-center justify-between"><div><p className="font-semibold text-slate-800">{item.product.name}</p><p className="text-xs text-slate-500">{formatOptions(item.options)}</p><p className="text-sm text-slate-500 mt-1">{formatCurrency(item.unitPrice)}</p></div><div className="flex items-center space-x-2"><button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="p-1 rounded-full bg-slate-200 hover:bg-slate-300"><IconMinus className="h-4 w-4" /></button><span className="font-bold w-6 text-center">{item.quantity}</span><button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1 rounded-full bg-slate-200 hover:bg-slate-300"><IconPlus className="h-4 w-4" /></button><button onClick={() => updateQuantity(item.id, 0)} className="p-1 rounded-full hover:bg-red-100 text-red-500"><IconDelete className="h-4 w-4" /></button></div></li>) : null}
                                 </ul>
                             )}
                         </div>

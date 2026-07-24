@@ -5,6 +5,7 @@ import React, { createContext, useState, useContext, useCallback } from 'react';
 // approach that guarantees the translations are always available.
 const frTranslations = {
   "common": {
+    "search": "Rechercher",
     "searchPlaceholder": "Rechercher produits, clients...",
     "logout": "Déconnexion",
     "add": "Ajouter",
@@ -26,7 +27,9 @@ const frTranslations = {
     "send": "Envoyer",
     "notAvailable": "Non défini",
     "create": "Créer",
-    "update": "Mettre à jour"
+    "update": "Mettre à jour",
+    "saving": "Enregistrement...",
+    "accessDenied": "Accès refusé"
   },
    "contactModal": {
     "title": "Contactez-nous",
@@ -98,6 +101,7 @@ const frTranslations = {
     "copyright": "© 2024 CaapMedia. Tous droits réservés."
   },
   "roles": {
+    "SUPER_ADMIN": "Super Administrateur",
     "ADMIN": "Admin",
     "COMMERCIAL": "Commercial",
     "CAISSIER": "Caissier",
@@ -155,7 +159,18 @@ const frTranslations = {
     "errorIncorrectCredentials": "Identifiants incorrects. Veuillez vérifier votre e-mail et votre mot de passe.",
     "errorUserNotOnSubsidiary": "Cet utilisateur n'est pas rattaché à la filiale sélectionnée.",
     "forgotPasswordPrompt": "Veuillez entrer votre adresse e-mail pour réinitialiser votre mot de passe.",
-    "forgotPasswordSuccess": "Si un compte avec l'email {{email}} existe, un lien de réinitialisation a été envoyé."
+    "forgotPasswordSuccess": "Si un compte avec l'email {{email}} existe, un lien de réinitialisation a été envoyé.",
+    "twoFactor": {
+      "title": "Vérification en deux étapes",
+      "subtitle": "Entrez le code de votre application d'authentification.",
+      "codeLabel": "Code de vérification",
+      "recoveryCodeLabel": "Code de secours",
+      "recoveryCodePlaceholder": "xxxxxxxxxx",
+      "verifyButton": "Vérifier",
+      "useRecoveryCodeInstead": "Utiliser un code de secours",
+      "useCodeInstead": "Utiliser le code de l'application",
+      "errorInvalidCode": "Code invalide."
+    }
   },
    "forgotPassword": {
     "title": "Réinitialiser le mot de passe",
@@ -165,6 +180,25 @@ const frTranslations = {
     "backToLogin": "Retour à la connexion",
     "successMessage": "Si un compte existe avec cet e-mail, nous avons envoyé un lien pour réinitialiser votre mot de passe.",
     "errorMessage": "Une erreur est survenue lors de l'envoi du lien de réinitialisation. Veuillez réessayer."
+  },
+  "security": {
+    "title": "Sécurité du compte",
+    "twoFactor": {
+      "title": "Double authentification",
+      "description": "Ajoutez une couche de sécurité supplémentaire à votre compte avec une application d'authentification.",
+      "statusEnabled": "Activée",
+      "statusDisabled": "Désactivée",
+      "enableButton": "Activer la double authentification",
+      "disableButton": "Désactiver la double authentification",
+      "scanInstruction": "Scannez ce QR code avec votre application d'authentification (Google Authenticator, Authy...), puis entrez le code généré pour confirmer.",
+      "manualEntryLabel": "Ou saisissez ce code manuellement :",
+      "confirmCodeLabel": "Code de vérification",
+      "confirmButton": "Confirmer et activer",
+      "recoveryCodesWarning": "Notez ces codes de secours dans un endroit sûr. Chacun ne peut être utilisé qu'une seule fois pour vous connecter si vous perdez l'accès à votre application d'authentification. Ils ne seront plus jamais affichés.",
+      "recoveryCodesSavedButton": "J'ai sauvegardé mes codes de secours",
+      "errorInvalidCode": "Code invalide.",
+      "errorGeneric": "Une erreur est survenue. Veuillez réessayer."
+    }
   },
   "ecommerce": {
     "title": "Notre Boutique",
@@ -178,6 +212,7 @@ const frTranslations = {
     "item": "article",
     "items": "articles",
     "total": "Total",
+    "orderViaWhatsApp": "Commander via WhatsApp",
     "checkout": "Passer la commande",
     "checkoutTitle": "Finaliser votre commande",
     "customerInfo": "Vos informations",
@@ -256,7 +291,8 @@ const frTranslations = {
       "chartSalesLabel": "Ventes"
     },
     "startDate": "Date de début",
-    "endDate": "Date de fin"
+    "endDate": "Date de fin",
+    "allSubsidiaries": "Toutes les filiales"
   },
   "salesAnalysis": {
     "totalRevenue": "Chiffre d'affaires total",
@@ -354,7 +390,93 @@ const frTranslations = {
     "status_PREPRESS": "Pré-presse",
     "status_PRINTING": "Impression",
     "status_FINISHING": "Finition",
-    "status_READY_FOR_DELIVERY": "Prêt pour Livraison"
+    "status_READY_FOR_DELIVERY": "Prêt pour Livraison",
+    "equipmentCosts": {
+      "title": "Coût horaire par machine",
+      "subtitle": "Définissez le taux horaire de chaque équipement. Ces taux sont utilisés pour calculer le coût de production des commandes de services.",
+      "allSubsidiaries": "Toutes les filiales",
+      "colMachine": "Machine",
+      "colStatus": "Statut",
+      "colSubsidiary": "Filiale",
+      "colHourlyRate": "Taux horaire (F CFA/h)",
+      "colAction": "Action",
+      "notConfigured": "Non configuré",
+      "noEquipment": "Aucun équipement trouvé.",
+      "saveError": "Erreur lors de la sauvegarde.",
+      "invalidRate": "Taux horaire invalide.",
+      "configure": "Configurer",
+      "modify": "Modifier"
+    },
+    "commercialParams": {
+      "title": "Paramètres commerciaux globaux",
+      "subtitle": "Définissez la plage de marge autorisée pour les devis de services. Le commercial doit saisir un pourcentage de marge dans cette plage lors de la création d'une commande.",
+      "notConfigured": "Aucun paramètre configuré. Définissez les marges pour activer le module de coût de production.",
+      "minMargin": "Marge minimale (%)",
+      "maxMargin": "Marge maximale (%)",
+      "rangeHint": "Le commercial devra saisir une marge entre {{min}}% et {{max}}%.",
+      "saveError": "Erreur lors de la sauvegarde.",
+      "invalidValues": "Valeurs invalides.",
+      "outOfRange": "Les marges doivent être entre 0% et 100%.",
+      "minGtMax": "La marge minimale doit être inférieure à la marge maximale.",
+      "success": "Paramètres enregistrés avec succès.",
+      "create": "Créer",
+      "update": "Mettre à jour",
+      "lastModified": "Dernière modification : {{date}}"
+    },
+    "workflows": {
+      "title": "Workflows de production",
+      "subtitle": "Définissez les séquences de machines pour chaque service. Le commercial les retrouve pré-remplies lors d'une nouvelle commande.",
+      "newWorkflow": "Nouveau workflow",
+      "allSubsidiaries": "Toutes les filiales",
+      "noWorkflow": "Aucun workflow défini.",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "linkedService": "Service lié : {{name}}",
+      "noSteps": "Aucune étape",
+      "form": {
+        "createTitle": "Nouveau workflow",
+        "editTitle": "Modifier le workflow",
+        "name": "Nom",
+        "namePlaceholder": "ex. Impression offset standard",
+        "description": "Description",
+        "linkedService": "Service lié (optionnel)",
+        "noLinkedService": "— Aucun service lié —",
+        "isActive": "Workflow actif",
+        "steps": "Étapes (machines)",
+        "addStep": "Ajouter",
+        "chooseEquipment": "— Choisir une machine —",
+        "noStepsDefined": "Cliquez sur \"Ajouter\" pour définir des étapes.",
+        "nameRequired": "Le nom est requis.",
+        "equipmentRequired": "Chaque étape doit avoir une machine sélectionnée.",
+        "createError": "Erreur lors de la création.",
+        "editError": "Erreur lors de la modification.",
+        "update": "Mettre à jour"
+      },
+      "deleteConfirm": {
+        "title": "Supprimer le workflow",
+        "message": "Cette action est irréversible. Les commandes existantes ne seront pas affectées."
+      }
+    },
+    "costModal": {
+      "title": "Coût de production",
+      "prefilledWorkflow": "Workflow pré-rempli : {{name}}",
+      "stepsTitle": "Étapes de production",
+      "addMachine": "Ajouter une machine",
+      "noSteps": "Aucune étape. Ajoutez une machine ou sélectionnez un service avec un workflow.",
+      "chooseMachine": "— Machine —",
+      "hoursPlaceholder": "Heures",
+      "totalCost": "Coût total de production",
+      "margin": "Marge (%) *",
+      "marginRange": "Plage autorisée : {{min}}% – {{max}}%",
+      "finalPrice": "Prix final (= prix de la ligne)",
+      "priceNote": "Ce montant sera appliqué comme prix unitaire sur la ligne de commande.",
+      "confirmButton": "Confirmer le coût",
+      "noStepsError": "Ajoutez au moins une étape de production.",
+      "noEquipmentError": "Chaque étape doit avoir une machine sélectionnée.",
+      "invalidTimeError": "Saisissez un temps valide (> 0) pour chaque étape.",
+      "noMarginError": "Saisissez un pourcentage de marge.",
+      "marginRangeError": "La marge doit être entre {{min}}% et {{max}}%."
+    }
   },
   "purchasing": {
     "title": "Gestion des Achats",
@@ -392,6 +514,7 @@ const frTranslations = {
     },
     "receiveItemsModal": {
         "title": "Réceptionner les articles",
+        "unit": "Unité",
         "ordered": "Commandé",
         "alreadyReceived": "Déjà Reçu",
         "quantityToReceive": "Quantité à réceptionner"
@@ -417,6 +540,7 @@ const frTranslations = {
       "product": "Produit",
       "selectProduct": "Sélectionnez un produit",
       "quantity": "Quantité",
+      "purchaseUnit": "Unité d'achat",
       "purchasePrice": "Prix d'achat unitaire",
       "total": "Total",
       "orderSummary": "Résumé de la commande"
@@ -437,6 +561,7 @@ const frTranslations = {
     "range": "Gamme",
     "confirmPriceSaveTitle": "Confirmer la sauvegarde",
     "confirmPriceSaveMessage": "Voulez-vous enregistrer les nouveaux prix ?",
+    "belowThreshold": "Sous le seuil minimum",
     "available": "Disponible",
     "categories": {
       "pub": "Pub",
@@ -467,6 +592,72 @@ const frTranslations = {
       "finitionFaconnage": "Finition & Façonnage",
       "prestationsExternes": "Prestations Externes",
       "textilesRaw": "Textiles (Matière Première)"
+    }
+  },
+  "stockMovements": {
+    "title": "Mouvements de stock",
+    "allTypes": "Tous les types",
+    "date": "Date",
+    "product": "Produit",
+    "type": "Type",
+    "direction": "Sens",
+    "quantity": "Quantité",
+    "reason": "Motif",
+    "in": "Entrée",
+    "out": "Sortie",
+    "empty": "Aucun mouvement enregistré pour l'instant.",
+    "tabs": {
+      "levels": "Niveau de stock",
+      "movements": "Mouvements",
+      "inventory": "Inventaire"
+    },
+    "types": {
+      "PURCHASE_RECEIPT": "Réception d'achat",
+      "CUSTOMER_RETURN": "Retour client",
+      "POSITIVE_ADJUSTMENT": "Ajustement positif",
+      "TRANSFER_IN": "Transfert entrant",
+      "PRODUCTION_CONSUMPTION": "Consommation production",
+      "LOSS": "Perte",
+      "BREAKAGE": "Casse",
+      "INTERNAL_CONSUMPTION": "Consommation interne",
+      "NEGATIVE_ADJUSTMENT": "Ajustement négatif",
+      "SUPPLIER_RETURN": "Retour fournisseur",
+      "TRANSFER_OUT": "Transfert sortant"
+    },
+    "inventory": {
+      "title": "Inventaire",
+      "subtitle": "Saisissez le stock réellement compté — l'écart est calculé et enregistré automatiquement.",
+      "product": "Produit",
+      "selectProduct": "Sélectionner un produit...",
+      "theoreticalStock": "Stock théorique",
+      "countedStock": "Stock compté",
+      "reason": "Motif (optionnel)",
+      "submit": "Valider l'inventaire",
+      "successTitle": "Inventaire enregistré",
+      "successMessage": "Le stock a été mis à jour.",
+      "noDeviation": "Aucun écart constaté — pas de mouvement créé.",
+      "deviationRecorded": "Écart de {{delta}} enregistré."
+    },
+    "withdraw": {
+      "title": "Prélever les matières",
+      "subtitle": "Saisissez les quantités réellement utilisées pour cette commande.",
+      "addLine": "Ajouter une ligne",
+      "product": "Produit",
+      "quantity": "Quantité",
+      "submit": "Valider le prélèvement",
+      "successTitle": "Matières prélevées",
+      "successMessage": "Le stock a été mis à jour.",
+      "empty": "Ajoutez au moins une matière à prélever."
+    },
+    "manual": {
+      "newMovement": "Nouveau mouvement",
+      "title": "Nouveau mouvement de stock",
+      "subtitle": "Retour client, transfert, perte, casse, consommation interne ou retour fournisseur.",
+      "product": "Produit",
+      "selectProduct": "Sélectionner un produit...",
+      "submit": "Enregistrer le mouvement",
+      "successTitle": "Mouvement enregistré",
+      "successMessage": "Le stock a été mis à jour."
     }
   },
   "productRange": {
@@ -539,7 +730,17 @@ const frTranslations = {
     "submitOrder": "Passer la commande",
     "orderPlacedSuccess": "Commande passée avec succès !",
     "item": "Article",
-    "subtotal": "Sous-total"
+    "subtotal": "Sous-total",
+    "discount": "Remise (FCFA)",
+    "searchClientOtherSubsidiary": "Chercher un client d'une autre filiale...",
+    "paymentMethod": "Méthode de paiement",
+    "paymentMethod_PAY_ON_DELIVERY": "Paiement à la livraison",
+    "paymentMethod_CARD": "Carte bancaire",
+    "paymentMethod_ORANGE_MONEY": "Orange Money",
+    "paymentMethod_WAVE": "Wave",
+    "paymentMethod_MOBILE_MONEY": "Mobile Money",
+    "paymentMethod_PAYCAAP": "PayCaap",
+    "paymentMethod_CUSTOMER_CREDIT": "Crédit client"
   },
   "bonDeLivraison": {
     "title": "Bon de Livraison",
@@ -580,6 +781,7 @@ const frTranslations = {
     "title": "Finance & Gestion",
     "creditManagement": "Gestion des Crédits",
     "treasury": "Trésorerie",
+    "prefinancement": "Préfinancement",
     "supplierDebts": "Dettes Fournisseurs",
     "expenses": "Charges",
     "externalTransactions": "Transactions Externes",
@@ -913,6 +1115,25 @@ const frTranslations = {
   "configuration": {
     "title": "Configuration Générale",
     "products": "Produits",
+    "units": "Unités",
+    "unitsManagement": {
+      "title": "Unités de mesure",
+      "subtitle": "Référentiel partagé — unité de base et unités d'emballage des produits de stock.",
+      "addNew": "Nouvelle unité",
+      "name": "Nom",
+      "namePlaceholder": "Feuille",
+      "symbol": "Symbole (optionnel)",
+      "symbolPlaceholder": "u",
+      "create": "Créer",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "empty": "Aucune unité créée pour l'instant.",
+      "createError": "Impossible de créer l'unité (nom déjà utilisé ?).",
+      "deleteError": "Cette unité est utilisée par au moins un produit de stock."
+    },
+    "services": "Services",
+    "addService": "Ajouter un service",
+    "referenceLists": "Référentiels",
     "users": "Utilisateurs",
     "suppliers": "Fournisseurs",
     "taxes": "Taxes",
@@ -936,6 +1157,11 @@ const frTranslations = {
     "supplierManagement": "Gestion des Fournisseurs",
     "addSupplier": "Ajouter un fournisseur",
     "taxManagement": "Gestion des Taxes",
+    "equipmentCosts": "Coûts machines",
+    "commercialParams": "Params commerciaux",
+    "productionWorkflows": "Workflows",
+    "catalogue": "Catalogue",
+    "production": "Production",
     "modal": {
       "editProductTitle": "Modifier le produit",
       "addProductTitle": "Ajouter un nouveau produit",
@@ -962,7 +1188,25 @@ const frTranslations = {
       "deleteAbsenceTitle": "Supprimer une absence",
       "editTaxTitle": "Modifier la taxe",
       "addTaxTitle": "Ajouter une nouvelle taxe",
-      "deleteTaxTitle": "Supprimer la taxe"
+      "deleteTaxTitle": "Supprimer la taxe",
+      "editServiceTitle": "Modifier le service",
+      "addServiceTitle": "Ajouter un service",
+      "deleteServiceTitle": "Supprimer le service"
+    },
+    "serviceForm": {
+      "name": "Nom",
+      "category": "Catégorie",
+      "range": "Gamme",
+      "description": "Description",
+      "generateWithAI": "Générer avec l'IA",
+      "isActive": "Actif",
+      "isVisibleOnSite": "Visible sur le site vitrine",
+      "displayOrder": "Ordre d'affichage",
+      "images": "Images"
+    },
+    "builder": {
+      "back": "Retour aux services",
+      "configureFields": "Configurer les champs"
     },
     "form": {
       "name": "Nom",
@@ -1012,7 +1256,111 @@ const frTranslations = {
       "uploadFile": "Charger un fichier",
       "generateWithAI": "Générer avec l'IA",
       "rate": "Taux (%)",
-      "isDefault": "Taxe par défaut"
+      "isDefault": "Taxe par défaut",
+      "minThreshold": "Seuil minimum",
+      "baseUnit": "Unité de base",
+      "selectUnit": "Sélectionner une unité...",
+      "packagingUnits": "Unités d'emballage",
+      "packagingUnitsHelp": "Unités d'achat (ex. Rame, Carton) et leur équivalence en unité de base.",
+      "conversionFactor": "Facteur de conversion"
+    }
+  },
+  "specBuilder": {
+    "fieldTypes": {
+      "TEXT": "Texte", "TEXTAREA": "Texte long", "NUMBER": "Nombre", "DECIMAL": "Nombre décimal",
+      "AMOUNT": "Montant", "SELECT": "Liste déroulante", "MULTISELECT": "Sélection multiple",
+      "RADIO": "Boutons radio", "CHECKBOX": "Case à cocher", "BOOLEAN": "Oui / Non", "DATE": "Date",
+      "TIME": "Heure", "COLOR": "Couleur", "UPLOAD": "Upload", "URL": "URL", "EMAIL": "Email",
+      "PHONE": "Téléphone", "DIMENSIONS": "Dimensions (Largeur × Hauteur)"
+    },
+    "card": {
+      "required": "Obligatoire",
+      "reorder": "Réordonner"
+    },
+    "drawer": {
+      "editTitle": "Modifier la spécification",
+      "addTitle": "Nouvelle spécification",
+      "nameRequired": "Le nom est requis",
+      "technicalKeyRequired": "La clé technique est requise",
+      "technicalKeyPattern": "snake_case requis (ex: paper_weight)",
+      "fieldRequired": "Requis",
+      "name": "Nom",
+      "technicalKey": "Clé technique",
+      "technicalKeyPlaceholder": "ex: paper_weight",
+      "type": "Type",
+      "group": "Groupe",
+      "noGroup": "Aucun groupe",
+      "helpText": "Texte d'aide",
+      "placeholder": "Placeholder",
+      "unit": "Unité (mm, cm, g, kg, pages...)",
+      "internalDescription": "Description interne",
+      "required": "Obligatoire",
+      "visibleToClient": "Visible client",
+      "visibleToProduction": "Visible production",
+      "editableAfterValidation": "Modifiable après validation",
+      "searchable": "Utilisable dans les recherches",
+      "possibleValues": "Valeurs possibles",
+      "optionsSourceInline": "Saisies ici",
+      "optionsSourceReference": "Référentiel partagé",
+      "selectReferenceList": "Sélectionner un référentiel...",
+      "optionValuePlaceholder": "Valeur (ex: A4)",
+      "optionLabelPlaceholder": "Libellé affiché",
+      "addOption": "Ajouter une valeur",
+      "uploadConfigTitle": "Configuration de l'upload",
+      "uploadExtensions": "Extensions autorisées (séparées par virgule)",
+      "uploadExtensionsPlaceholder": "PDF, AI, PSD, CDR",
+      "uploadMaxSize": "Taille max (Mo)",
+      "uploadMaxFiles": "Nombre de fichiers max",
+      "dimensionsConfigTitle": "Bornes des dimensions",
+      "dimMinWidth": "Largeur min",
+      "dimMaxWidth": "Largeur max",
+      "dimMinHeight": "Hauteur min",
+      "dimMaxHeight": "Hauteur max",
+      "cancel": "Annuler",
+      "save": "Enregistrer"
+    },
+    "groupList": {
+      "addField": "Ajouter un champ",
+      "noGroup": "Sans groupe",
+      "emptyGroup": "Aucun champ dans ce groupe.",
+      "addGroup": "Ajouter un groupe",
+      "deleteGroupTooltip": "Supprimer le groupe"
+    },
+    "builder": {
+      "fieldsTitle": "Champs techniques — {{productName}}",
+      "previewTitle": "Aperçu — vue commerciale",
+      "loading": "Chargement du Builder...",
+      "loadError": "Impossible de charger la configuration de ce service.",
+      "noFields": "Aucun champ configuré pour ce service pour l'instant.",
+      "newGroupPlaceholder": "Nom du groupe (ex: Papeterie)",
+      "cancel": "Annuler",
+      "confirmDeleteSpec": "Supprimer la spécification \"{{name}}\" ? Cette action est irréversible.",
+      "confirmDeleteGroup": "Supprimer le groupe \"{{name}}\" ? Les champs qu'il contient seront déplacés vers \"Sans groupe\"."
+    },
+    "referenceLists": {
+      "title": "Référentiels de valeurs",
+      "subtitle": "Listes de valeurs partagées entre plusieurs services (ex : types de papier, grammages).",
+      "addNew": "Nouveau référentiel",
+      "technicalKey": "Clé technique",
+      "technicalKeyPlaceholder": "paper_types",
+      "displayName": "Nom affiché",
+      "displayNamePlaceholder": "Types de papier",
+      "create": "Créer",
+      "cancel": "Annuler",
+      "valueCount": "valeur(s)",
+      "empty": "Aucun référentiel créé pour l'instant.",
+      "valuePlaceholder": "Valeur (ex: A4)",
+      "labelPlaceholder": "Libellé affiché",
+      "createError": "Impossible de créer le référentiel (clé déjà utilisée ?)."
+    },
+    "valuesModal": {
+      "title": "Spécifications techniques — {{productName}}",
+      "subtitle": "Renseignez les caractéristiques de cette ligne avant de l'ajouter au panier.",
+      "cancel": "Annuler",
+      "confirm": "Ajouter au panier"
+    },
+    "formRenderer": {
+      "selectPlaceholder": "Sélectionner..."
     }
   },
   "hr": {
@@ -1024,7 +1372,7 @@ const frTranslations = {
       "absences": "Absences"
     },
     "employees": {
-      "title": "Base de Données Employés",
+      "title": "Gestion des Employés",
       "add": "Ajouter un employé",
       "id": "ID",
       "fullName": "Nom complet",
@@ -1032,6 +1380,15 @@ const frTranslations = {
       "department": "Département",
       "contractType": "Contrat",
       "status": "Statut"
+    },
+    "table": {
+      "name": "Nom",
+      "email": "Email",
+      "department": "Département",
+      "position": "Poste",
+      "status": "Statut",
+      "salary": "Salaire",
+      "actions": "Actions"
     },
     "attendance": {
       "title": "Gestion des Présences",
@@ -1051,7 +1408,8 @@ const frTranslations = {
       "notSigned": "Non signé"
     },
     "payroll": {
-      "title": "Gestion de la Paie",
+      "title": "Échelles et Configuration de Paie",
+      "taxBracketsDesc": "Configurez les paramètres de paie standard pour le Cameroun",
       "process": "Traiter la paie du mois",
       "employee": "Employé",
       "period": "Période",
@@ -1069,7 +1427,37 @@ const frTranslations = {
       "deductions": "Déductions",
       "socialDeductions": "Cotisations Sociales",
       "taxDeductions": "Prélèvements Fiscaux",
-      "absenceDeductions": "Déductions pour Absences"
+      "absenceDeductions": "Déductions pour Absences",
+      "minWage": "Salaire Minimum",
+      "cnpsEmployeeRate": "Taux CNPS",
+      "success": {
+        "updated": "Configuration mise à jour avec succès"
+      },
+      "error": {
+        "update": "Erreur lors de la mise à jour de la configuration"
+      },
+      "modal": {
+        "updateSmigDesc": "Mettre à jour le salaire minimum interprofessionnel garanti (SMIG) en vigueur",
+        "updateCnpsTitle": "Modifier les Taux CNPS",
+        "updateIrppTitle": "Modifier les Tranches IRPP",
+        "updateLeaveTitle": "Modifier les Droits aux Congés"
+      },
+      "form": {
+        "minWage": "Salaire Minimum",
+        "minAmount": "Montant Minimum",
+        "maxAmount": "Montant Maximum",
+        "rate": "Taux",
+        "above": "Au-dessus de",
+        "daysPerYear": "jours par an",
+        "employeeRate": "Taux Employé",
+        "employerRate": "Taux Employeur",
+        "paid": "Payé",
+        "unpaid": "Non payé"
+      },
+      "infoBox": {
+        "title": "Note"
+      },
+      "infoBoxText": "Ce sont les taux standards au Cameroun pour 2024. Toutes les valeurs sont utilisées automatiquement lors du calcul de la paie des employés. Les modifications s'appliqueront aux futures paies."
     },
     "modals": {
       "sign": {
@@ -1100,6 +1488,61 @@ const frTranslations = {
       "CHECK": "Chèque",
       "CASH": "Espèces"
     },
+    "bankingDetails": "Coordonnées bancaires",
+    "bankName": "Nom de la banque",
+    "bankAccountNumber": "Numéro de compte (RIB/IBAN)",
+    "maritalStatus": "Situation matrimoniale",
+    "maritalStatusOptions": {
+      "SINGLE": "Célibataire",
+      "MARRIED": "Marié(e)",
+      "DIVORCED": "Divorcé(e)",
+      "WIDOWED": "Veuf/Veuve"
+    },
+    "numberDependents": "Nombre de dépendants",
+    "dependentsHelperText": "Pour le calcul de la déduction fiscale",
+    "form": {
+      "sections": {
+        "personal": "Informations personnelles",
+        "professional": "Informations professionnelles",
+        "salary": "Salaire et rémunération",
+        "documents": "Documents",
+        "leaves": "Droits aux congés"
+      },
+      "salarySection": {
+        "title": "Salaire et rémunération",
+        "subtitle": "Informations financières",
+        "baseSalary": "Salaire de base",
+        "baseSalaryHelper": "Salaire minimum (FCFA)",
+        "bonus": "Prime",
+        "bonusHelper": "Rémunération supplémentaire (FCFA)",
+        "paymentMethod": "Mode de paiement"
+      },
+      "documentsSection": {
+        "title": "Documents",
+        "subtitle": "Documentation de l'employé",
+        "uploadMessage": "📄 La fonctionnalité de téléchargement de documents sera implémentée ici"
+      },
+      "leavesSection": {
+        "title": "Droits aux congés",
+        "subtitle": "Configuration du solde des congés",
+        "tabBalance": "Solde des congés",
+        "tabRecords": "Historique des congés"
+      }
+    },
+    "leaves": {
+      "leaveHistory": "Historique des congés",
+      "addLeaveRecord": "Enregistrer un congé",
+      "noRecords": "Aucun enregistrement de congé",
+      "daysHelper": "Nombre de jours de congé",
+      "unpaidHelperText": "Jours de congé non payés",
+      "balanceInfo": "Solde des congés disponibles",
+      "leaveType": "Type de congé",
+      "days": "Jours",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "configureBalance": "Configurer le solde des congés"
+    },
+    "cancel": "Annuler",
     "documents": {
       "title": "Documents",
       "addDocument": "Ajouter un document",
@@ -1113,7 +1556,19 @@ const frTranslations = {
       "file": "Fichier",
       "selectFile": "Sélectionner un fichier",
       "fileSelected": "Fichier sélectionné",
-      "noFileSelected": "Aucun fichier sélectionné"
+      "noFileSelected": "Aucun fichier sélectionné",
+      "contract": "Contrat de travail",
+      "idCard": "Carte d'identité / CNI",
+      "workPermit": "Permis de travail",
+      "diplomas": "Diplômes et certifications",
+      "uploaded": "✓ Importé",
+      "download": "Télécharger",
+      "remove": "Supprimer",
+      "dragOrClick": "Glissez-déposez votre fichier ici, ou cliquez pour sélectionner",
+      "addDiplomas": "Ajouter des diplômes et certifications",
+      "diplomasHelper": "Vous pouvez importer plusieurs diplômes et documents de certification",
+      "uploadedDiplomas": "Diplômes importés",
+      "requirements": "Documents requis : Contrat de travail, Carte d'identité/CNI et Permis de travail. Les diplômes sont optionnels mais recommandés."
     },
     "documentType": {
       "idCard": "Carte d'identité",
@@ -1134,49 +1589,16 @@ const frTranslations = {
       "personal": "Congés personnels",
       "maternity": "Congés maternité",
       "paternity": "Congés paternité",
-      "other": "Autres congés"
+      "other": "Autres congés",
+      "unpaid": "Congés non payés"
     },
     "leaveBalance": {
       "title": "Solde des congés",
       "summary": "Résumé",
       "totalDays": "Total des jours",
-      "days": "jours"
-    },
-    "details": {
-      "personalInfo": "Informations personnelles",
-      "lastName": "Nom",
-      "firstName": "Prénom",
-      "birthDate": "Date de naissance",
-      "gender": "Sexe",
-      "nationality": "Nationalité",
-      "ssn": "N° de sécurité sociale",
-      "phone": "Téléphone",
-      "email": "Email",
-      "address": "Adresse",
-      "professionalInfo": "Informations professionnelles",
-      "position": "Poste",
-      "department": "Département",
-      "hireDate": "Date d'embauche",
-      "contractType": "Type de contrat",
-      "status": "Statut",
-      "workLocation": "Lieu de travail",
-      "manager": "Manager",
-      "none": "Aucun",
-      "salaryInfo": "Informations salariales",
-      "baseSalary": "Salaire de base",
-      "bonus": "Bonus",
-      "benefits": "Avantages",
-      "paymentMethod": "Mode de paiement",
-      "lastSalaryAdjustment": "Dernier ajustement",
-      "notApplicable": "N/A",
-      "documents": "Documents administratifs",
-      "contract": "Contrat de travail",
-      "idCard": "Pièce d'identité",
-      "workPermit": "Permis de travail",
-      "diplomas": "Diplômes",
-      "noDocument": "Aucun document",
-      "leaveInfo": "Informations sur les congés",
-      "leaveBalance": "Solde de congés"
+      "days": "jours",
+      "unpaidLeave": "Congés non payés",
+      "totalEntitlements": "Droits aux congés totaux"
     },
     "absences": {
       "title": "Gestion des Absences",
@@ -1195,7 +1617,78 @@ const frTranslations = {
     "absenceType": {
       "JUSTIFIED": "Justifiée",
       "UNJUSTIFIED": "Non justifiée"
-    }
+    },
+    "stats": {
+      "totalEmployees": "Total des employés",
+      "totalEmployeesSubtitle": "Actifs & tous les statuts",
+      "active": "Actifs",
+      "activeSubtitle": "% de la main-d'œuvre",
+      "onLeave": "En congé",
+      "onLeaveSubtitle": "Actuellement absent",
+      "recentlyAdded": "Récemment ajoutés",
+      "recentlyAddedSubtitle": "30 derniers jours"
+    },
+    "actions": {
+      "export": "Exporter",
+      "csv": "CSV",
+      "pdf": "PDF",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "view": "Afficher",
+      "confirm": "Êtes-vous sûr ?"
+    },
+    "details": {
+      "personalInfo": "Informations personnelles",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "birthDate": "Date de naissance",
+      "nationality": "Nationalité",
+      "phone": "Téléphone",
+      "email": "Email",
+      "address": "Adresse",
+      "professionalInfo": "Informations professionnelles",
+      "department": "Département",
+      "position": "Poste",
+      "workLocation": "Lieu de travail",
+      "hireDate": "Date d'embauche",
+      "contractType": "Type de contrat",
+      "status": "Statut",
+      "yearsOfService": "Années de service",
+      "contract": "Contrat",
+      "salary": "Salaire & Rémunération",
+      "baseSalary": "Salaire de base",
+      "bonus": "Prime",
+      "paymentMethod": "Mode de paiement",
+      "lastSalaryAdjustment": "Dernier ajustement",
+      "leaveEntitlements": "Droits aux congés",
+      "cameroonInfo": "Informations Cameroun",
+      "cnpsNumber": "Numéro CNPS",
+      "cnpsCategory": "Catégorie CNPS",
+      "taxId": "N-tif",
+      "maritalStatus": "Situation matrimoniale",
+      "bankAccount": "Compte bancaire",
+      "bankAccountNumber": "Numéro de compte bancaire",
+      "documents": "Documents",
+      "idCard": "Carte d'identité",
+      "workPermit": "Permis de travail",
+      "diplomas": "Diplômes"
+    },
+    "payrollInfo": {
+      "cameroonPayroll": "Paie Cameroun",
+      "belowSmig": "Salaire en dessous du SMIG",
+      "grossSalary": "Salaire brut",
+      "smig": "SMIG 2024",
+      "deductions": "Déductions",
+      "cnpsEmployee": "CNPS Employé (11%)",
+      "cnpsEmployer": "Contribution employeur (17.6%)",
+      "fcfa": "FCFA",
+      "taxInfo": "Informations fiscales",
+      "dependents": "Personnes à charge",
+      "taxReduction": "Réduction fiscale"
+    },
+    "editEmployee": "Modifier l'employé",
+    "addEmployee": "Ajouter un employé",
+    "updateEmployee": "Mettre à jour l'employé"
   },
   "secretariat": {
     "title": "Secrétariat",
@@ -1276,6 +1769,8 @@ const frTranslations = {
   },
   "crm": {
     "title": "CRM",
+    "allSubsidiaries": "Toutes les filiales",
+    "allCommercials": "Tous les commerciaux",
     "tabs": {
       "dashboard": "Tableau de Bord",
       "leads": "Pistes",
@@ -1537,6 +2032,7 @@ const frTranslations = {
   },
   "maintenance": {
     "title": "Gestion de la Maintenance",
+    "description": "Consultez et enregistrez les interventions de maintenance par équipement.",
     "addEquipment": "Ajouter un équipement",
     "equipmentName": "Nom de l'équipement",
     "status": "Statut",
@@ -1571,7 +2067,11 @@ const frTranslations = {
     "title": "Équipements & Actifs",
     "listTitle": "Liste des équipements",
     "acquisitionDate": "Date d'acquisition",
-    "acquisitionValue": "Valeur d'acquisition"
+    "acquisitionValue": "Valeur d'acquisition",
+    "status_OPERATIONAL": "Opérationnel",
+    "status_UNDER_MAINTENANCE": "En maintenance",
+    "status_OUT_OF_SERVICE": "Hors service",
+    "status_NEEDS_MAINTENANCE": "Nécessite Maintenance",
   },
   "notifications": {
     "title": "Notifications",
@@ -1590,6 +2090,26 @@ const frTranslations = {
       "EXTERNAL_TRANSACTION_CANCELLED": "Transaction Externe Annulée",
       "EXTERNAL_TRANSACTION_DELETED": "Transaction Externe Supprimée"
     }
+  },
+  "bonDeCommande": {
+    "title": "Bon de Commande",
+    "orderNum": "Numéro de commande",
+    "date": "Date",
+    "dueDate": "Échéance",
+    "billedTo": "Commandé par",
+    "item": "Produit",
+    "items": "Détail de la commande",
+    "quantity": "Quantité",
+    "unitPrice": "Prix unitaire",
+    "totalPrice": "Total",
+    "total": "TOTAL",
+    "paymentMethod": "Mode de paiement",
+    "paymentDueDate": "Date d'échéance du paiement",
+    "print": "Imprimer",
+    "exportPdf": "Exporter en PDF",
+    "footer": "Merci de votre confiance. Cette commande est valide jusqu'au",
+    "status": "Statut",
+    "noData": "Aucune commande"
   }
 };
 
@@ -1619,7 +2139,9 @@ const enTranslations: Translations = {
         "exportPdf": "Export to PDF",
         "notAvailable": "Not defined",
         "create": "Create",
-        "update": "Update"
+        "update": "Update",
+        "saving": "Saving...",
+        "accessDenied": "Access denied"
     },
     "contactModal": {
     "title": "Contactez-nous",
@@ -1691,6 +2213,7 @@ const enTranslations: Translations = {
       "copyright": "© 2024 CaapMedia. All rights reserved."
     },
     "roles": {
+        "SUPER_ADMIN": "Super Admin",
         "ADMIN": "Admin",
         "COMMERCIAL": "Sales Rep",
         "CAISSIER": "Cashier",
@@ -1748,7 +2271,18 @@ const enTranslations: Translations = {
         "errorIncorrectCredentials": "Incorrect credentials. Please check your email and password.",
         "errorUserNotOnSubsidiary": "This user is not assigned to the selected subsidiary.",
         "forgotPasswordPrompt": "Please enter your email address to reset your password.",
-        "forgotPasswordSuccess": "If an account with the email {{email}} exists, a reset link has been sent."
+        "forgotPasswordSuccess": "If an account with the email {{email}} exists, a reset link has been sent.",
+        "twoFactor": {
+          "title": "Two-factor verification",
+          "subtitle": "Enter the code from your authenticator app.",
+          "codeLabel": "Verification code",
+          "recoveryCodeLabel": "Recovery code",
+          "recoveryCodePlaceholder": "xxxxxxxxxx",
+          "verifyButton": "Verify",
+          "useRecoveryCodeInstead": "Use a recovery code",
+          "useCodeInstead": "Use the app code",
+          "errorInvalidCode": "Invalid code."
+        }
     },
     "forgotPassword": {
       "title": "Reset Password",
@@ -1758,6 +2292,25 @@ const enTranslations: Translations = {
       "backToLogin": "Back to Login",
       "successMessage": "If an account with that email exists, we have sent a link to reset your password.",
       "errorMessage": "An error occurred while sending the reset link. Please try again."
+    },
+    "security": {
+      "title": "Account security",
+      "twoFactor": {
+        "title": "Two-factor authentication",
+        "description": "Add an extra layer of security to your account with an authenticator app.",
+        "statusEnabled": "Enabled",
+        "statusDisabled": "Disabled",
+        "enableButton": "Enable two-factor authentication",
+        "disableButton": "Disable two-factor authentication",
+        "scanInstruction": "Scan this QR code with your authenticator app (Google Authenticator, Authy...), then enter the generated code to confirm.",
+        "manualEntryLabel": "Or enter this code manually:",
+        "confirmCodeLabel": "Verification code",
+        "confirmButton": "Confirm and enable",
+        "recoveryCodesWarning": "Save these recovery codes somewhere safe. Each can only be used once to sign in if you lose access to your authenticator app. They will never be shown again.",
+        "recoveryCodesSavedButton": "I've saved my recovery codes",
+        "errorInvalidCode": "Invalid code.",
+        "errorGeneric": "Something went wrong. Please try again."
+      }
     },
     "ecommerce": {
       "title": "Our Shop",
@@ -1771,6 +2324,7 @@ const enTranslations: Translations = {
       "item": "item",
       "items": "items",
       "total": "Total",
+      "orderViaWhatsApp": "Order via WhatsApp",
       "checkout": "Checkout",
       "checkoutTitle": "Finalize Your Order",
       "customerInfo": "Your Information",
@@ -1849,7 +2403,8 @@ const enTranslations: Translations = {
             "chartSalesLabel": "Sales"
         },
         "startDate": "Start date",
-        "endDate": "End date"
+        "endDate": "End date",
+        "allSubsidiaries": "All subsidiaries"
     },
     "salesAnalysis": {
         "totalRevenue": "Total Revenue",
@@ -1947,7 +2502,93 @@ const enTranslations: Translations = {
         "status_PREPRESS": "Pre-press",
         "status_PRINTING": "Printing",
         "status_FINISHING": "Finishing",
-        "status_READY_FOR_DELIVERY": "Ready for Delivery"
+        "status_READY_FOR_DELIVERY": "Ready for Delivery",
+        "equipmentCosts": {
+            "title": "Hourly cost per machine",
+            "subtitle": "Set the hourly rate for each piece of equipment. These rates are used to calculate the production cost for service orders.",
+            "allSubsidiaries": "All subsidiaries",
+            "colMachine": "Machine",
+            "colStatus": "Status",
+            "colSubsidiary": "Subsidiary",
+            "colHourlyRate": "Hourly rate (F CFA/h)",
+            "colAction": "Action",
+            "notConfigured": "Not configured",
+            "noEquipment": "No equipment found.",
+            "saveError": "Error saving.",
+            "invalidRate": "Invalid hourly rate.",
+            "configure": "Configure",
+            "modify": "Edit"
+        },
+        "commercialParams": {
+            "title": "Global commercial parameters",
+            "subtitle": "Set the allowed margin range for service quotes. Sales reps must enter a margin percentage within this range when creating an order.",
+            "notConfigured": "No parameters configured. Set the margins to activate the production cost module.",
+            "minMargin": "Minimum margin (%)",
+            "maxMargin": "Maximum margin (%)",
+            "rangeHint": "Sales reps must enter a margin between {{min}}% and {{max}}%.",
+            "saveError": "Error saving.",
+            "invalidValues": "Invalid values.",
+            "outOfRange": "Margins must be between 0% and 100%.",
+            "minGtMax": "Minimum margin must be less than maximum margin.",
+            "success": "Parameters saved successfully.",
+            "create": "Create",
+            "update": "Update",
+            "lastModified": "Last modified: {{date}}"
+        },
+        "workflows": {
+            "title": "Production workflows",
+            "subtitle": "Define machine sequences for each service. Sales reps see them pre-filled when creating a new order.",
+            "newWorkflow": "New workflow",
+            "allSubsidiaries": "All subsidiaries",
+            "noWorkflow": "No workflows defined.",
+            "active": "Active",
+            "inactive": "Inactive",
+            "linkedService": "Linked service: {{name}}",
+            "noSteps": "No steps",
+            "form": {
+                "createTitle": "New workflow",
+                "editTitle": "Edit workflow",
+                "name": "Name",
+                "namePlaceholder": "e.g. Standard offset printing",
+                "description": "Description",
+                "linkedService": "Linked service (optional)",
+                "noLinkedService": "— No linked service —",
+                "isActive": "Active workflow",
+                "steps": "Steps (machines)",
+                "addStep": "Add",
+                "chooseEquipment": "— Choose a machine —",
+                "noStepsDefined": "Click \"Add\" to define steps.",
+                "nameRequired": "Name is required.",
+                "equipmentRequired": "Each step must have a machine selected.",
+                "createError": "Error creating workflow.",
+                "editError": "Error updating workflow.",
+                "update": "Update"
+            },
+            "deleteConfirm": {
+                "title": "Delete workflow",
+                "message": "This action is irreversible. Existing orders will not be affected."
+            }
+        },
+        "costModal": {
+            "title": "Production cost",
+            "prefilledWorkflow": "Pre-filled workflow: {{name}}",
+            "stepsTitle": "Production steps",
+            "addMachine": "Add a machine",
+            "noSteps": "No steps. Add a machine or select a service with a workflow.",
+            "chooseMachine": "— Machine —",
+            "hoursPlaceholder": "Hours",
+            "totalCost": "Total production cost",
+            "margin": "Margin (%) *",
+            "marginRange": "Allowed range: {{min}}% – {{max}}%",
+            "finalPrice": "Final price (= line price)",
+            "priceNote": "This amount will be applied as the unit price on the order line.",
+            "confirmButton": "Confirm cost",
+            "noStepsError": "Add at least one production step.",
+            "noEquipmentError": "Each step must have a machine selected.",
+            "invalidTimeError": "Enter a valid time (> 0) for each step.",
+            "noMarginError": "Enter a margin percentage.",
+            "marginRangeError": "Margin must be between {{min}}% and {{max}}%."
+        }
     },
     "purchasing": {
         "title": "Purchase Management",
@@ -1985,6 +2626,7 @@ const enTranslations: Translations = {
         },
         "receiveItemsModal": {
             "title": "Receive Items",
+            "unit": "Unit",
             "ordered": "Ordered",
             "alreadyReceived": "Already Received",
             "quantityToReceive": "Quantity to Receive"
@@ -2010,6 +2652,7 @@ const enTranslations: Translations = {
             "product": "Product",
             "selectProduct": "Select a product",
             "quantity": "Quantity",
+            "purchaseUnit": "Purchase unit",
             "purchasePrice": "Unit Purchase Price",
             "total": "Total",
             "orderSummary": "Order Summary"
@@ -2030,6 +2673,7 @@ const enTranslations: Translations = {
         "range": "Range",
         "confirmPriceSaveTitle": "Confirm Save",
         "confirmPriceSaveMessage": "Do you want to save the new prices?",
+        "belowThreshold": "Below minimum threshold",
         "available": "Available",
         "categories": {
             "pub": "Advertising",
@@ -2060,6 +2704,72 @@ const enTranslations: Translations = {
             "finitionFaconnage": "Finishing & Shaping",
             "prestationsExternes": "External Services",
             "textilesRaw": "Textiles (Raw Material)"
+        }
+    },
+    "stockMovements": {
+        "title": "Stock movements",
+        "allTypes": "All types",
+        "date": "Date",
+        "product": "Product",
+        "type": "Type",
+        "direction": "Direction",
+        "quantity": "Quantity",
+        "reason": "Reason",
+        "in": "In",
+        "out": "Out",
+        "empty": "No movement recorded yet.",
+        "tabs": {
+            "levels": "Stock levels",
+            "movements": "Movements",
+            "inventory": "Inventory"
+        },
+        "types": {
+            "PURCHASE_RECEIPT": "Purchase receipt",
+            "CUSTOMER_RETURN": "Customer return",
+            "POSITIVE_ADJUSTMENT": "Positive adjustment",
+            "TRANSFER_IN": "Transfer in",
+            "PRODUCTION_CONSUMPTION": "Production consumption",
+            "LOSS": "Loss",
+            "BREAKAGE": "Breakage",
+            "INTERNAL_CONSUMPTION": "Internal consumption",
+            "NEGATIVE_ADJUSTMENT": "Negative adjustment",
+            "SUPPLIER_RETURN": "Supplier return",
+            "TRANSFER_OUT": "Transfer out"
+        },
+        "inventory": {
+            "title": "Inventory",
+            "subtitle": "Enter the actually counted stock — the deviation is calculated and recorded automatically.",
+            "product": "Product",
+            "selectProduct": "Select a product...",
+            "theoreticalStock": "Theoretical stock",
+            "countedStock": "Counted stock",
+            "reason": "Reason (optional)",
+            "submit": "Validate inventory",
+            "successTitle": "Inventory recorded",
+            "successMessage": "Stock has been updated.",
+            "noDeviation": "No deviation found — no movement created.",
+            "deviationRecorded": "Deviation of {{delta}} recorded."
+        },
+        "withdraw": {
+            "title": "Withdraw materials",
+            "subtitle": "Enter the quantities actually used for this order.",
+            "addLine": "Add a line",
+            "product": "Product",
+            "quantity": "Quantity",
+            "submit": "Validate withdrawal",
+            "successTitle": "Materials withdrawn",
+            "successMessage": "Stock has been updated.",
+            "empty": "Add at least one material to withdraw."
+        },
+        "manual": {
+            "newMovement": "New movement",
+            "title": "New stock movement",
+            "subtitle": "Customer return, transfer, loss, breakage, internal consumption or supplier return.",
+            "product": "Product",
+            "selectProduct": "Select a product...",
+            "submit": "Save movement",
+            "successTitle": "Movement recorded",
+            "successMessage": "Stock has been updated."
         }
     },
     "productRange": {
@@ -2132,7 +2842,17 @@ const enTranslations: Translations = {
         "submitOrder": "Place Order",
         "orderPlacedSuccess": "Order placed successfully!",
         "item": "Item",
-        "subtotal": "Subtotal"
+        "subtotal": "Subtotal",
+        "discount": "Discount (FCFA)",
+        "searchClientOtherSubsidiary": "Search a client from another subsidiary...",
+        "paymentMethod": "Payment method",
+        "paymentMethod_PAY_ON_DELIVERY": "Pay on delivery",
+        "paymentMethod_CARD": "Credit card",
+        "paymentMethod_ORANGE_MONEY": "Orange Money",
+        "paymentMethod_WAVE": "Wave",
+        "paymentMethod_MOBILE_MONEY": "Mobile Money",
+        "paymentMethod_PAYCAAP": "PayCaap",
+        "paymentMethod_CUSTOMER_CREDIT": "Customer credit"
     },
     "bonDeLivraison": {
         "title": "Delivery Note",
@@ -2173,6 +2893,7 @@ const enTranslations: Translations = {
         "title": "Finance & Management",
         "creditManagement": "Credit Management",
         "treasury": "Treasury",
+        "prefinancement": "Pre-financing",
         "supplierDebts": "Supplier Debts",
         "expenses": "Expenses",
         "externalTransactions": "External Transactions",
@@ -2506,6 +3227,25 @@ const enTranslations: Translations = {
     "configuration": {
         "title": "General Configuration",
         "products": "Products",
+        "units": "Units",
+        "unitsManagement": {
+            "title": "Units of measure",
+            "subtitle": "Shared reference list — base unit and packaging units for stock products.",
+            "addNew": "New unit",
+            "name": "Name",
+            "namePlaceholder": "Sheet",
+            "symbol": "Symbol (optional)",
+            "symbolPlaceholder": "u",
+            "create": "Create",
+            "save": "Save",
+            "cancel": "Cancel",
+            "empty": "No unit created yet.",
+            "createError": "Could not create the unit (name already used?).",
+            "deleteError": "This unit is used by at least one stock product."
+        },
+        "services": "Services",
+        "addService": "Add a service",
+        "referenceLists": "Reference lists",
         "users": "Users",
         "suppliers": "Suppliers",
         "taxes": "Taxes",
@@ -2529,6 +3269,11 @@ const enTranslations: Translations = {
         "supplierManagement": "Supplier Management",
         "addSupplier": "Add Supplier",
         "taxManagement": "Tax Management",
+        "equipmentCosts": "Machine costs",
+        "commercialParams": "Commercial params",
+        "productionWorkflows": "Workflows",
+        "catalogue": "Catalogue",
+        "production": "Production",
         "modal": {
             "editProductTitle": "Edit Product",
             "addProductTitle": "Add New Product",
@@ -2555,7 +3300,25 @@ const enTranslations: Translations = {
             "deleteAbsenceTitle": "Delete an Absence",
             "editTaxTitle": "Edit Tax",
             "addTaxTitle": "Add New Tax",
-            "deleteTaxTitle": "Delete Tax"
+            "deleteTaxTitle": "Delete Tax",
+            "editServiceTitle": "Edit service",
+            "addServiceTitle": "Add service",
+            "deleteServiceTitle": "Delete service"
+        },
+        "serviceForm": {
+            "name": "Name",
+            "category": "Category",
+            "range": "Range",
+            "description": "Description",
+            "generateWithAI": "Generate with AI",
+            "isActive": "Active",
+            "isVisibleOnSite": "Visible on storefront",
+            "displayOrder": "Display order",
+            "images": "Images"
+        },
+        "builder": {
+            "back": "Back to services",
+            "configureFields": "Configure fields"
         },
         "form": {
             "name": "Name",
@@ -2605,7 +3368,111 @@ const enTranslations: Translations = {
             "uploadFile": "Upload a file",
             "generateWithAI": "Generate with AI",
             "rate": "Rate (%)",
-            "isDefault": "Default Tax"
+            "isDefault": "Default Tax",
+            "minThreshold": "Minimum threshold",
+            "baseUnit": "Base unit",
+            "selectUnit": "Select a unit...",
+            "packagingUnits": "Packaging units",
+            "packagingUnitsHelp": "Purchase units (e.g. Ream, Box) and their equivalence in the base unit.",
+            "conversionFactor": "Conversion factor"
+        }
+    },
+    "specBuilder": {
+        "fieldTypes": {
+            "TEXT": "Text", "TEXTAREA": "Long text", "NUMBER": "Number", "DECIMAL": "Decimal number",
+            "AMOUNT": "Amount", "SELECT": "Dropdown list", "MULTISELECT": "Multi-select",
+            "RADIO": "Radio buttons", "CHECKBOX": "Checkbox", "BOOLEAN": "Yes / No", "DATE": "Date",
+            "TIME": "Time", "COLOR": "Color", "UPLOAD": "Upload", "URL": "URL", "EMAIL": "Email",
+            "PHONE": "Phone", "DIMENSIONS": "Dimensions (Width x Height)"
+        },
+        "card": {
+            "required": "Required",
+            "reorder": "Reorder"
+        },
+        "drawer": {
+            "editTitle": "Edit specification",
+            "addTitle": "New specification",
+            "nameRequired": "Name is required",
+            "technicalKeyRequired": "Technical key is required",
+            "technicalKeyPattern": "snake_case required (e.g. paper_weight)",
+            "fieldRequired": "Required",
+            "name": "Name",
+            "technicalKey": "Technical key",
+            "technicalKeyPlaceholder": "e.g. paper_weight",
+            "type": "Type",
+            "group": "Group",
+            "noGroup": "No group",
+            "helpText": "Help text",
+            "placeholder": "Placeholder",
+            "unit": "Unit (mm, cm, g, kg, pages...)",
+            "internalDescription": "Internal description",
+            "required": "Required",
+            "visibleToClient": "Visible to client",
+            "visibleToProduction": "Visible to production",
+            "editableAfterValidation": "Editable after validation",
+            "searchable": "Usable in search",
+            "possibleValues": "Possible values",
+            "optionsSourceInline": "Entered here",
+            "optionsSourceReference": "Shared reference list",
+            "selectReferenceList": "Select a reference list...",
+            "optionValuePlaceholder": "Value (e.g. A4)",
+            "optionLabelPlaceholder": "Displayed label",
+            "addOption": "Add a value",
+            "uploadConfigTitle": "Upload configuration",
+            "uploadExtensions": "Allowed extensions (comma-separated)",
+            "uploadExtensionsPlaceholder": "PDF, AI, PSD, CDR",
+            "uploadMaxSize": "Max size (MB)",
+            "uploadMaxFiles": "Max number of files",
+            "dimensionsConfigTitle": "Dimension bounds",
+            "dimMinWidth": "Min width",
+            "dimMaxWidth": "Max width",
+            "dimMinHeight": "Min height",
+            "dimMaxHeight": "Max height",
+            "cancel": "Cancel",
+            "save": "Save"
+        },
+        "groupList": {
+            "addField": "Add a field",
+            "noGroup": "No group",
+            "emptyGroup": "No fields in this group.",
+            "addGroup": "Add a group",
+            "deleteGroupTooltip": "Delete group"
+        },
+        "builder": {
+            "fieldsTitle": "Technical fields — {{productName}}",
+            "previewTitle": "Preview — sales view",
+            "loading": "Loading Builder...",
+            "loadError": "Unable to load this service's configuration.",
+            "noFields": "No fields configured for this service yet.",
+            "newGroupPlaceholder": "Group name (e.g. Paper)",
+            "cancel": "Cancel",
+            "confirmDeleteSpec": "Delete specification \"{{name}}\"? This action cannot be undone.",
+            "confirmDeleteGroup": "Delete group \"{{name}}\"? Its fields will be moved to \"No group\"."
+        },
+        "referenceLists": {
+            "title": "Value reference lists",
+            "subtitle": "Value lists shared across several services (e.g. paper types, weights).",
+            "addNew": "New reference list",
+            "technicalKey": "Technical key",
+            "technicalKeyPlaceholder": "paper_types",
+            "displayName": "Display name",
+            "displayNamePlaceholder": "Paper types",
+            "create": "Create",
+            "cancel": "Cancel",
+            "valueCount": "value(s)",
+            "empty": "No reference list created yet.",
+            "valuePlaceholder": "Value (e.g. A4)",
+            "labelPlaceholder": "Displayed label",
+            "createError": "Could not create the reference list (key already used?)."
+        },
+        "valuesModal": {
+            "title": "Technical specifications — {{productName}}",
+            "subtitle": "Fill in this line's specifications before adding it to the cart.",
+            "cancel": "Cancel",
+            "confirm": "Add to cart"
+        },
+        "formRenderer": {
+            "selectPlaceholder": "Select..."
         }
     },
     "hr": {
@@ -2626,6 +3493,15 @@ const enTranslations: Translations = {
             "contractType": "Contract",
             "status": "Status"
         },
+        "table": {
+            "name": "Name",
+            "email": "Email",
+            "department": "Department",
+            "position": "Position",
+            "status": "Status",
+            "salary": "Salary",
+            "actions": "Actions"
+        },
         "attendance": {
             "title": "Attendance Management",
             "record": "Record Attendance",
@@ -2644,7 +3520,8 @@ const enTranslations: Translations = {
             "notSigned": "Not signed"
         },
         "payroll": {
-            "title": "Payroll Management",
+            "title": "Payroll Scales & Configuration",
+            "taxBracketsDesc": "Configure standard payroll parameters for Cameroon",
             "process": "Process this month's payroll",
             "employee": "Employee",
             "period": "Period",
@@ -2662,7 +3539,37 @@ const enTranslations: Translations = {
             "deductions": "Deductions",
             "socialDeductions": "Social Contributions",
             "taxDeductions": "Tax Deductions",
-            "absenceDeductions": "Absence Deductions"
+            "absenceDeductions": "Absence Deductions",
+            "minWage": "Minimum Wage",
+            "cnpsEmployeeRate": "CNPS Employee Rate",
+            "success": {
+                "updated": "Configuration updated successfully"
+            },
+            "error": {
+                "update": "Error updating configuration"
+            },
+            "modal": {
+                "updateSmigDesc": "Update the minimum wage (SMIG) currently in effect",
+                "updateCnpsTitle": "Update CNPS Rates",
+                "updateIrppTitle": "Update IRPP Tax Brackets",
+                "updateLeaveTitle": "Update Leave Entitlements"
+            },
+            "form": {
+                "minWage": "Minimum Wage",
+                "minAmount": "Minimum Amount",
+                "maxAmount": "Maximum Amount",
+                "rate": "Rate",
+                "above": "Above",
+                "daysPerYear": "days per year",
+                "employeeRate": "Employee Rate",
+                "employerRate": "Employer Rate",
+                "paid": "Paid",
+                "unpaid": "Unpaid"
+            },
+            "infoBox": {
+                "title": "Note"
+            },
+            "infoBoxText": "These are the standard rates for Cameroon 2024. All values are used automatically when calculating employee payroll. Changes will apply to future payroll calculations."
         },
         "modals": {
             "sign": {
@@ -2693,6 +3600,61 @@ const enTranslations: Translations = {
             "CHECK": "Check",
             "CASH": "Cash"
         },
+        "bankingDetails": "Banking Details",
+        "bankName": "Bank Name",
+        "bankAccountNumber": "Account Number (RIB/IBAN)",
+        "maritalStatus": "Marital Status",
+        "maritalStatusOptions": {
+            "SINGLE": "Single",
+            "MARRIED": "Married",
+            "DIVORCED": "Divorced",
+            "WIDOWED": "Widowed"
+        },
+        "numberDependents": "Number of Dependents",
+        "dependentsHelperText": "For tax deduction calculation",
+        "form": {
+            "sections": {
+                "personal": "Personal Information",
+                "professional": "Professional Information",
+                "salary": "Salary & Compensation",
+                "documents": "Documents",
+                "leaves": "Leave Entitlements"
+            },
+            "salarySection": {
+                "title": "Salary & Compensation",
+                "subtitle": "Financial information",
+                "baseSalary": "Base Salary",
+                "baseSalaryHelper": "Minimum salary (FCFA)",
+                "bonus": "Bonus",
+                "bonusHelper": "Additional compensation (FCFA)",
+                "paymentMethod": "Payment Method"
+            },
+            "documentsSection": {
+                "title": "Documents",
+                "subtitle": "Employee documentation",
+                "uploadMessage": "📄 Document upload functionality would be implemented here"
+            },
+            "leavesSection": {
+                "title": "Leave Entitlements",
+                "subtitle": "Leave balance configuration",
+                "tabBalance": "Leave Balance",
+                "tabRecords": "Leave History"
+            }
+        },
+        "cancel": "Cancel",
+        "leaves": {
+            "leaveHistory": "Leave History",
+            "addLeaveRecord": "Record Leave",
+            "noRecords": "No leave records",
+            "daysHelper": "Number of leave days",
+            "unpaidHelperText": "Unpaid leave days",
+            "balanceInfo": "Available leave balance",
+            "leaveType": "Leave Type",
+            "days": "Days",
+            "startDate": "Start Date",
+            "endDate": "End Date",
+            "configureBalance": "Configure Leave Balance"
+        },
         "documents": {
             "title": "Documents",
             "addDocument": "Add Document",
@@ -2706,7 +3668,19 @@ const enTranslations: Translations = {
             "file": "File",
             "selectFile": "Select a file",
             "fileSelected": "File selected",
-            "noFileSelected": "No file selected"
+            "noFileSelected": "No file selected",
+            "contract": "Employment Contract",
+            "idCard": "ID Card / National ID",
+            "workPermit": "Work Permit",
+            "diplomas": "Diplomas & Certifications",
+            "uploaded": "✓ Uploaded",
+            "download": "Download",
+            "remove": "Remove",
+            "dragOrClick": "Drag and drop your file here, or click to select",
+            "addDiplomas": "Add Diplomas & Certifications",
+            "diplomasHelper": "You can upload multiple diplomas and certification documents",
+            "uploadedDiplomas": "Uploaded Diplomas",
+            "requirements": "Required documents: Employment Contract, ID Card/National ID, and Work Permit. Diplomas are optional but recommended."
         },
         "documentType": {
             "idCard": "ID Card",
@@ -2727,49 +3701,16 @@ const enTranslations: Translations = {
             "personal": "Personal Leave",
             "maternity": "Maternity Leave",
             "paternity": "Paternity Leave",
-            "other": "Other Leave"
+            "other": "Other Leave",
+            "unpaid": "Unpaid Leave"
         },
         "leaveBalance": {
             "title": "Leave Balance",
             "summary": "Summary",
             "totalDays": "Total Days",
-            "days": "days"
-        },
-        "details": {
-            "personalInfo": "Personal Information",
-            "lastName": "Last Name",
-            "firstName": "First Name",
-            "birthDate": "Birth Date",
-            "gender": "Gender",
-            "nationality": "Nationality",
-            "ssn": "Social Security Number",
-            "phone": "Phone",
-            "email": "Email",
-            "address": "Address",
-            "professionalInfo": "Professional Information",
-            "position": "Position",
-            "department": "Department",
-            "hireDate": "Hire Date",
-            "contractType": "Contract Type",
-            "status": "Status",
-            "workLocation": "Work Location",
-            "manager": "Manager",
-            "none": "None",
-            "salaryInfo": "Salary Information",
-            "baseSalary": "Base Salary",
-            "bonus": "Bonus",
-            "benefits": "Benefits",
-            "paymentMethod": "Payment Method",
-            "lastSalaryAdjustment": "Last Adjustment",
-            "notApplicable": "N/A",
-            "documents": "Administrative Documents",
-            "contract": "Employment Contract",
-            "idCard": "ID Card",
-            "workPermit": "Work Permit",
-            "diplomas": "Diplomas",
-            "noDocument": "No document",
-            "leaveInfo": "Leave Information",
-            "leaveBalance": "Leave Balance"
+            "days": "days",
+            "unpaidLeave": "Unpaid Leave",
+            "totalEntitlements": "Total Leave Entitlements"
         },
         "absences": {
             "title": "Absence Management",
@@ -2788,7 +3729,78 @@ const enTranslations: Translations = {
         "absenceType": {
             "JUSTIFIED": "Justified",
             "UNJUSTIFIED": "Unjustified"
-        }
+        },
+        "stats": {
+            "totalEmployees": "Total Employees",
+            "totalEmployeesSubtitle": "Active & all statuses",
+            "active": "Active",
+            "activeSubtitle": "% of workforce",
+            "onLeave": "On Leave",
+            "onLeaveSubtitle": "Currently away",
+            "recentlyAdded": "Recently Added",
+            "recentlyAddedSubtitle": "Last 30 days"
+        },
+        "actions": {
+            "export": "Export",
+            "csv": "CSV",
+            "pdf": "PDF",
+            "edit": "Edit",
+            "delete": "Delete",
+            "view": "View",
+            "confirm": "Are you sure?"
+        },
+        "details": {
+            "personalInfo": "Personal Information",
+            "firstName": "First Name",
+            "lastName": "Last Name",
+            "birthDate": "Birth Date",
+            "nationality": "Nationality",
+            "phone": "Phone",
+            "email": "Email",
+            "address": "Address",
+            "professionalInfo": "Professional Information",
+            "department": "Department",
+            "position": "Position",
+            "workLocation": "Work Location",
+            "hireDate": "Hire Date",
+            "contractType": "Contract Type",
+            "status": "Status",
+            "yearsOfService": "Years of Service",
+            "contract": "Contract",
+            "salary": "Salary & Compensation",
+            "baseSalary": "Base Salary",
+            "bonus": "Bonus",
+            "paymentMethod": "Payment Method",
+            "lastSalaryAdjustment": "Last Salary Adjustment",
+            "leaveEntitlements": "Leave Entitlements",
+            "cameroonInfo": "Cameroon Information",
+            "cnpsNumber": "CNPS Number",
+            "cnpsCategory": "CNPS Category",
+            "taxId": "N-tif",
+            "maritalStatus": "Marital Status",
+            "bankAccount": "Bank Account",
+            "bankAccountNumber": "Bank Account Number",
+            "documents": "Documents",
+            "idCard": "ID Card",
+            "workPermit": "Work Permit",
+            "diplomas": "Diplomas"
+        },
+        "payrollInfo": {
+            "cameroonPayroll": "Cameroon Payroll",
+            "belowSmig": "Salary below SMIG",
+            "grossSalary": "Gross Salary",
+            "smig": "SMIG 2024",
+            "deductions": "Deductions",
+            "cnpsEmployee": "CNPS Employee (11%)",
+            "cnpsEmployer": "Employer Contribution (17.6%)",
+            "fcfa": "FCFA",
+            "taxInfo": "Tax Info",
+            "dependents": "Dependents",
+            "taxReduction": "Tax reduction"
+        },
+        "editEmployee": "Edit Employee",
+        "addEmployee": "Add Employee",
+        "updateEmployee": "Update Employee"
     },
     "secretariat": {
         "title": "Secretariat",
@@ -2869,6 +3881,8 @@ const enTranslations: Translations = {
     },
     "crm": {
         "title": "CRM",
+        "allSubsidiaries": "All subsidiaries",
+        "allCommercials": "All sales reps",
         "tabs": {
             "dashboard": "Dashboard",
             "leads": "Leads",
@@ -3132,6 +4146,7 @@ const enTranslations: Translations = {
     },
     "maintenance": {
         "title": "Maintenance Management",
+        "description": "View and record maintenance interventions by equipment.",
         "addEquipment": "Add Equipment",
         "equipmentName": "Equipment Name",
         "status": "Status",
@@ -3166,7 +4181,11 @@ const enTranslations: Translations = {
         "title": "Equipment & Assets",
         "listTitle": "Equipment List",
         "acquisitionDate": "Acquisition Date",
-        "acquisitionValue": "Acquisition Value"
+        "acquisitionValue": "Acquisition Value",
+        "status_OPERATIONAL": "Operational",
+        "status_UNDER_MAINTENANCE": "Under maintenance",
+        "status_OUT_OF_SERVICE": "Out of service",
+        "status_NEEDS_MAINTENANCE": "Needs maintenance"
     },
     "notifications": {
         "title": "Notifications",
@@ -3185,6 +4204,26 @@ const enTranslations: Translations = {
             "EXTERNAL_TRANSACTION_CANCELLED": "External Transaction Cancelled",
             "EXTERNAL_TRANSACTION_DELETED": "External Transaction Deleted"
         }
+    },
+    "bonDeCommande": {
+        "title": "Purchase Order",
+        "orderNum": "Order Number",
+        "date": "Date",
+        "dueDate": "Due Date",
+        "billedTo": "Billed To",
+        "item": "Product",
+        "items": "Order Details",
+        "quantity": "Quantity",
+        "unitPrice": "Unit Price",
+        "totalPrice": "Total",
+        "total": "TOTAL",
+        "paymentMethod": "Payment Method",
+        "paymentDueDate": "Payment Due Date",
+        "print": "Print",
+        "exportPdf": "Export to PDF",
+        "footer": "Thank you for your trust. This order is valid until",
+        "status": "Status",
+        "noData": "No orders"
     }
 };
 

@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsNumber, IsPositive, IsEnum } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsNumber,
+  IsPositive,
+  IsEnum,
+} from 'class-validator';
 import { AccountType } from '@prisma/client';
 
 export class CreateTreasuryAccountDto {

@@ -5,16 +5,16 @@ import {
   IsNotEmpty,
   IsEnum,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
-  IsUUID,
   Min,
+  Max,
   ValidateNested,
 } from 'class-validator';
 import { OrderSource } from '@prisma/client';
 import { OrderStatus, CustomerPaymentMethod } from '@prisma/client';
 import { ProductionStatus } from '@prisma/client';
-
 
 class CreateProductOptionDto {
   @IsString()
@@ -26,14 +26,71 @@ class CreateProductOptionDto {
   optionValue: string;
 }
 
-class CreateOrderItemDto {
+// Étape de production soumise par le commercial pour une ligne de service.
+export class CreateProductionStepDto {
   @IsUUID()
+  equipmentId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  equipmentNameSnapshot: string;
+
+  @IsInt()
+  @Min(1)
+  stepOrder: number;
+
+  // Temps estimé en heures décimales (ex : 1.5 = 1h30).
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  estimatedTimeHours: number;
+
+  // Coût horaire figé au moment de la commande.
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  hourlyRateSnapshot: number;
+
+  // Coût calculé figé : estimatedTimeHours × hourlyRateSnapshot.
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  calculatedCost: number;
+}
+
+// Résumé financier soumis par le commercial pour une ligne de service.
+export class CreateProductionSummaryDto {
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  totalProductionCost: number;
+
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
+  marginPercent: number;
+
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  finalPrice: number;
+}
+
+class CreateOrderItemDto {
+  @IsString()
   @IsNotEmpty()
   productId: string;
 
   @IsInt()
   @Min(1)
   quantity: number;
+
+  // Pour les services : prix = finalPrice calculé par le module coût de production.
+  // Pour les produits stock : prix négocié manuellement.
+  @IsNumber()
+  @Min(0)
+  unitPrice: number;
+
+  // Remise négociée sur cette ligne (montant, pas %), figée historiquement avec le total.
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  discount?: number;
 
   @IsOptional()
   @IsString()
@@ -48,36 +105,28 @@ class CreateOrderItemDto {
   @ValidateNested({ each: true })
   @Type(() => CreateProductOptionDto)
   options?: CreateProductOptionDto[];
-}
 
-export class CreateOrderDto {
-  @IsString()
-  @IsNotEmpty()
-  customerName: string;
-
-  @IsString()
-  @IsNotEmpty()
-  paymentDueDate: string; // Sera validé comme une date dans le service
-
+  // Valeurs des spécifications techniques du produit (Chantier 5) —
+  // { technicalKey: valeur }, validées server-side contre la définition du produit.
   @IsOptional()
-  @IsUUID()
-  opportunityId?: string;
+  @IsObject()
+  specValues?: Record<string, unknown>;
 
-  @IsNotEmpty()
-  source: OrderSource;
-
+  // Coût de production (services uniquement) — optionnel.
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => CreateOrderItemDto)
-  items: CreateOrderItemDto[];
+  @Type(() => CreateProductionStepDto)
+  productionSteps?: CreateProductionStepDto[];
 
-  @IsNotEmpty()
-  @IsEnum(CustomerPaymentMethod)
-  paymentMethod: CustomerPaymentMethod;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateProductionSummaryDto)
+  productionSummary?: CreateProductionSummaryDto;
 }
 
 export class CreateOrderBySalesRepDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   customerId: string;
 
@@ -94,7 +143,7 @@ export class CreateOrderBySalesRepDto {
   paymentMethod: CustomerPaymentMethod;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   opportunityId?: string;
 
   @IsNotEmpty()
@@ -105,6 +154,12 @@ export class CreateOrderBySalesRepDto {
   @ValidateNested({ each: true })
   @Type(() => CreateOrderItemDto)
   items: CreateOrderItemDto[];
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  customTaxRate?: number;
 }
 
 export class RecordPaymentDto {
@@ -126,5 +181,5 @@ export class UpdateOrderStatusDto {
 export class updateProductionStatusDto {
   @IsEnum(ProductionStatus)
   @IsNotEmpty()
-  productionStatus: ProductionStatus
+  productionStatus: ProductionStatus;
 }

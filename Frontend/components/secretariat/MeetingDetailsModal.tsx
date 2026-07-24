@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Meeting } from '../../types';
+import { Meeting, Employee } from '../../types';
 import { useI18n } from '../../i18n';
 
 interface MeetingDetailsModalProps {
@@ -7,9 +7,10 @@ interface MeetingDetailsModalProps {
     onClose: () => void;
     onSaveMinutes: (meetingId: string, minutes: string) => void;
     meeting: Meeting;
+    employees: Employee[];
 }
 
-const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClose, onSaveMinutes, meeting }) => {
+const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClose, onSaveMinutes, meeting, employees }) => {
     const { t } = useI18n();
     const [minutes, setMinutes] = useState(meeting.minutes);
     const [isEditing, setIsEditing] = useState(false);
@@ -18,12 +19,15 @@ const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClo
     const formatTime = (timeStr: string | Date) => new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     // Convertit les participantIds en noms complets
-   const getParticipantNames = (participants: { employee: Employee }[]) => {
-    if (!participants || participants.length === 0) return '';
-    return participants
-        .map(p => p.employee ? `${p.employee.firstName} ${p.employee.lastName}` : 'Employé inconnu')
-        .join(', ');
-};
+    const getParticipantNames = (participantIds: string[]) => {
+        if (!participantIds || participantIds.length === 0) return '';
+        return participantIds
+            .map(id => {
+                const employee = employees.find(e => e.id === id);
+                return employee ? `${employee.firstName} ${employee.lastName}` : 'Employé inconnu';
+            })
+            .join(', ');
+    };
 
 
     const handleSave = () => {
@@ -72,7 +76,7 @@ const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClo
                                 value={minutes} 
                                 onChange={(e) => setMinutes(e.target.value)} 
                                 rows={6}
-                                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                             />
                         ) : (
                             <pre className="text-slate-600 bg-slate-50 p-2 rounded-md whitespace-pre-wrap font-sans min-h-[100px]">

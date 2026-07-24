@@ -24,8 +24,6 @@ const ReceiveItemsModal: React.FC<ReceiveItemsModalProps> = ({ isOpen, onClose, 
         setReceivedQuantities(prev => ({ ...prev, [purchaseOrderItemId]: newQuantity }));
     };
 
-    console.log(purchaseOrder);
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const itemsToReceive = Object.entries(receivedQuantities)
@@ -54,6 +52,7 @@ const ReceiveItemsModal: React.FC<ReceiveItemsModalProps> = ({ isOpen, onClose, 
                                 <thead className="text-xs text-slate-700 uppercase bg-slate-50">
                                     <tr>
                                         <th className="px-4 py-2">{t('purchasing.form.product')}</th>
+                                        <th className="px-4 py-2 text-center">{t('purchasing.receiveItemsModal.unit')}</th>
                                         <th className="px-4 py-2 text-center">{t('purchasing.receiveItemsModal.ordered')}</th>
                                         <th className="px-4 py-2 text-center">{t('purchasing.receiveItemsModal.alreadyReceived')}</th>
                                         <th className="px-4 py-2 text-center">{t('purchasing.receiveItemsModal.quantityToReceive')}</th>
@@ -62,9 +61,12 @@ const ReceiveItemsModal: React.FC<ReceiveItemsModalProps> = ({ isOpen, onClose, 
                                 <tbody>
                                     {purchaseOrder.items.map(item => {
                                         const remaining = item.quantity - item.quantityReceived;
+                                        const unit = item.purchaseUnit ?? item.product?.baseUnit;
+                                        const unitLabel = unit ? (unit.symbol || unit.name) : null;
                                         return (
                                             <tr key={item.productId} className="border-b">
                                                 <td className="px-4 py-3 font-medium">{item.productName}</td>
+                                                <td className="px-4 py-3 text-center text-slate-500">{unitLabel ?? '—'}</td>
                                                 <td className="px-4 py-3 text-center">{item.quantity}</td>
                                                 <td className="px-4 py-3 text-center">{item.quantityReceived}</td>
                                                 <td className="px-4 py-3">

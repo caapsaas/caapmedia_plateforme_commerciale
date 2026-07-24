@@ -2,8 +2,8 @@
 import { Equipment, EquipmentStatus } from './types/models';
 import { CreateEquipmentDto } from './services/apiMaintenance/apiEquipment';
 
-// Test that CreateEquipmentDto is compatible with Omit<Equipment, 'id' | 'subsidiaryId' | 'maintenanceHistory'>
-type TestType = Omit<Equipment, 'id' | 'subsidiaryId' | 'maintenanceHistory'>;
+// Test that CreateEquipmentDto is compatible with Omit<Equipment, 'id' | 'subsidiaryId' | 'maintenanceRecords'>
+type TestType = Omit<Equipment, 'id' | 'subsidiaryId' | 'maintenanceRecords'>;
 
 const testCreateDto: CreateEquipmentDto = {
     equipmentName: 'Test Equipment',

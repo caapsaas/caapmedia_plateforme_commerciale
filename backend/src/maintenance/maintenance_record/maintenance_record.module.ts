@@ -4,6 +4,6 @@ import { MaintenanceRecordService } from './maintenance_record.service';
 
 @Module({
   controllers: [MaintenanceRecordController],
-  providers: [MaintenanceRecordService]
+  providers: [MaintenanceRecordService],
 })
 export class MaintenanceRecordModule {}

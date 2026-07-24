@@ -5,6 +5,11 @@ import { PayrollrecordModule } from './payrollrecord/payrollrecord.module';
 import { AbsencerecordModule } from './absencerecord/absencerecord.module';
 
 @Module({
-  imports: [EmployeeModule, AttendancerecordModule, PayrollrecordModule, AbsencerecordModule]
+  imports: [
+    EmployeeModule,
+    AttendancerecordModule,
+    PayrollrecordModule,
+    AbsencerecordModule,
+  ],
 })
 export class HrModule {}

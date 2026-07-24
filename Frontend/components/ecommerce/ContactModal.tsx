@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { useI18n } from '../../i18n';
-import IconGmoLogo from '../icons/IconGmoLogo';
 import IconCheckCircle from '../icons/IconCheckCircle';
 import IconCancelX from '../icons/IconCancelX';
 
@@ -97,7 +96,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
 
                 {/* Header */}
                 <div className="p-8 pb-4 border-b border-slate-100 text-center bg-slate-50/50">
-                    <IconGmoLogo className="h-16 w-auto mx-auto mb-4" />
+                    <img src="/CaaMedia.png" alt="CaapMedia Logo" className="h-16 w-16 rounded-full object-cover mx-auto mb-4" />
                     <h2 className="text-2xl font-bold text-slate-800">{t('contactModal.title')}</h2>
                     <p className="text-slate-500 mt-2 text-sm">{t('contactModal.subtitle')}</p>
                 </div>

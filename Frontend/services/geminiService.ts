@@ -127,11 +127,11 @@ export const generateProductImage = async (productName: string, productDescripti
             },
         });
 
-        if (!response.generatedImages || response.generatedImages.length === 0) {
+        const base64ImageBytes = response.generatedImages?.[0]?.image?.imageBytes;
+        if (!base64ImageBytes) {
             throw new Error("product.imageGenerationNoImage");
         }
 
-        const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
         return `data:image/jpeg;base64,${base64ImageBytes}`;
     } catch (error) {
         console.error("Erreur lors de la génération de l'image du produit:", error);

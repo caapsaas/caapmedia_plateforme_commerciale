@@ -7,6 +7,8 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { User, UserRole, Prisma } from '@prisma/client';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class ContractsService {
@@ -18,11 +20,14 @@ export class ContractsService {
       where: { id: createContractDto.clientId },
     });
     if (!client || client.subsidiaryId !== user.subsidiaryId) {
-      throw new ForbiddenException('Client not found or does not belong to your subsidiary.');
+      throw new ForbiddenException(
+        'Client not found or does not belong to your subsidiary.',
+      );
     }
 
     return this.prisma.contract.create({
       data: {
+        id: generateId(ID_PREFIXES.CONTRACT),
         ...createContractDto,
         // Convertir les chaînes de dates en objets Date pour Prisma
         startDate: new Date(createContractDto.startDate),
@@ -33,15 +38,13 @@ export class ContractsService {
   }
 
   async findAll(user: User) {
-    const where: Prisma.ContractWhereInput = {
-      subsidiaryId: user.subsidiaryId,
-    };
+    const isSuperAdmin = user.userRole === UserRole.SUPER_ADMIN;
+    const where: Prisma.ContractWhereInput = isSuperAdmin
+      ? {}
+      : { subsidiaryId: user.subsidiaryId };
 
-    // Les commerciaux ne voient que les contrats liés à leurs clients
-    if (user.userRole === UserRole.COMMERCIAL) {
-      where.client = {
-        salesRepId: user.id,
-      };
+    if (!isSuperAdmin && user.userRole === UserRole.COMMERCIAL) {
+      where.client = { salesRepId: user.id };
     }
 
     return this.prisma.contract.findMany({
@@ -67,7 +70,9 @@ export class ContractsService {
 
     // Vérifier que l'utilisateur a le droit de voir ce contrat
     if (contract.subsidiaryId !== user.subsidiaryId) {
-      throw new ForbiddenException('You are not allowed to view this contract.');
+      throw new ForbiddenException(
+        'You are not allowed to view this contract.',
+      );
     }
 
     return contract;

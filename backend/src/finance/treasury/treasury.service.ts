@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { UserRole, TransactionType, Prisma, AccountType } from '@prisma/client';
 import { CreateTreasuryAccountDto } from './dto/create-treasury-account.dto';
@@ -8,6 +13,8 @@ import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 import { checkRole } from 'src/common/auth/role/check-role.util';
 import { JournalizationService } from 'src/accounting/journalization/journalization.service';
 
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 @Injectable()
 export class TreasuryService {
   constructor(
@@ -20,21 +27,29 @@ export class TreasuryService {
   // ================================================================= //
 
   async createAccount(dto: CreateTreasuryAccountDto, user: JwtUser) {
-    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR], 'Permission denied to create treasury accounts.');
+    checkRole(
+      user,
+      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
+      'Permission denied to create treasury accounts.',
+    );
 
     if (dto.accountType === AccountType.COMPTE_PREFINANCEMENT) {
       const existing = await this.prisma.treasuryAccount.findFirst({
-        where: { subsidiaryId: user.subsidiaryId, accountType: AccountType.COMPTE_PREFINANCEMENT },
+        where: {
+          subsidiaryId: user.subsidiaryId,
+          accountType: AccountType.COMPTE_PREFINANCEMENT,
+        },
       });
       if (existing) {
         throw new BadRequestException(
-          `Un compte de préfinancement existe déjà pour cette filiale (${existing.accountName}).`
+          `Un compte de préfinancement existe déjà pour cette filiale (${existing.accountName}).`,
         );
       }
     }
 
     return this.prisma.treasuryAccount.create({
       data: {
+        id: generateId(ID_PREFIXES.TREASURY),
         accountName: dto.accountName,
         balance: new Prisma.Decimal(dto.initialBalance),
         currency: dto.currency,
@@ -45,14 +60,17 @@ export class TreasuryService {
   }
 
   async findAllAccounts(user: JwtUser, subsidiaryId?: string) {
-    const targetSubsidiaryId = (user.role === UserRole.ADMIN && subsidiaryId) ? subsidiaryId : user.subsidiaryId;
+    const targetSubsidiaryId =
+      user.role === UserRole.ADMIN && subsidiaryId
+        ? subsidiaryId
+        : user.subsidiaryId;
 
     const accounts = await this.prisma.treasuryAccount.findMany({
       where: { subsidiaryId: targetSubsidiaryId },
       orderBy: { accountName: 'asc' },
     });
 
-    return accounts.map(account => ({
+    return accounts.map((account) => ({
       ...account,
       balance: Number(account.balance),
     }));
@@ -64,21 +82,35 @@ export class TreasuryService {
     });
 
     if (!account) {
-      throw new NotFoundException(`Treasury account with ID "${id}" not found.`);
+      throw new NotFoundException(
+        `Treasury account with ID "${id}" not found.`,
+      );
     }
 
     return { ...account, balance: Number(account.balance) };
   }
 
-  async updateAccount(id: string, dto: UpdateTreasuryAccountDto, user: JwtUser) {
-    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR], 'Permission denied to update treasury accounts.');
+  async updateAccount(
+    id: string,
+    dto: UpdateTreasuryAccountDto,
+    user: JwtUser,
+  ) {
+    checkRole(
+      user,
+      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
+      'Permission denied to update treasury accounts.',
+    );
     await this.findOneAccount(id, user);
 
     return this.prisma.treasuryAccount.update({ where: { id }, data: dto });
   }
 
   async deleteAccount(id: string, user: JwtUser) {
-    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR], 'Permission denied to delete treasury accounts.');
+    checkRole(
+      user,
+      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
+      'Permission denied to delete treasury accounts.',
+    );
 
     const account = await this.prisma.treasuryAccount.findFirst({
       where: { id, subsidiaryId: user.subsidiaryId },
@@ -86,11 +118,15 @@ export class TreasuryService {
     });
 
     if (!account) {
-      throw new NotFoundException(`Treasury account with ID "${id}" not found.`);
+      throw new NotFoundException(
+        `Treasury account with ID "${id}" not found.`,
+      );
     }
 
     if (account._count.financialTransactions > 0) {
-      throw new BadRequestException('Cannot delete an account with existing transactions.');
+      throw new BadRequestException(
+        'Cannot delete an account with existing transactions.',
+      );
     }
 
     return this.prisma.treasuryAccount.delete({ where: { id } });
@@ -110,10 +146,15 @@ export class TreasuryService {
     const existing = await this.findPrefinancementAccount(subsidiaryId);
     if (existing) return existing;
 
-    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR], 'Permission denied to create prefinancement accounts.');
+    checkRole(
+      user,
+      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
+      'Permission denied to create prefinancement accounts.',
+    );
 
     return this.prisma.treasuryAccount.create({
       data: {
+        id: generateId(ID_PREFIXES.TREASURY),
         accountName: 'Compte de Préfinancement',
         balance: new Prisma.Decimal(0),
         currency: 'XOF',
@@ -127,11 +168,17 @@ export class TreasuryService {
   //                     FINANCIAL TRANSACTIONS                        //
   // ================================================================= //
 
-  async createIncomeTransaction(dto: CreateFinancialTransactionDto, user: JwtUser) {
+  async createIncomeTransaction(
+    dto: CreateFinancialTransactionDto,
+    user: JwtUser,
+  ) {
     return this.createTransaction(dto, user, TransactionType.RECETTE);
   }
 
-  async createExpenseTransaction(dto: CreateFinancialTransactionDto, user: JwtUser) {
+  async createExpenseTransaction(
+    dto: CreateFinancialTransactionDto,
+    user: JwtUser,
+  ) {
     return this.createTransaction(dto, user, TransactionType.DEPENSE);
   }
 
@@ -153,73 +200,88 @@ export class TreasuryService {
     const { treasuryAccountId, amount, transactionDate } = dto;
     const decimalAmount = new Prisma.Decimal(amount);
 
-    return this.prisma.$transaction(async (tx) => {
-      // Lecture du compte DANS la transaction pour éviter la race condition
-      const account = await tx.treasuryAccount.findFirst({
-        where: { id: treasuryAccountId, subsidiaryId: user.subsidiaryId },
-      });
+    return this.prisma
+      .$transaction(async (tx) => {
+        // Lecture du compte DANS la transaction pour éviter la race condition
+        const account = await tx.treasuryAccount.findFirst({
+          where: { id: treasuryAccountId, subsidiaryId: user.subsidiaryId },
+        });
 
-      if (!account) {
-        throw new NotFoundException(`Treasury account with ID "${treasuryAccountId}" not found.`);
-      }
-
-      if (financialTransactionType === TransactionType.DEPENSE) {
-        if (account.balance.comparedTo(decimalAmount) < 0) {
-          throw new BadRequestException(
-            `Solde insuffisant sur "${account.accountName}". Solde: ${account.balance}, Montant: ${decimalAmount}.`,
+        if (!account) {
+          throw new NotFoundException(
+            `Treasury account with ID "${treasuryAccountId}" not found.`,
           );
         }
-      }
 
-      const balanceOp =
-        financialTransactionType === TransactionType.RECETTE
-          ? { increment: decimalAmount }
-          : { decrement: decimalAmount };
+        if (financialTransactionType === TransactionType.DEPENSE) {
+          if (account.balance.comparedTo(decimalAmount) < 0) {
+            throw new BadRequestException(
+              `Solde insuffisant sur "${account.accountName}". Solde: ${account.balance}, Montant: ${decimalAmount}.`,
+            );
+          }
+        }
 
-      await tx.treasuryAccount.update({
-        where: { id: treasuryAccountId },
-        data: { balance: balanceOp },
-      });
+        const balanceOp =
+          financialTransactionType === TransactionType.RECETTE
+            ? { increment: decimalAmount }
+            : { decrement: decimalAmount };
 
-      const transaction = await tx.financialTransaction.create({
-        data: {
-          description: dto.description,
-          relatedDocumentId: dto.relatedDocumentId,
-          amount: decimalAmount,
-          financialTransactionType,
-          treasuryAccountId,
+        await tx.treasuryAccount.update({
+          where: { id: treasuryAccountId },
+          data: { balance: balanceOp },
+        });
+
+        const transaction = await tx.financialTransaction.create({
+          data: {
+            description: dto.description,
+            relatedDocumentId: dto.relatedDocumentId,
+            amount: decimalAmount,
+            financialTransactionType,
+            treasuryAccountId,
+            subsidiaryId: user.subsidiaryId,
+            transactionDate: new Date(transactionDate),
+            providerName: dto.providerName,
+            providerPhone: dto.providerPhone,
+          },
+        });
+
+        return { transaction, accountType: account.accountType };
+      })
+      .then(async ({ transaction, accountType }) => {
+        // Journalisation automatique hors transaction Prisma pour ne pas bloquer l'opération
+        await this.journalization.journalize({
           subsidiaryId: user.subsidiaryId,
-          transactionDate: new Date(transactionDate),
-          providerName: dto.providerName,
-          providerPhone: dto.providerPhone,
-        },
+          userId: user.id,
+          operationDate: new Date(transactionDate),
+          amount: Number(decimalAmount),
+          description: dto.description,
+          sourceType:
+            financialTransactionType === TransactionType.RECETTE
+              ? 'TREASURY_INCOME'
+              : 'TREASURY_EXPENSE',
+          sourceId: transaction.id,
+          accountType,
+        });
+        return transaction;
       });
-
-      return { transaction, accountType: account.accountType };
-    }).then(async ({ transaction, accountType }) => {
-      // Journalisation automatique hors transaction Prisma pour ne pas bloquer l'opération
-      await this.journalization.journalize({
-        subsidiaryId: user.subsidiaryId,
-        userId: user.id,
-        operationDate: new Date(transactionDate),
-        amount: Number(decimalAmount),
-        description: dto.description,
-        sourceType: financialTransactionType === TransactionType.RECETTE ? 'TREASURY_INCOME' : 'TREASURY_EXPENSE',
-        sourceId: transaction.id,
-        accountType,
-      });
-      return transaction;
-    });
   }
 
-  async findAllTransactions(user: JwtUser, subsidiaryId?: string, page = 1, limit = 50) {
+  async findAllTransactions(
+    user: JwtUser,
+    subsidiaryId?: string,
+    page = 1,
+    limit = 50,
+  ) {
     checkRole(
       user,
       [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER],
       'Permission denied to view transactions.',
     );
 
-    const targetSubsidiaryId = (user.role === UserRole.ADMIN && subsidiaryId) ? subsidiaryId : user.subsidiaryId;
+    const targetSubsidiaryId =
+      user.role === UserRole.ADMIN && subsidiaryId
+        ? subsidiaryId
+        : user.subsidiaryId;
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
@@ -230,14 +292,20 @@ export class TreasuryService {
         skip,
         take: limit,
       }),
-      this.prisma.financialTransaction.count({ where: { subsidiaryId: targetSubsidiaryId } }),
+      this.prisma.financialTransaction.count({
+        where: { subsidiaryId: targetSubsidiaryId },
+      }),
     ]);
 
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async deleteTransaction(id: string, user: JwtUser) {
-    checkRole(user, [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR], 'Permission denied to delete transactions.');
+    checkRole(
+      user,
+      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
+      'Permission denied to delete transactions.',
+    );
 
     const transaction = await this.prisma.financialTransaction.findFirst({
       where: { id, subsidiaryId: user.subsidiaryId },
@@ -279,7 +347,9 @@ export class TreasuryService {
     });
 
     if (!account) {
-      throw new NotFoundException(`Treasury account with ID "${dto.treasuryAccountId}" not found.`);
+      throw new NotFoundException(
+        `Treasury account with ID "${dto.treasuryAccountId}" not found.`,
+      );
     }
 
     if (account.balance.comparedTo(decimalAmount) < 0) {
@@ -295,6 +365,7 @@ export class TreasuryService {
 
     return tx.financialTransaction.create({
       data: {
+        id: generateId(ID_PREFIXES.TREASURY),
         description: dto.description,
         relatedDocumentId: dto.relatedDocumentId,
         amount: decimalAmount,

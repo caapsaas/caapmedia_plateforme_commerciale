@@ -141,7 +141,7 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
                                     value={formData.opportunityName}
                                     onChange={handleChange}
                                     required
-                                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911]"
+                                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"
                                 />
                             </div>
 
@@ -155,7 +155,7 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
                                     value={formData.contactId}
                                     onChange={handleChange}
                                     required
-                                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911]"
+                                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"
                                 >
                                     <option value="" disabled>
                                         {t('crm.opportunity.form.selectClient')}
@@ -182,7 +182,7 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
                                      value={formData.opportunityValue}
                                     onChange={handleChange}
                                     required
-                                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911]"
+                                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"
                                 />
                             </div>
 
@@ -196,7 +196,7 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
                                     value={formData.stage}
                                     onChange={handleChange}
                                     required
-                                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911]"
+                                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"
                                 >
                                     {Object.values(OpportunityStage).map(s => (
                                         <option key={s} value={s}>
@@ -216,14 +216,14 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
                                     multiple
                                     value={formData.productIds}
                                     onChange={handleProductChange}
-                                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border h-24 focus:border-[#c6e911] focus:ring-[#c6e911]"
+                                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border h-24 focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"
                                 >
                                     <option value="" disabled>
                                         {t('crm.opportunity.form.selectProducts')}
                                     </option>
                                     {products.map(p => (
                                         <option key={p.id} value={p.id}>
-                                            {p.productName}
+                                            {p.name}
                                         </option>
                                     ))}
                                 </select>
@@ -240,7 +240,7 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
                                     value={formData.closeDate}
                                     onChange={handleChange}
                                     required
-                                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911]"
+                                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"
                                 />
                             </div>
                         </div>

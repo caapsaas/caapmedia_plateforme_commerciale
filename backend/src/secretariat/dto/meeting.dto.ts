@@ -1,4 +1,3 @@
-
 import { IsString, IsDate, IsOptional, IsUUID, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
 export class CreateMeetingDto {
@@ -6,12 +5,12 @@ export class CreateMeetingDto {
   // @ApiProperty({ description: 'Titre de la réunion' })
   title: string;
 
-  @Type(() => Date)  // Convertit string ISO en Date
+  @Type(() => Date) // Convertit string ISO en Date
   @IsDate({ message: 'meetingDate must be a valid date' })
   // @ApiProperty({ description: 'Date de la réunion' })
   meetingDate: Date;
 
-  @Type(() => Date)  // Convertit string ISO en Date
+  @Type(() => Date) // Convertit string ISO en Date
   @IsDate({ message: 'meetingTime must be a valid date' })
   // @ApiProperty({ description: 'Heure de la réunion' })
   meetingTime: Date;
@@ -31,13 +30,13 @@ export class CreateMeetingDto {
   // @ApiPropertyOptional({ description: 'Compte-rendu' })
   minutes?: string;
 
-  @IsUUID('all')  // Plus précis : valide tous les types UUID
+  @IsUUID('all') // Plus précis : valide tous les types UUID
   // @ApiProperty({ description: 'ID de la filiale' })
   subsidiaryId: string;
 
-  @IsOptional()  // Rendu optionnel : tableau vide OK
+  @IsOptional() // Rendu optionnel : tableau vide OK
   @IsArray()
-  @IsUUID('all', { each: true })
+  @IsString({ each: true })
   // @ApiPropertyOptional({ description: 'IDs des participants (employés)', type: [String] })
   participantIds?: string[];
 }
@@ -53,7 +52,7 @@ export class UpdateMeetingDto {
   @IsDate()
   // @ApiPropertyOptional({ description: 'Nouvelle date' })
   meetingDate?: Date;
-   
+
   @IsOptional()
   @Type(() => Date)
   @IsDate()
@@ -75,9 +74,9 @@ export class UpdateMeetingDto {
   // @ApiPropertyOptional({ description: 'Nouveau compte-rendu' })
   minutes?: string;
 
-  @IsOptional()  // Rendu optionnel : ne force pas l'update des participants
+  @IsOptional() // Rendu optionnel : ne force pas l'update des participants
   @IsArray()
-  @IsUUID('all', { each: true })
+  @IsString({ each: true })
   // @ApiPropertyOptional({ description: 'Nouveaux IDs des participants', type: [String] })
   participantIds?: string[];
 }

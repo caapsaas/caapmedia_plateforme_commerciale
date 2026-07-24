@@ -6,21 +6,25 @@ import IdleTimeoutModal from './components/common/IdleTimeoutModal';
 import { useAppContext } from './context/AppContext';
 import { useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
-import { Outlet, useRouterState } from '@tanstack/react-router';
+import { Outlet, useRouterState, useNavigate } from '@tanstack/react-router';
 
 const App: React.FC = () => {
   const { state, dispatch } = useAppContext();
   const { showIdleModal } = state;
-  const { logout, token } = useAuth(); // Utiliser le token de AuthContext
+  const { logout, isAuthenticated } = useAuth();
   const routerState = useRouterState();
+  const navigate = useNavigate();
   const isDashboard = routerState.location.pathname.startsWith('/dashboard');
 
   const handleLogout = () => {
     logout();
+    // logout() ne fait que vider l'etat auth - il faut naviguer
+    // explicitement vers /login (voir meme correctif dans Header.tsx).
+    navigate({ to: '/login', replace: true });
   };
 
   const handleIdle = () => {
-    if (isDashboard && token) { // Vérifier si un utilisateur est connecté via le token
+    if (isDashboard && isAuthenticated) {
       dispatch({ type: 'SET_IDLE_MODAL', payload: true });
     }
   };

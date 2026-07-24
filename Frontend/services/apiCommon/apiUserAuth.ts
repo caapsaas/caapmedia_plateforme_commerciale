@@ -10,11 +10,18 @@ export interface UserLoginCredentials {
   password: string;
 }
 
-export interface UserLoginResponse {
+export interface UserLoginSuccess {
+  twoFactorRequired: false;
   user: User;
-  access_token: string;
   subsidiary: Subsidiary;
 }
+
+export interface UserLoginTwoFactorRequired {
+  twoFactorRequired: true;
+  pendingToken: string;
+}
+
+export type UserLoginResponse = UserLoginSuccess | UserLoginTwoFactorRequired;
 
 export interface UserRegisterResponse {
   message: string;
@@ -57,6 +64,21 @@ export interface UserSearchQuery {
  */
 export const loginUser = async (credentials: UserLoginCredentials): Promise<UserLoginResponse> => {
   const { data } = await api.post<UserLoginResponse>('/auth/login', credentials);
+  return data;
+};
+
+/**
+ * Complete le login quand loginUser() a renvoye twoFactorRequired: true.
+ * Un seul de `code` (TOTP) ou `recoveryCode` doit être fourni.
+ */
+export const completeTwoFactorLogin = async (
+  pendingToken: string,
+  credentials: { code?: string; recoveryCode?: string },
+): Promise<{ user: User; subsidiary: Subsidiary }> => {
+  const { data } = await api.post<{ user: User; subsidiary: Subsidiary }>('/auth/2fa/login', {
+    pendingToken,
+    ...credentials,
+  });
   return data;
 };
 
@@ -144,5 +166,15 @@ export const getUserProfile = async (): Promise<{ user: User; subsidiary: Subsid
  */
 export const getProfile = async (): Promise<User> => {
   const { data } = await api.get<User>('/auth/profile');
+  return data;
+};
+
+/**
+ * Change le rôle actif d'un utilisateur multi-rôle. Effectif immédiatement
+ * côté backend (RoleGuard/checkRole n'autorisent que ce rôle-ci tant qu'il
+ * n'est pas re-switché), pas seulement un changement d'affichage.
+ */
+export const switchRole = async (role: UserRole): Promise<{ user: User }> => {
+  const { data } = await api.post<{ user: User }>('/auth/switch-role', { role });
   return data;
 };

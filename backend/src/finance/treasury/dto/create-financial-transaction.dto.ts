@@ -1,4 +1,14 @@
-import { IsString, IsNotEmpty, IsNumber, IsEnum, IsDateString, IsOptional, IsUUID, IsPositive, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsNumber,
+  IsEnum,
+  IsDateString,
+  IsOptional,
+  IsUUID,
+  IsPositive,
+  MaxLength,
+} from 'class-validator';
 import { TransactionType, Prisma } from '@prisma/client';
 
 export class CreateFinancialTransactionDto {
@@ -19,7 +29,7 @@ export class CreateFinancialTransactionDto {
   @IsNotEmpty()
   amount: number;
 
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   treasuryAccountId: string;
 

@@ -252,23 +252,23 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
                         <div className="flex flex-wrap items-center gap-2 no-print self-start md:self-center">
                             {canCreateTransactions && (
                                 <>
-                                    <button onClick={() => handleOpenModal('DEPENSE')} className="px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-md hover:bg-red-600 transition-colors">
+                                    <button onClick={() => handleOpenModal('DEPENSE')} className="px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
                                         {t('treasury.addExpense')}
                                     </button>
-                                    <button onClick={() => handleOpenModal('RECETTE')} className="px-4 py-2 bg-green-500 text-white text-sm font-semibold rounded-md hover:bg-green-600 transition-colors">
+                                    <button onClick={() => handleOpenModal('RECETTE')} className="px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
                                         {t('treasury.addIncome')}
                                     </button>
                                 </>
                             )}
-                            <button onClick={handlePrint} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
+                            <button onClick={handlePrint} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-800 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
                                 <IconPrint className="h-4 w-4" />
                                 <span>{t('common.print')}</span>
                             </button>
-                            <button onClick={handleExport} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
+                            <button onClick={handleExport} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-800 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
                                 <IconExport className="h-4 w-4" />
                                 <span>{t('common.export')}</span>
                             </button>
-                            <button onClick={handleExportPdf} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
+                            <button onClick={handleExportPdf} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-800 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
                                 <IconPdf className="h-4 w-4" />
                                 <span>{t('common.exportPdf')}</span>
                             </button>
@@ -307,23 +307,23 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
                                                 {/* Bouton Détails - disponible pour tous */}
                                                 <button
                                                     onClick={() => handleShowDetails(tx)}
-                                                    className="p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                                                    className="p-2 text-[#c6e911] hover:text-[#adc40f] rounded-full transition-colors"
                                                     title={t('common.details')}
                                                 >
                                                     <IconEye className="h-4 w-4" />
                                                 </button>
-                                                
+
                                                 {/* Bouton Supprimer - uniquement pour l'admin */}
                                                 {canDeleteTransactions && (
                                                     <button
                                                         onClick={() => handleDeleteTransaction(tx.id)}
-                                                        className="p-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                                                        className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors"
                                                         title={t('common.delete')}
                                                     >
                                                         <IconDelete className="h-4 w-4" />
                                                     </button>
                                                 )}
-                                               
+
                                             </div>
                                         </td>
                                     </tr>
@@ -413,7 +413,7 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
                         <div className="flex gap-3 justify-end mt-6">
                             <button
                                 onClick={handleCloseDetails}
-                                className="px-4 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors"
+                                className="px-4 py-2 bg-slate-200 text-slate-800 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors"
                             >
                                 {t('common.close')}
                             </button>
@@ -431,13 +431,13 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
                         <div className="flex gap-3 justify-end">
                             <button
                                 onClick={confirmDialog.onCancel}
-                                className="px-4 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors"
+                                className="px-4 py-2 bg-slate-200 text-slate-800 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors"
                             >
                                 {t('common.cancel')}
                             </button>
                             <button
                                 onClick={confirmDialog.onConfirm}
-                                className="px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-md hover:bg-red-600 transition-colors"
+                                className="px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors"
                             >
                                 {t('common.confirm')}
                             </button>

@@ -4,6 +4,6 @@ import { MaintenanceRecordModule } from './maintenance_record/maintenance_record
 import { UtilsModule } from 'src/common/utils/utils.module';
 
 @Module({
-  imports: [EquipementModule, MaintenanceRecordModule, UtilsModule]
+  imports: [EquipementModule, MaintenanceRecordModule, UtilsModule],
 })
 export class MaintenanceModule {}

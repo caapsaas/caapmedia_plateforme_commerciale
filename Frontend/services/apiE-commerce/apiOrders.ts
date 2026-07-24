@@ -12,23 +12,11 @@ export interface FindAllOrdersDto {
     period?: 'all_time' | 'this_month' | 'last_month' | 'last_7_days' | 'last_30_days' | 'last_90_days' | 'this_year' | 'custom';
     startDate?: string;
     endDate?: string;
+    subsidiaryId?: string;
+    salesRepId?: string;
 }
 
 
-
-/**
- * Crée une nouvelle commande (pour un client).
- * Utilise FormData pour gérer l'upload de fichiers.
- * @param orderData - Les données de la commande à créer, incluant les fichiers.
- */
-export const createOrder = async (orderData: FormData) => {
-    const { data } = await api.post('/ecommerce/orders', orderData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
-    });
-    return data;
-};
 
 /**
  * Crée une nouvelle commande (pour un commercial).
@@ -93,11 +81,22 @@ export const getOrderById = async (id: string) => {
     return data;
 };
 
+export interface TopSellingProduct {
+    productName: string;
+    quantity: number;
+    totalRevenue: number;
+}
+
 /**
- * Récupère les produits les plus vendus.
+ * Récupère les produits les plus vendus, en respectant les filtres filiale/commercial.
  */
-export const getTopSellingProducts = async () => {
-    const { data } = await api.get('/ecommerce/orders/analytics/top-selling');
+export const getTopSellingProducts = async (
+    query?: Pick<FindAllOrdersDto, 'subsidiaryId' | 'salesRepId'>,
+): Promise<TopSellingProduct[]> => {
+    const { data } = await api.get<TopSellingProduct[]>(
+        '/ecommerce/orders/analytics/top-selling',
+        { params: query },
+    );
     return data;
 };
 
@@ -138,12 +137,27 @@ export const updateProductionStatus = async (payload: { orderId: string; product
 };
 
 /**
- * Valide une commande pour la production.
- * @param payload - Contient l'ID de la commande.
- * NB: Cette fonction n'est pas encore disponible sur le backend.
+ * Récupère les commandes en attente de validation par le directeur de production.
  */
-export const validateOrderForProduction = async (payload: { orderId: string }) => {
-    const { data } = await api.patch(`/ecommerce/orders/validate-production/${payload.orderId}`);
+export const getPendingValidationOrders = async (subsidiaryId?: string) => {
+    const params = subsidiaryId ? { subsidiaryId } : {};
+    const { data } = await api.get('/ecommerce/orders/pending-validation', { params });
+    return data;
+};
+
+/**
+ * Valide une commande : PENDING_VALIDATION → IN_PRODUCTION.
+ */
+export const validateOrderForProduction = async (orderId: string) => {
+    const { data } = await api.patch(`/ecommerce/orders/validate-production/${orderId}`);
+    return data;
+};
+
+/**
+ * Rejette une commande : PENDING_VALIDATION → CANCELLED.
+ */
+export const rejectOrderByDirector = async (orderId: string) => {
+    const { data } = await api.patch(`/ecommerce/orders/reject-order/${orderId}`);
     return data;
 };
     

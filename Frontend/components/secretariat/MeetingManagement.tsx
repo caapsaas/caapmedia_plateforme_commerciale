@@ -83,9 +83,14 @@ const formatTime = (isoString?: string | Date) => {
         }
     };
     
-    const getParticipantNames = (participants: { employee: Employee }[]) => {
-        if (!participants || participants.length === 0) return 'Aucun participant';
-        return participants.map(p => p.employee ? `${p.employee.firstName} ${p.employee.lastName}` : 'Employé inconnu').join(', ');
+    const getParticipantNames = (participantIds: string[]) => {
+        if (!participantIds || participantIds.length === 0) return 'Aucun participant';
+        return participantIds
+            .map(id => {
+                const employee = employees.find(e => e.id === id);
+                return employee ? `${employee.firstName} ${employee.lastName}` : 'Employé inconnu';
+            })
+            .join(', ');
     };
 
     const handlePrint = () => window.print();
@@ -194,6 +199,7 @@ const formatTime = (isoString?: string | Date) => {
                     onClose={handleCloseModals}
                     onSaveMinutes={handleSaveMinutes}
                     meeting={viewingMeeting}
+                    employees={employees}
                 />
             )}
 

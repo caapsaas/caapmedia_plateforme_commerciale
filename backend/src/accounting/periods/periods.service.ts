@@ -1,7 +1,13 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 @Injectable()
 export class PeriodsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -21,6 +27,7 @@ export class PeriodsService {
 
     return this.prisma.fiscalYear.create({
       data: {
+        id: generateId(ID_PREFIXES.ACCOUNTINGPERIOD),
         name,
         startDate: new Date(`${year}-01-01`),
         endDate: new Date(`${year}-12-31`),
@@ -51,7 +58,8 @@ export class PeriodsService {
       where: { id, subsidiaryId: user.subsidiaryId },
     });
     if (!fy) throw new NotFoundException(`Exercice introuvable.`);
-    if (fy.isClosed) throw new BadRequestException(`Cet exercice est déjà clôturé.`);
+    if (fy.isClosed)
+      throw new BadRequestException(`Cet exercice est déjà clôturé.`);
 
     // Vérifier qu'il n'y a plus d'écritures en DRAFT
     const drafts = await this.prisma.journalEntry.count({

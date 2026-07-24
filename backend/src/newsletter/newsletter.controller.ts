@@ -9,7 +9,8 @@ export class NewsletterController {
   @Post('subscribe')
   @HttpCode(HttpStatus.CREATED)
   async subscribe(@Body() createNewsletterDto: CreateNewsletterDto) {
-    const subscription = await this.newsletterService.create(createNewsletterDto);
+    const subscription =
+      await this.newsletterService.create(createNewsletterDto);
     return {
       message: 'Merci de vous être inscrit à notre newsletter !',
       subscription,

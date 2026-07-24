@@ -1,4 +1,11 @@
-import { IsString, IsNotEmpty, IsDateString, IsNumber, IsPositive, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsDateString,
+  IsNumber,
+  IsPositive,
+  IsUUID,
+} from 'class-validator';
 
 export class CreateFixedAssetDto {
   @IsString()
@@ -17,7 +24,7 @@ export class CreateFixedAssetDto {
   @IsPositive()
   depreciationRate: number;
 
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   treasuryAccountId: string;
 }

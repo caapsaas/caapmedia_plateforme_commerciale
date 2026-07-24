@@ -1,7 +1,22 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
-import { CreateAttendanceRecordDto, UpdateAttendanceRecordDto } from './dto/atendancerecord.dto';
+import {
+  CreateAttendanceRecordDto,
+  UpdateAttendanceRecordDto,
+} from './dto/atendancerecord.dto';
 import { AttendanceRecord } from '@prisma/client';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+
+export interface CreateAttendanceWithGeoDto extends CreateAttendanceRecordDto {
+  arrivalLatitude?: number;
+  arrivalLongitude?: number;
+  departureLatitude?: number;
+  departureLongitude?: number;
+  isGeolocationValid?: boolean;
+  accuracyMeters?: number;
+  qrCodeToken?: string;
+}
 
 @Injectable()
 export class AttendanceRecordService {
@@ -9,11 +24,16 @@ export class AttendanceRecordService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createAttendanceRecordDto: CreateAttendanceRecordDto, employeeId: string, subsidiaryId: string): Promise<AttendanceRecord> {
+  async create(
+    createAttendanceRecordDto: CreateAttendanceRecordDto,
+    employeeId: string,
+    subsidiaryId: string,
+  ): Promise<AttendanceRecord> {
     this.logger.log(`Creating attendance record for employee ${employeeId}`);
     return this.prisma.attendanceRecord.create({
       data: {
-        employeeName: createAttendanceRecordDto.employeeName ?? '', // Fournir une valeur par défaut
+        id: generateId(ID_PREFIXES.ATTENDANCE),
+        employeeName: createAttendanceRecordDto.employeeName ?? '',
         attendanceDate: createAttendanceRecordDto.attendanceDate,
         status: createAttendanceRecordDto.status,
         arrivalTime: createAttendanceRecordDto.arrivalTime,
@@ -21,20 +41,30 @@ export class AttendanceRecordService {
         breakStartTime: createAttendanceRecordDto.breakStartTime,
         breakEndTime: createAttendanceRecordDto.breakEndTime,
         signature: createAttendanceRecordDto.signature,
-        employeeId: employeeId, // Utilise l'ID de l'employé passé en argument
-        subsidiaryId: subsidiaryId, // Utilise l'ID de la filiale passé en argument
+        employeeId,
+        subsidiaryId,
+        // Geolocation data
+        arrivalLatitude: geoData?.arrivalLatitude,
+        arrivalLongitude: geoData?.arrivalLongitude,
+        departureLatitude: geoData?.departureLatitude,
+        departureLongitude: geoData?.departureLongitude,
+        isGeolocationValid: geoData?.isGeolocationValid ?? false,
+        accuracyMeters: geoData?.accuracyMeters,
+        qrCodeToken: geoData?.qrCodeToken
       },
       include: {
         employee: true,
-        subsidiary: true,
-      },
+        subsidiary: true
+      }
     });
   }
 
   async findAll(subsidiaryId: string): Promise<AttendanceRecord[]> {
     return this.prisma.attendanceRecord.findMany({
       where: { subsidiaryId },
-      include: { employee: { select: { id: true, firstName: true, lastName: true } } },
+      include: {
+        employee: { select: { id: true, firstName: true, lastName: true } },
+      },
       orderBy: { attendanceDate: 'desc' },
     });
   }
@@ -42,25 +72,29 @@ export class AttendanceRecordService {
   async findOne(id: string): Promise<AttendanceRecord> {
     const record = await this.prisma.attendanceRecord.findUnique({
       where: { id },
-      include: { employee: true },
+      include: { employee: true }
     });
-    if (!record) throw new NotFoundException(`Attendance record ${id} not found`);
+    if (!record)
+      throw new NotFoundException(`Attendance record ${id} not found`);
     return record;
   }
 
-  async update(id: string, updateAttendanceRecordDto: UpdateAttendanceRecordDto): Promise<AttendanceRecord> {
+  async update(
+    id: string,
+    updateAttendanceRecordDto: UpdateAttendanceRecordDto,
+  ): Promise<AttendanceRecord> {
     this.logger.log(`Updating attendance record ${id}`);
-    await this.findOne(id); // Vérifie si l'enregistrement existe
+    await this.findOne(id);
     return this.prisma.attendanceRecord.update({
       where: { id },
       data: updateAttendanceRecordDto,
-      include: { employee: true },
+      include: { employee: true }
     });
   }
 
   async remove(id: string): Promise<AttendanceRecord> {
     this.logger.log(`Removing attendance record ${id}`);
-    await this.findOne(id); // Vérifie si l'enregistrement existe
+    await this.findOne(id);
     return this.prisma.attendanceRecord.delete({ where: { id } });
   }
 }

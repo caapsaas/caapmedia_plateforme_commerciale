@@ -1,6 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { FinanceView } from '../types';
-import { useAppContext } from '../context/AppContext';
+import { FinanceView, Subsidiary, UserRole } from '../types';
+import { useI18n } from '../i18n';
+import { useAuth } from '../context/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { getSubsidiaries } from '../services/apiCommon/apiSubsidiaries';
+import { getExpenses } from '../services/apiFinance/apiExpense';
+import { getPnlStatement, getBalanceSheet } from '../services/apiStatistic/apiFinanceStats';
+import { getSupplierDebts } from '../services/apiFinance/apiDebts';
+import { PnlStatement, BalanceSheet as BalanceSheetType } from '../services/apiStatistic/apiFinanceStats';
+import { PeriodFilter } from '../services/apiStatistic/apiAnalytics';
+import { ExpenseRecord, SupplierDebt } from '../types';
+
 import CreditManagement from '../components/finance/CreditManagement';
 import SupplierDebts from '../components/finance/SupplierDebts';
 import ExpenseManagement from '../components/finance/ExpenseManagement';
@@ -8,144 +18,179 @@ import TreasuryManagement from '../components/finance/TreasuryManagement';
 import ProfitAndLossStatement from '../components/finance/ProfitAndLossStatement';
 import ExternalTransactions from '../components/finance/ExternalTransactions';
 import PrefinancementManagement from '../components/finance/PrefinancementManagement';
-import { useI18n } from '../i18n';
-import IconDocumentChartBar from '../components/icons/IconDocumentChartBar';
 import BalanceSheet from '../components/finance/BalanceSheet';
-import IconScale from '../components/icons/IconScale';
+
+import IconCreditCard from '../components/icons/IconCreditCard';
 import IconWallet from '../components/icons/IconWallet';
-import { useQuery } from '@tanstack/react-query';
+import IconCoins from '../components/icons/IconCoins';
+import IconTruckCoins from '../components/icons/IconTruckCoins';
+import IconDocumentText from '../components/icons/IconDocumentText';
+import IconCurrency from '../components/icons/IconCurrency';
+import IconDocumentChartBar from '../components/icons/IconDocumentChartBar';
+import IconScale from '../components/icons/IconScale';
 
-// Importez vos types de données et fonctions d'API
-import { Order, Product, ExpenseRecord, Sale, Equipment, SupplierDebt, FinancialTransaction, TreasuryAccount } from '../types';
-import { PnlStatement, BalanceSheet as BalanceSheetType } from '../services/apiStatistic/apiFinanceStats';
-import { PeriodFilterDto, PeriodFilter } from '../services/apiStatistic/apiAnalytics';
-import { getOrders } from '../services/apiE-commerce/apiOrders';
-import { getProductsBySubsidiary as getProducts } from '../services/apiE-commerce/apiProducts';
-import { getSales } from '../services/apiE-commerce/apiSales'; // à créer
-import { getExpenses } from '../services/apiFinance/apiExpense'; // à créer
-import { getPnlStatement, getBalanceSheet } from '../services/apiStatistic/apiFinanceStats';
-import { getSupplierDebts } from '../services/apiFinance/apiDebts';
-import { getFinancialTransactions, getTreasuryAccounts } from '../services/apiFinance/apiTreasury'; // à créer
-import { getEquipments } from '../services/apiMaintenance/apiEquipment'; // à créer
-import { useAuth } from '../context/AuthContext';
-
+const NAV_ITEMS: { view: FinanceView; labelKey: string; icon: React.ReactNode }[] = [
+    { view: FinanceView.CREDIT,               labelKey: 'finance.creditManagement',   icon: <IconCreditCard className="h-4 w-4 shrink-0" /> },
+    { view: FinanceView.TREASURY,             labelKey: 'finance.treasury',            icon: <IconWallet className="h-4 w-4 shrink-0" /> },
+    { view: FinanceView.PREFINANCEMENT,       labelKey: 'finance.prefinancement',      icon: <IconCoins className="h-4 w-4 shrink-0" /> },
+    { view: FinanceView.SUPPLIERS,            labelKey: 'finance.supplierDebts',       icon: <IconTruckCoins className="h-4 w-4 shrink-0" /> },
+    { view: FinanceView.EXPENSES,             labelKey: 'finance.expenses',            icon: <IconDocumentText className="h-4 w-4 shrink-0" /> },
+    { view: FinanceView.EXTERNAL_TRANSACTIONS,labelKey: 'finance.externalTransactions',icon: <IconCurrency className="h-4 w-4 shrink-0" /> },
+    { view: FinanceView.PNL,                  labelKey: 'pnl.tabTitle',                icon: <IconDocumentChartBar className="h-4 w-4 shrink-0" /> },
+    { view: FinanceView.BILAN,                labelKey: 'finance.bilan.tabTitle',      icon: <IconScale className="h-4 w-4 shrink-0" /> },
+];
 
 const Finance: React.FC = () => {
     const { t } = useI18n();
-    const { subsidiary } = useAuth();
+    const { subsidiary, user } = useAuth();
     const [activeTab, setActiveTab] = useState<FinanceView>(FinanceView.CREDIT);
-    
-    // Centralisation de la gestion des filtres de période
-    const [period, setPeriod] = useState<PeriodFilter>('THIS_MONTH');
-    const [startDate, setStartDate] = useState<string>('');
-    const [endDate, setEndDate] = useState<string>('');
+    const [subsidiaryFilter, setSubsidiaryFilter] = useState('');
+    const [period, setPeriod] = useState<PeriodFilter>('this_month');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
 
-    if (!subsidiary) {
-        return <div className="p-6 text-center">{t('common.loading')}</div>;
-    }
+    const isSuperAdmin = user?.userRole === UserRole.SUPER_ADMIN || user?.activeRole === UserRole.SUPER_ADMIN;
 
-    // --- Data Fetching avec React Query (similaire à Crm.tsx) ---
-    const queryKey = (key: string) => [key, subsidiary.id];
+    const { data: subsidiaries = [] } = useQuery<Subsidiary[]>({
+        queryKey: ['subsidiaries-list'],
+        queryFn: getSubsidiaries,
+        enabled: isSuperAdmin,
+    });
 
-    const { data: orders = [], isLoading: l1 } = useQuery<Order[]>({ queryKey: queryKey('orders'), queryFn: () => getOrders() });
-    const { data: products = [], isLoading: l2 } = useQuery<Product[]>({ queryKey: queryKey('products'), queryFn: () => getProducts() });
-    const { data: sales = [], isLoading: l3 } = useQuery<Sale[]>({ queryKey: queryKey('sales'), queryFn: () => getSales() });
-    const { data: expenseRecords = [], isLoading: l4 } = useQuery<ExpenseRecord[]>({ queryKey: queryKey('expenseRecords'), queryFn: () => getExpenses() });
-    const { data: supplierDebts = [], isLoading: l5 } = useQuery<SupplierDebt[]>({ queryKey: queryKey('supplierDebts'), queryFn: () => getSupplierDebts() });
-    const { data: equipment = [], isLoading: l6 } = useQuery<Equipment[]>({ queryKey: queryKey('equipment'), queryFn: () => getEquipments() });
-    const { data: financialTransactions = [], isLoading: l7 } = useQuery<FinancialTransaction[]>({ queryKey: queryKey('financialTransactions'), queryFn: () => getFinancialTransactions(subsidiary.id) });
-    const { data: treasuryAccounts = [], isLoading: l8 } = useQuery<TreasuryAccount[]>({ queryKey: queryKey('treasuryAccounts'), queryFn: () => getTreasuryAccounts(subsidiary.id) });
+    const effectiveSubsidiary: Subsidiary | null = isSuperAdmin
+        ? (subsidiaries.find(s => s.id === subsidiaryFilter) ?? subsidiaries[0] ?? null)
+        : (subsidiary ?? null);
+
+    const { data: expenseRecords = [] } = useQuery<ExpenseRecord[]>({
+        queryKey: ['expenseRecords', effectiveSubsidiary?.id],
+        queryFn: () => getExpenses(),
+        enabled: !!effectiveSubsidiary,
+    });
+
+    const { data: supplierDebts = [] } = useQuery<SupplierDebt[]>({
+        queryKey: ['supplierDebts', effectiveSubsidiary?.id],
+        queryFn: () => getSupplierDebts(),
+        enabled: !!effectiveSubsidiary,
+    });
 
     const queryParams = useMemo(() => ({
-        period: period,
-        startDate: period === 'CUSTOM' ? startDate : undefined,
-        endDate: period === 'CUSTOM' ? endDate : undefined,
+        period,
+        startDate: period === 'custom' ? startDate : undefined,
+        endDate: period === 'custom' ? endDate : undefined,
     }), [period, startDate, endDate]);
 
-    // Appel à l'API pour le P&L, activé seulement si l'onglet est visible
     const { data: pnlData, isLoading: isLoadingPnl } = useQuery<PnlStatement>({
-        queryKey: ['pnlStatement', subsidiary.id, queryParams],
-        queryFn: () => getPnlStatement(queryParams, subsidiary.id),
-        enabled: activeTab === FinanceView.PNL,
+        queryKey: ['pnlStatement', effectiveSubsidiary?.id, queryParams],
+        queryFn: () => getPnlStatement(queryParams, effectiveSubsidiary!.id),
+        enabled: activeTab === FinanceView.PNL && !!effectiveSubsidiary,
     });
 
-    // Appel à l'API pour le Bilan, activé seulement si l'onglet est visible
     const { data: balanceSheetData, isLoading: isLoadingBalanceSheet } = useQuery<BalanceSheetType>({
-        queryKey: ['balanceSheet', subsidiary.id], // Le bilan n'a pas de filtre de date pour le moment
-        queryFn: () => getBalanceSheet(subsidiary.id),
-        enabled: activeTab === FinanceView.BILAN,
+        queryKey: ['balanceSheet', effectiveSubsidiary?.id],
+        queryFn: () => getBalanceSheet(effectiveSubsidiary!.id),
+        enabled: activeTab === FinanceView.BILAN && !!effectiveSubsidiary,
     });
 
-    const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || (activeTab === FinanceView.PNL && isLoadingPnl) || (activeTab === FinanceView.BILAN && isLoadingBalanceSheet);
-
-    const renderActiveView = () => {
-        if (isLoading) {
-            return <div className="p-6 text-center">{t('common.loading')}</div>;
-        }
+    const renderContent = () => {
+        if (!effectiveSubsidiary) return null;
 
         switch (activeTab) {
             case FinanceView.CREDIT:
-                return <CreditManagement subsidiary={subsidiary} />;
+                return <CreditManagement subsidiary={effectiveSubsidiary} />;
             case FinanceView.TREASURY:
-                return <TreasuryManagement subsidiary={subsidiary} />;
+                return <TreasuryManagement subsidiary={effectiveSubsidiary} />;
             case FinanceView.PREFINANCEMENT:
-                return <PrefinancementManagement subsidiary={subsidiary} />;
+                return <PrefinancementManagement subsidiary={effectiveSubsidiary} />;
             case FinanceView.SUPPLIERS:
-                return <SupplierDebts subsidiary={subsidiary} supplierDebts={supplierDebts} />;
+                return <SupplierDebts subsidiary={effectiveSubsidiary} supplierDebts={supplierDebts} />;
             case FinanceView.EXPENSES:
-                return <ExpenseManagement subsidiary={subsidiary} expenseRecords={expenseRecords} />;
+                return <ExpenseManagement subsidiary={effectiveSubsidiary} expenseRecords={expenseRecords} />;
             case FinanceView.PNL:
-                return <ProfitAndLossStatement 
-                            subsidiary={subsidiary} 
-                            pnlData={pnlData}
-                            period={period}
-                            onPeriodChange={(e) => setPeriod(e.target.value as PeriodFilter)}
-                            startDate={startDate}
-                            onStartDateChange={(e) => setStartDate(e.target.value)}
-                            endDate={endDate}
-                            onEndDateChange={(e) => setEndDate(e.target.value)} />;
+                return (
+                    <ProfitAndLossStatement
+                        subsidiary={effectiveSubsidiary}
+                        pnlData={pnlData}
+                        period={period}
+                        onPeriodChange={e => setPeriod(e.target.value as PeriodFilter)}
+                        startDate={startDate}
+                        onStartDateChange={e => setStartDate(e.target.value)}
+                        endDate={endDate}
+                        onEndDateChange={e => setEndDate(e.target.value)}
+                    />
+                );
             case FinanceView.BILAN:
-                return <BalanceSheet subsidiary={subsidiary} balanceSheetData={balanceSheetData} />;
+                return <BalanceSheet subsidiary={effectiveSubsidiary} balanceSheetData={balanceSheetData} />;
             case FinanceView.EXTERNAL_TRANSACTIONS:
-                return <ExternalTransactions subsidiary={subsidiary} />;
+                return <ExternalTransactions subsidiary={effectiveSubsidiary} />;
             default:
-                return <CreditManagement subsidiary={subsidiary} />;
+                return <CreditManagement subsidiary={effectiveSubsidiary} />;
         }
     };
 
-    const TabButton: React.FC<{ view: FinanceView; label: string; icon?: React.ReactNode }> = ({ view, label, icon }) => (
-        <button
-            onClick={() => setActiveTab(view)}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#c6e911] ${
-                activeTab === view
-                    ? 'bg-[#c6e911] text-slate-800 shadow'
-                    : 'bg-white text-slate-600 hover:bg-slate-100'
-            }`}
-        >
-            {icon}
-            {label}
-        </button>
-    );
-
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 no-print">
-                <h2 className="text-3xl font-bold text-slate-800">{t('finance.title')}</h2>
-                <div className="flex items-center flex-wrap gap-2 p-1 bg-slate-200 rounded-lg self-start sm:self-center">
-                    <TabButton view={FinanceView.CREDIT} label={t('finance.creditManagement')} />
-                    <TabButton view={FinanceView.TREASURY} label={t('finance.treasury')} />
-                    <TabButton view={FinanceView.PREFINANCEMENT} label="Préfinancement" />
-                    <TabButton view={FinanceView.SUPPLIERS} label={t('finance.supplierDebts')} />
-                    <TabButton view={FinanceView.EXPENSES} label={t('finance.expenses')} />
-                    <TabButton view={FinanceView.PNL} label={t('pnl.tabTitle')} icon={<IconDocumentChartBar className="h-4 w-4" />} />
-                    <TabButton view={FinanceView.BILAN} label={t('finance.bilan.tabTitle')} icon={<IconScale className="h-4 w-4" />} />
-                    <TabButton view={FinanceView.EXTERNAL_TRANSACTIONS} label={t('finance.externalTransactions')} icon={<IconWallet className="h-4 w-4" />} />
+        <div className="space-y-4">
+            {/* En-tête */}
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h2 className="text-xl font-bold text-slate-800">{t('finance.title')}</h2>
+                    <p className="text-xs text-slate-500 mt-0.5">Gestion des flux, du bilan et des rapports financiers.</p>
                 </div>
+                {isSuperAdmin && subsidiaries.length > 0 && (
+                    <select
+                        value={subsidiaryFilter}
+                        onChange={e => setSubsidiaryFilter(e.target.value)}
+                        className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
+                    >
+                        <option value="">Toutes les filiales</option>
+                        {subsidiaries.map(s => (
+                            <option key={s.id} value={s.id}>{s.subsidiaryName}</option>
+                        ))}
+                    </select>
+                )}
             </div>
-            
-            <div>
-                {renderActiveView()}
+
+            {/* Onglets horizontaux */}
+            <div className="flex items-center gap-2 p-1 bg-slate-200 rounded-lg overflow-x-auto no-scrollbar">
+                {NAV_ITEMS.map(({ view, labelKey, icon }) => (
+                    <button
+                        key={view}
+                        onClick={() => setActiveTab(view)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#c6e911] shrink-0 ${
+                            activeTab === view
+                                ? 'bg-[#c6e911] text-slate-800 shadow'
+                                : 'bg-white text-slate-600 hover:bg-slate-100'
+                        }`}
+                    >
+                        {icon}
+                        {t(labelKey)}
+                    </button>
+                ))}
             </div>
+
+            {/* Contenu */}
+            {isSuperAdmin && !effectiveSubsidiary ? (
+                <div className="flex flex-col items-center justify-center py-20 bg-white border border-dashed border-slate-200 rounded-xl text-center">
+                    <IconScale className="h-8 w-8 text-slate-300 mb-3" />
+                    <p className="text-sm font-semibold text-slate-500">Sélectionnez une filiale</p>
+                    <p className="text-xs text-slate-400 mt-1">Choisissez une filiale pour consulter ses données financières.</p>
+                    {subsidiaries.length > 0 && (
+                        <select
+                            value={subsidiaryFilter}
+                            onChange={e => setSubsidiaryFilter(e.target.value)}
+                            className="mt-4 text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
+                        >
+                            <option value="">Toutes les filiales</option>
+                            {subsidiaries.map(s => (
+                                <option key={s.id} value={s.id}>{s.subsidiaryName}</option>
+                            ))}
+                        </select>
+                    )}
+                </div>
+            ) : !effectiveSubsidiary ? (
+                <div className="py-10 text-center text-sm text-slate-400">{t('common.loading')}</div>
+            ) : (
+                renderContent()
+            )}
         </div>
     );
 };

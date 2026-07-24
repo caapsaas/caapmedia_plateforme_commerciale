@@ -4,12 +4,9 @@ import { EmployeeController } from './employee.controller';
 import { CommonModule } from 'src/common/common.module';
 
 @Module({
-  imports: [
-    CommonModule,  
-  ],
+  imports: [CommonModule],
   controllers: [EmployeeController],
   providers: [EmployeeService], // Prisma global, mais listé pour clarté
-  exports: [EmployeeService]
+  exports: [EmployeeService],
 })
-
 export class EmployeeModule {}

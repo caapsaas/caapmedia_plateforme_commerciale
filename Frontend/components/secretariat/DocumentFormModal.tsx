@@ -81,18 +81,18 @@ const DocumentFormModal: React.FC<DocumentFormModalProps> = ({ isOpen, onClose, 
                         <div className="mt-4 space-y-4">
                             <div>
                                 <label htmlFor="documentName" className="block text-sm font-medium text-slate-700">{t('secretariat.documents.table.name')}</label>
-                                <input type="text" name="documentName" id="documentName" value={formData.documentName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <input type="text" name="documentName" id="documentName" value={formData.documentName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="category" className="block text-sm font-medium text-slate-700">{t('secretariat.documents.table.category')}</label>
-                                    <select name="category" id="category" value={formData.category} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                    <select name="category" id="category" value={formData.category} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                         {Object.values(DocumentCategory).map(cat => <option key={cat} value={cat}>{t(`secretariat.documents.categories.${cat}`)}</option>)}
                                     </select>
                                 </div>
                                 <div>
                                     <label htmlFor="status" className="block text-sm font-medium text-slate-700">{t('secretariat.documents.table.status')}</label>
-                                    <select name="status" id="status" value={formData.status} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                    <select name="status" id="status" value={formData.status} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                         {Object.values(DocumentStatus).map(s => <option key={s} value={s}>{t(`secretariat.documents.statuses.${s}`)}</option>)}
                                     </select>
                                 </div>

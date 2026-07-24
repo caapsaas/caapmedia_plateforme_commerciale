@@ -1,7 +1,15 @@
 import { PrismaClient } from '@prisma/client';
 import { ContactStatus, UserRole } from '@prisma/client';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 
-
+// Helper to add ID if not present
+function ensureContactId(contact: any) {
+  if (!contact.id) {
+    contact.id = generateId(ID_PREFIXES.CONTACT);
+  }
+  return contact;
+}
 
 export async function runContactSeeder(prisma: PrismaClient) {
 
@@ -36,10 +44,11 @@ export async function runContactSeeder(prisma: PrismaClient) {
             email: 'frank.sokamte@example.com',
             phone: '655443322',
             since: '2024-02-10',
-            subsidiaryEmail: 'contact.yaounde@caap.cm',
-            address: 'Bastos, Yaoundé',
+            subsidiaryEmail: 'contact.kribi@caap.cm',
+            address: 'Centre-ville, Kribi',
             isVerified: true,
             status: ContactStatus.ACTIVE,
+            salesRepEmail: 'commercial.kribi@caap.cm',
         },
         {
             contactName: 'KAMDEM, Paul',
@@ -83,10 +92,11 @@ export async function runContactSeeder(prisma: PrismaClient) {
             email: 'sophie.tchoupe@beauty-salon.cm',
             phone: '655456789',
             since: '2023-03-10',
-            subsidiaryEmail: 'contact.yaounde@caap.cm',
-            address: 'Bastos, Yaoundé',
+            subsidiaryEmail: 'contact.edea@caap.cm',
+            address: 'Centre-ville, Edéa',
             isVerified: true,
             status: ContactStatus.ACTIVE,
+            salesRepEmail: 'commercial.edea@caap.cm',
         },
         {
             contactName: 'FOKO, Roger',
@@ -106,10 +116,11 @@ export async function runContactSeeder(prisma: PrismaClient) {
             email: 'catherine.ngueguim@fashion.cm',
             phone: '676789012',
             since: '2023-05-12',
-            subsidiaryEmail: 'contact.yaounde@caap.cm',
-            address: 'Mokolo, Yaoundé',
+            subsidiaryEmail: 'contact.kribi@caap.cm',
+            address: 'Plage de Kribi, Kribi',
             isVerified: true,
             status: ContactStatus.ACTIVE,
+            salesRepEmail: 'commercial.kribi@caap.cm',
         },
         {
             contactName: 'KAMGA, Michel',
@@ -129,10 +140,11 @@ export async function runContactSeeder(prisma: PrismaClient) {
             email: 'esther.etoundi@restaurant.cm',
             phone: '678901234',
             since: '2023-07-22',
-            subsidiaryEmail: 'contact.yaounde@caap.cm',
-            address: 'Centre-ville, Yaoundé',
+            subsidiaryEmail: 'contact.edea@caap.cm',
+            address: 'Zone Industrielle, Edéa',
             isVerified: true,
             status: ContactStatus.ACTIVE,
+            salesRepEmail: 'commercial.edea@caap.cm',
         },
         {
             contactName: 'OBOU, François',
@@ -152,10 +164,11 @@ export async function runContactSeeder(prisma: PrismaClient) {
             email: 'alice.meva@consulting.cm',
             phone: '697890123',
             since: '2023-09-14',
-            subsidiaryEmail: 'contact.yaounde@caap.cm',
-            address: 'Nlongkak, Yaoundé',
+            subsidiaryEmail: 'contact.kribi@caap.cm',
+            address: 'Zone Portuaire, Kribi',
             isVerified: true,
             status: ContactStatus.ACTIVE,
+            salesRepEmail: 'commercial.kribi@caap.cm',
         },
         {
             contactName: 'TANKEU, Paul',
@@ -213,6 +226,7 @@ export async function runContactSeeder(prisma: PrismaClient) {
                 subsidiaryId: subsidiary.id,
             },
             create: {
+                id: generateId(ID_PREFIXES.CONTACT),
                 contactName: c.contactName,
                 company: c.company,
                 email: c.email,

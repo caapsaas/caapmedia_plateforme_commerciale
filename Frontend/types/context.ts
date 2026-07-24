@@ -6,6 +6,7 @@ import {
     User,
     Contact,
     Product,
+    StockItem,
     Sale,
     Order,
     PurchaseOrder,
@@ -34,7 +35,6 @@ export interface AppState {
     isSidebarCollapsed: boolean;
     isRestored: boolean;
     showIdleModal: boolean;
-    previewRole: UserRole | null;
 }
 
 export type AppAction =
@@ -59,7 +59,7 @@ export type AppAction =
     | { type: 'VERIFY_CUSTOMER'; payload: string }
     | { type: 'PLACE_ECOMMERCE_ORDER'; payload: { orderData: { customerInfo: { name: string, email: string, address: string }, items: any[] }, paymentMethod: string } }
     | { type: 'SUBMIT_QUOTE_REQUEST', payload: { name: string; company: string; email: string; phone: string; description: string; } }
-    | { type: 'SAVE_PRODUCT'; payload: Omit<Product, 'id' | 'subsidiaryId'> & { id?: string } }
+    | { type: 'SAVE_PRODUCT'; payload: Omit<StockItem, 'id' | 'subsidiaryId'> & { id?: string } }
     | { type: 'DELETE_PRODUCT'; payload: string }
     | { type: 'UPDATE_PRODUCT_IMAGE'; payload: { productId: string; imageUrl: string } }
     | { type: 'SAVE_USER'; payload: Omit<User, 'id'> & { id?: string } }
@@ -85,10 +85,9 @@ export type AppAction =
     | { type: 'UPDATE_ORDER_STATUS'; payload: { orderId: string, newStatus: OrderStatus } }
     | { type: 'VALIDATE_ORDER_FOR_PRODUCTION'; payload: string }
     | { type: 'UPDATE_ORDER_PRODUCTION_STATUS'; payload: { orderId: string; newStatus: ProductionStatus } }
-    | { type: 'SAVE_EQUIPMENT'; payload: Omit<Equipment, 'id' | 'subsidiaryId' | 'maintenanceHistory'> & { id?: string } }
+    | { type: 'SAVE_EQUIPMENT'; payload: Omit<Equipment, 'id' | 'subsidiaryId' | 'maintenanceRecords'> & { id?: string } }
     | { type: 'DELETE_EQUIPMENT'; payload: string }
     | { type: 'ADD_MAINTENANCE_RECORD'; payload: { equipmentId: string; record: Omit<MaintenanceRecord, 'id'> } }
-    | { type: 'ADD_BULK_PRODUCTS'; payload: Product[] }
+    | { type: 'ADD_BULK_PRODUCTS'; payload: StockItem[] }
     | { type: 'SAVE_TAX_RATE'; payload: Omit<TaxRate, 'id'> & { id?: string } }
-    | { type: 'DELETE_TAX_RATE'; payload: string }
-    |{ type: 'SET_PREVIEW_ROLE'; payload: UserRole | null }; 
+    | { type: 'DELETE_TAX_RATE'; payload: string };

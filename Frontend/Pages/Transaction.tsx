@@ -10,15 +10,15 @@ import IconCheckCircle from '../components/icons/IconCheckCircle';
 import IconExclamationTriangle from '../components/icons/IconExclamationTriangle';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSales, FindAllSalesDto } from '../services/apiE-commerce/apiSales';
-import { getProducts } from '../services/apiE-commerce/apiProducts';
-import { getContacts } from '../services/apiCrm/apiContacts';
+import { getServicesCatalog } from '../services/apiE-commerce/apiProducts';
+import { getContacts } from '../services/apiCrm/apicontacts';
 
 const Transaction: React.FC = () => {
     const { t, formatCurrency } = useI18n();
     const { subsidiary, user: currentUser } = useAuth();
     const queryClient = useQueryClient();
 
-    const [filters, setFilters] = useState<FindAllSalesDto>({ period: 'ALL_TIME' });
+    const [filters, setFilters] = useState<FindAllSalesDto>({ period: 'all_time' });
     
     // --- TanStack Query Data Fetching ---
     const { data: contacts = [] } = useQuery<Contact[]>({
@@ -35,7 +35,7 @@ const Transaction: React.FC = () => {
 
     const { data: products = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
         queryKey: ['products', subsidiary?.id],
-        queryFn: getProducts,
+        queryFn: getServicesCatalog,
         enabled: !!subsidiary,
     });
 

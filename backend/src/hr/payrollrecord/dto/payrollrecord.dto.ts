@@ -1,4 +1,13 @@
-import { IsString, IsDate, IsEnum, IsDecimal, Min, IsOptional, Length, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsDate,
+  IsEnum,
+  IsDecimal,
+  Min,
+  IsOptional,
+  Length,
+  IsUUID,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
 import { PayrollStatus } from '@prisma/client';
@@ -8,7 +17,8 @@ export class CreatePayrollRecordDto {
   @Length(1, 255)
   employeeName: string;
 
-  @IsUUID()
+  @IsString()
+  @Length(1, 255)
   employeeId: string;
 
   @IsString()
@@ -29,7 +39,7 @@ export class CreatePayrollRecordDto {
 
   @IsOptional()
   @IsDate()
-  @Transform(({ value }) => value ? new Date(value) : null)
+  @Transform(({ value }) => (value ? new Date(value) : null))
   paymentDate?: Date;
 
   @IsOptional()
@@ -40,4 +50,6 @@ export class CreatePayrollRecordDto {
   status: PayrollStatus;
 }
 
-export class UpdatePayrollRecordDto extends PartialType(CreatePayrollRecordDto) {}
+export class UpdatePayrollRecordDto extends PartialType(
+  CreatePayrollRecordDto,
+) {}

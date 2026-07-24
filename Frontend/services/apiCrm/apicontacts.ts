@@ -37,6 +37,21 @@ export interface ContactLoginResponse {
   contact: Contact;
 }
 
+/**
+ * Résultat d'une recherche globale de client (Chantier 6) — inclut la filiale
+ * d'origine pour que le commercial sache d'où vient ce client avant de le
+ * rattacher à une nouvelle commande dans sa propre filiale.
+ */
+export interface GlobalContactSearchResult {
+  id: string;
+  contactName: string;
+  company: string;
+  email: string;
+  phone: string;
+  subsidiaryId: string;
+  subsidiary: { subsidiaryName: string };
+}
+
 // --- Fonctions API pour les Employés (CRM Interne) ---
 
 /**
@@ -55,6 +70,18 @@ export const createContactByEmployee = async (contactData: ContactCreationData):
  */
 export const getContacts = async (): Promise<Contact[]> => {
   const { data } = await api.get<Contact[]>('/crm/contacts');
+  return data;
+};
+
+/**
+ * Recherche globale de clients par email/téléphone/nom, sans filtre de filiale
+ * (Chantier 6) — pour retrouver et rattacher un client existant créé ailleurs.
+ * @param query - Terme de recherche (email, téléphone ou nom).
+ */
+export const searchContactsGlobal = async (query: string): Promise<GlobalContactSearchResult[]> => {
+  const { data } = await api.get<GlobalContactSearchResult[]>('/crm/contacts/search', {
+    params: { q: query },
+  });
   return data;
 };
 

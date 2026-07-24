@@ -1,32 +1,16 @@
-import { Product } from './models';
+import { Product, StockItem } from './models';
 
-export enum OptionType {
-  FORMATS = 'FORMATS',
-  GRAMMAGES = 'GRAMMAGES',
-  PRINTSIDES = 'PRINTSIDES',
-  LAMINATIONS = 'LAMINATIONS',
-  SIZES = 'SIZES',
-  COLORS = 'COLORS',
-  MATERIALS = 'MATERIALS',
-  DIMENSIONS = 'DIMENSIONS',
-  BINDINGS = 'BINDINGS',
-  FOLDINGS = 'FOLDINGS',
-  CORNERS = 'CORNERS',
-  EYELETS = 'EYELETS',
-  PAGES = 'PAGES',
-  HANDLES = 'HANDLES',
-  STUB = 'STUB',
-  NUMBERING = 'NUMBERING',
-}
+// Formulaire de service (catalogue) : pas de prix, pas de stock. Les
+// spécifications techniques se configurent séparément via le Builder
+// (Chantier 5), pas dans ce formulaire d'informations générales.
+export type ProductFormData = Omit<Product, 'id' | 'productImages'> & {
+    productImages?: File[];
+};
 
-// Type pour les données du formulaire de produit, gérant les fichiers et les types de données envoyés.
-export type ProductFormData = Omit<Product, 'id' | 'subsidiaryId' | 'productImages' | 'configurableOptions' | 'stock' | 'price' | 'sellingPrice'> & {
+// Formulaire de produit de stock (matière première) : garde prix/stock, scopé filiale.
+// baseUnit/packagingUnits sont en lecture seule (renvoyés par l'API) — le
+// formulaire n'envoie que baseUnitId ; les unités d'emballage se gèrent à part.
+export type StockItemFormData = Omit<StockItem, 'id' | 'subsidiaryId' | 'stock' | 'price' | 'baseUnit' | 'packagingUnits'> & {
     stock: string | number;
     price: string | number;
-    sellingPrice: string | number;
-    productImages?: File[];
-    configurableOptions?: {
-        optionType: OptionType;
-        item: { optionName: string; multiplier: number | string };
-    }[];
 };

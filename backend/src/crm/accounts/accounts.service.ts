@@ -9,6 +9,8 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
 import { Prisma, User, UserRole } from '@prisma/client';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class AccountsService {
@@ -25,13 +27,17 @@ export class AccountsService {
     }
 
     // Vérifier que la filiale existe
-    const subsidiaryExists = await this.prisma.subsidiary.findUnique({ where: { id: subsidiaryId } });
+    const subsidiaryExists = await this.prisma.subsidiary.findUnique({
+      where: { id: subsidiaryId },
+    });
     if (!subsidiaryExists) {
-      throw new NotFoundException(`Subsidiary with ID "${subsidiaryId}" not found.`);
+      throw new NotFoundException(
+        `Subsidiary with ID "${subsidiaryId}" not found.`,
+      );
     }
 
     // Vérifier si un compte avec le même nom existe déjà dans la filiale
-   const existingAccount = await this.prisma.account.findUnique({
+    const existingAccount = await this.prisma.account.findUnique({
       where: {
         accountName_subsidiaryId: {
           accountName: createAccountDto.accountName,
@@ -48,20 +54,20 @@ export class AccountsService {
 
     return this.prisma.account.create({
       data: {
+        id: generateId(ID_PREFIXES.ACCOUNT),
         ...createAccountDto,
-      subsidiaryId: subsidiaryId,
+        subsidiaryId: subsidiaryId,
       },
     });
   }
 
   async findAll(user: User) {
-    const where: Prisma.AccountWhereInput = {
-      subsidiaryId: user.subsidiaryId,
-    };
+    const isSuperAdmin = user.userRole === UserRole.SUPER_ADMIN;
+    const where: Prisma.AccountWhereInput = isSuperAdmin
+      ? {}
+      : { subsidiaryId: user.subsidiaryId };
 
-    // Un commercial ne voit que les comptes qui lui sont assignés.
-    // Un admin ou une secrétaire voit tous les comptes de la filiale.
-    if (user.userRole === UserRole.COMMERCIAL) { // Seul le commercial a une vue restreinte
+    if (!isSuperAdmin && user.userRole === UserRole.COMMERCIAL) {
       where.salesRepId = user.id;
     }
 
@@ -106,7 +112,12 @@ export class AccountsService {
     const accountToUpdate = await this.findOne(id, user);
 
     // 2. Séparer salesRepId des autres données pour le traitement relationnel.
-    const { salesRepId, id: dtoId, _count, ...otherData } = updateAccountDto as any; // Cast to any to safely destructure unknown properties
+    const {
+      salesRepId,
+      id: dtoId,
+      _count,
+      ...otherData
+    } = updateAccountDto as any; // Cast to any to safely destructure unknown properties
 
     // 3. Vérifier l'unicité du nom du compte si celui-ci est modifié.
     if (otherData.accountName) {
@@ -119,14 +130,18 @@ export class AccountsService {
         },
       });
       if (existingAccount && existingAccount.id !== id) {
-        throw new ConflictException(`An account with the name "${otherData.accountName}" already exists in this subsidiary.`);
+        throw new ConflictException(
+          `An account with the name "${otherData.accountName}" already exists in this subsidiary.`,
+        );
       }
     }
 
     // 4. Construire l'objet de données pour la mise à jour Prisma.
     const data: Prisma.AccountUpdateInput = { ...otherData };
     if (salesRepId !== undefined) {
-      data.salesRep = salesRepId ? { connect: { id: salesRepId } } : { disconnect: true };
+      data.salesRep = salesRepId
+        ? { connect: { id: salesRepId } }
+        : { disconnect: true };
     }
 
     // 5. Effectuer la mise à jour.

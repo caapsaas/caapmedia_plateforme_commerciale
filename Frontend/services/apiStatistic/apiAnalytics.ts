@@ -1,9 +1,12 @@
 import { api } from '../api';
 
 /**
- * Périodes de filtrage disponibles, correspondant à l'enum PeriodFilter du backend.
+ * Périodes de filtrage disponibles - valeurs (pas les clés) de l'enum
+ * PeriodFilter du backend (backend/src/statistics/analytics/dto/period-filter.dto.ts),
+ * validees via class-validator @IsEnum: doivent matcher exactement, en
+ * minuscules ('all_time', pas 'ALL_TIME').
  */
-export type PeriodFilter = 'ALL_TIME' | 'THIS_MONTH' | 'LAST_MONTH' | 'LAST_7_DAYS' | 'LAST_30_DAYS' | 'LAST_90_DAYS' | 'THIS_YEAR' | 'CUSTOM';
+export type PeriodFilter = 'all_time' | 'this_month' | 'last_month' | 'last_7_days' | 'last_30_days' | 'last_90_days' | 'this_year' | 'custom';
 
 /**
  * DTO pour le filtrage par période.
@@ -96,24 +99,21 @@ export interface PurchaseAnalysis {
 
 /**
  * Récupère les statistiques du tableau de bord.
+ * @param subsidiaryId Filiale ciblée (drill-down). Ignoré par le backend si
+ * l'utilisateur n'a pas de scope global (SUPER_ADMIN/FINANCIAL_DIRECTOR) -
+ * omis ou vide, un utilisateur à scope global obtient la vue consolidée.
  */
-export const getDashboardStats = async (query: PeriodFilterDto): Promise<DashboardStats> => {
-    const { data } = await api.get<DashboardStats>('/analytics/dashboard', { params: query });
+export const getDashboardStats = async (query: PeriodFilterDto, subsidiaryId?: string): Promise<DashboardStats> => {
+    const { data } = await api.get<DashboardStats>('/analytics/dashboard', { params: { ...query, subsidiaryId } });
     return data;
 };
 
-/**
- * Récupère l'analyse des ventes.
- */
-export const getSalesAnalysis = async (query: PeriodFilterDto): Promise<SalesAnalysis> => {
-    const { data } = await api.get<SalesAnalysis>('/analytics/sales', { params: query });
+export const getSalesAnalysis = async (query: PeriodFilterDto, subsidiaryId?: string): Promise<SalesAnalysis> => {
+    const { data } = await api.get<SalesAnalysis>('/analytics/sales', { params: { ...query, subsidiaryId } });
     return data;
 };
 
-/**
- * Récupère l'analyse des achats.
- */
-export const getPurchaseAnalysis = async (query: PeriodFilterDto): Promise<PurchaseAnalysis> => {
-    const { data } = await api.get<PurchaseAnalysis>('/analytics/purchases', { params: query });
+export const getPurchaseAnalysis = async (query: PeriodFilterDto, subsidiaryId?: string): Promise<PurchaseAnalysis> => {
+    const { data } = await api.get<PurchaseAnalysis>('/analytics/purchases', { params: { ...query, subsidiaryId } });
     return data;
 };

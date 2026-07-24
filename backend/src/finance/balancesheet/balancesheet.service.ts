@@ -34,12 +34,19 @@ export class BalancesheetService {
       this.getRetainedEarnings(subsidiaryId),
     ]);
 
-    const totalAssets = treasury + customerReceivables + inventory + equipments + fixedAssets;
+    const totalAssets =
+      treasury + customerReceivables + inventory + equipments + fixedAssets;
     const totalLiabilities = supplierDebts + longTermDebts;
     const totalEquity = shareCapital + retainedEarnings;
 
     return {
-      assets: { treasury, customerReceivables, inventory, equipments, fixedAssets },
+      assets: {
+        treasury,
+        customerReceivables,
+        inventory,
+        equipments,
+        fixedAssets,
+      },
       totalAssets,
       liabilities: { supplierDebts, longTermDebts },
       totalLiabilities,
@@ -71,20 +78,32 @@ export class BalancesheetService {
       }),
     ]);
 
-    const creditTotal = creditAccounts.reduce((sum, a) => sum + Number(a.balance), 0);
-    const pendingTotal = pendingSales.reduce((sum, s) => sum + Number(s.totalPrice), 0);
+    const creditTotal = creditAccounts.reduce(
+      (sum, a) => sum + Number(a.balance),
+      0,
+    );
+    const pendingTotal = pendingSales.reduce(
+      (sum, s) => sum + Number(s.totalPrice),
+      0,
+    );
     return creditTotal + pendingTotal;
   }
 
   /**
-   * Valorisation des stocks au coût d'achat (product.price), pas au prix de vente.
+   * Valorisation des stocks: non applicable car les coûts d'achat ne sont plus stockés sur les produits.
+   * Les prix sont maintenant définis uniquement lors de la création des commandes/ventes par le commercial.
    */
   async getInventoryValue(subsidiaryId?: string): Promise<number> {
-    const products = await this.prisma.product.findMany({
+    // Item est global (catalogue partagé) ; seule la quantité en stock
+    // (ItemStock) est propre à une filiale — absence de filtre = consolidé.
+    const stockLevels = await this.prisma.itemStock.findMany({
       where: subsidiaryId ? { subsidiaryId } : {},
-      select: { price: true, stock: true },
+      select: { stock: true, item: { select: { price: true } } },
     });
-    return products.reduce((sum, p) => sum + Number(p.price) * Number(p.stock), 0);
+    return stockLevels.reduce(
+      (sum, s) => sum + Number(s.item.price) * Number(s.stock),
+      0,
+    );
   }
 
   async getEquipmentsValue(subsidiaryId?: string): Promise<number> {
@@ -103,14 +122,20 @@ export class BalancesheetService {
   async getFixedAssetsValue(subsidiaryId?: string): Promise<number> {
     const assets = await this.prisma.fixedAsset.findMany({
       where: subsidiaryId ? { subsidiaryId } : {},
-      select: { acquisitionCost: true, depreciationRate: true, acquisitionDate: true },
+      select: {
+        acquisitionCost: true,
+        depreciationRate: true,
+        acquisitionDate: true,
+      },
     });
 
     const now = new Date();
     return assets.reduce((sum, asset) => {
       const cost = Number(asset.acquisitionCost);
       const rate = Number(asset.depreciationRate) / 100;
-      const yearsOwned = (now.getTime() - new Date(asset.acquisitionDate).getTime()) / (1000 * 60 * 60 * 24 * 365);
+      const yearsOwned =
+        (now.getTime() - new Date(asset.acquisitionDate).getTime()) /
+        (1000 * 60 * 60 * 24 * 365);
       const totalDepreciation = Math.min(cost * rate * yearsOwned, cost);
       return sum + (cost - totalDepreciation);
     }, 0);
@@ -146,7 +171,9 @@ export class BalancesheetService {
       });
       return Number(sub?.shareCapital) || 0;
     }
-    const subs = await this.prisma.subsidiary.findMany({ select: { shareCapital: true } });
+    const subs = await this.prisma.subsidiary.findMany({
+      select: { shareCapital: true },
+    });
     return subs.reduce((sum, s) => sum + Number(s.shareCapital), 0);
   }
 
@@ -172,9 +199,18 @@ export class BalancesheetService {
       }),
     ]);
 
-    const totalRevenue = sales.reduce((sum, s) => sum + Number(s.totalPrice), 0);
-    const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
-    const totalPayroll = payrolls.reduce((sum, p) => sum + Number(p.netSalary) + Number(p.deductions), 0);
+    const totalRevenue = sales.reduce(
+      (sum, s) => sum + Number(s.totalPrice),
+      0,
+    );
+    const totalExpenses = expenses.reduce(
+      (sum, e) => sum + Number(e.amount),
+      0,
+    );
+    const totalPayroll = payrolls.reduce(
+      (sum, p) => sum + Number(p.netSalary) + Number(p.deductions),
+      0,
+    );
 
     return totalRevenue - totalExpenses - totalPayroll;
   }

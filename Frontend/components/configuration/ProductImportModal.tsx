@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useI18n } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
 import { useAppContext } from '../../context/AppContext';
 import { downloadCsvTemplate } from '../../utils/csvExporter';
-import { Product } from '../../types';
-import { PRODUCT_HIERARCHY, categoryToKeyMap } from '../../constants';
+import { StockItem } from '../../types';
+import { categoryToKeyMap } from '../../constants';
 import IconFile from '../icons/IconFile';
 
 interface ProductImportModalProps {
@@ -19,16 +19,6 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({ isOpen, onClose
     const [file, setFile] = useState<File | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [importResult, setImportResult] = useState<{ successCount: number; errors: string[] } | null>(null);
-
-    const subCategoryToMainCategoryMap = useMemo(() => {
-        const map: Record<string, string> = {};
-        PRODUCT_HIERARCHY.forEach(mainCat => {
-            mainCat.subcategories.forEach(subCat => {
-                map[subCat.name] = mainCat.category;
-            });
-        });
-        return map;
-    }, []);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -55,7 +45,7 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({ isOpen, onClose
             }
 
             const header = rows[0].split(',').map(h => h.trim().replace(/"/g, ''));
-            const expectedHeaders = ['name', 'category', 'description', 'stock', 'price', 'sellingPrice', 'warehouse', 'range'];
+            const expectedHeaders = ['name', 'category', 'description', 'stock', 'price', 'warehouse', 'range'];
             
             const headersMatch = expectedHeaders.every((h, i) => h === header[i]);
             if (!headersMatch) {
@@ -64,7 +54,7 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({ isOpen, onClose
                  return;
             }
 
-            const newProducts: Product[] = [];
+            const newItems: StockItem[] = [];
             const errors: string[] = [];
             const allCategories = new Set(Object.keys(categoryToKeyMap));
 
@@ -76,51 +66,46 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({ isOpen, onClose
                     errors.push(`Ligne ${rowNumber}: Nombre de colonnes incorrect.`);
                     continue;
                 }
-                
+
                 const productData = rowData.reduce((obj, val, index) => {
                     (obj as any)[expectedHeaders[index]] = val;
                     return obj;
                 }, {} as any);
-                
-                const { name, category, stock, price, sellingPrice } = productData;
+
+                const { name, category, stock, price } = productData;
                 let hasError = false;
 
                 if (!name) { errors.push(`Ligne ${rowNumber}: Le champ 'name' est requis.`); hasError = true; }
                 if (!category) { errors.push(`Ligne ${rowNumber}: Le champ 'category' est requis.`); hasError = true; }
                 if (category && !allCategories.has(category)) { errors.push(`Ligne ${rowNumber}: La catégorie '${category}' n'est pas valide.`); hasError = true; }
-                
+
                 const stockNum = parseFloat(stock);
                 const priceNum = parseFloat(price);
-                const sellingPriceNum = parseFloat(sellingPrice);
 
                 if (isNaN(stockNum)) { errors.push(`Ligne ${rowNumber}: 'stock' doit être un nombre.`); hasError = true; }
                 if (isNaN(priceNum)) { errors.push(`Ligne ${rowNumber}: 'price' doit être un nombre.`); hasError = true; }
-                if (isNaN(sellingPriceNum)) { errors.push(`Ligne ${rowNumber}: 'sellingPrice' doit être un nombre.`); hasError = true; }
 
                 if (hasError) continue;
-                
-                const mainCategory = subCategoryToMainCategoryMap[category] || 'Unknown';
 
-                newProducts.push({
+                newItems.push({
                     id: `P${Date.now()}-${i}`,
-                    productName: name,
+                    name,
                     category,
-                    mainCategory,
                     description: productData.description || '',
                     stock: stockNum,
                     price: priceNum,
-                    sellingPrice: sellingPriceNum,
                     warehouse: productData.warehouse || '',
-                    range: productData.range || '',
+                    productRange: productData.range || '',
+                    stockManaged: true,
                     subsidiaryId: subsidiary?.id ?? '',
                 });
             }
             
-            if (newProducts.length > 0) {
-                dispatch({ type: 'ADD_BULK_PRODUCTS', payload: newProducts });
+            if (newItems.length > 0) {
+                dispatch({ type: 'ADD_BULK_PRODUCTS', payload: newItems });
             }
-            
-            setImportResult({ successCount: newProducts.length, errors });
+
+            setImportResult({ successCount: newItems.length, errors });
             setIsProcessing(false);
             setFile(null);
         };

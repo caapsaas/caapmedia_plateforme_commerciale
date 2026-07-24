@@ -8,7 +8,6 @@ describe('EmployeeService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-
       providers: [
         EmployeeService,
         { provide: PrismaService, useValue: {} }, // Mock PrismaService

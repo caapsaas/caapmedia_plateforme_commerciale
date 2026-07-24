@@ -1,14 +1,28 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { JournalType } from '@prisma/client';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 // Les 4 journaux SYSCOHADA obligatoires
 export const DEFAULT_JOURNALS = [
-  { code: 'JV',  name: 'Journal des Ventes',              journalType: JournalType.VENTES },
-  { code: 'JA',  name: 'Journal des Achats',              journalType: JournalType.ACHATS },
-  { code: 'JB',  name: 'Journal de Trésorerie / Banque',  journalType: JournalType.TRESORERIE },
-  { code: 'JOD', name: 'Journal des Opérations Diverses', journalType: JournalType.OD },
+  { code: 'JV', name: 'Journal des Ventes', journalType: JournalType.VENTES },
+  { code: 'JA', name: 'Journal des Achats', journalType: JournalType.ACHATS },
+  {
+    code: 'JB',
+    name: 'Journal de Trésorerie / Banque',
+    journalType: JournalType.TRESORERIE,
+  },
+  {
+    code: 'JOD',
+    name: 'Journal des Opérations Diverses',
+    journalType: JournalType.OD,
+  },
 ];
 
 @Injectable()
@@ -23,7 +37,7 @@ export class JournalsService {
     for (const j of DEFAULT_JOURNALS) {
       await this.prisma.accountingJournal.upsert({
         where: { subsidiaryId_code: { subsidiaryId, code: j.code } },
-        create: { ...j, subsidiaryId },
+        create: { id: generateId(ID_PREFIXES.ACCOUNTINGJOURNAL), ...j, subsidiaryId },
         update: {},
       });
     }
@@ -40,7 +54,10 @@ export class JournalsService {
     const journal = await this.prisma.accountingJournal.findUnique({
       where: { subsidiaryId_code: { subsidiaryId, code } },
     });
-    if (!journal) throw new NotFoundException(`Journal "${code}" introuvable pour cette filiale.`);
+    if (!journal)
+      throw new NotFoundException(
+        `Journal "${code}" introuvable pour cette filiale.`,
+      );
     return journal;
   }
 }

@@ -62,15 +62,15 @@ const TaxFormModal: React.FC<TaxFormModalProps> = ({ isOpen, onClose, onSave, ta
                         <div className="mt-4 space-y-4">
                             <div>
                                 <label htmlFor="taxRatesName" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
-                                <input type="text" name="taxRatesName" id="taxRatesName" value={formData.taxRatesName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <input type="text" name="taxRatesName" id="taxRatesName" value={formData.taxRatesName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
                                 <label htmlFor="rate" className="block text-sm font-medium text-slate-700">{t('configuration.form.rate')}</label>
-                                <input type="number" step="0.01" name="rate" id="rate" value={formData.rate * 100} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <input type="number" step="0.01" name="rate" id="rate" value={formData.rate * 100} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                              <div>
                                 <label htmlFor="description" className="block text-sm font-medium text-slate-700">{t('configuration.form.description')}</label>
-                                <input type="text" name="description" id="description" value={formData.description} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                <input type="text" name="description" id="description" value={formData.description} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div className="flex items-center">
                                 <input id="isDefault" name="isDefault" type="checkbox" checked={formData.isDefault} onChange={handleChange} disabled={taxRate?.isDefault} className="h-4 w-4 text-[#c6e911] focus:ring-lime-400 border-gray-300 rounded disabled:opacity-50" />
