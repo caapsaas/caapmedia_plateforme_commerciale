@@ -1,20 +1,20 @@
 import React, { useState, useMemo } from 'react';
 import { Contact, Opportunity, Interaction, CrmTask, User, Lead, Account, Contract, Product } from '../types';
-import { useAppContext } from '../context/AppContext';
+import { UserRole } from '../types';
 import { useI18n } from '../i18n';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
+import {
     getContacts, saveContact, deleteContact,
     getOpportunities, saveOpportunity, updateOpportunityStage, winOpportunity,
     getLeads, saveLead, deleteLead, convertLead,
     getAccounts, saveAccount, deleteAccount,
     getContracts, saveContract, deleteContract,
-    getCrmTasks, saveTask, updateTaskStatus, 
-    getInteractions, logInteraction 
-} from '../services/apiCrm/apiCrm'; // Assurez-vous que apiCrm exporte bien tout ça
-import { getCrmAnalysis, CrmAnalysis } from '../services/apiStatistic/apiFinanceStats';
+    getCrmTasks, saveTask, updateTaskStatus,
+    getInteractions, logInteraction
+} from '../services/apiCrm/apiCrm';
 import { getServicesCatalog } from '../services/apiE-commerce/apiProducts';
 import { getAllUsers } from '../services/apiCommon/apiUserAuth';
+import { getSubsidiaries } from '../services/apiCommon/apiSubsidiaries';
 import CrmDashboard from '../components/crm/CrmDashboard';
 import OpportunityPipeline from '../components/crm/OpportunityPipeline';
 import ContactManagement from '../components/crm/ContactManagement';
@@ -32,14 +32,30 @@ const Crm: React.FC = () => {
     const { user, subsidiary } = useAuth();
     const queryClient = useQueryClient();
     const toast = useToast();
-    const [activeTab, setActiveTab] = useState<CrmView>('leads');
-    
+    const [activeTab, setActiveTab] = useState<CrmView>('dashboard');
+    const [selectedSubsidiaryId, setSelectedSubsidiaryId] = useState('');
+    const [selectedSalesRepId, setSelectedSalesRepId] = useState('');
+
     if (!user || !subsidiary) {
         return <div>{t('common.loading')}</div>;
     }
 
-    // --- Data Fetching avec React Query ---
+    const effectiveRole = user.activeRole ?? user.userRole;
+    const hasGlobalScope = effectiveRole === UserRole.SUPER_ADMIN;
+    const canFilterByCommercial =
+        effectiveRole === UserRole.SUPER_ADMIN ||
+        effectiveRole === UserRole.ADMIN ||
+        effectiveRole === UserRole.FINANCIAL_DIRECTOR;
+
+    // --- Data Fetching ---
     const queryKey = (key: string) => [key, subsidiary.id];
+
+    const { data: subsidiariesList } = useQuery({
+        queryKey: ['subsidiaries'],
+        queryFn: getSubsidiaries,
+        enabled: hasGlobalScope,
+        staleTime: 5 * 60 * 1000,
+    });
 
     const { data: contacts = [], isLoading: l1 } = useQuery<Contact[]>({ queryKey: queryKey('contacts'), queryFn: () => getContacts(subsidiary.id) });
     const { data: opportunities = [], isLoading: l2 } = useQuery<Opportunity[]>({ queryKey: queryKey('opportunities'), queryFn: () => getOpportunities(subsidiary.id) });
@@ -51,20 +67,22 @@ const Crm: React.FC = () => {
     const { data: users = [], isLoading: l8 } = useQuery<User[]>({ queryKey: ['users', subsidiary.id], queryFn: () => getAllUsers() });
     const { data: products = [], isLoading: l9 } = useQuery<Product[]>({ queryKey: queryKey('products'), queryFn: () => getServicesCatalog() });
 
-    // Récupération des données d'analyse pour le tableau de bord CRM.
-    // 'enabled: activeTab === 'dashboard'' signifie que cette requête ne sera exécutée que si l'onglet du tableau de bord est actif.
-    const { data: crmAnalysisData, isLoading: l10 } = useQuery<CrmAnalysis>({
-        queryKey: queryKey('crmAnalysis'), 
-        queryFn: () => getCrmAnalysis({ period: 'all_time' }),
-        enabled: activeTab === 'dashboard',
-    });
+    const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9;
 
-    // Indicateur de chargement global pour toutes les requêtes.
-    const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9 || l10;
+    // Liste des commerciaux filtrée selon le contexte
+    const commercialUsers = useMemo(() => {
+        return users.filter(u => {
+            const isCommercial =
+                u.userRole === UserRole.COMMERCIAL ||
+                (u.additionalRoles ?? []).includes(UserRole.COMMERCIAL);
+            if (!isCommercial) return false;
+            if (hasGlobalScope && selectedSubsidiaryId) return u.subsidiaryId === selectedSubsidiaryId;
+            if (!hasGlobalScope) return u.subsidiaryId === subsidiary.id;
+            return true;
+        });
+    }, [users, hasGlobalScope, selectedSubsidiaryId, subsidiary.id]);
 
-    // --- ÉTAPE 3: Définition des mutations pour la modification des données ---
-    // Chaque 'useMutation' gère une opération d'écriture (création, mise à jour, suppression).
-    // 'onSuccess' est utilisé pour invalider les requêtes ('queries') pertinentes, ce qui déclenche un re-fetch automatique et met l'interface à jour.
+    // --- Mutations ---
     const invalidateCrmQueries = () => {
         queryClient.invalidateQueries({ queryKey: queryKey('contacts') });
         queryClient.invalidateQueries({ queryKey: queryKey('opportunities') });
@@ -73,17 +91,12 @@ const Crm: React.FC = () => {
         queryClient.invalidateQueries({ queryKey: queryKey('contracts') });
         queryClient.invalidateQueries({ queryKey: queryKey('crmTasks') });
         queryClient.invalidateQueries({ queryKey: queryKey('interactions') });
-        queryClient.invalidateQueries({ queryKey: queryKey('crmAnalysis') }); // Invalider aussi les stats
     };
 
     const { mutateAsync: onSaveContact } = useMutation({
         mutationFn: saveContact,
         onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('contacts') }),
         onError: (error: any) => {
-            // Client global (Chantier 6) : l'email est unique dans toute
-            // l'entreprise. Un doublon détecté ici vient forcément d'une autre
-            // filiale (voir subsidiary dans la réponse) — on l'explique plutôt
-            // que de laisser l'erreur s'afficher brute.
             const existingContact = error?.response?.data?.existingContact;
             if (existingContact) {
                 toast.error(
@@ -110,34 +123,58 @@ const Crm: React.FC = () => {
     const { mutate: onUpdateTaskStatus } = useMutation({ mutationFn: updateTaskStatus, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('crmTasks') }) });
     const { mutate: onLogInteraction } = useMutation({ mutationFn: logInteraction, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('interactions') }) });
 
-    // --- ÉTAPE 4: Filtrage des données en fonction du rôle de l'utilisateur ---
-    // 'useMemo' est utilisé pour calculer les données filtrées uniquement lorsque les données brutes ou l'utilisateur changent.
-    // Cela optimise les performances en évitant des recalculs inutiles à chaque rendu.
+    // --- Filtrage des données ---
     const userFilteredData = useMemo(() => {
-        const isFullAccess = user.userRole === 'ADMIN' || user.userRole === 'FINANCIAL_DIRECTOR';
+        const isFullAccess =
+            effectiveRole === UserRole.ADMIN ||
+            effectiveRole === UserRole.FINANCIAL_DIRECTOR ||
+            effectiveRole === UserRole.SUPER_ADMIN;
 
-        const filterBySubsidiary = <T extends { subsidiaryId: string }>(items: T[]) => items.filter(i => i.subsidiaryId === subsidiary.id);
-        const filterByUser = <T extends { salesRepId?: string }>(items: T[]) => items.filter(i => i.salesRepId === user.id);
-        const filterTaskByUser = <T extends { userId?: string }>(items: T[]) => items.filter(i => i.userId === user.id);
+        const bySubsidiary = <T extends { subsidiaryId: string }>(items: T[]) =>
+            selectedSubsidiaryId ? items.filter(i => i.subsidiaryId === selectedSubsidiaryId) : items;
 
-        // Si l'utilisateur est Admin ou Directeur Financier, il voit tout. Sinon, il ne voit que les données qui lui sont assignées.
-        const filteredContacts = isFullAccess ? contacts : filterByUser(contacts);
-        const filteredLeads = leads; // Le backend fait déjà le bon filtrage
-        const filteredAccounts = isFullAccess ? filterBySubsidiary(accounts) : filterByUser(filterBySubsidiary(accounts));
-        const filteredOpportunities = isFullAccess ? filterBySubsidiary(opportunities) : opportunities.filter(o => o.userId === user.id && o.subsidiaryId === subsidiary.id);
-        const filteredContracts = filterBySubsidiary(contracts);
+        const bySalesRep = <T extends { salesRepId?: string | null }>(items: T[]) =>
+            selectedSalesRepId ? items.filter(i => i.salesRepId === selectedSalesRepId) : items;
 
-        // Les interactions et les tâches sont également filtrées pour correspondre aux données visibles par l'utilisateur.
-        const contactIds = new Set(filteredContacts.map(c => c.id));
-        const filteredInteractions = interactions.filter(i => contactIds.has(i.contactId));
-        const filteredCrmTasks = isFullAccess ? crmTasks : filterTaskByUser(crmTasks);
+        const byUserId = <T extends { userId?: string }>(items: T[]) =>
+            selectedSalesRepId ? items.filter(i => i.userId === selectedSalesRepId) : items;
 
-        return { contacts: filteredContacts, leads: filteredLeads, accounts: filteredAccounts, opportunities: filteredOpportunities, interactions: filteredInteractions, crmTasks: filteredCrmTasks, contracts: filteredContracts };
-    }, [contacts, opportunities, leads, accounts, contracts, crmTasks, interactions, user, subsidiary.id]);
+        if (isFullAccess) {
+            const filteredContacts = bySubsidiary(bySalesRep(contacts));
+            const filteredLeads = bySubsidiary(bySalesRep(leads));
+            const filteredAccounts = bySubsidiary(bySalesRep(accounts));
+            const filteredOpportunities = bySubsidiary(byUserId(opportunities));
+            const filteredContracts = bySubsidiary(contracts);
+            const filteredCrmTasks = byUserId(crmTasks);
+            const visibleContactIds = new Set(filteredContacts.map(c => c.id));
+            const filteredInteractions = interactions.filter(i => visibleContactIds.has(i.contactId));
 
-    // --- ÉTAPE 5: Rendu de la vue active ---
-    // Cette fonction agit comme un routeur interne au composant CRM.
-    // En fonction de l'état 'activeTab', elle rend le composant approprié en lui passant les données et les fonctions de mutation nécessaires.
+            return {
+                contacts: filteredContacts,
+                leads: filteredLeads,
+                accounts: filteredAccounts,
+                opportunities: filteredOpportunities,
+                interactions: filteredInteractions,
+                crmTasks: filteredCrmTasks,
+                contracts: filteredContracts,
+            };
+        }
+
+        // COMMERCIAL et autres rôles restreints
+        const ownContacts = contacts.filter(c => c.salesRepId === user.id);
+        const ownContactIds = new Set(ownContacts.map(c => c.id));
+        return {
+            contacts: ownContacts,
+            leads,
+            accounts: accounts.filter(a => a.salesRepId === user.id && a.subsidiaryId === subsidiary.id),
+            opportunities: opportunities.filter(o => o.userId === user.id && o.subsidiaryId === subsidiary.id),
+            interactions: interactions.filter(i => ownContactIds.has(i.contactId)),
+            crmTasks: crmTasks.filter(t => t.userId === user.id),
+            contracts: contracts.filter(c => c.subsidiaryId === subsidiary.id),
+        };
+    }, [contacts, opportunities, leads, accounts, contracts, crmTasks, interactions, user, subsidiary.id, effectiveRole, selectedSubsidiaryId, selectedSalesRepId]);
+
+    // --- Rendu de la vue active ---
     const renderActiveView = () => {
         const baseProps = { subsidiary, user };
 
@@ -147,71 +184,69 @@ const Crm: React.FC = () => {
 
         switch (activeTab) {
             case 'dashboard':
-                return <CrmDashboard {...baseProps} {...userFilteredData} crmAnalysis={crmAnalysisData} onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })} />;
+                return <CrmDashboard {...baseProps} {...userFilteredData} onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })} />;
             case 'leads':
-                return <LeadsManagement 
-                           {...baseProps}
-                           leads={userFilteredData.leads}
-                           onSave={(data) => onSaveLead(data)}
-                           onDelete={(id) => onDeleteLead(id)}
-                           onConvertLead={(id) => onConvertLead(id)}
-                        />;
+                return <LeadsManagement
+                    {...baseProps}
+                    leads={userFilteredData.leads}
+                    onSave={(data) => onSaveLead(data)}
+                    onDelete={(id) => onDeleteLead(id)}
+                    onConvertLead={(id) => onConvertLead(id)}
+                />;
             case 'accounts':
-                return <AccountManagement 
-                            {...baseProps}
-                            accounts={userFilteredData.accounts}
-                            onSave={(data) => onSaveAccount(data)}
-                            onDelete={(id) => onDeleteAccount(id)}
-                        />;
+                return <AccountManagement
+                    {...baseProps}
+                    accounts={userFilteredData.accounts}
+                    onSave={(data) => onSaveAccount(data)}
+                    onDelete={(id) => onDeleteAccount(id)}
+                />;
             case 'contacts':
-                return <ContactManagement 
-                            {...baseProps}
-                            clients={userFilteredData.contacts}
-                            onSave={(data) => onSaveContact(data)}
-                            onDelete={(id) => onDeleteContact(id)}
-                            opportunities={userFilteredData.opportunities}
-                            interactions={userFilteredData.interactions}
-                            crmTasks={userFilteredData.crmTasks}
-                            contracts={userFilteredData.contracts} // Pas de changement ici, c'était déjà bon
-                            onLogInteraction={(data) => onLogInteraction(data)}
-                        />;
+                return <ContactManagement
+                    {...baseProps}
+                    clients={userFilteredData.contacts}
+                    onSave={(data) => onSaveContact(data)}
+                    onDelete={(id) => onDeleteContact(id)}
+                    opportunities={userFilteredData.opportunities}
+                    interactions={userFilteredData.interactions}
+                    crmTasks={userFilteredData.crmTasks}
+                    contracts={userFilteredData.contracts}
+                    onLogInteraction={(data) => onLogInteraction(data)}
+                />;
             case 'contracts':
-                return <ContractManagement 
-                            {...baseProps}
-                            contracts={userFilteredData.contracts}
-                            contacts={contacts}
-                            onSave={(data) => onSaveContract(data)}
-                            onDelete={(id) => onDeleteContract(id)}
-                        />;
+                return <ContractManagement
+                    {...baseProps}
+                    contracts={userFilteredData.contracts}
+                    contacts={contacts}
+                    onSave={(data) => onSaveContract(data)}
+                    onDelete={(id) => onDeleteContract(id)}
+                />;
             case 'pipeline':
-                return <OpportunityPipeline 
-                            {...baseProps} 
-                            opportunities={userFilteredData.opportunities}
-                            clients={userFilteredData.contacts} // Clients the user can see
-                            allClients={contacts} // All clients for selection
-                            produits={products}
-                            allProducts={products}
-                            onSaveOpportunity={(data) => onSaveOpportunity(data)}
-                            accounts={userFilteredData.accounts}
-                            currentUser={user}
-                            onUpdateOpportunityStage={(oppId, newStage) => onUpdateOpportunityStage({ oppId, newStage })}
-                            onWinOpportunity={(data) => onWinOpportunity(data)}
-                        />;
+                return <OpportunityPipeline
+                    {...baseProps}
+                    opportunities={userFilteredData.opportunities}
+                    clients={userFilteredData.contacts}
+                    allClients={contacts}
+                    produits={products}
+                    allProducts={products}
+                    onSaveOpportunity={(data) => onSaveOpportunity(data)}
+                    accounts={userFilteredData.accounts}
+                    currentUser={user}
+                    onUpdateOpportunityStage={(oppId, newStage) => onUpdateOpportunityStage({ oppId, newStage })}
+                    onWinOpportunity={(data) => onWinOpportunity(data)}
+                />;
             case 'activities':
-                return <ActivitiesView 
-                            contacts={userFilteredData.contacts}
-                            interactions={userFilteredData.interactions}
-                            crmTasks={userFilteredData.crmTasks}
-                            onSaveTask={(data) => onSaveTask(data)}
-                            onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })}
-                        />;
+                return <ActivitiesView
+                    contacts={userFilteredData.contacts}
+                    interactions={userFilteredData.interactions}
+                    crmTasks={userFilteredData.crmTasks}
+                    onSaveTask={(data) => onSaveTask(data)}
+                    onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })}
+                />;
             default:
-                return <CrmDashboard {...baseProps} {...userFilteredData} crmAnalysis={crmAnalysisData} onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })} />;
+                return <CrmDashboard {...baseProps} {...userFilteredData} onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })} />;
         }
     };
 
-    // Sous-composant réutilisable pour les boutons d'onglets.
-    // Il gère son propre style en fonction de s'il est l'onglet actif ou non.
     const TabButton: React.FC<{ view: CrmView; label: string }> = ({ view, label }) => (
         <button
             onClick={() => setActiveTab(view)}
@@ -225,23 +260,68 @@ const Crm: React.FC = () => {
         </button>
     );
 
-    // --- ÉTAPE 6: Rendu principal du composant ---
+    const selectClass = 'h-9 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400';
+
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
                 <h2 className="text-3xl font-bold text-slate-800">{t('crm.title')}</h2>
-                <div className="flex items-center flex-wrap gap-2 p-1 bg-slate-200 rounded-lg self-start sm:self-center">
-                    <TabButton view="dashboard" label={t('crm.tabs.dashboard')} />
-                    <TabButton view="leads" label={t('crm.tabs.leads')} />
-                    <TabButton view="accounts" label={t('crm.tabs.accounts')} />
-                    <TabButton view="contacts" label={t('crm.tabs.contacts')} />
-                    <TabButton view="contracts" label={t('crm.tabs.contracts')} />
-                    <TabButton view="pipeline" label={t('crm.tabs.pipeline')} />
-                    <TabButton view="activities" label={t('crm.tabs.tasks')} />
+
+                <div className="flex flex-col items-end gap-3">
+                    {/* Filtres filiale + commercial */}
+                    {(hasGlobalScope || canFilterByCommercial) && (
+                        <div className="flex flex-wrap items-center gap-2">
+                            {hasGlobalScope && subsidiariesList && subsidiariesList.length > 0 && (
+                                <select
+                                    value={selectedSubsidiaryId}
+                                    onChange={e => {
+                                        setSelectedSubsidiaryId(e.target.value);
+                                        setSelectedSalesRepId('');
+                                    }}
+                                    className={selectClass}
+                                >
+                                    <option value="">{t('crm.allSubsidiaries')}</option>
+                                    {subsidiariesList.map(s => (
+                                        <option key={s.id} value={s.id}>{s.subsidiaryName}</option>
+                                    ))}
+                                </select>
+                            )}
+                            {canFilterByCommercial && commercialUsers.length > 0 && (
+                                <select
+                                    value={selectedSalesRepId}
+                                    onChange={e => setSelectedSalesRepId(e.target.value)}
+                                    className={selectClass}
+                                >
+                                    <option value="">{t('crm.allCommercials')}</option>
+                                    {commercialUsers.map(u => (
+                                        <option key={u.id} value={u.id}>{u.userName}</option>
+                                    ))}
+                                </select>
+                            )}
+                            {(selectedSubsidiaryId || selectedSalesRepId) && (
+                                <button
+                                    onClick={() => { setSelectedSubsidiaryId(''); setSelectedSalesRepId(''); }}
+                                    className="h-9 px-3 text-sm text-slate-500 hover:text-slate-800 border border-slate-200 rounded-md bg-white hover:bg-slate-50 transition-colors"
+                                >
+                                    {t('filter.reset')}
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Onglets */}
+                    <div className="flex items-center flex-wrap gap-2 p-1 bg-slate-200 rounded-lg self-start sm:self-auto">
+                        <TabButton view="dashboard" label={t('crm.tabs.dashboard')} />
+                        <TabButton view="leads" label={t('crm.tabs.leads')} />
+                        <TabButton view="accounts" label={t('crm.tabs.accounts')} />
+                        <TabButton view="contacts" label={t('crm.tabs.contacts')} />
+                        <TabButton view="contracts" label={t('crm.tabs.contracts')} />
+                        <TabButton view="pipeline" label={t('crm.tabs.pipeline')} />
+                        <TabButton view="activities" label={t('crm.tabs.tasks')} />
+                    </div>
                 </div>
             </div>
-            
-            {/* Affiche la vue (l'onglet) sélectionnée. */}
+
             <div>
                 {renderActiveView()}
             </div>

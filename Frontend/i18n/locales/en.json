@@ -38,30 +38,77 @@
     "cancel": "Cancel",
     "save": "Save",
     "delete": "Delete",
+    "edit": "Edit",
+    "actions": "Actions",
     "logout": "Logout",
     "version": "Version",
     "print": "Print",
     "exportPdf": "Export PDF",
     "loading": "Loading...",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "accessDenied": "Access denied",
+    "viewBL": "View delivery note",
+    "error": {
+      "load": "Error loading data."
+    }
+  },
+  "login": {
+    "errorSelectSubsidiary": "Please select a subsidiary."
   },
   "configuration": {
     "title": "Configuration",
     "products": "Products",
+    "productManagement": "Products",
     "services": "Services",
     "referenceLists": "Reference lists",
     "addService": "Add a service",
+    "addProduct": "Add a product",
+    "addUser": "Add a user",
+    "addSupplier": "Add a supplier",
+    "addTax": "Add a tax",
+    "addClient": "Add a client",
     "users": "Users",
+    "userManagement": "Users",
     "suppliers": "Suppliers",
+    "supplierManagement": "Suppliers",
     "clientManagement": "Clients",
     "taxes": "Taxes",
+    "taxManagement": "Taxes",
     "treasury": "Treasury",
+    "units": "Units",
+    "equipmentCosts": "Machine costs",
+    "commercialParams": "Commercial params",
+    "productionWorkflows": "Workflows",
+    "name": "Name",
+    "phone": "Phone",
+    "email": "Email",
+    "role": "Role",
+    "company": "Company",
+    "category": "Category",
+    "stock": "Stock",
+    "productId": "Product reference",
     "modal": {
       "editEmployeeTitle": "Edit Employee",
       "addEmployeeTitle": "Add Employee",
-      "editServiceTitle": "Edit service",
       "addServiceTitle": "Add service",
-      "deleteServiceTitle": "Delete service"
+      "editServiceTitle": "Edit service",
+      "deleteServiceTitle": "Delete service",
+      "addProductTitle": "Add product",
+      "editProductTitle": "Edit product",
+      "deleteProductTitle": "Delete product",
+      "addUserTitle": "Add user",
+      "editUserTitle": "Edit user",
+      "deleteUserTitle": "Delete user",
+      "addSupplierTitle": "Add supplier",
+      "editSupplierTitle": "Edit supplier",
+      "deleteSupplierTitle": "Delete supplier",
+      "addTaxTitle": "Add tax",
+      "editTaxTitle": "Edit tax",
+      "deleteTaxTitle": "Delete tax",
+      "addClientTitle": "Add client",
+      "editClientTitle": "Edit client",
+      "deleteClientTitle": "Delete client",
+      "deleteConfirmMessage": "This action is irreversible. Are you sure?"
     },
     "serviceForm": {
       "name": "Name",
@@ -86,6 +133,26 @@
         "documents": "Documents",
         "leaves": "Leaves"
       },
+      "name": "Name",
+      "description": "Description",
+      "category": "Category",
+      "company": "Company",
+      "range": "Range",
+      "rate": "Rate",
+      "since": "Since",
+      "stock": "Stock",
+      "warehouse": "Warehouse",
+      "costPrice": "Cost price",
+      "baseUnit": "Base unit",
+      "conversionFactor": "Conversion factor",
+      "selectUnit": "Select a unit",
+      "isDefault": "Default",
+      "minThreshold": "Minimum threshold",
+      "packagingUnits": "Packaging units",
+      "packagingUnitsHelp": "Define packaging units (e.g.: box of 24)",
+      "generateWithAI": "Generate with AI",
+      "passwordRequired": "Password required",
+      "passwordsDoNotMatch": "Passwords do not match",
       "firstName": "First Name",
       "lastName": "Last Name",
       "birthDate": "Birth Date",
@@ -105,7 +172,111 @@
       "bonus": "Bonus",
       "benefits": "Benefits",
       "paymentMethod": "Payment Method"
+    },
+    "unitsManagement": {
+      "title": "Units of measure",
+      "subtitle": "Manage the units used for products and stock.",
+      "addNew": "New unit",
+      "empty": "No units defined.",
+      "name": "Name",
+      "namePlaceholder": "e.g.: Kilogram",
+      "symbol": "Symbol",
+      "symbolPlaceholder": "e.g.: kg",
+      "create": "Create",
+      "save": "Save",
+      "cancel": "Cancel",
+      "createError": "Error creating unit.",
+      "deleteError": "Error deleting unit."
     }
+  },
+  "specBuilder": {
+    "builder": {
+      "cancel": "Cancel",
+      "confirmDeleteGroup": "Delete this group and all its fields?",
+      "confirmDeleteSpec": "Delete this specification field?",
+      "fieldsTitle": "Fields",
+      "loadError": "Error loading configuration.",
+      "loading": "Loading...",
+      "newGroupPlaceholder": "Group name",
+      "noFields": "No fields defined. Add a group to get started.",
+      "previewTitle": "Preview"
+    },
+    "card": {
+      "reorder": "Reorder",
+      "required": "Required"
+    },
+    "drawer": {
+      "addOption": "Add option",
+      "addTitle": "Add field",
+      "cancel": "Cancel",
+      "dimensionsConfigTitle": "Dimensions configuration",
+      "dimMaxHeight": "Max height",
+      "dimMaxWidth": "Max width",
+      "dimMinHeight": "Min height",
+      "dimMinWidth": "Min width",
+      "editableAfterValidation": "Editable after validation",
+      "editTitle": "Edit field",
+      "fieldRequired": "This field is required",
+      "group": "Group",
+      "helpText": "Help text",
+      "internalDescription": "Internal description",
+      "name": "Field name",
+      "nameRequired": "Field name is required",
+      "noGroup": "— No group —",
+      "optionLabelPlaceholder": "Label",
+      "optionsSourceInline": "Inline options",
+      "optionsSourceReference": "Reference list",
+      "optionValuePlaceholder": "Value",
+      "placeholder": "Placeholder",
+      "possibleValues": "Possible values",
+      "required": "Required field",
+      "save": "Save",
+      "searchable": "Searchable",
+      "selectReferenceList": "— Select a reference list —",
+      "technicalKey": "Technical key",
+      "technicalKeyPattern": "Lowercase letters, digits and underscore only",
+      "technicalKeyPlaceholder": "e.g.: paper_weight",
+      "technicalKeyRequired": "Technical key is required",
+      "type": "Field type",
+      "unit": "Unit",
+      "uploadConfigTitle": "Upload configuration",
+      "uploadExtensions": "Accepted extensions",
+      "uploadExtensionsPlaceholder": "e.g.: .jpg,.png,.pdf",
+      "uploadMaxFiles": "Max files",
+      "uploadMaxSize": "Max size (MB)",
+      "visibleToClient": "Visible to client",
+      "visibleToProduction": "Visible in production"
+    },
+    "groupList": {
+      "addField": "Add field",
+      "addGroup": "Add group",
+      "deleteGroupTooltip": "Delete group",
+      "emptyGroup": "No fields in this group",
+      "noGroup": "No groups defined. Click \"Add group\" to get started."
+    },
+    "referenceLists": {
+      "title": "Reference lists",
+      "subtitle": "Manage reusable value lists for service specifications.",
+      "addNew": "Add reference list",
+      "empty": "No reference lists defined.",
+      "displayName": "Display name",
+      "displayNamePlaceholder": "e.g.: Paper formats",
+      "technicalKey": "Technical key",
+      "technicalKeyPlaceholder": "e.g.: paper_formats",
+      "labelPlaceholder": "Label (e.g.: A4)",
+      "valuePlaceholder": "Value (e.g.: a4)",
+      "valueCount": "{{count}} value(s)",
+      "create": "Create",
+      "cancel": "Cancel",
+      "createError": "Error creating reference list."
+    }
+  },
+  "productRange": {
+    "none": "No range"
+  },
+  "stock": {
+    "costPrice": "Cost price",
+    "range": "Range"
   },
   "hr": {
     "gender": {
@@ -178,6 +349,46 @@
     "taxes": "Taxes",
     "netIncome": "Net Income"
   },
+  "externalTransactions": {
+    "title": "External Transactions",
+    "accessDenied": "Access denied. You don't have the necessary permissions to access this page.",
+    "types": {
+      "INVESTMENT": "Investment",
+      "INVESTMENT_RETURN": "Return on investment",
+      "LOAN": "Loan",
+      "DONATION": "Donation",
+      "PERSONAL_EXPENSE": "Personal expense",
+      "PERSONAL_INCOME": "Personal income",
+      "TAX_REFUND": "Tax refund",
+      "INSURANCE_PAYOUT": "Insurance payout",
+      "LEGAL_SETTLEMENT": "Legal settlement",
+      "TRANSFER_PDG": "CEO transfer",
+      "OTHER_FINANCIAL": "Other financial operation"
+    },
+    "categories": {
+      "REAL_ESTATE": "Real estate",
+      "VEHICLE": "Vehicle",
+      "EQUIPMENT": "Equipment",
+      "EDUCATION": "Education",
+      "HEALTH": "Health",
+      "TRAVEL": "Travel",
+      "ENTERTAINMENT": "Entertainment",
+      "PERSONAL_SAVINGS": "Personal savings",
+      "FAMILY_SUPPORT": "Family support",
+      "CHARITY": "Charity",
+      "INVESTMENT_RETURN": "Return on investment",
+      "TAX_REFUND": "Tax refund",
+      "INSURANCE_PAYOUT": "Insurance payout",
+      "LEGAL_SETTLEMENT": "Legal settlement",
+      "TRANSFER_PDG": "CEO transfer",
+      "OTHER": "Other"
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "VALIDATED": "Validated",
+      "CANCELLED": "Cancelled"
+    }
+  },
   "treasuryAccounts": {
     "title": "Treasury Accounts",
     "description": "Manage your company's bank and treasury accounts",
@@ -210,14 +421,22 @@
       "accountNamePlaceholder": "Ex: Main BNP Account",
       "balance": "Initial Balance",
       "currency": "Currency",
+      "accountType": "Account type",
       "subsidiary": "Subsidiary"
+    },
+    "accountTypes": {
+      "bank": "Bank",
+      "cash": "Cash",
+      "prefinancement": "Pre-financing account"
     },
     "validation": {
       "accountNameRequired": "Account name is required",
       "validBalance": "Please enter a valid balance"
     },
     "confirm": {
-      "delete": "Are you sure you want to delete this treasury account?"
+      "delete": "Are you sure you want to delete this treasury account?",
+      "deleteWithBalance": "This account has a non-zero balance. Are you sure you want to delete it?",
+      "forceDelete": "Delete anyway (irreversible)"
     },
     "success": {
       "created": "Treasury account created successfully",
@@ -228,7 +447,216 @@
       "loading": "Error loading treasury accounts",
       "create": "Error creating treasury account",
       "update": "Error updating treasury account",
-      "delete": "Error deleting treasury account"
+      "delete": "Error deleting treasury account",
+      "deleteWithTransactions": "Cannot delete: this account has associated transactions.",
+      "forceDeleteFailed": "Force delete failed."
     }
+  },
+  "production": {
+    "equipmentCosts": {
+      "title": "Hourly cost per machine",
+      "subtitle": "Set the hourly rate for each piece of equipment. These rates are used to calculate the production cost for service orders.",
+      "allSubsidiaries": "All subsidiaries",
+      "colMachine": "Machine",
+      "colStatus": "Status",
+      "colSubsidiary": "Subsidiary",
+      "colHourlyRate": "Hourly rate (F CFA/h)",
+      "colAction": "Action",
+      "notConfigured": "Not configured",
+      "noEquipment": "No equipment found.",
+      "saveError": "Error saving.",
+      "invalidRate": "Invalid hourly rate.",
+      "configure": "Configure",
+      "modify": "Edit"
+    },
+    "commercialParams": {
+      "title": "Global commercial parameters",
+      "subtitle": "Set the allowed margin range for service quotes. Sales reps must enter a margin percentage within this range when creating an order.",
+      "notConfigured": "No parameters configured. Set the margins to activate the production cost module.",
+      "minMargin": "Minimum margin (%)",
+      "maxMargin": "Maximum margin (%)",
+      "rangeHint": "Sales reps must enter a margin between {{min}}% and {{max}}%.",
+      "saveError": "Error saving.",
+      "invalidValues": "Invalid values.",
+      "outOfRange": "Margins must be between 0% and 100%.",
+      "minGtMax": "Minimum margin must be less than maximum margin.",
+      "success": "Parameters saved successfully.",
+      "create": "Create",
+      "update": "Update",
+      "lastModified": "Last modified: {{date}}"
+    },
+    "workflows": {
+      "title": "Production workflows",
+      "subtitle": "Define machine sequences for each service. Sales reps see them pre-filled when creating a new order.",
+      "newWorkflow": "New workflow",
+      "allSubsidiaries": "All subsidiaries",
+      "noWorkflow": "No workflows defined.",
+      "active": "Active",
+      "inactive": "Inactive",
+      "linkedService": "Linked service: {{name}}",
+      "noSteps": "No steps",
+      "form": {
+        "createTitle": "New workflow",
+        "editTitle": "Edit workflow",
+        "name": "Name",
+        "namePlaceholder": "e.g. Standard offset printing",
+        "description": "Description",
+        "linkedService": "Linked service (optional)",
+        "noLinkedService": "— No linked service —",
+        "isActive": "Active workflow",
+        "steps": "Steps (machines)",
+        "addStep": "Add",
+        "chooseEquipment": "— Choose a machine —",
+        "noStepsDefined": "Click \"Add\" to define steps.",
+        "nameRequired": "Name is required.",
+        "equipmentRequired": "Each step must have a machine selected.",
+        "createError": "Error creating workflow.",
+        "editError": "Error updating workflow.",
+        "update": "Update"
+      },
+      "deleteConfirm": {
+        "title": "Delete workflow",
+        "message": "This action is irreversible. Existing orders will not be affected."
+      }
+    },
+    "costModal": {
+      "title": "Production cost",
+      "prefilledWorkflow": "Pre-filled workflow: {{name}}",
+      "stepsTitle": "Production steps",
+      "addMachine": "Add a machine",
+      "noSteps": "No steps. Add a machine or select a service with a workflow.",
+      "chooseMachine": "— Machine —",
+      "hoursPlaceholder": "Hours",
+      "totalCost": "Total production cost",
+      "margin": "Margin (%) *",
+      "marginRange": "Allowed range: {{min}}% – {{max}}%",
+      "finalPrice": "Final price (= line price)",
+      "priceNote": "This amount will be applied as the unit price on the order line.",
+      "confirmButton": "Confirm cost",
+      "noStepsError": "Add at least one production step.",
+      "noEquipmentError": "Each step must have a machine selected.",
+      "invalidTimeError": "Enter a valid time (> 0) for each step.",
+      "noMarginError": "Enter a margin percentage.",
+      "marginRangeError": "Margin must be between {{min}}% and {{max}}%."
+    }
+  },
+  "equipment": {
+    "title": "Machines / Equipment",
+    "subtitle": "Manage your production equipment fleet. Then set hourly rates to use in workflows.",
+    "addButton": "Add equipment",
+    "addTitle": "Add equipment",
+    "editTitle": "Edit equipment",
+    "name": "Equipment name",
+    "statusLabel": "Status",
+    "lastMaintenance": "Last maintenance",
+    "nextMaintenance": "Next maintenance",
+    "acquisitionDate": "Acquisition date",
+    "acquisitionValue": "Acquisition value",
+    "noEquipment": "No equipment recorded.",
+    "saved": "Equipment saved",
+    "createdMsg": "The equipment was added successfully.",
+    "updatedMsg": "The equipment was updated.",
+    "deleted": "Equipment deleted",
+    "deletedMsg": "The equipment was deleted.",
+    "saveError": "Unable to save the equipment.",
+    "deleteError": "Unable to delete the equipment.",
+    "deleteConfirm": {
+      "title": "Delete equipment",
+      "message": "Delete \"{{name}}\"? This action cannot be undone."
+    },
+    "status": {
+      "OPERATIONAL": "Operational",
+      "NEEDS_MAINTENANCE": "Maintenance required",
+      "OUT_OF_SERVICE": "Out of service"
+    }
+  },
+  "myOrders": {
+    "historyTab": "History",
+    "newOrderTab": "New order"
+  },
+  "sales": {
+    "orderHistoryTitle": "Order history",
+    "paymentOverdue": "Payment overdue",
+    "statusIssue": "Cancelled order",
+    "validateForProduction": "Validate for production",
+    "topSellingProducts": {
+      "title": "Top selling products",
+      "product": "Product",
+      "quantity": "Quantity",
+      "revenue": "Revenue"
+    }
+  },
+  "analytics": {
+    "allSubsidiaries": "All subsidiaries"
+  },
+  "crm": {
+    "allCommercials": "All sales reps"
+  },
+  "filter": {
+    "client": "Client",
+    "allClients": "All clients",
+    "product": "Product",
+    "allProducts": "All products",
+    "orderStatus": "Order status",
+    "allOrderStatuses": "All statuses",
+    "paymentStatus": "Payment status",
+    "allPaymentStatuses": "All statuses",
+    "reset": "Reset",
+    "apply": "Apply",
+    "noResults": "No results found."
+  },
+  "order": {
+    "orderId": "Order #",
+    "customer": "Customer",
+    "date": "Date",
+    "total": "Total",
+    "amountPaid": "Amount paid",
+    "remainingBalance": "Remaining balance",
+    "paymentStatus": "Payment",
+    "orderStatus": "Status",
+    "recordPayment": "Record payment",
+    "updateStatus": "Update status",
+    "status_NEW": "New",
+    "status_IN_PRODUCTION": "In production",
+    "status_PENDING_VALIDATION": "Pending validation",
+    "status_COMPLETED": "Completed",
+    "status_DELIVERED": "Delivered",
+    "status_PENDING_DELIVERY": "Pending delivery",
+    "status_CANCELLED": "Cancelled",
+    "paymentStatus_PAID": "Paid",
+    "paymentStatus_UNPAID": "Unpaid",
+    "paymentStatus_PARTIALLY_PAID": "Partially paid"
+  },
+  "invoice": {
+    "subtotal": "Subtotal (excl. tax)",
+    "tax": "Tax",
+    "viewInvoice": "View invoice"
+  },
+  "cashRegister": {
+    "clientSection": {
+      "selectAdd": "Select a client"
+    }
+  },
+  "newOrder": {
+    "productCatalog": "Product catalog",
+    "searchPlaceholder": "Search for a product...",
+    "product": "Product",
+    "quantity": "Quantity",
+    "addToCart": "Add",
+    "orderSummary": "Order summary",
+    "orderPlacedSuccess": "Order placed successfully!",
+    "cartEmpty": "The cart is empty.",
+    "searchClientOtherSubsidiary": "Search a client from another subsidiary...",
+    "total": "Total incl. tax",
+    "discount": "Discount (FCFA)",
+    "submitOrder": "Place order",
+    "paymentMethod": "Payment method",
+    "paymentMethod_PAY_ON_DELIVERY": "Pay on delivery",
+    "paymentMethod_CARD": "Credit card",
+    "paymentMethod_ORANGE_MONEY": "Orange Money",
+    "paymentMethod_WAVE": "Wave",
+    "paymentMethod_MOBILE_MONEY": "Mobile Money",
+    "paymentMethod_PAYCAAP": "PayCaap",
+    "paymentMethod_CUSTOMER_CREDIT": "Customer credit"
   }
 }

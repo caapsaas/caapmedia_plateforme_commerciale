@@ -4,6 +4,7 @@ import { StockMovement, StockMovementType } from '../../types/models';
 const BASE_URL = '/purchase/stock-movements';
 
 export interface FindStockMovementsQuery {
+    subsidiaryId?: string;
     itemId?: string;
     type?: StockMovementType;
     startDate?: string;
@@ -31,6 +32,7 @@ export interface InventoryAdjustmentData {
     itemId: string;
     countedStock: number;
     reason?: string;
+    subsidiaryId?: string;
 }
 
 export const adjustInventory = async (adjustmentData: InventoryAdjustmentData) => {

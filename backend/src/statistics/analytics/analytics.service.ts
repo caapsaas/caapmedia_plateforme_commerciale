@@ -148,7 +148,10 @@ export class AnalyticsService {
         ...subsidiaryFilter,
         stock: { gt: 0 },
       },
-      select: { stock: true, item: { select: { price: true, category: true } } },
+      select: {
+        stock: true,
+        item: { select: { price: true, category: true } },
+      },
     });
     const stockValue = stockLevels.reduce(
       (acc, s) => acc.add((s.item.price ?? new Prisma.Decimal(0)).mul(s.stock)),
@@ -179,7 +182,10 @@ export class AnalyticsService {
     // Répartition du stock par catégorie (quantité + valeur monétaire) — la
     // catégorie vit sur Item, pas ItemStock, donc pas de groupBy Prisma direct
     // possible ici : agrégation manuelle sur les niveaux de stock déjà chargés.
-    const categoryTotals = new Map<string, { stockSum: Prisma.Decimal; valueSum: Prisma.Decimal }>();
+    const categoryTotals = new Map<
+      string,
+      { stockSum: Prisma.Decimal; valueSum: Prisma.Decimal }
+    >();
     for (const s of stockLevels) {
       const category = s.item.category || 'Non catégorisé';
       const entry = categoryTotals.get(category) ?? {
@@ -187,14 +193,18 @@ export class AnalyticsService {
         valueSum: new Prisma.Decimal(0),
       };
       entry.stockSum = entry.stockSum.add(s.stock);
-      entry.valueSum = entry.valueSum.add((s.item.price ?? new Prisma.Decimal(0)).mul(s.stock));
+      entry.valueSum = entry.valueSum.add(
+        (s.item.price ?? new Prisma.Decimal(0)).mul(s.stock),
+      );
       categoryTotals.set(category, entry);
     }
 
-    const stockByCategoryResult = [...categoryTotals.entries()].map(([category, { stockSum }]) => ({
-      category,
-      _sum: { stock: stockSum },
-    }));
+    const stockByCategoryResult = [...categoryTotals.entries()].map(
+      ([category, { stockSum }]) => ({
+        category,
+        _sum: { stock: stockSum },
+      }),
+    );
 
     const stockDistribution = [...categoryTotals.entries()].reduce(
       (acc, [category, { valueSum }]) => {

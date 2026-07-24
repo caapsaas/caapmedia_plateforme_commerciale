@@ -3,25 +3,25 @@ import {
   IsEnum,
   IsNumber,
   IsOptional,
-  IsDate,
+  IsDateString,
 } from 'class-validator';
 import { EquipmentStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
 
-// DTO de création
+// DTO de création — les dates arrivent en string ISO depuis le frontend
 export class CreateEquipmentDto {
   @IsString()
   equipmentName: string;
 
-  @IsDate()
-  lastMaintenanceDate: Date;
+  @IsDateString()
+  lastMaintenanceDate: string;
 
-  @IsDate()
-  nextMaintenanceDate: Date;
+  @IsDateString()
+  nextMaintenanceDate: string;
 
-  @IsDate()
-  acquisitionDate: Date;
+  @IsDateString()
+  acquisitionDate: string;
 
   @IsNumber({ maxDecimalPlaces: 2 })
   @Type(() => Number)
@@ -29,19 +29,14 @@ export class CreateEquipmentDto {
 
   @IsEnum(EquipmentStatus)
   status: EquipmentStatus;
+
+  @IsOptional()
+  @IsString()
+  subsidiaryId?: string;
 }
 
-// DTO de mise à jour (hérite de Create et rend tout optionnel)
-export class UpdateEquipmentDto extends PartialType(CreateEquipmentDto) {
-  @IsDate()
-  lastMaintenanceDate: Date;
-
-  @IsDate()
-  nextMaintenanceDate: Date;
-
-  @IsDate()
-  acquisitionDate: Date;
-}
+// DTO de mise à jour — tout optionnel sauf ce qui est toujours requis
+export class UpdateEquipmentDto extends PartialType(CreateEquipmentDto) {}
 
 // DTO de recherche/filtre
 export class SearchEquipmentDto {
@@ -55,21 +50,21 @@ export class SearchEquipmentDto {
 
   // Plage de dates pour date d’acquisition
   @IsOptional()
-  @IsDate()
-  acquisitionFromDate?: Date;
+  @IsDateString()
+  acquisitionFromDate?: string;
 
   @IsOptional()
-  @IsDate()
-  acquisitionToDate?: Date;
+  @IsDateString()
+  acquisitionToDate?: string;
 
   // Plage de dates pour dernière maintenance
   @IsOptional()
-  @IsDate()
-  lastMaintenanceFromDate?: Date;
+  @IsDateString()
+  lastMaintenanceFromDate?: string;
 
   @IsOptional()
-  @IsDate()
-  lastMaintenanceToDate?: Date;
+  @IsDateString()
+  lastMaintenanceToDate?: string;
 
   // Plage de dates pour prochaine maintenance
   @IsOptional()

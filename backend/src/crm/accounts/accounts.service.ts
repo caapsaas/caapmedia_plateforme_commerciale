@@ -59,14 +59,12 @@ export class AccountsService {
   }
 
   async findAll(user: User) {
-    const where: Prisma.AccountWhereInput = {
-      subsidiaryId: user.subsidiaryId,
-    };
+    const isSuperAdmin = user.userRole === UserRole.SUPER_ADMIN;
+    const where: Prisma.AccountWhereInput = isSuperAdmin
+      ? {}
+      : { subsidiaryId: user.subsidiaryId };
 
-    // Un commercial ne voit que les comptes qui lui sont assignés.
-    // Un admin ou une secrétaire voit tous les comptes de la filiale.
-    if (user.userRole === UserRole.COMMERCIAL) {
-      // Seul le commercial a une vue restreinte
+    if (!isSuperAdmin && user.userRole === UserRole.COMMERCIAL) {
       where.salesRepId = user.id;
     }
 

@@ -10,6 +10,7 @@ import {
   IsString,
   IsUUID,
   Min,
+  Max,
   ValidateNested,
 } from 'class-validator';
 import { OrderSource } from '@prisma/client';
@@ -26,6 +27,51 @@ class CreateProductOptionDto {
   optionValue: string;
 }
 
+// Étape de production soumise par le commercial pour une ligne de service.
+export class CreateProductionStepDto {
+  @IsUUID()
+  equipmentId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  equipmentNameSnapshot: string;
+
+  @IsInt()
+  @Min(1)
+  stepOrder: number;
+
+  // Temps estimé en heures décimales (ex : 1.5 = 1h30).
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  estimatedTimeHours: number;
+
+  // Coût horaire figé au moment de la commande.
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  hourlyRateSnapshot: number;
+
+  // Coût calculé figé : estimatedTimeHours × hourlyRateSnapshot.
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  calculatedCost: number;
+}
+
+// Résumé financier soumis par le commercial pour une ligne de service.
+export class CreateProductionSummaryDto {
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  totalProductionCost: number;
+
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
+  marginPercent: number;
+
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  finalPrice: number;
+}
+
 class CreateOrderItemDto {
   @IsUUID()
   @IsNotEmpty()
@@ -35,7 +81,8 @@ class CreateOrderItemDto {
   @Min(1)
   quantity: number;
 
-  // Prix négocié par le commercial pour cette ligne (jamais tiré du catalogue).
+  // Pour les services : prix = finalPrice calculé par le module coût de production.
+  // Pour les produits stock : prix négocié manuellement.
   @IsNumber()
   @Min(0)
   unitPrice: number;
@@ -65,6 +112,18 @@ class CreateOrderItemDto {
   @IsOptional()
   @IsObject()
   specValues?: Record<string, unknown>;
+
+  // Coût de production (services uniquement) — optionnel.
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateProductionStepDto)
+  productionSteps?: CreateProductionStepDto[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateProductionSummaryDto)
+  productionSummary?: CreateProductionSummaryDto;
 }
 
 export class CreateOrderBySalesRepDto {

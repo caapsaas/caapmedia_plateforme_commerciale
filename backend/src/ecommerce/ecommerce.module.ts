@@ -5,6 +5,7 @@ import { SpecReferenceListsModule } from './products/spec-reference-lists/spec-r
 import { OrdersModule } from './orders/orders.module';
 import { TaxesModule } from './taxes/taxes.module';
 import { SalesModule } from './sales/sales.module';
+import { ProductionModule } from './production/production.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { SalesModule } from './sales/sales.module';
     OrdersModule,
     TaxesModule,
     SalesModule,
+    ProductionModule,
   ],
 })
 export class EcommerceModule {}

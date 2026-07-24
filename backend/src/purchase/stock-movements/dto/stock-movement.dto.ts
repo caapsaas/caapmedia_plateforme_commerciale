@@ -58,6 +58,10 @@ export class InventoryAdjustmentDto {
   @IsString()
   @IsOptional()
   reason?: string;
+
+  @IsUUID()
+  @IsOptional()
+  subsidiaryId?: string;
 }
 
 class WithdrawItemDto {
@@ -83,6 +87,10 @@ export class WithdrawForOrderDto {
 }
 
 export class FindStockMovementsDto {
+  @IsUUID()
+  @IsOptional()
+  subsidiaryId?: string;
+
   @IsUUID()
   @IsOptional()
   itemId?: string;

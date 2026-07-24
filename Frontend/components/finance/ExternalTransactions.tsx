@@ -29,8 +29,8 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
   const { toast } = useToast();
 
   // Vérifier les permissions
-  const canCreate = hasRole([UserRole.FINANCIAL_DIRECTOR, UserRole.ADMIN]);
-  const canValidate = hasRole([UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR]);
+  const canCreate = hasRole([UserRole.SUPER_ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.ADMIN]);
+  const canValidate = hasRole([UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR]);
   
   if (!canCreate && !canValidate) {
     return (

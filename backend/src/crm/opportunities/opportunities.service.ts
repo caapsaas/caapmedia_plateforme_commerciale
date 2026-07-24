@@ -61,15 +61,16 @@ export class OpportunitiesService {
   }
 
   async findAll(user: User) {
-    const where: Prisma.OpportunityWhereInput = {
-      subsidiaryId: user.subsidiaryId,
-    };
+    const isSuperAdmin = user.userRole === UserRole.SUPER_ADMIN;
+    const where: Prisma.OpportunityWhereInput = isSuperAdmin
+      ? {}
+      : { subsidiaryId: user.subsidiaryId };
 
-    // Les admins et secrétaires voient toutes les opportunités de la filiale.
-    // Les autres (commerciaux) ne voient que les leurs.
-    const privilegedRoles: UserRole[] = [UserRole.ADMIN, UserRole.SECRETARY];
-    if (!privilegedRoles.includes(user.userRole)) {
-      where.userId = user.id;
+    if (!isSuperAdmin) {
+      const privilegedRoles: UserRole[] = [UserRole.ADMIN, UserRole.SECRETARY];
+      if (!privilegedRoles.includes(user.userRole)) {
+        where.userId = user.id;
+      }
     }
 
     return this.prisma.opportunity.findMany({

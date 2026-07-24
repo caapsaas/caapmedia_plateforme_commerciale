@@ -1,241 +1,228 @@
 import React, { useState, useEffect } from "react";
-import { Equipment, EquipmentStatus } from "../../types";
+import { Equipment, EquipmentStatus, Subsidiary } from "../../types";
 import { useI18n } from "../../i18n";
-import { useAuth } from "../../context/AuthContext";
+import { CreateEquipmentDto } from "../../services/apiMaintenance/apiEquipment";
 
 interface EquipmentFormModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (
-    data: Omit<Equipment, "id" | "subsidiaryId" | "maintenanceHistory"> & {
-      id?: string;
-    },
-  ) => void;
-  equipment: Equipment | null;
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (data: CreateEquipmentDto & { id?: string }) => void;
+    equipment: Equipment | null;
+    subsidiaries?: Subsidiary[];
 }
 
+const toDateInput = (iso?: string) =>
+    iso ? new Date(iso).toISOString().split("T")[0] : "";
+
 const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
-  isOpen,
-  onClose,
-  onSave,
-  equipment,
+    isOpen,
+    onClose,
+    onSave,
+    equipment,
+    subsidiaries = [],
 }) => {
-  const { t } = useI18n();
-  const initialFormState = {
-    equipmentName: "",
-    status: EquipmentStatus.OPERATIONAL,
-    lastMaintenanceDate: "",
-    nextMaintenanceDate: "",
-    acquisitionDate: "",
-    acquisitionValue: 0,
-  };
+    const { t } = useI18n();
+    const isSuperAdmin = subsidiaries.length > 0;
 
-  const [formData, setFormData] = useState(initialFormState);
-  const { user } = useAuth();
+    const initialState: CreateEquipmentDto & { id?: string } = {
+        equipmentName: "",
+        status: EquipmentStatus.OPERATIONAL,
+        lastMaintenanceDate: "",
+        nextMaintenanceDate: "",
+        acquisitionDate: "",
+        acquisitionValue: 0,
+        subsidiaryId: subsidiaries[0]?.id ?? "",
+    };
 
-  useEffect(() => {
-    if (equipment) {
-      setFormData({
-        equipmentName: equipment.equipmentName,
-        status: equipment.status,
-        lastMaintenanceDate: equipment.lastMaintenanceDate,
-        nextMaintenanceDate: equipment.nextMaintenanceDate,
-        acquisitionDate: equipment.acquisitionDate,
-        acquisitionValue: equipment.acquisitionValue,
-      });
-    } else {
-      setFormData(initialFormState);
-    }
-  }, [equipment, isOpen]);
+    const [formData, setFormData] = useState(initialState);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-    if (name === "acquisitionValue") {
-      setFormData((prev) => ({ ...prev, [name]: parseFloat(value) || 0 }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    }
-  };
+    useEffect(() => {
+        if (equipment) {
+            setFormData({
+                id: equipment.id,
+                equipmentName: equipment.equipmentName,
+                status: equipment.status,
+                lastMaintenanceDate: equipment.lastMaintenanceDate,
+                nextMaintenanceDate: equipment.nextMaintenanceDate,
+                acquisitionDate: equipment.acquisitionDate,
+                acquisitionValue: equipment.acquisitionValue,
+                subsidiaryId: equipment.subsidiaryId,
+            });
+        } else {
+            setFormData({ ...initialState, subsidiaryId: subsidiaries[0]?.id ?? "" });
+        }
+    }, [equipment, isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave({
-      ...formData,
-      id: equipment?.id,
-    });
-  };
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: name === "acquisitionValue" ? parseFloat(value) || 0 : value,
+        }));
+    };
 
-  if (!isOpen) return null;
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSave(formData);
+    };
 
-  return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <form onSubmit={handleSubmit}>
-          <div className="p-6">
-            <h3 className="text-lg font-bold text-slate-900">
-              {equipment
-                ? t("maintenance.modal.editTitle")
-                : t("maintenance.modal.addTitle")}
-            </h3>
-            <div className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-              <div>
-                <label
-                  htmlFor="equipmentName"
-                  className="block text-sm font-medium text-slate-700"
-                >
-                  {t("maintenance.form.name")}
-                </label>
-                <input
-                  type="text"
-                  name="equipmentName"
-                  id="equipmentName"
-                  value={formData.equipmentName}
-                  onChange={handleChange}
-                  required
-                  className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="status"
-                  className="block text-sm font-medium text-slate-700"
-                >
-                  {t("maintenance.form.status")}
-                </label>
-                <select
-                  name="status"
-                  id="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  required
-                  className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
-                >
-                  {Object.values(EquipmentStatus).map((s) => (
-                    <option key={s} value={s}>
-                      {t(`maintenance.status_${s}`)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="acquisitionDate"
-                    className="block text-sm font-medium text-slate-700"
-                  >
-                    {t("maintenance.form.acquisitionDate")}
-                  </label>
-                  <input
-                    type="date"
-                    name="acquisitionDate"
-                    id="acquisitionDate"
-                    value={
-                      formData.acquisitionDate
-                        ? new Date(formData.acquisitionDate)
-                            .toISOString()
-                            .split("T")[0]
-                        : ""
-                    }
-                    onChange={handleChange}
-                    required
-                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="acquisitionValue"
-                    className="block text-sm font-medium text-slate-700"
-                  >
-                    {t("maintenance.form.acquisitionValue")}
-                  </label>
-                  <input
-                    type="number"
-                    name="acquisitionValue"
-                    id="acquisitionValue"
-                    value={formData.acquisitionValue}
-                    onChange={handleChange}
-                    required
-                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="lastMaintenanceDate"
-                    className="block text-sm font-medium text-slate-700"
-                  >
-                    {t("maintenance.form.lastMaintenanceDate")}
-                  </label>
-                  <input
-                    type="date"
-                    name="lastMaintenanceDate"
-                    id="lastMaintenanceDate"
-                    value={
-                      formData.lastMaintenanceDate
-                        ? new Date(formData.lastMaintenanceDate)
-                            .toISOString()
-                            .split("T")[0]
-                        : ""
-                    }
-                    onChange={handleChange}
-                    required
-                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="nextMaintenanceDate"
-                    className="block text-sm font-medium text-slate-700"
-                  >
-                    {t("maintenance.form.nextMaintenanceDate")}
-                  </label>
-                  <input
-                    type="date"
-                    name="nextMaintenanceDate"
-                    id="nextMaintenanceDate"
-                    value={
-                      formData.nextMaintenanceDate
-                        ? new Date(formData.nextMaintenanceDate)
-                            .toISOString()
-                            .split("T")[0]
-                        : ""
-                    }
-                    onChange={handleChange}
-                    required
-                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
-                  />
-                </div>
-              </div>
+    if (!isOpen) return null;
+
+    return (
+        <div
+            className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4"
+            onClick={onClose}
+        >
+            <div
+                className="bg-white rounded-xl shadow-2xl w-full max-w-lg"
+                onClick={e => e.stopPropagation()}
+            >
+                <form onSubmit={handleSubmit}>
+                    <div className="px-6 py-5 border-b border-slate-100">
+                        <h3 className="text-base font-bold text-slate-900">
+                            {equipment ? t("maintenance.modal.editTitle") : t("maintenance.modal.addTitle")}
+                        </h3>
+                    </div>
+
+                    <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                        {/* Filiale — visible uniquement pour le SUPER_ADMIN en création */}
+                        {isSuperAdmin && !equipment && (
+                            <div>
+                                <label htmlFor="subsidiaryId" className="block text-xs font-semibold text-slate-500 mb-1.5">
+                                    Filiale *
+                                </label>
+                                <select
+                                    name="subsidiaryId"
+                                    id="subsidiaryId"
+                                    value={formData.subsidiaryId ?? ""}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full border border-slate-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
+                                >
+                                    <option value="">Sélectionner une filiale…</option>
+                                    {subsidiaries.map(s => (
+                                        <option key={s.id} value={s.id}>{s.subsidiaryName}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        <div>
+                            <label htmlFor="equipmentName" className="block text-xs font-semibold text-slate-500 mb-1.5">
+                                {t("maintenance.form.name")} *
+                            </label>
+                            <input
+                                type="text"
+                                name="equipmentName"
+                                id="equipmentName"
+                                value={formData.equipmentName}
+                                onChange={handleChange}
+                                required
+                                className="w-full border border-slate-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="status" className="block text-xs font-semibold text-slate-500 mb-1.5">
+                                {t("maintenance.form.status")} *
+                            </label>
+                            <select
+                                name="status"
+                                id="status"
+                                value={formData.status}
+                                onChange={handleChange}
+                                required
+                                className="w-full border border-slate-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
+                            >
+                                {Object.values(EquipmentStatus).map(s => (
+                                    <option key={s} value={s}>{t(`maintenance.status_${s}`)}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="acquisitionDate" className="block text-xs font-semibold text-slate-500 mb-1.5">
+                                    {t("maintenance.form.acquisitionDate")} *
+                                </label>
+                                <input
+                                    type="date"
+                                    name="acquisitionDate"
+                                    id="acquisitionDate"
+                                    value={toDateInput(formData.acquisitionDate)}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full border border-slate-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="acquisitionValue" className="block text-xs font-semibold text-slate-500 mb-1.5">
+                                    {t("maintenance.form.acquisitionValue")} *
+                                </label>
+                                <input
+                                    type="number"
+                                    name="acquisitionValue"
+                                    id="acquisitionValue"
+                                    value={formData.acquisitionValue}
+                                    onChange={handleChange}
+                                    required
+                                    min={0}
+                                    className="w-full border border-slate-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="lastMaintenanceDate" className="block text-xs font-semibold text-slate-500 mb-1.5">
+                                    {t("maintenance.form.lastMaintenanceDate")} *
+                                </label>
+                                <input
+                                    type="date"
+                                    name="lastMaintenanceDate"
+                                    id="lastMaintenanceDate"
+                                    value={toDateInput(formData.lastMaintenanceDate)}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full border border-slate-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="nextMaintenanceDate" className="block text-xs font-semibold text-slate-500 mb-1.5">
+                                    {t("maintenance.form.nextMaintenanceDate")} *
+                                </label>
+                                <input
+                                    type="date"
+                                    name="nextMaintenanceDate"
+                                    id="nextMaintenanceDate"
+                                    value={toDateInput(formData.nextMaintenanceDate)}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full border border-slate-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 rounded-b-xl">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                        >
+                            {t("common.cancel")}
+                        </button>
+                        <button
+                            type="submit"
+                            className="px-4 py-2 text-sm font-bold text-slate-800 bg-[#c6e911] rounded-lg hover:bg-[#adc40f] transition-colors"
+                        >
+                            {t("common.save")}
+                        </button>
+                    </div>
+                </form>
             </div>
-          </div>
-          <div className="px-6 py-4 bg-slate-50 flex justify-end space-x-3 rounded-b-lg">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
-            >
-              {t("common.cancel")}
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-[#c6e911] text-slate-800 rounded-md hover:bg-[#adc40f] transition-colors"
-            >
-              {t("common.save")}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+        </div>
+    );
 };
 
 export default EquipmentFormModal;

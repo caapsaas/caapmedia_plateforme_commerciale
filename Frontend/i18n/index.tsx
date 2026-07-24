@@ -26,7 +26,9 @@ const frTranslations = {
     "send": "Envoyer",
     "notAvailable": "Non défini",
     "create": "Créer",
-    "update": "Mettre à jour"
+    "update": "Mettre à jour",
+    "saving": "Enregistrement...",
+    "accessDenied": "Accès refusé"
   },
    "contactModal": {
     "title": "Contactez-nous",
@@ -209,6 +211,7 @@ const frTranslations = {
     "item": "article",
     "items": "articles",
     "total": "Total",
+    "orderViaWhatsApp": "Commander via WhatsApp",
     "checkout": "Passer la commande",
     "checkoutTitle": "Finaliser votre commande",
     "customerInfo": "Vos informations",
@@ -287,7 +290,8 @@ const frTranslations = {
       "chartSalesLabel": "Ventes"
     },
     "startDate": "Date de début",
-    "endDate": "Date de fin"
+    "endDate": "Date de fin",
+    "allSubsidiaries": "Toutes les filiales"
   },
   "salesAnalysis": {
     "totalRevenue": "Chiffre d'affaires total",
@@ -385,7 +389,93 @@ const frTranslations = {
     "status_PREPRESS": "Pré-presse",
     "status_PRINTING": "Impression",
     "status_FINISHING": "Finition",
-    "status_READY_FOR_DELIVERY": "Prêt pour Livraison"
+    "status_READY_FOR_DELIVERY": "Prêt pour Livraison",
+    "equipmentCosts": {
+      "title": "Coût horaire par machine",
+      "subtitle": "Définissez le taux horaire de chaque équipement. Ces taux sont utilisés pour calculer le coût de production des commandes de services.",
+      "allSubsidiaries": "Toutes les filiales",
+      "colMachine": "Machine",
+      "colStatus": "Statut",
+      "colSubsidiary": "Filiale",
+      "colHourlyRate": "Taux horaire (F CFA/h)",
+      "colAction": "Action",
+      "notConfigured": "Non configuré",
+      "noEquipment": "Aucun équipement trouvé.",
+      "saveError": "Erreur lors de la sauvegarde.",
+      "invalidRate": "Taux horaire invalide.",
+      "configure": "Configurer",
+      "modify": "Modifier"
+    },
+    "commercialParams": {
+      "title": "Paramètres commerciaux globaux",
+      "subtitle": "Définissez la plage de marge autorisée pour les devis de services. Le commercial doit saisir un pourcentage de marge dans cette plage lors de la création d'une commande.",
+      "notConfigured": "Aucun paramètre configuré. Définissez les marges pour activer le module de coût de production.",
+      "minMargin": "Marge minimale (%)",
+      "maxMargin": "Marge maximale (%)",
+      "rangeHint": "Le commercial devra saisir une marge entre {{min}}% et {{max}}%.",
+      "saveError": "Erreur lors de la sauvegarde.",
+      "invalidValues": "Valeurs invalides.",
+      "outOfRange": "Les marges doivent être entre 0% et 100%.",
+      "minGtMax": "La marge minimale doit être inférieure à la marge maximale.",
+      "success": "Paramètres enregistrés avec succès.",
+      "create": "Créer",
+      "update": "Mettre à jour",
+      "lastModified": "Dernière modification : {{date}}"
+    },
+    "workflows": {
+      "title": "Workflows de production",
+      "subtitle": "Définissez les séquences de machines pour chaque service. Le commercial les retrouve pré-remplies lors d'une nouvelle commande.",
+      "newWorkflow": "Nouveau workflow",
+      "allSubsidiaries": "Toutes les filiales",
+      "noWorkflow": "Aucun workflow défini.",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "linkedService": "Service lié : {{name}}",
+      "noSteps": "Aucune étape",
+      "form": {
+        "createTitle": "Nouveau workflow",
+        "editTitle": "Modifier le workflow",
+        "name": "Nom",
+        "namePlaceholder": "ex. Impression offset standard",
+        "description": "Description",
+        "linkedService": "Service lié (optionnel)",
+        "noLinkedService": "— Aucun service lié —",
+        "isActive": "Workflow actif",
+        "steps": "Étapes (machines)",
+        "addStep": "Ajouter",
+        "chooseEquipment": "— Choisir une machine —",
+        "noStepsDefined": "Cliquez sur \"Ajouter\" pour définir des étapes.",
+        "nameRequired": "Le nom est requis.",
+        "equipmentRequired": "Chaque étape doit avoir une machine sélectionnée.",
+        "createError": "Erreur lors de la création.",
+        "editError": "Erreur lors de la modification.",
+        "update": "Mettre à jour"
+      },
+      "deleteConfirm": {
+        "title": "Supprimer le workflow",
+        "message": "Cette action est irréversible. Les commandes existantes ne seront pas affectées."
+      }
+    },
+    "costModal": {
+      "title": "Coût de production",
+      "prefilledWorkflow": "Workflow pré-rempli : {{name}}",
+      "stepsTitle": "Étapes de production",
+      "addMachine": "Ajouter une machine",
+      "noSteps": "Aucune étape. Ajoutez une machine ou sélectionnez un service avec un workflow.",
+      "chooseMachine": "— Machine —",
+      "hoursPlaceholder": "Heures",
+      "totalCost": "Coût total de production",
+      "margin": "Marge (%) *",
+      "marginRange": "Plage autorisée : {{min}}% – {{max}}%",
+      "finalPrice": "Prix final (= prix de la ligne)",
+      "priceNote": "Ce montant sera appliqué comme prix unitaire sur la ligne de commande.",
+      "confirmButton": "Confirmer le coût",
+      "noStepsError": "Ajoutez au moins une étape de production.",
+      "noEquipmentError": "Chaque étape doit avoir une machine sélectionnée.",
+      "invalidTimeError": "Saisissez un temps valide (> 0) pour chaque étape.",
+      "noMarginError": "Saisissez un pourcentage de marge.",
+      "marginRangeError": "La marge doit être entre {{min}}% et {{max}}%."
+    }
   },
   "purchasing": {
     "title": "Gestion des Achats",
@@ -639,7 +729,17 @@ const frTranslations = {
     "submitOrder": "Passer la commande",
     "orderPlacedSuccess": "Commande passée avec succès !",
     "item": "Article",
-    "subtotal": "Sous-total"
+    "subtotal": "Sous-total",
+    "discount": "Remise (FCFA)",
+    "searchClientOtherSubsidiary": "Chercher un client d'une autre filiale...",
+    "paymentMethod": "Méthode de paiement",
+    "paymentMethod_PAY_ON_DELIVERY": "Paiement à la livraison",
+    "paymentMethod_CARD": "Carte bancaire",
+    "paymentMethod_ORANGE_MONEY": "Orange Money",
+    "paymentMethod_WAVE": "Wave",
+    "paymentMethod_MOBILE_MONEY": "Mobile Money",
+    "paymentMethod_PAYCAAP": "PayCaap",
+    "paymentMethod_CUSTOMER_CREDIT": "Crédit client"
   },
   "bonDeLivraison": {
     "title": "Bon de Livraison",
@@ -680,6 +780,7 @@ const frTranslations = {
     "title": "Finance & Gestion",
     "creditManagement": "Gestion des Crédits",
     "treasury": "Trésorerie",
+    "prefinancement": "Préfinancement",
     "supplierDebts": "Dettes Fournisseurs",
     "expenses": "Charges",
     "externalTransactions": "Transactions Externes",
@@ -1055,6 +1156,11 @@ const frTranslations = {
     "supplierManagement": "Gestion des Fournisseurs",
     "addSupplier": "Ajouter un fournisseur",
     "taxManagement": "Gestion des Taxes",
+    "equipmentCosts": "Coûts machines",
+    "commercialParams": "Params commerciaux",
+    "productionWorkflows": "Workflows",
+    "catalogue": "Catalogue",
+    "production": "Production",
     "modal": {
       "editProductTitle": "Modifier le produit",
       "addProductTitle": "Ajouter un nouveau produit",
@@ -1517,6 +1623,8 @@ const frTranslations = {
   },
   "crm": {
     "title": "CRM",
+    "allSubsidiaries": "Toutes les filiales",
+    "allCommercials": "Tous les commerciaux",
     "tabs": {
       "dashboard": "Tableau de Bord",
       "leads": "Pistes",
@@ -1778,6 +1886,7 @@ const frTranslations = {
   },
   "maintenance": {
     "title": "Gestion de la Maintenance",
+    "description": "Consultez et enregistrez les interventions de maintenance par équipement.",
     "addEquipment": "Ajouter un équipement",
     "equipmentName": "Nom de l'équipement",
     "status": "Statut",
@@ -1812,7 +1921,11 @@ const frTranslations = {
     "title": "Équipements & Actifs",
     "listTitle": "Liste des équipements",
     "acquisitionDate": "Date d'acquisition",
-    "acquisitionValue": "Valeur d'acquisition"
+    "acquisitionValue": "Valeur d'acquisition",
+    "status_OPERATIONAL": "Opérationnel",
+    "status_UNDER_MAINTENANCE": "En maintenance",
+    "status_OUT_OF_SERVICE": "Hors service",
+    "status_NEEDS_MAINTENANCE": "Nécessite Maintenance",
   },
   "notifications": {
     "title": "Notifications",
@@ -1860,7 +1973,9 @@ const enTranslations: Translations = {
         "exportPdf": "Export to PDF",
         "notAvailable": "Not defined",
         "create": "Create",
-        "update": "Update"
+        "update": "Update",
+        "saving": "Saving...",
+        "accessDenied": "Access denied"
     },
     "contactModal": {
     "title": "Contactez-nous",
@@ -2043,6 +2158,7 @@ const enTranslations: Translations = {
       "item": "item",
       "items": "items",
       "total": "Total",
+      "orderViaWhatsApp": "Order via WhatsApp",
       "checkout": "Checkout",
       "checkoutTitle": "Finalize Your Order",
       "customerInfo": "Your Information",
@@ -2121,7 +2237,8 @@ const enTranslations: Translations = {
             "chartSalesLabel": "Sales"
         },
         "startDate": "Start date",
-        "endDate": "End date"
+        "endDate": "End date",
+        "allSubsidiaries": "All subsidiaries"
     },
     "salesAnalysis": {
         "totalRevenue": "Total Revenue",
@@ -2219,7 +2336,93 @@ const enTranslations: Translations = {
         "status_PREPRESS": "Pre-press",
         "status_PRINTING": "Printing",
         "status_FINISHING": "Finishing",
-        "status_READY_FOR_DELIVERY": "Ready for Delivery"
+        "status_READY_FOR_DELIVERY": "Ready for Delivery",
+        "equipmentCosts": {
+            "title": "Hourly cost per machine",
+            "subtitle": "Set the hourly rate for each piece of equipment. These rates are used to calculate the production cost for service orders.",
+            "allSubsidiaries": "All subsidiaries",
+            "colMachine": "Machine",
+            "colStatus": "Status",
+            "colSubsidiary": "Subsidiary",
+            "colHourlyRate": "Hourly rate (F CFA/h)",
+            "colAction": "Action",
+            "notConfigured": "Not configured",
+            "noEquipment": "No equipment found.",
+            "saveError": "Error saving.",
+            "invalidRate": "Invalid hourly rate.",
+            "configure": "Configure",
+            "modify": "Edit"
+        },
+        "commercialParams": {
+            "title": "Global commercial parameters",
+            "subtitle": "Set the allowed margin range for service quotes. Sales reps must enter a margin percentage within this range when creating an order.",
+            "notConfigured": "No parameters configured. Set the margins to activate the production cost module.",
+            "minMargin": "Minimum margin (%)",
+            "maxMargin": "Maximum margin (%)",
+            "rangeHint": "Sales reps must enter a margin between {{min}}% and {{max}}%.",
+            "saveError": "Error saving.",
+            "invalidValues": "Invalid values.",
+            "outOfRange": "Margins must be between 0% and 100%.",
+            "minGtMax": "Minimum margin must be less than maximum margin.",
+            "success": "Parameters saved successfully.",
+            "create": "Create",
+            "update": "Update",
+            "lastModified": "Last modified: {{date}}"
+        },
+        "workflows": {
+            "title": "Production workflows",
+            "subtitle": "Define machine sequences for each service. Sales reps see them pre-filled when creating a new order.",
+            "newWorkflow": "New workflow",
+            "allSubsidiaries": "All subsidiaries",
+            "noWorkflow": "No workflows defined.",
+            "active": "Active",
+            "inactive": "Inactive",
+            "linkedService": "Linked service: {{name}}",
+            "noSteps": "No steps",
+            "form": {
+                "createTitle": "New workflow",
+                "editTitle": "Edit workflow",
+                "name": "Name",
+                "namePlaceholder": "e.g. Standard offset printing",
+                "description": "Description",
+                "linkedService": "Linked service (optional)",
+                "noLinkedService": "— No linked service —",
+                "isActive": "Active workflow",
+                "steps": "Steps (machines)",
+                "addStep": "Add",
+                "chooseEquipment": "— Choose a machine —",
+                "noStepsDefined": "Click \"Add\" to define steps.",
+                "nameRequired": "Name is required.",
+                "equipmentRequired": "Each step must have a machine selected.",
+                "createError": "Error creating workflow.",
+                "editError": "Error updating workflow.",
+                "update": "Update"
+            },
+            "deleteConfirm": {
+                "title": "Delete workflow",
+                "message": "This action is irreversible. Existing orders will not be affected."
+            }
+        },
+        "costModal": {
+            "title": "Production cost",
+            "prefilledWorkflow": "Pre-filled workflow: {{name}}",
+            "stepsTitle": "Production steps",
+            "addMachine": "Add a machine",
+            "noSteps": "No steps. Add a machine or select a service with a workflow.",
+            "chooseMachine": "— Machine —",
+            "hoursPlaceholder": "Hours",
+            "totalCost": "Total production cost",
+            "margin": "Margin (%) *",
+            "marginRange": "Allowed range: {{min}}% – {{max}}%",
+            "finalPrice": "Final price (= line price)",
+            "priceNote": "This amount will be applied as the unit price on the order line.",
+            "confirmButton": "Confirm cost",
+            "noStepsError": "Add at least one production step.",
+            "noEquipmentError": "Each step must have a machine selected.",
+            "invalidTimeError": "Enter a valid time (> 0) for each step.",
+            "noMarginError": "Enter a margin percentage.",
+            "marginRangeError": "Margin must be between {{min}}% and {{max}}%."
+        }
     },
     "purchasing": {
         "title": "Purchase Management",
@@ -2473,7 +2676,17 @@ const enTranslations: Translations = {
         "submitOrder": "Place Order",
         "orderPlacedSuccess": "Order placed successfully!",
         "item": "Item",
-        "subtotal": "Subtotal"
+        "subtotal": "Subtotal",
+        "discount": "Discount (FCFA)",
+        "searchClientOtherSubsidiary": "Search a client from another subsidiary...",
+        "paymentMethod": "Payment method",
+        "paymentMethod_PAY_ON_DELIVERY": "Pay on delivery",
+        "paymentMethod_CARD": "Credit card",
+        "paymentMethod_ORANGE_MONEY": "Orange Money",
+        "paymentMethod_WAVE": "Wave",
+        "paymentMethod_MOBILE_MONEY": "Mobile Money",
+        "paymentMethod_PAYCAAP": "PayCaap",
+        "paymentMethod_CUSTOMER_CREDIT": "Customer credit"
     },
     "bonDeLivraison": {
         "title": "Delivery Note",
@@ -2514,6 +2727,7 @@ const enTranslations: Translations = {
         "title": "Finance & Management",
         "creditManagement": "Credit Management",
         "treasury": "Treasury",
+        "prefinancement": "Pre-financing",
         "supplierDebts": "Supplier Debts",
         "expenses": "Expenses",
         "externalTransactions": "External Transactions",
@@ -2889,6 +3103,11 @@ const enTranslations: Translations = {
         "supplierManagement": "Supplier Management",
         "addSupplier": "Add Supplier",
         "taxManagement": "Tax Management",
+        "equipmentCosts": "Machine costs",
+        "commercialParams": "Commercial params",
+        "productionWorkflows": "Workflows",
+        "catalogue": "Catalogue",
+        "production": "Production",
         "modal": {
             "editProductTitle": "Edit Product",
             "addProductTitle": "Add New Product",
@@ -3351,6 +3570,8 @@ const enTranslations: Translations = {
     },
     "crm": {
         "title": "CRM",
+        "allSubsidiaries": "All subsidiaries",
+        "allCommercials": "All sales reps",
         "tabs": {
             "dashboard": "Dashboard",
             "leads": "Leads",
@@ -3614,6 +3835,7 @@ const enTranslations: Translations = {
     },
     "maintenance": {
         "title": "Maintenance Management",
+        "description": "View and record maintenance interventions by equipment.",
         "addEquipment": "Add Equipment",
         "equipmentName": "Equipment Name",
         "status": "Status",
@@ -3648,7 +3870,11 @@ const enTranslations: Translations = {
         "title": "Equipment & Assets",
         "listTitle": "Equipment List",
         "acquisitionDate": "Acquisition Date",
-        "acquisitionValue": "Acquisition Value"
+        "acquisitionValue": "Acquisition Value",
+        "status_OPERATIONAL": "Operational",
+        "status_UNDER_MAINTENANCE": "Under maintenance",
+        "status_OUT_OF_SERVICE": "Out of service",
+        "status_NEEDS_MAINTENANCE": "Needs maintenance"
     },
     "notifications": {
         "title": "Notifications",

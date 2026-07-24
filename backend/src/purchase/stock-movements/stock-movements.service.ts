@@ -30,9 +30,14 @@ export class StockMovementsService {
   constructor(private readonly prisma: PrismaService) {}
 
   findAll(user: any, query: FindStockMovementsDto) {
+    const isSuperAdmin = user.userRole === 'SUPER_ADMIN';
+    const subsidiaryWhere = isSuperAdmin
+      ? (query.subsidiaryId ? { subsidiaryId: query.subsidiaryId } : {})
+      : { subsidiaryId: user.subsidiaryId };
+
     return this.prisma.stockMovement.findMany({
       where: {
-        subsidiaryId: user.subsidiaryId,
+        ...subsidiaryWhere,
         ...(query.itemId && { itemId: query.itemId }),
         ...(query.type && { type: query.type }),
         ...(query.startDate || query.endDate
@@ -101,11 +106,15 @@ export class StockMovementsService {
       );
     }
 
+    const isSuperAdmin = user.userRole === 'SUPER_ADMIN';
+    const targetSubsidiaryId =
+      isSuperAdmin && dto.subsidiaryId ? dto.subsidiaryId : user.subsidiaryId;
+
     const currentLevel = await this.prisma.itemStock.findUnique({
       where: {
         itemId_subsidiaryId: {
           itemId: dto.itemId,
-          subsidiaryId: user.subsidiaryId,
+          subsidiaryId: targetSubsidiaryId,
         },
       },
     });
@@ -121,13 +130,13 @@ export class StockMovementsService {
         where: {
           itemId_subsidiaryId: {
             itemId: dto.itemId,
-            subsidiaryId: user.subsidiaryId,
+            subsidiaryId: targetSubsidiaryId,
           },
         },
         update: { stock: dto.countedStock },
         create: {
           itemId: dto.itemId,
-          subsidiaryId: user.subsidiaryId,
+          subsidiaryId: targetSubsidiaryId,
           stock: dto.countedStock,
         },
       });
@@ -135,7 +144,7 @@ export class StockMovementsService {
       const movement = await tx.stockMovement.create({
         data: {
           itemId: dto.itemId,
-          subsidiaryId: user.subsidiaryId,
+          subsidiaryId: targetSubsidiaryId,
           type:
             delta > 0
               ? StockMovementType.POSITIVE_ADJUSTMENT

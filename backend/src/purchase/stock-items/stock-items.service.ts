@@ -7,7 +7,13 @@ import {
   UpdateStockItemDto,
   UpdateStockItemPriceDto,
 } from './dto/create-stock-item.dto';
-import { Item, ItemStock, ItemPackagingUnit, ItemType, Unit } from '@prisma/client';
+import {
+  Item,
+  ItemStock,
+  ItemPackagingUnit,
+  ItemType,
+  Unit,
+} from '@prisma/client';
 
 type ItemWithRelations = Item & {
   stockLevels: ItemStock[];
@@ -53,12 +59,23 @@ export class StockItemsService {
     if (existing) {
       const level = await this.prisma.itemStock.upsert({
         where: {
-          itemId_subsidiaryId: { itemId: existing.id, subsidiaryId: user.subsidiaryId },
+          itemId_subsidiaryId: {
+            itemId: existing.id,
+            subsidiaryId: user.subsidiaryId,
+          },
         },
         update: { stock: stock ?? 0, warehouse },
-        create: { itemId: existing.id, subsidiaryId: user.subsidiaryId, stock: stock ?? 0, warehouse },
+        create: {
+          itemId: existing.id,
+          subsidiaryId: user.subsidiaryId,
+          stock: stock ?? 0,
+          warehouse,
+        },
       });
-      return this.toFlat({ ...existing, stockLevels: [level] }, user.subsidiaryId);
+      return this.toFlat(
+        { ...existing, stockLevels: [level] },
+        user.subsidiaryId,
+      );
     }
 
     const item = await this.prisma.item.create({
@@ -66,7 +83,11 @@ export class StockItemsService {
         ...itemData,
         type: ItemType.STOCK_PRODUCT,
         stockLevels: {
-          create: { subsidiaryId: user.subsidiaryId, stock: stock ?? 0, warehouse },
+          create: {
+            subsidiaryId: user.subsidiaryId,
+            stock: stock ?? 0,
+            warehouse,
+          },
         },
       },
       include: {
@@ -77,16 +98,20 @@ export class StockItemsService {
     return this.toFlat(item, user.subsidiaryId);
   }
 
-  async findAll(user: any) {
+  async findAll(user: any, subsidiaryId?: string) {
+    const isSuperAdmin = user.userRole === 'SUPER_ADMIN';
+    const effectiveSid = isSuperAdmin && subsidiaryId ? subsidiaryId : user.subsidiaryId;
+    const stockLevelsWhere = isSuperAdmin && !subsidiaryId ? {} : { subsidiaryId: effectiveSid };
+
     const items = await this.prisma.item.findMany({
       where: { type: ItemType.STOCK_PRODUCT },
       orderBy: { name: 'asc' },
       include: {
         ...STOCK_ITEM_INCLUDE,
-        stockLevels: { where: { subsidiaryId: user.subsidiaryId } },
+        stockLevels: { where: stockLevelsWhere },
       },
     });
-    return items.map((item) => this.toFlat(item, user.subsidiaryId));
+    return items.map((item) => this.toFlat(item, effectiveSid));
   }
 
   async findOne(id: string, user: any) {
@@ -129,12 +154,19 @@ export class StockItemsService {
 
     if (stock !== undefined || warehouse !== undefined) {
       await this.prisma.itemStock.upsert({
-        where: { itemId_subsidiaryId: { itemId: id, subsidiaryId: user.subsidiaryId } },
+        where: {
+          itemId_subsidiaryId: { itemId: id, subsidiaryId: user.subsidiaryId },
+        },
         update: {
           ...(stock !== undefined && { stock }),
           ...(warehouse !== undefined && { warehouse }),
         },
-        create: { itemId: id, subsidiaryId: user.subsidiaryId, stock: stock ?? 0, warehouse },
+        create: {
+          itemId: id,
+          subsidiaryId: user.subsidiaryId,
+          stock: stock ?? 0,
+          warehouse,
+        },
       });
     }
 

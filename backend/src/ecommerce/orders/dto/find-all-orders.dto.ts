@@ -1,10 +1,5 @@
-import {
-  IsOptional,
-  IsString,
-  IsEnum,
-  IsDateString,
-  IsUUID,
-} from 'class-validator';
+import { IsOptional, IsEnum, IsDateString, IsUUID } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 export enum OrderPeriod {
@@ -21,11 +16,23 @@ export enum OrderPeriod {
 export class FindAllOrdersDto {
   @IsOptional()
   @IsUUID()
+  @Transform(({ value }) => value?.trim() || undefined)
   customerId?: string;
 
   @IsOptional()
   @IsUUID()
+  @Transform(({ value }) => value?.trim() || undefined)
   productId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  @Transform(({ value }) => value?.trim() || undefined)
+  subsidiaryId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  @Transform(({ value }) => value?.trim() || undefined)
+  salesRepId?: string;
 
   @IsOptional()
   @IsEnum(OrderStatus)

@@ -108,18 +108,12 @@ export const getDashboardStats = async (query: PeriodFilterDto, subsidiaryId?: s
     return data;
 };
 
-/**
- * Récupère l'analyse des ventes.
- */
-export const getSalesAnalysis = async (query: PeriodFilterDto): Promise<SalesAnalysis> => {
-    const { data } = await api.get<SalesAnalysis>('/analytics/sales', { params: query });
+export const getSalesAnalysis = async (query: PeriodFilterDto, subsidiaryId?: string): Promise<SalesAnalysis> => {
+    const { data } = await api.get<SalesAnalysis>('/analytics/sales', { params: { ...query, subsidiaryId } });
     return data;
 };
 
-/**
- * Récupère l'analyse des achats.
- */
-export const getPurchaseAnalysis = async (query: PeriodFilterDto): Promise<PurchaseAnalysis> => {
-    const { data } = await api.get<PurchaseAnalysis>('/analytics/purchases', { params: query });
+export const getPurchaseAnalysis = async (query: PeriodFilterDto, subsidiaryId?: string): Promise<PurchaseAnalysis> => {
+    const { data } = await api.get<PurchaseAnalysis>('/analytics/purchases', { params: { ...query, subsidiaryId } });
     return data;
 };

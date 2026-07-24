@@ -85,7 +85,7 @@ export type AppAction =
     | { type: 'UPDATE_ORDER_STATUS'; payload: { orderId: string, newStatus: OrderStatus } }
     | { type: 'VALIDATE_ORDER_FOR_PRODUCTION'; payload: string }
     | { type: 'UPDATE_ORDER_PRODUCTION_STATUS'; payload: { orderId: string; newStatus: ProductionStatus } }
-    | { type: 'SAVE_EQUIPMENT'; payload: Omit<Equipment, 'id' | 'subsidiaryId' | 'maintenanceHistory'> & { id?: string } }
+    | { type: 'SAVE_EQUIPMENT'; payload: Omit<Equipment, 'id' | 'subsidiaryId' | 'maintenanceRecords'> & { id?: string } }
     | { type: 'DELETE_EQUIPMENT'; payload: string }
     | { type: 'ADD_MAINTENANCE_RECORD'; payload: { equipmentId: string; record: Omit<MaintenanceRecord, 'id'> } }
     | { type: 'ADD_BULK_PRODUCTS'; payload: StockItem[] }

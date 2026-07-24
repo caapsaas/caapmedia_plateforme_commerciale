@@ -76,7 +76,7 @@ const NavLink: React.FC<{
         }`}
       >
         <span className={`shrink-0 transition-colors duration-200 ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>{icon}</span>
-        {!isCollapsed && <span className="text-sm font-medium tracking-wide whitespace-nowrap">{label}</span>}
+        {!isCollapsed && <span className="text-xs font-medium tracking-wide whitespace-nowrap">{label}</span>}
       </Link>
 
       {isCollapsed && tooltipPos && createPortal(
@@ -348,7 +348,7 @@ const Sidebar: React.FC = () => {
         {!isSidebarCollapsed && (
           <div className="px-4 py-3">
             <div className="bg-white/5 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/5">
-              <p className="text-sm font-medium text-slate-200 truncate">
+              <p className="text-xs font-medium text-slate-200 truncate">
                 {subsidiaryName || (user.userRole === UserRole.ADMIN || user.userRole === UserRole.SUPER_ADMIN ? 'Vue Admin' : 'CaapMedia')}
               </p>
             </div>
@@ -427,7 +427,7 @@ const Sidebar: React.FC = () => {
               className={`h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110 ${isSidebarCollapsed ? 'rotate-180' : ''}`}
             />
             {!isSidebarCollapsed && (
-              <span className="text-sm font-medium whitespace-nowrap">{t('sidebar.collapse')}</span>
+              <span className="text-xs font-medium whitespace-nowrap">{t('sidebar.collapse')}</span>
             )}
           </button>
 

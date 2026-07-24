@@ -239,7 +239,7 @@ export interface StockItem {
   description: string;
   sku?: string;
   stock: number;
-  price: number;
+  price: number | null;
   warehouse: string;
   productRange?: string;
   minThreshold?: number;
@@ -397,18 +397,37 @@ export interface ProductOptions {
 }
 
 
+export interface OrderItemProductionStep {
+  id?: string;
+  stepOrder: number;
+  equipmentNameSnapshot: string;
+  estimatedTimeHours: number;
+  hourlyRateSnapshot: number;
+  calculatedCost: number;
+}
+
+export interface OrderItemProductionSummary {
+  totalProductionCost: number;
+  marginPercent: number;
+  finalPrice: number;
+}
+
 export interface OrderItem {
+  id?: string;
   product: Product;
   quantity: number;
-  unitPrice: number; // Prix négocié par le commercial pour cette ligne, figé à la création
-  discount?: number; // Remise négociée sur cette ligne (montant, pas %), figée à la création
+  unitPrice: number;
+  discount?: number;
+  total?: number;
   options?: Partial<ProductOptions>;
+  productOptions?: { optionType: string; optionValue: string }[];
+  designFileName?: string;
+  designFileUrl?: string;
   designFile?: { name: string; url: string; };
-  specValues?: Record<string, unknown>; // Valeurs techniques saisies (Chantier 5), figées à la création
-  // Copie figée de la définition du formulaire au moment de la commande (Chantier 5)
-  // — nécessaire pour afficher specValues en lecture seule (facture/BL/production)
-  // sans dépendre du service tel qu'il est configuré aujourd'hui.
+  specValues?: Record<string, unknown>;
   specSnapshot?: FormDefinition | null;
+  productionSteps?: OrderItemProductionStep[];
+  productionSummary?: OrderItemProductionSummary | null;
 }
 
 export interface OrderGroup{
@@ -421,9 +440,13 @@ export interface OrderGroup{
 
 export interface Order {
   id: string;
+  orderDate?: string;
   date: string;
   customerName: string;
   customerId: string;
+  customer?: { id: string; contactName: string; email?: string; phone?: string };
+  salesRep?: { id: string; firstName?: string; lastName?: string; fullName?: string; email?: string };
+  subsidiary?: { subsidiaryName: string };
   items: OrderItem[];
   orderItems: OrderItem[];
   totalAmount: number;
@@ -433,7 +456,7 @@ export interface Order {
   taxRateValue: number;
   status: OrderStatus;
   productionStatus: ProductionStatus;
-  productionHistory: { status: ProductionStatus, date: string }[];
+  productionHistory: { status: ProductionStatus; changeDate?: string; date?: string }[];
   paymentStatus: PaymentStatus;
   amountPaid: number;
   subsidiaryId: string;
@@ -441,7 +464,6 @@ export interface Order {
   salesRepId?: string;
   opportunityId?: string;
   paymentMethod: CustomerPaymentMethod;
-  // FIX: Add optional 'source' property to track order origin and resolve type error.
   source?: 'manual' | 'web_order' | 'quote_request';
 }
 
@@ -1059,7 +1081,7 @@ export interface Equipment {
     status: EquipmentStatus;
     lastMaintenanceDate: string;
     nextMaintenanceDate: string;
-    maintenanceHistory: MaintenanceRecord[];
+    maintenanceRecords: MaintenanceRecord[];
     subsidiaryId: string;
     acquisitionDate: string;
     acquisitionValue: number;

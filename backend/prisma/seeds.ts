@@ -11,6 +11,7 @@ import { runOrdersSeeder } from './seeders/order.seeder';
 import { seedTreasuryAccounts } from './seeders/treasury.seeder';
 import { runSupplierSeeder } from './seeders/supplier.seeder';
 import { runMovementsSeeder } from './seeders/movements.seeder';
+import { runOpportunitySeeder } from './seeders/opportunity.seeder';
 
 const prisma = new PrismaClient();
 
@@ -70,6 +71,9 @@ async function main() {
   // (commandes) multi-filiales pour observer l'architecture SUPER_ADMIN
   // (vue consolidee) vs ADMIN de filiale (vue scopee), voir movements.seeder.ts.
   await runMovementsSeeder(prisma);
+  // Apres contact/user/subsidiary: cree les comptes CRM et opportunites
+  // multi-etapes pour alimenter l'entonnoir des ventes du tableau de bord CRM.
+  await runOpportunitySeeder(prisma);
   // Note: seedEmployeeLeaveBalances is already called inside seedEmployees()
 }
 

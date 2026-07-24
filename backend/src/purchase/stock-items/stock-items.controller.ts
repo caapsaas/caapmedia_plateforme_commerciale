@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -27,6 +28,7 @@ import {
 @UseGuards(JwtAuthGuard, RoleGuard)
 @Roles(
   UserRole.ADMIN,
+  UserRole.SUPER_ADMIN,
   UserRole.COMMERCIAL,
   UserRole.CAISSIER,
   UserRole.PURCHASING_MANAGER,
@@ -42,8 +44,8 @@ export class StockItemsController {
   }
 
   @Get()
-  findAll(@Req() req: any) {
-    return this.stockItemsService.findAll(req.user);
+  findAll(@Req() req: any, @Query('subsidiaryId') subsidiaryId?: string) {
+    return this.stockItemsService.findAll(req.user, subsidiaryId);
   }
 
   @Get(':id')

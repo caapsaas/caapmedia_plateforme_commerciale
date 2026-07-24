@@ -4,12 +4,7 @@ import {
   PeriodFilterDto,
   PeriodFilter,
 } from '../analytics/dto/period-filter.dto';
-import {
-  Prisma,
-  User,
-  OpportunityStage,
-  DebtStatus,
-} from '@prisma/client';
+import { Prisma, User, OpportunityStage, DebtStatus } from '@prisma/client';
 import {
   sub,
   startOfMonth,

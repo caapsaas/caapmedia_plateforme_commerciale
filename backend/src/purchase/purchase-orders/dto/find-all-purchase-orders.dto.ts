@@ -15,6 +15,10 @@ export enum OrderPeriod {
 export class FindAllPurchaseOrdersDto {
   @IsOptional()
   @IsUUID()
+  subsidiaryId?: string;
+
+  @IsOptional()
+  @IsUUID()
   supplierId?: string;
 
   @IsOptional()

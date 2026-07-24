@@ -72,7 +72,7 @@ export class MaintenanceRecordService {
       where: { id },
       data: {
         ...dto,
-        maintenanceDate: new Date(dto.maintenanceDate),
+        maintenanceDate: dto.maintenanceDate ? new Date(dto.maintenanceDate) : undefined,
       },
       include: this.includeAll,
     });

@@ -11,7 +11,7 @@ import { PartialType } from '@nestjs/mapped-types';
 // DTO de création
 export class CreateMaintenanceRecordDto {
   @IsDateString()
-  maintenanceDate: Date;
+  maintenanceDate: string;
 
   @IsString()
   technician: string;
@@ -30,10 +30,7 @@ export class CreateMaintenanceRecordDto {
 // DTO de mise à jour (hérite de Create et rend tout optionnel)
 export class UpdateMaintenanceRecordDto extends PartialType(
   CreateMaintenanceRecordDto,
-) {
-  @IsDateString()
-  maintenanceDate: Date;
-}
+) {}
 
 // DTO de recherche/filtre
 export class SearchMaintenanceRecordDto {

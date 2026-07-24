@@ -159,11 +159,12 @@ export class PurchaseOrdersService {
    * @returns Liste des bons de commande
    */
   async findAll(user: User, query: FindAllPurchaseOrdersDto) {
-    const { supplierId, status, paymentStatus, period, startDate, endDate } =
+    const { subsidiaryId: filterSubsidiaryId, supplierId, status, paymentStatus, period, startDate, endDate } =
       query;
-    const where: Prisma.PurchaseOrderWhereInput = {
-      subsidiaryId: user.subsidiaryId,
-    };
+    const isSuperAdmin = user.userRole === 'SUPER_ADMIN';
+    const where: Prisma.PurchaseOrderWhereInput = isSuperAdmin
+      ? (filterSubsidiaryId ? { subsidiaryId: filterSubsidiaryId } : {})
+      : { subsidiaryId: user.subsidiaryId };
 
     if (supplierId) where.supplierId = supplierId;
     if (status) where.status = status;

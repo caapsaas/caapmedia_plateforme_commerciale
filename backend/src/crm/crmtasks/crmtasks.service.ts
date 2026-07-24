@@ -39,20 +39,20 @@ export class CrmtasksService {
   }
 
   async findAll(user: User) {
-    const where: Prisma.CrmTaskWhereInput = {
-      user: {
-        subsidiaryId: user.subsidiaryId,
-      },
-    };
+    const isSuperAdmin = user.userRole === UserRole.SUPER_ADMIN;
+    const where: Prisma.CrmTaskWhereInput = isSuperAdmin
+      ? {}
+      : { user: { subsidiaryId: user.subsidiaryId } };
 
-    // Les utilisateurs standards (ex: COMMERCIAL) ne voient que leurs propres tâches.
-    const privilegedRoles: UserRole[] = [
-      UserRole.ADMIN,
-      UserRole.SECRETARY,
-      UserRole.FINANCIAL_DIRECTOR,
-    ];
-    if (!privilegedRoles.includes(user.userRole)) {
-      where.userId = user.id;
+    if (!isSuperAdmin) {
+      const privilegedRoles: UserRole[] = [
+        UserRole.ADMIN,
+        UserRole.SECRETARY,
+        UserRole.FINANCIAL_DIRECTOR,
+      ];
+      if (!privilegedRoles.includes(user.userRole)) {
+        where.userId = user.id;
+      }
     }
 
     return this.prisma.crmTask.findMany({

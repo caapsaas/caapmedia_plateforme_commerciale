@@ -49,8 +49,8 @@ const HrManagement: React.FC = () => {
 
         switch (activeTab) {
             case 'employees':
-                return <EmployeeDatabase 
-                            subsidiary={subsidiary} 
+                return <EmployeeDatabase
+                            subsidiary={subsidiary}
                             employees={employees}
                             onSave={onSaveEmployee}
                             onDelete={onDeleteEmployee}
@@ -58,18 +58,18 @@ const HrManagement: React.FC = () => {
             case 'attendance':
                 return <AttendanceManagement subsidiary={subsidiary} employees={employees} attendances={attendances} onSave={onSaveAttendance} />;
             case 'payroll':
-                return <PayrollManagement 
-                            subsidiary={subsidiary} 
-                            employees={employees} 
-                            payrolls={payrolls} 
+                return <PayrollManagement
+                            subsidiary={subsidiary}
+                            employees={employees}
+                            payrolls={payrolls}
                             onProcessPayroll={onProcessPayroll}
-                            onRecordPayment={() => {}} // TODO: Implémenter l'enregistrement de paiement
+                            onRecordPayment={() => {}}
                             onSaveSignature={onSaveSignature}
                         />;
             case 'absences':
-                return <AbsenceManagement 
-                            subsidiary={subsidiary} 
-                            employees={employees} 
+                return <AbsenceManagement
+                            subsidiary={subsidiary}
+                            employees={employees}
                             absences={absences}
                             onSave={onSaveAbsence}
                             onDelete={onDeleteAbsence}
@@ -103,7 +103,7 @@ const HrManagement: React.FC = () => {
                     <TabButton view="payroll" label={t('hr.tabs.payroll')} />
                 </div>
             </div>
-            
+
             <div>
                 {renderActiveView()}
             </div>

@@ -22,24 +22,18 @@ import {
   UpdateSpecificationDto,
 } from './dto/product-spec.dto';
 
-// Configuration réservée aux admins (Builder) ; la lecture de la définition
-// (form-definition) est ouverte à tout rôle amené à créer une commande.
+// Configuration réservée aux admins (Builder).
 const BUILDER_ROLES = [UserRole.ADMIN, UserRole.SUPER_ADMIN];
-const READ_ROLES = [
-  UserRole.ADMIN,
-  UserRole.SUPER_ADMIN,
-  UserRole.COMMERCIAL,
-  UserRole.CAISSIER,
-  UserRole.PRODUCTION_DIRECTOR,
-];
 
 @Controller('products')
 export class ProductSpecsController {
   constructor(private readonly productSpecsService: ProductSpecsService) {}
 
+  // Public (comme get-all-products/search-products) : ne contient aucune
+  // donnée sensible (juste le schéma de champs), et doit être consultable
+  // depuis le site vitrine (PriceCalculatorModal) sans authentification
+  // staff, en plus des écrans internes (NewOrder.tsx, Caisse.tsx).
   @Get(':id/form-definition')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(...READ_ROLES)
   getFormDefinition(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.productSpecsService.getFormDefinition(id);
   }

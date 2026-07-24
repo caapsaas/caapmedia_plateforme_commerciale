@@ -15,34 +15,44 @@ export class EquipementService {
     subsidiary: true,
   };
 
-  /**
-   *
-   * @param createEquipementDto // DTO contenant les données de l'équipement à créer
-   * @returns // Équipement créé
-   */
   async create(createEquipementDto: CreateEquipmentDto, user: any) {
+    const isSuperAdmin =
+      user.role === 'SUPER_ADMIN' || user.userRole === 'SUPER_ADMIN';
+    const subsidiaryId =
+      isSuperAdmin && createEquipementDto.subsidiaryId
+        ? createEquipementDto.subsidiaryId
+        : user.subsidiaryId;
+
+    const { subsidiaryId: _ignored, ...rest } = createEquipementDto;
     const equipment = await this.prisma.equipment.create({
       data: {
-        ...createEquipementDto,
-        lastMaintenanceDate: new Date(createEquipementDto.lastMaintenanceDate),
-        nextMaintenanceDate: new Date(createEquipementDto.nextMaintenanceDate),
-        acquisitionDate: new Date(createEquipementDto.acquisitionDate),
-        subsidiaryId: user.subsidiaryId,
+        ...rest,
+        lastMaintenanceDate: new Date(rest.lastMaintenanceDate),
+        nextMaintenanceDate: new Date(rest.nextMaintenanceDate),
+        acquisitionDate: new Date(rest.acquisitionDate),
+        subsidiaryId,
       },
       include: this.includeAll,
     });
     return equipment;
   }
 
-  /**
-   *
-   * @param subsidiaryId // ID de la filiale
-   * @returns // Liste des équipements de la filiale
-   */
-  async findAll(user: any) {
+  async findAll(user: any, querySubsidiaryId?: string) {
+    const isSuperAdmin =
+      user.role === 'SUPER_ADMIN' || user.userRole === 'SUPER_ADMIN';
+    const where = isSuperAdmin
+      ? querySubsidiaryId
+        ? { subsidiaryId: querySubsidiaryId }
+        : {}
+      : { subsidiaryId: user.subsidiaryId };
+
     const equipments = await this.prisma.equipment.findMany({
-      where: { subsidiaryId: user.subsidiaryId },
+      where,
       include: this.includeAll,
+      orderBy: [
+        { subsidiary: { subsidiaryName: 'asc' } },
+        { equipmentName: 'asc' },
+      ],
     });
     return equipments;
   }
@@ -71,15 +81,18 @@ export class EquipementService {
    */
   async update(id: string, updateEquipementDto: UpdateEquipmentDto, user: any) {
     await this.findOne(id);
+    const { subsidiaryId: _ignored, ...rest } = updateEquipementDto;
+    const data: any = { ...rest };
+    if (rest.lastMaintenanceDate)
+      data.lastMaintenanceDate = new Date(rest.lastMaintenanceDate);
+    if (rest.nextMaintenanceDate)
+      data.nextMaintenanceDate = new Date(rest.nextMaintenanceDate);
+    if (rest.acquisitionDate)
+      data.acquisitionDate = new Date(rest.acquisitionDate);
+
     const equipment = await this.prisma.equipment.update({
       where: { id },
-      data: {
-        ...updateEquipementDto,
-        subsidiaryId: user.subsidiaryId,
-        lastMaintenanceDate: new Date(updateEquipementDto.lastMaintenanceDate),
-        nextMaintenanceDate: new Date(updateEquipementDto.nextMaintenanceDate),
-        acquisitionDate: new Date(updateEquipementDto.acquisitionDate),
-      },
+      data,
       include: this.includeAll,
     });
     if (!equipment) {

@@ -95,6 +95,8 @@ model User {
   journalEntries                JournalEntry[]
   refreshTokens                 RefreshToken[]
   stockMovements                StockMovement[]
+  equipementCostConfigs         EquipementCostConfig[]         @relation("EquipementCostConfigUpdatedBy")
+  commercialParamsUpdates       CommercialParams[]             @relation("CommercialParamsUpdatedBy")
 
   @@map("users")
 }
@@ -175,6 +177,7 @@ model Notification {
 enum ItemType {
   SERVICE
   STOCK_PRODUCT
+  MACHINE
 }
 
 // Article unifié (Chantier 1) : un service vendu au client (type=SERVICE) ou
@@ -221,6 +224,8 @@ model Item {
   stockLevels          ItemStock[]
   // Journal des mouvements de stock (Chantier 3) — voir StockMovement.
   stockMovements       StockMovement[]
+  // Coût de production : workflow de fabrication par défaut associé à ce service.
+  productionWorkflow   ProductionWorkflow?
 
   @@unique([name, type])
   @@index([type])
@@ -753,9 +758,12 @@ model OrderItem {
   specSnapshot   Json?           @map("spec_snapshot")
   productId      String?         @map("product_id") @db.Uuid
   orderId        String?         @map("order_id") @db.Uuid
-  order          Order?          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product        Item?           @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productOptions ProductOption[]
+  order            Order?                      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product          Item?                       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productOptions   ProductOption[]
+  // Coût de production figé au moment de la commande (services uniquement).
+  productionSteps  OrderItemProductionStep[]
+  productionSummary OrderItemProductionSummary?
 
   @@index([productId])
   @@index([orderId])
@@ -1088,8 +1096,12 @@ model Equipment {
   acquisitionValue    Decimal             @map("acquisition_value") @db.Decimal(15, 2)
   subsidiaryId        String              @map("subsidiary_id") @db.Uuid
   status              EquipmentStatus
-  subsidiary          Subsidiary          @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  subsidiary          Subsidiary               @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
   maintenanceRecords  MaintenanceRecord[]
+  // Coût horaire d'utilisation (module coût de production) — table séparée.
+  costConfig          EquipementCostConfig?
+  workflowSteps       ProductionWorkflowStep[]
+  productionSteps     OrderItemProductionStep[]
 
   @@index([subsidiaryId])
   @@index([subsidiaryId, status])
@@ -1111,6 +1123,101 @@ model MaintenanceRecord {
   @@index([equipmentId, maintenanceDate])
   @@map("maintenance_records")
 }
+
+// ─── Module Coût de Production ────────────────────────────────────────────────
+
+// Coût horaire d'utilisation d'une machine (séparé du module Maintenance).
+// Le Super Admin renseigne cette valeur ; elle est figée dans chaque commande.
+model EquipementCostConfig {
+  id          String    @id @default(uuid()) @map("id") @db.Uuid
+  equipmentId String    @unique @map("equipment_id") @db.Uuid
+  hourlyRate  Decimal   @map("hourly_rate") @db.Decimal(15, 2)
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  updatedById String?   @map("updated_by_id") @db.Uuid
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  updatedBy   User?     @relation("EquipementCostConfigUpdatedBy", fields: [updatedById], references: [id])
+
+  @@map("equipement_cost_config")
+}
+
+// Workflow de fabrication global associé à un service.
+// Représente la liste ordonnée des machines utilisées habituellement.
+// Global : pas de subsidiaryId — un workflow s'applique à toutes les filiales.
+model ProductionWorkflow {
+  id          String                   @id @default(uuid()) @map("id") @db.Uuid
+  name        String                   @map("name") @db.VarChar(255)
+  description String?                  @map("description")
+  // Un service peut avoir au plus un workflow par défaut (relation 1-1 optionnelle).
+  itemId      String?                  @unique @map("item_id") @db.Uuid
+  isActive    Boolean                  @default(true) @map("is_active")
+  createdAt   DateTime                 @default(now()) @map("created_at")
+  updatedAt   DateTime                 @updatedAt @map("updated_at")
+  item        Item?                    @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  steps       ProductionWorkflowStep[]
+
+  @@map("production_workflows")
+}
+
+// Étape ordonnée d'un workflow (une machine à un rang donné).
+model ProductionWorkflowStep {
+  id          String             @id @default(uuid()) @map("id") @db.Uuid
+  workflowId  String             @map("workflow_id") @db.Uuid
+  equipmentId String             @map("equipment_id") @db.Uuid
+  stepOrder   Int                @map("step_order")
+  workflow    ProductionWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  equipment   Equipment          @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowId, stepOrder])
+  @@index([workflowId])
+  @@map("production_workflow_steps")
+}
+
+// Paramètres commerciaux globaux (singleton — une seule ligne en base).
+// Définit l'intervalle de marge autorisé que les commerciaux peuvent appliquer.
+model CommercialParams {
+  id               String   @id @default(uuid()) @map("id") @db.Uuid
+  minMarginPercent Decimal  @map("min_margin_percent") @db.Decimal(5, 2)
+  maxMarginPercent Decimal  @map("max_margin_percent") @db.Decimal(5, 2)
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  updatedById      String?  @map("updated_by_id") @db.Uuid
+  updatedBy        User?    @relation("CommercialParamsUpdatedBy", fields: [updatedById], references: [id])
+
+  @@map("commercial_params")
+}
+
+// Étape de production figée dans une ligne de commande (instantané historique).
+// Créée à la validation de la commande — jamais modifiée ensuite.
+model OrderItemProductionStep {
+  id                    String    @id @default(uuid()) @map("id") @db.Uuid
+  orderItemId           String    @map("order_item_id") @db.Uuid
+  equipmentId           String    @map("equipment_id") @db.Uuid
+  // Snapshot du nom de la machine au moment de la commande.
+  equipmentNameSnapshot String    @map("equipment_name_snapshot") @db.VarChar(255)
+  stepOrder             Int       @map("step_order")
+  estimatedTimeHours    Decimal   @map("estimated_time_hours") @db.Decimal(5, 2)
+  // Snapshot du coût horaire au moment de la commande.
+  hourlyRateSnapshot    Decimal   @map("hourly_rate_snapshot") @db.Decimal(15, 2)
+  calculatedCost        Decimal   @map("calculated_cost") @db.Decimal(15, 2)
+  orderItem             OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  equipment             Equipment @relation(fields: [equipmentId], references: [id])
+
+  @@index([orderItemId])
+  @@map("order_item_production_steps")
+}
+
+// Résumé financier de production figé dans une ligne de commande.
+model OrderItemProductionSummary {
+  id                  String    @id @default(uuid()) @map("id") @db.Uuid
+  orderItemId         String    @unique @map("order_item_id") @db.Uuid
+  totalProductionCost Decimal   @map("total_production_cost") @db.Decimal(15, 2)
+  marginPercent       Decimal   @map("margin_percent") @db.Decimal(5, 2)
+  finalPrice          Decimal   @map("final_price") @db.Decimal(15, 2)
+  orderItem           OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@map("order_item_production_summary")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 model AbsenceRecord {
   id           String      @id @default(uuid()) @map("id") @db.Uuid

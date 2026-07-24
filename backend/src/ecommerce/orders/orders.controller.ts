@@ -120,17 +120,47 @@ export class OrdersController {
   }
 
   /**
-   * Endpoint pour récupérer une commande par son ID
-   * Exemple d'URL : /ecommerce/orders/:id
+   * Commandes en attente de validation par le directeur de production.
+   * Doit être déclaré AVANT `:id`.
+   * Exemple d'URL : GET /ecommerce/orders/pending-validation
    */
-  @Get(':id')
-  @UseGuards(ContactJwtAuthGuard)
-  findOne(@Param('id') id: string, @Req() req) {
-    return this.ordersService.findOne(id, req.user);
+  @Get('pending-validation')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR, UserRole.SUPER_ADMIN)
+  findPendingValidation(
+    @Req() req,
+    @Query('subsidiaryId') subsidiaryId?: string,
+  ) {
+    return this.ordersService.findPendingValidation(req.user, subsidiaryId);
+  }
+
+  /**
+   * Valide une commande pour qu'elle entre en production.
+   * Doit être déclaré AVANT `:id`.
+   * Exemple d'URL : PATCH /ecommerce/orders/validate-production/:id
+   */
+  @Patch('validate-production/:id')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR)
+  validateForProduction(@Param('id') id: string, @Req() req) {
+    return this.ordersService.validateForProduction(id, req.user);
+  }
+
+  /**
+   * Rejette une commande (retour au commercial).
+   * Doit être déclaré AVANT `:id`.
+   * Exemple d'URL : PATCH /ecommerce/orders/reject-order/:id
+   */
+  @Patch('reject-order/:id')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR)
+  rejectOrder(@Param('id') id: string, @Req() req) {
+    return this.ordersService.rejectByProductionDirector(id, req.user);
   }
 
   /**
    * Endpoint pour récupérer les meilleures ventes
+   * Doit être déclaré AVANT `:id` sinon NestJS route `analytics/top-selling` vers `findOne`.
    * Exemple d'URL : /ecommerce/orders/analytics/top-selling
    */
   @Get('analytics/top-selling')
@@ -142,8 +172,18 @@ export class OrdersController {
     UserRole.FINANCIAL_DIRECTOR,
     UserRole.CAISSIER,
   )
-  findTopSellingProducts(@Req() req) {
-    return this.ordersService.getBestSellingProducts(req.user);
+  findTopSellingProducts(@Query() query: FindAllOrdersDto, @Req() req) {
+    return this.ordersService.getBestSellingProducts(req.user, query);
+  }
+
+  /**
+   * Endpoint pour récupérer une commande par son ID
+   * Exemple d'URL : /ecommerce/orders/:id
+   */
+  @Get(':id')
+  @UseGuards(ContactJwtAuthGuard)
+  findOne(@Param('id') id: string, @Req() req) {
+    return this.ordersService.findOne(id, req.user);
   }
 
   /**

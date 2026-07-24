@@ -38,30 +38,77 @@
     "cancel": "Annuler",
     "save": "Enregistrer",
     "delete": "Supprimer",
+    "edit": "Modifier",
+    "actions": "Actions",
     "logout": "Déconnexion",
     "version": "Version",
     "print": "Imprimer",
     "exportPdf": "Exporter en PDF",
     "loading": "Chargement...",
-    "saving": "Enregistrement..."
+    "saving": "Enregistrement...",
+    "accessDenied": "Accès refusé",
+    "viewBL": "Voir le bon de livraison",
+    "error": {
+      "load": "Erreur lors du chargement des données."
+    }
+  },
+  "login": {
+    "errorSelectSubsidiary": "Veuillez sélectionner une filiale."
   },
   "configuration": {
     "title": "Configuration",
     "products": "Produits",
+    "productManagement": "Produits",
     "services": "Services",
     "referenceLists": "Référentiels",
     "addService": "Ajouter un service",
+    "addProduct": "Ajouter un produit",
+    "addUser": "Ajouter un utilisateur",
+    "addSupplier": "Ajouter un fournisseur",
+    "addTax": "Ajouter une taxe",
+    "addClient": "Ajouter un client",
     "users": "Utilisateurs",
+    "userManagement": "Utilisateurs",
     "suppliers": "Fournisseurs",
+    "supplierManagement": "Fournisseurs",
     "clientManagement": "Clients",
     "taxes": "Taxes",
+    "taxManagement": "Taxes",
     "treasury": "Trésorerie",
+    "units": "Unités",
+    "equipmentCosts": "Coûts machines",
+    "commercialParams": "Params commerciaux",
+    "productionWorkflows": "Workflows",
+    "name": "Nom",
+    "phone": "Téléphone",
+    "email": "Email",
+    "role": "Rôle",
+    "company": "Entreprise",
+    "category": "Catégorie",
+    "stock": "Stock",
+    "productId": "Référence produit",
     "modal": {
       "editEmployeeTitle": "Modifier l'employé",
       "addEmployeeTitle": "Ajouter un employé",
-      "editServiceTitle": "Modifier le service",
       "addServiceTitle": "Ajouter un service",
-      "deleteServiceTitle": "Supprimer le service"
+      "editServiceTitle": "Modifier le service",
+      "deleteServiceTitle": "Supprimer le service",
+      "addProductTitle": "Ajouter un produit",
+      "editProductTitle": "Modifier le produit",
+      "deleteProductTitle": "Supprimer le produit",
+      "addUserTitle": "Ajouter un utilisateur",
+      "editUserTitle": "Modifier l'utilisateur",
+      "deleteUserTitle": "Supprimer l'utilisateur",
+      "addSupplierTitle": "Ajouter un fournisseur",
+      "editSupplierTitle": "Modifier le fournisseur",
+      "deleteSupplierTitle": "Supprimer le fournisseur",
+      "addTaxTitle": "Ajouter une taxe",
+      "editTaxTitle": "Modifier la taxe",
+      "deleteTaxTitle": "Supprimer la taxe",
+      "addClientTitle": "Ajouter un client",
+      "editClientTitle": "Modifier le client",
+      "deleteClientTitle": "Supprimer le client",
+      "deleteConfirmMessage": "Cette action est irréversible. Êtes-vous sûr ?"
     },
     "serviceForm": {
       "name": "Nom",
@@ -86,6 +133,26 @@
         "documents": "Documents",
         "leaves": "Congés"
       },
+      "name": "Nom",
+      "description": "Description",
+      "category": "Catégorie",
+      "company": "Entreprise",
+      "range": "Gamme",
+      "rate": "Taux",
+      "since": "Depuis",
+      "stock": "Stock",
+      "warehouse": "Entrepôt",
+      "costPrice": "Prix de revient",
+      "baseUnit": "Unité de base",
+      "conversionFactor": "Facteur de conversion",
+      "selectUnit": "Sélectionner une unité",
+      "isDefault": "Par défaut",
+      "minThreshold": "Seuil minimum",
+      "packagingUnits": "Unités de conditionnement",
+      "packagingUnitsHelp": "Définissez les unités de conditionnement (ex: carton de 24)",
+      "generateWithAI": "Générer avec l'IA",
+      "passwordRequired": "Mot de passe requis",
+      "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
       "firstName": "Prénom",
       "lastName": "Nom",
       "birthDate": "Date de naissance",
@@ -105,7 +172,111 @@
       "bonus": "Prime",
       "benefits": "Avantages",
       "paymentMethod": "Méthode de paiement"
+    },
+    "unitsManagement": {
+      "title": "Unités de mesure",
+      "subtitle": "Gérez les unités utilisées pour les produits et le stock.",
+      "addNew": "Nouvelle unité",
+      "empty": "Aucune unité définie.",
+      "name": "Nom",
+      "namePlaceholder": "ex: Kilogramme",
+      "symbol": "Symbole",
+      "symbolPlaceholder": "ex: kg",
+      "create": "Créer",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "createError": "Erreur lors de la création de l'unité.",
+      "deleteError": "Erreur lors de la suppression de l'unité."
     }
+  },
+  "specBuilder": {
+    "builder": {
+      "cancel": "Annuler",
+      "confirmDeleteGroup": "Supprimer ce groupe et tous ses champs ?",
+      "confirmDeleteSpec": "Supprimer ce champ de spécification ?",
+      "fieldsTitle": "Champs",
+      "loadError": "Erreur lors du chargement de la configuration.",
+      "loading": "Chargement...",
+      "newGroupPlaceholder": "Nom du groupe",
+      "noFields": "Aucun champ défini. Ajoutez un groupe pour commencer.",
+      "previewTitle": "Aperçu"
+    },
+    "card": {
+      "reorder": "Réorganiser",
+      "required": "Requis"
+    },
+    "drawer": {
+      "addOption": "Ajouter une option",
+      "addTitle": "Ajouter un champ",
+      "cancel": "Annuler",
+      "dimensionsConfigTitle": "Configuration des dimensions",
+      "dimMaxHeight": "Hauteur max",
+      "dimMaxWidth": "Largeur max",
+      "dimMinHeight": "Hauteur min",
+      "dimMinWidth": "Largeur min",
+      "editableAfterValidation": "Modifiable après validation",
+      "editTitle": "Modifier le champ",
+      "fieldRequired": "Ce champ est obligatoire",
+      "group": "Groupe",
+      "helpText": "Texte d'aide",
+      "internalDescription": "Description interne",
+      "name": "Nom du champ",
+      "nameRequired": "Le nom du champ est requis",
+      "noGroup": "— Aucun groupe —",
+      "optionLabelPlaceholder": "Libellé",
+      "optionsSourceInline": "Options en ligne",
+      "optionsSourceReference": "Référentiel",
+      "optionValuePlaceholder": "Valeur",
+      "placeholder": "Placeholder",
+      "possibleValues": "Valeurs possibles",
+      "required": "Champ requis",
+      "save": "Enregistrer",
+      "searchable": "Recherchable",
+      "selectReferenceList": "— Sélectionner un référentiel —",
+      "technicalKey": "Clé technique",
+      "technicalKeyPattern": "Lettres minuscules, chiffres et underscore uniquement",
+      "technicalKeyPlaceholder": "ex: grammage_papier",
+      "technicalKeyRequired": "La clé technique est requise",
+      "type": "Type de champ",
+      "unit": "Unité",
+      "uploadConfigTitle": "Configuration de l'upload",
+      "uploadExtensions": "Extensions acceptées",
+      "uploadExtensionsPlaceholder": "ex: .jpg,.png,.pdf",
+      "uploadMaxFiles": "Nombre max de fichiers",
+      "uploadMaxSize": "Taille max (Mo)",
+      "visibleToClient": "Visible pour le client",
+      "visibleToProduction": "Visible en production"
+    },
+    "groupList": {
+      "addField": "Ajouter un champ",
+      "addGroup": "Ajouter un groupe",
+      "deleteGroupTooltip": "Supprimer le groupe",
+      "emptyGroup": "Aucun champ dans ce groupe",
+      "noGroup": "Aucun groupe défini. Cliquez sur \"Ajouter un groupe\" pour commencer."
+    },
+    "referenceLists": {
+      "title": "Listes de référence",
+      "subtitle": "Gérez les listes de valeurs réutilisables pour les spécifications des services.",
+      "addNew": "Ajouter un référentiel",
+      "empty": "Aucun référentiel défini.",
+      "displayName": "Nom d'affichage",
+      "displayNamePlaceholder": "ex: Formats papier",
+      "technicalKey": "Clé technique",
+      "technicalKeyPlaceholder": "ex: formats_papier",
+      "labelPlaceholder": "Libellé (ex: A4)",
+      "valuePlaceholder": "Valeur (ex: a4)",
+      "valueCount": "{{count}} valeur(s)",
+      "create": "Créer",
+      "cancel": "Annuler",
+      "createError": "Erreur lors de la création du référentiel."
+    }
+  },
+  "productRange": {
+    "none": "Sans gamme"
+  },
+  "stock": {
+    "costPrice": "Prix de revient",
+    "range": "Gamme"
   },
   "hr": {
     "gender": {
@@ -263,7 +434,9 @@
       "validBalance": "Veuillez entrer un solde valide"
     },
     "confirm": {
-      "delete": "Êtes-vous sûr de vouloir supprimer ce compte de trésorerie ?"
+      "delete": "Êtes-vous sûr de vouloir supprimer ce compte de trésorerie ?",
+      "deleteWithBalance": "Ce compte a un solde non nul. Êtes-vous sûr de vouloir le supprimer ?",
+      "forceDelete": "Supprimer quand même (irréversible)"
     },
     "success": {
       "created": "Compte de trésorerie créé avec succès",
@@ -274,7 +447,216 @@
       "loading": "Erreur lors du chargement des comptes de trésorerie",
       "create": "Erreur lors de la création du compte de trésorerie",
       "update": "Erreur lors de la mise à jour du compte de trésorerie",
-      "delete": "Erreur lors de la suppression du compte de trésorerie"
+      "delete": "Erreur lors de la suppression du compte de trésorerie",
+      "deleteWithTransactions": "Impossible de supprimer : ce compte a des transactions associées.",
+      "forceDeleteFailed": "La suppression forcée a échoué."
     }
+  },
+  "production": {
+    "equipmentCosts": {
+      "title": "Coût horaire par machine",
+      "subtitle": "Définissez le taux horaire de chaque équipement. Ces taux sont utilisés pour calculer le coût de production des commandes de services.",
+      "allSubsidiaries": "Toutes les filiales",
+      "colMachine": "Machine",
+      "colStatus": "Statut",
+      "colSubsidiary": "Filiale",
+      "colHourlyRate": "Taux horaire (F CFA/h)",
+      "colAction": "Action",
+      "notConfigured": "Non configuré",
+      "noEquipment": "Aucun équipement trouvé.",
+      "saveError": "Erreur lors de la sauvegarde.",
+      "invalidRate": "Taux horaire invalide.",
+      "configure": "Configurer",
+      "modify": "Modifier"
+    },
+    "commercialParams": {
+      "title": "Paramètres commerciaux globaux",
+      "subtitle": "Définissez la plage de marge autorisée pour les devis de services. Le commercial doit saisir un pourcentage de marge dans cette plage lors de la création d'une commande.",
+      "notConfigured": "Aucun paramètre configuré. Définissez les marges pour activer le module de coût de production.",
+      "minMargin": "Marge minimale (%)",
+      "maxMargin": "Marge maximale (%)",
+      "rangeHint": "Le commercial devra saisir une marge entre {{min}}% et {{max}}%.",
+      "saveError": "Erreur lors de la sauvegarde.",
+      "invalidValues": "Valeurs invalides.",
+      "outOfRange": "Les marges doivent être entre 0% et 100%.",
+      "minGtMax": "La marge minimale doit être inférieure à la marge maximale.",
+      "success": "Paramètres enregistrés avec succès.",
+      "create": "Créer",
+      "update": "Mettre à jour",
+      "lastModified": "Dernière modification : {{date}}"
+    },
+    "workflows": {
+      "title": "Workflows de production",
+      "subtitle": "Définissez les séquences de machines pour chaque service. Le commercial les retrouve pré-remplies lors d'une nouvelle commande.",
+      "newWorkflow": "Nouveau workflow",
+      "allSubsidiaries": "Toutes les filiales",
+      "noWorkflow": "Aucun workflow défini.",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "linkedService": "Service lié : {{name}}",
+      "noSteps": "Aucune étape",
+      "form": {
+        "createTitle": "Nouveau workflow",
+        "editTitle": "Modifier le workflow",
+        "name": "Nom",
+        "namePlaceholder": "ex. Impression offset standard",
+        "description": "Description",
+        "linkedService": "Service lié (optionnel)",
+        "noLinkedService": "— Aucun service lié —",
+        "isActive": "Workflow actif",
+        "steps": "Étapes (machines)",
+        "addStep": "Ajouter",
+        "chooseEquipment": "— Choisir une machine —",
+        "noStepsDefined": "Cliquez sur \"Ajouter\" pour définir des étapes.",
+        "nameRequired": "Le nom est requis.",
+        "equipmentRequired": "Chaque étape doit avoir une machine sélectionnée.",
+        "createError": "Erreur lors de la création.",
+        "editError": "Erreur lors de la modification.",
+        "update": "Mettre à jour"
+      },
+      "deleteConfirm": {
+        "title": "Supprimer le workflow",
+        "message": "Cette action est irréversible. Les commandes existantes ne seront pas affectées."
+      }
+    },
+    "costModal": {
+      "title": "Coût de production",
+      "prefilledWorkflow": "Workflow pré-rempli : {{name}}",
+      "stepsTitle": "Étapes de production",
+      "addMachine": "Ajouter une machine",
+      "noSteps": "Aucune étape. Ajoutez une machine ou sélectionnez un service avec un workflow.",
+      "chooseMachine": "— Machine —",
+      "hoursPlaceholder": "Heures",
+      "totalCost": "Coût total de production",
+      "margin": "Marge (%) *",
+      "marginRange": "Plage autorisée : {{min}}% – {{max}}%",
+      "finalPrice": "Prix final (= prix de la ligne)",
+      "priceNote": "Ce montant sera appliqué comme prix unitaire sur la ligne de commande.",
+      "confirmButton": "Confirmer le coût",
+      "noStepsError": "Ajoutez au moins une étape de production.",
+      "noEquipmentError": "Chaque étape doit avoir une machine sélectionnée.",
+      "invalidTimeError": "Saisissez un temps valide (> 0) pour chaque étape.",
+      "noMarginError": "Saisissez un pourcentage de marge.",
+      "marginRangeError": "La marge doit être entre {{min}}% et {{max}}%."
+    }
+  },
+  "equipment": {
+    "title": "Machines / Équipements",
+    "subtitle": "Gérez le parc de machines de production. Définissez ensuite les coûts horaires pour l'utiliser dans les workflows.",
+    "addButton": "Ajouter une machine",
+    "addTitle": "Ajouter une machine",
+    "editTitle": "Modifier la machine",
+    "name": "Nom de la machine",
+    "status": {
+      "OPERATIONAL": "Opérationnelle",
+      "NEEDS_MAINTENANCE": "Maintenance requise",
+      "OUT_OF_SERVICE": "Hors service"
+    },
+    "lastMaintenance": "Dernière maintenance",
+    "nextMaintenance": "Prochaine maintenance",
+    "acquisitionDate": "Date d'acquisition",
+    "acquisitionValue": "Valeur d'acquisition",
+    "noEquipment": "Aucune machine enregistrée.",
+    "saved": "Machine sauvegardée",
+    "createdMsg": "La machine a été ajoutée avec succès.",
+    "updatedMsg": "La machine a été mise à jour.",
+    "deleted": "Machine supprimée",
+    "deletedMsg": "La machine a été supprimée.",
+    "saveError": "Impossible de sauvegarder la machine.",
+    "deleteError": "Impossible de supprimer la machine.",
+    "deleteConfirm": {
+      "title": "Supprimer la machine",
+      "message": "Voulez-vous supprimer « {{name}} » ? Cette action est irréversible."
+    },
+    "statusLabel": "Statut"
+  },
+  "myOrders": {
+    "historyTab": "Historique",
+    "newOrderTab": "Nouvelle commande"
+  },
+  "sales": {
+    "orderHistoryTitle": "Historique des commandes",
+    "paymentOverdue": "Paiement en retard",
+    "statusIssue": "Commande annulée",
+    "validateForProduction": "Valider pour production",
+    "topSellingProducts": {
+      "title": "Produits les plus vendus",
+      "product": "Produit",
+      "quantity": "Quantité",
+      "revenue": "Chiffre d'affaires"
+    }
+  },
+  "analytics": {
+    "allSubsidiaries": "Toutes les filiales"
+  },
+  "crm": {
+    "allCommercials": "Tous les commerciaux"
+  },
+  "filter": {
+    "client": "Client",
+    "allClients": "Tous les clients",
+    "product": "Produit",
+    "allProducts": "Tous les produits",
+    "orderStatus": "Statut commande",
+    "allOrderStatuses": "Tous les statuts",
+    "paymentStatus": "Statut paiement",
+    "allPaymentStatuses": "Tous les statuts",
+    "reset": "Réinitialiser",
+    "apply": "Appliquer",
+    "noResults": "Aucun résultat trouvé."
+  },
+  "order": {
+    "orderId": "N° commande",
+    "customer": "Client",
+    "date": "Date",
+    "total": "Total",
+    "amountPaid": "Montant payé",
+    "remainingBalance": "Reste à payer",
+    "paymentStatus": "Paiement",
+    "orderStatus": "Statut",
+    "recordPayment": "Enregistrer un paiement",
+    "updateStatus": "Modifier le statut",
+    "status_NEW": "Nouvelle",
+    "status_IN_PRODUCTION": "En production",
+    "status_PENDING_VALIDATION": "En attente de validation",
+    "status_COMPLETED": "Terminée",
+    "status_DELIVERED": "Livrée",
+    "status_PENDING_DELIVERY": "En attente de livraison",
+    "status_CANCELLED": "Annulée",
+    "paymentStatus_PAID": "Payé",
+    "paymentStatus_UNPAID": "Impayé",
+    "paymentStatus_PARTIALLY_PAID": "Partiellement payé"
+  },
+  "invoice": {
+    "subtotal": "Sous-total HT",
+    "tax": "TVA",
+    "viewInvoice": "Voir la facture"
+  },
+  "cashRegister": {
+    "clientSection": {
+      "selectAdd": "Sélectionner un client"
+    }
+  },
+  "newOrder": {
+    "productCatalog": "Catalogue produits",
+    "searchPlaceholder": "Rechercher un produit...",
+    "product": "Produit",
+    "quantity": "Quantité",
+    "addToCart": "Ajouter",
+    "orderSummary": "Résumé de commande",
+    "orderPlacedSuccess": "Commande passée avec succès !",
+    "cartEmpty": "Le panier est vide.",
+    "searchClientOtherSubsidiary": "Chercher un client d'une autre filiale...",
+    "total": "Total TTC",
+    "discount": "Remise (FCFA)",
+    "submitOrder": "Passer la commande",
+    "paymentMethod": "Méthode de paiement",
+    "paymentMethod_PAY_ON_DELIVERY": "Paiement à la livraison",
+    "paymentMethod_CARD": "Carte bancaire",
+    "paymentMethod_ORANGE_MONEY": "Orange Money",
+    "paymentMethod_WAVE": "Wave",
+    "paymentMethod_MOBILE_MONEY": "Mobile Money",
+    "paymentMethod_PAYCAAP": "PayCaap",
+    "paymentMethod_CUSTOMER_CREDIT": "Crédit client"
   }
 }

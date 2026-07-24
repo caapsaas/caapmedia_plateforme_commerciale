@@ -8,8 +8,8 @@ const BASE_URL = '/purchase/stock-items';
  * Récupère les produits de stock (matières premières/consommables) de la filiale
  * de l'utilisateur connecté.
  */
-export const getStockItemsBySubsidiary = async (): Promise<StockItem[]> => {
-    const { data } = await api.get(BASE_URL);
+export const getStockItemsBySubsidiary = async (subsidiaryId?: string): Promise<StockItem[]> => {
+    const { data } = await api.get(BASE_URL, { params: subsidiaryId ? { subsidiaryId } : undefined });
     return data;
 };
 

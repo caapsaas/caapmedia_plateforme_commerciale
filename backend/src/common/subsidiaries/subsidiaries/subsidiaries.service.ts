@@ -208,11 +208,10 @@ export class SubsidiaryService {
     role: UserRole;
     subsidiaryId: string;
   }) {
-    // Les admins peuvent voir toutes les filiales, les autres sont limités à leur filiale
-    const where =
-      currentUser.role === UserRole.ADMIN
-        ? {}
-        : { id: currentUser.subsidiaryId };
+    const isGlobalScope =
+      currentUser.role === UserRole.ADMIN ||
+      currentUser.role === UserRole.SUPER_ADMIN;
+    const where = isGlobalScope ? {} : { id: currentUser.subsidiaryId };
 
     const subsidiaries = await this.prisma.subsidiary.findMany({
       where,
@@ -242,11 +241,10 @@ export class SubsidiaryService {
     query: { subsidiaryName?: string; email?: string },
     currentUser: { id: string; role: UserRole; subsidiaryId: string },
   ) {
-    // Construire les conditions de recherche
-    const where: any =
-      currentUser.role === UserRole.ADMIN
-        ? {}
-        : { id: currentUser.subsidiaryId };
+    const isGlobalScope =
+      currentUser.role === UserRole.ADMIN ||
+      currentUser.role === UserRole.SUPER_ADMIN;
+    const where: any = isGlobalScope ? {} : { id: currentUser.subsidiaryId };
     if (query.subsidiaryName) {
       where.subsidiaryName = {
         contains: query.subsidiaryName,

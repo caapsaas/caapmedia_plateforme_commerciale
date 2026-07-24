@@ -105,7 +105,7 @@ const SidebarDropdown: React.FC<SidebarDropdownProps> = ({
               <span className={`shrink-0 transition-colors duration-200 ${hasActiveItem || isOpen ? 'text-[#c6e911]' : 'text-gray-400 group-hover:text-white'}`}>
                 {icon}
               </span>
-              <span className="font-medium text-sm tracking-wide truncate">{title}</span>
+              <span className="font-medium text-xs tracking-wide truncate">{title}</span>
             </div>
             <ChevronDown className={`h-4 w-4 shrink-0 transition-all duration-200 ${isOpen ? 'rotate-180 text-[#c6e911]' : 'text-gray-500'}`} />
           </button>
@@ -131,7 +131,7 @@ const SidebarDropdown: React.FC<SidebarDropdownProps> = ({
                   <span className={`transition-colors duration-200 ${isActive ? 'text-[#c6e911]' : 'text-gray-500 group-hover:text-white'}`}>
                     {item.icon}
                   </span>
-                  <span className="text-sm font-medium whitespace-nowrap">{item.label}</span>
+                  <span className="text-xs font-medium whitespace-nowrap">{item.label}</span>
                 </Link>
               </div>
             );
@@ -164,7 +164,7 @@ const SidebarDropdown: React.FC<SidebarDropdownProps> = ({
                   <span className={`transition-colors duration-200 ${isActive ? 'text-[#c6e911]' : 'text-gray-500'}`}>
                     {item.icon}
                   </span>
-                  <span className="text-sm font-medium whitespace-nowrap">{item.label}</span>
+                  <span className="text-xs font-medium whitespace-nowrap">{item.label}</span>
                 </Link>
               );
             })}

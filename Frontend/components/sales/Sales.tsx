@@ -35,7 +35,10 @@ import {
 } from "../../services/apiE-commerce/apiOrders";
 import { getServicesCatalog } from "../../services/apiE-commerce/apiProducts";
 import { getContacts } from "../../services/apiCrm/apicontacts";
+import { getAllUsers } from "../../services/apiCommon/apiUserAuth";
+import { getSubsidiaries } from "../../services/apiCommon/apiSubsidiaries";
 import { useAuth } from "../../context/AuthContext";
+import { UserRole } from "../../types";
 
 const initialFilterState: FindAllOrdersDto = { period: "all_time" };
 const getPeriodDates = (period: FindAllOrdersDto["period"]) => {
@@ -122,6 +125,13 @@ const Sales: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<"history" | "new">("history");
 
+  const effectiveRole = user?.activeRole ?? user?.userRole;
+  const hasGlobalScope = effectiveRole === UserRole.SUPER_ADMIN;
+  const canFilterByCommercial =
+    effectiveRole === UserRole.SUPER_ADMIN ||
+    effectiveRole === UserRole.ADMIN ||
+    effectiveRole === UserRole.FINANCIAL_DIRECTOR;
+
   // --- TanStack Query Data Fetching ---
   const { data: contacts = [] } = useQuery<Contact[]>({
     queryKey: ["contacts", subsidiary?.id],
@@ -137,10 +147,38 @@ const Sales: React.FC = () => {
     enabled: !!subsidiary,
   });
 
-  // State for filters
+  const { data: subsidiariesList = [] } = useQuery({
+    queryKey: ["subsidiaries"],
+    queryFn: getSubsidiaries,
+    enabled: hasGlobalScope,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["users"],
+    queryFn: getAllUsers,
+    enabled: canFilterByCommercial,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // State for filters — doit être déclaré avant les useMemo qui en dépendent
   const [filters, setFilters] = useState<FindAllOrdersDto>(initialFilterState);
   const [appliedFilters, setAppliedFilters] =
     useState<FindAllOrdersDto>(initialFilterState);
+
+  const commercialOptions = useMemo(() => {
+    return allUsers
+      .filter((u: any) => {
+        const isCommercial =
+          u.userRole === UserRole.COMMERCIAL ||
+          (u.additionalRoles ?? []).includes(UserRole.COMMERCIAL);
+        if (!isCommercial) return false;
+        if (hasGlobalScope && filters.subsidiaryId) return u.subsidiaryId === filters.subsidiaryId;
+        if (!hasGlobalScope) return u.subsidiaryId === subsidiary?.id;
+        return true;
+      })
+      .map((u: any) => ({ value: u.id, label: u.userName ?? u.email }));
+  }, [allUsers, hasGlobalScope, filters.subsidiaryId, subsidiary?.id]);
 
   const { data: filteredOrders = [], isLoading: isLoadingOrders } = useQuery<
     Order[]
@@ -154,8 +192,17 @@ const Sales: React.FC = () => {
     data: topSellingProducts = [],
     isLoading: isLoadingTopSellingProducts,
   } = useQuery<TopSellingProduct[]>({
-    queryKey: ["top-selling-products", subsidiary?.id],
-    queryFn: () => getTopSellingProducts(),
+    queryKey: [
+      "top-selling-products",
+      subsidiary?.id,
+      appliedFilters.subsidiaryId,
+      appliedFilters.salesRepId,
+    ],
+    queryFn: () =>
+      getTopSellingProducts({
+        subsidiaryId: appliedFilters.subsidiaryId,
+        salesRepId: appliedFilters.salesRepId,
+      }),
     enabled: !!subsidiary,
   });
 
@@ -264,6 +311,7 @@ const Sales: React.FC = () => {
   );
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
   const [blOrder, setBlOrder] = useState<Order | null>(null);
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
   // State for UI toggles
   const [showOrderHistory, setShowOrderHistory] = useState(true);
@@ -320,6 +368,19 @@ const Sales: React.FC = () => {
     }
   };
 
+  const formatDate = (raw?: string | null) => {
+    if (!raw) return '—';
+    const d = new Date(raw);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('fr-FR');
+  };
+
+  const getPaymentMethodLabel = (method?: CustomerPaymentMethod) => {
+    if (!method) return '—';
+    const key = `newOrder.paymentMethod_${method}`;
+    const label = t(key as any);
+    return label !== key ? label : method;
+  };
+
   const getOrderStatusClass = (status: OrderStatus) => {
     switch (status) {
       case OrderStatus.COMPLETED:
@@ -359,10 +420,12 @@ const Sales: React.FC = () => {
         <h2 className="text-3xl font-bold text-slate-800">
           {t("sidebar.orders")}
         </h2>
-        <div className="flex items-center space-x-2 p-1 bg-slate-200 rounded-lg self-start sm:self-center">
-          <TabButton view="history" label={t("myOrders.historyTab")} />
-          <TabButton view="new" label={t("myOrders.newOrderTab")} />
-        </div>
+        {!hasGlobalScope && (
+          <div className="flex items-center space-x-2 p-1 bg-slate-200 rounded-lg self-start sm:self-center">
+            <TabButton view="history" label={t("myOrders.historyTab")} />
+            <TabButton view="new" label={t("myOrders.newOrderTab")} />
+          </div>
+        )}
       </div>
 
       {activeTab === "history" && (
@@ -382,8 +445,39 @@ const Sales: React.FC = () => {
             </button>
             {showOrderHistory && (
               <div className="p-6 pt-0">
-                <div className="p-4 bg-slate-50 rounded-lg -mx-6 px-6 -mt-0 pt-6">
+                <div className="bg-slate-50 rounded-lg px-4 my-6 py-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {hasGlobalScope && subsidiariesList.length > 0 && (
+                      <SelectFilter
+                        name="subsidiaryId"
+                        label={t("analytics.allSubsidiaries")}
+                        value={filters.subsidiaryId || ""}
+                        onChange={(e) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            subsidiaryId: e.target.value,
+                            salesRepId: "",
+                          }))
+                        }
+                        options={(subsidiariesList as any[]).map((s) => ({ value: s.id, label: s.subsidiaryName }))}
+                        placeholder={t("analytics.allSubsidiaries")}
+                      />
+                    )}
+                    {canFilterByCommercial && commercialOptions.length > 0 && (
+                      <SelectFilter
+                        name="salesRepId"
+                        label={t("crm.allCommercials")}
+                        value={filters.salesRepId || ""}
+                        onChange={(e) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            salesRepId: e.target.value,
+                          }))
+                        }
+                        options={commercialOptions}
+                        placeholder={t("crm.allCommercials")}
+                      />
+                    )}
                     <SelectFilter
                       name="customerId"
                       label={t("filter.client")}
@@ -497,187 +591,211 @@ const Sales: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="overflow-x-auto">
-  {isLoadingOrders || isLoadingProducts || !contacts ? (
-    <table className="w-full text-sm text-left text-slate-500">
-      <thead className="text-xs text-slate-700 uppercase bg-slate-50">
-        <tr>
-          <th className="px-6 py-3">{t("order.orderId")}</th>
-          <th className="px-6 py-3">{t("order.customer")}</th>
-          <th className="px-6 py-3">{t("order.date")}</th>
-          <th className="px-6 py-3 text-right">{t("order.total")}</th>
-          <th className="px-6 py-3 text-right">{t("order.amountPaid")}</th>
-          <th className="px-6 py-3 text-right">{t("order.remainingBalance")}</th>
-          <th className="px-6 py-3 text-center">{t("order.paymentStatus")}</th>
-          <th className="px-6 py-3 text-center">{t("order.orderStatus")}</th>
-          <th className="px-6 py-3 text-center">{t("common.actions")}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {Array.from({ length: 4 }).map((_, i) => (
-          <tr key={i} className="bg-white border-b" style={{ opacity: 1 - i * 0.1 }}>
-            <td className="px-6 py-4">
-              <div className="h-3 w-16 bg-slate-200 rounded animate-pulse" />
-            </td>
-            <td className="px-6 py-4">
-              <div className="h-3 w-28 bg-slate-200 rounded animate-pulse" />
-            </td>
-            <td className="px-6 py-4">
-              <div className="h-3 w-20 bg-slate-200 rounded animate-pulse" />
-            </td>
-            <td className="px-6 py-4">
-              <div className="h-3 w-20 bg-slate-200 rounded animate-pulse ml-auto" />
-              <div className="h-2 w-16 bg-slate-100 rounded animate-pulse mt-1 ml-auto" />
-            </td>
-            <td className="px-6 py-4">
-              <div className="h-3 w-16 bg-slate-200 rounded animate-pulse ml-auto" />
-            </td>
-            <td className="px-6 py-4">
-              <div className="h-3 w-16 bg-slate-200 rounded animate-pulse ml-auto" />
-            </td>
-            <td className="px-6 py-4 text-center">
-              <div className="h-5 w-20 bg-slate-200 rounded-full animate-pulse mx-auto" />
-            </td>
-            <td className="px-6 py-4 text-center">
-              <div className="h-5 w-20 bg-slate-200 rounded-full animate-pulse mx-auto" />
-            </td>
-            <td className="px-6 py-4 text-center">
-              <div className="h-5 w-24 bg-slate-200 rounded animate-pulse mx-auto" />
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  ) : (
-    <>
-      <table className="w-full text-sm text-left text-slate-500">
-        <thead className="text-xs text-slate-700 uppercase bg-slate-50">
-          <tr>
-            <th className="px-6 py-3">{t("order.orderId")}</th>
-            <th className="px-6 py-3">{t("order.customer")}</th>
-            <th className="px-6 py-3">{t("order.date")}</th>
-            <th className="px-6 py-3 text-right">{t("order.total")}</th>
-            <th className="px-6 py-3 text-right">{t("order.amountPaid")}</th>
-            <th className="px-6 py-3 text-right">{t("order.remainingBalance")}</th>
-            <th className="px-6 py-3 text-center">{t("order.paymentStatus")}</th>
-            <th className="px-6 py-3 text-center">{t("order.orderStatus")}</th>
-            <th className="px-6 py-3 text-center">{t("common.actions")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredOrders.map((order) => {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const isPaymentLate =
-              order.paymentStatus !== PaymentStatus.PAID &&
-              new Date(order.paymentDueDate) < today;
-            const hasStatusIssue = order.status === OrderStatus.CANCELLED;
-            const isPendingValidation =
-              order.status === OrderStatus.PENDING_VALIDATION;
+                <div className="relative w-full max-w-full overflow-hidden">
+                  <div className="w-full overflow-x-auto">
+                    <div className="min-w-max w-full">
+                      {isLoadingOrders ? (
+                        <table className="w-full text-sm text-left text-slate-500">
+                          <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                            <tr>
+                              <th className="px-3 py-3 bg-slate-50 w-8"></th>
+                              <th className="px-4 py-3 bg-slate-50 whitespace-nowrap">{t("order.orderId")}</th>
+                              <th className="px-4 py-3 bg-slate-50 whitespace-nowrap">{t("order.customer")}</th>
+                              <th className="px-4 py-3 bg-slate-50 whitespace-nowrap">{t("order.date")}</th>
+                              <th className="px-4 py-3 bg-slate-50 text-right whitespace-nowrap">{t("order.total")}</th>
+                              <th className="px-4 py-3 bg-slate-50 text-right whitespace-nowrap">{t("invoice.tax")}</th>
+                              <th className="px-4 py-3 bg-slate-50 whitespace-nowrap">{t("newOrder.paymentMethod")}</th>
+                              <th className="px-4 py-3 bg-slate-50 text-center whitespace-nowrap">{t("order.paymentStatus")}</th>
+                              <th className="px-4 py-3 bg-slate-50 text-center whitespace-nowrap">{t("order.orderStatus")}</th>
+                              <th className="sticky right-0 z-10 px-4 py-3 bg-slate-100 text-center whitespace-nowrap border-l border-slate-200 shadow-[-6px_0_10px_-6px_rgba(15,23,42,0.08)]">{t("common.actions")}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Array.from({ length: 4 }).map((_, i) => (
+                              <tr key={i} className="bg-white border-b" style={{ opacity: 1 - i * 0.1 }}>
+                                <td className="px-3 py-4"><div className="h-3 w-4 bg-slate-200 rounded animate-pulse" /></td>
+                                <td className="px-4 py-4"><div className="h-3 w-16 bg-slate-200 rounded animate-pulse" /></td>
+                                <td className="px-4 py-4"><div className="h-3 w-28 bg-slate-200 rounded animate-pulse" /></td>
+                                <td className="px-4 py-4"><div className="h-3 w-20 bg-slate-200 rounded animate-pulse" /></td>
+                                <td className="px-4 py-4"><div className="h-3 w-20 bg-slate-200 rounded animate-pulse ml-auto" /></td>
+                                <td className="px-4 py-4"><div className="h-3 w-16 bg-slate-200 rounded animate-pulse ml-auto" /></td>
+                                <td className="px-4 py-4"><div className="h-3 w-24 bg-slate-200 rounded animate-pulse" /></td>
+                                <td className="px-4 py-4 text-center"><div className="h-5 w-20 bg-slate-200 rounded-full animate-pulse mx-auto" /></td>
+                                <td className="px-4 py-4 text-center"><div className="h-5 w-20 bg-slate-200 rounded-full animate-pulse mx-auto" /></td>
+                                <td className="sticky right-0 z-10 px-4 py-4 text-center bg-white border-l border-slate-200"><div className="h-5 w-24 bg-slate-200 rounded animate-pulse mx-auto" /></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <>
+                          <table className="w-full text-sm text-left text-slate-500">
+                            <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                              <tr>
+                                <th scope="col" className="px-3 py-3 bg-slate-50 whitespace-nowrap"></th>
+                                <th scope="col" className="px-4 py-3 bg-slate-50 whitespace-nowrap">{t("order.orderId")}</th>
+                                <th scope="col" className="px-4 py-3 bg-slate-50 whitespace-nowrap">{t("order.customer")}</th>
+                                <th scope="col" className="px-4 py-3 bg-slate-50 whitespace-nowrap">{t("order.date")}</th>
+                                <th scope="col" className="px-4 py-3 bg-slate-50 text-right whitespace-nowrap">{t("order.total")}</th>
+                                <th scope="col" className="px-4 py-3 bg-slate-50 text-right whitespace-nowrap">{t("invoice.tax")}</th>
+                                <th scope="col" className="px-4 py-3 bg-slate-50 whitespace-nowrap">{t("newOrder.paymentMethod")}</th>
+                                <th scope="col" className="px-4 py-3 bg-slate-50 text-center whitespace-nowrap">{t("order.paymentStatus")}</th>
+                                <th scope="col" className="px-4 py-3 bg-slate-50 text-center whitespace-nowrap">{t("order.orderStatus")}</th>
+                                <th scope="col" className="sticky right-0 z-10 px-4 py-3 bg-slate-100 text-center whitespace-nowrap border-l border-slate-200 shadow-[-6px_0_10px_-6px_rgba(15,23,42,0.08)]">{t("common.actions")}</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {filteredOrders.map((order) => {
+                                const isExpanded = expandedOrderId === order.id;
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                const isPaymentLate = order.paymentStatus !== PaymentStatus.PAID && order.paymentDueDate && new Date(order.paymentDueDate) < today;
+                                const hasStatusIssue = order.status === OrderStatus.CANCELLED;
+                                const orderItems = (order.orderItems?.length ? order.orderItems : order.items) ?? [];
 
-            return (
-              <tr
-                key={order.id}
-                className={`bg-white border-b hover:bg-slate-50 transition-colors ${isPendingValidation ? "bg-blue-50 border-l-4 border-blue-500" : ""}`}
-              >
-                <td className="px-6 py-4 font-semibold">{order.id}</td>
-                <td className="px-6 py-4">{order.customerName}</td>
-                <td className="px-6 py-4">
-                  {new Date(order.date).toLocaleDateString("fr-FR")}
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="font-bold">{formatCurrency(order.totalAmount)}</div>
-                  <div className="text-xs text-slate-500">
-                    {t("invoice.tax")} ({(order.taxRateValue * 100).toFixed(2)}%):{" "}
-                    {formatCurrency(order.taxAmount)}
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-right text-green-600 font-medium">
-                  {formatCurrency(order.amountPaid)}
-                </td>
-                <td className="px-6 py-4 text-right text-red-600 font-medium">
-                  {formatCurrency(order.totalAmount - order.amountPaid)}
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPaymentStatusClass(order.paymentStatus)}`}>
-                      {t(`order.paymentStatus_${order.paymentStatus}`)}
-                    </span>
-                    {isPaymentLate && (
-                      <span title={t("sales.paymentOverdue")}>
-                        <IconExclamationTriangle className="h-5 w-5 text-red-500" />
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getOrderStatusClass(order.status)}`}>
-                      {t(`order.status_${order.status}`)}
-                    </span>
-                    {hasStatusIssue && (
-                      <span title={t("sales.statusIssue")}>
-                        <IconExclamationTriangle className="h-5 w-5 text-orange-500" />
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-center">
-                  {order.status === OrderStatus.PENDING_VALIDATION ? (
-                    <button
-                      onClick={() => updateOrderStatusMutate({ orderId: order.id, status: OrderStatus.IN_PRODUCTION })}
-                      className="flex items-center mx-auto space-x-2 px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-md hover:bg-green-600 transition-colors"
-                      title={t("sales.validateForProduction")}
-                    >
-                      <IconCheckCircle className="h-4 w-4" />
-                      <span>{t("sales.validateForProduction")}</span>
-                    </button>
-                  ) : (
-                    <div className="flex justify-center items-center space-x-1">
-                      {order.paymentStatus !== PaymentStatus.PAID && (
-                        <button
-                          onClick={() => setPayingOrder(order)}
-                          className="p-2 text-green-600 hover:bg-green-100 rounded-full"
-                          title={t("order.recordPayment")}
-                        >
-                          <IconCoins className="h-5 w-5" />
-                        </button>
+                                return (
+                                  <React.Fragment key={order.id}>
+                                    <tr
+                                      className="bg-white border-b hover:bg-slate-50 cursor-pointer whitespace-nowrap"
+                                      onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                                    >
+                                      <td className="px-2 py-4">
+                                        <svg className={`w-5 h-5 transition-transform text-slate-400 ${isExpanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                      </td>
+                                      <td className="px-6 py-4 font-semibold text-slate-800">{order.id}</td>
+                                      <td className="px-6 py-4 truncate max-w-[200px]">{order.customerName}</td>
+                                      <td className="px-6 py-4">{formatDate(order.orderDate ?? order.date)}</td>
+                                      <td className="px-6 py-4 text-right font-bold">
+                                        {formatCurrency(order.totalAmount)}
+                                        {order.amountPaid > 0 && order.amountPaid < order.totalAmount && (
+                                          <div className="text-xs text-green-600 font-normal">
+                                            Payé: {formatCurrency(order.amountPaid)}
+                                          </div>
+                                        )}
+                                      </td>
+                                      <td className="px-6 py-4 text-right text-slate-500">
+                                        {formatCurrency(order.taxAmount)}
+                                      </td>
+                                      <td className="px-6 py-4 text-slate-600">
+                                        {getPaymentMethodLabel(order.paymentMethod)}
+                                      </td>
+                                      <td className="px-6 py-4 text-center">
+                                        <div className="flex items-center justify-center gap-2">
+                                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPaymentStatusClass(order.paymentStatus)}`}>
+                                            {t(`order.paymentStatus_${order.paymentStatus}`)}
+                                          </span>
+                                          {isPaymentLate && (
+                                            <span title={t("sales.paymentOverdue")}>
+                                              <IconExclamationTriangle className="h-5 w-5 text-red-500" />
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-6 py-4 text-center">
+                                        <div className="flex items-center justify-center gap-2">
+                                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getOrderStatusClass(order.status)}`}>
+                                            {t(`order.status_${order.status}`)}
+                                          </span>
+                                          {hasStatusIssue && (
+                                            <span title={t("sales.statusIssue")}>
+                                              <IconExclamationTriangle className="h-5 w-5 text-orange-500" />
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td
+                                        className="sticky right-0 z-10 px-4 py-4 text-center bg-white border-l border-slate-200 shadow-[-6px_0_10px_-6px_rgba(15,23,42,0.08)]"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {!hasGlobalScope && order.status === OrderStatus.PENDING_VALIDATION ? (
+                                          <button
+                                            onClick={() => updateOrderStatusMutate({ orderId: order.id, status: OrderStatus.IN_PRODUCTION })}
+                                            className="flex items-center mx-auto space-x-2 px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-md hover:bg-green-600 transition-colors"
+                                            title={t("sales.validateForProduction")}
+                                          >
+                                            <IconCheckCircle className="h-4 w-4" />
+                                            <span>{t("sales.validateForProduction")}</span>
+                                          </button>
+                                        ) : (
+                                          <div className="flex justify-center items-center space-x-1">
+                                            {!hasGlobalScope && order.paymentStatus !== PaymentStatus.PAID && (
+                                              <button
+                                                onClick={() => setPayingOrder(order)}
+                                                className="p-2 text-green-600 hover:bg-green-100 rounded-full"
+                                                title={t("order.recordPayment")}
+                                              >
+                                                <IconCoins className="h-5 w-5" />
+                                              </button>
+                                            )}
+                                            {!hasGlobalScope && (
+                                              <button
+                                                onClick={() => setUpdatingStatusOrder(order)}
+                                                className="p-2 text-blue-600 hover:bg-blue-100 rounded-full"
+                                                title={t("order.updateStatus")}
+                                              >
+                                                <IconEdit className="h-5 w-5" />
+                                              </button>
+                                            )}
+                                            <button
+                                              onClick={() => setInvoiceOrder(order)}
+                                              className="p-2 text-slate-500 hover:bg-slate-100 rounded-full"
+                                              title={t("invoice.viewInvoice")}
+                                            >
+                                              <IconInvoice className="h-5 w-5" />
+                                            </button>
+                                            <button
+                                              onClick={() => setBlOrder(order)}
+                                              className="p-2 text-slate-500 hover:bg-slate-100 rounded-full"
+                                              title={t("common.viewBL")}
+                                            >
+                                              <IconDocumentText className="h-5 w-5" />
+                                            </button>
+                                          </div>
+                                        )}
+                                      </td>
+                                    </tr>
+                                    {isExpanded && (
+                                      <tr className="bg-slate-50">
+                                        <td colSpan={10} className="p-4">
+                                          <div className="pl-10">
+                                            <h4 className="font-semibold text-sm mb-3 text-slate-700">
+                                              Détails de la commande
+                                            </h4>
+                                            <ul className="space-y-2 max-h-72 overflow-y-auto pr-2">
+                                              {orderItems.length === 0 ? (
+                                                <li className="text-sm text-slate-400 italic py-2">Aucun article.</li>
+                                              ) : orderItems.map((item, idx) => (
+                                                <li key={item.id ?? idx} className="p-3 border rounded-xl bg-white flex items-center gap-4 hover:bg-slate-50 transition-colors">
+                                                  <div className="flex-grow min-w-0">
+                                                    <p className="font-semibold text-slate-800 truncate">{item.product?.name ?? '—'}</p>
+                                                    <p className="text-xs text-slate-400">Réf: {item.product?.id ?? '—'}</p>
+                                                  </div>
+                                                  <div className="text-right shrink-0">
+                                                    <div className="text-sm text-slate-600">{item.quantity} × {formatCurrency(item.unitPrice)}</div>
+                                                    <div className="font-bold text-slate-800">{formatCurrency(item.quantity * item.unitPrice)}</div>
+                                                  </div>
+                                                </li>
+                                              ))}
+                                            </ul>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </React.Fragment>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                          {filteredOrders.length === 0 && (
+                            <p className="text-center py-8 text-slate-500">{t("filter.noResults")}</p>
+                          )}
+                        </>
                       )}
-                      <button
-                        onClick={() => setUpdatingStatusOrder(order)}
-                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-full"
-                        title={t("order.updateStatus")}
-                      >
-                        <IconEdit className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => setInvoiceOrder(order)}
-                        className="p-2 text-slate-500 hover:bg-slate-100 rounded-full"
-                        title={t("invoice.viewInvoice")}
-                      >
-                        <IconInvoice className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => setBlOrder(order)}
-                        className="p-2 text-slate-500 hover:bg-slate-100 rounded-full"
-                        title={t("common.viewBL")}
-                      >
-                        <IconDocumentText className="h-5 w-5" />
-                      </button>
                     </div>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      {filteredOrders.length === 0 && (
-        <p className="text-center py-8 text-slate-500">{t("filter.noResults")}</p>
-      )}
-    </>
-  )}
-</div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

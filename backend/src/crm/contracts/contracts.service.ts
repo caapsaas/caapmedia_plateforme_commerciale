@@ -35,15 +35,13 @@ export class ContractsService {
   }
 
   async findAll(user: User) {
-    const where: Prisma.ContractWhereInput = {
-      subsidiaryId: user.subsidiaryId,
-    };
+    const isSuperAdmin = user.userRole === UserRole.SUPER_ADMIN;
+    const where: Prisma.ContractWhereInput = isSuperAdmin
+      ? {}
+      : { subsidiaryId: user.subsidiaryId };
 
-    // Les commerciaux ne voient que les contrats liés à leurs clients
-    if (user.userRole === UserRole.COMMERCIAL) {
-      where.client = {
-        salesRepId: user.id,
-      };
+    if (!isSuperAdmin && user.userRole === UserRole.COMMERCIAL) {
+      where.client = { salesRepId: user.id };
     }
 
     return this.prisma.contract.findMany({

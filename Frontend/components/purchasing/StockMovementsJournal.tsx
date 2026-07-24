@@ -14,39 +14,43 @@ const IN_TYPES = new Set<StockMovementType>([
     StockMovementType.TRANSFER_IN,
 ]);
 
-// Rôles autorisés à créer un mouvement manuel (miroir de MANAGE_ROLES côté
-// backend, stock-movements.controller.ts) — juste pour masquer le bouton,
-// l'autorisation réelle reste appliquée côté serveur.
-const MANUAL_MOVEMENT_ROLES = [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.PURCHASING_MANAGER];
+const MANUAL_MOVEMENT_ROLES = [UserRole.ADMIN, UserRole.PURCHASING_MANAGER];
 
-// Journal des mouvements de stock (Chantier 3) — historique consultable de
-// toutes les entrées/sorties, en unité de base.
-const StockMovementsJournal: React.FC = () => {
+interface StockMovementsJournalProps {
+    subsidiaryId?: string;
+}
+
+const StockMovementsJournal: React.FC<StockMovementsJournalProps> = ({ subsidiaryId }) => {
     const { t } = useI18n();
     const { hasRole } = useHasRole();
     const [typeFilter, setTypeFilter] = useState<StockMovementType | ''>('');
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const { data: movements = [], isLoading } = useQuery({
-        queryKey: ['stock-movements', typeFilter],
-        queryFn: () => getStockMovements(typeFilter ? { type: typeFilter } : undefined),
+        queryKey: ['stock-movements', typeFilter, subsidiaryId],
+        queryFn: () => getStockMovements({
+            ...(typeFilter ? { type: typeFilter } : {}),
+            ...(subsidiaryId ? { subsidiaryId } : {}),
+        }),
     });
 
-    if (isLoading) return <div>{t('common.loading')}</div>;
-
     return (
-        <div className="bg-white p-6 rounded-xl shadow-md">
-            <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
-                <h3 className="text-xl font-semibold text-slate-800">{t('stockMovements.title')}</h3>
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div className="flex justify-between items-center px-5 py-4 border-b border-slate-100 flex-wrap gap-3">
+                <h3 className="text-base font-semibold text-slate-800">{t('stockMovements.title')}</h3>
                 <div className="flex items-center gap-3">
-                    <select value={typeFilter} onChange={e => setTypeFilter(e.target.value as StockMovementType | '')} className="border-slate-300 rounded-md shadow-sm py-2 px-3 border text-sm">
+                    <select
+                        value={typeFilter}
+                        onChange={e => setTypeFilter(e.target.value as StockMovementType | '')}
+                        className="border border-slate-200 rounded-lg py-2 px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
+                    >
                         <option value="">{t('stockMovements.allTypes')}</option>
                         {Object.values(StockMovementType).map(type => (
                             <option key={type} value={type}>{t(`stockMovements.types.${type}`)}</option>
                         ))}
                     </select>
                     {hasRole(MANUAL_MOVEMENT_ROLES) && (
-                        <button onClick={() => setIsModalOpen(true)} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
+                        <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-bold rounded-lg hover:bg-[#adc40f] transition-colors">
                             <IconPlus className="h-4 w-4" />
                             <span>{t('stockMovements.manual.newMovement')}</span>
                         </button>
@@ -55,40 +59,57 @@ const StockMovementsJournal: React.FC = () => {
             </div>
 
             <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left text-slate-500">
-                    <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                <table className="w-full text-sm">
+                    <thead className="bg-slate-50 text-xs text-slate-400 uppercase tracking-wide border-b border-slate-200">
                         <tr>
-                            <th scope="col" className="px-6 py-3">{t('stockMovements.date')}</th>
-                            <th scope="col" className="px-6 py-3">{t('stockMovements.product')}</th>
-                            <th scope="col" className="px-6 py-3">{t('stockMovements.type')}</th>
-                            <th scope="col" className="px-6 py-3 text-center">{t('stockMovements.direction')}</th>
-                            <th scope="col" className="px-6 py-3 text-right">{t('stockMovements.quantity')}</th>
-                            <th scope="col" className="px-6 py-3">{t('stockMovements.reason')}</th>
+                            <th className="px-5 py-3 text-left font-semibold">{t('stockMovements.date')}</th>
+                            <th className="px-5 py-3 text-left font-semibold">{t('stockMovements.product')}</th>
+                            <th className="px-5 py-3 text-left font-semibold">{t('stockMovements.type')}</th>
+                            <th className="px-5 py-3 text-center font-semibold">{t('stockMovements.direction')}</th>
+                            <th className="px-5 py-3 text-right font-semibold">{t('stockMovements.quantity')}</th>
+                            <th className="px-5 py-3 text-left font-semibold">{t('stockMovements.reason')}</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {movements.map(movement => {
+                    <tbody className="divide-y divide-slate-100">
+                        {isLoading ? (
+                            Array.from({ length: 5 }).map((_, i) => (
+                                <tr key={i}>
+                                    <td colSpan={6} className="px-5 py-3">
+                                        <div className="h-3 bg-slate-100 rounded animate-pulse" style={{ width: `${60 + i * 7}%`, opacity: 1 - i * 0.15 }} />
+                                    </td>
+                                </tr>
+                            ))
+                        ) : movements.length === 0 ? (
+                            <tr>
+                                <td colSpan={6} className="py-16 text-center">
+                                    <svg className="w-10 h-10 mx-auto mb-2 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                    </svg>
+                                    <p className="text-sm font-medium text-slate-500">{t('stockMovements.empty')}</p>
+                                    {typeFilter && <p className="text-xs text-slate-400 mt-1">Essayez de supprimer le filtre.</p>}
+                                </td>
+                            </tr>
+                        ) : movements.map(movement => {
                             const isIn = IN_TYPES.has(movement.type);
                             return (
-                                <tr key={movement.id} className="bg-white border-b hover:bg-slate-50">
-                                    <td className="px-6 py-4 whitespace-nowrap">{new Date(movement.createdAt).toLocaleString()}</td>
-                                    <td className="px-6 py-4 font-semibold">{movement.item?.name ?? movement.itemId}</td>
-                                    <td className="px-6 py-4">{t(`stockMovements.types.${movement.type}`)}</td>
-                                    <td className="px-6 py-4 text-center">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${isIn ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                <tr key={movement.id} className="hover:bg-slate-50 transition-colors">
+                                    <td className="px-5 py-3 text-slate-500 whitespace-nowrap text-xs">
+                                        {new Date(movement.createdAt).toLocaleString('fr-FR')}
+                                    </td>
+                                    <td className="px-5 py-3 font-semibold text-slate-800">{movement.item?.name ?? '—'}</td>
+                                    <td className="px-5 py-3 text-slate-500 text-xs">{t(`stockMovements.types.${movement.type}`)}</td>
+                                    <td className="px-5 py-3 text-center">
+                                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${isIn ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                             {isIn ? t('stockMovements.in') : t('stockMovements.out')}
                                         </span>
                                     </td>
-                                    <td className={`px-6 py-4 text-right font-bold ${isIn ? 'text-green-600' : 'text-red-600'}`}>
-                                        {isIn ? '+' : '-'}{movement.quantity}
+                                    <td className={`px-5 py-3 text-right font-bold ${isIn ? 'text-green-600' : 'text-red-600'}`}>
+                                        {isIn ? '+' : '−'}{movement.quantity}
                                     </td>
-                                    <td className="px-6 py-4">{movement.reason || '-'}</td>
+                                    <td className="px-5 py-3 text-slate-400 text-xs">{movement.reason || '—'}</td>
                                 </tr>
                             );
                         })}
-                        {movements.length === 0 && (
-                            <tr><td colSpan={6} className="px-6 py-4 text-center text-slate-400 italic">{t('stockMovements.empty')}</td></tr>
-                        )}
                     </tbody>
                 </table>
             </div>

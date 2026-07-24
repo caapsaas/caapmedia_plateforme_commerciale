@@ -63,6 +63,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       id: user.id,
       email: user.email,
       role: user.userRole,
+      // Alias attendu par les services (@CurrentUser() user: User) qui lisent user.userRole
+      userRole: user.userRole,
       roles,
       // Relu depuis la DB a chaque requete (comme roles[] ci-dessus), pas
       // depuis le payload du JWT: coherent avec le reste de cette strategie,

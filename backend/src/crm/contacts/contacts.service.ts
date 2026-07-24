@@ -86,12 +86,12 @@ export class ContactsService {
   }
 
   async findAll(user: User) {
-    const where: Prisma.ContactWhereInput = {
-      subsidiaryId: user.subsidiaryId,
-    };
+    const isSuperAdmin = user.userRole === UserRole.SUPER_ADMIN;
+    const where: Prisma.ContactWhereInput = isSuperAdmin
+      ? {}
+      : { subsidiaryId: user.subsidiaryId };
 
-    // Seul le commercial a une vue restreinte à ses propres contacts.
-    if (user.userRole === UserRole.COMMERCIAL) {
+    if (!isSuperAdmin && user.userRole === UserRole.COMMERCIAL) {
       where.salesRepId = user.id;
     }
 

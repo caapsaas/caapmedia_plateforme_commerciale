@@ -80,16 +80,16 @@ export class LeadsService {
   }
 
   async findAll(user: User) {
-    const where: Prisma.LeadWhereInput = {
-      subsidiaryId: user.subsidiaryId,
-    };
+    const isSuperAdmin = user.userRole === UserRole.SUPER_ADMIN;
+    const where: Prisma.LeadWhereInput = isSuperAdmin
+      ? {}
+      : { subsidiaryId: user.subsidiaryId };
 
-    // Les admins et secrétaires voient toutes les pistes de la filiale.
-    // Les commerciaux ne voient que les leurs.
-    const privilegedRoles: UserRole[] = [UserRole.ADMIN, UserRole.SECRETARY];
-    if (!privilegedRoles.includes(user.userRole)) {
-      // Un commercial voit ses propres pistes ET les pistes non assignées
-      where.OR = [{ salesRepId: user.id }, { salesRepId: null }];
+    if (!isSuperAdmin) {
+      const privilegedRoles: UserRole[] = [UserRole.ADMIN, UserRole.SECRETARY];
+      if (!privilegedRoles.includes(user.userRole)) {
+        where.OR = [{ salesRepId: user.id }, { salesRepId: null }];
+      }
     }
 
     return this.prisma.lead.findMany({

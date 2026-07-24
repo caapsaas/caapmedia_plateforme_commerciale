@@ -189,6 +189,33 @@ export class OrdersService {
       }
     }
 
+    // Validation des marges : si au moins une ligne de service a un résumé de
+    // production, on vérifie que la marge est dans la plage autorisée par les
+    // paramètres commerciaux globaux.
+    const itemsWithProduction = parsedItems.filter(
+      (item) => item.productionSummary,
+    );
+    if (itemsWithProduction.length > 0) {
+      const commercialParams = await this.prisma.commercialParams.findFirst();
+      if (!commercialParams) {
+        throw new BadRequestException(
+          'Les paramètres commerciaux ne sont pas configurés. Contactez un super administrateur.',
+        );
+      }
+      for (const item of itemsWithProduction) {
+        const margin = new Decimal(item.productionSummary.marginPercent);
+        if (
+          margin.lessThan(commercialParams.minMarginPercent) ||
+          margin.greaterThan(commercialParams.maxMarginPercent)
+        ) {
+          throw new BadRequestException(
+            `La marge de ${margin}% est hors de la plage autorisée ` +
+              `(${commercialParams.minMarginPercent}% – ${commercialParams.maxMarginPercent}%).`,
+          );
+        }
+      }
+    }
+
     // Le prix de chaque ligne est celui saisi par le commercial (négocié via WhatsApp),
     // jamais dérivé du catalogue. La remise et le total sont figés ici, historiquement.
     let subtotal = new Decimal(0);
@@ -224,7 +251,7 @@ export class OrdersService {
           taxAmount,
           totalAmount,
           taxRateValue: taxRate.rate,
-          status: OrderStatus.NEW,
+          status: OrderStatus.PENDING_VALIDATION,
           paymentMethod: null, // Le mode de paiement sera défini lors de l'encaissement.
           productionStatus: ProductionStatus.PREPRESS,
           paymentStatus: PaymentStatus.UNPAID,
@@ -267,9 +294,52 @@ export class OrdersService {
           },
         },
         include: {
-          orderItems: true, // Inclure les articles de commande dans la réponse
+          orderItems: true,
         },
       });
+
+      // Création des enregistrements de coût de production figés.
+      // L'ordre de newOrder.orderItems correspond à l'ordre d'insertion (parsedItems).
+      for (let i = 0; i < parsedItems.length; i++) {
+        const item = parsedItems[i];
+        const orderItemId = newOrder.orderItems[i].id;
+
+        if (item.productionSteps?.length) {
+          await tx.orderItemProductionStep.createMany({
+            data: item.productionSteps.map(
+              (step: {
+                equipmentId: string;
+                equipmentNameSnapshot: string;
+                stepOrder: number;
+                estimatedTimeHours: number;
+                hourlyRateSnapshot: number;
+                calculatedCost: number;
+              }) => ({
+                orderItemId,
+                equipmentId: step.equipmentId,
+                equipmentNameSnapshot: step.equipmentNameSnapshot,
+                stepOrder: step.stepOrder,
+                estimatedTimeHours: new Decimal(step.estimatedTimeHours),
+                hourlyRateSnapshot: new Decimal(step.hourlyRateSnapshot),
+                calculatedCost: new Decimal(step.calculatedCost),
+              }),
+            ),
+          });
+        }
+
+        if (item.productionSummary) {
+          await tx.orderItemProductionSummary.create({
+            data: {
+              orderItemId,
+              totalProductionCost: new Decimal(
+                item.productionSummary.totalProductionCost,
+              ),
+              marginPercent: new Decimal(item.productionSummary.marginPercent),
+              finalPrice: new Decimal(item.productionSummary.finalPrice),
+            },
+          });
+        }
+      }
 
       return newOrder;
     });
@@ -290,13 +360,24 @@ export class OrdersService {
       period,
       startDate,
       endDate,
+      subsidiaryId: querySubsidiaryId,
+      salesRepId: querySalesRepId,
     } = query;
-    const where: Prisma.OrderWhereInput = {
-      subsidiaryId: user.subsidiaryId,
-    };
+
+    const isSuperAdmin =
+      user.role === 'SUPER_ADMIN' || user.userRole === 'SUPER_ADMIN';
+    const where: Prisma.OrderWhereInput = isSuperAdmin
+      ? querySubsidiaryId
+        ? { subsidiaryId: querySubsidiaryId }
+        : {}
+      : { subsidiaryId: user.subsidiaryId };
 
     if (customerId) {
       where.customerId = customerId;
+    }
+
+    if (querySalesRepId) {
+      where.salesRepId = querySalesRepId;
     }
 
     if (productId) {
@@ -363,7 +444,14 @@ export class OrdersService {
     const order = await this.prisma.order.findUnique({
       where: { id, subsidiaryId: user.subsidiaryId },
       include: {
-        orderItems: { include: { product: true, productOptions: true } },
+        orderItems: {
+          include: {
+            product: true,
+            productOptions: true,
+            productionSteps: { orderBy: { stepOrder: 'asc' } },
+            productionSummary: true,
+          },
+        },
         productionHistory: { orderBy: { changeDate: 'asc' } },
         customer: true,
         salesRep: true,
@@ -490,21 +578,43 @@ export class OrdersService {
   }
 
   /**
-   *
-   * @param user // Utilisateur connecté
-   * @param limit // Nombre de produits à retourner
-   * @returns // Liste des produits les plus vendus
+   * @param user - Utilisateur connecté
+   * @param query - Filtres optionnels (subsidiaryId, salesRepId)
+   * @param limit - Nombre de produits à retourner
    */
-  async getBestSellingProducts(user: any, limit = 10) {
-    const { subsidiaryId } = user;
+  async getBestSellingProducts(
+    user: any,
+    query?: Pick<FindAllOrdersDto, 'subsidiaryId' | 'salesRepId'>,
+    limit = 10,
+  ) {
+    const isSuperAdmin =
+      user.role === 'SUPER_ADMIN' || user.userRole === 'SUPER_ADMIN';
+    const effectiveSubsidiaryId = isSuperAdmin
+      ? (query?.subsidiaryId ?? null)
+      : user.subsidiaryId;
 
-    // Utilisation de $queryRaw pour une agrégation complexe et performante
+    const conditions: Prisma.Sql[] = [];
+    if (effectiveSubsidiaryId) {
+      conditions.push(
+        Prisma.sql`AND o.subsidiary_id = ${effectiveSubsidiaryId}::uuid`,
+      );
+    }
+    if (query?.salesRepId) {
+      conditions.push(
+        Prisma.sql`AND o.sales_rep_id = ${query.salesRepId}::uuid`,
+      );
+    }
+    const extraConditions =
+      conditions.length > 0
+        ? Prisma.join(conditions, '\n      ')
+        : Prisma.empty;
+
     const result: {
       product_id: string;
       product_name: string;
       total_quantity: number;
       total_revenue: number;
-    }[] = await this.prisma.$queryRaw`
+    }[] = await this.prisma.$queryRaw(Prisma.sql`
       SELECT
         p.id AS product_id,
         p.name AS product_name,
@@ -513,13 +623,13 @@ export class OrdersService {
       FROM "order_item" oi
       JOIN "items" p ON oi.product_id = p.id
       JOIN "orders" o ON oi.order_id = o.id
-      WHERE o.subsidiary_id = ${subsidiaryId}::uuid
-        AND o.status != 'CANCELLED'
+      WHERE o.status != 'CANCELLED'
         AND oi.product_id IS NOT NULL
+        ${extraConditions}
       GROUP BY p.id, p.name
       ORDER BY total_revenue DESC
-      LIMIT ${limit};
-    `;
+      LIMIT ${limit}
+    `);
 
     return result.map((r) => ({
       productName: r.product_name,
@@ -646,5 +756,80 @@ export class OrdersService {
     }
 
     return creditAccount;
+  }
+
+  private get orderFullInclude() {
+    return {
+      customer: true,
+      salesRep: true,
+      taxRate: true,
+      subsidiary: { select: { subsidiaryName: true } },
+      orderItems: {
+        include: {
+          product: true,
+          productOptions: true,
+          productionSteps: { orderBy: { stepOrder: 'asc' } as const },
+          productionSummary: true,
+        },
+      },
+      productionHistory: { orderBy: { changeDate: 'asc' } as const },
+    };
+  }
+
+  async validateForProduction(id: string, user: any) {
+    const order = await this.prisma.order.findUnique({
+      where: { id, subsidiaryId: user.subsidiaryId },
+    });
+    if (!order) {
+      throw new NotFoundException(`Commande "${id}" introuvable.`);
+    }
+    if (order.status !== OrderStatus.PENDING_VALIDATION) {
+      throw new BadRequestException(
+        `La commande n'est pas en attente de validation (statut actuel : ${order.status}).`,
+      );
+    }
+    return this.prisma.order.update({
+      where: { id },
+      data: { status: OrderStatus.IN_PRODUCTION },
+      include: this.orderFullInclude,
+    });
+  }
+
+  async rejectByProductionDirector(id: string, user: any) {
+    const order = await this.prisma.order.findUnique({
+      where: { id, subsidiaryId: user.subsidiaryId },
+    });
+    if (!order) {
+      throw new NotFoundException(`Commande "${id}" introuvable.`);
+    }
+    if (order.status !== OrderStatus.PENDING_VALIDATION) {
+      throw new BadRequestException(
+        `Seules les commandes en attente de validation peuvent être rejetées.`,
+      );
+    }
+    return this.prisma.order.update({
+      where: { id },
+      data: { status: OrderStatus.CANCELLED },
+      include: this.orderFullInclude,
+    });
+  }
+
+  async findPendingValidation(user: any, subsidiaryId?: string) {
+    // Super Admin : vue consolidée toutes filiales (filtrage optionnel par filiale)
+    const isSuperAdmin =
+      user.userRole === 'SUPER_ADMIN' || user.activeRole === 'SUPER_ADMIN';
+    const where: Prisma.OrderWhereInput = {
+      status: OrderStatus.PENDING_VALIDATION,
+      ...(isSuperAdmin
+        ? subsidiaryId
+          ? { subsidiaryId }
+          : {}
+        : { subsidiaryId: user.subsidiaryId }),
+    };
+    return this.prisma.order.findMany({
+      where,
+      include: this.orderFullInclude,
+      orderBy: { orderDate: 'asc' },
+    });
   }
 }

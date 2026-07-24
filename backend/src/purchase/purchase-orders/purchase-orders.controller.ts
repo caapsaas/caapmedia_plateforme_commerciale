@@ -52,6 +52,7 @@ export class PurchaseOrdersController {
     UserRole.PURCHASING_MANAGER,
     UserRole.ADMIN,
     UserRole.FINANCIAL_DIRECTOR,
+    UserRole.SUPER_ADMIN,
   )
   findAll(@Req() req, @Query() query: FindAllPurchaseOrdersDto) {
     return this.purchaseOrdersService.findAll(req.user, query);

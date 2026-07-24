@@ -1,30 +1,39 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Subsidiary, Product, Order, Contact, TaxRate, OrderStatus, ProductionStatus, PaymentStatus, CustomerPaymentMethod, FormDefinition } from '../types';
 import IconMinus from '../components/icons/IconMinus';
+import IconPlus from '../components/icons/IconPlus';
 import IconDelete from '../components/icons/IconDelete';
 import { useI18n } from '../i18n';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getContacts, searchContactsGlobal, GlobalContactSearchResult } from '../services/apiCrm/apicontacts';
 import { getTaxes } from '../services/apiE-commerce/apitaxes';
 import { getFormDefinition } from '../services/apiE-commerce/apiProductSpecs';
+import {
+    getConfiguredEquipments, getCommercialParams,
+    resolveWorkflow,
+    EquipmentWithCost, CommercialParams, ResolvedWorkflow,
+} from '../services/apiProduction/apiProduction';
 import SelectFilter from '../components/filters/SelectFilter';
-import SpecValuesModal from '../components/common/SpecValuesModal';
 import { SpecValues } from '../components/common/FormRenderer';
+import type { ProductionCostResult, ProductionStep, ProductionSummary } from '../components/ecommerce/ProductionCostModal';
+import AddItemMultiStepModal from '../components/ecommerce/AddItemMultiStepModal';
 
 interface NewOrderProps {
     subsidiary: Subsidiary;
     products: Product[];
-    selectedCustomer?: Contact; // Customer can be pre-selected
+    selectedCustomer?: Contact;
     onOrderPlaced: (newOrder: Omit<Order, 'id' | 'subsidiaryId'>) => void;
 }
 
 type CartItem = {
-    lineId: string; // Identité de la ligne — deux lignes du même service avec des specValues différentes ne doivent jamais fusionner.
+    lineId: string;
     product: Product;
     quantity: number;
-    unitPrice: number; // Prix négocié pour cette ligne (jamais tiré du catalogue)
-    discount: number; // Remise négociée sur cette ligne (montant, pas %)
-    specValues?: SpecValues; // Spécifications techniques saisies (Chantier 5), figées à la création
+    unitPrice: number;      // = finalPrice / quantity (prix par unité)
+    discount: number;
+    specValues?: SpecValues;
+    productionSteps?: ProductionStep[];
+    productionSummary?: ProductionSummary;
 };
 
 const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, selectedCustomer, onOrderPlaced }) => {
@@ -34,25 +43,24 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
     const [cart, setCart] = useState<CartItem[]>([]);
     const [orderPlaced, setOrderPlaced] = useState(false);
     const [quantities, setQuantities] = useState<Record<string, number>>({});
-    const [unitPrices, setUnitPrices] = useState<Record<string, number>>({});
-    // Champs techniques (Chantier 5) : si le service sélectionné définit des
-    // spécifications, un formulaire s'affiche avant l'ajout au panier.
-    const [specModalState, setSpecModalState] = useState<{ product: Product; quantity: number; unitPrice: number; schema: FormDefinition } | null>(null);
+
+    // Modale unifiée multi-étapes (coût de production → specs)
+    const [addItemModalState, setAddItemModalState] = useState<{
+        product: Product;
+        quantity: number;
+        resolvedWorkflow: ResolvedWorkflow | null;
+        schema: FormDefinition | null;
+    } | null>(null);
+
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>(selectedCustomer?.id || '');
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CustomerPaymentMethod>(CustomerPaymentMethod.PAY_ON_DELIVERY);
-    // Client global (Chantier 6) : par défaut on ne propose que les clients de
-    // la filiale (clients ci-dessous), mais une recherche globale permet de
-    // rattacher un client déjà créé dans une autre filiale.
     const [globalSearchTerm, setGlobalSearchTerm] = useState('');
     const [externalCustomer, setExternalCustomer] = useState<GlobalContactSearchResult | null>(null);
 
     useEffect(() => {
-        if (selectedCustomer) {
-            setSelectedCustomerId(selectedCustomer.id);
-        }
+        if (selectedCustomer) setSelectedCustomerId(selectedCustomer.id);
     }, [selectedCustomer]);
 
-    // Le catalogue de services est global (Chantier 1) : plus de filtre par filiale.
     const filteredProducts = useMemo(() =>
         allProducts.filter(product =>
             product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -76,6 +84,18 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
         enabled: globalSearchTerm.trim().length >= 2,
     });
 
+    // Données nécessaires pour ProductionCostModal — chargées une fois au montage
+    const { data: configuredEquipments = [] } = useQuery<EquipmentWithCost[]>({
+        queryKey: ['equipment-configured'],
+        queryFn: () => getConfiguredEquipments(),
+    });
+
+    const { data: commercialParams = null } = useQuery<CommercialParams | null>({
+        queryKey: ['commercial-params'],
+        queryFn: getCommercialParams,
+        retry: false,
+    });
+
     const handleSelectExternalCustomer = (result: GlobalContactSearchResult) => {
         setExternalCustomer(result);
         setSelectedCustomerId(result.id);
@@ -83,75 +103,91 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
     };
 
     const handleQuantityChange = (productId: string, quantity: number) => {
-        const newQuantity = isNaN(quantity) ? 0 : quantity;
-        setQuantities(prev => ({ ...prev, [productId]: Math.max(0, newQuantity) }));
+        setQuantities(prev => ({ ...prev, [productId]: Math.max(0, isNaN(quantity) ? 0 : quantity) }));
     };
 
-    const handleUnitPriceChange = (productId: string, price: number) => {
-        const newPrice = isNaN(price) ? 0 : price;
-        setUnitPrices(prev => ({ ...prev, [productId]: Math.max(0, newPrice) }));
-    };
-
-    const commitAddToCart = (product: Product, quantity: number, unitPrice: number, specValues?: SpecValues) => {
+    // Commit final au panier (après production cost + specs optionnels)
+    const commitAddToCart = (
+        product: Product,
+        quantity: number,
+        productionResult: ProductionCostResult,
+        specValues?: SpecValues,
+    ) => {
+        // finalPrice = prix total du lot → on divise par quantity pour obtenir le prix unitaire
+        const unitPrice = quantity > 0 ? productionResult.summary.finalPrice / quantity : productionResult.summary.finalPrice;
         setCart(currentCart => {
+            // Chaque configuration (specs ou production) distincte = ligne séparée
             if (specValues) {
-                // Chaque configuration technique distincte reste sa propre ligne (jamais fusionnée).
-                return [...currentCart, { lineId: crypto.randomUUID(), product, quantity, unitPrice, discount: 0, specValues }];
+                return [...currentCart, {
+                    lineId: crypto.randomUUID(),
+                    product, quantity, unitPrice, discount: 0,
+                    specValues, productionSteps: productionResult.steps,
+                    productionSummary: productionResult.summary,
+                }];
             }
-            const existingItem = currentCart.find(item => item.product.id === product.id && !item.specValues);
-            if (existingItem) {
+            // Même service, même coût de prod, pas de specs → fusionne si possible
+            const existing = currentCart.find(item =>
+                item.product.id === product.id &&
+                !item.specValues &&
+                Math.abs(item.unitPrice - unitPrice) < 0.01
+            );
+            if (existing) {
                 return currentCart.map(item =>
-                    item.lineId === existingItem.lineId
-                        ? { ...item, quantity: item.quantity + quantity, unitPrice }
+                    item.lineId === existing.lineId
+                        ? { ...item, quantity: item.quantity + quantity }
                         : item
                 );
             }
-            return [...currentCart, { lineId: crypto.randomUUID(), product, quantity, unitPrice, discount: 0 }];
+            return [...currentCart, {
+                lineId: crypto.randomUUID(),
+                product, quantity, unitPrice, discount: 0,
+                productionSteps: productionResult.steps,
+                productionSummary: productionResult.summary,
+            }];
         });
         setQuantities(prev => ({ ...prev, [product.id]: 0 }));
-        setUnitPrices(prev => ({ ...prev, [product.id]: 0 }));
     };
 
+    // Clic "Ajouter" → résolution workflow + schema en parallèle → ouverture modale unifiée
     const handleAddToCart = async (product: Product) => {
         const quantity = quantities[product.id] || 0;
-        const unitPrice = unitPrices[product.id] || 0;
-        if (quantity <= 0 || unitPrice <= 0) return;
+        if (quantity <= 0) return;
 
-        const schema = await queryClient.fetchQuery({
-            queryKey: ['form-definition', product.id],
-            queryFn: () => getFormDefinition(product.id),
-        });
-        const hasSpecs = schema.groups.some(g => g.specifications.length > 0) || schema.ungroupedSpecifications.length > 0;
+        const [resolved, schema] = await Promise.all([
+            queryClient.fetchQuery({
+                queryKey: ['workflow-resolve', product.id],
+                queryFn: () => resolveWorkflow(product.id),
+                staleTime: 60_000,
+            }),
+            queryClient.fetchQuery({
+                queryKey: ['form-definition', product.id],
+                queryFn: () => getFormDefinition(product.id),
+            }).catch(() => null),
+        ]);
 
-        if (hasSpecs) {
-            setSpecModalState({ product, quantity, unitPrice, schema });
-        } else {
-            commitAddToCart(product, quantity, unitPrice);
-        }
+        setAddItemModalState({ product, quantity, resolvedWorkflow: resolved, schema });
     };
 
-    const handleConfirmSpecValues = (values: SpecValues) => {
-        if (!specModalState) return;
-        commitAddToCart(specModalState.product, specModalState.quantity, specModalState.unitPrice, values);
-        setSpecModalState(null);
+    // Confirmation finale de la modale unifiée
+    const handleAddItemConfirm = (result: ProductionCostResult, specValues?: SpecValues) => {
+        if (!addItemModalState) return;
+        commitAddToCart(addItemModalState.product, addItemModalState.quantity, result, specValues);
+        setAddItemModalState(null);
     };
 
     const updateCartQuantity = (lineId: string, newQuantity: number) => {
-        setCart(currentCart => {
-            const clampedQuantity = Math.max(0, newQuantity);
-            if (clampedQuantity <= 0) {
-                return currentCart.filter(item => item.lineId !== lineId);
-            }
-            return currentCart.map(item =>
-                item.lineId === lineId ? { ...item, quantity: clampedQuantity } : item
-            );
-        });
+        const clamped = Math.max(0, newQuantity);
+        setCart(currentCart =>
+            clamped <= 0
+                ? currentCart.filter(item => item.lineId !== lineId)
+                : currentCart.map(item => item.lineId === lineId ? { ...item, quantity: clamped } : item)
+        );
     };
 
     const updateCartDiscount = (lineId: string, newDiscount: number) => {
-        const clampedDiscount = isNaN(newDiscount) ? 0 : Math.max(0, newDiscount);
+        const clamped = isNaN(newDiscount) ? 0 : Math.max(0, newDiscount);
         setCart(currentCart => currentCart.map(item =>
-            item.lineId === lineId ? { ...item, discount: clampedDiscount } : item
+            item.lineId === lineId ? { ...item, discount: clamped } : item
         ));
     };
 
@@ -165,8 +201,6 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
     const totalAmount = useMemo(() => subtotal + taxAmount, [subtotal, taxAmount]);
 
     const handleSubmitOrder = () => {
-        // Le client sélectionné peut venir de la liste locale (filiale) ou
-        // d'une recherche globale (client existant, créé dans une autre filiale).
         const customer = clients.find(c => c.id === selectedCustomerId)
             || (externalCustomer?.id === selectedCustomerId ? externalCustomer : null);
         if (!customer) return;
@@ -177,13 +211,15 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
         const buildItems = () => cart.map(item => ({
             product: item.product,
             quantity: item.quantity,
-            unitPrice: item.unitPrice, // Prix négocié par le commercial pour cette ligne
+            unitPrice: item.unitPrice,
             discount: item.discount,
-            specValues: item.specValues, // Spécifications techniques (Chantier 5)
+            specValues: item.specValues,
+            productionSteps: item.productionSteps,
+            productionSummary: item.productionSummary,
         }));
 
         const newOrderData = {
-            orderId: `ORD-${Date.now()}`, // Generate unique order ID
+            orderId: `ORD-${Date.now()}`,
             date: new Date().toISOString().split('T')[0],
             customerId: customer.id,
             customerName: customer.contactName,
@@ -195,7 +231,6 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
             taxRateId: defaultTaxRate.id,
             taxRateValue: defaultTaxRate.rate,
             paymentDueDate: paymentDueDate.toISOString().split('T')[0],
-            // Ajout des propriétés manquantes pour correspondre au type Order
             status: OrderStatus.NEW,
             productionStatus: ProductionStatus.PREPRESS,
             paymentStatus: PaymentStatus.UNPAID,
@@ -214,10 +249,14 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
         }, 4000);
     };
 
-    const clientOptions = useMemo(() => clients.map(c => ({ value: c.id, label: `${c.contactName} (${c.company || 'N/A'})` })), [clients]);
+    const clientOptions = useMemo(() =>
+        clients.map(c => ({ value: c.id, label: `${c.contactName} (${c.company || 'N/A'})` })),
+        [clients]
+    );
 
     return (
         <div className="grid grid-cols-12 gap-6">
+            {/* Catalogue */}
             <div className="col-span-12 lg:col-span-7 bg-white p-6 rounded-xl shadow-md flex flex-col">
                 <h3 className="text-xl font-bold text-slate-800 mb-4">{t('newOrder.productCatalog')}</h3>
                 <div className="relative mb-4">
@@ -240,7 +279,6 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                                     <th scope="col" className="px-4 py-3">Image</th>
                                     <th scope="col" className="px-4 py-3">{t('newOrder.product')}</th>
                                     <th scope="col" className="px-4 py-3 text-center">{t('newOrder.quantity')}</th>
-                                    <th scope="col" className="px-4 py-3 text-center">{t('newOrder.price')}</th>
                                     <th scope="col" className="px-4 py-3"></th>
                                 </tr>
                             </thead>
@@ -264,21 +302,10 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                                                 placeholder="0"
                                             />
                                         </td>
-                                        <td className="px-4 py-3">
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                step="0.01"
-                                                value={unitPrices[product.id] || ''}
-                                                onChange={(e) => handleUnitPriceChange(product.id, parseFloat(e.target.value))}
-                                                className="w-24 p-1 text-center border rounded-md border-slate-300"
-                                                placeholder={t('newOrder.negotiatedPrice')}
-                                            />
-                                        </td>
                                         <td className="px-4 py-3 text-right">
                                             <button
                                                 onClick={() => handleAddToCart(product)}
-                                                disabled={!(quantities[product.id] > 0) || !(unitPrices[product.id] > 0)}
+                                                disabled={!(quantities[product.id] > 0)}
                                                 className="px-3 py-1 text-xs font-semibold rounded-md transition-colors bg-[#c6e911] text-slate-800 hover:bg-[#adc40f] disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
                                             >
                                                 {t('newOrder.addToCart')}
@@ -292,6 +319,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                 </div>
             </div>
 
+            {/* Panier */}
             <div className="col-span-12 lg:col-span-5 bg-white p-6 rounded-xl shadow-md flex flex-col">
                 {!selectedCustomer && (
                     <div className="mb-4 space-y-2">
@@ -346,6 +374,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                         </div>
                     </div>
                 )}
+
                 <h3 className="text-xl font-bold text-slate-800 border-b pb-2 mb-4">{t('newOrder.orderSummary')}</h3>
                 <div className="flex-grow overflow-y-auto">
                     {orderPlaced ? (
@@ -362,13 +391,19 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                     ) : (
                         <ul className="divide-y divide-slate-200">
                             {cart.map(item => (
-                                <li key={item.lineId} className="py-3 flex items-center">
+                                <li key={item.lineId} className="py-3 flex items-start gap-3">
                                     <div className="flex-grow">
                                         <p className="font-semibold text-slate-800">{item.product.name}</p>
                                         <div className="flex items-center space-x-2 text-sm text-slate-500">
                                             <span>{item.quantity} x {formatCurrency(item.unitPrice)}</span>
                                             <span className="font-bold text-slate-700">{formatCurrency(item.unitPrice * item.quantity - item.discount)}</span>
                                         </div>
+                                        {/* Badge coût de production */}
+                                        {item.productionSummary && (
+                                            <div className="mt-1 text-xs text-slate-400">
+                                                Coût prod. {formatCurrency(item.productionSummary.totalProductionCost)} · Marge {item.productionSummary.marginPercent}%
+                                            </div>
+                                        )}
                                         {item.specValues && Object.keys(item.specValues).length > 0 && (
                                             <p className="text-xs text-slate-400 mt-0.5 truncate">
                                                 {Object.values(item.specValues).filter(v => v !== '' && v != null).join(' · ')}
@@ -387,15 +422,18 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                                             />
                                         </div>
                                     </div>
-                                    <div className="flex items-center space-x-1">
-                                        <button onClick={() => updateCartQuantity(item.lineId, item.quantity - 1)} className="p-1 rounded-full bg-slate-200 hover:bg-slate-300"><IconMinus className="h-4 w-4" /></button>
-                                        <button onClick={() => updateCartQuantity(item.lineId, 0)} className="p-1 rounded-full hover:bg-red-100 text-red-500"><IconDelete className="h-4 w-4" /></button>
+                                    <div className="flex items-center gap-1 mt-1 shrink-0">
+                                        <button onClick={() => updateCartQuantity(item.lineId, item.quantity - 1)} className="p-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600"><IconMinus className="h-4 w-4" /></button>
+                                        <span className="text-sm font-bold text-slate-700 w-7 text-center">{item.quantity}</span>
+                                        <button onClick={() => updateCartQuantity(item.lineId, item.quantity + 1)} className="p-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600"><IconPlus className="h-4 w-4" /></button>
+                                        <button onClick={() => updateCartQuantity(item.lineId, 0)} className="p-1 rounded-full hover:bg-red-100 text-red-400 ml-1"><IconDelete className="h-4 w-4" /></button>
                                     </div>
                                 </li>
                             ))}
                         </ul>
                     )}
                 </div>
+
                 <div className="border-t pt-4 mt-4 space-y-2">
                     <div className="flex justify-between text-sm">
                         <span>{t('invoice.subtotal')}</span>
@@ -412,20 +450,20 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
                     <div className="mt-4">
                         <label className="block text-sm font-medium text-slate-700 mb-2">
-                            Méthode de paiement
+                            {t('newOrder.paymentMethod')}
                         </label>
                         <select
                             value={selectedPaymentMethod}
                             onChange={(e) => setSelectedPaymentMethod(e.target.value as CustomerPaymentMethod)}
                             className="w-full p-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
                         >
-                            <option value={CustomerPaymentMethod.PAY_ON_DELIVERY}>Paiement à la livraison</option>
-                            <option value={CustomerPaymentMethod.CARD}>Carte bancaire</option>
-                            <option value={CustomerPaymentMethod.ORANGE_MONEY}>Orange Money</option>
-                            <option value={CustomerPaymentMethod.WAVE}>Wave</option>
-                            <option value={CustomerPaymentMethod.MOBILE_MONEY}>Mobile Money</option>
-                            <option value={CustomerPaymentMethod.PAYCAAP}>PayCaap</option>
-                            <option value={CustomerPaymentMethod.CUSTOMER_CREDIT}>Crédit client</option>
+                            <option value={CustomerPaymentMethod.PAY_ON_DELIVERY}>{t('newOrder.paymentMethod_PAY_ON_DELIVERY')}</option>
+                            <option value={CustomerPaymentMethod.CARD}>{t('newOrder.paymentMethod_CARD')}</option>
+                            <option value={CustomerPaymentMethod.ORANGE_MONEY}>{t('newOrder.paymentMethod_ORANGE_MONEY')}</option>
+                            <option value={CustomerPaymentMethod.WAVE}>{t('newOrder.paymentMethod_WAVE')}</option>
+                            <option value={CustomerPaymentMethod.MOBILE_MONEY}>{t('newOrder.paymentMethod_MOBILE_MONEY')}</option>
+                            <option value={CustomerPaymentMethod.PAYCAAP}>{t('newOrder.paymentMethod_PAYCAAP')}</option>
+                            <option value={CustomerPaymentMethod.CUSTOMER_CREDIT}>{t('newOrder.paymentMethod_CUSTOMER_CREDIT')}</option>
                         </select>
                     </div>
 
@@ -439,13 +477,17 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                 </div>
             </div>
 
-            {specModalState && (
-                <SpecValuesModal
-                    isOpen={!!specModalState}
-                    onClose={() => setSpecModalState(null)}
-                    onConfirm={handleConfirmSpecValues}
-                    productName={specModalState.product.name}
-                    schema={specModalState.schema}
+            {/* Modale unifiée multi-étapes */}
+            {addItemModalState && (
+                <AddItemMultiStepModal
+                    productName={addItemModalState.product.name}
+                    quantity={addItemModalState.quantity}
+                    configuredEquipments={configuredEquipments}
+                    commercialParams={commercialParams}
+                    resolvedWorkflow={addItemModalState.resolvedWorkflow}
+                    schema={addItemModalState.schema}
+                    onConfirm={handleAddItemConfirm}
+                    onClose={() => setAddItemModalState(null)}
                 />
             )}
         </div>

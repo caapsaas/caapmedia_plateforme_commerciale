@@ -36,14 +36,13 @@ export class InteractionsService {
   }
 
   async findAll(user: User) {
-    // Construire la clause where pour contact de manière explicite pour éviter les problèmes de type avec le spread
-    const contactWhere: Prisma.ContactWhereInput = {
-      subsidiaryId: user.subsidiaryId,
-    };
+    const isSuperAdmin = user.userRole === UserRole.SUPER_ADMIN;
+    const contactWhere: Prisma.ContactWhereInput = isSuperAdmin
+      ? {}
+      : { subsidiaryId: user.subsidiaryId };
 
-    // Les commerciaux ne voient que les interactions liées à leurs propres contacts
-    if (user.userRole === UserRole.COMMERCIAL) {
-      contactWhere.salesRepId = { equals: user.id }; // Utiliser un filtre explicite pour respecter le type nullable UUID
+    if (!isSuperAdmin && user.userRole === UserRole.COMMERCIAL) {
+      contactWhere.salesRepId = { equals: user.id };
     }
 
     const where: Prisma.InteractionWhereInput = {
