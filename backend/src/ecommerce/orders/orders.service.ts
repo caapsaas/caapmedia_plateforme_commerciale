@@ -1,9 +1,12 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import {
   CreateOrderBySalesRepDto,

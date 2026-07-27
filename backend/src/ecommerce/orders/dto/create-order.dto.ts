@@ -8,6 +8,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  IsUUID,
   Min,
   Max,
   ValidateNested,

@@ -14,6 +14,8 @@ import { UserRole } from '@prisma/client';
 import * as nodemailer from 'nodemailer';
 import { resolveScopeContext } from '../../utils/subsidiary-scope';
 import { RefreshTokenService, RequestMeta } from './refresh-token.service';
+import { generateId } from '../../utils/generate-id.util';
+import { ID_PREFIXES } from '../../constants/id-prefixes.const';
 
 @Injectable()
 export class AuthService {

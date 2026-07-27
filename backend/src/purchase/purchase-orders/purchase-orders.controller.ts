@@ -5,11 +5,12 @@ import {
   Body,
   Patch,
   Param,
+  ParseUUIDPipe,
   UseGuards,
   Req,
   SetMetadata,
   Query,
-  } from '@nestjs/common';
+} from '@nestjs/common';
 import { PurchaseOrdersService } from './purchase-orders.service';
 import {
   CreatePurchaseOrderDto,

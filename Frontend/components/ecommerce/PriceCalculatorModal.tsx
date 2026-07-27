@@ -7,7 +7,6 @@ import IconUpload from '../icons/IconUpload';
 import IconFile from '../icons/IconFile';
 import IconDelete from '../icons/IconDelete';
 import { getImageUrl } from '../../utils/imageUtils';
-import { LazyLoadImage } from 'react-lazy-load-image-component';
 import { getFormDefinition } from '../../services/apiE-commerce/apiProductSpecs';
 import SpecValuesModal from '../common/SpecValuesModal';
 import { SpecValues } from '../common/FormRenderer';
@@ -137,11 +136,10 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
                         {/* Image Column */}
                         <div>
                             <div className="w-full aspect-[4/3] rounded-lg overflow-hidden bg-slate-100 mb-2">
-                                <LazyLoadImage
+                                <img
                                     alt={product.name}
                                     src={activeImageUrl}
-                                    effect="blur"
-                                    wrapperClassName="w-full h-full"
+                                    loading="lazy"
                                     className="w-full h-full object-cover"
                                 />
                             </div>
@@ -154,11 +152,10 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
                                             className={`aspect-square rounded-md overflow-hidden focus:outline-none ring-2 ring-offset-1 ${activeImageIndex === index ? 'ring-[#c6e911]' : 'ring-transparent'}`}
                                             aria-label={`View image ${index + 1}`}
                                         >
-                                            <LazyLoadImage
+                                            <img
                                                 alt={`Thumbnail ${index + 1}`}
                                                 src={getImageUrl(image.imageUrl)}
-                                                effect="blur"
-                                                wrapperClassName="w-full h-full"
+                                                loading="lazy"
                                                 className="w-full h-full object-cover"
                                             />
                                         </button>

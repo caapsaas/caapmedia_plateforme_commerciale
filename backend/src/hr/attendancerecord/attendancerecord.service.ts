@@ -28,6 +28,15 @@ export class AttendanceRecordService {
     createAttendanceRecordDto: CreateAttendanceRecordDto,
     employeeId: string,
     subsidiaryId: string,
+    geoData?: {
+      arrivalLatitude?: number;
+      arrivalLongitude?: number;
+      departureLatitude?: number;
+      departureLongitude?: number;
+      isGeolocationValid?: boolean;
+      accuracyMeters?: number;
+      qrCodeToken?: string;
+    },
   ): Promise<AttendanceRecord> {
     this.logger.log(`Creating attendance record for employee ${employeeId}`);
     return this.prisma.attendanceRecord.create({
@@ -50,13 +59,70 @@ export class AttendanceRecordService {
         departureLongitude: geoData?.departureLongitude,
         isGeolocationValid: geoData?.isGeolocationValid ?? false,
         accuracyMeters: geoData?.accuracyMeters,
-        qrCodeToken: geoData?.qrCodeToken
+        qrCodeToken: geoData?.qrCodeToken,
       },
       include: {
         employee: true,
-        subsidiary: true
-      }
+        subsidiary: true,
+      },
     });
+  }
+
+  async findTodayRecord(
+    employeeId: string,
+    subsidiaryId: string,
+  ): Promise<AttendanceRecord | null> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    return this.prisma.attendanceRecord.findFirst({
+      where: {
+        employeeId,
+        subsidiaryId,
+        attendanceDate: { gte: today, lt: tomorrow },
+      },
+    });
+  }
+
+  async findEmployeeById(employeeId: string) {
+    return this.prisma.employee.findUnique({ where: { id: employeeId } });
+  }
+
+  async findByDateRange(
+    employeeId: string,
+    subsidiaryId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<AttendanceRecord[]> {
+    return this.prisma.attendanceRecord.findMany({
+      where: {
+        employeeId,
+        subsidiaryId,
+        attendanceDate: { gte: startDate, lt: endDate },
+      },
+      include: { employee: { select: { id: true, firstName: true, lastName: true } } },
+      orderBy: { attendanceDate: 'desc' },
+    });
+  }
+
+  async getMonthlyStats(
+    employeeId: string,
+    subsidiaryId: string,
+    year: number,
+    month: number,
+  ) {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 1);
+
+    const records = await this.findByDateRange(employeeId, subsidiaryId, startDate, endDate);
+
+    const present = records.filter((r) => r.status === 'PRESENT').length;
+    const absent = records.filter((r) => r.status === 'ABSENT').length;
+    const late = records.filter((r) => r.status === 'LATE').length;
+
+    return { year, month, present, absent, late, total: records.length };
   }
 
   async findAll(subsidiaryId: string): Promise<AttendanceRecord[]> {

@@ -1,25 +1,32 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
+  UploadedFiles,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { UseInterceptors } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { UploadedFiles } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { Roles } from 'src/common/auth/role/role.decorator';
-import { UseGuards } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { extname } from 'path';
 import { CreateProductDto, UpdateProductDto } from './dto/create-product.dto';
+import { FILE_UPLOAD_CONFIG } from 'src/common/constants/file-upload.const';
+import {
+  validateImageFile,
+  generateSecureFilename,
+} from 'src/common/utils/image.util';
 
 // Catalogue de services (Chantier 1) : donnée globale, pas de scope filiale.
 @Controller('products')
@@ -197,7 +204,7 @@ export class ProductsController {
     UserRole.FINANCIAL_DIRECTOR,
   )
   update(
-    @Param('') id: string,
+    @Param('id') id: string,
     @Body() updateProductDto: UpdateProductDto,
     @UploadedFiles() files: Express.Multer.File[],
   ) {

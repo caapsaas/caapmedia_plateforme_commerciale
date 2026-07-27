@@ -109,32 +109,11 @@ export class AnalyticsService {
       where: where,
     });
 
-    // Revenu Net (Ventes - Coût des marchandises vendues)
-    // Pour le revenu net, nous devons toujours nous baser sur les commandes pour obtenir le prix d'achat.
-    // Mais nous filtrons par les ID de commandes présentes dans les ventes payées.
-    const salesWithOrder = await this.prisma.sale.findMany({
-      where: { ...where, orderId: { not: null } },
-      include: {
-        order: { include: { orderItems: { include: { product: true } } } },
-      },
-    });
-
-    let totalCostOfGoods = new Prisma.Decimal(0);
-    for (const sale of salesWithOrder) {
-      if (sale.order) {
-        for (const item of sale.order.orderItems) {
-          if (item.product?.price) {
-            // 'price' est le prix d'achat/revient
-            totalCostOfGoods = totalCostOfGoods.add(
-              item.product.price.mul(item.quantity),
-            );
-          }
-        }
-      }
-    }
+    // Revenu Net = Ventes (le champ `price` a été supprimé du schéma Item,
+    // le COGS ne peut plus être calculé automatiquement depuis le catalogue).
     const totalSales =
       totalSalesResult._sum.totalPrice || new Prisma.Decimal(0);
-    const netRevenue = totalSales.sub(totalCostOfGoods);
+    const netRevenue = totalSales;
 
     // Nouveaux clients
     const newCustomersCount = await this.prisma.contact.count({
@@ -142,7 +121,8 @@ export class AnalyticsService {
     });
 
     // Valeur du stock (matières premières uniquement — les services n'ont pas de stock).
-    // L'Item est global ; c'est ItemStock qui porte la quantité par filiale.
+    // Le champ `price` ayant été supprimé du schéma Item, la valeur monétaire
+    // n'est pas calculable automatiquement ; on retourne 0 et on garde la catégorie.
     const stockLevels = await this.prisma.itemStock.findMany({
       where: {
         ...subsidiaryFilter,
@@ -150,13 +130,10 @@ export class AnalyticsService {
       },
       select: {
         stock: true,
-        item: { select: { price: true, category: true } },
+        item: { select: { category: true } },
       },
     });
-    const stockValue = stockLevels.reduce(
-      (acc, s) => acc.add((s.item.price ?? new Prisma.Decimal(0)).mul(s.stock)),
-      new Prisma.Decimal(0),
-    );
+    const stockValue = new Prisma.Decimal(0);
 
     // Performance des ventes (agrégation par jour)
     // Utilisation de SQL brut pour une performance optimale sur le groupement par date.
@@ -193,9 +170,8 @@ export class AnalyticsService {
         valueSum: new Prisma.Decimal(0),
       };
       entry.stockSum = entry.stockSum.add(s.stock);
-      entry.valueSum = entry.valueSum.add(
-        (s.item.price ?? new Prisma.Decimal(0)).mul(s.stock),
-      );
+      // price supprimé du schéma — valeur monétaire non calculable
+      entry.valueSum = entry.valueSum.add(new Prisma.Decimal(0));
       categoryTotals.set(category, entry);
     }
 

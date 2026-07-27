@@ -10,6 +10,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ContactsService } from './contacts.service';
 import { RoleGuard } from 'src/common/auth/role/role.guard';

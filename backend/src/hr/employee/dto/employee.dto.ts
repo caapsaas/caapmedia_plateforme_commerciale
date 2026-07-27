@@ -4,21 +4,25 @@ import {
   IsEmail,
   IsEnum,
   IsDecimal,
+  IsNotEmpty,
   IsOptional,
   IsArray,
+  Matches,
   Min,
   Max,
   Length,
   IsUUID,
   IsNumber,
+  ValidateNested,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
 import {
   Gender,
   ContractType,
   EmployeeStatus,
   PaymentMethod,
+  LeaveType,
 } from '@prisma/client'; // Assumons que ces enums sont générés par Prisma
 
 export class LeaveBalanceDto {
@@ -120,7 +124,6 @@ export class CreateEmployeeDto {
   @IsNotEmpty()
   @IsDate()
   @Transform(({ value }) => new Date(value))
-  @IsMinAge(16, { message: 'Employee must be at least 16 years old' })
   birthDate: Date;
 
   @IsNotEmpty()
@@ -160,7 +163,6 @@ export class CreateEmployeeDto {
   @IsNotEmpty()
   @IsDate()
   @Transform(({ value }) => new Date(value))
-  @IsEndDateAfterStartDate('birthDate', { message: 'Hire date must be after birth date' })
   hireDate: Date;
 
   @IsNotEmpty()

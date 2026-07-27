@@ -116,7 +116,7 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Add a document to an employee' })
   async addDocument(
     @Param('id') id: string,
-    @Body() createEmployeeDocumentDto: CreateEmployeeDocumentDto,
+    @Body() body: { documentName: string; url: string; docType: DocumentType },
   ) {
     return this.employeeService.addDocument(
       id,
@@ -134,7 +134,10 @@ export class EmployeeController {
     @Body()
     body: { trainingName: string; trainingDate: string; provider?: string },
   ) {
-    return this.employeeService.addTraining(id, createEmployeeTrainingDto);
+    return this.employeeService.addTraining(id, {
+      ...body,
+      trainingDate: new Date(body.trainingDate),
+    });
   }
 
   @Post(':id/position-history')
@@ -142,9 +145,14 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Add a position history entry' })
   async addPositionHistory(
     @Param('id') id: string,
-    @Body() createEmployeePositionHistoryDto: CreateEmployeePositionHistoryDto,
+    @Body()
+    body: { employeePosition: string; department?: string; startDate: string; endDate?: string },
   ) {
-    return this.employeeService.addPositionHistory(id, createEmployeePositionHistoryDto);
+    return this.employeeService.addPositionHistory(id, {
+      ...body,
+      startDate: new Date(body.startDate),
+      endDate: body.endDate ? new Date(body.endDate) : undefined,
+    });
   }
 
   @Post(':id/performance-reviews')
@@ -152,9 +160,13 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Add a performance review' })
   async addPerformanceReview(
     @Param('id') id: string,
-    @Body() createEmployeePerformanceReviewDto: CreateEmployeePerformanceReviewDto,
+    @Body()
+    body: { reviewDate: string; reviewer?: string; rating?: number; reviewComments?: string },
   ) {
-    return this.employeeService.addPerformanceReview(id, createEmployeePerformanceReviewDto);
+    return this.employeeService.addPerformanceReview(id, {
+      ...body,
+      reviewDate: new Date(body.reviewDate),
+    });
   }
 
   @Post(':id/leaves')
@@ -166,11 +178,15 @@ export class EmployeeController {
     body: {
       startDate: string;
       endDate: string;
-      days: number;
+      days?: number;
       leaveRecordType: LeaveType;
     },
   ) {
-    return this.employeeService.addLeaveRecord(id, addLeaveRecordDto);
+    return this.employeeService.addLeaveRecord(id, {
+      ...body,
+      startDate: new Date(body.startDate),
+      endDate: new Date(body.endDate),
+    });
   }
 
   @Get(':id/leave-balances')

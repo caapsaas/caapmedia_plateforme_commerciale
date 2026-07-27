@@ -124,7 +124,7 @@ export default function ProductsGrid({
               key={i}
               className="rounded-xl overflow-hidden border border-slate-200 bg-white shadow-sm"
             >
-              <div className="h-48 bg-slate-200 animate-pulse" />
+              <div className="aspect-[4/3] w-full bg-slate-200 animate-pulse" />
               <div className="p-4 space-y-3">
                 <div className="h-4 bg-slate-200 animate-pulse rounded w-3/4" />
                 <div className="h-4 bg-slate-200 animate-pulse rounded w-1/2" />
@@ -154,7 +154,7 @@ export default function ProductsGrid({
               key={`more-${i}`}
               className="rounded-xl overflow-hidden border border-slate-200 bg-white shadow-sm"
             >
-              <div className="h-48 bg-slate-200 animate-pulse" />
+              <div className="aspect-[4/3] w-full bg-slate-200 animate-pulse" />
               <div className="p-4 space-y-3">
                 <div className="h-4 bg-slate-200 animate-pulse rounded w-3/4" />
                 <div className="h-4 bg-slate-200 animate-pulse rounded w-1/2" />

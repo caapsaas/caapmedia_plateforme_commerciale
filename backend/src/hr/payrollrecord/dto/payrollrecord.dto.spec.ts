@@ -1,7 +1,7 @@
-import { PayrollrecordDto } from './payrollrecord.dto';
+import { CreatePayrollRecordDto } from './payrollrecord.dto';
 
-describe('PayrollrecordDto', () => {
+describe('CreatePayrollRecordDto', () => {
   it('should be defined', () => {
-    expect(new PayrollrecordDto()).toBeDefined();
+    expect(new CreatePayrollRecordDto()).toBeDefined();
   });
 });

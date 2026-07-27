@@ -10,6 +10,8 @@ import {
   UpdateAbsenceRecordDto,
 } from './dto/absencerecord.dto';
 import { AbsenceRecord, Prisma } from '@prisma/client'; // Import AbsenceType
+import { generateId } from '../../common/utils/generate-id.util';
+import { ID_PREFIXES } from '../../common/constants/id-prefixes.const';
 
 @Injectable()
 export class AbsenceRecordService {

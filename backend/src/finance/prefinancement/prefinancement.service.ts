@@ -24,10 +24,11 @@ export class PrefinancementService {
   }) {
     return this.prisma.prefinancementAccount.create({
       data: {
+        id: crypto.randomUUID(),
         accountName: createDto.accountName,
         balance: createDto.initialBalance || 0,
         subsidiaryId: createDto.subsidiaryId,
-      },
+      } as any,
     });
   }
 
@@ -93,12 +94,14 @@ export class PrefinancementService {
     subsidiaryId: string;
     createdBy: string;
   }) {
+    const { date, ...rest } = createDto;
     return this.prisma.prefinancementTransaction.create({
       data: {
-        ...createDto,
-        date: new Date(createDto.date),
+        id: crypto.randomUUID(),
+        ...rest,
+        date: new Date(date),
         status: PrefinancementStatus.EN_ATTENTE,
-      },
+      } as any,
     });
   }
 

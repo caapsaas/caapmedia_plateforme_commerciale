@@ -34,7 +34,6 @@ import {
   createOrderBySalesRepJson,
   FindAllOrdersDto,
   getTopSellingProducts,
-  TopSellingProduct,
 } from "../../services/apiE-commerce/apiOrders";
 import { getServicesCatalog } from "../../services/apiE-commerce/apiProducts";
 import { getContacts } from "../../services/apiCrm/apicontacts";

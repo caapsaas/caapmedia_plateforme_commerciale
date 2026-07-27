@@ -1,4 +1,4 @@
-import { IsString, IsDate, IsEnum, IsOptional, IsNumber } from 'class-validator';
+import { IsString, IsDate, IsEnum, IsOptional, IsNumber, IsBoolean } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
 import { AttendanceStatus } from '@prisma/client';
@@ -38,6 +38,34 @@ export class CreateAttendanceRecordDto {
   @IsOptional()
   @IsString()
   signature?: string;
+
+  @IsOptional()
+  @IsNumber()
+  arrivalLatitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  arrivalLongitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  departureLatitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  departureLongitude?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isGeolocationValid?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  accuracyMeters?: number;
+
+  @IsOptional()
+  @IsString()
+  qrCodeToken?: string;
 
   @IsEnum(AttendanceStatus)
   status: AttendanceStatus;

@@ -6,7 +6,7 @@ import IconSearch from '../icons/IconSearch';
 import ImageZoomModal from './ImageZoomModal';
 import { getImageUrl } from '../../utils/imageUtils';
 import { LazyLoadImage } from 'react-lazy-load-image-component';
-import 'react-lazy-load-image-component/src/effects/blur.css'; 
+import 'react-lazy-load-image-component/src/effects/blur.css';
 
 interface ProductCardProps {
     product: Product;
@@ -17,7 +17,7 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, isLiked, onLike, onUnlike }) => {
-    const { t, formatCurrency } = useI18n();
+    const { t } = useI18n();
     const [activeImageIndex, setActiveImageIndex] = useState(0);
     const [isZoomModalOpen, setIsZoomModalOpen] = useState(false);
 
@@ -37,7 +37,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, isLiked
                         className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    
+
                     {/* Overlay for icons */}
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3">
                         <div className="flex justify-between items-start">
@@ -57,9 +57,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, isLiked
                 {hasImages && product.productImages && product.productImages.length > 1 && (
                     <div className="grid grid-cols-5 gap-1 p-2 bg-slate-50">
                         {product.productImages.slice(0, 5).map((image, index) => (
-                             <button 
-                                key={index} 
-                                onClick={() => setActiveImageIndex(index)} 
+                             <button
+                                key={index}
+                                onClick={() => setActiveImageIndex(index)}
                                 className={`aspect-square rounded-md overflow-hidden focus:outline-none ring-2 ring-offset-1 ${activeImageIndex === index ? 'ring-[#c6e911]' : 'ring-transparent'}`}
                                 aria-label={`View image ${index + 1}`}
                             >
@@ -80,10 +80,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, isLiked
                 <div>
                     <h3 className="font-bold text-base text-slate-800 truncate" title={product.name}>{product.name}</h3>
                     <p className="text-sm text-slate-500 mt-1">{product.category}</p>
-                  
+
                 </div>
                 <div className="flex justify-between items-center mt-4">
-                    
+
                     <button
                         onClick={() => onAddToCart(product)}
                         className="px-4 py-1.5 font-semibold rounded-lg text-sm transition-colors flex items-center justify-center gap-2 bg-[#c6e911] text-slate-800 hover:bg-[#adc40f]"
@@ -94,7 +94,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, isLiked
             </div>
 
             {hasImages && product.productImages && (
-                 <ImageZoomModal 
+                 <ImageZoomModal
                     isOpen={isZoomModalOpen}
                     onClose={() => setIsZoomModalOpen(false)}
                     images={product.productImages}

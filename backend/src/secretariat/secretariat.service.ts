@@ -15,6 +15,8 @@ import {
   Prisma,
 } from '@prisma/client';
 import { CreateCompanyDocumentDto } from './dto/create-company-document.dto';
+import { generateId } from '../../src/common/utils/generate-id.util';
+import { ID_PREFIXES } from '../../src/common/constants/id-prefixes.const';
 import {
   CreateSecretariatTaskDto,
   UpdateSecretariatTaskDto,

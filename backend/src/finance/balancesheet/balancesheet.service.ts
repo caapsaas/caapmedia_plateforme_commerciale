@@ -96,12 +96,14 @@ export class BalancesheetService {
   async getInventoryValue(subsidiaryId?: string): Promise<number> {
     // Item est global (catalogue partagé) ; seule la quantité en stock
     // (ItemStock) est propre à une filiale — absence de filtre = consolidé.
+    // Le prix unitaire n'est plus stocké sur l'Item (supprimé du schéma) ;
+    // la valeur monétaire du stock est donc estimée à 0 pour le bilan.
     const stockLevels = await this.prisma.itemStock.findMany({
       where: subsidiaryId ? { subsidiaryId } : {},
-      select: { stock: true, item: { select: { price: true } } },
+      select: { stock: true },
     });
     return stockLevels.reduce(
-      (sum, s) => sum + Number(s.item.price) * Number(s.stock),
+      (_sum, _s) => _sum,
       0,
     );
   }

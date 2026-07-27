@@ -1,17 +1,19 @@
-import { Controller, Req } from '@nestjs/common';
 import {
+  Controller,
+  Req,
   Body,
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
-  } from '@nestjs/common';
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { Roles } from 'src/common/auth/role/role.decorator';
-import { UseGuards } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { EquipementService } from './equipement.service';
 import {
@@ -58,7 +60,7 @@ export class EquipementController {
 
   @Patch(':id')
   update(
-    @Param('') id: string,
+    @Param('id') id: string,
     @Body() updateEquipementDto: UpdateEquipmentDto,
     @Req() req: any,
   ) {

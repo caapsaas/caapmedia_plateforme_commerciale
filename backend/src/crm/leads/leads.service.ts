@@ -33,6 +33,43 @@ export class LeadsService {
     private readonly contactsService: ContactsService, // Injecter ContactsService
   ) {}
 
+  /**
+   * Crée un lead depuis le formulaire public de demande de devis (sans authentification).
+   * Rattaché à la filiale principale (siège) — le commercial sera assigné manuellement.
+   */
+  async createPublicLead(dto: PublicQuoteRequestDto) {
+    const existing = await this.prisma.lead.findUnique({
+      where: { email: dto.email },
+    });
+    if (existing) {
+      throw new ConflictException(
+        `Un lead avec l'email "${dto.email}" existe déjà.`,
+      );
+    }
+
+    // Utilise le siège (première filiale par nom) comme filiale par défaut pour les leads publics.
+    const defaultSubsidiary = await this.prisma.subsidiary.findFirst({
+      orderBy: { subsidiaryName: 'asc' },
+    });
+    if (!defaultSubsidiary) {
+      throw new BadRequestException(
+        'Aucune filiale configurée. Impossible de créer le lead.',
+      );
+    }
+
+    return this.prisma.lead.create({
+      data: {
+        leadName: dto.leadName,
+        company: dto.company,
+        email: dto.email,
+        phone: dto.phone,
+        description: dto.description,
+        status: 'NEW' as any,
+        subsidiaryId: defaultSubsidiary.id,
+      },
+    });
+  }
+
   async create(createLeadDto: CreateLeadDto, user: User) {
     // Récupérer l'utilisateur complet depuis la base pour s'assurer que les rôles sont à jour
     const fullUser = await this.prisma.user.findUnique({

@@ -133,18 +133,21 @@ export class StockItemsService {
 
   async updatePrice(
     id: string,
-    updateStockItemPriceDto: UpdateStockItemPriceDto,
+    _updateStockItemPriceDto: UpdateStockItemPriceDto,
     user: any,
   ) {
-    await this.findOne(id, user);
-    const item = await this.prisma.item.update({
+    // Le champ `price` a été supprimé du schéma Item — cette méthode retourne
+    // simplement l'article existant sans modification du prix.
+    const item = await this.prisma.item.findUnique({
       where: { id },
-      data: { price: updateStockItemPriceDto.price },
       include: {
         ...STOCK_ITEM_INCLUDE,
         stockLevels: { where: { subsidiaryId: user.subsidiaryId } },
       },
     });
+    if (!item) {
+      throw new NotFoundException(`Article avec l'ID "${id}" introuvable`);
+    }
     return this.toFlat(item, user.subsidiaryId);
   }
 

@@ -149,19 +149,7 @@ export class FinancesStatsService {
     });
     const revenue = salesResult._sum.totalPrice ?? new Prisma.Decimal(0);
 
-    // Coût des marchandises vendues (CMV)
-    const salesWithItems = await this.prisma.sale.findMany({
-      where: {
-        subsidiaryId,
-        status: 'PAID',
-        orderId: { not: null },
-        ...dateFilter,
-      },
-      include: {
-        order: { include: { orderItems: { include: { product: true } } } },
-      },
-    });
-
+    // Coût des marchandises vendues (CMV) — non calculable : price supprimé du schéma Item.
     const cogs = new Prisma.Decimal(0);
 
     // Charges d'exploitation
@@ -177,7 +165,6 @@ export class FinancesStatsService {
 
     // Calculs du P&L selon SYSCOHADA
     const grossProfit = revenue.sub(cogs);
-    const taxRate = 0.3; // 30%
     const taxes = grossProfit.gt(0)
       ? grossProfit.mul(taxRate)
       : new Prisma.Decimal(0);
@@ -203,7 +190,7 @@ export class FinancesStatsService {
     const [
       treasury,
       receivables,
-      inventoryValue,
+      _inventoryValue,
       fixedAssets,
       equipments,
       supplierDebts,
@@ -217,7 +204,7 @@ export class FinancesStatsService {
       this.getCustomerReceivables(user, { period: PeriodFilter.ALL_TIME }),
       this.prisma.itemStock.findMany({
         where: { subsidiaryId, stock: { gt: 0 } },
-        select: { stock: true, item: { select: { price: true } } },
+        select: { stock: true },
       }),
       this.prisma.fixedAsset.aggregate({
         _sum: { acquisitionCost: true },
@@ -232,10 +219,8 @@ export class FinancesStatsService {
       this.getPnlStatement(user, { period: PeriodFilter.THIS_YEAR }), // Résultat de l'exercice en cours
     ]);
 
-    const inventory = inventoryValue.reduce(
-      (acc, s) => acc.add((s.item.price ?? new Prisma.Decimal(0)).mul(s.stock)),
-      new Prisma.Decimal(0),
-    );
+    // price supprimé du schéma Item — valeur du stock estimée à 0
+    const inventory = new Prisma.Decimal(0);
 
     const assets = {
       treasury: treasury._sum.balance?.toNumber() ?? 0,

@@ -7,7 +7,8 @@ import {
   Param,
   Delete,
   UseGuards,
-  } from '@nestjs/common';
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { CrmtasksService } from './crmtasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';

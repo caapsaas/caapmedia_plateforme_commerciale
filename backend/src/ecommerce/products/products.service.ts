@@ -2,6 +2,13 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateProductDto, UpdateProductDto } from './dto/create-product.dto';
 import { ItemType } from '@prisma/client';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { FILE_UPLOAD_CONFIG } from 'src/common/constants/file-upload.const';
+import {
+  buildRelativeImagePath,
+  deleteImageFile,
+} from 'src/common/utils/image.util';
 
 // Catalogue de services (Chantier 1) : donnée globale, sans prix ni stock.
 // Le CRUD des produits de stock (matières premières, scopé filiale) vit dans
@@ -40,7 +47,14 @@ export class ProductsService {
         type: ItemType.SERVICE,
         productImages: files?.length
           ? {
-              create: productImageData,
+              create: files.map((file) => ({
+                id: generateId(ID_PREFIXES.PRODUCTIMAGE),
+                imageName: file.originalname,
+                imageUrl: buildRelativeImagePath(
+                  FILE_UPLOAD_CONFIG.UPLOAD_DIRS.PRODUCTS,
+                  file.filename,
+                ),
+              })),
             }
           : undefined,
       },
@@ -139,6 +153,11 @@ export class ProductsService {
     // Vérifie que le service existe
     await this.findOne(id);
 
+    // Capture les anciennes images avant transaction pour nettoyage ultérieur
+    const oldImages = files?.length
+      ? await this.prisma.productImage.findMany({ where: { productId: id } })
+      : [];
+
     const product = await this.prisma.$transaction(async (tx) => {
       // Mise à jour des infos de base
       await tx.item.update({
@@ -186,14 +205,19 @@ export class ProductsService {
    * @returns // Service supprimé
    */
   async remove(id: string) {
-    // Vérifie que le service existe
-    await this.findOne(id);
-    const deleted = await this.prisma.item.delete({
+    // Vérifie que le service existe et récupère les images à supprimer
+    const existingProduct = await this.prisma.item.findUnique({
       where: { id },
+      include: { productImages: true },
     });
+    if (!existingProduct) {
+      throw new NotFoundException(`Service avec l'ID "${id}" non trouvé`);
+    }
+
+    await this.prisma.item.delete({ where: { id } });
 
     // Cleanup des fichiers physiques après suppression en BD
-    for (const image of product.productImages) {
+    for (const image of existingProduct.productImages) {
       await deleteImageFile(image.imageUrl);
     }
 

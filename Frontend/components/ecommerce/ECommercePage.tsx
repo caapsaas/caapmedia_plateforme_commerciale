@@ -82,7 +82,7 @@ const ECommercePage: React.FC = () => {
     },
   });
 
-  const { mutate: quoteRequestMutation } = useMutation<any, Error, FormData>({
+  const { mutate: quoteRequestMutation } = useMutation<any, Error, any>({
     mutationFn: createQuoteRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
@@ -162,12 +162,6 @@ const ECommercePage: React.FC = () => {
       }
       return [...currentCart, item];
     });
-  };
-
-  // Le catalogue n'a pas de prix ni de stock (site vitrine uniquement) : chaque
-  // clic ouvre la sélection de spécifications, le prix étant négocié via WhatsApp.
-  const handleProductClick = (product: Product) => {
-    setConfiguringProduct(product);
   };
 
   const handleUpdateQuantity = (cartItemId: string, newQuantity: number) => {
@@ -312,7 +306,7 @@ const ECommercePage: React.FC = () => {
         onQuoteRequest={() => setIsQuoteModalOpen(true)}
       />
       <main className="container mx-auto px-4 pt-8 pb-8 ">
-        {/* <CategoryShowcase 
+        {/* <CategoryShowcase
                     productHierarchy={PRODUCT_HIERARCHY.filter(cat => cat.category !== 'Matières Premières')}
                     onSelectMainCategory={handleSelectMainCategory}
                     onSelectSubcategory={handleSelectSubcategory}
@@ -352,7 +346,7 @@ const ECommercePage: React.FC = () => {
               <div className="text-left max-w-4xl mx-auto mt-10 space-y-8 animate-fadeIn text-slate-700">
                 <div>
                   <h4 className="text-2xl font-bold text-slate-800 mb-3">
-                    Boostez Votre Communication avec CaapMedia : L’Imprimeur en
+                    Boostez Votre Communication avec CaapMedia : L'Imprimeur en
                     Ligne N°1 au Cameroun !
                   </h4>
                 </div>
@@ -392,7 +386,7 @@ const ECommercePage: React.FC = () => {
                     👀 Inspirez-vous des Créations de Nos Clients
                   </h5>
                   <p className="mb-2">
-                    Des milliers d’entreprises nous font déjà confiance :
+                    Des milliers d'entreprises nous font déjà confiance :
                   </p>
                   <ul className="list-disc list-inside space-y-1 text-slate-600 ml-2">
                     <li>
@@ -435,7 +429,7 @@ const ECommercePage: React.FC = () => {
                   <p className="leading-relaxed">
                     Chez CaapMedia, on ne vous laisse jamais dans le flou. Un
                     vrai conseiller (et sympa !) vous accompagne du brief
-                    jusqu’à la livraison.
+                    jusqu'à la livraison.
                   </p>
                 </div>
 
@@ -477,7 +471,7 @@ const ECommercePage: React.FC = () => {
                   <ol className="list-decimal list-inside space-y-1 ml-2 text-slate-600">
                     <li>Choisissez un modèle conçu par nos graphistes pros</li>
                     <li>
-                      Ou partez d’une page blanche et laissez libre cours à
+                      Ou partez d'une page blanche et laissez libre cours à
                       votre créativité
                     </li>
                     <li>Modifiez textes, couleurs, images en quelques clics</li>
@@ -489,7 +483,7 @@ const ECommercePage: React.FC = () => {
 
                 <div>
                   <h5 className="text-lg font-bold text-slate-800 mb-2">
-                    L’Histoire CaapMedia : Née en 2016 à Douala, Toujours Plus
+                    L'Histoire CaapMedia : Née en 2016 à Douala, Toujours Plus
                     Forte !
                   </h5>
                   <p className="leading-relaxed">
@@ -541,7 +535,7 @@ const ECommercePage: React.FC = () => {
 
                 <div className="text-center bg-slate-800 text-white p-6 rounded-xl">
                   <h5 className="text-xl font-bold mb-2">
-                    Prêt à faire décoller votre com’ à prix mini ?
+                    Prêt à faire décoller votre com' à prix mini ?
                   </h5>
                   <p className="mb-4">
                     👉 Naviguez dès maintenant, obtenez votre devis en 3 clics
@@ -549,7 +543,7 @@ const ECommercePage: React.FC = () => {
                     claquent !
                   </p>
                   <p className="text-sm text-slate-400">
-                    CaapMedia – L’impression pas chère qui fait la différence
+                    CaapMedia – L'impression pas chère qui fait la différence
                     depuis 2016.
                   </p>
                 </div>
@@ -682,12 +676,7 @@ const ECommercePage: React.FC = () => {
                   alt="Client satisfait Casquette"
                   className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
                 />
-                {/* Logo Overlay on Phone/Case or simulated cap area if possible, hard to place on dynamic image without specific cap coordinates. 
-                                        Ideally we'd find a cap image, but this portrait is strong. 
-                                        Let's place a small branding near the bottom or on accessory. 
-                                     */}
                 <div className="absolute top-[10%] left-[50%] -translate-x-1/2 w-8 md:w-10 opacity-80 mix-blend-screen pointer-events-none">
-                  {/* Simulating logo on forehead/cap area if image allows, or just branding watermark style */}
                   <img src="/CaaMedia.png" alt="CaapMedia Logo" className="w-full h-full rounded-full object-cover drop-shadow-md" />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
@@ -772,16 +761,6 @@ const ECommercePage: React.FC = () => {
           onLogin={onLogin}
           onRegister={onRegister}
           onAuthSuccess={handleAuthSuccess}
-        />
-      )}
-
-      {configuringProduct && (
-        <PriceCalculatorModal
-          isOpen={!!configuringProduct}
-          onClose={() => setConfiguringProduct(null)}
-          product={configuringProduct}
-          onAddToCart={handleAddToCart}
-          requirePrice={false}
         />
       )}
 

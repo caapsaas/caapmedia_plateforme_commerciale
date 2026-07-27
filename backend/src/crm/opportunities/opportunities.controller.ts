@@ -7,7 +7,8 @@ import {
   Param,
   Delete,
   UseGuards,
-  } from '@nestjs/common';
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { OpportunitiesService } from './opportunities.service';
 import { CreateOpportunityDto } from './dto/create-opportunity.dto';
 import { UpdateOpportunityDto } from './dto/update-opportunity.dto';

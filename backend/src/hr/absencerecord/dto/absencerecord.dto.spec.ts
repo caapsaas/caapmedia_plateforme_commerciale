@@ -1,7 +1,7 @@
-import { AbsencerecordDto } from './dto/absencerecord.dto';
+import { CreateAbsenceRecordDto } from './absencerecord.dto';
 
-describe('AbsencerecordDto', () => {
+describe('CreateAbsenceRecordDto', () => {
   it('should be defined', () => {
-    expect(new AbsencerecordDto()).toBeDefined();
+    expect(new CreateAbsenceRecordDto()).toBeDefined();
   });
 });

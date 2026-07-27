@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useI18n } from '../../i18n';
 import IconChevronLeft from '../icons/IconChevronLeft';
 import IconChevronRight from '../icons/IconChevronRight';
-import 'react-lazy-load-image-component/src/effects/blur.css';
 import slide1 from '../../assets/slide1.jpg';
 import slide2 from '../../assets/slide2.jpg';
 import slide3 from '../../assets/slide3.jpg';

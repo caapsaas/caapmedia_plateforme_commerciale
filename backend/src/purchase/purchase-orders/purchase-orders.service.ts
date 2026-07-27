@@ -353,19 +353,8 @@ export class PurchaseOrdersService {
           },
         });
 
-        // Répercute le prix d'achat réel sur le prix par défaut global de l'article.
-        const product = await tx.item.findUnique({
-          where: { id: orderItem.productId },
-        });
-        if (
-          product?.price &&
-          product.price.comparedTo(orderItem.purchasePrice) !== 0
-        ) {
-          await tx.item.update({
-            where: { id: orderItem.productId },
-            data: { price: orderItem.purchasePrice },
-          });
-        }
+        // Note : le champ `price` a été supprimé du schéma Item.
+        // Le prix d'achat est désormais uniquement stocké sur PurchaseOrderItem.purchasePrice.
       }
 
       // Mettre à jour le statut global de la commande
