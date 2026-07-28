@@ -59,9 +59,10 @@ export class ProductsController {
           fileSize: FILE_UPLOAD_CONFIG.LIMITS.MAX_FILE_SIZE,
         },
         fileFilter: (req, file, cb) => {
-          const isValidMime = FILE_UPLOAD_CONFIG.ALLOWED_MIME_TYPES.IMAGES.includes(
-            file.mimetype,
-          );
+          const isValidMime =
+            FILE_UPLOAD_CONFIG.ALLOWED_MIME_TYPES.IMAGES.includes(
+              file.mimetype,
+            );
           if (!isValidMime) {
             cb(
               new BadRequestException(
@@ -177,9 +178,10 @@ export class ProductsController {
           fileSize: FILE_UPLOAD_CONFIG.LIMITS.MAX_FILE_SIZE,
         },
         fileFilter: (req, file, cb) => {
-          const isValidMime = FILE_UPLOAD_CONFIG.ALLOWED_MIME_TYPES.IMAGES.includes(
-            file.mimetype,
-          );
+          const isValidMime =
+            FILE_UPLOAD_CONFIG.ALLOWED_MIME_TYPES.IMAGES.includes(
+              file.mimetype,
+            );
           if (!isValidMime) {
             cb(
               new BadRequestException(

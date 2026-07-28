@@ -138,9 +138,9 @@ export class FinancesStatsService {
     // Récupérer le taux d'impôt de la filiale
     const subsidiary = await this.prisma.subsidiary.findUnique({
       where: { id: subsidiaryId },
-      select: { taxRate: true }
+      select: { taxRate: true },
     });
-    const taxRate = subsidiary?.taxRate ?? new Prisma.Decimal(0.30); // Défaut 30% si non configuré
+    const taxRate = subsidiary?.taxRate ?? new Prisma.Decimal(0.3); // Défaut 30% si non configuré
 
     // Chiffre d'affaires
     const salesResult = await this.prisma.sale.aggregate({

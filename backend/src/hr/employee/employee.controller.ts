@@ -71,9 +71,12 @@ export class EmployeeController {
     @Query('includeRelations') includeRelations?: string,
   ) {
     const subsidiaryId = req.user.subsidiaryId;
-    this.logger.log(`Fetching employees for subsidiary ${subsidiaryId}`);
+    this.logger.log(`Fetching employees for subsidiary ${subsidiaryId} (role: ${req.user.roles})`);
     const includeRel = includeRelations === 'true';
-    return this.employeeService.findAll(subsidiaryId, includeRel);
+
+    // SUPER_ADMIN : vue consolidée toutes filiales (subsidiaryId = null → pas de filtre)
+    const isSuperAdmin = req.user.roles?.includes('SUPER_ADMIN');
+    return this.employeeService.findAll(isSuperAdmin ? null : subsidiaryId, includeRel);
   }
 
   @Get(':id')
@@ -146,7 +149,12 @@ export class EmployeeController {
   async addPositionHistory(
     @Param('id') id: string,
     @Body()
-    body: { employeePosition: string; department?: string; startDate: string; endDate?: string },
+    body: {
+      employeePosition: string;
+      department?: string;
+      startDate: string;
+      endDate?: string;
+    },
   ) {
     return this.employeeService.addPositionHistory(id, {
       ...body,
@@ -161,7 +169,12 @@ export class EmployeeController {
   async addPerformanceReview(
     @Param('id') id: string,
     @Body()
-    body: { reviewDate: string; reviewer?: string; rating?: number; reviewComments?: string },
+    body: {
+      reviewDate: string;
+      reviewer?: string;
+      rating?: number;
+      reviewComments?: string;
+    },
   ) {
     return this.employeeService.addPerformanceReview(id, {
       ...body,

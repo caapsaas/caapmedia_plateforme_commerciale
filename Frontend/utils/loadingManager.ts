@@ -4,6 +4,7 @@
  * Handles async operations with automatic loading state management
  */
 
+import React from 'react';
 import { useLoading } from "../context/LoadingContext";
 
 export const createLoadingManager = (useLoadingHook: typeof useLoading) => {
@@ -36,11 +37,7 @@ export const createLoadingManager = (useLoadingHook: typeof useLoading) => {
      * Ensures loading state is available throughout the component tree
      */
     withLoadingProvider: (Component: React.ComponentType<any>) => {
-      return (props: any) => (
-        <>
-          <Component {...props} />
-        </>
-      );
+      return (props: any) => React.createElement(Component, props);
     },
   };
 };

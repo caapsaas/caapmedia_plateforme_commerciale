@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
-import { CreateAllowanceRuleDto, UpdateAllowanceRuleDto } from '../dto/allowance-rule.dto';
+import {
+  CreateAllowanceRuleDto,
+  UpdateAllowanceRuleDto,
+} from '../dto/allowance-rule.dto';
 import { JwtUser } from '../../common/auth/jwt/jwt-user.interface';
 
 @Injectable()
@@ -9,7 +12,11 @@ export class AllowanceRuleService {
 
   constructor(private prisma: PrismaService) {}
 
-  async create(subsidiaryId: string, dto: CreateAllowanceRuleDto, user?: JwtUser) {
+  async create(
+    subsidiaryId: string,
+    dto: CreateAllowanceRuleDto,
+    user?: JwtUser,
+  ) {
     const config = await this.prisma.payrollConfiguration.findUnique({
       where: { subsidiaryId },
     });
@@ -64,7 +71,8 @@ export class AllowanceRuleService {
     return activeRules.filter((rule) => {
       if (rule.minAge && employeeAge && employeeAge < rule.minAge) return false;
       if (rule.maxAge && employeeAge && employeeAge > rule.maxAge) return false;
-      if (rule.minSalary && salary && salary < rule.minSalary.toNumber()) return false;
+      if (rule.minSalary && salary && salary < rule.minSalary.toNumber())
+        return false;
       if (
         rule.numberOfDependents &&
         numberOfDependents &&

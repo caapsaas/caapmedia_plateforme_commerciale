@@ -58,16 +58,17 @@ export class OrdersService {
       taxRateId: order.taxRateId,
       taxRateValue: order.taxRateValue ? order.taxRateValue.toNumber() : 0,
       status: order.status,
-      orderItems: order.orderItems.map((item: any) => ({
-        productName: item.product?.name,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice ? item.unitPrice.toNumber() : 0,
-        designFileName: item.designFileName,
-        designFileUrl: item.designFileUrl,
-        productId: item.productId,
-        orderId: item.orderId,
-        product: item.product,
-      })) || [],
+      orderItems:
+        order.orderItems.map((item: any) => ({
+          productName: item.product?.name,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice ? item.unitPrice.toNumber() : 0,
+          designFileName: item.designFileName,
+          designFileUrl: item.designFileUrl,
+          productId: item.productId,
+          orderId: item.orderId,
+          product: item.product,
+        })) || [],
     };
   }
 
@@ -436,8 +437,13 @@ export class OrdersService {
         const parsedStartDate = new Date(startDate);
         const parsedEndDate = new Date(endDate);
 
-        if (isNaN(parsedStartDate.getTime()) || isNaN(parsedEndDate.getTime())) {
-          throw new BadRequestException('Les dates fournies ne sont pas au bon format.');
+        if (
+          isNaN(parsedStartDate.getTime()) ||
+          isNaN(parsedEndDate.getTime())
+        ) {
+          throw new BadRequestException(
+            'Les dates fournies ne sont pas au bon format.',
+          );
         }
 
         dateFilter = { gte: parsedStartDate, lte: parsedEndDate };
@@ -455,7 +461,7 @@ export class OrdersService {
       orderBy: { orderDate: 'desc' },
     });
 
-    return orders.map(order => this.mapOrderToResponse(order));
+    return orders.map((order) => this.mapOrderToResponse(order));
   }
 
   /**
@@ -513,7 +519,9 @@ export class OrdersService {
 
     // Empêcher toute modification d'une commande annulée
     if (order.status === 'CANCELLED') {
-      throw new ConflictException('Une commande annulée ne peut pas être modifiée.');
+      throw new ConflictException(
+        'Une commande annulée ne peut pas être modifiée.',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -704,7 +712,9 @@ export class OrdersService {
 
       // Empêcher le paiement d'une commande annulée
       if (order.status === 'CANCELLED') {
-        throw new ConflictException('Le paiement d\'une commande annulée n\'est pas autorisé.');
+        throw new ConflictException(
+          "Le paiement d'une commande annulée n'est pas autorisé.",
+        );
       }
 
       // 2. Valider le paiement
@@ -736,7 +746,9 @@ export class OrdersService {
 
       // Si l'update a échoué (count === 0), la commande a été modifiée par une autre requête
       if (updateCount.count === 0) {
-        throw new ConflictException('Cette commande a été modifiée entre-temps. Veuillez réessayer.');
+        throw new ConflictException(
+          'Cette commande a été modifiée entre-temps. Veuillez réessayer.',
+        );
       }
 
       // Re-récupérer la commande mise à jour
@@ -781,7 +793,11 @@ export class OrdersService {
       // Re-fetch with all necessary relations for mapping
       const finalOrder = await tx.order.findUniqueOrThrow({
         where: { id },
-        include: { orderItems: { include: { product: true } }, customer: true, salesRep: true },
+        include: {
+          orderItems: { include: { product: true } },
+          customer: true,
+          salesRep: true,
+        },
       });
 
       return this.mapOrderToResponse(finalOrder);

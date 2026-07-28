@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
-import { CreatePayrollConfigDto, UpdatePayrollConfigDto } from '../dto/payroll-configuration.dto';
+import {
+  CreatePayrollConfigDto,
+  UpdatePayrollConfigDto,
+} from '../dto/payroll-configuration.dto';
 import { JwtUser } from '../../common/auth/jwt/jwt-user.interface';
 
 @Injectable()
@@ -13,7 +16,10 @@ export class PayrollConfigurationService {
     let config = await this.prisma.payrollConfiguration.findUnique({
       where: { subsidiaryId },
       include: {
-        salaryComponents: { where: { isActive: true }, orderBy: { displayOrder: 'asc' } },
+        salaryComponents: {
+          where: { isActive: true },
+          orderBy: { displayOrder: 'asc' },
+        },
         taxBrackets: {
           where: {
             effectiveDate: { lte: new Date() },
@@ -161,7 +167,8 @@ export class PayrollConfigurationService {
 
     const updateData: any = {
       minWage: dto.minWage ?? config.minWage,
-      minWageEffectiveDate: dto.minWageEffectiveDate ?? config.minWageEffectiveDate,
+      minWageEffectiveDate:
+        dto.minWageEffectiveDate ?? config.minWageEffectiveDate,
       cnpsEmployeeRate: dto.cnpsEmployeeRate ?? config.cnpsEmployeeRate,
       cnpsEmployerRate: dto.cnpsEmployerRate ?? config.cnpsEmployerRate,
     };
@@ -181,7 +188,6 @@ export class PayrollConfigurationService {
         })),
       };
     }
-
 
     const updated = await this.prisma.payrollConfiguration.update({
       where: { subsidiaryId },

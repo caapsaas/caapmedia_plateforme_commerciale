@@ -32,7 +32,9 @@ export class StockMovementsService {
   findAll(user: any, query: FindStockMovementsDto) {
     const isSuperAdmin = user.userRole === 'SUPER_ADMIN';
     const subsidiaryWhere = isSuperAdmin
-      ? (query.subsidiaryId ? { subsidiaryId: query.subsidiaryId } : {})
+      ? query.subsidiaryId
+        ? { subsidiaryId: query.subsidiaryId }
+        : {}
       : { subsidiaryId: user.subsidiaryId };
 
     return this.prisma.stockMovement.findMany({

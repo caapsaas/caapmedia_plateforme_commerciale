@@ -37,7 +37,11 @@ export class JournalsService {
     for (const j of DEFAULT_JOURNALS) {
       await this.prisma.accountingJournal.upsert({
         where: { subsidiaryId_code: { subsidiaryId, code: j.code } },
-        create: { id: generateId(ID_PREFIXES.ACCOUNTINGJOURNAL), ...j, subsidiaryId },
+        create: {
+          id: generateId(ID_PREFIXES.ACCOUNTINGJOURNAL),
+          ...j,
+          subsidiaryId,
+        },
         update: {},
       });
     }

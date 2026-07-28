@@ -7,7 +7,7 @@ import {
   Request,
   Query,
   BadRequestException,
-  Logger
+  Logger,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { AttendanceRecordService } from '../attendancerecord.service';
@@ -37,15 +37,20 @@ export class AttendanceCheckInController {
   constructor(
     private readonly attendanceService: AttendanceRecordService,
     private readonly qrService: AttendanceQrDailyService,
-    private readonly geoService: AttendanceGeolocationService
+    private readonly geoService: AttendanceGeolocationService,
   ) {}
 
   // Récupérer le QR code du jour (protégé par JWT)
   @Get('daily-qr')
   @UseGuards(JwtAuthGuard, RoleGuard)
   async getDailyQr(@Request() req) {
-    this.logger.log(`📍 getDailyQr - employeeId: ${req.user.employeeId}, userId: ${req.user.id}`);
-    const result = await this.qrService.getCurrentQrCode(req.user.subsidiaryId, req.user.employeeId || req.user.id);
+    this.logger.log(
+      `📍 getDailyQr - employeeId: ${req.user.employeeId}, userId: ${req.user.id}`,
+    );
+    const result = await this.qrService.getCurrentQrCode(
+      req.user.subsidiaryId,
+      req.user.employeeId || req.user.id,
+    );
     this.logger.log(`✅ QR Code Response: ${JSON.stringify(result)}`);
     return result;
   }
@@ -55,8 +60,13 @@ export class AttendanceCheckInController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles('HR_MANAGER', 'ADMIN')
   async getAllDailyQr(@Request() req) {
-    this.logger.log(`📍 getAllDailyQr - subsidiaryId: ${req.user.subsidiaryId}`);
-    const result = await this.qrService.getAllQrCodesForSubsidiary(req.user.subsidiaryId);
+    this.logger.log(
+      `📍 getAllDailyQr - subsidiaryId: ${req.user.subsidiaryId}`,
+    );
+    // SUPER_ADMIN : passe null pour récupérer les QR de TOUTES les filiales
+    const isSuperAdmin = req.user.roles?.includes('SUPER_ADMIN');
+    const subsidiaryId = isSuperAdmin ? null : req.user.subsidiaryId;
+    const result = await this.qrService.getAllQrCodesForSubsidiary(subsidiaryId);
     this.logger.log(`✅ All QR Codes Response: ${result.length} codes`);
     return result;
   }
@@ -74,7 +84,7 @@ export class AttendanceCheckInController {
     // 2️⃣ Valider l'accuracy GPS (rejeter si trop faible)
     if (!this.geoService.isAccuracyAcceptable(dto.accuracy)) {
       throw new BadRequestException(
-        `Precision GPS insuffisante (±${Math.round(dto.accuracy)}m). Attendez d'avoir une meilleure signal.`
+        `Precision GPS insuffisante (±${Math.round(dto.accuracy)}m). Attendez d'avoir une meilleure signal.`,
       );
     }
 
@@ -82,25 +92,25 @@ export class AttendanceCheckInController {
     const proximityCheck = await this.geoService.validateProximity(
       { lat: dto.latitude, lng: dto.longitude },
       subsidiaryId,
-      100 // Rayon de 100m
+      100, // Rayon de 100m
     );
 
     if (!proximityCheck.isValid) {
       throw new BadRequestException(
         `Vous êtes à ${proximityCheck.distanceMeters}m du bureau. ` +
-        `Approchez-vous à moins de 100m pour scanner.`
+          `Approchez-vous à moins de 100m pour scanner.`,
       );
     }
 
     // 4️⃣ Vérifier qu'il n'y a pas déjà un check-in aujourd'hui
     const todayRecord = await this.attendanceService.findTodayRecord(
       employeeId,
-      subsidiaryId
+      subsidiaryId,
     );
 
     if (todayRecord && todayRecord.arrivalTime) {
       throw new BadRequestException(
-        'Un enregistrement d\'arrivée existe déjà pour aujourd\'hui'
+        "Un enregistrement d'arrivée existe déjà pour aujourd'hui",
       );
     }
 
@@ -119,7 +129,7 @@ export class AttendanceCheckInController {
       attendanceDate: new Date(),
       arrivalTime: new Date(),
       status: isLate ? 'LATE' : 'PRESENT',
-      employeeName: `${employee.firstName} ${employee.lastName}`
+      employeeName: `${employee.firstName} ${employee.lastName}`,
     };
 
     const result = await this.attendanceService.create(
@@ -131,8 +141,8 @@ export class AttendanceCheckInController {
         arrivalLongitude: dto.longitude,
         isGeolocationValid: proximityCheck.isValid,
         accuracyMeters: dto.accuracy,
-        qrCodeToken: dto.qrToken
-      }
+        qrCodeToken: dto.qrToken,
+      },
     );
 
     this.logger.log(`✓ Check-in successful for employee ${employeeId}`);
@@ -144,7 +154,7 @@ export class AttendanceCheckInController {
       status: isLate ? 'EN RETARD' : 'PRÉSENT',
       distance: `±${proximityCheck.distanceMeters}m`,
       accuracy: `±${Math.round(dto.accuracy)}m`,
-      record: result
+      record: result,
     };
   }
 
@@ -157,31 +167,31 @@ export class AttendanceCheckInController {
     // 1️⃣ Valider l'accuracy GPS
     if (!this.geoService.isAccuracyAcceptable(dto.accuracy, 100)) {
       this.logger.warn(
-        `Check-out with poor accuracy: ${Math.round(dto.accuracy)}m`
+        `Check-out with poor accuracy: ${Math.round(dto.accuracy)}m`,
       );
     }
 
     // 2️⃣ Valider la géolocalisation
     const proximityCheck = await this.geoService.validateProximity(
       { lat: dto.latitude, lng: dto.longitude },
-      req.user.subsidiaryId
+      req.user.subsidiaryId,
     );
 
     // 3️⃣ Trouver l'enregistrement d'aujourd'hui
     const todayRecord = await this.attendanceService.findTodayRecord(
       req.user.employeeId,
-      req.user.subsidiaryId
+      req.user.subsidiaryId,
     );
 
     if (!todayRecord) {
       throw new BadRequestException(
-        'Aucun check-in trouvé pour aujourd\'hui. Faites d\'abord un check-in.'
+        "Aucun check-in trouvé pour aujourd'hui. Faites d'abord un check-in.",
       );
     }
 
     if (todayRecord.departureTime) {
       throw new BadRequestException(
-        'Un check-out a déjà été enregistré pour aujourd\'hui'
+        "Un check-out a déjà été enregistré pour aujourd'hui",
       );
     }
 
@@ -190,17 +200,21 @@ export class AttendanceCheckInController {
       departureTime: new Date(),
       departureLatitude: dto.latitude,
       departureLongitude: dto.longitude,
-      status: proximityCheck.isValid ? 'LEFT' : 'LEFT_OUTSIDE_GEOFENCE'
+      status: proximityCheck.isValid ? 'LEFT' : 'LEFT_OUTSIDE_GEOFENCE',
     });
 
-    this.logger.log(`✓ Check-out successful for employee ${req.user.employeeId}`);
+    this.logger.log(
+      `✓ Check-out successful for employee ${req.user.employeeId}`,
+    );
 
     // Calculer la durée
-    const arrivalTime = new Date(result.arrivalTime!);
-    const departureTime = new Date(result.departureTime!);
+    const arrivalTime = new Date(result.arrivalTime);
+    const departureTime = new Date(result.departureTime);
     const durationMs = departureTime.getTime() - arrivalTime.getTime();
     const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
-    const durationMins = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+    const durationMins = Math.floor(
+      (durationMs % (1000 * 60 * 60)) / (1000 * 60),
+    );
 
     return {
       success: true,
@@ -208,7 +222,7 @@ export class AttendanceCheckInController {
       status: proximityCheck.isValid ? 'DANS LA ZONE' : 'HORS ZONE',
       distance: `±${proximityCheck.distanceMeters}m`,
       duration: `${durationHours}h ${durationMins}min`,
-      record: result
+      record: result,
     };
   }
 
@@ -219,7 +233,7 @@ export class AttendanceCheckInController {
   async getAttendanceHistory(
     @Request() req,
     @Query('year') year?: number,
-    @Query('month') month?: number
+    @Query('month') month?: number,
   ) {
     const now = new Date();
     const queryYear = year || now.getFullYear();
@@ -232,7 +246,7 @@ export class AttendanceCheckInController {
       req.user.employeeId,
       req.user.subsidiaryId,
       startDate,
-      endDate
+      endDate,
     );
   }
 
@@ -249,7 +263,7 @@ export class AttendanceCheckInController {
       req.user.employeeId,
       req.user.subsidiaryId,
       year,
-      month
+      month,
     );
   }
 }

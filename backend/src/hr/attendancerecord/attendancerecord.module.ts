@@ -12,12 +12,12 @@ import { AttendanceGeolocationService } from './services/attendance-geolocation.
   providers: [
     AttendanceRecordService,
     AttendanceQrDailyService,
-    AttendanceGeolocationService
+    AttendanceGeolocationService,
   ],
   exports: [
     AttendanceRecordService,
     AttendanceQrDailyService,
-    AttendanceGeolocationService
-  ]
+    AttendanceGeolocationService,
+  ],
 })
 export class AttendancerecordModule {}

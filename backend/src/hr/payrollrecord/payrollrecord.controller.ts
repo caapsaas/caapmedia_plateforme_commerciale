@@ -86,5 +86,3 @@ export class PayrollrecordController {
     return this.payrollRecordService.signPayrollRecord(id, body.signature);
   }
 }
-
-

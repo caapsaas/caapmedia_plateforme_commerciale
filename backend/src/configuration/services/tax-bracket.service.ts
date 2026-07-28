@@ -1,6 +1,14 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
-import { CreateTaxBracketDto, UpdateTaxBracketDto } from '../dto/tax-bracket.dto';
+import {
+  CreateTaxBracketDto,
+  UpdateTaxBracketDto,
+} from '../dto/tax-bracket.dto';
 import { JwtUser } from '../../common/auth/jwt/jwt-user.interface';
 
 @Injectable()
@@ -69,13 +77,23 @@ export class TaxBracketService {
     let tax = 0;
 
     for (const bracket of brackets) {
-      const minSalary = typeof bracket.minSalary === 'number' ? bracket.minSalary : bracket.minSalary.toNumber();
+      const minSalary =
+        typeof bracket.minSalary === 'number'
+          ? bracket.minSalary
+          : bracket.minSalary.toNumber();
       if (taxableIncome <= minSalary) {
         break;
       }
 
-      const maxSalary = bracket.maxSalary ? (typeof bracket.maxSalary === 'number' ? bracket.maxSalary : bracket.maxSalary.toNumber()) : Infinity;
-      const rate = typeof bracket.rate === 'number' ? bracket.rate : bracket.rate.toNumber();
+      const maxSalary = bracket.maxSalary
+        ? typeof bracket.maxSalary === 'number'
+          ? bracket.maxSalary
+          : bracket.maxSalary.toNumber()
+        : Infinity;
+      const rate =
+        typeof bracket.rate === 'number'
+          ? bracket.rate
+          : bracket.rate.toNumber();
       const upperLimit = maxSalary;
       const taxableInBracket = Math.min(taxableIncome, upperLimit) - minSalary;
 
@@ -98,7 +116,11 @@ export class TaxBracketService {
     }
 
     if (dto.minSalary || dto.maxSalary) {
-      await this.validateNonOverlappingBrackets(bracket.payrollConfigId, dto, bracketId);
+      await this.validateNonOverlappingBrackets(
+        bracket.payrollConfigId,
+        dto,
+        bracketId,
+      );
     }
 
     const updated = await this.prisma.taxBracket.update({
@@ -143,10 +165,7 @@ export class TaxBracketService {
         payrollConfigId: configId,
         id: excludeId ? { not: excludeId } : undefined,
         effectiveDate: { lte: dto.effectiveDate },
-        OR: [
-          { expiryDate: null },
-          { expiryDate: { gte: dto.effectiveDate } },
-        ],
+        OR: [{ expiryDate: null }, { expiryDate: { gte: dto.effectiveDate } }],
       },
     });
 

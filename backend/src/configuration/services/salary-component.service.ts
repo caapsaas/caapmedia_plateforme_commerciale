@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
-import { CreateSalaryComponentDto, UpdateSalaryComponentDto } from '../dto/salary-component.dto';
+import {
+  CreateSalaryComponentDto,
+  UpdateSalaryComponentDto,
+} from '../dto/salary-component.dto';
 import { JwtUser } from '../../common/auth/jwt/jwt-user.interface';
 
 @Injectable()
@@ -9,7 +12,11 @@ export class SalaryComponentService {
 
   constructor(private prisma: PrismaService) {}
 
-  async create(subsidiaryId: string, dto: CreateSalaryComponentDto, user?: JwtUser) {
+  async create(
+    subsidiaryId: string,
+    dto: CreateSalaryComponentDto,
+    user?: JwtUser,
+  ) {
     const config = await this.prisma.payrollConfiguration.findUnique({
       where: { subsidiaryId },
     });
@@ -53,7 +60,11 @@ export class SalaryComponentService {
     });
   }
 
-  async update(componentId: string, dto: UpdateSalaryComponentDto, user?: JwtUser) {
+  async update(
+    componentId: string,
+    dto: UpdateSalaryComponentDto,
+    user?: JwtUser,
+  ) {
     const component = await this.prisma.salaryComponent.findUnique({
       where: { id: componentId },
     });
@@ -98,7 +109,10 @@ export class SalaryComponentService {
     return this.update(componentId, { isActive: false }, user);
   }
 
-  async reorder(components: { id: string; displayOrder: number }[], user?: JwtUser) {
+  async reorder(
+    components: { id: string; displayOrder: number }[],
+    user?: JwtUser,
+  ) {
     const updates = components.map((comp) =>
       this.prisma.salaryComponent.update({
         where: { id: comp.id },

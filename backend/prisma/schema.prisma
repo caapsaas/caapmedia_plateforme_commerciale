@@ -116,8 +116,8 @@ model User {
 /// contrairement a l'access token JWT stateless (voir Doc/architecture-
 /// multi-filiale-auth-rbac.md section 3.1). Seul le hash est stocke.
 model RefreshToken {
-  id        String    @id @default(uuid()) @map("id") @db.Uuid
-  userId    String    @map("user_id") @db.Uuid
+  id        String    @id @default(uuid()) @map("id") @db.Text
+  userId    String    @map("user_id") @db.Text
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   tokenHash String    @unique @map("token_hash")
   expiresAt DateTime  @map("expires_at")
@@ -148,9 +148,9 @@ enum AuthAuditEvent {
 /// survivre a la suppression d'un compte, et une tentative de login echouee
 /// n'a pas toujours d'utilisateur identifie (email inexistant).
 model AuthAuditLog {
-  id        String         @id @default(uuid()) @db.Uuid
+  id        String         @id @default(uuid()) @db.Text
   event     AuthAuditEvent
-  userId    String?        @map("user_id") @db.Uuid
+  userId    String?        @map("user_id") @db.Text
   email     String?        @map("email")
   ipAddress String?        @map("ip_address")
   userAgent String?        @map("user_agent")
@@ -198,7 +198,7 @@ enum ItemType {
 // ItemStock. Les champs propres à un seul type restent nullable pour l'autre —
 // l'écran d'édition les masque selon le type.
 model Item {
-  id                   String               @id @default(uuid()) @map("id") @db.Uuid
+  id                   String               @id @default(uuid()) @map("id") @db.Text
   type                 ItemType             @map("type")
   name                 String               @map("name") @db.VarChar(255)
   category             String               @map("category") @db.VarChar(255)
@@ -215,10 +215,10 @@ model Item {
   sku                  String?              @map("sku") @db.VarChar(100)
   minThreshold         Decimal?             @map("min_threshold")
   stockManaged         Boolean              @default(false) @map("stock_managed")
-  mainSupplierId       String?              @map("main_supplier_id") @db.Uuid
+  mainSupplierId       String?              @map("main_supplier_id") @db.Text
   // Unité dans laquelle le stock est réellement enregistré (Chantier 2) — ex.
   // Papier -> Feuille. Les unités d'achat (ItemPackagingUnit) convertissent vers elle.
-  baseUnitId           String?              @map("base_unit_id") @db.Uuid
+  baseUnitId           String?              @map("base_unit_id") @db.Text
 
   opportunitieProducts OpportunityProduct[]
   orderItems           OrderItem[]
@@ -247,7 +247,7 @@ model Item {
 // Référentiel d'unités de mesure administrable (Chantier 2) — ex. Feuille,
 // Rame, Rouleau, Kilogramme, Mètre... partagé par tous les produits de stock.
 model Unit {
-  id     String  @id @default(uuid()) @map("id") @db.Uuid
+  id     String  @id @default(uuid()) @map("id") @db.Text
   name   String  @unique @map("name") @db.VarChar(100)
   symbol String? @map("symbol") @db.VarChar(20)
 
@@ -263,9 +263,9 @@ model Unit {
 // À la réception d'un achat, la quantité reçue (dans cette unité) est
 // convertie automatiquement en unité de base avant d'incrémenter ItemStock.
 model ItemPackagingUnit {
-  id               String  @id @default(uuid()) @map("id") @db.Uuid
-  itemId           String  @map("item_id") @db.Uuid
-  unitId           String  @map("unit_id") @db.Uuid
+  id               String  @id @default(uuid()) @map("id") @db.Text
+  itemId           String  @map("item_id") @db.Text
+  unitId           String  @map("unit_id") @db.Text
   conversionFactor Decimal @map("conversion_factor") @db.Decimal(15, 4)
 
   item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
@@ -279,9 +279,9 @@ model ItemPackagingUnit {
 // une filiale — l'Item lui-même est global (catalogue partagé), seule cette
 // table distingue "combien chaque filiale en a, et où".
 model ItemStock {
-  id           String     @id @default(uuid()) @map("id") @db.Uuid
-  itemId       String     @map("item_id") @db.Uuid
-  subsidiaryId String     @map("subsidiary_id") @db.Uuid
+  id           String     @id @default(uuid()) @map("id") @db.Text
+  itemId       String     @map("item_id") @db.Text
+  subsidiaryId String     @map("subsidiary_id") @db.Text
   stock        Decimal    @default(0) @map("stock")
   warehouse    String?    @map("warehouse") @db.VarChar(255)
   item         Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
@@ -311,17 +311,17 @@ enum StockMovementType {
 }
 
 model StockMovement {
-  id              String            @id @default(uuid()) @map("id") @db.Uuid
-  itemId          String            @map("item_id") @db.Uuid
-  subsidiaryId    String            @map("subsidiary_id") @db.Uuid
+  id              String            @id @default(uuid()) @map("id") @db.Text
+  itemId          String            @map("item_id") @db.Text
+  subsidiaryId    String            @map("subsidiary_id") @db.Text
   type            StockMovementType @map("type")
   // Toujours positif, en unité de base — le sens (entrée/sortie) se déduit du type.
   quantity        Decimal           @map("quantity") @db.Decimal(15, 4)
   reason          String?           @map("reason")
   // Lien facultatif, traçabilité uniquement (jamais utilisé pour calculer quoi que ce soit).
-  orderId         String?           @map("order_id") @db.Uuid
-  purchaseOrderId String?           @map("purchase_order_id") @db.Uuid
-  createdById     String?           @map("created_by_id") @db.Uuid
+  orderId         String?           @map("order_id") @db.Text
+  purchaseOrderId String?           @map("purchase_order_id") @db.Text
+  createdById     String?           @map("created_by_id") @db.Text
   createdAt       DateTime          @default(now()) @map("created_at")
 
   item          Item           @relation(fields: [itemId], references: [id], onDelete: Cascade)
@@ -340,7 +340,7 @@ model ProductImage {
   id        String  @id @default(uuid()) @map("id")
   imageName String  @map("image_name") @db.VarChar(255)
   imageUrl  String  @map("image_url")
-  productId String? @map("product_id") @db.Uuid
+  productId String? @map("product_id") @db.Text
   product   Item?   @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("product_image")
@@ -376,8 +376,8 @@ enum SpecFieldType {
 }
 
 model ProductSpecGroup {
-  id             String                  @id @default(uuid()) @map("id") @db.Uuid
-  productId      String                  @map("product_id") @db.Uuid
+  id             String                  @id @default(uuid()) @map("id") @db.Text
+  productId      String                  @map("product_id") @db.Text
   name           String                  @map("name") @db.VarChar(150)
   order          Int                     @map("order")
   product        Item                    @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -388,9 +388,9 @@ model ProductSpecGroup {
 }
 
 model ProductSpecification {
-  id                      String            @id @default(uuid()) @map("id") @db.Uuid
-  productId               String            @map("product_id") @db.Uuid
-  groupId                 String?           @map("group_id") @db.Uuid
+  id                      String            @id @default(uuid()) @map("id") @db.Text
+  productId               String            @map("product_id") @db.Text
+  groupId                 String?           @map("group_id") @db.Text
   name                    String            @map("name") @db.VarChar(150)
   // Clé technique utilisée dans specValues (ex: "paper_weight") — unique par produit.
   technicalKey            String            @map("technical_key") @db.VarChar(100)
@@ -426,7 +426,7 @@ model ProductSpecification {
 // Référentiels partagés entre produits (Types de papier, Grammages, Couleurs...)
 // — administrables sans toucher au code, référencés par ProductSpecification.possibleValues.
 model SpecReferenceList {
-  id     String               @id @default(uuid()) @map("id") @db.Uuid
+  id     String               @id @default(uuid()) @map("id") @db.Text
   key    String               @unique @map("key") @db.VarChar(100)
   name   String               @map("name") @db.VarChar(150)
   values SpecReferenceValue[]
@@ -435,8 +435,8 @@ model SpecReferenceList {
 }
 
 model SpecReferenceValue {
-  id     String            @id @default(uuid()) @map("id") @db.Uuid
-  listId String            @map("list_id") @db.Uuid
+  id     String            @id @default(uuid()) @map("id") @db.Text
+  listId String            @map("list_id") @db.Text
   value  String            @map("value") @db.VarChar(150)
   label  String            @map("label") @db.VarChar(150)
   order  Int               @map("order")
@@ -785,8 +785,8 @@ model OrderItem {
   // commande — le produit peut évoluer ensuite sans jamais affecter cette ligne.
   specValues     Json?           @map("spec_values")
   specSnapshot   Json?           @map("spec_snapshot")
-  productId      String?         @map("product_id") @db.Uuid
-  orderId        String?         @map("order_id") @db.Uuid
+  productId      String?         @map("product_id") @db.Text
+  orderId        String?         @map("order_id") @db.Text
   order            Order?                      @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product          Item?                       @relation(fields: [productId], references: [id], onDelete: Cascade)
   productOptions   ProductOption[]
@@ -868,12 +868,12 @@ model PurchaseOrderItem {
   quantity         Int           @map("quantity")
   quantityReceived Int           @map("quantity_received")
   purchasePrice    Decimal       @map("purchase_price") @db.Decimal(15, 2)
-  purchaseOrderId  String        @map("purchase_order_id") @db.Uuid
-  productId        String        @map("product_id") @db.Uuid
+  purchaseOrderId  String        @map("purchase_order_id") @db.Text
+  productId        String        @map("product_id") @db.Text
   // Unité dans laquelle "quantity"/"quantityReceived" sont exprimées (Chantier
   // 2) — null = unité de base du produit. La conversion vers l'unité de base
   // (ItemStock) se fait automatiquement à la réception, jamais saisie à la main.
-  purchaseUnitId   String?       @map("purchase_unit_id") @db.Uuid
+  purchaseUnitId   String?       @map("purchase_unit_id") @db.Text
   product          Item          @relation(fields: [productId], references: [id], onDelete: Cascade)
   purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   purchaseUnit     Unit?         @relation(fields: [purchaseUnitId], references: [id])
@@ -1159,11 +1159,11 @@ model MaintenanceRecord {
 // Coût horaire d'utilisation d'une machine (séparé du module Maintenance).
 // Le Super Admin renseigne cette valeur ; elle est figée dans chaque commande.
 model EquipementCostConfig {
-  id          String    @id @default(uuid()) @map("id") @db.Uuid
-  equipmentId String    @unique @map("equipment_id") @db.Uuid
+  id          String    @id @default(uuid()) @map("id") @db.Text
+  equipmentId String    @unique @map("equipment_id") @db.Text
   hourlyRate  Decimal   @map("hourly_rate") @db.Decimal(15, 2)
   updatedAt   DateTime  @updatedAt @map("updated_at")
-  updatedById String?   @map("updated_by_id") @db.Uuid
+  updatedById String?   @map("updated_by_id") @db.Text
   equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
   updatedBy   User?     @relation("EquipementCostConfigUpdatedBy", fields: [updatedById], references: [id])
 
@@ -1174,11 +1174,11 @@ model EquipementCostConfig {
 // Représente la liste ordonnée des machines utilisées habituellement.
 // Global : pas de subsidiaryId — un workflow s'applique à toutes les filiales.
 model ProductionWorkflow {
-  id          String                   @id @default(uuid()) @map("id") @db.Uuid
+  id          String                   @id @default(uuid()) @map("id") @db.Text
   name        String                   @map("name") @db.VarChar(255)
   description String?                  @map("description")
   // Un service peut avoir au plus un workflow par défaut (relation 1-1 optionnelle).
-  itemId      String?                  @unique @map("item_id") @db.Uuid
+  itemId      String?                  @unique @map("item_id") @db.Text
   isActive    Boolean                  @default(true) @map("is_active")
   createdAt   DateTime                 @default(now()) @map("created_at")
   updatedAt   DateTime                 @updatedAt @map("updated_at")
@@ -1190,9 +1190,9 @@ model ProductionWorkflow {
 
 // Étape ordonnée d'un workflow (une machine à un rang donné).
 model ProductionWorkflowStep {
-  id          String             @id @default(uuid()) @map("id") @db.Uuid
-  workflowId  String             @map("workflow_id") @db.Uuid
-  equipmentId String             @map("equipment_id") @db.Uuid
+  id          String             @id @default(uuid()) @map("id") @db.Text
+  workflowId  String             @map("workflow_id") @db.Text
+  equipmentId String             @map("equipment_id") @db.Text
   stepOrder   Int                @map("step_order")
   workflow    ProductionWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
   equipment   Equipment          @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
@@ -1205,11 +1205,11 @@ model ProductionWorkflowStep {
 // Paramètres commerciaux globaux (singleton — une seule ligne en base).
 // Définit l'intervalle de marge autorisé que les commerciaux peuvent appliquer.
 model CommercialParams {
-  id               String   @id @default(uuid()) @map("id") @db.Uuid
+  id               String   @id @default(uuid()) @map("id") @db.Text
   minMarginPercent Decimal  @map("min_margin_percent") @db.Decimal(5, 2)
   maxMarginPercent Decimal  @map("max_margin_percent") @db.Decimal(5, 2)
   updatedAt        DateTime @updatedAt @map("updated_at")
-  updatedById      String?  @map("updated_by_id") @db.Uuid
+  updatedById      String?  @map("updated_by_id") @db.Text
   updatedBy        User?    @relation("CommercialParamsUpdatedBy", fields: [updatedById], references: [id])
 
   @@map("commercial_params")
@@ -1218,9 +1218,9 @@ model CommercialParams {
 // Étape de production figée dans une ligne de commande (instantané historique).
 // Créée à la validation de la commande — jamais modifiée ensuite.
 model OrderItemProductionStep {
-  id                    String    @id @default(uuid()) @map("id") @db.Uuid
-  orderItemId           String    @map("order_item_id") @db.Uuid
-  equipmentId           String    @map("equipment_id") @db.Uuid
+  id                    String    @id @default(uuid()) @map("id") @db.Text
+  orderItemId           String    @map("order_item_id") @db.Text
+  equipmentId           String    @map("equipment_id") @db.Text
   // Snapshot du nom de la machine au moment de la commande.
   equipmentNameSnapshot String    @map("equipment_name_snapshot") @db.VarChar(255)
   stepOrder             Int       @map("step_order")
@@ -1237,8 +1237,8 @@ model OrderItemProductionStep {
 
 // Résumé financier de production figé dans une ligne de commande.
 model OrderItemProductionSummary {
-  id                  String    @id @default(uuid()) @map("id") @db.Uuid
-  orderItemId         String    @unique @map("order_item_id") @db.Uuid
+  id                  String    @id @default(uuid()) @map("id") @db.Text
+  orderItemId         String    @unique @map("order_item_id") @db.Text
   totalProductionCost Decimal   @map("total_production_cost") @db.Decimal(15, 2)
   marginPercent       Decimal   @map("margin_percent") @db.Decimal(5, 2)
   finalPrice          Decimal   @map("final_price") @db.Decimal(15, 2)
@@ -1964,7 +1964,7 @@ model ProformaItem {
   proformaId      String   @map("proforma_id")
   proforma        Proforma @relation(fields: [proformaId], references: [id], onDelete: Cascade)
 
-  productId       String   @map("product_id") @db.Uuid
+  productId       String   @map("product_id") @db.Text
   product         Item     @relation(fields: [productId], references: [id])
 
   quantity        Int      @map("quantity")

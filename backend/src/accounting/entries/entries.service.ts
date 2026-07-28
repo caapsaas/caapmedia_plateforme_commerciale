@@ -165,7 +165,7 @@ export class EntriesService {
         const entryNumber = await this.generateEntryNumber(user.subsidiaryId);
         await tx.journalEntry.create({
           data: {
-        id: generateId(ID_PREFIXES.JOURNALENTRY),
+            id: generateId(ID_PREFIXES.JOURNALENTRY),
             entryNumber,
             entryDate: new Date(),
             description: `Contre-passation de ${entry.entryNumber} : ${entry.description}`,

@@ -72,5 +72,3 @@ export class EquipementController {
     return this.equipementService.remove(id);
   }
 }
-
-

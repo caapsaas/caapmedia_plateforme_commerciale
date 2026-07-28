@@ -69,5 +69,3 @@ export class DebtsController {
     return this.debtsService.updateLongTermDebt(id, updateDto, user);
   }
 }
-
-

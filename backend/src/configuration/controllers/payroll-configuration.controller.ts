@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Put, Param, Body, UseGuards, ForbiddenException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Param,
+  Body,
+  UseGuards,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PayrollConfigurationService } from '../services/payroll-configuration.service';
 import { UpdatePayrollConfigDto } from '../dto/payroll-configuration.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
@@ -14,7 +23,7 @@ export class PayrollConfigurationController {
 
   private validateSubsidiaryAccess(user: JwtUser, subsidiaryId: string): void {
     if (user.role !== UserRole.ADMIN && user.subsidiaryId !== subsidiaryId) {
-      throw new ForbiddenException('Vous n\'avez pas accès à cette filiale');
+      throw new ForbiddenException("Vous n'avez pas accès à cette filiale");
     }
   }
 

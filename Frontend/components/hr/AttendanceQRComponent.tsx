@@ -2,7 +2,10 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import jsQR from 'jsqr';
+import html2canvas from 'html2canvas';
+import { Camera, Download } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { api } from '../../services/api';
 import IconCheckCircle from '../icons/IconCheckCircle';
 import IconCancelX from '../icons/IconCancelX';
 import IconMapPin from '../icons/IconMapPin';
@@ -51,7 +54,6 @@ interface CheckInResponse {
 }
 
 export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ subsidiary }) => {
-  const { api } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -59,7 +61,6 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [scannerActive, setScannerActive] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const scanningRef = useRef(false);
 
   const { data: employeesWithQr, isLoading: employeesLoading } = useQuery({
@@ -111,13 +112,9 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
-
-  const [qrTokenToScan, setQrTokenToScan] = useState<string>('');
-
-  const startScanner = async (employee: Employee, token: string) => {
-    setSelectedEmployee(employee);
-    setQrTokenToScan(token);
+  const startScanner = async () => {
     setScannerActive(true);
+    setErrorMessage(null);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -130,7 +127,7 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
         scanQRCode();
       }
     } catch (error) {
-      setErrorMessage('Impossible d\'accéder à la caméra');
+      setErrorMessage("Impossible d'accéder à la caméra");
       setScannerActive(false);
     }
   };
@@ -143,8 +140,6 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
       const stream = videoRef.current.srcObject as MediaStream;
       stream.getTracks().forEach(track => track.stop());
     }
-
-    setSelectedEmployee(null);
   };
 
   const scanQRCode = () => {
@@ -152,33 +147,32 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
 
-    if (ctx) {
-      ctx.drawImage(video, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
 
-      if (code && selectedEmployee && currentLocation && qrTokenToScan) {
-        if (code.data === qrTokenToScan) {
+        if (code && currentLocation) {
           scanningRef.current = false;
-          handleCheckIn(qrTokenToScan, selectedEmployee);
+          handleCheckIn(code.data);
           stopScanner();
           return;
-        } else {
-          setErrorMessage('QR code non valide. Assurez-vous de scanner le QR code correct.');
-          setTimeout(() => setErrorMessage(null), 2000);
         }
       }
     }
 
-    requestAnimationFrame(scanQRCode);
+    if (scanningRef.current) {
+      requestAnimationFrame(scanQRCode);
+    }
   };
 
-  const handleCheckIn = async (qrToken: string, employee: Employee) => {
+  const handleCheckIn = async (qrToken: string) => {
     if (!currentLocation) {
       setErrorMessage('Position GPS non disponible');
       return;
@@ -195,8 +189,33 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
       setSuccessMessage(response.message);
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error: any) {
-      setErrorMessage(error.response?.data?.message || 'Erreur lors de l\'enregistrement');
+      setErrorMessage(error.response?.data?.message || "Erreur lors de l'enregistrement");
       setTimeout(() => setErrorMessage(null), 3000);
+    }
+  };
+
+  const downloadCard = async (employeeId: string, employeeName: string) => {
+    const cardElement = document.getElementById(`card-${employeeId}`);
+    if (cardElement) {
+      try {
+        const buttons = cardElement.querySelectorAll('.action-buttons');
+        buttons.forEach(btn => (btn as HTMLElement).style.display = 'none');
+        
+        const canvas = await html2canvas(cardElement, {
+          scale: 2,
+          backgroundColor: '#ffffff'
+        });
+        
+        buttons.forEach(btn => (btn as HTMLElement).style.display = 'flex');
+
+        const image = canvas.toDataURL('image/jpeg', 1.0);
+        const link = document.createElement('a');
+        link.href = image;
+        link.download = `carte_presence_${employeeName.replace(/\s+/g, '_')}.jpg`;
+        link.click();
+      } catch (error) {
+        console.error('Erreur lors de la génération de la carte:', error);
+      }
     }
   };
 
@@ -218,12 +237,12 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
       )}
 
       {/* Scanner Modal */}
-      {scannerActive && selectedEmployee && (
+      {scannerActive && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-lg max-w-md w-full">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-slate-800">Scanner le QR Code</h3>
+                <h3 className="text-lg font-semibold text-slate-800">Scanner une carte</h3>
                 <button onClick={stopScanner} className="text-slate-500 hover:text-slate-700">
                   <IconCancelX className="w-6 h-6" />
                 </button>
@@ -241,7 +260,7 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
               </div>
 
               <p className="text-sm text-slate-600 text-center">
-                Pointez votre caméra sur le QR code de {selectedEmployee.firstName} {selectedEmployee.lastName}
+                Pointez la caméra vers un QR code de carte de présence
               </p>
             </div>
           </div>
@@ -282,7 +301,17 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
 
       {/* Employees Grid */}
       <div>
-        <h2 className="text-2xl font-bold text-slate-800 mb-6">Liste des Employés</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-slate-800">Cartes de Présence</h2>
+          <button 
+            onClick={startScanner}
+            disabled={!currentLocation}
+            className="bg-[#c6e911] hover:bg-[#b0cc0f] text-slate-800 font-semibold py-2 px-4 rounded-lg shadow transition-colors flex items-center gap-2"
+          >
+            <Camera className="w-5 h-5" />
+            Lancer le Scanner
+          </button>
+        </div>
 
         {employeesLoading ? (
           <div className="text-center py-12 text-slate-500">
@@ -292,43 +321,42 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {employeesWithQr && employeesWithQr.length > 0 ? (
-              employeesWithQr.map((item) => {
+              employeesWithQr.map((item: EmployeeWithQr) => {
                 const employee = item.employee;
                 return (
-                  <div key={employee.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                  <div key={employee.id} id={`card-${employee.id}`} className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100 transition-shadow hover:shadow-lg">
                     {/* Employee Header */}
-                    <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 p-6 text-white">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold">{employee.firstName} {employee.lastName}</h3>
-                        <p className="text-sm text-indigo-100">{employee.positions || 'Position non définie'}</p>
-                        <p className="text-xs text-indigo-100">{employee.department || 'Département non défini'}</p>
-                      </div>
+                    <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 p-6 text-white text-center">
+                      <h3 className="text-xl font-bold mb-1">{employee.firstName} {employee.lastName}</h3>
+                      <p className="text-sm text-indigo-100">{employee.positions || 'Poste non défini'}</p>
+                      <p className="text-xs text-indigo-200 mt-1">{employee.department || 'Département non défini'}</p>
                     </div>
 
                     {/* QR Code */}
-                    <div className="p-6">
-                      <p className="text-xs font-semibold text-slate-600 mb-3 uppercase">Code QR Personnel</p>
-                      <div className="bg-white p-4 rounded-lg border-2 border-slate-200 flex justify-center mb-4">
+                    <div className="p-6 flex flex-col items-center">
+                      <p className="text-xs font-semibold text-slate-500 mb-4 uppercase tracking-wider">Carte d'accès & pointage</p>
+                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-inner mb-4">
                         <QRCode
                           value={item.token}
-                          size={120}
+                          size={160}
                           level="H"
                           includeMargin
                         />
                       </div>
 
-                      <p className="text-xs text-slate-600 text-center mb-4">
+                      <p className="text-xs text-slate-500 text-center mb-6">
                         Valide jusqu'à {new Date(item.expiresAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                       </p>
 
-                      <button
-                        onClick={() => startScanner(employee, item.token)}
-                        disabled={checkInMutation.isPending || !currentLocation}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
-                      >
-                        <IconUserClock className="w-5 h-5" />
-                        {checkInMutation.isPending ? 'Enregistrement...' : 'Scanner Présence'}
-                      </button>
+                      <div className="w-full flex gap-2 action-buttons">
+                        <button
+                          onClick={() => downloadCard(employee.id, `${employee.firstName} ${employee.lastName}`)}
+                          className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+                        >
+                          <Download className="w-4 h-4" />
+                          Enregistrer (JPG)
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -368,7 +396,7 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {attendanceHistory && attendanceHistory.length > 0 ? (
-                  attendanceHistory.map((record) => (
+                  attendanceHistory.map((record: AttendanceRecord) => (
                     <tr key={record.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 text-slate-800 font-medium">{record.employeeName}</td>
                       <td className="px-6 py-4 text-slate-800">{new Date(record.attendanceDate).toLocaleDateString('fr-FR')}</td>

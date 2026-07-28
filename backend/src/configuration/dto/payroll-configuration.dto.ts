@@ -1,4 +1,15 @@
-import { IsDecimal, IsString, IsDate, IsOptional, Min, Max, Matches, IsArray, ValidateNested, IsBoolean } from 'class-validator';
+import {
+  IsDecimal,
+  IsString,
+  IsDate,
+  IsOptional,
+  Min,
+  Max,
+  Matches,
+  IsArray,
+  ValidateNested,
+  IsBoolean,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class TaxBracketDto {
@@ -45,7 +56,9 @@ export class CreatePayrollConfigDto {
 
   @IsDecimal({ decimal_digits: '1,2' })
   @Min(50000, { message: 'Le salaire minimum doit être au moins 50000 FCFA' })
-  @Max(500000, { message: 'Le salaire minimum ne peut pas dépasser 500000 FCFA' })
+  @Max(500000, {
+    message: 'Le salaire minimum ne peut pas dépasser 500000 FCFA',
+  })
   minWage: number;
 
   @IsString()
@@ -57,13 +70,13 @@ export class CreatePayrollConfigDto {
 
   @IsDecimal({ decimal_digits: '1,4' })
   @Min(0, { message: 'Le taux CNPS employé ne peut pas être négatif' })
-  @Max(0.20, { message: 'Le taux CNPS employé ne peut pas dépasser 20%' })
+  @Max(0.2, { message: 'Le taux CNPS employé ne peut pas dépasser 20%' })
   @IsOptional()
   cnpsEmployeeRate?: number;
 
   @IsDecimal({ decimal_digits: '1,4' })
   @Min(0, { message: 'Le taux CNPS employeur ne peut pas être négatif' })
-  @Max(0.30, { message: 'Le taux CNPS employeur ne peut pas dépasser 30%' })
+  @Max(0.3, { message: 'Le taux CNPS employeur ne peut pas dépasser 30%' })
   @IsOptional()
   cnpsEmployerRate?: number;
 }
@@ -71,7 +84,9 @@ export class CreatePayrollConfigDto {
 export class UpdatePayrollConfigDto {
   @IsDecimal({ decimal_digits: '1,2' })
   @Min(50000, { message: 'Le salaire minimum doit être au moins 50000 FCFA' })
-  @Max(500000, { message: 'Le salaire minimum ne peut pas dépasser 500000 FCFA' })
+  @Max(500000, {
+    message: 'Le salaire minimum ne peut pas dépasser 500000 FCFA',
+  })
   @IsOptional()
   minWage?: number;
 
@@ -79,19 +94,21 @@ export class UpdatePayrollConfigDto {
   @IsOptional()
   minWagePeriod?: string;
 
-  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'La date doit être au format YYYY-MM-DD' })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'La date doit être au format YYYY-MM-DD',
+  })
   @IsOptional()
   minWageEffectiveDate?: string;
 
   @IsDecimal({ decimal_digits: '1,4' })
   @Min(0, { message: 'Le taux CNPS employé ne peut pas être négatif' })
-  @Max(0.20, { message: 'Le taux CNPS employé ne peut pas dépasser 20%' })
+  @Max(0.2, { message: 'Le taux CNPS employé ne peut pas dépasser 20%' })
   @IsOptional()
   cnpsEmployeeRate?: number;
 
   @IsDecimal({ decimal_digits: '1,4' })
   @Min(0, { message: 'Le taux CNPS employeur ne peut pas être négatif' })
-  @Max(0.30, { message: 'Le taux CNPS employeur ne peut pas dépasser 30%' })
+  @Max(0.3, { message: 'Le taux CNPS employeur ne peut pas dépasser 30%' })
   @IsOptional()
   cnpsEmployerRate?: number;
 

@@ -109,7 +109,7 @@ export class EquipmentCostConfigService {
       status: eq.status,
       subsidiaryId: eq.subsidiaryId,
       subsidiaryName: eq.subsidiary.subsidiaryName,
-      hourlyRate: eq.costConfig!.hourlyRate,
+      hourlyRate: eq.costConfig.hourlyRate,
     }));
   }
 }

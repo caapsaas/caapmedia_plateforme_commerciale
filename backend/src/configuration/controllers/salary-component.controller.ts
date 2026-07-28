@@ -10,7 +10,10 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { SalaryComponentService } from '../services/salary-component.service';
-import { CreateSalaryComponentDto, UpdateSalaryComponentDto } from '../dto/salary-component.dto';
+import {
+  CreateSalaryComponentDto,
+  UpdateSalaryComponentDto,
+} from '../dto/salary-component.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles, CurrentUser } from '../../common/auth/role/role.decorator';
@@ -25,7 +28,7 @@ export class SalaryComponentController {
 
   private validateSubsidiaryAccess(user: JwtUser, subsidiaryId: string): void {
     if (user.role !== UserRole.ADMIN && user.subsidiaryId !== subsidiaryId) {
-      throw new ForbiddenException('Vous n\'avez pas accès à cette filiale');
+      throw new ForbiddenException("Vous n'avez pas accès à cette filiale");
     }
   }
 

@@ -11,7 +11,10 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { TaxBracketService } from '../services/tax-bracket.service';
-import { CreateTaxBracketDto, UpdateTaxBracketDto } from '../dto/tax-bracket.dto';
+import {
+  CreateTaxBracketDto,
+  UpdateTaxBracketDto,
+} from '../dto/tax-bracket.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles, CurrentUser } from '../../common/auth/role/role.decorator';
@@ -26,7 +29,7 @@ export class TaxBracketController {
 
   private validateSubsidiaryAccess(user: JwtUser, subsidiaryId: string): void {
     if (user.role !== UserRole.ADMIN && user.subsidiaryId !== subsidiaryId) {
-      throw new ForbiddenException('Vous n\'avez pas accès à cette filiale');
+      throw new ForbiddenException("Vous n'avez pas accès à cette filiale");
     }
   }
 

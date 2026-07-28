@@ -148,7 +148,10 @@ export class AccountsService {
 
     return this.prisma.accountingAccount.create({
       data: {
-        id: generateId(ID_PREFIXES.ACCOUNTINGACCOUNT), ...dto, subsidiaryId: user.subsidiaryId },
+        id: generateId(ID_PREFIXES.ACCOUNTINGACCOUNT),
+        ...dto,
+        subsidiaryId: user.subsidiaryId,
+      },
     });
   }
 

@@ -92,5 +92,3 @@ export class AccountsController {
     return this.accountsService.remove(id, user);
   }
 }
-
-

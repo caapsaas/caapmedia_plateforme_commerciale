@@ -100,8 +100,10 @@ export class StockItemsService {
 
   async findAll(user: any, subsidiaryId?: string) {
     const isSuperAdmin = user.userRole === 'SUPER_ADMIN';
-    const effectiveSid = isSuperAdmin && subsidiaryId ? subsidiaryId : user.subsidiaryId;
-    const stockLevelsWhere = isSuperAdmin && !subsidiaryId ? {} : { subsidiaryId: effectiveSid };
+    const effectiveSid =
+      isSuperAdmin && subsidiaryId ? subsidiaryId : user.subsidiaryId;
+    const stockLevelsWhere =
+      isSuperAdmin && !subsidiaryId ? {} : { subsidiaryId: effectiveSid };
 
     const items = await this.prisma.item.findMany({
       where: { type: ItemType.STOCK_PRODUCT },

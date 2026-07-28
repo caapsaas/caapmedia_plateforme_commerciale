@@ -428,7 +428,7 @@ export class ProductSpecsService {
       if (spec.type === SpecFieldType.MULTISELECT && spec.possibleValues) {
         const selected = Array.isArray(value) ? value : [value];
         const invalid = selected.filter(
-          (v) => !spec.possibleValues!.some((opt) => opt.value === v),
+          (v) => !spec.possibleValues.some((opt) => opt.value === v),
         );
         if (invalid.length > 0) {
           errors.push(

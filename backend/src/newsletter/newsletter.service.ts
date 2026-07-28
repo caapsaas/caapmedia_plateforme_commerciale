@@ -23,7 +23,11 @@ export class NewsletterService {
     }
 
     // Créer la nouvelle inscription
-    return this.prisma.newsletter.create({ data: {
-        id: generateId(ID_PREFIXES.NEWSLETTER), email } });
+    return this.prisma.newsletter.create({
+      data: {
+        id: generateId(ID_PREFIXES.NEWSLETTER),
+        email,
+      },
+    });
   }
 }

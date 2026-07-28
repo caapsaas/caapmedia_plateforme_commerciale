@@ -74,7 +74,7 @@ export class ReportsService {
           solde: 0,
         });
       }
-      const entry = grouped.get(num)!;
+      const entry = grouped.get(num);
       const debit = Number(line.debitAmount);
       const credit = Number(line.creditAmount);
       entry.totalDebit += debit;
@@ -139,7 +139,7 @@ export class ReportsService {
           mouvCredit: 0,
         });
       }
-      const row = map.get(num)!;
+      const row = map.get(num);
       row.mouvDebit += Number(line.debitAmount);
       row.mouvCredit += Number(line.creditAmount);
     }
@@ -223,7 +223,7 @@ export class ReportsService {
           totalCredit: 0,
         });
       }
-      const g = grouped.get(code)!;
+      const g = grouped.get(code);
       const totDebit = entry.lines.reduce(
         (s, l) => s + Number(l.debitAmount),
         0,

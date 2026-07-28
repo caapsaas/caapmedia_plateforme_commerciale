@@ -102,10 +102,7 @@ export class BalancesheetService {
       where: subsidiaryId ? { subsidiaryId } : {},
       select: { stock: true },
     });
-    return stockLevels.reduce(
-      (_sum, _s) => _sum,
-      0,
-    );
+    return stockLevels.reduce((_sum, _s) => _sum, 0);
   }
 
   async getEquipmentsValue(subsidiaryId?: string): Promise<number> {
