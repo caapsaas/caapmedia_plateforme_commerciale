@@ -73,7 +73,12 @@ export class AttendanceCheckInController {
     return result;
   }
 
-  // Check-in avec QR Code (géolocalisation désormais facultative et non utilisée)
+  // Check-in endpoint that supports both arrival and departure when called by scanning the QR.
+  // Behavior:
+  // - If there is no record for today -> create arrival (check-in)
+  // - If there is a record with arrival but no departure -> update departure (check-out)
+  // - If there is already arrival+departure -> reject
+  // This endpoint does not require JWT because the QR token encodes employee/subsidiary info.
   @Post('check-in')
   async checkIn(@Body() dto: CheckInDto) {
     // 1️⃣ Valider le QR Code (contient déjà l'employeeId et subsidiaryId)
@@ -81,60 +86,94 @@ export class AttendanceCheckInController {
     const employeeId = qrValidation.employeeId;
     const subsidiaryId = qrValidation.subsidiaryId;
 
-    this.logger.log(`Check-in attempt for employee ${employeeId}`);
+    this.logger.log(`Check-in/check-out attempt for employee ${employeeId}`);
 
-    // NOTE: We no longer reject based on GPS accuracy or proximity. Any latitude/longitude
-    // provided are stored only for informational/audit purposes by the service layer.
-
-    // 2️⃣ Vérifier qu'il n'y a pas déjà un check-in aujourd'hui
+    // 2️⃣ Rechercher l'enregistrement d'aujourd'hui
     const todayRecord = await this.attendanceService.findTodayRecord(
       employeeId,
       subsidiaryId,
     );
 
-    if (todayRecord && todayRecord.arrivalTime) {
-      throw new BadRequestException(
-        "Un enregistrement d'arrivée existe déjà pour aujourd'hui",
+    // If no record -> create arrival
+    if (!todayRecord) {
+      // Vérifier si en retard (basé uniquement sur l'heure)
+      const isLate = await this.geoService.isArrivalLate(new Date());
+
+      // Récupérer les infos de l'employé
+      const employee = await this.attendanceService.findEmployeeById(employeeId);
+      if (!employee) {
+        throw new BadRequestException('Employé non trouvé');
+      }
+
+      // Créer l'enregistrement d'arrivée
+      const attendanceData: CreateAttendanceRecordDto = {
+        employeeId,
+        attendanceDate: new Date(),
+        arrivalTime: new Date(),
+        status: isLate ? 'LATE' : 'PRESENT',
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+      };
+
+      // add optional geo fields as informational only
+      const meta: any = {};
+      if (dto.latitude !== undefined) meta.arrivalLatitude = dto.latitude;
+      if (dto.longitude !== undefined) meta.arrivalLongitude = dto.longitude;
+      if (dto.accuracy !== undefined) meta.accuracyMeters = dto.accuracy;
+      if (dto.qrToken) meta.qrCodeToken = dto.qrToken;
+
+      const result = await this.attendanceService.create(
+        { ...attendanceData, ...meta },
+        employeeId,
+        subsidiaryId,
       );
+
+      this.logger.log(`✓ Check-in created for employee ${employeeId}`);
+
+      return {
+        success: true,
+        type: 'check-in',
+        message: `Arrivée enregistrée à ${new Date().toLocaleTimeString('fr-FR')}`,
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        status: isLate ? 'EN RETARD' : 'PRÉSENT',
+        record: result,
+      };
     }
 
-    // 3️⃣ Vérifier si en retard (basé uniquement sur l'heure)
-    const isLate = await this.geoService.isArrivalLate(new Date());
+    // If record exists and has arrival but no departure -> perform check-out
+    if (todayRecord.arrivalTime && !todayRecord.departureTime) {
+      const updatePayload: any = {
+        departureTime: new Date(),
+        status: 'LEFT',
+      };
+      if (dto.latitude !== undefined) updatePayload.departureLatitude = dto.latitude;
+      if (dto.longitude !== undefined) updatePayload.departureLongitude = dto.longitude;
+      if (dto.accuracy !== undefined) updatePayload.accuracyMeters = dto.accuracy;
 
-    // 4️⃣ Récupérer les infos de l'employé
-    const employee = await this.attendanceService.findEmployeeById(employeeId);
-    if (!employee) {
-      throw new BadRequestException('Employé non trouvé');
+      const updated = await this.attendanceService.update(todayRecord.id, updatePayload);
+
+      this.logger.log(`✓ Check-out created for employee ${employeeId}`);
+
+      const arrivalTime = new Date(updated.arrivalTime);
+      const departureTime = new Date(updated.departureTime);
+      const durationMs = departureTime.getTime() - arrivalTime.getTime();
+      const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
+      const durationMins = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+
+      return {
+        success: true,
+        type: 'check-out',
+        message: `Départ enregistré à ${departureTime.toLocaleTimeString('fr-FR')}`,
+        status: 'PARTI',
+        duration: `${durationHours}h ${durationMins}min`,
+        record: updated,
+      };
     }
 
-    // 5️⃣ Créer l'enregistrement (ne pas utiliser la géolocalisation pour décider du statut)
-    const attendanceData: CreateAttendanceRecordDto = {
-      employeeId,
-      attendanceDate: new Date(),
-      arrivalTime: new Date(),
-      status: isLate ? 'LATE' : 'PRESENT',
-      employeeName: `${employee.firstName} ${employee.lastName}`,
-      // If geo fields are present in DTO model, the service will persist them as informational only.
-    };
-
-    const result = await this.attendanceService.create(
-      attendanceData,
-      employeeId,
-      subsidiaryId,
-    );
-
-    this.logger.log(`✓ Check-in successful for employee ${employeeId}`);
-
-    return {
-      success: true,
-      message: `Arrivée enregistrée à ${new Date().toLocaleTimeString('fr-FR')}`,
-      employeeName: `${employee.firstName} ${employee.lastName}`,
-      status: isLate ? 'EN RETARD' : 'PRÉSENT',
-      record: result,
-    };
+    // If arrival and departure already present -> reject
+    throw new BadRequestException('Un enregistrement complet existe déjà pour aujourd\'hui');
   }
 
-  // Check-out (protégé par JWT) — géolocalisation facultative et non utilisée pour valider
+  // Keep the existing check-out endpoint for authenticated manual check-outs if needed
   @Post('check-out')
   @UseGuards(JwtAuthGuard, RoleGuard)
   async checkOut(@Body() dto: CheckOutDto, @Request() req) {
@@ -161,6 +200,8 @@ export class AttendanceCheckInController {
     // 2️⃣ Mettre à jour le départ — ne pas utiliser la géolocalisation pour déterminer le statut
     const result = await this.attendanceService.update(todayRecord.id, {
       departureTime: new Date(),
+      departureLatitude: dto.latitude,
+      departureLongitude: dto.longitude,
       status: 'LEFT',
     });
 
