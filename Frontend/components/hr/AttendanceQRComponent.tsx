@@ -77,7 +77,7 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
     const term = (searchTerm || '').trim().toLowerCase();
     if (!employeesWithQr || !term) return employeesWithQr || [];
     return employeesWithQr.filter(item => {
-      const emp = item.employee || {} as Employee;
+      const emp = item.employee || ({} as Employee);
       const fullName = `${emp.firstName || ''} ${emp.lastName || ''}`.toLowerCase();
       const id = (emp.id || '').toLowerCase();
       const email = (emp.email || '').toLowerCase();
@@ -448,8 +448,33 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
                           : '—'}
                       </td>
                       <td className="px-6 py-4">
-                        {record.status === 'PRESENT' && <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold"><span className="w
-                      {/* truncated for brevity in rendering */}
+                        {record.status === 'PRESENT' && (
+                          <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold">
+                            <IconCheckCircle className="w-3 h-3" />
+                            Présent
+                          </span>
+                        )}
+                        {record.status === 'LATE' && (
+                          <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-semibold">
+                            <IconUserClock className="w-3 h-3" />
+                            En retard
+                          </span>
+                        )}
+                        {record.status === 'ABSENT' && (
+                          <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-semibold">
+                            Absent
+                          </span>
+                        )}
+                        {record.status === 'LEFT' && (
+                          <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold">
+                            Parti
+                          </span>
+                        )}
+                        {record.status === 'LEFT_OUTSIDE_GEOFENCE' && (
+                          <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-semibold">
+                            Parti - hors zone
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         {record.isGeolocationValid ? (
