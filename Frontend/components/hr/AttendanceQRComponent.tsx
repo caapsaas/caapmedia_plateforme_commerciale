@@ -46,11 +46,13 @@ interface AttendanceQRComponentProps {
 
 interface CheckInResponse {
   success: boolean;
+  type?: 'check-in' | 'check-out';
   message: string;
   employeeName: string;
   status: string;
   distance?: string;
   accuracy?: string;
+  duration?: string;
   record?: AttendanceRecord;
 }
 
@@ -65,6 +67,7 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
   const scanningRef = useRef(false);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [scanCooldown, setScanCooldown] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -113,10 +116,15 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
       queryClient.invalidateQueries(['attendance-history']);
       queryClient.invalidateQueries(['employees-with-qr']);
 
-      // Optionally update cache optimistically with created record
+      // Optionally update cache optimistically with created/updated record
       if (data && data.record) {
         queryClient.setQueryData(['attendance-history'], (old: any) => {
           const list = Array.isArray(old) ? old : (old?.data || []);
+          // If check-in, prepend; if check-out, replace the existing record by id
+          if (data.type === 'check-in') return [data.record, ...list];
+          if (data.type === 'check-out') {
+            return list.map((r: AttendanceRecord) => (r.id === data.record!.id ? data.record : r));
+          }
           return [data.record, ...list];
         });
       }
@@ -146,6 +154,8 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
   }, []);
 
   const startScanner = async () => {
+    if (scanCooldown) return; // Prevent starting while cooldown is active
+
     setScannerActive(true);
     setErrorMessage(null);
 
@@ -192,6 +202,7 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
         const code = jsQR(imageData.data, imageData.width, imageData.height);
 
         if (code) {
+          if (scanCooldown) return; // client-side protection
           scanningRef.current = false;
           // Passe currentLocation seulement si disponible
           handleCheckIn(code.data, currentLocation || undefined);
@@ -207,6 +218,8 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
   };
 
   const handleCheckIn = async (qrToken: string, coords?: GeolocationCoordinates) => {
+    if (scanCooldown) return; // protect against double submissions
+
     try {
       const dto: any = { qrToken };
       if (coords) {
@@ -217,7 +230,23 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
 
       const response = await checkInMutation.mutateAsync(dto);
 
-      setSuccessMessage(response.message);
+      // backend returns { type: 'check-in'|'check-out', message, record, ... }
+      if (response.type === 'check-in') {
+        setSuccessMessage(`Arrivée enregistrée — ${response.message}`);
+      } else if (response.type === 'check-out') {
+        setSuccessMessage(`Départ enregistré — ${response.message}`);
+      } else {
+        setSuccessMessage(response.message || 'Enregistrement effectué');
+      }
+
+      // cooldown pour éviter double-posts (4s par ex.)
+      setScanCooldown(true);
+      setTimeout(() => setScanCooldown(false), 4000);
+
+      // invalider l'historique (si pas déjà fait dans onSuccess)
+      queryClient.invalidateQueries(['attendance-history']);
+      queryClient.invalidateQueries(['employees-with-qr']);
+
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error: any) {
       setErrorMessage(error.response?.data?.message || "Erreur lors de l'enregistrement");
@@ -358,7 +387,8 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
 
           <button 
             onClick={startScanner}
-            className="bg-[#c6e911] hover:bg-[#b0cc0f] text-slate-800 font-semibold py-2 px-4 rounded-lg shadow transition-colors flex items-center gap-2"
+            disabled={scanCooldown}
+            className={`bg-[#c6e911] hover:bg-[#b0cc0f] text-slate-800 font-semibold py-2 px-4 rounded-lg shadow transition-colors flex items-center gap-2 ${scanCooldown ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             <Camera className="w-5 h-5" />
             Lancer le Scanner
