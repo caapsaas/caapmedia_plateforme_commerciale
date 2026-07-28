@@ -1,4 +1,11 @@
-import { IsString, IsDate, IsEnum, IsOptional, IsNumber, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsDate,
+  IsEnum,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
 import { AttendanceStatus } from '@prisma/client';

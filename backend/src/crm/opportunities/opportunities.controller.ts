@@ -84,5 +84,3 @@ export class OpportunitiesController {
     return this.opportunitiesService.remove(id, user);
   }
 }
-
-

@@ -14,6 +14,8 @@ import {
   ItemType,
   Unit,
 } from '@prisma/client';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 type ItemWithRelations = Item & {
   stockLevels: ItemStock[];
@@ -66,6 +68,7 @@ export class StockItemsService {
         },
         update: { stock: stock ?? 0, warehouse },
         create: {
+          id: generateId(ID_PREFIXES.ITEMSTOCK),
           itemId: existing.id,
           subsidiaryId: user.subsidiaryId,
           stock: stock ?? 0,
@@ -80,10 +83,12 @@ export class StockItemsService {
 
     const item = await this.prisma.item.create({
       data: {
+        id: generateId(ID_PREFIXES.PRODUCT),
         ...itemData,
         type: ItemType.STOCK_PRODUCT,
         stockLevels: {
           create: {
+            id: generateId(ID_PREFIXES.ITEMSTOCK),
             subsidiaryId: user.subsidiaryId,
             stock: stock ?? 0,
             warehouse,
@@ -100,8 +105,10 @@ export class StockItemsService {
 
   async findAll(user: any, subsidiaryId?: string) {
     const isSuperAdmin = user.userRole === 'SUPER_ADMIN';
-    const effectiveSid = isSuperAdmin && subsidiaryId ? subsidiaryId : user.subsidiaryId;
-    const stockLevelsWhere = isSuperAdmin && !subsidiaryId ? {} : { subsidiaryId: effectiveSid };
+    const effectiveSid =
+      isSuperAdmin && subsidiaryId ? subsidiaryId : user.subsidiaryId;
+    const stockLevelsWhere =
+      isSuperAdmin && !subsidiaryId ? {} : { subsidiaryId: effectiveSid };
 
     const items = await this.prisma.item.findMany({
       where: { type: ItemType.STOCK_PRODUCT },
@@ -165,6 +172,7 @@ export class StockItemsService {
           ...(warehouse !== undefined && { warehouse }),
         },
         create: {
+          id: generateId(ID_PREFIXES.ITEMSTOCK),
           itemId: id,
           subsidiaryId: user.subsidiaryId,
           stock: stock ?? 0,
@@ -213,6 +221,7 @@ export class StockItemsService {
     await this.findOne(itemId, user);
     return this.prisma.itemPackagingUnit.create({
       data: {
+        id: generateId(ID_PREFIXES.ITEMPACKAGINGUNIT),
         itemId,
         unitId: dto.unitId,
         conversionFactor: dto.conversionFactor,

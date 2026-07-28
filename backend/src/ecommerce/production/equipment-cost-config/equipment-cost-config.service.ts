@@ -3,6 +3,8 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { UpsertEquipmentCostDto } from './dto/upsert-equipment-cost.dto';
 import { Prisma, UserRole } from '@prisma/client';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class EquipmentCostConfigService {
@@ -19,6 +21,7 @@ export class EquipmentCostConfigService {
     return this.prisma.equipementCostConfig.upsert({
       where: { equipmentId: dto.equipmentId },
       create: {
+        id: generateId(ID_PREFIXES.EQUIPEMENTCOSTCONFIG),
         equipmentId: dto.equipmentId,
         hourlyRate: new Prisma.Decimal(dto.hourlyRate),
         updatedById: user.id,
@@ -109,7 +112,7 @@ export class EquipmentCostConfigService {
       status: eq.status,
       subsidiaryId: eq.subsidiaryId,
       subsidiaryName: eq.subsidiary.subsidiaryName,
-      hourlyRate: eq.costConfig!.hourlyRate,
+      hourlyRate: eq.costConfig.hourlyRate,
     }));
   }
 }

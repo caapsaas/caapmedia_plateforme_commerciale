@@ -3,6 +3,8 @@
 // quelques services représentatifs, pour que le Builder et le flux de
 // commande soient directement visualisables avec des données réelles.
 import { PrismaClient, Prisma, SpecFieldType, ItemType } from '@prisma/client';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 
 interface SpecSeedData {
   technicalKey: string;
@@ -38,7 +40,7 @@ async function ensureReferenceList(
   const list = await prisma.specReferenceList.upsert({
     where: { key },
     update: {},
-    create: { key, name },
+    create: { id: generateId(ID_PREFIXES.SPECREFERENCELIST), key, name },
   });
 
   for (const [index, v] of values.entries()) {
@@ -48,6 +50,7 @@ async function ensureReferenceList(
     if (!existing) {
       await prisma.specReferenceValue.create({
         data: {
+          id: generateId(ID_PREFIXES.SPECREFERENCEVALUE),
           listId: list.id,
           value: v.value,
           label: v.label,
@@ -69,7 +72,9 @@ async function ensureGroup(
     where: { productId, name },
   });
   if (existing) return existing;
-  return prisma.productSpecGroup.create({ data: { productId, name, order } });
+  return prisma.productSpecGroup.create({
+    data: { id: generateId(ID_PREFIXES.PRODUCTSPECGROUP), productId, name, order },
+  });
 }
 
 const REFERENCE_PAPER_TYPES = [
@@ -449,6 +454,7 @@ export async function runProductSpecsSeeder(prisma: PrismaClient) {
           },
           update: {},
           create: {
+            id: generateId(ID_PREFIXES.PRODUCTSPECIFICATION),
             productId: product.id,
             groupId: groupRecord.id,
             order: specOrder++,

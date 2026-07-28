@@ -46,10 +46,12 @@ export class OrdersService {
     return {
       id: order.id,
       date: order.orderDate,
+      orderDate: order.orderDate,
       customerName: order.customerName,
       customerId: order.customerId,
       customer: order.customer,
       salesRep: order.salesRep,
+      subsidiary: order.subsidiary,
       subtotal: order.subtotal ? order.subtotal.toNumber() : 0,
       taxAmount: order.taxAmount ? order.taxAmount.toNumber() : 0,
       totalAmount: order.totalAmount ? order.totalAmount.toNumber() : 0,
@@ -58,16 +60,27 @@ export class OrdersService {
       taxRateId: order.taxRateId,
       taxRateValue: order.taxRateValue ? order.taxRateValue.toNumber() : 0,
       status: order.status,
-      orderItems: order.orderItems.map((item: any) => ({
-        productName: item.product?.name,
+      productionStatus: order.productionStatus,
+      paymentStatus: order.paymentStatus,
+      productionHistory: order.productionHistory ?? [],
+      orderItems: (order.orderItems ?? []).map((item: any) => ({
+        id: item.id,
+        productName: item.product?.name ?? item.productName,
         quantity: item.quantity,
         unitPrice: item.unitPrice ? item.unitPrice.toNumber() : 0,
+        discount: item.discount ? item.discount.toNumber() : 0,
+        total: item.total ? item.total.toNumber() : 0,
         designFileName: item.designFileName,
         designFileUrl: item.designFileUrl,
         productId: item.productId,
         orderId: item.orderId,
         product: item.product,
-      })) || [],
+        productOptions: item.productOptions ?? [],
+        specValues: item.specValues,
+        specSnapshot: item.specSnapshot,
+        productionSteps: item.productionSteps ?? [],
+        productionSummary: item.productionSummary ?? null,
+      })),
     };
   }
 
@@ -257,6 +270,7 @@ export class OrdersService {
     return this.prisma.$transaction(async (tx) => {
       const newOrder = await tx.order.create({
         data: {
+          id: generateId(ID_PREFIXES.ORDER),
           customerName,
           paymentDueDate: new Date(paymentDueDate),
           source,
@@ -278,6 +292,7 @@ export class OrdersService {
             create: orderItemsData.map((item, index) => {
               const file = designFiles?.[index];
               return {
+                id: generateId(ID_PREFIXES.ORDERITEM),
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
                 discount: item.discount,
@@ -293,6 +308,7 @@ export class OrdersService {
                   ? {
                       create: Object.entries(item.options).map(
                         ([optionType, optionValue]) => ({
+                          id: generateId(ID_PREFIXES.PRODUCTOPTION),
                           optionType,
                           optionValue: String(optionValue),
                         }),
@@ -303,7 +319,10 @@ export class OrdersService {
             }),
           },
           productionHistory: {
-            create: { status: ProductionStatus.PREPRESS },
+            create: {
+              id: generateId(ID_PREFIXES.ORDERPRODUCTIONHISTORY),
+              status: ProductionStatus.PREPRESS,
+            },
           },
         },
         include: {
@@ -328,6 +347,7 @@ export class OrdersService {
                 hourlyRateSnapshot: number;
                 calculatedCost: number;
               }) => ({
+                id: generateId(ID_PREFIXES.ORDERITEMPRODUCTIONSTEP),
                 orderItemId,
                 equipmentId: step.equipmentId,
                 equipmentNameSnapshot: step.equipmentNameSnapshot,
@@ -343,6 +363,7 @@ export class OrdersService {
         if (item.productionSummary) {
           await tx.orderItemProductionSummary.create({
             data: {
+              id: generateId(ID_PREFIXES.ORDERITEMPRODUCTIONSUMMARY),
               orderItemId,
               totalProductionCost: new Decimal(
                 item.productionSummary.totalProductionCost,
@@ -436,8 +457,13 @@ export class OrdersService {
         const parsedStartDate = new Date(startDate);
         const parsedEndDate = new Date(endDate);
 
-        if (isNaN(parsedStartDate.getTime()) || isNaN(parsedEndDate.getTime())) {
-          throw new BadRequestException('Les dates fournies ne sont pas au bon format.');
+        if (
+          isNaN(parsedStartDate.getTime()) ||
+          isNaN(parsedEndDate.getTime())
+        ) {
+          throw new BadRequestException(
+            'Les dates fournies ne sont pas au bon format.',
+          );
         }
 
         dateFilter = { gte: parsedStartDate, lte: parsedEndDate };
@@ -455,7 +481,7 @@ export class OrdersService {
       orderBy: { orderDate: 'desc' },
     });
 
-    return orders.map(order => this.mapOrderToResponse(order));
+    return orders.map((order) => this.mapOrderToResponse(order));
   }
 
   /**
@@ -513,7 +539,9 @@ export class OrdersService {
 
     // Empêcher toute modification d'une commande annulée
     if (order.status === 'CANCELLED') {
-      throw new ConflictException('Une commande annulée ne peut pas être modifiée.');
+      throw new ConflictException(
+        'Une commande annulée ne peut pas être modifiée.',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -704,7 +732,9 @@ export class OrdersService {
 
       // Empêcher le paiement d'une commande annulée
       if (order.status === 'CANCELLED') {
-        throw new ConflictException('Le paiement d\'une commande annulée n\'est pas autorisé.');
+        throw new ConflictException(
+          "Le paiement d'une commande annulée n'est pas autorisé.",
+        );
       }
 
       // 2. Valider le paiement
@@ -736,7 +766,9 @@ export class OrdersService {
 
       // Si l'update a échoué (count === 0), la commande a été modifiée par une autre requête
       if (updateCount.count === 0) {
-        throw new ConflictException('Cette commande a été modifiée entre-temps. Veuillez réessayer.');
+        throw new ConflictException(
+          'Cette commande a été modifiée entre-temps. Veuillez réessayer.',
+        );
       }
 
       // Re-récupérer la commande mise à jour
@@ -757,6 +789,7 @@ export class OrdersService {
             );
           }
           return {
+            id: generateId(ID_PREFIXES.SALE),
             productName: item.product.name,
             quantity: item.quantity,
             totalPrice: new Decimal(item.unitPrice).mul(item.quantity),
@@ -781,7 +814,11 @@ export class OrdersService {
       // Re-fetch with all necessary relations for mapping
       const finalOrder = await tx.order.findUniqueOrThrow({
         where: { id },
-        include: { orderItems: { include: { product: true } }, customer: true, salesRep: true },
+        include: {
+          orderItems: { include: { product: true } },
+          customer: true,
+          salesRep: true,
+        },
       });
 
       return this.mapOrderToResponse(finalOrder);

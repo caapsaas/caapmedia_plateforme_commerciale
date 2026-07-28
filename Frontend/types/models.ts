@@ -147,6 +147,7 @@ export interface Subsidiary {
   };
   shareCapital: number;
   logoSvg?: string;
+  isHeadquarter?: boolean;
 }
 
 export interface User {
@@ -1063,12 +1064,20 @@ export interface Contract {
     subsidiaryId: string;
 }
 
+export type FixedAssetStatus = 'ACTIVE' | 'DISPOSED';
+
 export interface FixedAsset {
     id: string;
-    name: string;
+    fixedAssetsName: string;
     acquisitionDate: string;
     acquisitionCost: number;
-    depreciationRate: number; // yearly percentage
+    depreciationRate: number; // taux annuel en %
+    residualValue: number;
+    cumulativeAmortization: number;
+    lastAmortizationYear: number | null;
+    status: FixedAssetStatus;
+    disposalDate: string | null;
+    disposalAmount: number | null;
     subsidiaryId: string;
 }
 

@@ -20,12 +20,20 @@ import { UserRole, ProformaStatus } from '@prisma/client';
 
 @Controller('crm/proformas')
 @UseGuards(JwtAuthGuard, RoleGuard)
-@Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY, UserRole.FINANCIAL_DIRECTOR)
+@Roles(
+  UserRole.ADMIN,
+  UserRole.COMMERCIAL,
+  UserRole.SECRETARY,
+  UserRole.FINANCIAL_DIRECTOR,
+)
 export class ProformasController {
   constructor(private readonly proformasService: ProformasService) {}
 
   @Post()
-  create(@Body() createProformaDto: CreateProformaDto, @CurrentUser() user: User) {
+  create(
+    @Body() createProformaDto: CreateProformaDto,
+    @CurrentUser() user: User,
+  ) {
     return this.proformasService.create(createProformaDto, user);
   }
 
@@ -72,5 +80,3 @@ export class ProformasController {
     return this.proformasService.remove(id);
   }
 }
-
-

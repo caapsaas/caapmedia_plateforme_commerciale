@@ -24,7 +24,9 @@ export class LeadsController {
   constructor(private readonly leadsService: LeadsService) {}
 
   @Post('quote-request')
-  createPublicQuoteRequest(@Body() publicQuoteRequestDto: PublicQuoteRequestDto) {
+  createPublicQuoteRequest(
+    @Body() publicQuoteRequestDto: PublicQuoteRequestDto,
+  ) {
     return this.leadsService.createPublicLead(publicQuoteRequestDto);
   }
 
@@ -104,5 +106,3 @@ export class LeadsController {
     return this.leadsService.convert(id, user);
   }
 }
-
-

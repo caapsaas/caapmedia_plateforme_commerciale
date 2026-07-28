@@ -611,11 +611,26 @@ export class AuthService {
       throw new Error('User not found');
     }
 
+    // roles[] est la source de verite RBAC (backfillee/maintenue en synchro
+    // avec userRole+additionalRoles) - meme fallback que JwtStrategy et
+    // issueTokens: sans lui, un utilisateur dont la colonne roles[] est
+    // encore vide (ex: SUPER_ADMIN cree avant le backfill) se retrouve avec
+    // roles=[] cote frontend juste apres un refresh de page, malgre un
+    // userRole correct.
+    const roles =
+      fullUser.roles.length > 0
+        ? fullUser.roles
+        : [
+            fullUser.userRole,
+            ...fullUser.additionalRoles.filter((r) => r !== fullUser.userRole),
+          ];
+
     // Mapper userRole -> role pour correspondre au frontend
     const mappedUser = {
       ...fullUser,
       role: fullUser.userRole,
       activeRole: fullUser.activeRole ?? fullUser.userRole,
+      roles,
     };
 
     this.logger.log(`Profile retrieved for user ${user.email}`, 'AuthService');

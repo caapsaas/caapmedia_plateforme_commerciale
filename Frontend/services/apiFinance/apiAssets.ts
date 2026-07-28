@@ -5,12 +5,25 @@ import { FixedAsset } from '../../types';
  * Données pour la création d'une immobilisation.
  * Inclut l'ID du compte de trésorerie pour la transaction de dépense.
  */
-export type FixedAssetCreationData = Omit<FixedAsset, 'id' | 'subsidiaryId'> & { treasuryAccountId: string };
+export interface FixedAssetCreationData {
+  fixedAssetsName: string;
+  acquisitionDate: string;
+  acquisitionCost: number;
+  depreciationRate: number;
+  residualValue?: number;
+  treasuryAccountId: string;
+}
 
 /**
  * Données pour la mise à jour d'une immobilisation. Toutes les propriétés sont optionnelles.
+ * Une immobilisation cédée (status DISPOSED) refuse toute modification côté backend.
  */
-export type FixedAssetUpdateData = Partial<Omit<FixedAsset, 'id' | 'subsidiaryId'>>;
+export type FixedAssetUpdateData = Partial<{
+  fixedAssetsName: string;
+  acquisitionDate: string;
+  acquisitionCost: number;
+  depreciationRate: number;
+}>;
 
 /**
  * Crée une nouvelle immobilisation et la transaction de dépense associée.

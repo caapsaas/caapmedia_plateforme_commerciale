@@ -1,4 +1,12 @@
-import { IsString, IsNotEmpty, IsDate, IsOptional, IsNumber, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsDate,
+  IsOptional,
+  IsNumber,
+  Min,
+  Max,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class CreateEmployeePerformanceReviewDto {

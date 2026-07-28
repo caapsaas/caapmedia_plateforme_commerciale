@@ -17,6 +17,9 @@ import SelectFilter from '../components/filters/SelectFilter';
 import { SpecValues } from '../components/common/FormRenderer';
 import type { ProductionCostResult, ProductionStep, ProductionSummary } from '../components/ecommerce/ProductionCostModal';
 import AddItemMultiStepModal from '../components/ecommerce/AddItemMultiStepModal';
+import { getImageUrl } from '../utils/imageUtils';
+import { LazyLoadImage } from 'react-lazy-load-image-component';
+import 'react-lazy-load-image-component/src/effects/blur.css';
 
 interface NewOrderProps {
     subsidiary: Subsidiary;
@@ -286,7 +289,16 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                                 {filteredProducts.map(product => (
                                     <tr key={product.id}>
                                         <td className="px-4 py-3">
-                                            <img src={product.productImages?.[0]?.imageUrl || 'https://via.placeholder.com/100'} alt={product.name} className="h-12 w-12 object-cover rounded-md" />
+                                            <div className="h-12 w-12 rounded-md overflow-hidden bg-slate-100">
+                                                <LazyLoadImage
+                                                    src={product.productImages?.length ? getImageUrl(product.productImages[0].imageUrl) : 'https://via.placeholder.com/100'}
+                                                    alt={product.name}
+                                                    effect="blur"
+                                                    width="100%"
+                                                    height="100%"
+                                                    className="h-full w-full object-cover"
+                                                />
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="font-semibold text-slate-800">{product.name}</div>

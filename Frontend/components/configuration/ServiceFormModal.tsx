@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Product } from '../../types/models';
+import { Product, ProductImage } from '../../types/models';
 import { ProductFormData } from '../../types/forms';
 import { useI18n } from '../../i18n';
 import { categoryToKeyMap, rangeToKeyMap } from '../../constants';
 import { generateProductDescription } from '../../services/geminiService';
+import { getImageUrl } from '../../utils/imageUtils';
 import IconSparkles from '../icons/IconSparkles';
+import IconUpload from '../icons/IconUpload';
+import IconX from '../icons/IconX';
 
 interface ServiceFormModalProps {
     isOpen: boolean;
@@ -13,6 +16,16 @@ interface ServiceFormModalProps {
     item: Product | null;
 }
 
+const MAX_IMAGES = 5;
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+
+type ImageSlot =
+    | { kind: 'existing'; image: ProductImage }
+    | { kind: 'new'; file: File; previewUrl: string }
+    | null;
+
+const emptySlots = (): ImageSlot[] => Array(MAX_IMAGES).fill(null);
+
 // Formulaire des informations générales d'un service du catalogue (Chantier 1) —
 // les spécifications techniques (Chantier 5) se configurent séparément via le
 // Builder, accessible depuis la liste des services une fois le service créé.
@@ -20,6 +33,9 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({ isOpen, onClose, on
     const { t } = useI18n();
     const [isGenerating, setIsGenerating] = useState(false);
     const [descriptionError, setDescriptionError] = useState<string | null>(null);
+    const [imageSlots, setImageSlots] = useState<ImageSlot[]>(emptySlots());
+    const [imageError, setImageError] = useState<string | null>(null);
+    const [hoveredImageIndex, setHoveredImageIndex] = useState<number | null>(null);
 
     const initialFormState = useMemo((): ProductFormData => {
         const firstCategory = Object.keys(categoryToKeyMap)[0] || '';
@@ -40,10 +56,17 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({ isOpen, onClose, on
         if (item) {
             const { id, productImages, ...rest } = item;
             setFormData({ ...rest, id });
+            const slots = emptySlots();
+            (productImages || []).slice(0, MAX_IMAGES).forEach((image, index) => {
+                slots[index] = { kind: 'existing', image };
+            });
+            setImageSlots(slots);
         } else {
             setFormData(initialFormState);
+            setImageSlots(emptySlots());
         }
         setDescriptionError(null);
+        setImageError(null);
     }, [item, isOpen, initialFormState]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -55,8 +78,33 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({ isOpen, onClose, on
         }
     };
 
-    const handleImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData(prev => ({ ...prev, productImages: e.target.files ? Array.from(e.target.files) : [] }));
+    const handleImageSlotChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > MAX_IMAGE_SIZE) {
+            setImageError(t('configuration.serviceForm.imageTooLarge'));
+            return;
+        }
+        setImageError(null);
+
+        setImageSlots(prev => {
+            const next = [...prev];
+            const previousSlot = next[index];
+            if (previousSlot?.kind === 'new') URL.revokeObjectURL(previousSlot.previewUrl);
+            next[index] = { kind: 'new', file, previewUrl: URL.createObjectURL(file) };
+            return next;
+        });
+    };
+
+    const handleRemoveImageSlot = (index: number) => {
+        setImageSlots(prev => {
+            const next = [...prev];
+            const slot = next[index];
+            if (slot?.kind === 'new') URL.revokeObjectURL(slot.previewUrl);
+            next[index] = null;
+            return next;
+        });
     };
 
     const handleGenerateDescription = useCallback(async () => {
@@ -76,7 +124,14 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({ isOpen, onClose, on
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave({ ...formData, id: item?.id });
+        const existingImages = imageSlots
+            .filter((slot): slot is Extract<ImageSlot, { kind: 'existing' }> => slot?.kind === 'existing')
+            .map(slot => slot.image.imageUrl);
+        const productImages = imageSlots
+            .filter((slot): slot is Extract<ImageSlot, { kind: 'new' }> => slot?.kind === 'new')
+            .map(slot => slot.file);
+
+        onSave({ ...formData, id: item?.id, productImages, existingImages });
         onClose();
     };
 
@@ -135,8 +190,54 @@ const ServiceFormModal: React.FC<ServiceFormModalProps> = ({ isOpen, onClose, on
                                 {descriptionError && <p className="mt-1 text-sm text-red-600">{descriptionError}</p>}
                             </div>
                             <div>
-                                <label htmlFor="productImages" className="block text-sm font-medium text-slate-700">{t('configuration.serviceForm.images')}</label>
-                                <input type="file" name="productImages" id="productImages" accept="image/*" multiple onChange={handleImagesChange} className="mt-1 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#c6e911]/20 file:text-[#8a9e0c] hover:file:bg-[#c6e911]/30" />
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                    {t('configuration.serviceForm.images')} <span className="text-xs text-slate-500 ml-1">({t('configuration.serviceForm.maxImages', { count: MAX_IMAGES })})</span>
+                                </label>
+                                <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                                    {imageSlots.map((slot, index) => (
+                                        <div
+                                            key={index}
+                                            className="relative group"
+                                            onMouseEnter={() => setHoveredImageIndex(index)}
+                                            onMouseLeave={() => setHoveredImageIndex(null)}
+                                        >
+                                            {slot ? (
+                                                <div className="relative">
+                                                    <img
+                                                        src={slot.kind === 'existing' ? getImageUrl(slot.image.imageUrl) : slot.previewUrl}
+                                                        alt={`Preview ${index + 1}`}
+                                                        className="w-full aspect-square object-cover rounded-xl border-2 border-slate-200 group-hover:border-[#c6e911] transition-all duration-200 shadow-sm"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveImageSlot(index)}
+                                                        className={`absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg transition-all duration-200 ${hoveredImageIndex === index ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
+                                                        title={t('configuration.serviceForm.removeImage')}
+                                                    >
+                                                        <IconX className="h-3 w-3" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <label
+                                                    htmlFor={`image-slot-${index}`}
+                                                    className="cursor-pointer w-full aspect-square border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center gap-1 hover:border-[#c6e911] hover:bg-[#c6e911]/10 transition-all duration-200 group"
+                                                >
+                                                    <IconUpload className="h-5 w-5 text-slate-400 group-hover:text-[#8a9e0c] transition-colors" />
+                                                    <span className="text-[11px] text-slate-400 group-hover:text-[#8a9e0c] transition-colors">{index + 1}/{MAX_IMAGES}</span>
+                                                    <input
+                                                        id={`image-slot-${index}`}
+                                                        type="file"
+                                                        accept="image/*"
+                                                        className="hidden"
+                                                        onChange={e => handleImageSlotChange(index, e)}
+                                                    />
+                                                </label>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                {imageError && <p className="mt-2 text-sm text-red-600">{imageError}</p>}
+                                <p className="text-xs text-slate-400 mt-2">{t('configuration.serviceForm.acceptedFormats')}</p>
                             </div>
                             <div>
                                 <label htmlFor="displayOrder" className="block text-sm font-medium text-slate-700">{t('configuration.serviceForm.displayOrder')}</label>

@@ -74,7 +74,7 @@ export class ContactsService {
     });
 
     // Envoyer un email avec les identifiants de connexion
-    await this.emailService.sendWelcomeEmail(
+    this.emailService.sendWelcomeEmail(
       createContactDto.email,
       tempPassword,
       createContactDto.contactName,
@@ -355,7 +355,7 @@ export class ContactsService {
     });
 
     // Envoyer un email avec le nouveau mot de passe
-    await this.emailService.sendPasswordResetEmail(
+    this.emailService.sendPasswordResetEmail(
       contact.email,
       tempPassword,
       contact.contactName,
@@ -396,7 +396,7 @@ export class ContactsService {
     });
 
     // Envoyer un email avec les identifiants
-    await this.emailService.sendWelcomeEmail(
+    this.emailService.sendWelcomeEmail(
       contact.email,
       tempPassword,
       contact.contactName,

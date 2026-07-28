@@ -357,6 +357,7 @@ const Sales: React.FC = () => {
   );
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
   const [blOrder, setBlOrder] = useState<Order | null>(null);
+  const [bonDeCommandeOrder, setBonDeCommandeOrder] = useState<Order | null>(null);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
   // State for UI toggles

@@ -238,6 +238,7 @@ export class LeadsService {
       // 3. Créer l'opportunité
       const opportunity = await tx.opportunity.create({
         data: {
+          id: generateId(ID_PREFIXES.OPPORTUNITY),
           opportunityName: `Opportunity from ${lead.leadName}`,
           opportunityValue: 0,
           closeDate: new Date(new Date().setDate(new Date().getDate() + 30)),

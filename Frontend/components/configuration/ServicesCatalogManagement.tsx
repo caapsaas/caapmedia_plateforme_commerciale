@@ -5,11 +5,15 @@ import { ProductFormData } from '../../types/forms';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import { categoryToKeyMap } from '../../constants';
+import { getImageUrl } from '../../utils/imageUtils';
+import { LazyLoadImage } from 'react-lazy-load-image-component';
+import 'react-lazy-load-image-component/src/effects/blur.css';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
 import IconSettings from '../icons/IconSettings';
 import IconArrowLeft from '../icons/IconArrowLeft';
+import IconImage from '../icons/IconImage';
 import ServiceFormModal from './ServiceFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
 import ProductSpecBuilder from './ProductSpecBuilder/ProductSpecBuilder';
@@ -93,6 +97,7 @@ const ServicesCatalogManagement: React.FC = () => {
                 <table className="w-full text-sm text-left text-slate-500">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50">
                         <tr>
+                            <th scope="col" className="px-6 py-3">{t('configuration.serviceForm.images')}</th>
                             <th scope="col" className="px-6 py-3">{t('configuration.serviceForm.name')}</th>
                             <th scope="col" className="px-6 py-3">{t('configuration.serviceForm.category')}</th>
                             <th scope="col" className="px-6 py-3 text-center">{t('configuration.serviceForm.isActive')}</th>
@@ -102,6 +107,22 @@ const ServicesCatalogManagement: React.FC = () => {
                     <tbody>
                         {services.map(item => (
                             <tr key={item.id} className="bg-white border-b hover:bg-slate-50">
+                                <td className="px-6 py-4">
+                                    <div className={`h-10 w-10 flex items-center justify-center rounded-lg border overflow-hidden ${item.productImages?.[0] ? 'border-slate-200 bg-slate-100' : 'border-dashed border-slate-300 text-slate-300'}`}>
+                                        {item.productImages?.[0] ? (
+                                            <LazyLoadImage
+                                                src={getImageUrl(item.productImages[0].imageUrl)}
+                                                alt={item.name}
+                                                effect="blur"
+                                                width="100%"
+                                                height="100%"
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <IconImage className="h-5 w-5" />
+                                        )}
+                                    </div>
+                                </td>
                                 <td className="px-6 py-4 font-semibold">{item.name}</td>
                                 <td className="px-6 py-4">{t(categoryToKeyMap[item.category] || item.category)}</td>
                                 <td className="px-6 py-4 text-center">

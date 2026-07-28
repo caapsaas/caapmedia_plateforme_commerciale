@@ -23,7 +23,7 @@ export class AttendanceGeolocationService {
     lat1: number,
     lng1: number,
     lat2: number,
-    lng2: number
+    lng2: number,
   ): number {
     const R = 6371000; // Rayon terrestre en mètres
     const φ1 = (lat1 * Math.PI) / 180; // Convertir en radians
@@ -44,11 +44,16 @@ export class AttendanceGeolocationService {
   async validateProximity(
     employeeCoords: Coordinates,
     subsidiaryId: string,
-    radiusMeters?: number
+    radiusMeters?: number,
   ): Promise<ProximityResult> {
     const subsidiary = await this.prisma.subsidiary.findUnique({
       where: { id: subsidiaryId },
-      select: { latitude: true, longitude: true, geofenceRadius: true, subsidiaryName: true }
+      select: {
+        latitude: true,
+        longitude: true,
+        geofenceRadius: true,
+        subsidiaryName: true,
+      },
     });
 
     if (!subsidiary) {
@@ -57,7 +62,7 @@ export class AttendanceGeolocationService {
 
     if (!subsidiary.latitude || !subsidiary.longitude) {
       throw new BadRequestException(
-        'Subsidiary geolocation not configured. Please contact HR.'
+        'Subsidiary geolocation not configured. Please contact HR.',
       );
     }
 
@@ -65,19 +70,19 @@ export class AttendanceGeolocationService {
       employeeCoords.lat,
       employeeCoords.lng,
       subsidiary.latitude,
-      subsidiary.longitude
+      subsidiary.longitude,
     );
 
     // Utiliser le rayon de la filiale ou celui passé en paramètre
     const maxRadius = subsidiary.geofenceRadius || radiusMeters || 100;
 
     this.logger.debug(
-      `Proximity check for ${subsidiary.subsidiaryName}: ${Math.round(distance)}m vs ${maxRadius}m radius`
+      `Proximity check for ${subsidiary.subsidiaryName}: ${Math.round(distance)}m vs ${maxRadius}m radius`,
     );
 
     return {
       isValid: distance <= maxRadius,
-      distanceMeters: Math.round(distance)
+      distanceMeters: Math.round(distance),
     };
   }
 
@@ -91,7 +96,10 @@ export class AttendanceGeolocationService {
   }
 
   // Valider la précision GPS (filtre les mauvaises mesures)
-  isAccuracyAcceptable(accuracyMeters: number, acceptableThreshold: number = 50): boolean {
+  isAccuracyAcceptable(
+    accuracyMeters: number,
+    acceptableThreshold: number = 50,
+  ): boolean {
     // Excellente précision: < 50m
     // Acceptable: < 100m
     // Pauvre: > 100m (rejeter)
@@ -99,7 +107,9 @@ export class AttendanceGeolocationService {
   }
 
   // Obtenir le seuil d'acceptabilité
-  getAccuracyStatus(accuracyMeters: number): 'excellent' | 'acceptable' | 'poor' {
+  getAccuracyStatus(
+    accuracyMeters: number,
+  ): 'excellent' | 'acceptable' | 'poor' {
     if (accuracyMeters < 50) return 'excellent';
     if (accuracyMeters < 100) return 'acceptable';
     return 'poor';

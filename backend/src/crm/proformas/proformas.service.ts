@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateProformaDto, ProformaItemDto } from './dto/create-proforma.dto';
 import { UpdateProformaDto } from './dto/update-proforma.dto';
@@ -18,7 +22,9 @@ export class ProformasService {
     });
 
     if (!lead) {
-      throw new NotFoundException(`Lead with ID "${createProformaDto.leadId}" not found.`);
+      throw new NotFoundException(
+        `Lead with ID "${createProformaDto.leadId}" not found.`,
+      );
     }
 
     // Générer le numéro Proforma
@@ -128,7 +134,7 @@ export class ProformasService {
     }
 
     // Calculer les nouveaux montants si les items ont changé
-    let data: any = { ...updateProformaDto };
+    const data: any = { ...updateProformaDto };
     if (updateProformaDto.items) {
       const { subtotal, taxAmount, totalAmount } = this.calculateAmounts(
         updateProformaDto.items,
@@ -198,7 +204,9 @@ export class ProformasService {
     const proforma = await this.findOne(id);
 
     if (proforma.status === ProformaStatus.DRAFT) {
-      throw new BadRequestException('Draft proformas cannot be marked as viewed.');
+      throw new BadRequestException(
+        'Draft proformas cannot be marked as viewed.',
+      );
     }
 
     if (!proforma.viewedAt) {
@@ -217,8 +225,13 @@ export class ProformasService {
   async accept(id: string) {
     const proforma = await this.findOne(id);
 
-    if (proforma.status !== ProformaStatus.SENT && proforma.status !== ProformaStatus.VIEWED) {
-      throw new BadRequestException('Only sent or viewed proformas can be accepted.');
+    if (
+      proforma.status !== ProformaStatus.SENT &&
+      proforma.status !== ProformaStatus.VIEWED
+    ) {
+      throw new BadRequestException(
+        'Only sent or viewed proformas can be accepted.',
+      );
     }
 
     return this.prisma.proforma.update({
@@ -240,8 +253,13 @@ export class ProformasService {
   async reject(id: string) {
     const proforma = await this.findOne(id);
 
-    if (proforma.status !== ProformaStatus.SENT && proforma.status !== ProformaStatus.VIEWED) {
-      throw new BadRequestException('Only sent or viewed proformas can be rejected.');
+    if (
+      proforma.status !== ProformaStatus.SENT &&
+      proforma.status !== ProformaStatus.VIEWED
+    ) {
+      throw new BadRequestException(
+        'Only sent or viewed proformas can be rejected.',
+      );
     }
 
     return this.prisma.proforma.update({
@@ -263,7 +281,9 @@ export class ProformasService {
       where: { id },
     });
 
-    return { message: `Proforma "${proforma.proformaNumber}" deleted successfully.` };
+    return {
+      message: `Proforma "${proforma.proformaNumber}" deleted successfully.`,
+    };
   }
 
   // Utilitaires privés
@@ -285,7 +305,10 @@ export class ProformasService {
   }
 
   private calculateAmounts(items: ProformaItemDto[], taxRate: number) {
-    const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+    const subtotal = items.reduce(
+      (sum, item) => sum + item.quantity * item.unitPrice,
+      0,
+    );
     const taxAmount = (subtotal * taxRate) / 100;
     const totalAmount = subtotal + taxAmount;
 

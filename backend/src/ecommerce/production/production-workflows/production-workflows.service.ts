@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateWorkflowDto, UpdateWorkflowDto } from './dto/workflow.dto';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class ProductionWorkflowsService {
@@ -24,12 +26,14 @@ export class ProductionWorkflowsService {
 
     return this.prisma.productionWorkflow.create({
       data: {
+        id: generateId(ID_PREFIXES.PRODUCTIONWORKFLOW),
         name: dto.name,
         description: dto.description,
         itemId: dto.itemId ?? null,
         isActive: dto.isActive ?? true,
         steps: {
           create: dto.steps.map((s) => ({
+            id: generateId(ID_PREFIXES.PRODUCTIONWORKFLOWSTEP),
             equipmentId: s.equipmentId,
             stepOrder: s.stepOrder,
           })),
@@ -109,6 +113,7 @@ export class ProductionWorkflowsService {
         });
         await tx.productionWorkflowStep.createMany({
           data: dto.steps.map((s) => ({
+            id: generateId(ID_PREFIXES.PRODUCTIONWORKFLOWSTEP),
             workflowId: id,
             equipmentId: s.equipmentId,
             stepOrder: s.stepOrder,

@@ -30,6 +30,7 @@ export async function runSubsidiarySeeder(prisma: PrismaClient) {
             isHeadquarter: false,
         },
         {
+            id: generateId(ID_PREFIXES.SUBSIDIARY),
             subsidiaryName: 'CAAP Siège',
             logoSvg: '<svg>...</svg>',
             address: 'Boulevard de la Liberté, Douala',
@@ -44,6 +45,7 @@ export async function runSubsidiarySeeder(prisma: PrismaClient) {
             isHeadquarter: true,
         },
         {
+            id: generateId(ID_PREFIXES.SUBSIDIARY),
             subsidiaryName: 'CAAP Kribi',
             logoSvg: '<svg>...</svg>',
             address: 'CAAP Kribi',
@@ -58,6 +60,7 @@ export async function runSubsidiarySeeder(prisma: PrismaClient) {
             isHeadquarter: false,
         },
         {
+            id: generateId(ID_PREFIXES.SUBSIDIARY),
             subsidiaryName: 'CAAP Edéa',
             logoSvg: '<svg>...</svg>',
             address: 'CAAP Edéa',
@@ -73,11 +76,11 @@ export async function runSubsidiarySeeder(prisma: PrismaClient) {
         },
     ];
 
-    for (const sub of subsidiaries) {
+    for (const { id, ...updateData } of subsidiaries) {
         await prisma.subsidiary.upsert({
-            where: { email: sub.email }, // email est unique
-            update: sub,
-            create: sub,
+            where: { email: updateData.email }, // email est unique
+            update: updateData,
+            create: { id, ...updateData },
         });
     }
 

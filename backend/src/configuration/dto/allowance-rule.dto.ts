@@ -1,4 +1,11 @@
-import { IsString, IsDecimal, IsInt, IsDate, IsOptional, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsDecimal,
+  IsInt,
+  IsDate,
+  IsOptional,
+  IsBoolean,
+} from 'class-validator';
 
 export class CreateAllowanceRuleDto {
   @IsString()

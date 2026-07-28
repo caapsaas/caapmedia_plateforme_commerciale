@@ -37,12 +37,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ data }) => {
         { titleKey: "analytics.dashboard.stockValue", value: formatCurrency(data.stockValue), change: "", changeType: 'increase', icon: <IconStock className="h-8 w-8 text-indigo-500" /> },
     ];
     
-    // Pour le graphique de répartition du stock, nous utilisons maintenant `stockDistribution` qui est une valeur monétaire
-    const stockValueDistributionChartData: StockChartData[] = Object.entries(data.stockDistribution).map(([categoryName, value]) => ({
-        key: categoryName,
-        value: value,
-        nameKey: categoryToKeyMap[categoryName] || categoryName,
-    }));
 
     return (
         <div className="space-y-6">
@@ -57,7 +51,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ data }) => {
                 </div>
                 <div className="bg-white p-6 rounded-xl shadow-md min-w-0">
                     <h3 className="font-semibold text-lg mb-4 text-slate-700">{t('analytics.dashboard.stockDistributionByCategory')}</h3>
-                    <StockChart data={stockValueDistributionChartData} />
+                    <StockChart data={subsidiaryStockChartData} />
                 </div>
             </div>
         </div>

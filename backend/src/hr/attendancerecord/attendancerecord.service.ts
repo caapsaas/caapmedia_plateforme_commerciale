@@ -102,7 +102,9 @@ export class AttendanceRecordService {
         subsidiaryId,
         attendanceDate: { gte: startDate, lt: endDate },
       },
-      include: { employee: { select: { id: true, firstName: true, lastName: true } } },
+      include: {
+        employee: { select: { id: true, firstName: true, lastName: true } },
+      },
       orderBy: { attendanceDate: 'desc' },
     });
   }
@@ -116,7 +118,12 @@ export class AttendanceRecordService {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 1);
 
-    const records = await this.findByDateRange(employeeId, subsidiaryId, startDate, endDate);
+    const records = await this.findByDateRange(
+      employeeId,
+      subsidiaryId,
+      startDate,
+      endDate,
+    );
 
     const present = records.filter((r) => r.status === 'PRESENT').length;
     const absent = records.filter((r) => r.status === 'ABSENT').length;
@@ -138,7 +145,7 @@ export class AttendanceRecordService {
   async findOne(id: string): Promise<AttendanceRecord> {
     const record = await this.prisma.attendanceRecord.findUnique({
       where: { id },
-      include: { employee: true }
+      include: { employee: true },
     });
     if (!record)
       throw new NotFoundException(`Attendance record ${id} not found`);
@@ -154,7 +161,7 @@ export class AttendanceRecordService {
     return this.prisma.attendanceRecord.update({
       where: { id },
       data: updateAttendanceRecordDto,
-      include: { employee: true }
+      include: { employee: true },
     });
   }
 

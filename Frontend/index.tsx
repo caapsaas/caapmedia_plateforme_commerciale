@@ -52,7 +52,7 @@ root.render(
             {/* AuthProvider doit englober le composant qui utilise useAuth */}
             <AuthProvider>
               <HttpLoadingInitializer>
-                <LoadingOverlay />
+                {/* <LoadingOverlay /> */}
                 <Root />
               </HttpLoadingInitializer>
             </AuthProvider>

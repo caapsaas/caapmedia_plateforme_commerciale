@@ -1,4 +1,11 @@
-import { IsString, IsDecimal, IsInt, IsEnum, IsOptional, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsDecimal,
+  IsInt,
+  IsEnum,
+  IsOptional,
+  IsBoolean,
+} from 'class-validator';
 
 enum SalaryComponentType {
   EARNING = 'EARNING',

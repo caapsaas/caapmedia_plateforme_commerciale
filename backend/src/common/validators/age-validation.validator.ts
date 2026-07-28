@@ -16,7 +16,10 @@ export class IsMinAgeConstraint implements ValidatorConstraintInterface {
     const age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
 
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
       return age - 1 >= minAge;
     }
     return age >= minAge;
@@ -28,8 +31,11 @@ export class IsMinAgeConstraint implements ValidatorConstraintInterface {
   }
 }
 
-export function IsMinAge(minAge: number, validationOptions?: ValidationOptions) {
-  return function (target: Object, propertyName: string) {
+export function IsMinAge(
+  minAge: number,
+  validationOptions?: ValidationOptions,
+) {
+  return function (target: object, propertyName: string) {
     registerDecorator({
       target: target.constructor,
       propertyName: propertyName,

@@ -1,5 +1,7 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { OrderStatus, ProductionStatus, PaymentStatus, OrderSource, ItemType } from '@prisma/client';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 
 // ─── Helper : construit le specSnapshot (FormDefinition) depuis la DB ──────
 
@@ -167,6 +169,7 @@ async function seedValidationDemoOrders(prisma: PrismaClient) {
 
             const order1 = await prisma.order.create({
                 data: {
+                    id: generateId(ID_PREFIXES.ORDER),
                     customerName: contactKamdem.contactName,
                     customerId: contactKamdem.id,
                     subsidiaryId: doubalaSubsidiary.id,
@@ -182,10 +185,11 @@ async function seedValidationDemoOrders(prisma: PrismaClient) {
                     productionStatus: ProductionStatus.PREPRESS,
                     paymentStatus: PaymentStatus.UNPAID,
                     source: OrderSource.MANUAL,
-                    productionHistory: { create: { status: ProductionStatus.PREPRESS } },
+                    productionHistory: { create: { id: generateId(ID_PREFIXES.ORDERPRODUCTIONHISTORY), status: ProductionStatus.PREPRESS } },
                     orderItems: {
                         create: [
                             {
+                                id: generateId(ID_PREFIXES.ORDERITEM),
                                 quantity: qty1,
                                 unitPrice: price1,
                                 discount: 0,
@@ -202,8 +206,8 @@ async function seedValidationDemoOrders(prisma: PrismaClient) {
                                 specSnapshot: flyersSnapshot,
                                 productOptions: {
                                     create: [
-                                        { optionType: 'Format', optionValue: 'A5' },
-                                        { optionType: 'Finition', optionValue: 'Pelliculage brillant' },
+                                        { id: generateId(ID_PREFIXES.PRODUCTOPTION), optionType: 'Format', optionValue: 'A5' },
+                                        { id: generateId(ID_PREFIXES.PRODUCTOPTION), optionType: 'Finition', optionValue: 'Pelliculage brillant' },
                                     ],
                                 },
                             },
@@ -217,6 +221,7 @@ async function seedValidationDemoOrders(prisma: PrismaClient) {
             const item1 = order1.orderItems[0];
             await prisma.orderItemProductionStep.createMany({
                 data: steps1.map((s, i) => ({
+                    id: generateId(ID_PREFIXES.ORDERITEMPRODUCTIONSTEP),
                     orderItemId: item1.id,
                     equipmentId: s.eq!.id,
                     equipmentNameSnapshot: s.eq!.equipmentName,
@@ -228,6 +233,7 @@ async function seedValidationDemoOrders(prisma: PrismaClient) {
             });
             await prisma.orderItemProductionSummary.create({
                 data: {
+                    id: generateId(ID_PREFIXES.ORDERITEMPRODUCTIONSUMMARY),
                     orderItemId: item1.id,
                     totalProductionCost: new Prisma.Decimal(totalProdCost1),
                     marginPercent: new Prisma.Decimal(marginPct1),
@@ -270,6 +276,7 @@ async function seedValidationDemoOrders(prisma: PrismaClient) {
 
             const order2 = await prisma.order.create({
                 data: {
+                    id: generateId(ID_PREFIXES.ORDER),
                     customerName: contactMbarga.contactName,
                     customerId: contactMbarga.id,
                     subsidiaryId: doubalaSubsidiary.id,
@@ -285,10 +292,11 @@ async function seedValidationDemoOrders(prisma: PrismaClient) {
                     productionStatus: ProductionStatus.PREPRESS,
                     paymentStatus: PaymentStatus.PARTIALLY_PAID,
                     source: OrderSource.MANUAL,
-                    productionHistory: { create: { status: ProductionStatus.PREPRESS } },
+                    productionHistory: { create: { id: generateId(ID_PREFIXES.ORDERPRODUCTIONHISTORY), status: ProductionStatus.PREPRESS } },
                     orderItems: {
                         create: [
                             {
+                                id: generateId(ID_PREFIXES.ORDERITEM),
                                 quantity: qty2,
                                 unitPrice: price2,
                                 discount: 0,
@@ -303,8 +311,8 @@ async function seedValidationDemoOrders(prisma: PrismaClient) {
                                 specSnapshot: cartesSnapshot,
                                 productOptions: {
                                     create: [
-                                        { optionType: 'Finition', optionValue: 'Pelliculage mat' },
-                                        { optionType: 'Impression', optionValue: 'Recto/Verso' },
+                                        { id: generateId(ID_PREFIXES.PRODUCTOPTION), optionType: 'Finition', optionValue: 'Pelliculage mat' },
+                                        { id: generateId(ID_PREFIXES.PRODUCTOPTION), optionType: 'Impression', optionValue: 'Recto/Verso' },
                                     ],
                                 },
                             },
@@ -317,6 +325,7 @@ async function seedValidationDemoOrders(prisma: PrismaClient) {
             const item2 = order2.orderItems[0];
             await prisma.orderItemProductionStep.createMany({
                 data: steps2.map((s, i) => ({
+                    id: generateId(ID_PREFIXES.ORDERITEMPRODUCTIONSTEP),
                     orderItemId: item2.id,
                     equipmentId: s.eq!.id,
                     equipmentNameSnapshot: s.eq!.equipmentName,
@@ -328,6 +337,7 @@ async function seedValidationDemoOrders(prisma: PrismaClient) {
             });
             await prisma.orderItemProductionSummary.create({
                 data: {
+                    id: generateId(ID_PREFIXES.ORDERITEMPRODUCTIONSUMMARY),
                     orderItemId: item2.id,
                     totalProductionCost: new Prisma.Decimal(totalProdCost2),
                     marginPercent: new Prisma.Decimal(marginPct2),
@@ -393,6 +403,7 @@ export async function runOrdersSeeder(prisma: PrismaClient) {
 
         const order = await prisma.order.create({
             data: {
+                id: generateId(ID_PREFIXES.ORDER),
                 customerId: contact.id,
                 customerName: o.customerName,
                 subtotal: new Prisma.Decimal(o.subtotal),
@@ -408,9 +419,10 @@ export async function runOrdersSeeder(prisma: PrismaClient) {
                 subsidiaryId: subsidiary.id,
                 salesRepId: salesRep.id,
                 taxRateId: taxRate.id,
-                productionHistory: { create: [{ status: o.productionStatus }] },
+                productionHistory: { create: [{ id: generateId(ID_PREFIXES.ORDERPRODUCTIONHISTORY), status: o.productionStatus }] },
                 orderItems: {
                     create: [{
+                        id: generateId(ID_PREFIXES.ORDERITEM),
                         quantity: o.quantity,
                         unitPrice: new Prisma.Decimal(o.unitPrice),
                         discount: 0,

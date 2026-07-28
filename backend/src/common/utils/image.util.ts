@@ -15,12 +15,8 @@ export const validateImageFile = (file: Express.Multer.File): void => {
   }
 
   // ✅ Vérifier le type MIME
-  if (
-    !FILE_UPLOAD_CONFIG.ALLOWED_MIME_TYPES.IMAGES.includes(file.mimetype)
-  ) {
-    throw new BadRequestException(
-      FILE_UPLOAD_CONFIG.ERRORS.INVALID_MIME_TYPE,
-    );
+  if (!FILE_UPLOAD_CONFIG.ALLOWED_MIME_TYPES.IMAGES.includes(file.mimetype)) {
+    throw new BadRequestException(FILE_UPLOAD_CONFIG.ERRORS.INVALID_MIME_TYPE);
   }
 
   // ✅ Vérifier la taille (Multer le fait aussi, mais redondant = sûr)

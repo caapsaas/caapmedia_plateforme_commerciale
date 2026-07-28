@@ -1,4 +1,6 @@
 import { PrismaClient, OpportunityStage } from '@prisma/client';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 
 const SEED_DATA = [
     {
@@ -111,6 +113,7 @@ export async function runOpportunitySeeder(prisma: PrismaClient) {
         if (!account) {
             account = await prisma.account.create({
                 data: {
+                    id: generateId(ID_PREFIXES.ACCOUNT),
                     accountName: entry.account.accountName,
                     industry: entry.account.industry,
                     phone: entry.account.phone,
@@ -143,6 +146,7 @@ export async function runOpportunitySeeder(prisma: PrismaClient) {
             }
             await prisma.opportunity.create({
                 data: {
+                    id: generateId(ID_PREFIXES.OPPORTUNITY),
                     opportunityName: opp.opportunityName,
                     opportunityValue: opp.opportunityValue,
                     stage: opp.stage,

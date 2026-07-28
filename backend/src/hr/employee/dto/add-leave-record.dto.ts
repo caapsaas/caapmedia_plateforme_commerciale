@@ -1,4 +1,11 @@
-import { IsDate, IsNotEmpty, IsOptional, IsNumber, IsEnum, Min } from 'class-validator';
+import {
+  IsDate,
+  IsNotEmpty,
+  IsOptional,
+  IsNumber,
+  IsEnum,
+  Min,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 import { LeaveType } from '@prisma/client';
 

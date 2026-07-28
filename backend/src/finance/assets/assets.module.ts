@@ -2,10 +2,10 @@ import { Module } from '@nestjs/common';
 import { AssetsService } from './assets.service';
 import { AssetsController } from './assets.controller';
 import { TreasuryModule } from '../treasury/treasury.module';
-import { JournalizationModule } from '../../accounting/journalization/journalization.module';
+import { AccountingOutboxModule } from '../../accounting/outbox/accounting-outbox.module';
 
 @Module({
-  imports: [TreasuryModule, JournalizationModule],
+  imports: [TreasuryModule, AccountingOutboxModule],
   controllers: [AssetsController],
   providers: [AssetsService],
   exports: [AssetsService],

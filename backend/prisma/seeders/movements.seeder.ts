@@ -7,6 +7,8 @@ import {
   ContactStatus,
   ItemType,
 } from '@prisma/client';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 
 // Seeder idempotent (rejouable sans dupliquer) qui peuple des "mouvements"
 // commerciaux (commandes) realistes et volontairement DIFFERENTS par
@@ -410,6 +412,7 @@ export async function runMovementsSeeder(prisma: PrismaClient) {
       if (existing) continue;
       await prisma.item.create({
         data: {
+          id: generateId(ID_PREFIXES.PRODUCT),
           name: p.name,
           category: p.category,
           description: p.description,
@@ -425,6 +428,7 @@ export async function runMovementsSeeder(prisma: PrismaClient) {
         where: { email: contactSeed.email },
         update: {},
         create: {
+          id: generateId(ID_PREFIXES.CONTACT),
           contactName: contactSeed.contactName,
           company: contactSeed.company,
           email: contactSeed.email,
@@ -487,6 +491,7 @@ export async function runMovementsSeeder(prisma: PrismaClient) {
       const amountPaid = Math.round(totalAmount * o.amountPaidRatio);
 
       const orderData: any = {
+        id: generateId(ID_PREFIXES.ORDER),
         customerId: contact.id,
         customerName: o.customerName,
         orderDate,
@@ -506,6 +511,7 @@ export async function runMovementsSeeder(prisma: PrismaClient) {
         orderItems: {
           create: [
             {
+              id: generateId(ID_PREFIXES.ORDERITEM),
               quantity: o.quantity,
               unitPrice: o.unitPrice,
               discount: 0,
@@ -517,7 +523,7 @@ export async function runMovementsSeeder(prisma: PrismaClient) {
       };
       if (o.productionStatus) {
         orderData.productionHistory = {
-          create: [{ status: o.productionStatus }],
+          create: [{ id: generateId(ID_PREFIXES.ORDERPRODUCTIONHISTORY), status: o.productionStatus }],
         };
       }
 

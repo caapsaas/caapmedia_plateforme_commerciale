@@ -9,7 +9,7 @@ import {
   IsUrl,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
 
 export class ProductImageDto {
@@ -56,4 +56,17 @@ export class CreateProductDto {
   productImages?: ProductImageDto[];
 }
 
-export class UpdateProductDto extends PartialType(CreateProductDto) {}
+export class UpdateProductDto extends PartialType(CreateProductDto) {
+  // URLs des images existantes à conserver — permet de retirer une image
+  // individuellement sans supprimer tout le lot au prochain upload.
+  // multer/multipart ne renvoie un tableau que s'il y a 2+ occurrences du
+  // champ ; avec 0 ou 1 image conservée, la valeur arrive en string brute -
+  // on la normalise en tableau avant validation.
+  @Transform(({ value }) =>
+    value === undefined ? value : Array.isArray(value) ? value : [value],
+  )
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  existingImages?: string[];
+}

@@ -146,7 +146,12 @@ export class EmployeeController {
   async addPositionHistory(
     @Param('id') id: string,
     @Body()
-    body: { employeePosition: string; department?: string; startDate: string; endDate?: string },
+    body: {
+      employeePosition: string;
+      department?: string;
+      startDate: string;
+      endDate?: string;
+    },
   ) {
     return this.employeeService.addPositionHistory(id, {
       ...body,
@@ -161,7 +166,12 @@ export class EmployeeController {
   async addPerformanceReview(
     @Param('id') id: string,
     @Body()
-    body: { reviewDate: string; reviewer?: string; rating?: number; reviewComments?: string },
+    body: {
+      reviewDate: string;
+      reviewer?: string;
+      rating?: number;
+      reviewComments?: string;
+    },
   ) {
     return this.employeeService.addPerformanceReview(id, {
       ...body,

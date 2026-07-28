@@ -1,7 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useRouterState } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
 import { UserRole } from '../types';
+import { getPendingAccessCount } from '../services/apiAccounting/apiAccountingAccess';
 import IconAnalytics from '../components/icons/IconAnalytics';
 import IconSales from '../components/icons/IconSales';
 import IconStock from '../components/icons/IconStock';
@@ -28,7 +30,7 @@ import SidebarDropdown from '../components/common/SidebarDropdown';
 
 interface NavItem {
   to: string;
-  label: string;
+  label: React.ReactNode;
   icon: React.ReactNode;
 }
 
@@ -114,6 +116,18 @@ const Sidebar: React.FC = () => {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
 
+  // Seul un ADMIN du siège (ou SUPER_ADMIN) peut approuver/refuser les demandes
+  // d'accès JIT à la comptabilité — même règle que AccountingAccessService.isHeadquarterAdmin
+  // côté backend. FINANCIAL_DIRECTOR n'a pas ce droit, même au siège.
+  const isHeadquarterAdminUser = activeRole === UserRole.SUPER_ADMIN || (activeRole === UserRole.ADMIN && !!subsidiary?.isHeadquarter);
+
+  const { data: pendingAccessCount = 0 } = useQuery({
+    queryKey: ['accounting-access-pending-count'],
+    queryFn: getPendingAccessCount,
+    enabled: !!user && isHeadquarterAdminUser,
+    refetchInterval: 60000,
+  });
+
   if (!user || (!subsidiary && user.userRole !== UserRole.ADMIN && user.userRole !== UserRole.SUPER_ADMIN)) return null;
 
   const setIsSidebarOpen = (v: boolean) => dispatch({ type: 'SET_SIDEBAR_OPEN', payload: v });
@@ -169,6 +183,20 @@ const Sidebar: React.FC = () => {
             items: [
               { to: '/dashboard/finance', label: t('sidebar.finance'), icon: <IconFinance className="h-5 w-5" /> },
               { to: '/dashboard/accounting', label: 'Comptabilité', icon: <IconAccounting className="h-5 w-5" /> },
+              ...(isHeadquarterAdminUser ? [{
+                to: '/dashboard/accounting-access-requests',
+                label: (
+                  <span className="flex items-center gap-2">
+                    Demandes comptabilité
+                    {pendingAccessCount > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">
+                        {pendingAccessCount}
+                      </span>
+                    )}
+                  </span>
+                ),
+                icon: <IconAccounting className="h-5 w-5" />,
+              }] : []),
             ],
           },
           {

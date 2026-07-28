@@ -14,290 +14,231 @@ interface BalanceSheetProps {
 const BalanceSheet: React.FC<BalanceSheetProps> = ({ subsidiary, balanceSheetData }) => {
     const { t, formatCurrency } = useI18n();
 
-    // Get real customer receivables data from orders
-    const { data: orders = [], isLoading: isLoadingOrders } = useQuery<Order[]>({ 
-        queryKey: ['orders', 'unpaid'], 
-        queryFn: () => getOrders({
-            paymentStatus: PaymentStatus.UNPAID
-        }).then(orders1 => 
-            getOrders({
-                paymentStatus: PaymentStatus.PARTIALLY_PAID
-            }).then(orders2 => [...orders1, ...orders2])
-        )
+    const { data: orders = [], isLoading: isLoadingOrders } = useQuery<Order[]>({
+        queryKey: ['orders', 'unpaid'],
+        queryFn: () =>
+            getOrders({ paymentStatus: PaymentStatus.UNPAID }).then(o1 =>
+                getOrders({ paymentStatus: PaymentStatus.PARTIALLY_PAID }).then(o2 => [...o1, ...o2])
+            ),
     });
 
-    // Get client information for company names
     const { data: clients = {} } = useQuery<Record<string, Contact>>({
         queryKey: ['clients'],
         queryFn: async () => {
-            const uniqueCustomerIds = [...new Set(orders.map(order => order.customerId))];
-            const clientsData: Record<string, Contact> = {};
-            
+            const ids = [...new Set(orders.map(o => o.customerId))];
+            const result: Record<string, Contact> = {};
             await Promise.all(
-                uniqueCustomerIds.map(async (customerId) => {
-                    try {
-                        const client = await getContactById(customerId);
-                        clientsData[customerId] = client;
-                    } catch (error) {
-                        console.warn(`Impossible de récupérer le client ${customerId}:`, error);
-                    }
+                ids.map(async id => {
+                    try { result[id] = await getContactById(id); } catch { /* contact introuvable */ }
                 })
             );
-            
-            return clientsData;
+            return result;
         },
-        enabled: orders.length > 0
+        enabled: orders.length > 0,
     });
 
-    // Calculate real customer receivables from orders
-    const realCustomerReceivables = React.useMemo(() => {
-        if (!orders.length) return 0;
-        
-        return orders.reduce((total, order) => {
-            const remainingBalance = order.totalAmount - order.amountPaid;
-            return total + (remainingBalance > 0 ? remainingBalance : 0);
-        }, 0);
-    }, [orders]);
+    const realCustomerReceivables = React.useMemo(
+        () => orders.reduce((total, o) => {
+            const remaining = o.totalAmount - o.amountPaid;
+            return total + (remaining > 0 ? remaining : 0);
+        }, 0),
+        [orders],
+    );
 
-    // Get API customer receivables stats for comparison
     const { data: apiReceivablesData = { totalReceivables: 0 } } = useQuery<CustomerReceivablesStats>({
         queryKey: ['totalReceivables'],
-        queryFn: () => getCustomerReceivables({
-            period: 'all_time',
-        })
+        queryFn: () => getCustomerReceivables({ period: 'all_time' }),
     });
 
-    // Calculate adjusted total assets with real customer receivables
     const adjustedTotalAssets = React.useMemo(() => {
         if (!balanceSheetData) return 0;
-        const otherAssets = balanceSheetData.totalAssets - balanceSheetData.assets.customerReceivables;
-        return otherAssets + realCustomerReceivables;
+        return balanceSheetData.totalAssets - balanceSheetData.assets.customerReceivables + realCustomerReceivables;
     }, [balanceSheetData, realCustomerReceivables]);
-    
-    // Loading state with modern skeleton
+
     if (!balanceSheetData) {
         return (
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-                <div className="animate-pulse">
-                    <div className="h-8 bg-gray-200 rounded-lg mb-6 w-1/3"></div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="space-y-4">
-                            {[1, 2, 3, 4].map((i) => (
-                                <div key={i} className="h-6 bg-gray-200 rounded-lg"></div>
-                            ))}
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 animate-pulse">
+                <div className="h-7 bg-slate-100 rounded-lg mb-6 w-1/3" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {[0, 1].map(col => (
+                        <div key={col} className="space-y-3">
+                            {[1, 2, 3, 4].map(i => <div key={i} className="h-5 bg-slate-100 rounded-lg" />)}
                         </div>
-                        <div className="space-y-4">
-                            {[1, 2, 3, 4].map((i) => (
-                                <div key={i} className="h-6 bg-gray-200 rounded-lg"></div>
-                            ))}
-                        </div>
-                    </div>
+                    ))}
                 </div>
             </div>
         );
     }
 
-    const DataRow: React.FC<{ label: string; value: number; isTotal?: boolean; indent?: boolean }> = ({ label, value, isTotal, indent }) => (
-        <div className={`flex justify-between items-center py-3 ${isTotal ? 'font-bold border-t-2 border-slate-300 pt-4 mt-2' : ''} ${indent ? 'pl-4' : ''}`}>
-            <span className={`${isTotal ? 'text-slate-900 text-base' : 'text-slate-700 text-sm'}`}>{label}</span>
-            <span className={`${isTotal ? 'text-slate-900 text-base font-bold' : 'text-slate-600 text-sm font-medium'}`}>
-                {formatCurrency(value)}
-            </span>
-        </div>
-    );
-    
-    const HeaderRow: React.FC<{ title: string; }> = ({ title }) => (
-        <div className="flex items-center gap-2 mb-4">
-            <div className="w-6 h-6 bg-blue-100 rounded-md flex items-center justify-center">
-                <div className="w-3 h-3 bg-blue-500 rounded"></div>
-            </div>
-            <h4 className="font-bold text-lg text-slate-800">{title}</h4>
-        </div>
-    );
+    const totalLiabilitiesAndEquity = balanceSheetData.totalLiabilities + balanceSheetData.totalEquity;
+    const isBalanced = Math.abs(adjustedTotalAssets - totalLiabilitiesAndEquity) < 1;
 
     return (
-        <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
-            {/* Header with application colors */}
-            <div className="bg-gradient-to-r from-[#c6e911] to-[#adc40f] p-4 text-white">
-                <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-3">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+
+            {/* En-tête */}
+            <div className="bg-gradient-to-r from-[#c6e911] to-[#adc40f] px-6 py-4">
+                <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4">
                     <div>
-                        <h2 className="text-xl font-bold mb-1 text-slate-800">{t('finance.bilan.title')}</h2>
-                        <div className="flex items-center gap-2 text-slate-700">
-                            <div className="w-1.5 h-1.5 bg-[#c6e911] rounded-full animate-pulse"></div>
-                            <span className="text-sm font-medium">{subsidiary.name}</span>
+                        <h2 className="text-xl font-bold text-slate-800">{t('finance.bilan.title')}</h2>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <span className="w-1.5 h-1.5 bg-slate-700 rounded-full" />
+                            <span className="text-sm text-slate-700 font-medium">{subsidiary.name}</span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4 text-slate-700">
+                    <div className="flex items-center gap-6">
                         <div className="text-right">
-                            <div className="text-xs text-slate-600 font-medium">Total Assets</div>
-                            <div className="text-lg font-bold text-slate-800">
+                            <p className="text-xs text-slate-700 font-medium">Total Actifs</p>
+                            <p className="text-lg font-bold text-slate-800">
                                 {formatCurrency(adjustedTotalAssets)}
-                                {isLoadingOrders && <span className="ml-2 text-xs text-yellow-600">⏳</span>}
-                            </div>
+                                {isLoadingOrders && <span className="ml-2 text-xs text-slate-600">⏳</span>}
+                            </p>
                         </div>
-                        <div className="w-px h-8 bg-slate-300"></div>
+                        <div className="w-px h-8 bg-slate-700/30" />
                         <div className="text-right">
-                            <div className="text-xs text-slate-600 font-medium">Total Liabilities</div>
-                            <div className="text-lg font-bold text-slate-800">{formatCurrency(balanceSheetData.totalLiabilities)}</div>
+                            <p className="text-xs text-slate-700 font-medium">Total Passifs</p>
+                            <p className="text-lg font-bold text-slate-800">{formatCurrency(totalLiabilitiesAndEquity)}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Main content */}
+            {/* Corps */}
             <div className="p-6">
                 <div className="max-w-6xl mx-auto">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
-                {/* Assets Column */}
-                        <div className="bg-gradient-to-br from-slate-50 to-[#c6e911]/10 rounded-xl p-6 border border-[#c6e911]/20">
-                            <div className="flex items-center gap-2 mb-6">
-                                <div className="w-8 h-8 bg-[#c6e911] rounded-lg flex items-center justify-center">
-                                    <div className="w-4 h-4 bg-white rounded"></div>
-                                </div>
-                                <h3 className="text-xl font-bold text-slate-800">{t('finance.bilan.assets')}</h3>
-                            </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-                            <div className="space-y-6">
-                                {/* Current Assets Section */}
-                                <div className="bg-white rounded-lg p-4 border border-[#c6e911]/20">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <div className="w-5 h-5 bg-[#c6e911]/20 rounded-md flex items-center justify-center">
-                                            <div className="w-2.5 h-2.5 bg-[#c6e911] rounded"></div>
-                                        </div>
-                                        <h4 className="font-semibold text-slate-700 text-sm">{t('finance.bilan.currentAssets')}</h4>
-                                    </div>
+                        {/* Actifs */}
+                        <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                            <h3 className="text-base font-bold text-slate-800 mb-5 flex items-center gap-2">
+                                <span className="w-2 h-5 bg-[#c6e911] rounded-full inline-block" />
+                                {t('finance.bilan.assets')}
+                            </h3>
+
+                            <div className="space-y-3">
+                                {/* Actifs courants */}
+                                <div className="bg-white rounded-lg p-4 border border-slate-200">
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">{t('finance.bilan.currentAssets')}</p>
                                     <div className="space-y-2">
-                                        <div className="flex justify-between items-center py-2 pl-4">
-                                            <span className="text-slate-600 text-sm">{t('finance.bilan.cash')}</span>
-                                            <span className="text-slate-700 text-sm font-medium">{formatCurrency(balanceSheetData.assets.treasury)}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center py-2 pl-4">
-                                            <span className="text-slate-600 text-sm">{t('finance.bilan.accountsReceivable')}</span>
-                                            <span className="text-slate-700 text-sm font-medium">{formatCurrency(realCustomerReceivables)}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center py-2 pl-4">
-                                            <span className="text-slate-600 text-sm">{t('finance.bilan.inventory')}</span>
-                                            <span className="text-slate-700 text-sm font-medium">{formatCurrency(balanceSheetData.assets.inventory)}</span>
-                                        </div>
+                                        {[
+                                            { label: t('finance.bilan.cash'),              value: balanceSheetData.assets.treasury },
+                                            { label: t('finance.bilan.accountsReceivable'), value: realCustomerReceivables },
+                                            { label: t('finance.bilan.inventory'),          value: balanceSheetData.assets.inventory },
+                                        ].map(({ label, value }) => (
+                                            <div key={label} className="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-0">
+                                                <span className="text-sm text-slate-600">{label}</span>
+                                                <span className="text-sm font-semibold text-slate-700">{formatCurrency(value)}</span>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
 
-                                {/* Fixed Assets Section */}
-                                <div className="bg-white rounded-lg p-4 border border-[#c6e911]/20">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <div className="w-5 h-5 bg-[#adc40f]/20 rounded-md flex items-center justify-center">
-                                            <div className="w-2.5 h-2.5 bg-[#adc40f] rounded"></div>
-                                        </div>
-                                        <h4 className="font-semibold text-slate-700 text-sm">{t('finance.bilan.fixedAssets')}</h4>
-                                    </div>
-                                    <div className="flex justify-between items-center py-2 pl-4">
-                                        <span className="text-slate-600 text-sm">{t('finance.bilan.equipment')}</span>
-                                        <span className="text-slate-700 text-sm font-medium">{formatCurrency(balanceSheetData.assets.equipments)}</span>
+                                {/* Actifs immobilisés */}
+                                <div className="bg-white rounded-lg p-4 border border-slate-200">
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">{t('finance.bilan.fixedAssets')}</p>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-slate-600">{t('finance.bilan.equipment')}</span>
+                                        <span className="text-sm font-semibold text-slate-700">{formatCurrency(balanceSheetData.assets.equipments)}</span>
                                     </div>
                                 </div>
 
-                                {/* Total Assets */}
-                                <div className="bg-gradient-to-r from-[#c6e911] to-[#adc40f] text-white rounded-lg p-4 shadow-md">
+                                {/* Total actifs */}
+                                <div className="bg-slate-800 rounded-lg p-4">
                                     <div className="flex justify-between items-center">
                                         <div>
-                                            <h4 className="font-bold text-white mb-1">{t('finance.bilan.totalAssets')}</h4>
-                                            <p className="text-white/90 text-xs">Sum of all assets</p>
+                                            <p className="font-semibold text-white text-sm">{t('finance.bilan.totalAssets')}</p>
+                                            <p className="text-slate-400 text-xs mt-0.5">Somme de tous les actifs</p>
                                         </div>
-                                        <div className="text-xl font-bold">
+                                        <span className="text-xl font-bold text-[#c6e911]">
                                             {formatCurrency(adjustedTotalAssets)}
-                                            {isLoadingOrders && <span className="ml-2 text-xs text-yellow-600">⏳</span>}
-                                        </div>
+                                        </span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Liabilities & Equity Column */}
-                        <div className="bg-gradient-to-br from-slate-50 to-[#adc40f]/10 rounded-xl p-6 border border-[#adc40f]/20">
-                            <div className="flex items-center gap-2 mb-6">
-                                <div className="w-8 h-8 bg-[#adc40f] rounded-lg flex items-center justify-center">
-                                    <div className="w-4 h-4 bg-white rounded"></div>
-                                </div>
-                                <h3 className="text-xl font-bold text-slate-800">{t('finance.bilan.liabilitiesAndEquity')}</h3>
-                            </div>
+                        {/* Passifs & Capitaux propres */}
+                        <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                            <h3 className="text-base font-bold text-slate-800 mb-5 flex items-center gap-2">
+                                <span className="w-2 h-5 bg-red-400 rounded-full inline-block" />
+                                {t('finance.bilan.liabilitiesAndEquity')}
+                            </h3>
 
-                            <div className="space-y-6">
-                                {/* Liabilities Section */}
-                                <div className="bg-white rounded-lg p-4 border border-[#adc40f]/20">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <div className="w-5 h-5 bg-red-100 rounded-md flex items-center justify-center">
-                                            <div className="w-2.5 h-2.5 bg-red-500 rounded"></div>
-                                        </div>
-                                        <h4 className="font-semibold text-slate-700 text-sm">{t('finance.bilan.liabilities')}</h4>
-                                    </div>
-                                    <div className="flex justify-between items-center py-2 pl-4">
-                                        <span className="text-slate-600 text-sm">{t('finance.bilan.accountsPayable')}</span>
-                                        <span className="text-slate-700 text-sm font-medium">{formatCurrency(balanceSheetData.liabilities.supplierDebts)}</span>
-                                    </div>
-                                </div>
-
-                                {/* Equity Section */}
-                                <div className="bg-white rounded-lg p-4 border border-[#adc40f]/20">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <div className="w-5 h-5 bg-slate-100 rounded-md flex items-center justify-center">
-                                            <div className="w-2.5 h-2.5 bg-slate-500 rounded"></div>
-                                        </div>
-                                        <h4 className="font-semibold text-slate-700 text-sm">{t('finance.bilan.equity')}</h4>
-                                    </div>
+                            <div className="space-y-3">
+                                {/* Dettes */}
+                                <div className="bg-white rounded-lg p-4 border border-slate-200">
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">{t('finance.bilan.liabilities')}</p>
                                     <div className="space-y-2">
-                                        <div className="flex justify-between items-center py-2 pl-4">
-                                            <span className="text-slate-600 text-sm">{t('finance.bilan.shareCapital')}</span>
-                                            <span className="text-slate-700 text-sm font-medium">{formatCurrency(balanceSheetData.liabilities.shareCapital)}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center py-2 pl-4">
-                                            <span className="text-slate-600 text-sm">{t('finance.bilan.netIncome')}</span>
-                                            <span className="text-slate-700 text-sm font-medium">{formatCurrency(balanceSheetData.liabilities.netIncome)}</span>
-                                        </div>
+                                        {[
+                                            { label: t('finance.bilan.accountsPayable'), value: balanceSheetData.liabilities.supplierDebts },
+                                            { label: t('finance.bilan.longTermDebts'),   value: balanceSheetData.liabilities.longTermDebts },
+                                        ].map(({ label, value }) => (
+                                            <div key={label} className="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-0">
+                                                <span className="text-sm text-slate-600">{label}</span>
+                                                <span className="text-sm font-semibold text-red-600">{formatCurrency(value)}</span>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
 
-                                {/* Total Liabilities & Equity */}
-                                <div className="bg-gradient-to-r from-[#adc40f] to-[#96900c] text-white rounded-lg p-4 shadow-md">
+                                {/* Capitaux propres */}
+                                <div className="bg-white rounded-lg p-4 border border-slate-200">
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">{t('finance.bilan.equity')}</p>
+                                    <div className="space-y-2">
+                                        {[
+                                            { label: t('finance.bilan.shareCapital'),     value: balanceSheetData.equity.shareCapital },
+                                            { label: t('finance.bilan.retainedEarnings'), value: balanceSheetData.equity.retainedEarnings },
+                                        ].map(({ label, value }) => (
+                                            <div key={label} className="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-0">
+                                                <span className="text-sm text-slate-600">{label}</span>
+                                                <span className="text-sm font-semibold text-slate-700">{formatCurrency(value)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Total passifs */}
+                                <div className="bg-slate-800 rounded-lg p-4">
                                     <div className="flex justify-between items-center">
                                         <div>
-                                            <h4 className="font-bold text-white mb-1">{t('finance.bilan.totalLiabilitiesAndEquity')}</h4>
-                                            <p className="text-white/90 text-xs">Sum of liabilities & equity</p>
+                                            <p className="font-semibold text-white text-sm">{t('finance.bilan.totalLiabilitiesAndEquity')}</p>
+                                            <p className="text-slate-400 text-xs mt-0.5">Dettes + capitaux propres</p>
                                         </div>
-                                        <div className="text-xl font-bold">{formatCurrency(balanceSheetData.totalLiabilities)}</div>
+                                        <span className="text-xl font-bold text-[#c6e911]">
+                                            {formatCurrency(totalLiabilitiesAndEquity)}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Balance Verification */}
-                    <div className="mt-8 bg-gradient-to-r from-[#c6e911]/10 to-[#adc40f]/10 rounded-xl p-6 border border-[#c6e911]/30">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                                    adjustedTotalAssets === balanceSheetData.totalLiabilities 
-                                        ? 'bg-[#c6e911]' 
-                                        : 'bg-yellow-500'
-                                }`}>
-                                    <div className="w-5 h-5 bg-white rounded-full"></div>
-                                </div>
-                                <div>
-                                    <h4 className="font-bold text-slate-800">Balance Verification</h4>
-                                    <p className="text-slate-600 text-sm">
-                                        Assets = Liabilities + Equity
-                                    </p>
-                                </div>
+                    {/* Vérification équilibre */}
+                    <div className={`mt-6 rounded-xl p-5 border-2 flex items-center justify-between ${isBalanced ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+                        <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isBalanced ? 'bg-green-100' : 'bg-amber-100'}`}>
+                                {isBalanced ? (
+                                    <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                ) : (
+                                    <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z" />
+                                    </svg>
+                                )}
                             </div>
-                            <div className="text-right">
-                                <div className="text-sm text-slate-600 mb-1 font-medium">Difference</div>
-                                <div className={`text-lg font-bold ${
-                                    adjustedTotalAssets === balanceSheetData.totalLiabilities 
-                                        ? 'text-[#c6e911]' 
-                                        : 'text-yellow-600'
-                                }`}>
-                                    {formatCurrency(adjustedTotalAssets - balanceSheetData.totalLiabilities)}
-                                </div>
+                            <div>
+                                <p className="font-semibold text-slate-800 text-sm">
+                                    {isBalanced ? 'Bilan équilibré' : 'Bilan non équilibré'}
+                                </p>
+                                <p className="text-xs text-slate-500">Actif = Passif + Capitaux propres</p>
                             </div>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-xs text-slate-500 mb-0.5">Écart</p>
+                            <p className={`text-lg font-bold ${isBalanced ? 'text-green-600' : 'text-amber-600'}`}>
+                                {formatCurrency(adjustedTotalAssets - balanceSheetData.totalLiabilities)}
+                            </p>
                         </div>
                     </div>
                 </div>

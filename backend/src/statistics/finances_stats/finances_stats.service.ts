@@ -4,7 +4,7 @@ import {
   PeriodFilterDto,
   PeriodFilter,
 } from '../analytics/dto/period-filter.dto';
-import { Prisma, User, OpportunityStage, DebtStatus } from '@prisma/client';
+import { Prisma, User, OpportunityStage } from '@prisma/client';
 import {
   sub,
   startOfMonth,
@@ -72,63 +72,6 @@ export class FinancesStatsService {
   /**
    * @param user Utilisateur
    * @param periodFilterDto Dto de filtre de période
-   * @returns Retourne le solde des créances clients.
-   */
-  async getCustomerReceivables(user: User, periodFilterDto: PeriodFilterDto) {
-    const { subsidiaryId } = user;
-    // Le filtre de date s'applique à la date de la commande.
-    const dateFilter = this.getDateFilter(periodFilterDto, 'date');
-
-    // Calculer les créances clients à partir des commandes impayées et partiellement payées
-    const orders = await this.prisma.order.findMany({
-      where: {
-        subsidiaryId,
-        OR: [{ paymentStatus: 'UNPAID' }, { paymentStatus: 'PARTIALLY_PAID' }],
-        ...dateFilter,
-      },
-      select: {
-        totalAmount: true,
-        amountPaid: true,
-      },
-    });
-
-    // Calculer le solde total dû (totalAmount - amountPaid)
-    const totalReceivables = orders.reduce((sum, order) => {
-      const balance = order.totalAmount.sub(order.amountPaid);
-      return sum.add(balance);
-    }, new Prisma.Decimal(0));
-
-    return {
-      totalReceivables: totalReceivables.toNumber(),
-    };
-  }
-
-  /**
-   * @param user Utilisateur
-   * @param periodFilterDto Dto de filtre de période
-   * @returns Retourne le solde des dettes fournisseurs.
-   */
-  async getSupplierDebts(user: User, periodFilterDto: PeriodFilterDto) {
-    const { subsidiaryId } = user;
-    const dateFilter = this.getDateFilter(periodFilterDto, 'dueDate');
-
-    const result = await this.prisma.supplierDebt.aggregate({
-      _sum: { amount: true },
-      where: {
-        subsidiaryId,
-        status: { not: DebtStatus.PAYER },
-        ...dateFilter,
-      },
-    });
-
-    return {
-      totalDebts: result._sum.amount?.toNumber() ?? 0,
-    };
-  }
-
-  /**
-   * @param user Utilisateur
-   * @param periodFilterDto Dto de filtre de période
    * @returns Retourne le compte de résultat (P&L).
    */
   async getPnlStatement(user: User, periodFilterDto: PeriodFilterDto) {
@@ -138,9 +81,9 @@ export class FinancesStatsService {
     // Récupérer le taux d'impôt de la filiale
     const subsidiary = await this.prisma.subsidiary.findUnique({
       where: { id: subsidiaryId },
-      select: { taxRate: true }
+      select: { taxRate: true },
     });
-    const taxRate = subsidiary?.taxRate ?? new Prisma.Decimal(0.30); // Défaut 30% si non configuré
+    const taxRate = subsidiary?.taxRate ?? new Prisma.Decimal(0.3); // Défaut 30% si non configuré
 
     // Chiffre d'affaires
     const salesResult = await this.prisma.sale.aggregate({
@@ -178,73 +121,6 @@ export class FinancesStatsService {
       taxes: taxes.toNumber(),
       netIncome: netIncome.toNumber(),
     };
-  }
-
-  /**
-   * @param user Utilisateur
-   * @returns Retourne le bilan comptable.
-   */
-  async getBalanceSheet(user: User) {
-    const { subsidiaryId } = user;
-
-    const [
-      treasury,
-      receivables,
-      _inventoryValue,
-      fixedAssets,
-      equipments,
-      supplierDebts,
-      subsidiary,
-      pnl,
-    ] = await Promise.all([
-      this.prisma.treasuryAccount.aggregate({
-        _sum: { balance: true },
-        where: { subsidiaryId },
-      }),
-      this.getCustomerReceivables(user, { period: PeriodFilter.ALL_TIME }),
-      this.prisma.itemStock.findMany({
-        where: { subsidiaryId, stock: { gt: 0 } },
-        select: { stock: true },
-      }),
-      this.prisma.fixedAsset.aggregate({
-        _sum: { acquisitionCost: true },
-        where: { subsidiaryId },
-      }),
-      this.prisma.equipment.aggregate({
-        _sum: { acquisitionValue: true },
-        where: { subsidiaryId },
-      }),
-      this.getSupplierDebts(user, { period: PeriodFilter.ALL_TIME }),
-      this.prisma.subsidiary.findUnique({ where: { id: subsidiaryId } }),
-      this.getPnlStatement(user, { period: PeriodFilter.THIS_YEAR }), // Résultat de l'exercice en cours
-    ]);
-
-    // price supprimé du schéma Item — valeur du stock estimée à 0
-    const inventory = new Prisma.Decimal(0);
-
-    const assets = {
-      treasury: treasury._sum.balance?.toNumber() ?? 0,
-      customerReceivables: receivables.totalReceivables,
-      inventory: inventory.toNumber(),
-      equipments: equipments._sum.acquisitionValue?.toNumber() ?? 0,
-      fixedAssets: fixedAssets._sum.acquisitionCost?.toNumber() ?? 0,
-    };
-    const totalAssets = Object.values(assets).reduce(
-      (sum, val) => sum + val,
-      0,
-    );
-
-    const liabilities = {
-      supplierDebts: supplierDebts.totalDebts,
-      shareCapital: subsidiary?.shareCapital.toNumber() ?? 0,
-      netIncome: pnl.netIncome,
-    };
-    const totalLiabilities = Object.values(liabilities).reduce(
-      (sum, val) => sum + val,
-      0,
-    );
-
-    return { assets, totalAssets, liabilities, totalLiabilities };
   }
 
   /**

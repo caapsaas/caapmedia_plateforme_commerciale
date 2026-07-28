@@ -5,6 +5,8 @@ import { Product, StockItem } from './models';
 // (Chantier 5), pas dans ce formulaire d'informations générales.
 export type ProductFormData = Omit<Product, 'id' | 'productImages'> & {
     productImages?: File[];
+    /** URLs des images existantes à conserver (les autres seront supprimées). */
+    existingImages?: string[];
 };
 
 // Formulaire de produit de stock (matière première) : garde prix/stock, scopé filiale.

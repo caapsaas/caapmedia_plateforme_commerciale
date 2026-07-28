@@ -66,5 +66,3 @@ export class AbsencerecordController {
     return this.absenceRecordService.remove(id);
   }
 }
-
-

@@ -68,9 +68,6 @@ const UserManagement: React.FC = () => {
         }
     });
 
-    // Le filtrage se fait maintenant sur les données récupérées localement
-    const subsidiaryUsers = users.filter(u => u.subsidiaryId === subsidiary?.id);
-    
     const handleOpenAddModal = () => {
         setEditingUser(null);
         setIsModalOpen(true);
@@ -138,7 +135,7 @@ const UserManagement: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {subsidiaryUsers.map((user) => (
+                        {users.map((user) => (
                             <tr key={user.id} className="bg-white border-b hover:bg-slate-50">
                                 <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{user.id}</th>
                                 <td className="px-6 py-4 font-semibold">{user.userName}</td>

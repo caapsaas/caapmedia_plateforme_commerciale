@@ -19,7 +19,7 @@ export class ContactJwtStrategy extends PassportStrategy(
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       // Non-null: présence garantie au démarrage par env.validation.ts (fail-fast sinon)
-      secretOrKey: process.env.JWT_SECRET!,
+      secretOrKey: process.env.JWT_SECRET,
     });
   }
 

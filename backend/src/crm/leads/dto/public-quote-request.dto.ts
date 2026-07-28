@@ -6,11 +6,11 @@ export class PublicQuoteRequestDto {
   leadName: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'Le nom de l\'entreprise est requis.' })
+  @IsNotEmpty({ message: "Le nom de l'entreprise est requis." })
   company: string;
 
-  @IsEmail({}, { message: 'L\'adresse email doit être valide.' })
-  @IsNotEmpty({ message: 'L\'adresse email est requise.' })
+  @IsEmail({}, { message: "L'adresse email doit être valide." })
+  @IsNotEmpty({ message: "L'adresse email est requise." })
   email: string;
 
   @IsString()

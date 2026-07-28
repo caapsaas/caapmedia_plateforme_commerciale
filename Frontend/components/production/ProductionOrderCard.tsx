@@ -20,7 +20,7 @@ const ProductionOrderCard: React.FC<ProductionOrderCardProps> = ({ order, onDrag
     const { t } = useI18n();
     const { hasRole } = useHasRole();
 
-    const itemSummary = order.orderItems.map(item => `${item.quantity}x ${item.product.name}`).join(', ');
+    const itemSummary = order.orderItems.map(item => `${item.quantity}x ${item.product?.name ?? item.productName ?? '—'}`).join(', ');
 
     return (
         <div

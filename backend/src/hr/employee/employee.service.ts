@@ -179,7 +179,8 @@ export class EmployeeService {
             leaveBalance: 0,
             // Personal information fields
             numberDependents: createEmployeeDto.numberDependents || 0,
-            situationMatrimony: createEmployeeDto.situationMatrimony || 'SINGLE',
+            situationMatrimony:
+              createEmployeeDto.situationMatrimony || 'SINGLE',
             bankAccountNumber: createEmployeeDto.bankAccountNumber,
           },
           include: {
@@ -276,7 +277,7 @@ export class EmployeeService {
       orderBy: { lastName: 'asc' },
     });
 
-    return employees.map(emp => this.convertEmployeeToDTO(emp));
+    return employees.map((emp) => this.convertEmployeeToDTO(emp));
   }
 
   /**
@@ -431,7 +432,12 @@ export class EmployeeService {
 
     return this.prisma.$transaction(async (prisma) => {
       const leaveRecord = await prisma.employeeLeaveRecord.create({
-        data: { id: generateId(ID_PREFIXES.EMPLOYEELEAVERECORD), ...leaveData, days, employeeId },
+        data: {
+          id: generateId(ID_PREFIXES.EMPLOYEELEAVERECORD),
+          ...leaveData,
+          days,
+          employeeId,
+        },
       });
 
       // Update specific leave balance instead of general balance
@@ -518,7 +524,9 @@ export class EmployeeService {
         if (updateEmployeeDto.managerId === null) {
           dataToUpdate.manager = { disconnect: true };
         } else {
-          dataToUpdate.manager = { connect: { id: updateEmployeeDto.managerId } };
+          dataToUpdate.manager = {
+            connect: { id: updateEmployeeDto.managerId },
+          };
         }
       }
 
@@ -532,7 +540,9 @@ export class EmployeeService {
         // Update leave balances if provided
         if (updateEmployeeDto.leaveBalance) {
           // Delete existing leave balances
-          await prisma.employeeLeaveBalance.deleteMany({ where: { employeeId: id } });
+          await prisma.employeeLeaveBalance.deleteMany({
+            where: { employeeId: id },
+          });
 
           // Create new leave balances
           const leaveTypeMapping = {
@@ -545,7 +555,9 @@ export class EmployeeService {
             unpaid: 'UNPAID' as LeaveType,
           };
 
-          for (const [leaveKey, days] of Object.entries(updateEmployeeDto.leaveBalance)) {
+          for (const [leaveKey, days] of Object.entries(
+            updateEmployeeDto.leaveBalance,
+          )) {
             const leaveType = leaveTypeMapping[leaveKey] || 'OTHER';
             await prisma.employeeLeaveBalance.create({
               data: {
@@ -559,9 +571,14 @@ export class EmployeeService {
         }
 
         // Update leave records if provided
-        if (updateEmployeeDto.leaveRecords && Array.isArray(updateEmployeeDto.leaveRecords)) {
+        if (
+          updateEmployeeDto.leaveRecords &&
+          Array.isArray(updateEmployeeDto.leaveRecords)
+        ) {
           // Clear existing records and create new ones
-          await prisma.employeeLeaveRecord.deleteMany({ where: { employeeId: id } });
+          await prisma.employeeLeaveRecord.deleteMany({
+            where: { employeeId: id },
+          });
 
           for (const record of updateEmployeeDto.leaveRecords) {
             await prisma.employeeLeaveRecord.create({
@@ -581,7 +598,9 @@ export class EmployeeService {
         // Handle both formats: frontend format { contract, idCard, workPermit, diplomas } and backend format [{ documentName, url, docType }]
         if (updateEmployeeDto.documents) {
           // Clear existing documents
-          await prisma.employeeDocument.deleteMany({ where: { employeeId: id } });
+          await prisma.employeeDocument.deleteMany({
+            where: { employeeId: id },
+          });
 
           // Handle frontend format: { contract, idCard, workPermit, diplomas }
           const docsData = updateEmployeeDto.documents as any;
@@ -726,7 +745,13 @@ export class EmployeeService {
     docType: DocumentType,
   ): Promise<any> {
     return this.prisma.employeeDocument.create({
-      data: { id: generateId(ID_PREFIXES.EMPLOYEEDOCUMENT), employeeId, documentName, url, docType },
+      data: {
+        id: generateId(ID_PREFIXES.EMPLOYEEDOCUMENT),
+        employeeId,
+        documentName,
+        url,
+        docType,
+      },
       include: { employee: true },
     });
   }
@@ -744,7 +769,11 @@ export class EmployeeService {
     },
   ): Promise<any> {
     return this.prisma.employeePositionHistory.create({
-      data: { id: generateId(ID_PREFIXES.EMPLOYEEPOSITIONHISTORY), ...positionData, employeeId },
+      data: {
+        id: generateId(ID_PREFIXES.EMPLOYEEPOSITIONHISTORY),
+        ...positionData,
+        employeeId,
+      },
     });
   }
 
@@ -760,7 +789,11 @@ export class EmployeeService {
     },
   ): Promise<any> {
     return this.prisma.employeeTraining.create({
-      data: { id: generateId(ID_PREFIXES.EMPLOYEETRAINING), ...trainingData, employeeId },
+      data: {
+        id: generateId(ID_PREFIXES.EMPLOYEETRAINING),
+        ...trainingData,
+        employeeId,
+      },
     });
   }
 
@@ -777,7 +810,11 @@ export class EmployeeService {
     },
   ): Promise<any> {
     return this.prisma.employeePerformanceReview.create({
-      data: { id: generateId(ID_PREFIXES.EMPLOYEEPERFORMANCEREVIEW), ...reviewData, employeeId },
+      data: {
+        id: generateId(ID_PREFIXES.EMPLOYEEPERFORMANCEREVIEW),
+        ...reviewData,
+        employeeId,
+      },
     });
   }
 }

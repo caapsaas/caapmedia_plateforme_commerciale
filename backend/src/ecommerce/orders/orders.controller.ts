@@ -87,6 +87,7 @@ export class OrdersController {
   @Get()
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(
+    UserRole.SUPER_ADMIN,
     UserRole.ADMIN,
     UserRole.COMMERCIAL,
     UserRole.PRODUCTION_DIRECTOR,

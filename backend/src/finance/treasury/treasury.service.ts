@@ -11,7 +11,12 @@ import { CreateFinancialTransactionDto } from './dto/create-financial-transactio
 import { UpdateTreasuryAccountDto } from './dto/update-treasury-account.dto';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 import { checkRole } from 'src/common/auth/role/check-role.util';
-import { JournalizationService } from 'src/accounting/journalization/journalization.service';
+import {
+  resolveScopeContext,
+  withSubsidiaryScope,
+  assertSubsidiaryAccess,
+} from 'src/common/utils/subsidiary-scope';
+import { AccountingOutboxService } from 'src/accounting/outbox/accounting-outbox.service';
 
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
@@ -19,7 +24,7 @@ import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 export class TreasuryService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly journalization: JournalizationService,
+    private readonly accountingOutbox: AccountingOutboxService,
   ) {}
 
   // ================================================================= //
@@ -60,13 +65,10 @@ export class TreasuryService {
   }
 
   async findAllAccounts(user: JwtUser, subsidiaryId?: string) {
-    const targetSubsidiaryId =
-      user.role === UserRole.ADMIN && subsidiaryId
-        ? subsidiaryId
-        : user.subsidiaryId;
+    const ctx = resolveScopeContext(user);
 
     const accounts = await this.prisma.treasuryAccount.findMany({
-      where: { subsidiaryId: targetSubsidiaryId },
+      where: withSubsidiaryScope({}, ctx, subsidiaryId),
       orderBy: { accountName: 'asc' },
     });
 
@@ -78,7 +80,7 @@ export class TreasuryService {
 
   async findOneAccount(id: string, user: JwtUser) {
     const account = await this.prisma.treasuryAccount.findFirst({
-      where: { id, subsidiaryId: user.subsidiaryId },
+      where: { id },
     });
 
     if (!account) {
@@ -86,6 +88,7 @@ export class TreasuryService {
         `Treasury account with ID "${id}" not found.`,
       );
     }
+    assertSubsidiaryAccess(account.subsidiaryId, resolveScopeContext(user));
 
     return { ...account, balance: Number(account.balance) };
   }
@@ -200,70 +203,70 @@ export class TreasuryService {
     const { treasuryAccountId, amount, transactionDate } = dto;
     const decimalAmount = new Prisma.Decimal(amount);
 
-    return this.prisma
-      .$transaction(async (tx) => {
-        // Lecture du compte DANS la transaction pour éviter la race condition
-        const account = await tx.treasuryAccount.findFirst({
-          where: { id: treasuryAccountId, subsidiaryId: user.subsidiaryId },
-        });
+    return this.prisma.$transaction(async (tx) => {
+      // Lecture du compte DANS la transaction pour éviter la race condition
+      const account = await tx.treasuryAccount.findFirst({
+        where: { id: treasuryAccountId, subsidiaryId: user.subsidiaryId },
+      });
 
-        if (!account) {
-          throw new NotFoundException(
-            `Treasury account with ID "${treasuryAccountId}" not found.`,
+      if (!account) {
+        throw new NotFoundException(
+          `Treasury account with ID "${treasuryAccountId}" not found.`,
+        );
+      }
+
+      if (financialTransactionType === TransactionType.DEPENSE) {
+        if (account.balance.comparedTo(decimalAmount) < 0) {
+          throw new BadRequestException(
+            `Solde insuffisant sur "${account.accountName}". Solde: ${account.balance}, Montant: ${decimalAmount}.`,
           );
         }
+      }
 
-        if (financialTransactionType === TransactionType.DEPENSE) {
-          if (account.balance.comparedTo(decimalAmount) < 0) {
-            throw new BadRequestException(
-              `Solde insuffisant sur "${account.accountName}". Solde: ${account.balance}, Montant: ${decimalAmount}.`,
-            );
-          }
-        }
+      const balanceOp =
+        financialTransactionType === TransactionType.RECETTE
+          ? { increment: decimalAmount }
+          : { decrement: decimalAmount };
 
-        const balanceOp =
-          financialTransactionType === TransactionType.RECETTE
-            ? { increment: decimalAmount }
-            : { decrement: decimalAmount };
+      await tx.treasuryAccount.update({
+        where: { id: treasuryAccountId },
+        data: { balance: balanceOp },
+      });
 
-        await tx.treasuryAccount.update({
-          where: { id: treasuryAccountId },
-          data: { balance: balanceOp },
-        });
-
-        const transaction = await tx.financialTransaction.create({
-          data: {
-            description: dto.description,
-            relatedDocumentId: dto.relatedDocumentId,
-            amount: decimalAmount,
-            financialTransactionType,
-            treasuryAccountId,
-            subsidiaryId: user.subsidiaryId,
-            transactionDate: new Date(transactionDate),
-            providerName: dto.providerName,
-            providerPhone: dto.providerPhone,
-          },
-        });
-
-        return { transaction, accountType: account.accountType };
-      })
-      .then(async ({ transaction, accountType }) => {
-        // Journalisation automatique hors transaction Prisma pour ne pas bloquer l'opération
-        await this.journalization.journalize({
+      const transaction = await tx.financialTransaction.create({
+        data: {
+          description: dto.description,
+          relatedDocumentId: dto.relatedDocumentId,
+          amount: decimalAmount,
+          financialTransactionType,
+          treasuryAccountId,
           subsidiaryId: user.subsidiaryId,
+          transactionDate: new Date(transactionDate),
+          providerName: dto.providerName,
+          providerPhone: dto.providerPhone,
+        },
+      });
+
+      // Intention de journalisation posée dans la MÊME transaction (pattern
+      // Outbox) : jamais perdue même si le traitement asynchrone échoue.
+      await this.accountingOutbox.enqueue(tx, {
+        eventType:
+          financialTransactionType === TransactionType.RECETTE
+            ? 'TREASURY_INCOME'
+            : 'TREASURY_EXPENSE',
+        subsidiaryId: user.subsidiaryId,
+        payload: {
           userId: user.id,
-          operationDate: new Date(transactionDate),
+          operationDate: new Date(transactionDate).toISOString(),
           amount: Number(decimalAmount),
           description: dto.description,
-          sourceType:
-            financialTransactionType === TransactionType.RECETTE
-              ? 'TREASURY_INCOME'
-              : 'TREASURY_EXPENSE',
           sourceId: transaction.id,
-          accountType,
-        });
-        return transaction;
+          accountType: account.accountType,
+        },
       });
+
+      return transaction;
+    });
   }
 
   async findAllTransactions(
@@ -278,22 +281,20 @@ export class TreasuryService {
       'Permission denied to view transactions.',
     );
 
-    const targetSubsidiaryId =
-      user.role === UserRole.ADMIN && subsidiaryId
-        ? subsidiaryId
-        : user.subsidiaryId;
+    const ctx = resolveScopeContext(user);
+    const where = withSubsidiaryScope({}, ctx, subsidiaryId);
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
       this.prisma.financialTransaction.findMany({
-        where: { subsidiaryId: targetSubsidiaryId },
+        where,
         orderBy: { transactionDate: 'desc' },
         include: { treasuryAccount: { select: { accountName: true } } },
         skip,
         take: limit,
       }),
       this.prisma.financialTransaction.count({
-        where: { subsidiaryId: targetSubsidiaryId },
+        where,
       }),
     ]);
 
@@ -363,7 +364,7 @@ export class TreasuryService {
       data: { balance: { decrement: decimalAmount } },
     });
 
-    return tx.financialTransaction.create({
+    const transaction = await tx.financialTransaction.create({
       data: {
         id: generateId(ID_PREFIXES.TREASURY),
         description: dto.description,
@@ -377,5 +378,12 @@ export class TreasuryService {
         providerPhone: dto.providerPhone,
       },
     });
+
+    // Ne pose PAS d'intention outbox ici, volontairement : l'appelant connaît
+    // le sourceType comptable exact de l'opération (dette fournisseur,
+    // immobilisation...) et doit poser lui-même l'entrée `AccountingOutboxEntry`
+    // adaptée — sinon on double-compte (un mouvement de trésorerie générique
+    // EN PLUS de l'écriture métier précise).
+    return { transaction, accountType: account.accountType };
   }
 }

@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { v4 as uuidv4 } from 'uuid';
@@ -7,7 +12,8 @@ import * as jwt from 'jsonwebtoken';
 @Injectable()
 export class AttendanceQrDailyService {
   private readonly logger = new Logger(AttendanceQrDailyService.name);
-  private readonly QR_SECRET = process.env.QR_TOKEN_SECRET || 'caap-attendance-system-secret-key-2024';
+  private readonly QR_SECRET =
+    process.env.QR_TOKEN_SECRET || 'caap-attendance-system-secret-key-2024';
   private readonly QR_EXPIRATION = 86400; // 24 heures en secondes
 
   constructor(private readonly prisma: PrismaService) {}
@@ -22,24 +28,22 @@ export class AttendanceQrDailyService {
 
       for (const subsidiary of subsidiaries) {
         // Invalider les anciens QR codes actifs
-        await this.prisma.dailyQrCode.updateMany(
-          {
-            where: {
-              subsidiaryId: subsidiary.id,
-              isActive: true
-            },
-            data: {
-              isActive: false
-            }
-          }
-        );
+        await this.prisma.dailyQrCode.updateMany({
+          where: {
+            subsidiaryId: subsidiary.id,
+            isActive: true,
+          },
+          data: {
+            isActive: false,
+          },
+        });
 
         // Récupérer tous les employés de la filiale
         const employees = await this.prisma.employee.findMany({
           where: {
             subsidiaryId: subsidiary.id,
-            status: 'ACTIVE'
-          }
+            status: 'ACTIVE',
+          },
         });
 
         // Générer UN QR code par employé
@@ -59,19 +63,26 @@ export class AttendanceQrDailyService {
               qrUrl: checkInUrl,
               issuedAt: new Date(),
               expiresAt,
-              isActive: true
-            }
+              isActive: true,
+            },
           });
 
-          this.logger.debug(`✓ QR code generated for ${employee.firstName} ${employee.lastName}`);
+          this.logger.debug(
+            `✓ QR code generated for ${employee.firstName} ${employee.lastName}`,
+          );
         }
 
-        this.logger.debug(`✓ Generated ${employees.length} QR codes for ${subsidiary.subsidiaryName}`);
+        this.logger.debug(
+          `✓ Generated ${employees.length} QR codes for ${subsidiary.subsidiaryName}`,
+        );
       }
 
       this.logger.log('✓ Daily QR code generation completed successfully');
     } catch (error) {
-      this.logger.error(`Error generating daily QR codes: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error generating daily QR codes: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
@@ -82,13 +93,13 @@ export class AttendanceQrDailyService {
       employeeId,
       type: 'attendance_qr',
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + this.QR_EXPIRATION
+      exp: Math.floor(Date.now() / 1000) + this.QR_EXPIRATION,
     };
 
     return jwt.sign(payload, this.QR_SECRET, {
       algorithm: 'HS256',
       issuer: 'caap-attendance-system',
-      expiresIn: this.QR_EXPIRATION
+      expiresIn: this.QR_EXPIRATION,
     });
   }
 
@@ -99,7 +110,7 @@ export class AttendanceQrDailyService {
         subsidiaryId,
         employeeId,
         isActive: true,
-        expiresAt: { gt: new Date() }
+        expiresAt: { gt: new Date() },
       },
       orderBy: { issuedAt: 'desc' },
       include: {
@@ -110,10 +121,10 @@ export class AttendanceQrDailyService {
             lastName: true,
             email: true,
             department: true,
-            positions: true
-          }
-        }
-      }
+            positions: true,
+          },
+        },
+      },
     });
 
     if (!qrCode) {
@@ -126,18 +137,20 @@ export class AttendanceQrDailyService {
       expiresAt: qrCode.expiresAt,
       subsidiaryId: qrCode.subsidiaryId,
       employeeId: qrCode.employeeId,
-      employee: qrCode.employee
+      employee: qrCode.employee,
     };
   }
 
   // Valider un QR token (vérifie signature et expiration) + retourne employeeId
-  async validateQrToken(token: string): Promise<{ subsidiaryId: string; employeeId: string }> {
+  async validateQrToken(
+    token: string,
+  ): Promise<{ subsidiaryId: string; employeeId: string }> {
     try {
       const decoded = jwt.verify(token, this.QR_SECRET) as any;
 
       // Vérifier que le token existe en DB et est actif
       const qrCode = await this.prisma.dailyQrCode.findUnique({
-        where: { token }
+        where: { token },
       });
 
       if (!qrCode || !qrCode.isActive) {
@@ -150,7 +163,7 @@ export class AttendanceQrDailyService {
 
       return {
         subsidiaryId: decoded.subsidiaryId,
-        employeeId: decoded.employeeId
+        employeeId: decoded.employeeId,
       };
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;
@@ -163,11 +176,11 @@ export class AttendanceQrDailyService {
     return this.prisma.dailyQrCode.updateMany({
       where: {
         subsidiaryId,
-        isActive: true
+        isActive: true,
       },
       data: {
-        isActive: false
-      }
+        isActive: false,
+      },
     });
   }
 
@@ -177,7 +190,7 @@ export class AttendanceQrDailyService {
       where: {
         subsidiaryId,
         isActive: true,
-        expiresAt: { gt: new Date() }
+        expiresAt: { gt: new Date() },
       },
       orderBy: { issuedAt: 'desc' },
       include: {
@@ -188,19 +201,19 @@ export class AttendanceQrDailyService {
             lastName: true,
             email: true,
             department: true,
-            positions: true
-          }
-        }
-      }
+            positions: true,
+          },
+        },
+      },
     });
 
-    return qrCodes.map(qr => ({
+    return qrCodes.map((qr) => ({
       token: qr.token,
       issuedAt: qr.issuedAt,
       expiresAt: qr.expiresAt,
       subsidiaryId: qr.subsidiaryId,
       employeeId: qr.employeeId,
-      employee: qr.employee
+      employee: qr.employee,
     }));
   }
 }

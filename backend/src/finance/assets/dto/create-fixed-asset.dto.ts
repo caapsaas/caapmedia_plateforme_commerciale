@@ -4,7 +4,8 @@ import {
   IsDateString,
   IsNumber,
   IsPositive,
-  IsUUID,
+  IsOptional,
+  Min,
 } from 'class-validator';
 
 export class CreateFixedAssetDto {
@@ -23,6 +24,11 @@ export class CreateFixedAssetDto {
   @IsNumber()
   @IsPositive()
   depreciationRate: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  residualValue?: number;
 
   @IsString()
   @IsNotEmpty()

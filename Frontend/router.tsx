@@ -16,6 +16,7 @@ import Caisse from './components/caisse/Caisse';
 import MesCommandes from './Pages/MesCommandes';
 import Finance from './Pages/Finance';
 import Accounting from './Pages/Accounting';
+import AccountingAccessAdmin from './Pages/AccountingAccessAdmin';
 import Configuration from './Pages/Configuration';
 import HrManagement from './Pages/HrManagement';
 import Secretariat from './Pages/Secretariat';
@@ -195,6 +196,7 @@ const secretariatRoute = createRoute({ getParentRoute: () => dashboardRoute, pat
 const hrRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/hr', component: HrManagement });
 const financeRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/finance', component: Finance });
 const accountingRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/accounting', component: Accounting });
+const accountingAccessRequestsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/accounting-access-requests', component: AccountingAccessAdmin });
 
 
 // 6. Création de l'arbre des routes
@@ -214,6 +216,7 @@ const routeTree = rootRoute.addChildren([
     mesCommandesRoute,
     financeRoute,
     accountingRoute,
+    accountingAccessRequestsRoute,
     configurationRoute,
     hrRoute,
     secretariatRoute,

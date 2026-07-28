@@ -2,10 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { BalanceSheetDto } from './dto/balance-sheet.dto';
 import { DebtStatus } from '@prisma/client';
+import { AccountingBalanceService } from '../../accounting/shared/accounting-balance.service';
 
 @Injectable()
 export class BalancesheetService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly balanceService: AccountingBalanceService,
+  ) {}
 
   /**
    * Calcule le bilan comptable : Actifs = Passifs + Capitaux propres
@@ -25,7 +29,7 @@ export class BalancesheetService {
     ] = await Promise.all([
       this.getTreasuryData(subsidiaryId),
       this.getCustomerReceivables(subsidiaryId),
-      this.getInventoryValue(subsidiaryId),
+      Promise.resolve(this.getInventoryValue()),
       this.getEquipmentsValue(subsidiaryId),
       this.getFixedAssetsValue(subsidiaryId),
       this.getUnpaidSupplierDebts(subsidiaryId),
@@ -93,19 +97,11 @@ export class BalancesheetService {
    * Valorisation des stocks: non applicable car les coûts d'achat ne sont plus stockés sur les produits.
    * Les prix sont maintenant définis uniquement lors de la création des commandes/ventes par le commercial.
    */
-  async getInventoryValue(subsidiaryId?: string): Promise<number> {
-    // Item est global (catalogue partagé) ; seule la quantité en stock
-    // (ItemStock) est propre à une filiale — absence de filtre = consolidé.
+  getInventoryValue(): number {
     // Le prix unitaire n'est plus stocké sur l'Item (supprimé du schéma) ;
-    // la valeur monétaire du stock est donc estimée à 0 pour le bilan.
-    const stockLevels = await this.prisma.itemStock.findMany({
-      where: subsidiaryId ? { subsidiaryId } : {},
-      select: { stock: true },
-    });
-    return stockLevels.reduce(
-      (_sum, _s) => _sum,
-      0,
-    );
+    // la valeur monétaire du stock est donc estimée à 0 pour le bilan tant
+    // qu'aucune valorisation n'est définie (coût moyen pondéré ou autre).
+    return 0;
   }
 
   async getEquipmentsValue(subsidiaryId?: string): Promise<number> {
@@ -117,30 +113,34 @@ export class BalancesheetService {
   }
 
   /**
-   * Valeur nette comptable : coût d'acquisition moins amortissement cumulé.
-   * Pour le calcul correct, l'amortissement devrait être calculé sur la durée de vie.
-   * Ici on applique le taux annuel sur le coût d'acquisition comme approximation.
+   * Valeur nette comptable des immobilisations = solde débiteur cumulé du
+   * compte 215/218/211 (acquisitions, comptabilisées via `AssetsService` dès
+   * le Phase 3 du module comptabilité) moins le solde du compte 281
+   * (amortissements cumulés). Contrairement à l'ancienne approximation
+   * (taux annuel × durée de possession appliqué en mémoire), cette valeur
+   * vient du grand livre — mais reste "gross" tant que la génération
+   * automatique des dotations aux amortissements (Phase 7 — Immobilisations)
+   * n'est pas branchée : le compte 281 est alors à 0 et cette méthode
+   * retourne le coût d'acquisition cumulé, pas encore net d'amortissement.
    */
   async getFixedAssetsValue(subsidiaryId?: string): Promise<number> {
-    const assets = await this.prisma.fixedAsset.findMany({
-      where: subsidiaryId ? { subsidiaryId } : {},
-      select: {
-        acquisitionCost: true,
-        depreciationRate: true,
-        acquisitionDate: true,
-      },
-    });
-
     const now = new Date();
-    return assets.reduce((sum, asset) => {
-      const cost = Number(asset.acquisitionCost);
-      const rate = Number(asset.depreciationRate) / 100;
-      const yearsOwned =
-        (now.getTime() - new Date(asset.acquisitionDate).getTime()) /
-        (1000 * 60 * 60 * 24 * 365);
-      const totalDepreciation = Math.min(cost * rate * yearsOwned, cost);
-      return sum + (cost - totalDepreciation);
-    }, 0);
+    const [gross, amortization] = await Promise.all([
+      this.balanceService.getAccountBalanceByPrefix(
+        ['211', '215', '218'],
+        null,
+        now,
+        subsidiaryId,
+      ),
+      this.balanceService.getAccountBalance(
+        ['281'],
+        null,
+        now,
+        'CREDIT',
+        subsidiaryId,
+      ),
+    ]);
+    return gross - Math.abs(amortization);
   }
 
   /**

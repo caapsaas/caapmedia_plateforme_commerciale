@@ -11,6 +11,8 @@ import {
   InventoryAdjustmentDto,
   WithdrawForOrderDto,
 } from './dto/stock-movement.dto';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 // Types qui AJOUTENT au stock — tout le reste retire. Source unique de vérité
 // pour le sens d'un mouvement, jamais dupliquée/redéclarée ailleurs.
@@ -32,7 +34,9 @@ export class StockMovementsService {
   findAll(user: any, query: FindStockMovementsDto) {
     const isSuperAdmin = user.userRole === 'SUPER_ADMIN';
     const subsidiaryWhere = isSuperAdmin
-      ? (query.subsidiaryId ? { subsidiaryId: query.subsidiaryId } : {})
+      ? query.subsidiaryId
+        ? { subsidiaryId: query.subsidiaryId }
+        : {}
       : { subsidiaryId: user.subsidiaryId };
 
     return this.prisma.stockMovement.findMany({
@@ -77,6 +81,7 @@ export class StockMovementsService {
         },
         update: { stock: { increment: delta } },
         create: {
+          id: generateId(ID_PREFIXES.ITEMSTOCK),
           itemId: dto.itemId,
           subsidiaryId: user.subsidiaryId,
           stock: Math.max(delta, 0),
@@ -85,6 +90,7 @@ export class StockMovementsService {
 
       return tx.stockMovement.create({
         data: {
+          id: generateId(ID_PREFIXES.STOCKMOVEMENT),
           itemId: dto.itemId,
           subsidiaryId: user.subsidiaryId,
           type: dto.type,
@@ -135,6 +141,7 @@ export class StockMovementsService {
         },
         update: { stock: dto.countedStock },
         create: {
+          id: generateId(ID_PREFIXES.ITEMSTOCK),
           itemId: dto.itemId,
           subsidiaryId: targetSubsidiaryId,
           stock: dto.countedStock,
@@ -143,6 +150,7 @@ export class StockMovementsService {
 
       const movement = await tx.stockMovement.create({
         data: {
+          id: generateId(ID_PREFIXES.STOCKMOVEMENT),
           itemId: dto.itemId,
           subsidiaryId: targetSubsidiaryId,
           type:
@@ -191,6 +199,7 @@ export class StockMovementsService {
           },
           update: { stock: { decrement: line.quantity } },
           create: {
+            id: generateId(ID_PREFIXES.ITEMSTOCK),
             itemId: line.itemId,
             subsidiaryId: user.subsidiaryId,
             stock: -line.quantity,
@@ -199,6 +208,7 @@ export class StockMovementsService {
 
         const movement = await tx.stockMovement.create({
           data: {
+            id: generateId(ID_PREFIXES.STOCKMOVEMENT),
             itemId: line.itemId,
             subsidiaryId: user.subsidiaryId,
             type: StockMovementType.PRODUCTION_CONSUMPTION,

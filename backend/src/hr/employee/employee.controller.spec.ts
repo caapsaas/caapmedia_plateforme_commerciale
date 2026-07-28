@@ -11,18 +11,24 @@ describe('EmployeeController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [EmployeeController],
       providers: [
-        { provide: EmployeeService, useValue: {
-          findAll: jest.fn().mockResolvedValue([]),
-          findOne: jest.fn().mockResolvedValue(null),
-          create: jest.fn().mockResolvedValue({ id: '1' }),
-          update: jest.fn().mockResolvedValue({ id: '1' }),
-          remove: jest.fn().mockResolvedValue({ id: '1' }),
-        }},
-        { provide: LoggerService, useValue: {
-          log: jest.fn(),
-          warn: jest.fn(),
-          error: jest.fn(),
-        }},
+        {
+          provide: EmployeeService,
+          useValue: {
+            findAll: jest.fn().mockResolvedValue([]),
+            findOne: jest.fn().mockResolvedValue(null),
+            create: jest.fn().mockResolvedValue({ id: '1' }),
+            update: jest.fn().mockResolvedValue({ id: '1' }),
+            remove: jest.fn().mockResolvedValue({ id: '1' }),
+          },
+        },
+        {
+          provide: LoggerService,
+          useValue: {
+            log: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -37,11 +43,18 @@ describe('EmployeeController', () => {
   describe('findAll', () => {
     it('should return an array of employees', async () => {
       const mockEmployees = [
-        { id: '1', firstName: 'John', lastName: 'Doe', email: 'john@example.com' }
+        {
+          id: '1',
+          firstName: 'John',
+          lastName: 'Doe',
+          email: 'john@example.com',
+        },
       ];
       jest.spyOn(service, 'findAll').mockResolvedValue(mockEmployees as any);
 
-      const result = await controller.findAll({ user: { subsidiaryId: 'sub-1' } });
+      const result = await controller.findAll({
+        user: { subsidiaryId: 'sub-1' },
+      });
       expect(result).toEqual(mockEmployees);
     });
   });
@@ -69,9 +82,13 @@ describe('EmployeeController', () => {
         birthDate: new Date(),
       };
       const mockCreatedEmployee = { id: '1', ...createEmployeeDto };
-      jest.spyOn(service, 'create').mockResolvedValue(mockCreatedEmployee as any);
+      jest
+        .spyOn(service, 'create')
+        .mockResolvedValue(mockCreatedEmployee as any);
 
-      const result = await controller.create(createEmployeeDto, { user: { subsidiaryId: 'sub-1' } });
+      const result = await controller.create(createEmployeeDto, {
+        user: { subsidiaryId: 'sub-1' },
+      });
       expect(result).toEqual(mockCreatedEmployee);
     });
   });

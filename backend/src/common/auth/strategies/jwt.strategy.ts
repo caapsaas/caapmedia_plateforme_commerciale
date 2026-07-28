@@ -27,7 +27,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: cookieOrBearerExtractor,
       ignoreExpiration: false,
       // Non-null: présence garantie au démarrage par env.validation.ts (fail-fast sinon)
-      secretOrKey: process.env.JWT_SECRET!,
+      secretOrKey: process.env.JWT_SECRET,
     });
   }
 
@@ -61,7 +61,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         employeeId = employee.id;
       }
     } catch (error) {
-      this.logger.warn(`Could not find employee for email ${user.email}`, 'JwtStrategy');
+      this.logger.warn(
+        `Could not find employee for email ${user.email}`,
+        'JwtStrategy',
+      );
     }
 
     // roles[] est la source de verite RBAC (backfillee/maintenue en synchro avec userRole+additionalRoles)

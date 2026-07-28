@@ -16,52 +16,44 @@ interface ProfitAndLossStatementProps {
     onEndDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-const ProfitAndLossStatement: React.FC<ProfitAndLossStatementProps> = ({ 
-    subsidiary, pnlData, period, onPeriodChange, startDate, onStartDateChange, endDate, onEndDateChange 
+const ProfitAndLossStatement: React.FC<ProfitAndLossStatementProps> = ({
+    subsidiary, pnlData, period, onPeriodChange, startDate, onStartDateChange, endDate, onEndDateChange,
 }) => {
     const { t, formatCurrency } = useI18n();
 
     const handlePrint = () => window.print();
-    
-    const handleExportPdf = () => {
-        // This would require a more complex PDF generation logic
-        alert('PDF export for P&L is a planned feature.');
-    };
+    const handleExportPdf = () => alert('PDF export for P&L is a planned feature.');
 
-    // Calculate profit before tax for display (used for tax calculation)
-    const profitBeforeTax = pnlData ? pnlData.grossProfit - pnlData.operatingExpenses : 0;
-    
-    // Loading state with modern skeleton
     if (!pnlData) {
         return (
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-                <div className="animate-pulse">
-                    <div className="h-8 bg-gray-200 rounded-lg mb-6 w-1/3"></div>
-                    <div className="space-y-4">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                            <div key={i} className="h-6 bg-gray-200 rounded-lg"></div>
-                        ))}
-                    </div>
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 animate-pulse">
+                <div className="h-7 bg-slate-100 rounded-lg mb-6 w-1/3" />
+                <div className="space-y-3">
+                    {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-5 bg-slate-100 rounded-lg" />)}
                 </div>
             </div>
         );
     }
 
+    const profitBeforeTax = pnlData.grossProfit - pnlData.operatingExpenses;
+    const isProfit = pnlData.netIncome >= 0;
+
     return (
-        <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
-            {/* Header with application colors */}
-            <div className="bg-gradient-to-r from-[#c6e911] to-[#adc40f] p-4 text-white">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+
+            {/* En-tête */}
+            <div className="bg-gradient-to-r from-[#c6e911] to-[#adc40f] px-6 py-4">
                 <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-3">
                     <div>
-                        <h2 className="text-xl font-bold mb-1">{t('pnl.title')}</h2>
-                        <div className="flex items-center gap-2 text-white/80">
-                            <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
-                            <span className="text-xs">{subsidiary.name}</span>
+                        <h2 className="text-xl font-bold text-slate-800">{t('pnl.title')}</h2>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <span className="w-1.5 h-1.5 bg-slate-700 rounded-full" />
+                            <span className="text-sm text-slate-700 font-medium">{subsidiary.name}</span>
                         </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 no-print">
-                        <div className="bg-white/20 backdrop-blur-sm rounded-md p-0.5">
-                            <PeriodFilter 
+                        <div className="bg-white/40 rounded-lg p-0.5">
+                            <PeriodFilter
                                 period={period}
                                 onPeriodChange={onPeriodChange}
                                 startDate={startDate}
@@ -70,172 +62,114 @@ const ProfitAndLossStatement: React.FC<ProfitAndLossStatementProps> = ({
                                 onEndDateChange={onEndDateChange}
                             />
                         </div>
-                        <button 
-                            onClick={handlePrint} 
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-all duration-200 rounded-md font-medium text-xs border border-white/20"
+                        <button
+                            onClick={handlePrint}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/40 text-slate-800 hover:bg-white/60 transition-colors rounded-lg text-xs font-semibold border border-slate-800/10"
                         >
                             <IconPrint className="h-3.5 w-3.5" />
-                            <span>{t('common.print')}</span>
+                            {t('common.print')}
                         </button>
-                        <button 
-                            onClick={handleExportPdf} 
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-all duration-200 rounded-md font-medium text-xs border border-white/20"
+                        <button
+                            onClick={handleExportPdf}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/40 text-slate-800 hover:bg-white/60 transition-colors rounded-lg text-xs font-semibold border border-slate-800/10"
                         >
                             <IconPdf className="h-3.5 w-3.5" />
-                            <span>{t('common.exportPdf')}</span>
+                            {t('common.exportPdf')}
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Main content */}
+            {/* Corps */}
             <div className="p-6">
                 <div className="max-w-6xl mx-auto">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Revenue Column */}
-                        <div className="bg-gradient-to-br from-slate-50 to-[#c6e911]/10 rounded-xl p-6 border border-[#c6e911]/20">
-                            <div className="flex items-center gap-2 mb-6">
-                                <div className="w-8 h-8 bg-[#c6e911] rounded-lg flex items-center justify-center">
-                                    <div className="w-4 h-4 bg-white rounded"></div>
-                                </div>
-                                <h3 className="text-xl font-bold text-slate-800">{t('pnl.revenue')}</h3>
-                            </div>
-                            
-                            <div className="space-y-6">
-                                {/* Revenue Detail */}
-                                <div className="bg-white rounded-lg p-4 border border-[#c6e911]/20">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <div className="w-5 h-5 bg-[#c6e911]/20 rounded-md flex items-center justify-center">
-                                            <div className="w-2.5 h-2.5 bg-[#c6e911] rounded"></div>
-                                        </div>
-                                        <h4 className="font-semibold text-slate-700 text-sm">Total Revenue</h4>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-slate-600 text-sm font-medium">Sales Income</span>
-                                        <span className="text-xl font-bold text-[#c6e911]">{formatCurrency(pnlData.revenue)}</span>
+
+                        {/* Colonne revenus */}
+                        <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                            <h3 className="text-base font-bold text-slate-800 mb-5 flex items-center gap-2">
+                                <span className="w-2 h-5 bg-[#c6e911] rounded-full inline-block" />
+                                {t('pnl.revenue')}
+                            </h3>
+
+                            <div className="space-y-3">
+                                {/* Chiffre d'affaires */}
+                                <div className="bg-white rounded-lg p-4 border border-slate-200">
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                                        {t('pnl.revenue')}
+                                    </p>
+                                    <div className="flex justify-between items-baseline">
+                                        <span className="text-sm text-slate-600">Ventes</span>
+                                        <span className="text-xl font-bold text-slate-800">{formatCurrency(pnlData.revenue)}</span>
                                     </div>
                                 </div>
 
-                                {/* Gross Profit */}
-                                <div className="bg-gradient-to-r from-[#c6e911] to-[#adc40f] text-white rounded-lg p-4 shadow-md">
+                                {/* Bénéfice brut */}
+                                <div className="bg-slate-800 rounded-lg p-4">
                                     <div className="flex justify-between items-center">
                                         <div>
-                                            <h4 className="font-bold text-white mb-1">Gross Profit</h4>
-                                            <p className="text-white/90 text-xs">Revenue - COGS</p>
+                                            <p className="font-semibold text-white text-sm">Bénéfice brut</p>
+                                            <p className="text-slate-400 text-xs mt-0.5">CA − Coût des ventes</p>
                                         </div>
-                                        <div className="text-xl font-bold">{formatCurrency(pnlData.grossProfit)}</div>
+                                        <span className="text-xl font-bold text-[#c6e911]">{formatCurrency(pnlData.grossProfit)}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Expenses Column */}
-                        <div className="bg-gradient-to-br from-slate-50 to-[#adc40f]/10 rounded-xl p-6 border border-[#adc40f]/20">
-                            <div className="flex items-center gap-2 mb-6">
-                                <div className="w-8 h-8 bg-[#adc40f] rounded-lg flex items-center justify-center">
-                                    <div className="w-4 h-4 bg-white rounded"></div>
-                                </div>
-                                <h3 className="text-xl font-bold text-slate-800">{t('pnl.expenses')}</h3>
-                            </div>
-                            
-                            <div className="space-y-6">
-                                {/* COGS Section */}
-                                <div className="bg-white rounded-lg p-4 border border-[#adc40f]/20">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <div className="w-5 h-5 bg-orange-100 rounded-md flex items-center justify-center">
-                                            <div className="w-2.5 h-2.5 bg-orange-500 rounded"></div>
-                                        </div>
-                                        <h4 className="font-semibold text-slate-700 text-sm">{t('pnl.cogs')}</h4>
-                                    </div>
-                        <div className="flex justify-between items-center">
-                                        <span className="text-slate-600 text-sm font-medium">Cost of Goods Sold</span>
-                                        <span className="text-lg font-bold text-orange-600">({formatCurrency(pnlData.cogs)})</span>
-                                    </div>
-                                </div>
+                        {/* Colonne charges */}
+                        <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                            <h3 className="text-base font-bold text-slate-800 mb-5 flex items-center gap-2">
+                                <span className="w-2 h-5 bg-red-400 rounded-full inline-block" />
+                                {t('pnl.expenses')}
+                            </h3>
 
-                                {/* Operating Expenses */}
-                                <div className="bg-white rounded-lg p-4 border border-[#adc40f]/20">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <div className="w-5 h-5 bg-red-100 rounded-md flex items-center justify-center">
-                                            <div className="w-2.5 h-2.5 bg-red-500 rounded"></div>
+                            <div className="space-y-3">
+                                {[
+                                    { label: t('pnl.cogs'),               value: pnlData.cogs,               color: 'text-orange-600', note: 'Coût des marchandises' },
+                                    { label: t('pnl.operatingExpenses'),  value: pnlData.operatingExpenses,  color: 'text-red-600',    note: 'Charges exploitation' },
+                                    { label: t('pnl.taxes'),              value: pnlData.taxes,              color: 'text-slate-600',  note: 'Charges fiscales' },
+                                    { label: 'Résultat avant impôts',     value: profitBeforeTax,            color: 'text-blue-600',   note: 'Bénéfice brut − charges' },
+                                ].map(({ label, value, color, note }) => (
+                                    <div key={label} className="bg-white rounded-lg p-4 border border-slate-200">
+                                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">{label}</p>
+                                        <div className="flex justify-between items-baseline">
+                                            <span className="text-xs text-slate-400">{note}</span>
+                                            <span className={`text-base font-bold ${color}`}>
+                                                {label === 'Résultat avant impôts' ? formatCurrency(value) : `(${formatCurrency(value)})`}
+                                            </span>
                                         </div>
-                                        <h4 className="font-semibold text-slate-700 text-sm">{t('pnl.operatingExpenses')}</h4>
                                     </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-slate-600 text-sm font-medium">Operating Costs</span>
-                                        <span className="text-lg font-bold text-red-600">({formatCurrency(pnlData.operatingExpenses)})</span>
-                                    </div>
-                                </div>
+                                ))}
 
-                                {/* Taxes */}
-                                <div className="bg-white rounded-lg p-4 border border-[#adc40f]/20">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <div className="w-5 h-5 bg-slate-100 rounded-md flex items-center justify-center">
-                                            <div className="w-2.5 h-2.5 bg-slate-500 rounded"></div>
-                                        </div>
-                                        <h4 className="font-semibold text-slate-700 text-sm">{t('pnl.taxes')}</h4>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-slate-600 text-sm font-medium">Tax Expenses</span>
-                                        <span className="text-lg font-bold text-slate-600">({formatCurrency(pnlData.taxes)})</span>
-                                    </div>
-                                </div>
-
-                                {/* Profit Before Tax */}
-                                <div className="bg-white rounded-lg p-4 border border-[#adc40f]/20">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <div className="w-5 h-5 bg-blue-100 rounded-md flex items-center justify-center">
-                                            <div className="w-2.5 h-2.5 bg-blue-500 rounded"></div>
-                                        </div>
-                                        <h4 className="font-semibold text-slate-700 text-sm">Profit Before Tax</h4>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-slate-600 text-sm font-medium">Gross Profit - Operating Expenses</span>
-                                        <span className="text-lg font-bold text-blue-600">{formatCurrency(profitBeforeTax)}</span>
-                                    </div>
-                                </div>
-
-                                {/* Total Expenses */}
-                                <div className="bg-gradient-to-r from-[#adc40f] to-[#96900c] text-white rounded-lg p-4 shadow-md">
+                                {/* Total charges */}
+                                <div className="bg-slate-800 rounded-lg p-4">
                                     <div className="flex justify-between items-center">
                                         <div>
-                                            <h4 className="font-bold text-white mb-1">Total Expenses</h4>
-                                            <p className="text-white/90 text-xs">COGS + Operating + Taxes</p>
+                                            <p className="font-semibold text-white text-sm">Total des charges</p>
+                                            <p className="text-slate-400 text-xs mt-0.5">Coûts + exploitation + taxes</p>
                                         </div>
-                                        <div className="text-xl font-bold">{formatCurrency(pnlData.cogs + pnlData.operatingExpenses + pnlData.taxes)}</div>
+                                        <span className="text-xl font-bold text-red-400">
+                                            ({formatCurrency(pnlData.cogs + pnlData.operatingExpenses + pnlData.taxes)})
+                                        </span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Net Income Section */}
-                    <div className="mt-8 bg-gradient-to-r from-[#c6e911]/10 to-[#adc40f]/10 rounded-xl p-6 border border-[#c6e911]/30">
+                    {/* Résultat net */}
+                    <div className={`mt-6 rounded-xl p-6 border-2 ${isProfit ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                                    pnlData.netIncome >= 0 
-                                        ? 'bg-[#c6e911]' 
-                                        : 'bg-red-500'
-                                }`}>
-                                    <div className="w-6 h-6 bg-white rounded-full"></div>
-                                </div>
-                                <div>
-                                    <h4 className="font-bold text-slate-800 text-lg">{t('pnl.netIncome')}</h4>
-                                    <p className="text-slate-600 text-sm">
-                                        Profit Before Tax - Taxes
-                                    </p>
-                                </div>
+                            <div>
+                                <h4 className="text-base font-bold text-slate-800">{t('pnl.netIncome')}</h4>
+                                <p className="text-sm text-slate-500 mt-0.5">Résultat avant impôts − Taxes</p>
                             </div>
                             <div className="text-right">
-                                <div className="text-sm text-slate-600 mb-1 font-medium">Net Result</div>
-                                <div className={`text-2xl font-bold ${
-                                    pnlData.netIncome >= 0 
-                                        ? 'text-[#c6e911]' 
-                                        : 'text-red-600'
-                                }`}>
+                                <p className="text-xs text-slate-500 mb-1">Résultat net</p>
+                                <p className={`text-3xl font-bold ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
                                     {formatCurrency(pnlData.netIncome)}
-                                </div>
+                                </p>
                             </div>
                         </div>
                     </div>

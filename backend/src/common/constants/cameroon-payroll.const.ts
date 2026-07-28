@@ -53,7 +53,10 @@ export const CAMEROON_PAYROLL = {
 /**
  * Calculate CNPS deduction for employee
  */
-export function calculateCNPSDeduction(grossSalary: number, category: string = 'B'): {
+export function calculateCNPSDeduction(
+  grossSalary: number,
+  category: string = 'B',
+): {
   employee: number;
   employer: number;
 } {
@@ -73,12 +76,12 @@ export function calculateCNPSDeduction(grossSalary: number, category: string = '
  */
 export function calculateIRPP(
   taxableSalary: number,
-  numberDependents: number = 0
+  numberDependents: number = 0,
 ): number {
   // Apply dependents deduction
   const dependentsDeduction = Math.min(
     numberDependents * CAMEROON_PAYROLL.DEPENDENTS_DEDUCTION,
-    taxableSalary * 0.2 // Cap at 20% of taxable salary
+    taxableSalary * 0.2, // Cap at 20% of taxable salary
   );
   const finalTaxableSalary = Math.max(0, taxableSalary - dependentsDeduction);
 
