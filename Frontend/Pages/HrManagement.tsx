@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Employee, PayrollRecord, AbsenceRecord } from '../types';
 import { useAppContext } from '../context/AppContext';
 import { useI18n } from '../i18n';
-import AttendanceQRComponent from '../components/hr/AttendanceQRComponent';
+import AttendanceCards from '../components/hr/AttendanceCards';
+import AttendanceHistory from '../components/hr/AttendanceHistory';
 import PayrollManagement from '../components/hr/PayrollManagement';
 import AbsenceManagement from '../components/hr/AbsenceManagement';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -12,7 +13,7 @@ import { getEmployees, saveEmployee, deleteEmployee, saveEmployeeWithDocumentsAn
 import { useAuth } from '../context/AuthContext';
 import EmployeeDatabaseModern from '../components/hr/EmployeeDatabaseModern';
 
-type HrView = 'employees' | 'attendance-qr' | 'payroll' | 'absences';
+type HrView = 'employees' | 'attendance-cards' | 'attendance-history' | 'payroll' | 'absences';
 
 const HrManagement: React.FC = () => {
     const { t } = useI18n();
@@ -25,24 +26,17 @@ const HrManagement: React.FC = () => {
     }
 
     // --- Data Fetching ---
-    // Charger les employés avec les relations (documents, congés, etc.)
     const { data: employees = [], isLoading: isLoadingEmployees } = useQuery<Employee[]>({
         queryKey: ['employees', subsidiary.id],
-        queryFn: () => getEmployees(true)  // ✓ includeRelations = true
+        queryFn: () => getEmployees(true)
     });
     const { data: absences = [], isLoading: isLoadingAbsences } = useQuery<AbsenceRecord[]>({ queryKey: ['absences', subsidiary.id], queryFn: () => getAbsenceRecords() });
     const { data: payrolls = [], isLoading: isLoadingPayrolls } = useQuery<PayrollRecord[]>({ queryKey: ['payrolls', subsidiary.id], queryFn: () => getPayrollRecords() });
 
     // --- Mutations ---
-    // Wrapper pour saveEmployeeWithDocumentsAndLeaves qui recharge ensuite l'employé avec relations
     const saveEmployeeWithCompleteData = async (employeeData: any) => {
-        // 1. Sauvegarder l'employé + documents + congés
         const savedEmployee = await saveEmployeeWithDocumentsAndLeaves(employeeData);
-
-        // 2. Recharger l'employé avec TOUTES ses relations
-        // (documents, leaveRecords, leaveBalances, etc.)
         const completeEmployee = await getEmployeeWithRelations(savedEmployee.id);
-
         return completeEmployee;
     };
 
@@ -59,7 +53,7 @@ const HrManagement: React.FC = () => {
     const isLoading = isLoadingEmployees || isLoadingAbsences || isLoadingPayrolls;
 
     const renderActiveView = () => {
-        if (isLoading && activeTab !== 'attendance-qr') {
+        if (isLoading && activeTab !== 'attendance-cards' && activeTab !== 'attendance-history') {
             return <div className="p-6 text-center">{t('common.loading')}</div>;
         }
 
@@ -71,8 +65,10 @@ const HrManagement: React.FC = () => {
                             onSave={onSaveEmployee}
                             onDelete={onDeleteEmployee}
                         />;
-            case 'attendance-qr':
-                return <AttendanceQRComponent subsidiary={subsidiary} />;
+            case 'attendance-cards':
+                return <AttendanceCards subsidiary={subsidiary} />;
+            case 'attendance-history':
+                return <AttendanceHistory />;
             case 'payroll':
                 return <PayrollManagement
                             subsidiary={subsidiary}
@@ -112,7 +108,8 @@ const HrManagement: React.FC = () => {
                 <h2 className="text-3xl font-bold text-slate-800">{t('hr.title')}</h2>
                 <div className="flex items-center flex-wrap gap-2 p-1 bg-slate-200 rounded-lg self-start sm:self-center">
                     <TabButton view="employees" label={t('hr.tabs.employees')} />
-                    <TabButton view="attendance-qr" label={t('hr.tabs.attendance')} />
+                    <TabButton view="attendance-cards" label={t('hr.tabs.attendance_cards')} />
+                    <TabButton view="attendance-history" label={t('hr.tabs.attendance_history')} />
                     <TabButton view="absences" label={t('hr.tabs.absences')} />
                     <TabButton view="payroll" label={t('hr.tabs.payroll')} />
                 </div>
