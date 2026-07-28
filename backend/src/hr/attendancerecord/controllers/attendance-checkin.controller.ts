@@ -17,17 +17,19 @@ import { CreateAttendanceRecordDto } from '../dto/atendancerecord.dto';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { Roles } from 'src/common/auth/role/role.decorator';
 
+// Note: latitude/longitude/accuracy are accepted for backward compatibility
+// but are OPTIONAL and will not be used to validate or block check-in/check-out.
 interface CheckInDto {
   qrToken: string;
-  latitude: number;
-  longitude: number;
-  accuracy: number;
+  latitude?: number;
+  longitude?: number;
+  accuracy?: number;
 }
 
 interface CheckOutDto {
-  latitude: number;
-  longitude: number;
-  accuracy: number;
+  latitude?: number;
+  longitude?: number;
+  accuracy?: number;
 }
 
 @Controller('hr/attendance-checkin')
@@ -71,7 +73,7 @@ export class AttendanceCheckInController {
     return result;
   }
 
-  // Check-in avec QR Code + Géolocalisation (PAS DE JWT REQUIS)
+  // Check-in avec QR Code (géolocalisation désormais facultative et non utilisée)
   @Post('check-in')
   async checkIn(@Body() dto: CheckInDto) {
     // 1️⃣ Valider le QR Code (contient déjà l'employeeId et subsidiaryId)
@@ -81,28 +83,10 @@ export class AttendanceCheckInController {
 
     this.logger.log(`Check-in attempt for employee ${employeeId}`);
 
-    // 2️⃣ Valider l'accuracy GPS (rejeter si trop faible)
-    if (!this.geoService.isAccuracyAcceptable(dto.accuracy)) {
-      throw new BadRequestException(
-        `Precision GPS insuffisante (±${Math.round(dto.accuracy)}m). Attendez d'avoir une meilleure signal.`,
-      );
-    }
+    // NOTE: We no longer reject based on GPS accuracy or proximity. Any latitude/longitude
+    // provided are stored only for informational/audit purposes by the service layer.
 
-    // 3️⃣ Valider la géolocalisation
-    const proximityCheck = await this.geoService.validateProximity(
-      { lat: dto.latitude, lng: dto.longitude },
-      subsidiaryId,
-      100, // Rayon de 100m
-    );
-
-    if (!proximityCheck.isValid) {
-      throw new BadRequestException(
-        `Vous êtes à ${proximityCheck.distanceMeters}m du bureau. ` +
-          `Approchez-vous à moins de 100m pour scanner.`,
-      );
-    }
-
-    // 4️⃣ Vérifier qu'il n'y a pas déjà un check-in aujourd'hui
+    // 2️⃣ Vérifier qu'il n'y a pas déjà un check-in aujourd'hui
     const todayRecord = await this.attendanceService.findTodayRecord(
       employeeId,
       subsidiaryId,
@@ -114,29 +98,29 @@ export class AttendanceCheckInController {
       );
     }
 
-    // 5️⃣ Vérifier si en retard
+    // 3️⃣ Vérifier si en retard (basé uniquement sur l'heure)
     const isLate = await this.geoService.isArrivalLate(new Date());
 
-    // 6️⃣ Récupérer les infos de l'employé
+    // 4️⃣ Récupérer les infos de l'employé
     const employee = await this.attendanceService.findEmployeeById(employeeId);
     if (!employee) {
       throw new BadRequestException('Employé non trouvé');
     }
 
-    // 7️⃣ Créer l'enregistrement
+    // 5️⃣ Créer l'enregistrement (ne pas utiliser la géolocalisation pour décider du statut)
     const attendanceData: CreateAttendanceRecordDto = {
       employeeId,
       attendanceDate: new Date(),
       arrivalTime: new Date(),
       status: isLate ? 'LATE' : 'PRESENT',
       employeeName: `${employee.firstName} ${employee.lastName}`,
+      // If geo fields are present in DTO model, the service will persist them as informational only.
     };
 
     const result = await this.attendanceService.create(
       attendanceData,
       employeeId,
       subsidiaryId,
-     
     );
 
     this.logger.log(`✓ Check-in successful for employee ${employeeId}`);
@@ -146,32 +130,17 @@ export class AttendanceCheckInController {
       message: `Arrivée enregistrée à ${new Date().toLocaleTimeString('fr-FR')}`,
       employeeName: `${employee.firstName} ${employee.lastName}`,
       status: isLate ? 'EN RETARD' : 'PRÉSENT',
-      distance: `±${proximityCheck.distanceMeters}m`,
-      accuracy: `±${Math.round(dto.accuracy)}m`,
       record: result,
     };
   }
 
-  // Check-out avec Géolocalisation (protégé par JWT)
+  // Check-out (protégé par JWT) — géolocalisation facultative et non utilisée pour valider
   @Post('check-out')
   @UseGuards(JwtAuthGuard, RoleGuard)
   async checkOut(@Body() dto: CheckOutDto, @Request() req) {
     this.logger.log(`Check-out attempt for employee ${req.user.employeeId}`);
 
-    // 1️⃣ Valider l'accuracy GPS
-    if (!this.geoService.isAccuracyAcceptable(dto.accuracy, 100)) {
-      this.logger.warn(
-        `Check-out with poor accuracy: ${Math.round(dto.accuracy)}m`,
-      );
-    }
-
-    // 2️⃣ Valider la géolocalisation
-    const proximityCheck = await this.geoService.validateProximity(
-      { lat: dto.latitude, lng: dto.longitude },
-      req.user.subsidiaryId,
-    );
-
-    // 3️⃣ Trouver l'enregistrement d'aujourd'hui
+    // 1️⃣ Trouver l'enregistrement d'aujourd'hui
     const todayRecord = await this.attendanceService.findTodayRecord(
       req.user.employeeId,
       req.user.subsidiaryId,
@@ -189,12 +158,10 @@ export class AttendanceCheckInController {
       );
     }
 
-    // 4️⃣ Mettre à jour le départ
+    // 2️⃣ Mettre à jour le départ — ne pas utiliser la géolocalisation pour déterminer le statut
     const result = await this.attendanceService.update(todayRecord.id, {
       departureTime: new Date(),
-      departureLatitude: dto.latitude,
-      departureLongitude: dto.longitude,
-      status: proximityCheck.isValid ? 'LEFT' : 'LEFT_OUTSIDE_GEOFENCE',
+      status: 'LEFT',
     });
 
     this.logger.log(
@@ -213,8 +180,7 @@ export class AttendanceCheckInController {
     return {
       success: true,
       message: `Départ enregistré à ${departureTime.toLocaleTimeString('fr-FR')}`,
-      status: proximityCheck.isValid ? 'DANS LA ZONE' : 'HORS ZONE',
-      distance: `±${proximityCheck.distanceMeters}m`,
+      status: 'PARTI',
       duration: `${durationHours}h ${durationMins}min`,
       record: result,
     };
