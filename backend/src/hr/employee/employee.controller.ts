@@ -71,9 +71,12 @@ export class EmployeeController {
     @Query('includeRelations') includeRelations?: string,
   ) {
     const subsidiaryId = req.user.subsidiaryId;
-    this.logger.log(`Fetching employees for subsidiary ${subsidiaryId}`);
+    this.logger.log(`Fetching employees for subsidiary ${subsidiaryId} (role: ${req.user.roles})`);
     const includeRel = includeRelations === 'true';
-    return this.employeeService.findAll(subsidiaryId, includeRel);
+
+    // SUPER_ADMIN : vue consolidée toutes filiales (subsidiaryId = null → pas de filtre)
+    const isSuperAdmin = req.user.roles?.includes('SUPER_ADMIN');
+    return this.employeeService.findAll(isSuperAdmin ? null : subsidiaryId, includeRel);
   }
 
   @Get(':id')

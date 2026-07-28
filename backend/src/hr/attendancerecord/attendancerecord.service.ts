@@ -8,35 +8,20 @@ import { AttendanceRecord } from '@prisma/client';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
-export interface CreateAttendanceWithGeoDto extends CreateAttendanceRecordDto {
-  arrivalLatitude?: number;
-  arrivalLongitude?: number;
-  departureLatitude?: number;
-  departureLongitude?: number;
-  isGeolocationValid?: boolean;
-  accuracyMeters?: number;
-  qrCodeToken?: string;
-}
-
 @Injectable()
 export class AttendanceRecordService {
   private readonly logger = new Logger(AttendanceRecordService.name);
 
   constructor(private readonly prisma: PrismaService) {}
 
+  // Note: geolocation fields (arrivalLatitude, etc.) are kept only for
+  // informational/audit purposes. They MUST NOT be used to compute or
+  // validate attendance status (PRESENT/LATE/ABSENT). Business logic that
+  // determines status must rely only on times/attendance rules.
   async create(
     createAttendanceRecordDto: CreateAttendanceRecordDto,
     employeeId: string,
     subsidiaryId: string,
-    geoData?: {
-      arrivalLatitude?: number;
-      arrivalLongitude?: number;
-      departureLatitude?: number;
-      departureLongitude?: number;
-      isGeolocationValid?: boolean;
-      accuracyMeters?: number;
-      qrCodeToken?: string;
-    },
   ): Promise<AttendanceRecord> {
     this.logger.log(`Creating attendance record for employee ${employeeId}`);
     return this.prisma.attendanceRecord.create({
@@ -52,14 +37,15 @@ export class AttendanceRecordService {
         signature: createAttendanceRecordDto.signature,
         employeeId,
         subsidiaryId,
-        // Geolocation data
-        arrivalLatitude: geoData?.arrivalLatitude,
-        arrivalLongitude: geoData?.arrivalLongitude,
-        departureLatitude: geoData?.departureLatitude,
-        departureLongitude: geoData?.departureLongitude,
-        isGeolocationValid: geoData?.isGeolocationValid ?? false,
-        accuracyMeters: geoData?.accuracyMeters,
-        qrCodeToken: geoData?.qrCodeToken,
+        // Persist geolocation fields only as informational data. These
+        // fields are optional and do not affect attendance business rules.
+        arrivalLatitude: createAttendanceRecordDto.arrivalLatitude ?? null,
+        arrivalLongitude: createAttendanceRecordDto.arrivalLongitude ?? null,
+        departureLatitude: createAttendanceRecordDto.departureLatitude ?? null,
+        departureLongitude: createAttendanceRecordDto.departureLongitude ?? null,
+        isGeolocationValid: createAttendanceRecordDto.isGeolocationValid ?? false,
+        accuracyMeters: createAttendanceRecordDto.accuracyMeters ?? null,
+        qrCodeToken: createAttendanceRecordDto.qrCodeToken ?? null,
       },
       include: {
         employee: true,
@@ -91,17 +77,20 @@ export class AttendanceRecordService {
   }
 
   async findByDateRange(
-    employeeId: string,
+    employeeId: string | null,
     subsidiaryId: string,
     startDate: Date,
     endDate: Date,
   ): Promise<AttendanceRecord[]> {
+    const where: any = {
+      subsidiaryId,
+      attendanceDate: { gte: startDate, lt: endDate },
+    };
+    if (employeeId) {
+      where.employeeId = employeeId;
+    }
     return this.prisma.attendanceRecord.findMany({
-      where: {
-        employeeId,
-        subsidiaryId,
-        attendanceDate: { gte: startDate, lt: endDate },
-      },
+      where,
       include: {
         employee: { select: { id: true, firstName: true, lastName: true } },
       },

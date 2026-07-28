@@ -6,6 +6,7 @@ import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import { Edit, User, Briefcase, DollarSign, Umbrella, Globe, FileText, Card as CardIcon, Award, Shield, X, Download } from '../ui/Icons';
 import LeaveBalanceWidget from './LeaveBalanceWidget';
+import DocumentCard from './DocumentCard';
 import CameroonPayrollWidget from './CameroonPayrollWidget';
 import { getEmployeeWithRelations } from '../../services/apihr/apiEmployees';
 import { useToast } from '../../context/ToastContext';
@@ -556,7 +557,6 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
                   </div>
                 )}
 
-                {/* Diplomas */}
                 {employeeData.documents.diplomas && employeeData.documents.diplomas.length > 0 && (
                   <div className="border border-amber-200 rounded-lg p-4 bg-amber-50/50">
                     <div className="flex items-center gap-2 mb-3">
@@ -569,19 +569,13 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
                     </div>
                     <div className="space-y-2 ml-10">
                       {employeeData.documents.diplomas.map((diploma, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-amber-100 hover:border-amber-200 transition-colors">
-                          <p className="text-xs font-medium text-slate-700 truncate flex-1">{diploma.name}</p>
-                          {diploma.url && (
-                            <a
-                              href={diploma.url}
-                              download={diploma.name}
-                              className="ml-2 p-1 text-amber-600 hover:bg-amber-100 rounded transition-colors flex-shrink-0"
-                              title="Télécharger"
-                            >
-                              <Download size={16} />
-                            </a>
-                          )}
-                        </div>
+                        <DocumentCard
+                          key={index}
+                          labelKey="hr.details.diploma"
+                          document={diploma}
+                          Icon={Award}
+                          bgClass="bg-amber-50/50"
+                        />
                       ))}
                     </div>
                   </div>

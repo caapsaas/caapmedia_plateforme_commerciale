@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import jsQR from 'jsqr';
 import html2canvas from 'html2canvas';
@@ -29,34 +29,48 @@ interface EmployeeWithQr {
   employee: Employee;
 }
 
-interface AttendanceRecord {
-  id: string;
-  employeeName: string;
-  attendanceDate: string;
-  arrivalTime: string | null;
-  departureTime: string | null;
-  status: 'PRESENT' | 'ABSENT' | 'LEFT' | 'LEFT_OUTSIDE_GEOFENCE' | 'LATE';
-  isGeolocationValid: boolean;
-  accuracyMeters?: number;
-}
-
-interface AttendanceQRComponentProps {
-  subsidiary: any;
-}
-
 interface CheckInResponse {
   success: boolean;
-  type?: 'check-in' | 'check-out';
   message: string;
   employeeName: string;
   status: string;
-  distance?: string;
-  accuracy?: string;
-  duration?: string;
-  record?: AttendanceRecord;
+  distance: string;
+  accuracy: string;
 }
 
-export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ subsidiary }) => {
+interface AttendanceCardsProps {
+  subsidiary: any;
+}
+
+// Small utility to play a short beep using Web Audio API
+const playBeep = (opts?: { frequency?: number; duration?: number; volume?: number }) => {
+  try {
+    const frequency = opts?.frequency ?? 880;
+    const duration = opts?.duration ?? 120; // ms
+    const volume = opts?.volume ?? 0.2;
+
+    const AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+
+    const ctx = new AudioContext();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.value = frequency;
+    g.gain.value = volume;
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.start();
+    setTimeout(() => {
+      o.stop();
+      try { ctx.close(); } catch (e) { /* ignore */ }
+    }, duration);
+  } catch (e) {
+    // ignore audio errors
+  }
+};
+
+const AttendanceCards: React.FC<AttendanceCardsProps> = ({ subsidiary }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -67,9 +81,6 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
   const scanningRef = useRef(false);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [scanCooldown, setScanCooldown] = useState(false);
-
-  const queryClient = useQueryClient();
 
   const { data: employeesWithQr, isLoading: employeesLoading } = useQuery({
     queryKey: ['employees-with-qr'],
@@ -92,47 +103,14 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
     });
   }, [employeesWithQr, searchTerm]);
 
-  const { data: attendanceHistory, isLoading: historyLoading } = useQuery({
-    queryKey: ['attendance-history'],
-    queryFn: async () => {
-      const now = new Date();
-      const response = await api.get<AttendanceRecord[]>('/hr/attendance-checkin/history', {
-        params: {
-          year: now.getFullYear(),
-          month: now.getMonth() + 1
-        }
-      });
-      return response.data;
-    }
-  });
-
   const checkInMutation = useMutation({
-    mutationFn: async (dto: { qrToken: string; latitude?: number; longitude?: number; accuracy?: number }) => {
+    mutationFn: async (dto: { qrToken: string; latitude: number; longitude: number; accuracy: number }) => {
       const response = await api.post<CheckInResponse>('/hr/attendance-checkin/check-in', dto);
       return response.data;
-    },
-    onSuccess: (data) => {
-      // rafraîchir l'historique et tout autre cache pertinent
-      queryClient.invalidateQueries(['attendance-history']);
-      queryClient.invalidateQueries(['employees-with-qr']);
-
-      // Optionally update cache optimistically with created/updated record
-      if (data && data.record) {
-        queryClient.setQueryData(['attendance-history'], (old: any) => {
-          const list = Array.isArray(old) ? old : (old?.data || []);
-          // If check-in, prepend; if check-out, replace the existing record by id
-          if (data.type === 'check-in') return [data.record, ...list];
-          if (data.type === 'check-out') {
-            return list.map((r: AttendanceRecord) => (r.id === data.record!.id ? data.record : r));
-          }
-          return [data.record, ...list];
-        });
-      }
     }
   });
 
   useEffect(() => {
-    // Do not automatically require geolocation; keep it optional.
     if (!navigator.geolocation) {
       setErrorMessage('Géolocalisation non disponible');
       return;
@@ -144,8 +122,7 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
         setErrorMessage(null);
       },
       (error) => {
-        // Keep silent: user may refuse — we still allow scanning without coords
-        setCurrentLocation(null);
+        setErrorMessage('Erreur GPS. Veuillez autoriser l\'accès à votre position.');
       },
       { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
     );
@@ -154,8 +131,6 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
   }, []);
 
   const startScanner = async () => {
-    if (scanCooldown) return; // Prevent starting while cooldown is active
-
     setScannerActive(true);
     setErrorMessage(null);
 
@@ -201,11 +176,9 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const code = jsQR(imageData.data, imageData.width, imageData.height);
 
-        if (code) {
-          if (scanCooldown) return; // client-side protection
+        if (code && currentLocation) {
           scanningRef.current = false;
-          // Passe currentLocation seulement si disponible
-          handleCheckIn(code.data, currentLocation || undefined);
+          handleCheckIn(code.data);
           stopScanner();
           return;
         }
@@ -217,36 +190,24 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
     }
   };
 
-  const handleCheckIn = async (qrToken: string, coords?: GeolocationCoordinates) => {
-    if (scanCooldown) return; // protect against double submissions
+  const handleCheckIn = async (qrToken: string) => {
+    if (!currentLocation) {
+      setErrorMessage('Position GPS non disponible');
+      return;
+    }
 
     try {
-      const dto: any = { qrToken };
-      if (coords) {
-        dto.latitude = coords.latitude;
-        dto.longitude = coords.longitude;
-        dto.accuracy = coords.accuracy;
-      }
+      const response = await checkInMutation.mutateAsync({
+        qrToken,
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
+        accuracy: currentLocation.accuracy
+      });
 
-      const response = await checkInMutation.mutateAsync(dto);
+      // Play confirmation sound on successful check-in
+      playBeep({ frequency: 880, duration: 150, volume: 0.25 });
 
-      // backend returns { type: 'check-in'|'check-out', message, record, ... }
-      if (response.type === 'check-in') {
-        setSuccessMessage(`Arrivée enregistrée — ${response.message}`);
-      } else if (response.type === 'check-out') {
-        setSuccessMessage(`Départ enregistré — ${response.message}`);
-      } else {
-        setSuccessMessage(response.message || 'Enregistrement effectué');
-      }
-
-      // cooldown pour éviter double-posts (4s par ex.)
-      setScanCooldown(true);
-      setTimeout(() => setScanCooldown(false), 4000);
-
-      // invalider l'historique (si pas déjà fait dans onSuccess)
-      queryClient.invalidateQueries(['attendance-history']);
-      queryClient.invalidateQueries(['employees-with-qr']);
-
+      setSuccessMessage(response.message);
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error: any) {
       setErrorMessage(error.response?.data?.message || "Erreur lors de l'enregistrement");
@@ -387,8 +348,8 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
 
           <button 
             onClick={startScanner}
-            disabled={scanCooldown}
-            className={`bg-[#c6e911] hover:bg-[#b0cc0f] text-slate-800 font-semibold py-2 px-4 rounded-lg shadow transition-colors flex items-center gap-2 ${scanCooldown ? 'opacity-60 cursor-not-allowed' : ''}`}
+            disabled={!currentLocation}
+            className="bg-[#c6e911] hover:bg-[#b0cc0f] text-slate-800 font-semibold py-2 px-4 rounded-lg shadow transition-colors flex items-center gap-2"
           >
             <Camera className="w-5 h-5" />
             Lancer le Scanner
@@ -451,99 +412,8 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
           </div>
         )}
       </div>
-
-      {/* History Section */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        <div className="p-6 border-b-2 border-slate-200">
-          <h2 className="text-2xl font-bold text-slate-800">Historique des Présences</h2>
-        </div>
-
-        {historyLoading ? (
-          <div className="text-center py-12 text-slate-500">
-            <div className="animate-spin w-8 h-8 border-4 border-slate-300 border-t-[#c6e911] rounded-full mx-auto"></div>
-            <p className="mt-3">Chargement...</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gradient-to-r from-slate-50 to-slate-100 border-b-2 border-slate-200">
-                <tr>
-                  <th className="px-6 py-4 text-left font-semibold text-slate-700">Employé</th>
-                  <th className="px-6 py-4 text-left font-semibold text-slate-700">Date</th>
-                  <th className="px-6 py-4 text-left font-semibold text-slate-700">Arrivée</th>
-                  <th className="px-6 py-4 text-left font-semibold text-slate-700">Départ</th>
-                  <th className="px-6 py-4 text-left font-semibold text-slate-700">Statut</th>
-                  <th className="px-6 py-4 text-left font-semibold text-slate-700">GPS</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {attendanceHistory && attendanceHistory.length > 0 ? (
-                  attendanceHistory.map((record: AttendanceRecord) => (
-                    <tr key={record.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 text-slate-800 font-medium">{record.employeeName}</td>
-                      <td className="px-6 py-4 text-slate-800">{new Date(record.attendanceDate).toLocaleDateString('fr-FR')}</td>
-                      <td className="px-6 py-4 text-slate-800">
-                        {record.arrivalTime
-                          ? new Date(record.arrivalTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-                          : '—'}
-                      </td>
-                      <td className="px-6 py-4 text-slate-800">
-                        {record.departureTime
-                          ? new Date(record.departureTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-                          : '—'}
-                      </td>
-                      <td className="px-6 py-4">
-                        {record.status === 'PRESENT' && (
-                          <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold">
-                            <IconCheckCircle className="w-3 h-3" />
-                            Présent
-                          </span>
-                        )}
-                        {record.status === 'LATE' && (
-                          <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-semibold">
-                            <IconUserClock className="w-3 h-3" />
-                            En retard
-                          </span>
-                        )}
-                        {record.status === 'ABSENT' && (
-                          <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-semibold">
-                            Absent
-                          </span>
-                        )}
-                        {record.status === 'LEFT' && (
-                          <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold">
-                            Parti
-                          </span>
-                        )}
-                        {record.status === 'LEFT_OUTSIDE_GEOFENCE' && (
-                          <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-semibold">
-                            Parti - hors zone
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        {record.isGeolocationValid ? (
-                          <span className="text-green-600 font-semibold">✓ ±{record.accuracyMeters}m</span>
-                        ) : (
-                          <span className="text-red-600 font-semibold">✕ Non validée</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                      Aucun enregistrement pour ce mois
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
     </div>
   );
 };
 
-export default AttendanceQRComponent;
+export default AttendanceCards;

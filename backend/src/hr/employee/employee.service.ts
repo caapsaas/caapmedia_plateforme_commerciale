@@ -254,7 +254,7 @@ export class EmployeeService {
    * FIND ALL employees
    */
   async findAll(
-    subsidiaryId: string,
+    subsidiaryId: string | null,
     includeRelations = false,
   ): Promise<Employee[]> {
     const include = includeRelations
@@ -271,8 +271,11 @@ export class EmployeeService {
         }
       : {};
 
+    // SUPER_ADMIN (subsidiaryId === null) voit tous les employés toutes filiales
+    const where = subsidiaryId ? { subsidiaryId } : {};
+
     const employees = await this.prisma.employee.findMany({
-      where: { subsidiaryId },
+      where,
       include,
       orderBy: { lastName: 'asc' },
     });

@@ -96,12 +96,13 @@ export class AttendanceQrDailyService {
       exp: Math.floor(Date.now() / 1000) + this.QR_EXPIRATION,
     };
 
+    // Ne pas passer expiresIn en options : le payload contient déjà "exp"
     return jwt.sign(payload, this.QR_SECRET, {
       algorithm: 'HS256',
       issuer: 'caap-attendance-system',
-      expiresIn: this.QR_EXPIRATION,
     });
   }
+
 
   // Récupérer le QR code actif d'une filiale pour un employé spécifique
   async getCurrentQrCode(subsidiaryId: string, employeeId: string) {
@@ -184,36 +185,75 @@ export class AttendanceQrDailyService {
     });
   }
 
-  // Récupérer tous les QR codes actifs des employés d'une filiale
-  async getAllQrCodesForSubsidiary(subsidiaryId: string) {
-    const qrCodes = await this.prisma.dailyQrCode.findMany({
-      where: {
-        subsidiaryId,
-        isActive: true,
-        expiresAt: { gt: new Date() },
-      },
-      orderBy: { issuedAt: 'desc' },
-      include: {
-        employee: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            department: true,
-            positions: true,
-          },
-        },
+  // Récupérer tous les QR codes actifs des employés d'une filiale, et générer les manquants
+  async getAllQrCodesForSubsidiary(subsidiaryId: string | null) {
+    // 1. Récupérer tous les employés actifs (toutes filiales si SUPER_ADMIN)
+    const employeeWhere: any = { status: 'ACTIVE' };
+    if (subsidiaryId) employeeWhere.subsidiaryId = subsidiaryId;
+
+    const employees = await this.prisma.employee.findMany({
+      where: employeeWhere,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        department: true,
+        positions: true,
+        subsidiaryId: true,
       },
     });
 
-    return qrCodes.map((qr) => ({
-      token: qr.token,
-      issuedAt: qr.issuedAt,
-      expiresAt: qr.expiresAt,
-      subsidiaryId: qr.subsidiaryId,
-      employeeId: qr.employeeId,
-      employee: qr.employee,
-    }));
+    // 2. Récupérer les QR codes valides existants
+    const qrWhere: any = { isActive: true, expiresAt: { gt: new Date() } };
+    if (subsidiaryId) qrWhere.subsidiaryId = subsidiaryId;
+
+    const existingQrCodes = await this.prisma.dailyQrCode.findMany({
+      where: qrWhere,
+    });
+
+    const qrCodesByEmployeeId = new Map(
+      existingQrCodes.map((qr) => [qr.employeeId, qr]),
+    );
+    const results = [];
+
+    // 3. Associer le QR code existant ou en créer un nouveau à la volée
+    for (const employee of employees) {
+      let qrCode = qrCodesByEmployeeId.get(employee.id);
+
+      if (!qrCode) {
+        const token = this.generateQrToken(employee.subsidiaryId, employee.id);
+        const expiresAt = new Date(Date.now() + this.QR_EXPIRATION * 1000);
+        const checkInUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/check-in?token=${token}`;
+
+        qrCode = await this.prisma.dailyQrCode.create({
+          data: {
+            id: uuidv4(),
+            subsidiaryId: employee.subsidiaryId,
+            employeeId: employee.id,
+            token,
+            qrUrl: checkInUrl,
+            issuedAt: new Date(),
+            expiresAt,
+            isActive: true,
+          },
+        });
+
+        this.logger.debug(
+          `QR code généré à la volée pour ${employee.firstName} ${employee.lastName}`,
+        );
+      }
+
+      results.push({
+        token: qrCode.token,
+        issuedAt: qrCode.issuedAt,
+        expiresAt: qrCode.expiresAt,
+        subsidiaryId: qrCode.subsidiaryId,
+        employeeId: qrCode.employeeId,
+        employee: employee,
+      });
+    }
+
+    return results;
   }
 }

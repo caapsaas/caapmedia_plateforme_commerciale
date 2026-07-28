@@ -106,7 +106,6 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
     setErrors({});
   }, [employee, isOpen]);
 
-  // Charger les comptes de trésorerie de type BANQUE
   useEffect(() => {
     const loadTreasuryAccounts = async () => {
       try {
@@ -326,6 +325,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                     name="gender"
                     value={formData.gender}
                     onChange={handleChange}
+                    required
                     options={Object.entries(Gender).map(([, v]) => ({
                       value: v,
                       label: t(`hr.gender.${v}`),
@@ -435,6 +435,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                     name="contractType"
                     value={formData.contractType}
                     onChange={handleChange}
+                    required
                     options={Object.entries(ContractType).map(([, v]) => ({
                       value: v,
                       label: t(`hr.contractType.${v}`),
@@ -448,6 +449,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                     name="status"
                     value={formData.status}
                     onChange={handleChange}
+                    required
                     options={Object.entries(EmployeeStatus).map(([, v]) => ({
                       value: v,
                       label: t(`hr.employeeStatus.${v}`),
@@ -492,6 +494,8 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                   name="paymentMethod"
                   value={formData.paymentMethod}
                   onChange={handleChange}
+                  error={errors.paymentMethod}
+                  required
                   options={Object.entries(PaymentMethod).map(([, v]) => ({
                     value: v,
                     label: t(`hr.paymentMethod.${v}`),
@@ -529,7 +533,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                           onChange={handleChange}
                           placeholder="Ou entrez le nom de la banque"
                           helperText={treasuryAccounts.length > 0 ? "Valeur personnalisée ou autre banque" : ""}
-                          required
+                          required={formData.paymentMethod === PaymentMethod.BANK_TRANSFER}
                         />
                       </div>
                       <FormInput
@@ -538,7 +542,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                         value={formData.bankAccountNumber}
                         onChange={handleChange}
                         placeholder="RIB/IBAN"
-                        required
+                        required={formData.paymentMethod === PaymentMethod.BANK_TRANSFER}
                       />
                     </div>
                   </div>
