@@ -136,13 +136,7 @@ export class AttendanceCheckInController {
       attendanceData,
       employeeId,
       subsidiaryId,
-      {
-        arrivalLatitude: dto.latitude,
-        arrivalLongitude: dto.longitude,
-        isGeolocationValid: proximityCheck.isValid,
-        accuracyMeters: dto.accuracy,
-        qrCodeToken: dto.qrToken,
-      },
+     
     );
 
     this.logger.log(`✓ Check-in successful for employee ${employeeId}`);
