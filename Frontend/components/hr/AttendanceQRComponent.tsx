@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import jsQR from 'jsqr';
 import html2canvas from 'html2canvas';
@@ -49,8 +49,9 @@ interface CheckInResponse {
   message: string;
   employeeName: string;
   status: string;
-  distance: string;
-  accuracy: string;
+  distance?: string;
+  accuracy?: string;
+  record?: AttendanceRecord;
 }
 
 export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ subsidiary }) => {
@@ -64,6 +65,8 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
   const scanningRef = useRef(false);
 
   const [searchTerm, setSearchTerm] = useState('');
+
+  const queryClient = useQueryClient();
 
   const { data: employeesWithQr, isLoading: employeesLoading } = useQuery({
     queryKey: ['employees-with-qr'],
@@ -101,13 +104,27 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
   });
 
   const checkInMutation = useMutation({
-    mutationFn: async (dto: { qrToken: string; latitude: number; longitude: number; accuracy: number }) => {
+    mutationFn: async (dto: { qrToken: string; latitude?: number; longitude?: number; accuracy?: number }) => {
       const response = await api.post<CheckInResponse>('/hr/attendance-checkin/check-in', dto);
       return response.data;
+    },
+    onSuccess: (data) => {
+      // rafraîchir l'historique et tout autre cache pertinent
+      queryClient.invalidateQueries(['attendance-history']);
+      queryClient.invalidateQueries(['employees-with-qr']);
+
+      // Optionally update cache optimistically with created record
+      if (data && data.record) {
+        queryClient.setQueryData(['attendance-history'], (old: any) => {
+          const list = Array.isArray(old) ? old : (old?.data || []);
+          return [data.record, ...list];
+        });
+      }
     }
   });
 
   useEffect(() => {
+    // Do not automatically require geolocation; keep it optional.
     if (!navigator.geolocation) {
       setErrorMessage('Géolocalisation non disponible');
       return;
@@ -119,7 +136,8 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
         setErrorMessage(null);
       },
       (error) => {
-        setErrorMessage('Erreur GPS. Veuillez autoriser l\'accès à votre position.');
+        // Keep silent: user may refuse — we still allow scanning without coords
+        setCurrentLocation(null);
       },
       { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
     );
@@ -173,9 +191,10 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const code = jsQR(imageData.data, imageData.width, imageData.height);
 
-        if (code && currentLocation) {
+        if (code) {
           scanningRef.current = false;
-          handleCheckIn(code.data);
+          // Passe currentLocation seulement si disponible
+          handleCheckIn(code.data, currentLocation || undefined);
           stopScanner();
           return;
         }
@@ -187,19 +206,16 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
     }
   };
 
-  const handleCheckIn = async (qrToken: string) => {
-    if (!currentLocation) {
-      setErrorMessage('Position GPS non disponible');
-      return;
-    }
-
+  const handleCheckIn = async (qrToken: string, coords?: GeolocationCoordinates) => {
     try {
-      const response = await checkInMutation.mutateAsync({
-        qrToken,
-        latitude: currentLocation.latitude,
-        longitude: currentLocation.longitude,
-        accuracy: currentLocation.accuracy
-      });
+      const dto: any = { qrToken };
+      if (coords) {
+        dto.latitude = coords.latitude;
+        dto.longitude = coords.longitude;
+        dto.accuracy = coords.accuracy;
+      }
+
+      const response = await checkInMutation.mutateAsync(dto);
 
       setSuccessMessage(response.message);
       setTimeout(() => setSuccessMessage(null), 3000);
@@ -342,7 +358,6 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
 
           <button 
             onClick={startScanner}
-            disabled={!currentLocation}
             className="bg-[#c6e911] hover:bg-[#b0cc0f] text-slate-800 font-semibold py-2 px-4 rounded-lg shadow transition-colors flex items-center gap-2"
           >
             <Camera className="w-5 h-5" />
