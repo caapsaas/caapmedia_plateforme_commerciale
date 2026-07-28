@@ -7,6 +7,8 @@ import CheckInPage from './Pages/CheckInPage';
 import ECommercePage from './components/ecommerce/ECommercePage';
 import RealisationsPage from './components/ecommerce/RealisationsPage';
 import CustomerAccountPage from './components/customer/CustomerAccountPage';
+import AttendanceCards from './components/hr/AttendanceCards';
+import AttendanceHistory from './components/hr/AttendanceHistory';
 import Analytics from './Pages/Analytics';
 import Sales from './components/sales/Sales';
 import Crm from './Pages/Crm';
@@ -93,6 +95,17 @@ const checkInRoute = createRoute({
   component: CheckInPage,
 });
 
+const hrCardsRoute = createRoute({
+  getParentRoute: () => hrRoute,
+  path: '/cards',
+  component: AttendanceCards,
+});
+
+const hrHistoryRoute = createRoute({
+  getParentRoute: () => hrRoute,
+  path: '/history',
+  component: AttendanceHistory,
+});
 // 3. Routes protégées pour le compte client
 const customerAccountRoute = createRoute({
   getParentRoute: () => rootRoute,
