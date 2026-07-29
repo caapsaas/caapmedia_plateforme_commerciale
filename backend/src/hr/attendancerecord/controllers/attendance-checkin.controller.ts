@@ -15,14 +15,14 @@ import { AttendanceQrDailyService } from '../services/attendance-qr-daily.servic
 import { AttendanceGeolocationService } from '../services/attendance-geolocation.service';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { Roles } from 'src/common/auth/role/role.decorator';
+import { AttendanceStatus } from '@prisma/client';
 
-// Note: latitude/longitude/accuracy are accepted for backward compatibility
-// but are OPTIONAL and will not be used to validate or block check-in/check-out.
 interface CheckInDto {
   qrToken: string;
   latitude?: number;
   longitude?: number;
   accuracy?: number;
+  signature?: string;
 }
 
 interface CheckOutDto {
@@ -41,85 +41,83 @@ export class AttendanceCheckInController {
     private readonly geoService: AttendanceGeolocationService,
   ) {}
 
-  // Récupérer le QR code du jour (protégé par JWT)
+  // ------------------------------------------------------------------
+  // Récupérer le QR code du jour (employé connecté)
+  // ------------------------------------------------------------------
   @Get('daily-qr')
   @UseGuards(JwtAuthGuard, RoleGuard)
   async getDailyQr(@Request() req) {
     this.logger.log(
       `📍 getDailyQr - employeeId: ${req.user.employeeId}, userId: ${req.user.id}`,
     );
+
     const result = await this.qrService.getCurrentQrCode(
       req.user.subsidiaryId,
       req.user.employeeId || req.user.id,
     );
-    this.logger.log(`✅ QR Code Response: ${JSON.stringify(result)}`);
+
     return result;
   }
 
-  // Récupérer les QR codes de tous les employés de la filiale (protégé par JWT)
+  // ------------------------------------------------------------------
+  // Récupérer tous les QR codes de la filiale (HR / Admin)
+  // ------------------------------------------------------------------
   @Get('daily-qr-all')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles('HR_MANAGER', 'ADMIN')
+  @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
   async getAllDailyQr(@Request() req) {
-    this.logger.log(
-      `📍 getAllDailyQr - subsidiaryId: ${req.user.subsidiaryId}`,
-    );
-    // SUPER_ADMIN : passe null pour récupérer les QR de TOUTES les filiales
     const isSuperAdmin = req.user.roles?.includes('SUPER_ADMIN');
     const subsidiaryId = isSuperAdmin ? null : req.user.subsidiaryId;
+
     const result = await this.qrService.getAllQrCodesForSubsidiary(subsidiaryId);
-    this.logger.log(`✅ All QR Codes Response: ${result.length} codes`);
     return result;
   }
 
-  // Check-in endpoint that supports both arrival and departure when called by scanning the QR.
-  // Behavior:
-  // - If there is no record for today -> create arrival (check-in)
-  // - If there is a record with arrival but no departure -> update departure (check-out)
-  // - If there is already arrival+departure -> reject
-  // This endpoint does not require JWT because the QR token encodes employee/subsidiary info.
+  // ------------------------------------------------------------------
+  // ★ Check-in / Check-out via scan QR (pas besoin de JWT)
+  // ------------------------------------------------------------------
   @Post('check-in')
   async checkIn(@Body() dto: CheckInDto) {
-    // 1️⃣ Valider le QR Code (contient déjà l'employeeId et subsidiaryId)
-    const qrValidation = await this.qrService.validateQrToken(dto.qrToken);
-    const employeeId = qrValidation.employeeId;
-    const subsidiaryId = qrValidation.subsidiaryId;
+    // 1. Valider le QR token
+    const { employeeId, subsidiaryId } = await this.qrService.validateQrToken(
+      dto.qrToken,
+    );
 
     this.logger.log(`Check-in/check-out attempt for employee ${employeeId}`);
 
-    // 2️⃣ Rechercher l'enregistrement d'aujourd'hui
+    // 2. Chercher s’il existe déjà un enregistrement aujourd’hui
     const todayRecord = await this.attendanceService.findTodayRecord(
       employeeId,
       subsidiaryId,
     );
 
-    // If no record -> create arrival
+    // ========== CAS 1 : Aucun enregistrement → CHECK-IN ==========
     if (!todayRecord) {
-      // Vérifier si en retard (basé uniquement sur l'heure)
       const isLate = await this.geoService.isArrivalLate(new Date());
 
-      // Récupérer les infos de l'employé
       const employee = await this.attendanceService.findEmployeeById(employeeId);
       if (!employee) {
         throw new BadRequestException('Employé non trouvé');
       }
 
-      const scanTime = new Date();
-      const attendanceData = {
-        employeeId,
-        subsidiaryId,
-        attendanceDate: scanTime,
-        arrivalTime: scanTime,
-        status: isLate ? 'LATE' : 'PRESENT',
+      const attendanceData: CreateAttendanceRecordDto = {
         employeeName: `${employee.firstName} ${employee.lastName}`,
-        qrCodeToken: dto.qrToken,
+        attendanceDate: new Date(),
+        arrivalTime: new Date(),
+        status: isLate ? AttendanceStatus.LATE : AttendanceStatus.PRESENT,
+        signature: dto.signature,
         arrivalLatitude: dto.latitude,
         arrivalLongitude: dto.longitude,
         accuracyMeters: dto.accuracy,
-        isGeolocationValid: false,
+        isGeolocationValid: dto.latitude !== undefined && dto.longitude !== undefined,
+        qrCodeToken: dto.qrToken,
       };
 
-      const result = await this.attendanceService.createFromScan(attendanceData);
+      const result = await this.attendanceService.create(
+        attendanceData,
+        employeeId,
+        subsidiaryId,
+      );
 
       this.logger.log(`✓ Check-in created for employee ${employeeId}`);
 
@@ -133,25 +131,32 @@ export class AttendanceCheckInController {
       };
     }
 
-    // If record exists and has arrival but no departure -> perform check-out
+    // ========== CAS 2 : Arrivée existe, pas encore de départ → CHECK-OUT ==========
     if (todayRecord.arrivalTime && !todayRecord.departureTime) {
       const updated = await this.attendanceService.completeFromScan({
         recordId: todayRecord.id,
         departureTime: new Date(),
-        status: 'LEFT',
-        departureLatitude: dto.latitude,
-        departureLongitude: dto.longitude,
-        accuracyMeters: dto.accuracy,
-        isGeolocationValid: false,
-      });
+        status: 'LEFT', // ou AttendanceStatus.LEFT si vous l’avez dans l’enum
+      };
+
+      if (dto.latitude !== undefined) updatePayload.departureLatitude = dto.latitude;
+      if (dto.longitude !== undefined) updatePayload.departureLongitude = dto.longitude;
+      if (dto.accuracy !== undefined) updatePayload.accuracyMeters = dto.accuracy;
+
+      const updated = await this.attendanceService.update(
+        todayRecord.id,
+        updatePayload,
+      );
 
       this.logger.log(`✓ Check-out created for employee ${employeeId}`);
 
-      const arrivalTime = new Date(updated.arrivalTime);
-      const departureTime = new Date(updated.departureTime);
+      const arrivalTime = new Date(updated.arrivalTime!);
+      const departureTime = new Date(updated.departureTime!);
       const durationMs = departureTime.getTime() - arrivalTime.getTime();
       const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
-      const durationMins = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+      const durationMins = Math.floor(
+        (durationMs % (1000 * 60 * 60)) / (1000 * 60),
+      );
 
       return {
         success: true,
@@ -163,20 +168,26 @@ export class AttendanceCheckInController {
       };
     }
 
-    // If arrival and departure already present -> reject
-    throw new BadRequestException('Un enregistrement complet existe déjà pour aujourd\'hui');
+    // ========== CAS 3 : Déjà check-in + check-out ==========
+    throw new BadRequestException(
+      "Un enregistrement complet (arrivée + départ) existe déjà pour aujourd'hui",
+    );
   }
 
-  // Keep the existing check-out endpoint for authenticated manual check-outs if needed
+  // ------------------------------------------------------------------
+  // Check-out manuel (authentifié)
+  // ------------------------------------------------------------------
   @Post('check-out')
   @UseGuards(JwtAuthGuard, RoleGuard)
   async checkOut(@Body() dto: CheckOutDto, @Request() req) {
-    this.logger.log(`Check-out attempt for employee ${req.user.employeeId}`);
+    const employeeId = req.user.employeeId || req.user.id;
+    const subsidiaryId = req.user.subsidiaryId;
 
-    // 1️⃣ Trouver l'enregistrement d'aujourd'hui
+    this.logger.log(`Check-out attempt for employee ${employeeId}`);
+
     const todayRecord = await this.attendanceService.findTodayRecord(
-      req.user.employeeId,
-      req.user.subsidiaryId,
+      employeeId,
+      subsidiaryId,
     );
 
     if (!todayRecord) {
@@ -191,9 +202,7 @@ export class AttendanceCheckInController {
       );
     }
 
-    // 2️⃣ Mettre à jour le départ — ne pas utiliser la géolocalisation pour déterminer le statut
-    const result = await this.attendanceService.completeFromScan({
-      recordId: todayRecord.id,
+    const result = await this.attendanceService.update(todayRecord.id, {
       departureTime: new Date(),
       departureLatitude: dto.latitude,
       departureLongitude: dto.longitude,
@@ -201,13 +210,8 @@ export class AttendanceCheckInController {
       isGeolocationValid: false,
     });
 
-    this.logger.log(
-      `✓ Check-out successful for employee ${req.user.employeeId}`,
-    );
-
-    // Calculer la durée
-    const arrivalTime = new Date(result.arrivalTime);
-    const departureTime = new Date(result.departureTime);
+    const arrivalTime = new Date(result.arrivalTime!);
+    const departureTime = new Date(result.departureTime!);
     const durationMs = departureTime.getTime() - arrivalTime.getTime();
     const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
     const durationMins = Math.floor(
@@ -223,10 +227,11 @@ export class AttendanceCheckInController {
     };
   }
 
-  // Récupérer l'historique des présences (protégé par JWT)
+  // ------------------------------------------------------------------
+  // Historique personnel
+  // ------------------------------------------------------------------
   @Get('history')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles('HR_MANAGER', 'ADMIN')
   async getAttendanceHistory(
     @Request() req,
     @Query('year') year?: number,
@@ -240,27 +245,58 @@ export class AttendanceCheckInController {
     const endDate = new Date(queryYear, queryMonth, 1);
 
     return this.attendanceService.findByDateRange(
-      req.user.employeeId,
+      req.user.employeeId || req.user.id,
       req.user.subsidiaryId,
       startDate,
       endDate,
     );
   }
 
-  // Récupérer les statistiques du mois (protégé par JWT)
+  // ------------------------------------------------------------------
+  // Historique de toute la filiale (uniquement les scans QR)
+  // ------------------------------------------------------------------
+    @Get('history-all')
+    @UseGuards(JwtAuthGuard, RoleGuard)
+    @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
+    async getAllAttendanceHistory(
+      @Request() req,
+      @Query('year') year?: number,
+      @Query('month') month?: number,
+    ) {
+      const now = new Date();
+      const queryYear = year ? Number(year) : now.getFullYear();
+      const queryMonth = month ? Number(month) : now.getMonth() + 1;
+
+      const startDate = new Date(queryYear, queryMonth - 1, 1);
+      const endDate = new Date(queryYear, queryMonth, 1);
+
+      this.logger.log(
+        `history-all → subsidiaryId=${req.user.subsidiaryId}, ` +
+        `from=${startDate.toISOString()}, to=${endDate.toISOString()}`,
+      );
+
+      // false = toutes les présences (sans filtre qrCodeToken)
+      return this.attendanceService.findByDateRange(
+        null,
+        req.user.subsidiaryId,
+        startDate,
+        endDate,
+        false,
+      );
+    }
+
+  // ------------------------------------------------------------------
+  // Statistiques du mois
+  // ------------------------------------------------------------------
   @Get('summary')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles('HR_MANAGER', 'ADMIN')
   async getAttendanceSummary(@Request() req) {
     const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-
     return this.attendanceService.getMonthlyStats(
-      req.user.employeeId,
+      req.user.employeeId || req.user.id,
       req.user.subsidiaryId,
-      year,
-      month,
+      now.getFullYear(),
+      now.getMonth() + 1,
     );
   }
 }

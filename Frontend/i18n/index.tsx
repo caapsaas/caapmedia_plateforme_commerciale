@@ -1374,8 +1374,14 @@ const frTranslations = {
     "tabs": {
       "employees": "Employés",
       "attendance": "Présences",
+      "attendance_cards": "Cartes de présence",
+      "attendance_history": "Historique des présences",
       "payroll": "Paie",
       "absences": "Absences"
+    },
+    "viewMode": {
+      "table": "Tableau",
+      "cards": "Cartes"
     },
     "employees": {
       "title": "Gestion des Employés",
@@ -2803,20 +2809,892 @@ const enTranslations: Translations = {
       "CHECK": "Check",
       "CASH": "Cash"
     },
-    "clientSection": {
-      "title": "Customer",
-      "selectAdd": "Select / Add Customer",
-      "change": "Change",
-      "modalTitle": "Select or Create a Customer",
-      "selectTab": "Select Customer",
-      "createTab": "Create New Customer",
-      "searchClient": "Search for a customer..."
+    "filter": {
+        "client": "Client",
+        "allClients": "All clients",
+        "product": "Product",
+        "allProducts": "All products",
+        "status": "Status",
+        "allStatuses": "All statuses",
+        "reset": "Reset",
+        "allTime": "All time",
+        "noResults": "No orders found for the selected filters.",
+        "noTransactions": "No transactions found for the selected filters.",
+        "orderStatus": "Order Status",
+        "paymentStatus": "Payment Status",
+        "allOrderStatuses": "All Order Statuses",
+        "allPaymentStatuses": "All Payment Statuses",
+        "apply": "Apply"
     },
-    "createAndSelect": "Create and Select",
-    "findOrder": "Find an Order",
-    "orderSelectionModal": {
-      "title": "Select an Order",
-      "searchPlaceholder": "Search by ID, name, phone..."
+    "configuration": {
+        "title": "General Configuration",
+        "products": "Products",
+        "units": "Units",
+        "unitsManagement": {
+            "title": "Units of measure",
+            "subtitle": "Shared reference list — base unit and packaging units for stock products.",
+            "addNew": "New unit",
+            "name": "Name",
+            "namePlaceholder": "Sheet",
+            "symbol": "Symbol (optional)",
+            "symbolPlaceholder": "u",
+            "create": "Create",
+            "save": "Save",
+            "cancel": "Cancel",
+            "empty": "No unit created yet.",
+            "createError": "Could not create the unit (name already used?).",
+            "deleteError": "This unit is used by at least one stock product."
+        },
+        "services": "Services",
+        "addService": "Add a service",
+        "referenceLists": "Reference lists",
+        "users": "Users",
+        "suppliers": "Suppliers",
+        "taxes": "Taxes",
+        "treasury": "Treasury",
+        "productManagement": "Product Management",
+        "addProduct": "Add Product",
+        "addTax": "Add Tax",
+        "productId": "ID",
+        "name": "Name",
+        "category": "Category",
+        "sellingPrice": "Selling Price",
+        "stock": "Stock",
+        "clientManagement": "Client Management",
+        "addClient": "Add Client",
+        "company": "Company",
+        "email": "Email",
+        "phone": "Phone",
+        "userManagement": "User Management",
+        "addUser": "Add User",
+        "role": "Role",
+        "supplierManagement": "Supplier Management",
+        "addSupplier": "Add Supplier",
+        "taxManagement": "Tax Management",
+        "equipmentCosts": "Machine costs",
+        "commercialParams": "Commercial params",
+        "productionWorkflows": "Workflows",
+        "catalogue": "Catalogue",
+        "production": "Production",
+        "modal": {
+            "editProductTitle": "Edit Product",
+            "addProductTitle": "Add New Product",
+            "editClientTitle": "Edit Client",
+            "addClientTitle": "Add New Client",
+            "editUserTitle": "Edit User",
+            "addUserTitle": "Add New User",
+            "editSupplierTitle": "Edit Supplier",
+            "addSupplierTitle": "Add New Supplier",
+            "deleteProductTitle": "Delete Product",
+            "deleteClientTitle": "Delete Client",
+            "deleteUserTitle": "Delete User",
+            "deleteSupplierTitle": "Delete Supplier",
+            "deleteEmployeeTitle": "Delete Employee",
+            "editEmployeeTitle": "Edit Employee",
+            "addEmployeeTitle": "Add Employee",
+            "deleteConfirmMessage": "Are you sure you want to delete {{itemName}}? This action cannot be undone.",
+            "recordAttendanceTitle": "Signature for {{employeeName}}",
+            "viewSignatureTitle": "Signature of {{name}}",
+            "payrollSignatureTitle": "Signature for {{employeeName}}'s Payroll",
+            "employeeDetailsTitle": "Employee Details",
+            "addAbsenceTitle": "Record a New Absence",
+            "editAbsenceTitle": "Edit an Absence",
+            "deleteAbsenceTitle": "Delete an Absence",
+            "editTaxTitle": "Edit Tax",
+            "addTaxTitle": "Add New Tax",
+            "deleteTaxTitle": "Delete Tax",
+            "editServiceTitle": "Edit service",
+            "addServiceTitle": "Add service",
+            "deleteServiceTitle": "Delete service"
+        },
+        "serviceForm": {
+            "name": "Name",
+            "category": "Category",
+            "range": "Range",
+            "description": "Description",
+            "generateWithAI": "Generate with AI",
+            "isActive": "Active",
+            "isVisibleOnSite": "Visible on storefront",
+            "displayOrder": "Display order",
+            "images": "Images"
+        },
+        "builder": {
+            "back": "Back to services",
+            "configureFields": "Configure fields"
+        },
+        "form": {
+            "name": "Name",
+            "category": "Category",
+        "description": "Description",
+        "passwordRequired": "Password is required for a new user.",
+        "passwordsDoNotMatch": "Passwords do not match.",
+            "costPrice": "Cost Price",
+            "sellingPrice": "Selling Price",
+            "stock": "Stock",
+            "warehouse": "Warehouse",
+            "range": "Range",
+            "company": "Company",
+            "email": "Email",
+            "phone": "Phone",
+            "since": "Customer since",
+            "role": "Role",
+            "address": "Address",
+            "formSection": {
+                "personal": "Personal Information",
+                "professional": "Professional Information",
+                "salary": "Salary & Benefits",
+                "documents": "Documents",
+                "leaves": "Leaves"
+            },
+            "firstName": "First Name",
+            "lastName": "Last Name",
+            "birthDate": "Birth Date",
+            "gender": "Gender",
+            "nationality": "Nationality",
+            "ssn": "Social Security Number",
+            "position": "Position",
+            "department": "Department",
+            "hireDate": "Hire Date",
+            "contractType": "Contract Type",
+            "employeeStatus": "Employee Status",
+            "workLocation": "Work Location",
+            "baseSalary": "Base Salary",
+            "bonus": "Bonus",
+            "benefits": "Benefits (comma-separated)",
+            "paymentMethod": "Payment Method",
+            "absenceType": "Absence Type",
+            "startDate": "Start Date",
+            "endDate": "End Date",
+            "reason": "Reason",
+            "document": "Justification Document",
+            "uploadFile": "Upload a file",
+            "generateWithAI": "Generate with AI",
+            "rate": "Rate (%)",
+            "isDefault": "Default Tax",
+            "minThreshold": "Minimum threshold",
+            "baseUnit": "Base unit",
+            "selectUnit": "Select a unit...",
+            "packagingUnits": "Packaging units",
+            "packagingUnitsHelp": "Purchase units (e.g. Ream, Box) and their equivalence in the base unit.",
+            "conversionFactor": "Conversion factor"
+        }
+    },
+    "specBuilder": {
+        "fieldTypes": {
+            "TEXT": "Text", "TEXTAREA": "Long text", "NUMBER": "Number", "DECIMAL": "Decimal number",
+            "AMOUNT": "Amount", "SELECT": "Dropdown list", "MULTISELECT": "Multi-select",
+            "RADIO": "Radio buttons", "CHECKBOX": "Checkbox", "BOOLEAN": "Yes / No", "DATE": "Date",
+            "TIME": "Time", "COLOR": "Color", "UPLOAD": "Upload", "URL": "URL", "EMAIL": "Email",
+            "PHONE": "Phone", "DIMENSIONS": "Dimensions (Width x Height)"
+        },
+        "card": {
+            "required": "Required",
+            "reorder": "Reorder"
+        },
+        "drawer": {
+            "editTitle": "Edit specification",
+            "addTitle": "New specification",
+            "nameRequired": "Name is required",
+            "technicalKeyRequired": "Technical key is required",
+            "technicalKeyPattern": "snake_case required (e.g. paper_weight)",
+            "fieldRequired": "Required",
+            "name": "Name",
+            "technicalKey": "Technical key",
+            "technicalKeyPlaceholder": "e.g. paper_weight",
+            "type": "Type",
+            "group": "Group",
+            "noGroup": "No group",
+            "helpText": "Help text",
+            "placeholder": "Placeholder",
+            "unit": "Unit (mm, cm, g, kg, pages...)",
+            "internalDescription": "Internal description",
+            "required": "Required",
+            "visibleToClient": "Visible to client",
+            "visibleToProduction": "Visible to production",
+            "editableAfterValidation": "Editable after validation",
+            "searchable": "Usable in search",
+            "possibleValues": "Possible values",
+            "optionsSourceInline": "Entered here",
+            "optionsSourceReference": "Shared reference list",
+            "selectReferenceList": "Select a reference list...",
+            "optionValuePlaceholder": "Value (e.g. A4)",
+            "optionLabelPlaceholder": "Displayed label",
+            "addOption": "Add a value",
+            "uploadConfigTitle": "Upload configuration",
+            "uploadExtensions": "Allowed extensions (comma-separated)",
+            "uploadExtensionsPlaceholder": "PDF, AI, PSD, CDR",
+            "uploadMaxSize": "Max size (MB)",
+            "uploadMaxFiles": "Max number of files",
+            "dimensionsConfigTitle": "Dimension bounds",
+            "dimMinWidth": "Min width",
+            "dimMaxWidth": "Max width",
+            "dimMinHeight": "Min height",
+            "dimMaxHeight": "Max height",
+            "cancel": "Cancel",
+            "save": "Save"
+        },
+        "groupList": {
+            "addField": "Add a field",
+            "noGroup": "No group",
+            "emptyGroup": "No fields in this group.",
+            "addGroup": "Add a group",
+            "deleteGroupTooltip": "Delete group"
+        },
+        "builder": {
+            "fieldsTitle": "Technical fields — {{productName}}",
+            "previewTitle": "Preview — sales view",
+            "loading": "Loading Builder...",
+            "loadError": "Unable to load this service's configuration.",
+            "noFields": "No fields configured for this service yet.",
+            "newGroupPlaceholder": "Group name (e.g. Paper)",
+            "cancel": "Cancel",
+            "confirmDeleteSpec": "Delete specification \"{{name}}\"? This action cannot be undone.",
+            "confirmDeleteGroup": "Delete group \"{{name}}\"? Its fields will be moved to \"No group\"."
+        },
+        "referenceLists": {
+            "title": "Value reference lists",
+            "subtitle": "Value lists shared across several services (e.g. paper types, weights).",
+            "addNew": "New reference list",
+            "technicalKey": "Technical key",
+            "technicalKeyPlaceholder": "paper_types",
+            "displayName": "Display name",
+            "displayNamePlaceholder": "Paper types",
+            "create": "Create",
+            "cancel": "Cancel",
+            "valueCount": "value(s)",
+            "empty": "No reference list created yet.",
+            "valuePlaceholder": "Value (e.g. A4)",
+            "labelPlaceholder": "Displayed label",
+            "createError": "Could not create the reference list (key already used?)."
+        },
+        "valuesModal": {
+            "title": "Technical specifications — {{productName}}",
+            "subtitle": "Fill in this line's specifications before adding it to the cart.",
+            "cancel": "Cancel",
+            "confirm": "Add to cart"
+        },
+        "formRenderer": {
+            "selectPlaceholder": "Select..."
+        }
+    },
+    "hr": {
+        "title": "Human Resources Management",
+        "tabs": {
+            "employees": "Employees",
+            "attendance": "Attendance",
+            "attendance_cards": "Attendance Cards",
+            "attendance_history": "Attendance History",
+            "payroll": "Payroll",
+            "absences": "Absences"
+        },
+        "viewMode": {
+            "table": "Table",
+            "cards": "Cards"
+        },
+        "employees": {
+            "title": "Employee Database",
+            "add": "Add Employee",
+            "id": "ID",
+            "fullName": "Full Name",
+            "position": "Position",
+            "department": "Department",
+            "contractType": "Contract",
+            "status": "Status"
+        },
+        "table": {
+            "name": "Name",
+            "email": "Email",
+            "department": "Department",
+            "position": "Position",
+            "status": "Status",
+            "salary": "Salary",
+            "actions": "Actions"
+        },
+        "attendance": {
+            "title": "Attendance Management",
+            "record": "Record Attendance",
+            "employee": "Employee",
+            "date": "Date",
+            "status": "Status",
+            "arrivalTime": "Arrival",
+            "breakTime": "Break",
+            "departureTime": "Departure",
+            "signature": "Signature",
+            "status_PRESENT": "Present",
+            "status_ABSENT_JUSTIFIED": "Absent (J)",
+            "status_ABSENT_UNJUSTIFIED": "Absent (UJ)",
+            "status_HOLIDAY": "Holiday",
+            "viewSignature": "View",
+            "notSigned": "Not signed"
+        },
+        "payroll": {
+            "title": "Payroll Scales & Configuration",
+            "taxBracketsDesc": "Configure standard payroll parameters for Cameroon",
+            "process": "Process this month's payroll",
+            "employee": "Employee",
+            "period": "Period",
+            "netSalary": "Net Salary",
+            "paymentDate": "Payment Date",
+            "status": "Status",
+            "signature": "Signature",
+            "status_PENDING": "Pending",
+            "status_PAID": "Paid",
+            "sign": "Sign",
+            "payAction": "Record Payment",
+            "detailsTitle": "Payroll Details - {{period}}",
+            "recordPaymentTitle": "Record a Payment",
+            "recordPaymentSubtitle": "Confirm payment for {{employeeName}} of {{amount}}.",
+            "deductions": "Deductions",
+            "socialDeductions": "Social Contributions",
+            "taxDeductions": "Tax Deductions",
+            "absenceDeductions": "Absence Deductions",
+            "minWage": "Minimum Wage",
+            "cnpsEmployeeRate": "CNPS Employee Rate",
+            "success": {
+                "updated": "Configuration updated successfully"
+            },
+            "error": {
+                "update": "Error updating configuration"
+            },
+            "modal": {
+                "updateSmigDesc": "Update the minimum wage (SMIG) currently in effect",
+                "updateCnpsTitle": "Update CNPS Rates",
+                "updateIrppTitle": "Update IRPP Tax Brackets",
+                "updateLeaveTitle": "Update Leave Entitlements"
+            },
+            "form": {
+                "minWage": "Minimum Wage",
+                "minAmount": "Minimum Amount",
+                "maxAmount": "Maximum Amount",
+                "rate": "Rate",
+                "above": "Above",
+                "daysPerYear": "days per year",
+                "employeeRate": "Employee Rate",
+                "employerRate": "Employer Rate",
+                "paid": "Paid",
+                "unpaid": "Unpaid"
+            },
+            "infoBox": {
+                "title": "Note"
+            },
+            "infoBoxText": "These are the standard rates for Cameroon 2024. All values are used automatically when calculating employee payroll. Changes will apply to future payroll calculations."
+        },
+        "modals": {
+            "sign": {
+                "title": "Signature for {{employeeName}}",
+                "clear": "Clear",
+                "save": "Save Signature"
+            }
+        },
+        "gender": {
+            "MALE": "Male",
+            "FEMALE": "Female",
+            "OTHER": "Other"
+        },
+        "contractType": {
+            "CDI": "Permanent",
+            "CDD": "Fixed-term",
+            "FREELANCE": "Freelance",
+            "INTERNSHIP": "Internship"
+        },
+        "employeeStatus": {
+            "ACTIVE": "Active",
+            "ON_LEAVE": "On Leave",
+            "RESIGNED": "Resigned",
+            "TERMINATED": "Terminated"
+        },
+        "paymentMethod": {
+            "BANK_TRANSFER": "Bank Transfer",
+            "CHECK": "Check",
+            "CASH": "Cash"
+        },
+        "bankingDetails": "Banking Details",
+        "bankName": "Bank Name",
+        "bankAccountNumber": "Account Number (RIB/IBAN)",
+        "maritalStatus": "Marital Status",
+        "maritalStatusOptions": {
+            "SINGLE": "Single",
+            "MARRIED": "Married",
+            "DIVORCED": "Divorced",
+            "WIDOWED": "Widowed"
+        },
+        "numberDependents": "Number of Dependents",
+        "dependentsHelperText": "For tax deduction calculation",
+        "form": {
+            "sections": {
+                "personal": "Personal Information",
+                "professional": "Professional Information",
+                "salary": "Salary & Compensation",
+                "documents": "Documents",
+                "leaves": "Leave Entitlements"
+            },
+            "salarySection": {
+                "title": "Salary & Compensation",
+                "subtitle": "Financial information",
+                "baseSalary": "Base Salary",
+                "baseSalaryHelper": "Minimum salary (FCFA)",
+                "bonus": "Bonus",
+                "bonusHelper": "Additional compensation (FCFA)",
+                "paymentMethod": "Payment Method"
+            },
+            "documentsSection": {
+                "title": "Documents",
+                "subtitle": "Employee documentation",
+                "uploadMessage": "📄 Document upload functionality would be implemented here"
+            },
+            "leavesSection": {
+                "title": "Leave Entitlements",
+                "subtitle": "Leave balance configuration",
+                "tabBalance": "Leave Balance",
+                "tabRecords": "Leave History"
+            }
+        },
+        "cancel": "Cancel",
+        "leaves": {
+            "leaveHistory": "Leave History",
+            "addLeaveRecord": "Record Leave",
+            "noRecords": "No leave records",
+            "daysHelper": "Number of leave days",
+            "unpaidHelperText": "Unpaid leave days",
+            "balanceInfo": "Available leave balance",
+            "leaveType": "Leave Type",
+            "days": "Days",
+            "startDate": "Start Date",
+            "endDate": "End Date",
+            "configureBalance": "Configure Leave Balance"
+        },
+        "documents": {
+            "title": "Documents",
+            "addDocument": "Add Document",
+            "document": "Document",
+            "name": "Document Name",
+            "type": "Document Type",
+            "expiryDate": "Expiry Date",
+            "status": "Status",
+            "selectType": "Select a type",
+            "noDocuments": "No documents added",
+            "file": "File",
+            "selectFile": "Select a file",
+            "fileSelected": "File selected",
+            "noFileSelected": "No file selected",
+            "contract": "Employment Contract",
+            "idCard": "ID Card / National ID",
+            "workPermit": "Work Permit",
+            "diplomas": "Diplomas & Certifications",
+            "uploaded": "✓ Uploaded",
+            "download": "Download",
+            "remove": "Remove",
+            "dragOrClick": "Drag and drop your file here, or click to select",
+            "addDiplomas": "Add Diplomas & Certifications",
+            "diplomasHelper": "You can upload multiple diplomas and certification documents",
+            "uploadedDiplomas": "Uploaded Diplomas",
+            "requirements": "Required documents: Employment Contract, ID Card/National ID, and Work Permit. Diplomas are optional but recommended."
+        },
+        "documentType": {
+            "idCard": "ID Card",
+            "passport": "Passport",
+            "contract": "Contract",
+            "cv": "CV",
+            "diploma": "Diploma",
+            "other": "Other"
+        },
+        "documentStatus": {
+            "valid": "Valid",
+            "expired": "Expired",
+            "pending": "Pending"
+        },
+        "leaveType": {
+            "annual": "Annual Leave",
+            "sick": "Sick Leave",
+            "personal": "Personal Leave",
+            "maternity": "Maternity Leave",
+            "paternity": "Paternity Leave",
+            "other": "Other Leave",
+            "unpaid": "Unpaid Leave"
+        },
+        "leaveBalance": {
+            "title": "Leave Balance",
+            "summary": "Summary",
+            "totalDays": "Total Days",
+            "days": "days",
+            "unpaidLeave": "Unpaid Leave",
+            "totalEntitlements": "Total Leave Entitlements"
+        },
+        "absences": {
+            "title": "Absence Management",
+            "add": "Record Absence",
+            "table": {
+                "employee": "Employee",
+                "type": "Type",
+                "startDate": "Start Date",
+                "endDate": "End Date",
+                "reason": "Reason",
+                "document": "Document",
+                "download": "Download",
+                "noDocument": "None"
+            }
+        },
+        "absenceType": {
+            "JUSTIFIED": "Justified",
+            "UNJUSTIFIED": "Unjustified"
+        },
+        "stats": {
+            "totalEmployees": "Total Employees",
+            "totalEmployeesSubtitle": "Active & all statuses",
+            "active": "Active",
+            "activeSubtitle": "% of workforce",
+            "onLeave": "On Leave",
+            "onLeaveSubtitle": "Currently away",
+            "recentlyAdded": "Recently Added",
+            "recentlyAddedSubtitle": "Last 30 days"
+        },
+        "actions": {
+            "export": "Export",
+            "csv": "CSV",
+            "pdf": "PDF",
+            "edit": "Edit",
+            "delete": "Delete",
+            "view": "View",
+            "confirm": "Are you sure?"
+        },
+        "details": {
+            "personalInfo": "Personal Information",
+            "firstName": "First Name",
+            "lastName": "Last Name",
+            "birthDate": "Birth Date",
+            "nationality": "Nationality",
+            "phone": "Phone",
+            "email": "Email",
+            "address": "Address",
+            "professionalInfo": "Professional Information",
+            "department": "Department",
+            "position": "Position",
+            "workLocation": "Work Location",
+            "hireDate": "Hire Date",
+            "contractType": "Contract Type",
+            "status": "Status",
+            "yearsOfService": "Years of Service",
+            "contract": "Contract",
+            "salary": "Salary & Compensation",
+            "baseSalary": "Base Salary",
+            "bonus": "Bonus",
+            "paymentMethod": "Payment Method",
+            "lastSalaryAdjustment": "Last Salary Adjustment",
+            "leaveEntitlements": "Leave Entitlements",
+            "cameroonInfo": "Cameroon Information",
+            "cnpsNumber": "CNPS Number",
+            "cnpsCategory": "CNPS Category",
+            "taxId": "N-tif",
+            "maritalStatus": "Marital Status",
+            "bankAccount": "Bank Account",
+            "bankAccountNumber": "Bank Account Number",
+            "documents": "Documents",
+            "idCard": "ID Card",
+            "workPermit": "Work Permit",
+            "diplomas": "Diplomas"
+        },
+        "payrollInfo": {
+            "cameroonPayroll": "Cameroon Payroll",
+            "belowSmig": "Salary below SMIG",
+            "grossSalary": "Gross Salary",
+            "smig": "SMIG 2024",
+            "deductions": "Deductions",
+            "cnpsEmployee": "CNPS Employee (11%)",
+            "cnpsEmployer": "Employer Contribution (17.6%)",
+            "fcfa": "FCFA",
+            "taxInfo": "Tax Info",
+            "dependents": "Dependents",
+            "taxReduction": "Tax reduction"
+        },
+        "editEmployee": "Edit Employee",
+        "addEmployee": "Add Employee",
+        "updateEmployee": "Update Employee"
+    },
+    "secretariat": {
+        "title": "Secretariat",
+        "tabs": {
+            "documents": "Documents",
+            "meetings": "Meetings",
+            "tasks": "Tasks"
+        },
+        "documents": {
+            "title": "Document Management",
+            "add": "Add Document",
+            "table": {
+                "name": "Document Name",
+                "category": "Category",
+                "uploadDate": "Upload Date",
+                "status": "Status",
+                "file": "File"
+            },
+            "categories": {
+                "LEGAL": "Legal",
+                "FINANCIAL": "Financial",
+                "HR": "HR",
+                "CONTRACT": "Contract",
+                "OTHER": "Other"
+            },
+            "statuses": {
+                "DRAFT": "Draft",
+                "FINAL": "Final",
+                "ARCHIVED": "Archived"
+            },
+            "modal": {
+                "addTitle": "Add New Document",
+                "editTitle": "Edit Document",
+                "deleteTitle": "Delete Document"
+            }
+        },
+        "meetings": {
+            "title": "Meeting Tracking",
+            "add": "Schedule Meeting",
+            "table": {
+                "title": "Title",
+                "date": "Date & Time",
+                "location": "Location",
+                "participants": "Participants"
+            },
+            "modal": {
+                "addTitle": "Schedule New Meeting",
+                "editTitle": "Edit Meeting",
+                "detailsTitle": "Meeting Details",
+                "deleteTitle": "Cancel Meeting"
+            },
+            "details": {
+                "agenda": "Agenda",
+                "minutes": "Minutes",
+                "noMinutes": "No minutes written."
+            }
+        },
+        "tasks": {
+            "title": "Task Management",
+            "add": "Add Task",
+            "table": {
+                "title": "Task",
+                "assignedTo": "Assigned To",
+                "dueDate": "Due Date",
+                "status": "Status"
+            },
+            "statuses": {
+                "TODO": "To Do",
+                "IN_PROGRESS": "In Progress",
+                "DONE": "Done"
+            },
+            "modal": {
+                "addTitle": "Create New Task",
+                "editTitle": "Edit Task",
+                "deleteTitle": "Delete Task"
+            }
+        }
+    },
+    "crm": {
+        "title": "CRM",
+        "allSubsidiaries": "All subsidiaries",
+        "allCommercials": "All sales reps",
+        "tabs": {
+            "dashboard": "Dashboard",
+            "leads": "Leads",
+            "accounts": "Accounts",
+            "contacts": "Contacts",
+            "deals": "Deals",
+            "tasks": "Tasks",
+            "pipeline": "Pipeline",
+            "contracts": "Signed Contracts"
+        },
+        "tasks": {
+            "title": "Task Management",
+            "addTask": "Add Task",
+            "filterByStatus": "Filter by status",
+            "filterByDueDate": "Filter by due date",
+            "allStatuses": "All statuses",
+            "allDates": "All dates",
+            "today": "Today",
+            "thisWeek": "This week",
+            "overdue": "Overdue",
+            "status_TODO": "To Do",
+            "status_IN_PROGRESS": "In Progress",
+            "status_DONE": "Done",
+            "relatedTo": "Related to",
+            "assignedTo": "Assigned to",
+            "dueDate": "Due date",
+            "priority": "Priority",
+            "priority_LOW": "Low",
+            "priority_MEDIUM": "Medium",
+            "priority_HIGH": "High",
+            "filterByPriority": "Filter by priority",
+            "allPriorities": "All priorities",
+            "complete": "completed",
+  
+        },
+        "taskModal": {
+            "addTitle": "Add New Task",
+            "editTitle": "Edit Task",
+            "title": "Title",
+            "description": "Description",
+            "contact": "Contact",
+            "selectContact": "Select a contact",
+            "opportunity": "Opportunity (optional)",
+            "selectOpportunity": "Select an opportunity",
+            "noOpportunities": "No opportunities for this contact",
+            "dueDate": "Due Date",
+            "status": "Status",
+            "assignedTo": "Assigned to"
+        },
+        "leads": {
+            "title": "Lead Management",
+            "add": "Add Lead",
+            "convert": "Convert",
+            "name": "Name",
+            "company": "Company",
+            "email": "Email",
+            "phone": "Phone",
+            "status": "Status",
+            "status_NEW": "New",
+            "status_CONTACTED": "Contacted",
+            "status_QUALIFIED": "Qualified",
+            "status_LOST": "Lost",
+            "modal": {
+                "addTitle": "Add New Lead",
+                "editTitle": "Edit Lead",
+                "deleteTitle": "Delete Lead"
+            }
+        },
+        "accounts": {
+            "title": "Account Management",
+            "add": "Add Account",
+            "name": "Account Name",
+            "industry": "Industry",
+            "phone": "Phone",
+            "address": "Address",
+            "modal": {
+                "addTitle": "Add New Account",
+                "editTitle": "Edit Account",
+                "deleteTitle": "Delete Account"
+            }
+        },
+        "activities": {
+            "addTask": "Add Action",
+            "selectTask": "Select an action",
+            "contact": "Contact",
+            "selectContact": "Select a contact",
+            "dueDate": "Due Date",
+            "overdue": "Overdue",
+            "today": "Today",
+            "upcoming": "Upcoming",
+            "completed": "Completed",
+            "noActivity": "No activity to display."
+        },
+        "taskTitles": {
+            "follow_up_call": "Make a follow-up call",
+            "send_quote": "Send a quote",
+            "schedule_meeting": "Schedule a meeting",
+            "follow_up_proposal": "Follow up on proposal",
+            "send_documentation": "Send documentation",
+            "check_in_email": "Send a check-in email"
+        },
+        "dashboard": {
+            "pipelineValue": "Pipeline Value",
+            "conversionRate": "Conversion Rate",
+            "newOpportunities": "New Opportunities",
+            "newWebOpportunities": "New Opportunities (Web)",
+            "salesFunnel": "Sales Funnel",
+            "myTasks": "My Tasks",
+            "recentActivity": "Recent Activity"
+        },
+        "pipeline": {
+            "addOpportunity": "Add Opportunity"
+        },
+     
+        "opportunity": {
+            "stages": {
+                "QUALIFICATION": "Qualification",
+                "PROPOSAL": "Proposal",
+                "NEGOTIATION": "Negotiation",
+                "WON": "Won",
+                "LOST": "Lost"
+            },
+            "modal": {
+                "addTitle": "Add New Opportunity",
+                "editTitle": "Edit Opportunity",
+                "deleteTitle": "Delete Opportunity"
+            },
+            "form": {
+                "name": "Opportunity Name",
+                "client": "Client/Prospect",
+                "selectClient": "Select a client",
+                "value": "Estimated Value",
+                "stage": "Stage",
+                "products": "Concerned Products",
+                "selectProducts": "Select products",
+                "closeDate": "Expected Close Date"
+            }
+        },
+        "contacts": {
+            "title": "Contact Management",
+            "add": "Add Contact",
+            "contact": "Contact",
+            "company": "Company",
+            "email": "Email",
+            "phone": "Phone",
+            "status": "Status",
+            "contracts": "Signed Contracts",
+            "opportunities": "Opportunities",
+            "statuses": {
+                "PROSPECT": "Prospect",
+                "ACTIVE": "Active",
+                "INACTIVE": "Inactive"
+            },
+            "details": {
+                "title": "Contact Details",
+                "info": "Information",
+                "interactions": "Interactions",
+                "logInteraction": "Log Interaction",
+                "tasks": "Tasks",
+                "opportunities": "Opportunities",
+                "contracts": "Signed Contracts",
+                "noInteractions": "No interactions logged."
+            }
+        },
+        "contracts": {
+            "title": "Signed Contract Management",
+            "add": "Add Contract",
+            "table": {
+                "title": "Contract Title",
+                "client": "Client",
+                "startDate": "Start Date",
+                "endDate": "End Date",
+                "amount": "Amount",
+                "status": "Status"
+            },
+            "status_DRAFT": "Draft",
+            "status_ACTIVE": "Active",
+            "status_EXPIRED": "Expired",
+            "status_CANCELLED": "Cancelled",
+            "modal": {
+                "addTitle": "Add New Contract",
+                "editTitle": "Edit Contract",
+                "deleteTitle": "Delete Contract"
+            }
+        },
+        "interactions": {
+            "types": {
+                "CALL": "Call",
+                "EMAIL": "Email",
+                "MEETING": "Meeting",
+                "OTHER": "Other"
+            },
+            "form": {
+                "type": "Interaction Type",
+                "notes": "Notes",
+                "notesPlaceholder": "Enter interaction details...",
+                "log": "Enregistrer"
+            },
+            "modal": {
+                "addTitle": "Add New Contract",
+                "editTitle": "Edit Contract",
+                "deleteTitle": "Delete Contract"
+            }
+        }
     },
     "loadedOrder": {
       "title": "Payment on Order",

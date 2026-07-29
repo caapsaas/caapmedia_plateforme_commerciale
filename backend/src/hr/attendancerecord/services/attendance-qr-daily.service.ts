@@ -3,8 +3,10 @@ import {
   Logger,
   NotFoundException,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
+import { AttendanceRecordService } from '../attendancerecord.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { v4 as uuidv4 } from 'uuid';
 import * as jwt from 'jsonwebtoken';
@@ -14,11 +16,15 @@ export class AttendanceQrDailyService {
   private readonly logger = new Logger(AttendanceQrDailyService.name);
   private readonly QR_SECRET =
     process.env.QR_TOKEN_SECRET || 'caap-attendance-system-secret-key-2024';
-  private readonly QR_EXPIRATION = 86400; // 24 heures en secondes
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly attendanceService: AttendanceRecordService,
+  ) {}
 
-  // Générer les QR codes quotidiens à minuit (UN PER EMPLOYEE)
+  // ------------------------------------------------------------------
+  // Génération quotidienne des QR codes (1 par employé) - SANS expiration
+  // ------------------------------------------------------------------
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async generateDailyQrCodes() {
     this.logger.log('🔄 Generating daily QR codes for all employees');
@@ -38,7 +44,7 @@ export class AttendanceQrDailyService {
           },
         });
 
-        // Récupérer tous les employés de la filiale
+        // Récupérer tous les employés actifs de la filiale
         const employees = await this.prisma.employee.findMany({
           where: {
             subsidiaryId: subsidiary.id,
@@ -49,9 +55,7 @@ export class AttendanceQrDailyService {
         // Générer UN QR code par employé
         for (const employee of employees) {
           const token = this.generateQrToken(subsidiary.id, employee.id);
-          const expiresAt = new Date(Date.now() + this.QR_EXPIRATION * 1000);
 
-          // Créer l'URL du check-in
           const checkInUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/check-in?token=${token}`;
 
           await this.prisma.dailyQrCode.create({
@@ -62,8 +66,8 @@ export class AttendanceQrDailyService {
               token,
               qrUrl: checkInUrl,
               issuedAt: new Date(),
-              expiresAt,
               isActive: true,
+              // expiresAt a été retiré
             },
           });
 
@@ -86,32 +90,34 @@ export class AttendanceQrDailyService {
     }
   }
 
-  // Générer un JWT signé avec expiration (avec employeeId)
+  // ------------------------------------------------------------------
+  // Génération du JWT (SANS expiration)
+  // ------------------------------------------------------------------
   private generateQrToken(subsidiaryId: string, employeeId: string): string {
     const payload = {
       subsidiaryId,
       employeeId,
       type: 'attendance_qr',
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + this.QR_EXPIRATION,
+      // plus de champ "exp"
     };
 
-    // Ne pas passer expiresIn en options : le payload contient déjà "exp"
     return jwt.sign(payload, this.QR_SECRET, {
       algorithm: 'HS256',
       issuer: 'caap-attendance-system',
+      // plus d'expiresIn
     });
   }
 
-
-  // Récupérer le QR code actif d'une filiale pour un employé spécifique
+  // ------------------------------------------------------------------
+  // Récupérer le QR code actif d'un employé
+  // ------------------------------------------------------------------
   async getCurrentQrCode(subsidiaryId: string, employeeId: string) {
     const qrCode = await this.prisma.dailyQrCode.findFirst({
       where: {
         subsidiaryId,
         employeeId,
         isActive: true,
-        expiresAt: { gt: new Date() },
       },
       orderBy: { issuedAt: 'desc' },
       include: {
@@ -135,31 +141,27 @@ export class AttendanceQrDailyService {
     return {
       token: qrCode.token,
       issuedAt: qrCode.issuedAt,
-      expiresAt: qrCode.expiresAt,
       subsidiaryId: qrCode.subsidiaryId,
       employeeId: qrCode.employeeId,
       employee: qrCode.employee,
     };
   }
 
-  // Valider un QR token (vérifie signature et expiration) + retourne employeeId
+  // ------------------------------------------------------------------
+  // Validation pure du token (SANS vérification d'expiration)
+  // ------------------------------------------------------------------
   async validateQrToken(
     token: string,
   ): Promise<{ subsidiaryId: string; employeeId: string }> {
     try {
       const decoded = jwt.verify(token, this.QR_SECRET) as any;
 
-      // Vérifier que le token existe en DB et est actif
       const qrCode = await this.prisma.dailyQrCode.findUnique({
         where: { token },
       });
 
       if (!qrCode || !qrCode.isActive) {
         throw new UnauthorizedException('QR code has been invalidated');
-      }
-
-      if (new Date() > qrCode.expiresAt) {
-        throw new UnauthorizedException('QR code has expired');
       }
 
       return {
@@ -172,7 +174,88 @@ export class AttendanceQrDailyService {
     }
   }
 
-  // Invalider manuellement un QR code (pour raison de sécurité)
+  // ------------------------------------------------------------------
+  // ★ MÉTHODE PRINCIPALE : Scan QR → création automatique de présence
+  // ------------------------------------------------------------------
+  async processCheckIn(
+    token: string,
+    options?: {
+      signature?: string;
+      arrivalLatitude?: number;
+      arrivalLongitude?: number;
+      accuracyMeters?: number;
+      isGeolocationValid?: boolean;
+    },
+  ) {
+    // 1. Valider le token
+    const { subsidiaryId, employeeId } = await this.validateQrToken(token);
+
+    // 2. Vérifier qu'il n'existe pas déjà une présence aujourd'hui
+    const existing = await this.attendanceService.findTodayRecord(
+      employeeId,
+      subsidiaryId,
+    );
+    if (existing) {
+      throw new BadRequestException(
+        "Une présence a déjà été enregistrée aujourd'hui pour cet employé",
+      );
+    }
+
+    // 3. Récupérer l'employé
+    const employee = await this.attendanceService.findEmployeeById(employeeId);
+    if (!employee) {
+      throw new NotFoundException('Employé introuvable');
+    }
+
+    // 4. Déterminer le statut (PRESENT / LATE)
+    const now = new Date();
+    const status = this.determineAttendanceStatus(now);
+
+    // 5. Créer la présence
+    //    → employeeId et subsidiaryId sont passés séparément
+    //      (comme dans la signature originale de AttendanceRecordService.create)
+    const record = await this.attendanceService.create(
+      {
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        attendanceDate: now,
+        status,
+        arrivalTime: now,
+        signature: options?.signature ?? null,
+        arrivalLatitude: options?.arrivalLatitude ?? null,
+        arrivalLongitude: options?.arrivalLongitude ?? null,
+        accuracyMeters: options?.accuracyMeters ?? null,
+        isGeolocationValid: options?.isGeolocationValid ?? false,
+        qrCodeToken: token,
+      },
+      employeeId,
+      subsidiaryId,
+    );
+
+    this.logger.log(
+      `✓ Présence créée via QR pour ${employee.firstName} ${employee.lastName} (${status})`,
+    );
+
+    return record;
+  }
+
+  /**
+   * Logique de détermination du statut.
+   * À adapter selon vos règles métier.
+   */
+  private determineAttendanceStatus(now: Date): 'PRESENT' | 'LATE' {
+    const hour = now.getHours();
+    const minutes = now.getMinutes();
+
+    // Exemple : après 08h30 → LATE
+    if (hour > 8 || (hour === 8 && minutes > 30)) {
+      return 'LATE';
+    }
+    return 'PRESENT';
+  }
+
+  // ------------------------------------------------------------------
+  // Invalidation manuelle
+  // ------------------------------------------------------------------
   async invalidateQrCode(subsidiaryId: string) {
     return this.prisma.dailyQrCode.updateMany({
       where: {
@@ -185,9 +268,10 @@ export class AttendanceQrDailyService {
     });
   }
 
-  // Récupérer tous les QR codes actifs des employés d'une filiale, et générer les manquants
+  // ------------------------------------------------------------------
+  // Récupérer tous les QR codes d'une filiale (+ génération à la volée)
+  // ------------------------------------------------------------------
   async getAllQrCodesForSubsidiary(subsidiaryId: string | null) {
-    // 1. Récupérer tous les employés actifs (toutes filiales si SUPER_ADMIN)
     const employeeWhere: any = { status: 'ACTIVE' };
     if (subsidiaryId) employeeWhere.subsidiaryId = subsidiaryId;
 
@@ -204,8 +288,7 @@ export class AttendanceQrDailyService {
       },
     });
 
-    // 2. Récupérer les QR codes valides existants
-    const qrWhere: any = { isActive: true, expiresAt: { gt: new Date() } };
+    const qrWhere: any = { isActive: true };
     if (subsidiaryId) qrWhere.subsidiaryId = subsidiaryId;
 
     const existingQrCodes = await this.prisma.dailyQrCode.findMany({
@@ -217,13 +300,11 @@ export class AttendanceQrDailyService {
     );
     const results = [];
 
-    // 3. Associer le QR code existant ou en créer un nouveau à la volée
     for (const employee of employees) {
       let qrCode = qrCodesByEmployeeId.get(employee.id);
 
       if (!qrCode) {
         const token = this.generateQrToken(employee.subsidiaryId, employee.id);
-        const expiresAt = new Date(Date.now() + this.QR_EXPIRATION * 1000);
         const checkInUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/check-in?token=${token}`;
 
         qrCode = await this.prisma.dailyQrCode.create({
@@ -234,7 +315,6 @@ export class AttendanceQrDailyService {
             token,
             qrUrl: checkInUrl,
             issuedAt: new Date(),
-            expiresAt,
             isActive: true,
           },
         });
@@ -247,7 +327,6 @@ export class AttendanceQrDailyService {
       results.push({
         token: qrCode.token,
         issuedAt: qrCode.issuedAt,
-        expiresAt: qrCode.expiresAt,
         subsidiaryId: qrCode.subsidiaryId,
         employeeId: qrCode.employeeId,
         employee: employee,
@@ -256,4 +335,5 @@ export class AttendanceQrDailyService {
 
     return results;
   }
+  
 }
