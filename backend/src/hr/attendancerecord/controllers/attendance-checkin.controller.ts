@@ -13,7 +13,6 @@ import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { AttendanceRecordService } from '../attendancerecord.service';
 import { AttendanceQrDailyService } from '../services/attendance-qr-daily.service';
 import { AttendanceGeolocationService } from '../services/attendance-geolocation.service';
-import { CreateAttendanceRecordDto } from '../dto/atendancerecord.dto';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { Roles } from 'src/common/auth/role/role.decorator';
 
@@ -105,27 +104,22 @@ export class AttendanceCheckInController {
         throw new BadRequestException('Employé non trouvé');
       }
 
-      // Créer l'enregistrement d'arrivée
-      const attendanceData: CreateAttendanceRecordDto = {
-        employeeId,
-        attendanceDate: new Date(),
-        arrivalTime: new Date(),
-        status: isLate ? 'LATE' : 'PRESENT',
-        employeeName: `${employee.firstName} ${employee.lastName}`,
-      };
-
-      // add optional geo fields as informational only
-      const meta: any = {};
-      if (dto.latitude !== undefined) meta.arrivalLatitude = dto.latitude;
-      if (dto.longitude !== undefined) meta.arrivalLongitude = dto.longitude;
-      if (dto.accuracy !== undefined) meta.accuracyMeters = dto.accuracy;
-      if (dto.qrToken) meta.qrCodeToken = dto.qrToken;
-
-      const result = await this.attendanceService.create(
-        { ...attendanceData, ...meta },
+      const scanTime = new Date();
+      const attendanceData = {
         employeeId,
         subsidiaryId,
-      );
+        attendanceDate: scanTime,
+        arrivalTime: scanTime,
+        status: isLate ? 'LATE' : 'PRESENT',
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        qrCodeToken: dto.qrToken,
+        arrivalLatitude: dto.latitude,
+        arrivalLongitude: dto.longitude,
+        accuracyMeters: dto.accuracy,
+        isGeolocationValid: false,
+      };
+
+      const result = await this.attendanceService.createFromScan(attendanceData);
 
       this.logger.log(`✓ Check-in created for employee ${employeeId}`);
 
@@ -141,15 +135,15 @@ export class AttendanceCheckInController {
 
     // If record exists and has arrival but no departure -> perform check-out
     if (todayRecord.arrivalTime && !todayRecord.departureTime) {
-      const updatePayload: any = {
+      const updated = await this.attendanceService.completeFromScan({
+        recordId: todayRecord.id,
         departureTime: new Date(),
         status: 'LEFT',
-      };
-      if (dto.latitude !== undefined) updatePayload.departureLatitude = dto.latitude;
-      if (dto.longitude !== undefined) updatePayload.departureLongitude = dto.longitude;
-      if (dto.accuracy !== undefined) updatePayload.accuracyMeters = dto.accuracy;
-
-      const updated = await this.attendanceService.update(todayRecord.id, updatePayload);
+        departureLatitude: dto.latitude,
+        departureLongitude: dto.longitude,
+        accuracyMeters: dto.accuracy,
+        isGeolocationValid: false,
+      });
 
       this.logger.log(`✓ Check-out created for employee ${employeeId}`);
 
@@ -198,11 +192,13 @@ export class AttendanceCheckInController {
     }
 
     // 2️⃣ Mettre à jour le départ — ne pas utiliser la géolocalisation pour déterminer le statut
-    const result = await this.attendanceService.update(todayRecord.id, {
+    const result = await this.attendanceService.completeFromScan({
+      recordId: todayRecord.id,
       departureTime: new Date(),
       departureLatitude: dto.latitude,
       departureLongitude: dto.longitude,
       status: 'LEFT',
+      isGeolocationValid: false,
     });
 
     this.logger.log(
