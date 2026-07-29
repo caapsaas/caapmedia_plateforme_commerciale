@@ -1285,7 +1285,7 @@ model AttendanceRecord {
   departureLongitude    Float?           @map("departure_longitude")
   isGeolocationValid    Boolean          @default(false) @map("is_geolocation_valid")
   accuracyMeters        Float?           @map("accuracy_meters")
-  qrCodeToken           String?          @unique @map("qr_code_token")
+  qrCodeToken           String?          @map("qr_code_token")
 
   employeeId            String           @map("employee_id")
   subsidiaryId          String           @map("subsidiary_id")
@@ -1640,6 +1640,7 @@ enum PayrollStatus {
 enum AbsenceType {
   JUSTIFIED
   UNJUSTIFIED
+  
 }
 
 enum DocumentCategory {
@@ -2085,10 +2086,10 @@ model AllowanceRule {
 model DailyQrCode {
   id            String     @id @default(uuid())
   subsidiaryId  String     @map("subsidiary_id")
-  employeeId    String?    @map("employee_id")
+  employeeId    String    @map("employee_id")
   token         String     @unique
   issuedAt      DateTime   @default(now()) @map("issued_at")
-  expiresAt     DateTime   @map("expires_at")
+  expiresAt     DateTime?    @map("expires_at")
   isActive      Boolean    @default(true) @map("is_active")
   qrUrl         String?    @map("qr_url")
 

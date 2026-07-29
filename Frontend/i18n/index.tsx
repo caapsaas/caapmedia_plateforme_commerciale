@@ -1368,8 +1368,14 @@ const frTranslations = {
     "tabs": {
       "employees": "Employés",
       "attendance": "Présences",
+      "attendance_cards": "Cartes de présence",
+      "attendance_history": "Historique des présences",
       "payroll": "Paie",
       "absences": "Absences"
+    },
+    "viewMode": {
+      "table": "Tableau",
+      "cards": "Cartes"
     },
     "employees": {
       "title": "Gestion des Employés",
@@ -3480,8 +3486,14 @@ const enTranslations: Translations = {
         "tabs": {
             "employees": "Employees",
             "attendance": "Attendance",
+            "attendance_cards": "Attendance Cards",
+            "attendance_history": "Attendance History",
             "payroll": "Payroll",
             "absences": "Absences"
+        },
+        "viewMode": {
+            "table": "Table",
+            "cards": "Cards"
         },
         "employees": {
             "title": "Employee Database",

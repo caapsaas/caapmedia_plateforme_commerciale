@@ -323,6 +323,8 @@
       "employees": "Employés",
       "attendance": "Présences",
       "attendances": "Présences",
+      "attendance_cards": "Cartes de présence",
+      "attendance_history": "Historique des présences",
       "payroll": "Paie",
       "absences": "Absences"
     },
