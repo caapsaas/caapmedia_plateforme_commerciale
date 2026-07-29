@@ -4,9 +4,33 @@ import {
   CreateAttendanceRecordDto,
   UpdateAttendanceRecordDto,
 } from './dto/atendancerecord.dto';
-import { AttendanceRecord } from '@prisma/client';
+import { AttendanceRecord, AttendanceStatus } from '@prisma/client';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+
+interface CreateAttendanceFromScanPayload {
+  employeeId: string;
+  subsidiaryId: string;
+  employeeName: string;
+  attendanceDate: Date;
+  arrivalTime: Date;
+  status: AttendanceStatus;
+  qrCodeToken?: string;
+  arrivalLatitude?: number;
+  arrivalLongitude?: number;
+  accuracyMeters?: number;
+  isGeolocationValid?: boolean;
+}
+
+interface CompleteAttendanceFromScanPayload {
+  recordId: string;
+  departureTime: Date;
+  status: AttendanceStatus;
+  departureLatitude?: number;
+  departureLongitude?: number;
+  accuracyMeters?: number;
+  isGeolocationValid?: boolean;
+}
 
 @Injectable()
 export class AttendanceRecordService {
@@ -18,6 +42,54 @@ export class AttendanceRecordService {
   // informational/audit purposes. They MUST NOT be used to compute or
   // validate attendance status (PRESENT/LATE/ABSENT). Business logic that
   // determines status must rely only on times/attendance rules.
+  async createFromScan(
+    payload: CreateAttendanceFromScanPayload,
+  ): Promise<AttendanceRecord> {
+    const normalizedAttendanceDate = this.normalizeAttendanceDate(
+      payload.attendanceDate,
+    );
+
+    const createAttendanceRecordDto: CreateAttendanceRecordDto = {
+      employeeId: payload.employeeId,
+      employeeName: payload.employeeName,
+      attendanceDate: normalizedAttendanceDate,
+      arrivalTime: payload.arrivalTime,
+      status: payload.status,
+      qrCodeToken: payload.qrCodeToken,
+      arrivalLatitude: payload.arrivalLatitude,
+      arrivalLongitude: payload.arrivalLongitude,
+      accuracyMeters: payload.accuracyMeters,
+      isGeolocationValid: payload.isGeolocationValid ?? false,
+    };
+
+    return this.create(
+      createAttendanceRecordDto,
+      payload.employeeId,
+      payload.subsidiaryId,
+    );
+  }
+
+  async completeFromScan(
+    payload: CompleteAttendanceFromScanPayload,
+  ): Promise<AttendanceRecord> {
+    const updateAttendanceRecordDto: UpdateAttendanceRecordDto = {
+      departureTime: payload.departureTime,
+      departureLatitude: payload.departureLatitude,
+      departureLongitude: payload.departureLongitude,
+      accuracyMeters: payload.accuracyMeters,
+      status: payload.status,
+      isGeolocationValid: payload.isGeolocationValid ?? false,
+    };
+
+    return this.update(payload.recordId, updateAttendanceRecordDto);
+  }
+
+  private normalizeAttendanceDate(date: Date): Date {
+    const normalizedDate = new Date(date);
+    normalizedDate.setHours(0, 0, 0, 0);
+    return normalizedDate;
+  }
+
   async create(
     createAttendanceRecordDto: CreateAttendanceRecordDto,
     employeeId: string,
