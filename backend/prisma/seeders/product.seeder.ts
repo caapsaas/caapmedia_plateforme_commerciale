@@ -1,5 +1,7 @@
 // prisma/seeders/product.seeder.ts
 import { PrismaClient, Prisma, ItemType } from '@prisma/client';
+import { generateId } from './generate-id.util';
+import { ID_PREFIXES } from './id-prefixes.const';
 
 // Catalogue de services (donnée globale, pas de filiale, pas de stock/prix
 // sur l'article — le prix est négocié à chaque commande, voir Chantier 4).
@@ -882,7 +884,7 @@ async function seedUnits(prisma: PrismaClient): Promise<Map<string, string>> {
     const unit = await prisma.unit.upsert({
       where: { name: u.name },
       update: {},
-      create: { name: u.name, symbol: u.symbol },
+      create: { id: generateId(ID_PREFIXES.UNIT), name: u.name, symbol: u.symbol },
     });
     unitIdByName.set(unit.name, unit.id);
   }
@@ -900,6 +902,7 @@ async function seedServices(prisma: PrismaClient) {
 
     const item = await prisma.item.create({
       data: {
+        id: generateId(ID_PREFIXES.PRODUCT),
         name: s.name,
         category: s.category,
         description: s.description,
@@ -911,6 +914,7 @@ async function seedServices(prisma: PrismaClient) {
     for (const url of s.imageUrls) {
       await prisma.productImage.create({
         data: {
+          id: generateId(ID_PREFIXES.PRODUCTIMAGE),
           imageName: `${s.name}-${url.split('/').pop()}`,
           imageUrl: url,
           product: { connect: { id: item.id } },
@@ -951,6 +955,7 @@ async function seedStockProducts(
     if (!item) {
       item = await prisma.item.create({
         data: {
+          id: generateId(ID_PREFIXES.PRODUCT),
           name: p.name,
           category: p.category,
           description: p.description,
@@ -985,6 +990,7 @@ async function seedStockProducts(
             ),
           },
           create: {
+            id: generateId(ID_PREFIXES.ITEMPACKAGINGUNIT),
             itemId: item.id,
             unitId: packagingUnitId,
             conversionFactor: new Prisma.Decimal(
@@ -1002,6 +1008,7 @@ async function seedStockProducts(
 
     await prisma.itemStock.create({
       data: {
+        id: generateId(ID_PREFIXES.ITEMSTOCK),
         itemId: item.id,
         subsidiaryId: subsidiary.id,
         stock: new Prisma.Decimal(p.stock),

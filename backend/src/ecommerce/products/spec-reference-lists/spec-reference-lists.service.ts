@@ -10,6 +10,8 @@ import {
   UpdateReferenceListDto,
   UpdateReferenceValueDto,
 } from './dto/spec-reference-list.dto';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 // Référentiels partagés entre services (Types de papier, Grammages, Couleurs...) —
 // administrables sans toucher au code, référencés depuis ProductSpecification.possibleValues
@@ -27,7 +29,9 @@ export class SpecReferenceListsService {
         `Un référentiel avec la clé "${dto.key}" existe déjà.`,
       );
     }
-    return this.prisma.specReferenceList.create({ data: dto });
+    return this.prisma.specReferenceList.create({
+      data: { id: generateId(ID_PREFIXES.SPECREFERENCELIST), ...dto },
+    });
   }
 
   findAll() {
@@ -65,7 +69,13 @@ export class SpecReferenceListsService {
       dto.order ??
       (await this.prisma.specReferenceValue.count({ where: { listId } })) + 1;
     return this.prisma.specReferenceValue.create({
-      data: { listId, value: dto.value, label: dto.label, order },
+      data: {
+        id: generateId(ID_PREFIXES.SPECREFERENCEVALUE),
+        listId,
+        value: dto.value,
+        label: dto.label,
+        order,
+      },
     });
   }
 

@@ -160,7 +160,7 @@ export async function runEquipmentSeeder(prisma: PrismaClient) {
         if (e.hourlyRate !== null && e.hourlyRate !== undefined) {
             await prisma.equipementCostConfig.upsert({
                 where: { equipmentId: equipment.id },
-                create: { equipmentId: equipment.id, hourlyRate: e.hourlyRate },
+                create: { id: generateId(ID_PREFIXES.EQUIPEMENTCOSTCONFIG), equipmentId: equipment.id, hourlyRate: e.hourlyRate },
                 update: { hourlyRate: e.hourlyRate },
             });
         }

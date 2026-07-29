@@ -8,7 +8,7 @@ import { ChevronDown } from 'lucide-react';
 
 interface SidebarDropdownItem {
   to: string;
-  label: string;
+  label: React.ReactNode;
   icon: React.ReactNode;
 }
 

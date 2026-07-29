@@ -7,62 +7,62 @@ import {
   Body,
   Query,
   UseGuards,
-  Req,
 } from '@nestjs/common';
 import { AccountsService } from './accounts.service';
 import type { CreateAccountDto } from './accounts.service';
 import { JournalsService } from '../journals/journals.service';
+import { MappingsService } from './mappings.service';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
+import { AccountingAccessGuard } from 'src/accounting-access/accounting-access.guard';
 import type { AccountingAccountType } from '@prisma/client';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AccountingAccessGuard)
 @Controller('accounting/accounts')
 export class AccountsController {
   constructor(
     private readonly accountsService: AccountsService,
     private readonly journalsService: JournalsService,
+    private readonly mappingsService: MappingsService,
   ) {}
 
   /**
-   * Initialise le plan comptable SYSCOHADA + les 4 journaux pour la filiale.
-   * À appeler une seule fois lors du premier usage du module comptabilité.
+   * Initialise le plan comptable SYSCOHADA + les journaux + les mappings par
+   * défaut (référentiels globaux). À appeler une seule fois lors du premier
+   * usage du module comptabilité.
    */
   @Post('seed')
-  async seed(@Req() req: any) {
-    const { subsidiaryId } = req.user;
-    await this.accountsService.seedSyscohada(subsidiaryId);
-    await this.journalsService.seedDefaultJournals(subsidiaryId);
+  async seed() {
+    await this.accountsService.seedSyscohada();
+    await this.journalsService.seedDefaultJournals();
+    await this.mappingsService.seedDefaultMappings();
     return {
-      message: 'Plan comptable SYSCOHADA et journaux initialisés avec succès.',
+      message:
+        'Plan comptable SYSCOHADA, journaux et mappings initialisés avec succès.',
     };
   }
 
   @Post()
-  create(@Body() dto: CreateAccountDto, @Req() req: any) {
-    return this.accountsService.create(dto, req.user);
+  create(@Body() dto: CreateAccountDto) {
+    return this.accountsService.create(dto);
   }
 
   @Get()
-  findAll(@Req() req: any, @Query('type') type?: string) {
-    return this.accountsService.findAll(req.user, type as any);
+  findAll(@Query('type') type?: string) {
+    return this.accountsService.findAll(type as AccountingAccountType);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string, @Req() req: any) {
-    return this.accountsService.findOne(id, req.user);
+  findOne(@Param('id') id: string) {
+    return this.accountsService.findOne(id);
   }
 
   @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() dto: Partial<CreateAccountDto>,
-    @Req() req: any,
-  ) {
-    return this.accountsService.update(id, dto, req.user);
+  update(@Param('id') id: string, @Body() dto: Partial<CreateAccountDto>) {
+    return this.accountsService.update(id, dto);
   }
 
   @Patch(':id/deactivate')
-  deactivate(@Param('id') id: string, @Req() req: any) {
-    return this.accountsService.deactivate(id, req.user);
+  deactivate(@Param('id') id: string) {
+    return this.accountsService.deactivate(id);
   }
 }

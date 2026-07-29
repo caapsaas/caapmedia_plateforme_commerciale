@@ -8,6 +8,8 @@ import { CreateDirectSaleDto } from './dto/create-sale.dto';
 import { FindAllSalesDto, OrderPeriod } from './dto/find-all-sales.dto';
 import { ItemType, Prisma, SaleStatus, UserRole } from '@prisma/client';
 import { ProductSpecsService } from '../products/product-specs/product-specs.service';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 import {
   sub,
   startOfMonth,
@@ -104,6 +106,7 @@ export class SalesService {
         const totalPrice = subtotal.add(taxAmount);
 
         return {
+          id: generateId(ID_PREFIXES.SALE),
           productName: product.name,
           quantity: item.quantity,
           totalPrice: totalPrice,

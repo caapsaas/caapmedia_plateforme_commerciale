@@ -13,7 +13,6 @@ import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { AttendanceRecordService } from '../attendancerecord.service';
 import { AttendanceQrDailyService } from '../services/attendance-qr-daily.service';
 import { AttendanceGeolocationService } from '../services/attendance-geolocation.service';
-import { CreateAttendanceRecordDto } from '../dto/atendancerecord.dto';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { Roles } from 'src/common/auth/role/role.decorator';
 import { AttendanceStatus } from '@prisma/client';
@@ -134,7 +133,8 @@ export class AttendanceCheckInController {
 
     // ========== CAS 2 : Arrivée existe, pas encore de départ → CHECK-OUT ==========
     if (todayRecord.arrivalTime && !todayRecord.departureTime) {
-      const updatePayload: any = {
+      const updated = await this.attendanceService.completeFromScan({
+        recordId: todayRecord.id,
         departureTime: new Date(),
         status: 'LEFT', // ou AttendanceStatus.LEFT si vous l’avez dans l’enum
       };
@@ -207,6 +207,7 @@ export class AttendanceCheckInController {
       departureLatitude: dto.latitude,
       departureLongitude: dto.longitude,
       status: 'LEFT',
+      isGeolocationValid: false,
     });
 
     const arrivalTime = new Date(result.arrivalTime!);

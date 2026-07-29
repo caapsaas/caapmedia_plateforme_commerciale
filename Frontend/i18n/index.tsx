@@ -31,7 +31,7 @@ const frTranslations = {
     "saving": "Enregistrement...",
     "accessDenied": "Accès refusé"
   },
-   "contactModal": {
+  "contactModal": {
     "title": "Contactez-nous",
     "subtitle": "Une question ? Un projet ? L'équipe CaapMedia est là pour vous.",
     "name": "Nom complet",
@@ -51,7 +51,7 @@ const frTranslations = {
     "stayLoggedIn": "Rester connecté(e)",
     "logout": "Se déconnecter"
   },
-   "payment": {
+  "payment": {
     "chooseMethod": "Choisissez votre mode de paiement",
     "creditCard": "Carte de crédit",
     "orangeMoney": "Orange Money",
@@ -96,7 +96,7 @@ const frTranslations = {
     "contact": "Contact",
     "contactUs": "Contactez-nous",
     "address": "Akwa, Douala, Cameroun",
-   "phone": "+237 6 75 86 43 54 & +237 6 73 42 35 04",
+    "phone": "+237 6 75 86 43 54 & +237 6 73 42 35 04",
     "email": "contact@caapmedia.com",
     "copyright": "© 2024 CaapMedia. Tous droits réservés."
   },
@@ -172,7 +172,7 @@ const frTranslations = {
       "errorInvalidCode": "Code invalide."
     }
   },
-   "forgotPassword": {
+  "forgotPassword": {
     "title": "Réinitialiser le mot de passe",
     "instruction": "Veuillez entrer votre adresse e-mail pour recevoir un lien de réinitialisation.",
     "sendLink": "Envoyer le lien de réinitialisation",
@@ -308,7 +308,7 @@ const frTranslations = {
     "customer": "Client",
     "totalSpent": "Montant total dépensé"
   },
-   "purchaseAnalysis": {
+  "purchaseAnalysis": {
     "totalPurchaseValue": "Valeur Totale des Achats",
     "totalOrders": "Nombre de Commandes",
     "averageOrderValue": "Valeur Moyenne par Commande",
@@ -513,21 +513,21 @@ const frTranslations = {
       "detailsTitle": "Détails du Bon de Commande"
     },
     "receiveItemsModal": {
-        "title": "Réceptionner les articles",
-        "unit": "Unité",
-        "ordered": "Commandé",
-        "alreadyReceived": "Déjà Reçu",
-        "quantityToReceive": "Quantité à réceptionner"
+      "title": "Réceptionner les articles",
+      "unit": "Unité",
+      "ordered": "Commandé",
+      "alreadyReceived": "Déjà Reçu",
+      "quantityToReceive": "Quantité à réceptionner"
     },
     "paymentModal": {
-        "title": "Enregistrer un paiement",
-        "totalAmount": "Montant total de la commande",
-        "amountPaid": "Montant déjà payé",
-        "remainingBalance": "Solde restant",
-        "amountToPay": "Montant à payer"
+      "title": "Enregistrer un paiement",
+      "totalAmount": "Montant total de la commande",
+      "amountPaid": "Montant déjà payé",
+      "remainingBalance": "Solde restant",
+      "amountToPay": "Montant à payer"
     },
     "history": {
-        "title": "Historique de la commande"
+      "title": "Historique de la commande"
     },
     "form": {
       "supplier": "Fournisseur",
@@ -800,9 +800,11 @@ const frTranslations = {
       "totalAssets": "Total Actifs",
       "liabilities": "Passifs",
       "accountsPayable": "Dettes Fournisseurs",
+      "longTermDebts": "Dettes à Long Terme",
       "equity": "Capitaux Propres",
       "shareCapital": "Capital Social",
       "netIncome": "Résultat Net de l'exercice",
+      "retainedEarnings": "Résultats Cumulés",
       "totalLiabilitiesAndEquity": "Total Passifs et Capitaux Propres"
     }
   },
@@ -1146,7 +1148,7 @@ const frTranslations = {
     "category": "Catégorie",
     "sellingPrice": "Prix de vente",
     "stock": "Stock",
-    "clientManagement": "Gestion des Clients",
+    "clientManagement": "Clients",
     "addClient": "Ajouter un client",
     "company": "Société",
     "email": "Email",
@@ -1202,7 +1204,11 @@ const frTranslations = {
       "isActive": "Actif",
       "isVisibleOnSite": "Visible sur le site vitrine",
       "displayOrder": "Ordre d'affichage",
-      "images": "Images"
+      "images": "Images",
+      "maxImages": "max {{count}}",
+      "imageTooLarge": "L'image dépasse la taille maximale de 5 Mo",
+      "removeImage": "Supprimer l'image",
+      "acceptedFormats": "Formats acceptés : JPG, PNG, GIF, WEBP • Taille max : 5 Mo"
     },
     "builder": {
       "back": "Retour aux services",
@@ -1211,9 +1217,9 @@ const frTranslations = {
     "form": {
       "name": "Nom",
       "category": "Catégorie",
-    "description": "Description",
-    "passwordRequired": "Le mot de passe est requis pour un nouvel utilisateur.",
-    "passwordsDoNotMatch": "Les mots de passe ne correspondent pas.",
+      "description": "Description",
+      "passwordRequired": "Le mot de passe est requis pour un nouvel utilisateur.",
+      "passwordsDoNotMatch": "Les mots de passe ne correspondent pas.",
       "costPrice": "Prix de revient",
       "sellingPrice": "Prix de vente",
       "stock": "Stock",
@@ -1870,12 +1876,12 @@ const frTranslations = {
       "noActivity": "Aucune activité à afficher."
     },
     "taskTitles": {
-        "follow_up_call": "Faire un appel de suivi",
-        "send_quote": "Envoyer un devis",
-        "schedule_meeting": "Planifier une réunion",
-        "follow_up_proposal": "Suivi de la proposition",
-        "send_documentation": "Envoyer la documentation",
-        "check_in_email": "Envoyer un email de prise de contact"
+      "follow_up_call": "Faire un appel de suivi",
+      "send_quote": "Envoyer un devis",
+      "schedule_meeting": "Planifier une réunion",
+      "follow_up_proposal": "Suivi de la proposition",
+      "send_documentation": "Envoyer la documentation",
+      "check_in_email": "Envoyer un email de prise de contact"
     },
     "dashboard": {
       "pipelineValue": "Valeur du Pipeline",
@@ -1898,19 +1904,19 @@ const frTranslations = {
         "LOST": "Perdu"
       },
       "modal": {
-          "addTitle": "Ajouter une nouvelle opportunité",
-          "editTitle": "Modifier l'opportunité",
-          "deleteTitle": "Supprimer l'opportunité"
+        "addTitle": "Ajouter une nouvelle opportunité",
+        "editTitle": "Modifier l'opportunité",
+        "deleteTitle": "Supprimer l'opportunité"
       },
       "form": {
-          "name": "Nom de l'opportunité",
-          "client": "Client/Prospect",
-          "selectClient": "Sélectionnez un client",
-          "value": "Valeur Estimée",
-          "stage": "Étape",
-          "products": "Produits Concernés",
-          "selectProducts": "Sélectionnez les produits",
-          "closeDate": "Date de clôture prévue"
+        "name": "Nom de l'opportunité",
+        "client": "Client/Prospect",
+        "selectClient": "Sélectionnez un client",
+        "value": "Valeur Estimée",
+        "stage": "Étape",
+        "products": "Produits Concernés",
+        "selectProducts": "Sélectionnez les produits",
+        "closeDate": "Date de clôture prévue"
       }
     },
     "contacts": {
@@ -1994,7 +2000,7 @@ const frTranslations = {
       "log": "Enregistrer"
     }
   },
-   "product": {
+  "product": {
     "generationFailed": "La génération a échoué. Veuillez réessayer.",
     "serviceUnavailable": "Le service IA est actuellement indisponible.",
     "noImageGenerated": "Aucune image n'a été générée. Essayez une invite différente.",
@@ -2050,23 +2056,23 @@ const frTranslations = {
     "status_NEEDS_MAINTENANCE": "Nécessite Maintenance",
     "status_OUT_OF_SERVICE": "Hors Service",
     "modal": {
-        "addTitle": "Ajouter un équipement",
-        "editTitle": "Modifier l'équipement",
-        "deleteTitle": "Supprimer l'équipement",
-        "logTitle": "Historique de Maintenance pour {{name}}",
-        "addLogTitle": "Ajouter une intervention"
+      "addTitle": "Ajouter un équipement",
+      "editTitle": "Modifier l'équipement",
+      "deleteTitle": "Supprimer l'équipement",
+      "logTitle": "Historique de Maintenance pour {{name}}",
+      "addLogTitle": "Ajouter une intervention"
     },
     "form": {
-        "name": "Nom de l'équipement",
-        "status": "Statut",
-        "maintenanceDate": "Date de la maintenance",
-        "lastMaintenanceDate": "Date de la dernière maintenance",
-        "nextMaintenanceDate": "Date de la prochaine maintenance",
-        "technician": "Technicien",
-        "description": "Description de l'intervention",
-        "cost": "Coût (FCFA)",
-        "acquisitionDate": "Date d'acquisition",
-        "acquisitionValue": "Valeur d'acquisition"
+      "name": "Nom de l'équipement",
+      "status": "Statut",
+      "maintenanceDate": "Date de la maintenance",
+      "lastMaintenanceDate": "Date de la dernière maintenance",
+      "nextMaintenanceDate": "Date de la prochaine maintenance",
+      "technician": "Technicien",
+      "description": "Description de l'intervention",
+      "cost": "Coût (FCFA)",
+      "acquisitionDate": "Date d'acquisition",
+      "acquisitionValue": "Valeur d'acquisition"
     }
   },
   "equipements": {
@@ -2123,33 +2129,34 @@ const frTranslations = {
 type Translations = typeof frTranslations;
 
 const enTranslations: Translations = {
-    "common": {
-        "searchPlaceholder": "Search products, customers...",
-        "logout": "Logout",
-        "add": "Add",
-        "edit": "Edit",
-        "delete": "Delete",
-        "save": "Save",
-        "cancel": "Cancel",
-        "loading": "Loading...",
-        "version": "Version",
-        "actions": "Actions",
-        "viewBL": "View Delivery Note",
-        "close": "Close",
-        "confirmDelete": "Yes, delete",
-        "confirm": "Confirm",
-        "view": "Details",
-        "print": "Print",
-        "export": "Export to CSV",
-        "send": "Send",
-        "exportPdf": "Export to PDF",
-        "notAvailable": "Not defined",
-        "create": "Create",
-        "update": "Update",
-        "saving": "Saving...",
-        "accessDenied": "Access denied"
-    },
-    "contactModal": {
+  "common": {
+    "search": "Search",
+    "searchPlaceholder": "Search products, customers...",
+    "logout": "Logout",
+    "add": "Add",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading...",
+    "version": "Version",
+    "actions": "Actions",
+    "viewBL": "View Delivery Note",
+    "close": "Close",
+    "confirmDelete": "Yes, delete",
+    "confirm": "Confirm",
+    "view": "Details",
+    "print": "Print",
+    "export": "Export to CSV",
+    "send": "Send",
+    "exportPdf": "Export to PDF",
+    "notAvailable": "Not defined",
+    "create": "Create",
+    "update": "Update",
+    "saving": "Saving...",
+    "accessDenied": "Access denied"
+  },
+  "contactModal": {
     "title": "Contactez-nous",
     "subtitle": "Une question ? Un projet ? L'équipe CaapMedia est là pour vous.",
     "name": "Nom complet",
@@ -2163,1055 +2170,644 @@ const enTranslations: Translations = {
     "successMessage": "Merci de nous avoir contactés. Notre équipe reviendra vers vous dans les plus brefs délais.",
     "securityNote": "Vos informations sont sécurisées et ne seront jamais partagées."
   },
-    "idleModal": {
-      "title": "Are you still there?",
-      "message": "You will be logged out due to inactivity in {{countdown}} seconds.",
-      "stayLoggedIn": "Stay Logged In",
-      "logout": "Logout"
+  "idleModal": {
+    "title": "Are you still there?",
+    "message": "You will be logged out due to inactivity in {{countdown}} seconds.",
+    "stayLoggedIn": "Stay Logged In",
+    "logout": "Logout"
+  },
+  "payment": {
+    "chooseMethod": "Choose your payment method",
+    "creditCard": "Credit Card",
+    "orangeMoney": "Orange Money",
+    "wave": "Wave",
+    "mtnMoney": "MTN Money",
+    "paycaap": "Paycaap.com",
+    "payOnDelivery": "Pay on Delivery",
+    "customerCredit": "Pay in 30 days (Customer Credit)",
+    "pay": "Pay",
+    "processing": "Processing...",
+    "success": "Payment successful!",
+    "CASH": "Cash",
+    "CARD": "Card",
+    "CHECK": "Check",
+    "MOBILE_MONEY": "Mobile Money",
+    "WAVE": "Wave",
+    "ORANGE_MONEY": "Orange Money",
+    "PAYCAAP": "PayCaap",
+    "PAY_ON_DELIVERY": "Pay on Delivery",
+    "CUSTOMER_CREDIT": "Customer Credit (30 days)"
+  },
+  "quoteRequest": {
+    "title": "Request a Quote",
+    "subtitle": "Fill out the form below and our team will contact you as soon as possible.",
+    "name": "Full Name",
+    "company": "Company (Optional)",
+    "email": "Email Address",
+    "phone": "Phone Number",
+    "projectDescription": "Describe your project",
+    "fileUpload": "Attach a file (mockup, etc.)",
+    "submitButton": "Send Request",
+    "submitting": "Submitting...",
+    "successTitle": "Request Sent!",
+    "successMessage": "Thank you! Your quote request has been sent successfully. We will get back to you shortly."
+  },
+  "footer": {
+    "description": "Your partner for quality communication and printing in Cameroon.",
+    "services": "Our Services",
+    "usefulLinks": "Useful Links",
+    "about": "About Us",
+    "realisations": "Achievements",
+    "contact": "Contact",
+    "contactUs": "Contact Us",
+    "address": "Akwa, Douala, Cameroon",
+    "phone": "+237 6 75 86 43 54 & +237 6 73 42 35 04",
+    "email": "contact.douala@caap.cm",
+    "copyright": "© 2024 CaapMedia. All rights reserved."
+  },
+  "roles": {
+    "SUPER_ADMIN": "Super Admin",
+    "ADMIN": "Admin",
+    "COMMERCIAL": "Sales Rep",
+    "CAISSIER": "Cashier",
+    "PURCHASING_MANAGER": "Purchasing Manager",
+    "FINANCIAL_DIRECTOR": "Financial Director",
+    "SECRETARY": "Secretary",
+    "HR_MANAGER": "HR Manager",
+    "PRODUCTION_DIRECTOR": "Production Director"
+  },
+  "sidebar": {
+    "analytics": "Analytics",
+    "sales": "Sales",
+    "orders": "Orders",
+    "purchasing": "Purchasing",
+    "stockManagement": "Stock Management",
+    "finance": "Finance & Management",
+    "configuration": "Configuration",
+    "mySales": "My Sales",
+    "crm": "CRM",
+    "contacts": "Contacts",
+    "cashRegister": "Cash Register",
+    "transactions": "Transactions",
+    "myOrders": "My Orders",
+    "productCatalog": "Product Catalog",
+    "noViewForRole": "No views available for this role.",
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "hrManagement": "HR Management",
+    "secretariat": "Secretariat",
+    "production": "Production",
+    "maintenance": "Maintenance",
+    "equipements": "Equipment"
+  },
+  "header": {
+    "profileUser": "{{role}} User",
+    "language": "Language",
+    "openMenu": "Open menu"
+  },
+  "login": {
+    "title": "Login",
+    "subtitle": "Access your dashboard.",
+    "platformTitle": "Commercial Platform",
+    "platformSubtitle": "Your partner for growth and distribution.",
+    "subsidiary": "Subsidiary",
+    "selectSubsidiary": "Select your subsidiary",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "you@example.com",
+    "passwordLabel": "Password",
+    "rememberMe": "Remember me",
+    "forgotPassword": "Forgot password?",
+    "loginButton": "Sign in",
+    "loggingIn": "Signing in...",
+    "errorSelectSubsidiary": "Please select a subsidiary.",
+    "errorFillFields": "Please fill in all fields.",
+    "errorIncorrectCredentials": "Incorrect credentials. Please check your email and password.",
+    "errorUserNotOnSubsidiary": "This user is not assigned to the selected subsidiary.",
+    "forgotPasswordPrompt": "Please enter your email address to reset your password.",
+    "forgotPasswordSuccess": "If an account with the email {{email}} exists, a reset link has been sent.",
+    "twoFactor": {
+      "title": "Two-factor verification",
+      "subtitle": "Enter the code from your authenticator app.",
+      "codeLabel": "Verification code",
+      "recoveryCodeLabel": "Recovery code",
+      "recoveryCodePlaceholder": "xxxxxxxxxx",
+      "verifyButton": "Verify",
+      "useRecoveryCodeInstead": "Use a recovery code",
+      "useCodeInstead": "Use the app code",
+      "errorInvalidCode": "Invalid code."
+    }
+  },
+  "forgotPassword": {
+    "title": "Reset Password",
+    "instruction": "Please enter your email address to receive a password reset link.",
+    "sendLink": "Send Reset Link",
+    "sending": "Sending...",
+    "backToLogin": "Back to Login",
+    "successMessage": "If an account with that email exists, we have sent a link to reset your password.",
+    "errorMessage": "An error occurred while sending the reset link. Please try again."
+  },
+  "security": {
+    "title": "Account security",
+    "twoFactor": {
+      "title": "Two-factor authentication",
+      "description": "Add an extra layer of security to your account with an authenticator app.",
+      "statusEnabled": "Enabled",
+      "statusDisabled": "Disabled",
+      "enableButton": "Enable two-factor authentication",
+      "disableButton": "Disable two-factor authentication",
+      "scanInstruction": "Scan this QR code with your authenticator app (Google Authenticator, Authy...), then enter the generated code to confirm.",
+      "manualEntryLabel": "Or enter this code manually:",
+      "confirmCodeLabel": "Verification code",
+      "confirmButton": "Confirm and enable",
+      "recoveryCodesWarning": "Save these recovery codes somewhere safe. Each can only be used once to sign in if you lose access to your authenticator app. They will never be shown again.",
+      "recoveryCodesSavedButton": "I've saved my recovery codes",
+      "errorInvalidCode": "Invalid code.",
+      "errorGeneric": "Something went wrong. Please try again."
+    }
+  },
+  "ecommerce": {
+    "title": "Our Shop",
+    "welcomeTitle": "Welcome to CaapMedia",
+    "welcomeSubtitle": "Discover our quality products for all your needs.",
+    "searchPlaceholder": "Search for a product...",
+    "allCategories": "All Categories",
+    "addToCart": "Add to Cart",
+    "shoppingCart": "Shopping Cart",
+    "emptyCart": "Your cart is empty.",
+    "item": "item",
+    "items": "items",
+    "total": "Total",
+    "orderViaWhatsApp": "Order via WhatsApp",
+    "checkout": "Checkout",
+    "checkoutTitle": "Finalize Your Order",
+    "customerInfo": "Your Information",
+    "fullName": "Full Name",
+    "email": "Email Address",
+    "deliveryAddress": "Delivery Address",
+    "confirmOrder": "Confirm Order",
+    "orderSuccess": "Order placed successfully!",
+    "backToHome": "Back to Home",
+    "visitShop": "Visit the Shop",
+    "employeeLogin": "Employee Login",
+    "myAccount": "My Account",
+    "customerLogin": "Customer Login",
+    "createAccount": "Create Customer Account"
+  },
+  "customerAccount": {
+    "login": "Login",
+    "signup": "Sign Up",
+    "loginTitle": "Glad to see you again!",
+    "signupTitle": "Join Us",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "name": "Full Name",
+    "address": "Address",
+    "loginAction": "Login",
+    "signupAction": "Create My Account",
+    "or": "Or",
+    "myAccount": "My Account",
+    "profile": "My Profile",
+    "myOrders": "My Orders",
+    "security": "Security",
+    "paymentMethods": "Payment Methods",
+    "myReviews": "My Reviews",
+    "personalInfo": "Personal Information",
+    "saveChanges": "Save Changes",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "orderId": "Order ID",
+    "date": "Date",
+    "total": "Total",
+    "status": "Status",
+    "backToShop": "Back to Shop"
+  },
+  "paymentMethods": {
+    "BANK_TRANSFER": "Bank Transfer",
+    "CHECK": "Check",
+    "CASH": "Cash"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "periodFilter": "Period",
+    "tabs": {
+      "dashboard": "Dashboard",
+      "salesAnalysis": "Sales Analysis",
+      "purchaseAnalysis": "Purchase Analysis",
+      "banks": "Banks",
+      "safe": "Safe"
     },
-    "payment": {
-        "chooseMethod": "Choose your payment method",
-        "creditCard": "Credit Card",
-        "orangeMoney": "Orange Money",
-        "wave": "Wave",
-        "mtnMoney": "MTN Money",
-        "paycaap": "Paycaap.com",
-        "payOnDelivery": "Pay on Delivery",
-        "customerCredit": "Pay in 30 days (Customer Credit)",
-        "pay": "Pay",
-        "processing": "Processing...",
-        "success": "Payment successful!",
-        "CASH": "Cash",
-        "CARD": "Card",
-        "CHECK": "Check",
-        "MOBILE_MONEY": "Mobile Money",
-        "WAVE": "Wave",
-        "ORANGE_MONEY": "Orange Money",
-        "PAYCAAP": "PayCaap",
-        "PAY_ON_DELIVERY": "Pay on Delivery",
-        "CUSTOMER_CREDIT": "Customer Credit (30 days)"
+    "periods": {
+      "seven_days": "Last 7 days",
+      "thirty_days": "Last 30 days",
+      "ninety_days": "Last 90 days",
+      "year": "This year",
+      "custom": "Custom period"
     },
-    "quoteRequest": {
-        "title": "Request a Quote",
-        "subtitle": "Fill out the form below and our team will contact you as soon as possible.",
-        "name": "Full Name",
-        "company": "Company (Optional)",
-        "email": "Email Address",
-        "phone": "Phone Number",
-        "projectDescription": "Describe your project",
-        "fileUpload": "Attach a file (mockup, etc.)",
-        "submitButton": "Send Request",
-        "submitting": "Submitting...",
-        "successTitle": "Request Sent!",
-        "successMessage": "Thank you! Your quote request has been sent successfully. We will get back to you shortly."
+    "comingSoon": "This feature is coming soon.",
+    "dashboard": {
+      "totalSalesMonth": "Total Sales (Period)",
+      "netRevenue": "Net Revenue",
+      "newCustomers": "New Customers (Period)",
+      "stockValue": "Stock Value",
+      "weeklySalesPerformance": "Sales Performance over Period",
+      "stockDistributionByCategory": "Stock Distribution by Category",
+      "chartSalesLabel": "Sales"
     },
-    "footer": {
-      "description": "Your partner for quality communication and printing in Cameroon.",
-      "services": "Our Services",
-      "usefulLinks": "Useful Links",
-      "about": "About Us",
-      "realisations": "Achievements",
-      "contact": "Contact",
-      "contactUs": "Contact Us",
-      "address": "Akwa, Douala, Cameroon",
-      "phone": "+237 6 75 86 43 54 & +237 6 73 42 35 04",
-      "email": "contact.douala@caap.cm",
-      "copyright": "© 2024 CaapMedia. All rights reserved."
+    "startDate": "Start date",
+    "endDate": "End date",
+    "allSubsidiaries": "All subsidiaries"
+  },
+  "salesAnalysis": {
+    "totalRevenue": "Total Revenue",
+    "orderCount": "Order Count",
+    "cashSaleCount": "Cash Sales",
+    "averageBasket": "Average Basket",
+    "topProducts": "Top Selling Products",
+    "salesByCategory": "Sales by Category",
+    "topCustomers": "Top Customers",
+    "product": "Product",
+    "revenue": "Revenue",
+    "quantity": "Quantity",
+    "customer": "Customer",
+    "totalSpent": "Total Amount Spent"
+  },
+  "purchaseAnalysis": {
+    "totalPurchaseValue": "Total Purchase Value",
+    "totalOrders": "Total Orders",
+    "averageOrderValue": "Average Order Value",
+    "spendingBySupplier": "Spending by Supplier",
+    "purchasesOverTime": "Purchases Over Time",
+    "topPurchasedProducts": "Top 5 Purchased Products",
+    "totalValue": "Total Value",
+    "chartPurchasesLabel": "Purchases"
+  },
+  "pnl": {
+    "tabTitle": "P&L Statement",
+    "title": "Profit and Loss Statement",
+    "revenue": "Revenue (Sales ex. tax)",
+    "cogs": "Cost of Goods Sold (COGS)",
+    "grossProfit": "Gross Profit",
+    "operatingExpenses": "Operating Expenses",
+    "operatingIncome": "Operating Income",
+    "tax": "Taxes (Estimate)",
+    "netIncome": "Net Income",
+    "thisMonth": "This Month",
+    "lastMonth": "Last Month"
+  },
+  "sales": {
+    "orderHistoryTitle": "Order History",
+    "transactionHistoryTitle": "Transaction History",
+    "saleId": "Sale ID",
+    "product": "Product",
+    "customer": "Customer",
+    "date": "Date",
+    "quantity": "Quantity",
+    "totalPrice": "Total Price",
+    "status": "Status",
+    "statusPaid": "Paid",
+    "statusPending": "Pending",
+    "statusCancelled": "Cancelled",
+    "recordPaymentModal": {
+      "title": "Record a Payment",
+      "amountToRecord": "Amount to record"
     },
-    "roles": {
-        "SUPER_ADMIN": "Super Admin",
-        "ADMIN": "Admin",
-        "COMMERCIAL": "Sales Rep",
-        "CAISSIER": "Cashier",
-        "PURCHASING_MANAGER": "Purchasing Manager",
-        "FINANCIAL_DIRECTOR": "Financial Director",
-        "SECRETARY": "Secretary",
-        "HR_MANAGER": "HR Manager",
-        "PRODUCTION_DIRECTOR": "Production Director"
+    "updateStatusModal": {
+      "title": "Update Order Status",
+      "newStatus": "New Status"
     },
-    "sidebar": {
-        "analytics": "Analytics",
-        "sales": "Sales",
-        "orders": "Orders",
-        "purchasing": "Purchasing",
-        "stockManagement": "Stock Management",
-        "finance": "Finance & Management",
-        "configuration": "Configuration",
-        "mySales": "My Sales",
-        "crm": "CRM",
-        "contacts": "Contacts",
-        "cashRegister": "Cash Register",
-        "transactions": "Transactions",
-        "myOrders": "My Orders",
-        "productCatalog": "Product Catalog",
-        "noViewForRole": "No views available for this role.",
-        "collapse": "Collapse",
-        "expand": "Expand",
-        "hrManagement": "HR Management",
-        "secretariat": "Secretariat",
-        "production": "Production",
-        "maintenance": "Maintenance",
-        "equipements": "Equipment"
+    "topSellingProducts": {
+      "title": "Top Selling Products",
+      "product": "Product",
+      "quantity": "Quantity Sold",
+      "revenue": "Total Revenue"
     },
-    "header": {
-        "profileUser": "{{role}} User",
-        "language": "Language",
-        "openMenu": "Open menu"
+    "paymentOverdue": "Payment overdue",
+    "statusIssue": "Order cancelled",
+    "validateForProduction": "Validate for Production"
+  },
+  "order": {
+    "orderId": "Order ID",
+    "customer": "Customer",
+    "date": "Date",
+    "total": "Total Amount",
+    "status": "Status",
+    "status_PENDING_VALIDATION": "Pending Validation",
+    "status_NEW": "New",
+    "status_IN_PRODUCTION": "In Production",
+    "status_PENDING_DELIVERY": "Ready",
+    "status_DELIVERED": "Delivered",
+    "status_COMPLETED": "Completed",
+    "status_CANCELLED": "Cancelled",
+    "recordPayment": "Collect Payment",
+    "paymentStatus": "Payment Status",
+    "orderStatus": "Order Status",
+    "amountPaid": "Amount Paid",
+    "remainingBalance": "Remaining Balance",
+    "updateStatus": "Update Status",
+    "paymentStatus_UNPAID": "Unpaid",
+    "paymentStatus_PARTIALLY_PAID": "Partially Paid",
+    "paymentStatus_PAID": "Paid"
+  },
+  "production": {
+    "title": "Production Tracking",
+    "status_PREPRESS": "Pre-press",
+    "status_PRINTING": "Printing",
+    "status_FINISHING": "Finishing",
+    "status_READY_FOR_DELIVERY": "Ready for Delivery",
+    "equipmentCosts": {
+      "title": "Hourly cost per machine",
+      "subtitle": "Set the hourly rate for each piece of equipment. These rates are used to calculate the production cost for service orders.",
+      "allSubsidiaries": "All subsidiaries",
+      "colMachine": "Machine",
+      "colStatus": "Status",
+      "colSubsidiary": "Subsidiary",
+      "colHourlyRate": "Hourly rate (F CFA/h)",
+      "colAction": "Action",
+      "notConfigured": "Not configured",
+      "noEquipment": "No equipment found.",
+      "saveError": "Error saving.",
+      "invalidRate": "Invalid hourly rate.",
+      "configure": "Configure",
+      "modify": "Edit"
     },
-    "login": {
-        "title": "Login",
-        "subtitle": "Access your dashboard.",
-        "platformTitle": "Commercial Platform",
-        "platformSubtitle": "Your partner for growth and distribution.",
-        "subsidiary": "Subsidiary",
-        "selectSubsidiary": "Select your subsidiary",
-        "emailLabel": "Email address",
-        "emailPlaceholder": "you@example.com",
-        "passwordLabel": "Password",
-        "rememberMe": "Remember me",
-        "forgotPassword": "Forgot password?",
-        "loginButton": "Sign in",
-        "loggingIn": "Signing in...",
-        "errorSelectSubsidiary": "Please select a subsidiary.",
-        "errorFillFields": "Please fill in all fields.",
-        "errorIncorrectCredentials": "Incorrect credentials. Please check your email and password.",
-        "errorUserNotOnSubsidiary": "This user is not assigned to the selected subsidiary.",
-        "forgotPasswordPrompt": "Please enter your email address to reset your password.",
-        "forgotPasswordSuccess": "If an account with the email {{email}} exists, a reset link has been sent.",
-        "twoFactor": {
-          "title": "Two-factor verification",
-          "subtitle": "Enter the code from your authenticator app.",
-          "codeLabel": "Verification code",
-          "recoveryCodeLabel": "Recovery code",
-          "recoveryCodePlaceholder": "xxxxxxxxxx",
-          "verifyButton": "Verify",
-          "useRecoveryCodeInstead": "Use a recovery code",
-          "useCodeInstead": "Use the app code",
-          "errorInvalidCode": "Invalid code."
-        }
+    "commercialParams": {
+      "title": "Global commercial parameters",
+      "subtitle": "Set the allowed margin range for service quotes. Sales reps must enter a margin percentage within this range when creating an order.",
+      "notConfigured": "No parameters configured. Set the margins to activate the production cost module.",
+      "minMargin": "Minimum margin (%)",
+      "maxMargin": "Maximum margin (%)",
+      "rangeHint": "Sales reps must enter a margin between {{min}}% and {{max}}%.",
+      "saveError": "Error saving.",
+      "invalidValues": "Invalid values.",
+      "outOfRange": "Margins must be between 0% and 100%.",
+      "minGtMax": "Minimum margin must be less than maximum margin.",
+      "success": "Parameters saved successfully.",
+      "create": "Create",
+      "update": "Update",
+      "lastModified": "Last modified: {{date}}"
     },
-    "forgotPassword": {
-      "title": "Reset Password",
-      "instruction": "Please enter your email address to receive a password reset link.",
-      "sendLink": "Send Reset Link",
-      "sending": "Sending...",
-      "backToLogin": "Back to Login",
-      "successMessage": "If an account with that email exists, we have sent a link to reset your password.",
-      "errorMessage": "An error occurred while sending the reset link. Please try again."
-    },
-    "security": {
-      "title": "Account security",
-      "twoFactor": {
-        "title": "Two-factor authentication",
-        "description": "Add an extra layer of security to your account with an authenticator app.",
-        "statusEnabled": "Enabled",
-        "statusDisabled": "Disabled",
-        "enableButton": "Enable two-factor authentication",
-        "disableButton": "Disable two-factor authentication",
-        "scanInstruction": "Scan this QR code with your authenticator app (Google Authenticator, Authy...), then enter the generated code to confirm.",
-        "manualEntryLabel": "Or enter this code manually:",
-        "confirmCodeLabel": "Verification code",
-        "confirmButton": "Confirm and enable",
-        "recoveryCodesWarning": "Save these recovery codes somewhere safe. Each can only be used once to sign in if you lose access to your authenticator app. They will never be shown again.",
-        "recoveryCodesSavedButton": "I've saved my recovery codes",
-        "errorInvalidCode": "Invalid code.",
-        "errorGeneric": "Something went wrong. Please try again."
+    "workflows": {
+      "title": "Production workflows",
+      "subtitle": "Define machine sequences for each service. Sales reps see them pre-filled when creating a new order.",
+      "newWorkflow": "New workflow",
+      "allSubsidiaries": "All subsidiaries",
+      "noWorkflow": "No workflows defined.",
+      "active": "Active",
+      "inactive": "Inactive",
+      "linkedService": "Linked service: {{name}}",
+      "noSteps": "No steps",
+      "form": {
+        "createTitle": "New workflow",
+        "editTitle": "Edit workflow",
+        "name": "Name",
+        "namePlaceholder": "e.g. Standard offset printing",
+        "description": "Description",
+        "linkedService": "Linked service (optional)",
+        "noLinkedService": "— No linked service —",
+        "isActive": "Active workflow",
+        "steps": "Steps (machines)",
+        "addStep": "Add",
+        "chooseEquipment": "— Choose a machine —",
+        "noStepsDefined": "Click \"Add\" to define steps.",
+        "nameRequired": "Name is required.",
+        "equipmentRequired": "Each step must have a machine selected.",
+        "createError": "Error creating workflow.",
+        "editError": "Error updating workflow.",
+        "update": "Update"
+      },
+      "deleteConfirm": {
+        "title": "Delete workflow",
+        "message": "This action is irreversible. Existing orders will not be affected."
       }
     },
-    "ecommerce": {
-      "title": "Our Shop",
-      "welcomeTitle": "Welcome to CaapMedia",
-      "welcomeSubtitle": "Discover our quality products for all your needs.",
-      "searchPlaceholder": "Search for a product...",
-      "allCategories": "All Categories",
-      "addToCart": "Add to Cart",
-      "shoppingCart": "Shopping Cart",
-      "emptyCart": "Your cart is empty.",
-      "item": "item",
-      "items": "items",
+    "costModal": {
+      "title": "Production cost",
+      "prefilledWorkflow": "Pre-filled workflow: {{name}}",
+      "stepsTitle": "Production steps",
+      "addMachine": "Add a machine",
+      "noSteps": "No steps. Add a machine or select a service with a workflow.",
+      "chooseMachine": "— Machine —",
+      "hoursPlaceholder": "Hours",
+      "totalCost": "Total production cost",
+      "margin": "Margin (%) *",
+      "marginRange": "Allowed range: {{min}}% – {{max}}%",
+      "finalPrice": "Final price (= line price)",
+      "priceNote": "This amount will be applied as the unit price on the order line.",
+      "confirmButton": "Confirm cost",
+      "noStepsError": "Add at least one production step.",
+      "noEquipmentError": "Each step must have a machine selected.",
+      "invalidTimeError": "Enter a valid time (> 0) for each step.",
+      "noMarginError": "Enter a margin percentage.",
+      "marginRangeError": "Margin must be between {{min}}% and {{max}}%."
+    }
+  },
+  "purchasing": {
+    "title": "Purchase Management",
+    "newOrder": "New Purchase Order",
+    "poNumber": "PO Number",
+    "supplier": "Supplier",
+    "orderDate": "Order Date",
+    "deliveryDate": "Expected Delivery",
+    "total": "Total Amount",
+    "status": "Reception Status",
+    "receiveOrder": "Receive Order",
+    "recordPayment": "Record Payment",
+    "viewOrder": "View Order",
+    "cancelOrder": "Cancel Order",
+    "quantityReceived": "Received",
+    "status_DRAFT": "Draft",
+    "status_ORDERED": "Ordered",
+    "status_PARTIALLY_RECEIVED": "Partially Received",
+    "status_RECEIVED": "Received",
+    "status_CANCELLED": "Cancelled",
+    "paymentTerms": "Payment Terms",
+    "terms_IMMEDIATE": "Immediate Payment",
+    "terms_CREDIT": "Credit",
+    "terms_DRAFT_PAYMENT": "Draft Payment",
+    "paymentStatus": {
+      "title": "Payment Status",
+      "UNPAID": "Unpaid",
+      "PARTIALLY_PAID": "Partially Paid",
+      "PAID": "Paid"
+    },
+    "modal": {
+      "addTitle": "Create New Purchase Order",
+      "editTitle": "Edit Purchase Order",
+      "detailsTitle": "Purchase Order Details"
+    },
+    "receiveItemsModal": {
+      "title": "Receive Items",
+      "unit": "Unit",
+      "ordered": "Ordered",
+      "alreadyReceived": "Already Received",
+      "quantityToReceive": "Quantity to Receive"
+    },
+    "paymentModal": {
+      "title": "Record a Payment",
+      "totalAmount": "Total Order Amount",
+      "amountPaid": "Amount Already Paid",
+      "remainingBalance": "Remaining Balance",
+      "amountToPay": "Amount to Pay"
+    },
+    "history": {
+      "title": "Order History"
+    },
+    "form": {
+      "supplier": "Supplier",
+      "selectSupplier": "Select a supplier",
+      "orderDate": "Order Date",
+      "deliveryDate": "Expected Delivery Date",
+      "paymentTerms": "Payment Terms",
+      "products": "Products",
+      "addProduct": "Add Product",
+      "product": "Product",
+      "selectProduct": "Select a product",
+      "quantity": "Quantity",
+      "purchaseUnit": "Purchase unit",
+      "purchasePrice": "Unit Purchase Price",
       "total": "Total",
-      "orderViaWhatsApp": "Order via WhatsApp",
-      "checkout": "Checkout",
-      "checkoutTitle": "Finalize Your Order",
-      "customerInfo": "Your Information",
-      "fullName": "Full Name",
-      "email": "Email Address",
-      "deliveryAddress": "Delivery Address",
-      "confirmOrder": "Confirm Order",
-      "orderSuccess": "Order placed successfully!",
-      "backToHome": "Back to Home",
-      "visitShop": "Visit the Shop",
-      "employeeLogin": "Employee Login",
-      "myAccount": "My Account",
-      "customerLogin": "Customer Login",
-      "createAccount": "Create Customer Account"
+      "orderSummary": "Order Summary"
+    }
+  },
+  "stock": {
+    "title": "Stock Management",
+    "searchPlaceholder": "Search by name, ID...",
+    "productId": "Product ID",
+    "name": "Name",
+    "category": "Category",
+    "description": "Description",
+    "warehouse": "Warehouse",
+    "currentStock": "Current Stock",
+    "costPrice": "Cost Price",
+    "sellingPrice": "Selling Price",
+    "margin": "Margin",
+    "range": "Range",
+    "confirmPriceSaveTitle": "Confirm Save",
+    "confirmPriceSaveMessage": "Do you want to save the new prices?",
+    "belowThreshold": "Below minimum threshold",
+    "available": "Available",
+    "categories": {
+      "pub": "Advertising",
+      "carterie": "Business Cards",
+      "packaging": "Packaging",
+      "papeterie": "Stationery",
+      "restoHotels": "Restaurant & Hotels",
+      "impressionLivre": "Book Printing",
+      "bachesBanderoles": "Tarps & Banners",
+      "rollupKakemono": "Roll-ups & Kakemonos",
+      "drapeauxOriflammes": "Flags & Oriflammes",
+      "panneauxEnseignes": "Signs & Signage",
+      "standsPlv": "Stands & POS",
+      "textile": "Textile",
+      "mugsGobeletsGourdes": "Mugs, Cups & Bottles",
+      "sacsPersonnalises": "Custom Bags",
+      "evenementiel": "Events",
+      "mobilierPublicitaire": "Promotional Furniture",
+      "ecritureBureau": "Writing & Office",
+      "maisonDeco": "Home & Deco",
+      "creationSitesWeb": "Website Creation & Management",
+      "marketingDigital": "Digital Marketing & Ads",
+      "reseauxSociaux": "Social Networks",
+      "designIdentiteVisuelle": "Design & Visual Identity",
+      "papiersCartons": "Papers & Cardboards",
+      "encresChimiques": "Inks & Chemicals",
+      "supportsBaches": "Substrates & Tarps",
+      "finitionFaconnage": "Finishing & Shaping",
+      "prestationsExternes": "External Services",
+      "textilesRaw": "Textiles (Raw Material)"
+    }
+  },
+  "stockMovements": {
+    "title": "Stock movements",
+    "allTypes": "All types",
+    "date": "Date",
+    "product": "Product",
+    "type": "Type",
+    "direction": "Direction",
+    "quantity": "Quantity",
+    "reason": "Reason",
+    "in": "In",
+    "out": "Out",
+    "empty": "No movement recorded yet.",
+    "tabs": {
+      "levels": "Stock levels",
+      "movements": "Movements",
+      "inventory": "Inventory"
     },
-    "customerAccount": {
-        "login": "Login",
-        "signup": "Sign Up",
-        "loginTitle": "Glad to see you again!",
-        "signupTitle": "Join Us",
-        "email": "Email",
-        "password": "Password",
-        "confirmPassword": "Confirm Password",
-        "name": "Full Name",
-        "address": "Address",
-        "loginAction": "Login",
-        "signupAction": "Create My Account",
-        "or": "Or",
-        "myAccount": "My Account",
-        "profile": "My Profile",
-        "myOrders": "My Orders",
-        "security": "Security",
-        "paymentMethods": "Payment Methods",
-        "myReviews": "My Reviews",
-        "personalInfo": "Personal Information",
-        "saveChanges": "Save Changes",
-        "changePassword": "Change Password",
-        "currentPassword": "Current Password",
-        "newPassword": "New Password",
-        "orderId": "Order ID",
-        "date": "Date",
-        "total": "Total",
-        "status": "Status",
-        "backToShop": "Back to Shop"
+    "types": {
+      "PURCHASE_RECEIPT": "Purchase receipt",
+      "CUSTOMER_RETURN": "Customer return",
+      "POSITIVE_ADJUSTMENT": "Positive adjustment",
+      "TRANSFER_IN": "Transfer in",
+      "PRODUCTION_CONSUMPTION": "Production consumption",
+      "LOSS": "Loss",
+      "BREAKAGE": "Breakage",
+      "INTERNAL_CONSUMPTION": "Internal consumption",
+      "NEGATIVE_ADJUSTMENT": "Negative adjustment",
+      "SUPPLIER_RETURN": "Supplier return",
+      "TRANSFER_OUT": "Transfer out"
     },
+    "inventory": {
+      "title": "Inventory",
+      "subtitle": "Enter the actually counted stock — the deviation is calculated and recorded automatically.",
+      "product": "Product",
+      "selectProduct": "Select a product...",
+      "theoreticalStock": "Theoretical stock",
+      "countedStock": "Counted stock",
+      "reason": "Reason (optional)",
+      "submit": "Validate inventory",
+      "successTitle": "Inventory recorded",
+      "successMessage": "Stock has been updated.",
+      "noDeviation": "No deviation found — no movement created.",
+      "deviationRecorded": "Deviation of {{delta}} recorded."
+    },
+    "withdraw": {
+      "title": "Withdraw materials",
+      "subtitle": "Enter the quantities actually used for this order.",
+      "addLine": "Add a line",
+      "product": "Product",
+      "quantity": "Quantity",
+      "submit": "Validate withdrawal",
+      "successTitle": "Materials withdrawn",
+      "successMessage": "Stock has been updated.",
+      "empty": "Add at least one material to withdraw."
+    },
+    "manual": {
+      "newMovement": "New movement",
+      "title": "New stock movement",
+      "subtitle": "Customer return, transfer, loss, breakage, internal consumption or supplier return.",
+      "product": "Product",
+      "selectProduct": "Select a product...",
+      "submit": "Save movement",
+      "successTitle": "Movement recorded",
+      "successMessage": "Stock has been updated."
+    }
+  },
+  "productRange": {
+    "popular": "Popular",
+    "standard": "Standard",
+    "premium": "Premium",
+    "none": "None"
+  },
+  "cashRegister": {
+    "title": "Cash Register Interface",
+    "searchPlaceholder": "Search product by name...",
+    "cartTitle": "Cart",
+    "cartEmpty": "The cart is empty.",
+    "paymentSuccess": "Payment successful!",
+    "total": "Total",
+    "paymentMethod": "Payment Method",
+    "checkoutButton": "Checkout",
     "paymentMethods": {
-        "BANK_TRANSFER": "Bank Transfer",
-        "CHECK": "Check",
-        "CASH": "Cash"
-    },
-    "analytics": {
-        "title": "Analytics",
-        "periodFilter": "Period",
-        "tabs": {
-            "dashboard": "Dashboard",
-            "salesAnalysis": "Sales Analysis",
-            "purchaseAnalysis": "Purchase Analysis",
-            "banks": "Banks",
-            "safe": "Safe"
-        },
-        "periods": {
-            "seven_days": "Last 7 days",
-            "thirty_days": "Last 30 days",
-            "ninety_days": "Last 90 days",
-            "year": "This year",
-            "custom": "Custom period"
-        },
-        "comingSoon": "This feature is coming soon.",
-        "dashboard": {
-            "totalSalesMonth": "Total Sales (Period)",
-            "netRevenue": "Net Revenue",
-            "newCustomers": "New Customers (Period)",
-            "stockValue": "Stock Value",
-            "weeklySalesPerformance": "Sales Performance over Period",
-            "stockDistributionByCategory": "Stock Distribution by Category",
-            "chartSalesLabel": "Sales"
-        },
-        "startDate": "Start date",
-        "endDate": "End date",
-        "allSubsidiaries": "All subsidiaries"
-    },
-    "salesAnalysis": {
-        "totalRevenue": "Total Revenue",
-        "orderCount": "Order Count",
-        "cashSaleCount": "Cash Sales",
-        "averageBasket": "Average Basket",
-        "topProducts": "Top Selling Products",
-        "salesByCategory": "Sales by Category",
-        "topCustomers": "Top Customers",
-        "product": "Product",
-        "revenue": "Revenue",
-        "quantity": "Quantity",
-        "customer": "Customer",
-        "totalSpent": "Total Amount Spent"
-    },
-    "purchaseAnalysis": {
-      "totalPurchaseValue": "Total Purchase Value",
-      "totalOrders": "Total Orders",
-      "averageOrderValue": "Average Order Value",
-      "spendingBySupplier": "Spending by Supplier",
-      "purchasesOverTime": "Purchases Over Time",
-      "topPurchasedProducts": "Top 5 Purchased Products",
-      "totalValue": "Total Value",
-      "chartPurchasesLabel": "Purchases"
-    },
-    "pnl": {
-      "tabTitle": "P&L Statement",
-      "title": "Profit and Loss Statement",
-      "revenue": "Revenue (Sales ex. tax)",
-      "cogs": "Cost of Goods Sold (COGS)",
-      "grossProfit": "Gross Profit",
-      "operatingExpenses": "Operating Expenses",
-      "operatingIncome": "Operating Income",
-      "tax": "Taxes (Estimate)",
-      "netIncome": "Net Income",
-      "thisMonth": "This Month",
-      "lastMonth": "Last Month"
-    },
-    "sales": {
-        "orderHistoryTitle": "Order History",
-        "transactionHistoryTitle": "Transaction History",
-        "saleId": "Sale ID",
-        "product": "Product",
-        "customer": "Customer",
-        "date": "Date",
-        "quantity": "Quantity",
-        "totalPrice": "Total Price",
-        "status": "Status",
-        "statusPaid": "Paid",
-        "statusPending": "Pending",
-        "statusCancelled": "Cancelled",
-        "recordPaymentModal": {
-          "title": "Record a Payment",
-          "amountToRecord": "Amount to record"
-        },
-        "updateStatusModal": {
-          "title": "Update Order Status",
-          "newStatus": "New Status"
-        },
-        "topSellingProducts": {
-            "title": "Top Selling Products",
-            "product": "Product",
-            "quantity": "Quantity Sold",
-            "revenue": "Total Revenue"
-        },
-        "paymentOverdue": "Payment overdue",
-        "statusIssue": "Order cancelled",
-        "validateForProduction": "Validate for Production"
-    },
-    "order": {
-        "orderId": "Order ID",
-        "customer": "Customer",
-        "date": "Date",
-        "total": "Total Amount",
-        "status": "Status",
-        "status_PENDING_VALIDATION": "Pending Validation",
-        "status_NEW": "New",
-        "status_IN_PRODUCTION": "In Production",
-        "status_PENDING_DELIVERY": "Ready",
-        "status_DELIVERED": "Delivered",
-        "status_COMPLETED": "Completed",
-        "status_CANCELLED": "Cancelled",
-        "recordPayment": "Collect Payment",
-        "paymentStatus": "Payment Status",
-        "orderStatus": "Order Status",
-        "amountPaid": "Amount Paid",
-        "remainingBalance": "Remaining Balance",
-        "updateStatus": "Update Status",
-        "paymentStatus_UNPAID": "Unpaid",
-        "paymentStatus_PARTIALLY_PAID": "Partially Paid",
-        "paymentStatus_PAID": "Paid"
-    },
-    "production": {
-        "title": "Production Tracking",
-        "status_PREPRESS": "Pre-press",
-        "status_PRINTING": "Printing",
-        "status_FINISHING": "Finishing",
-        "status_READY_FOR_DELIVERY": "Ready for Delivery",
-        "equipmentCosts": {
-            "title": "Hourly cost per machine",
-            "subtitle": "Set the hourly rate for each piece of equipment. These rates are used to calculate the production cost for service orders.",
-            "allSubsidiaries": "All subsidiaries",
-            "colMachine": "Machine",
-            "colStatus": "Status",
-            "colSubsidiary": "Subsidiary",
-            "colHourlyRate": "Hourly rate (F CFA/h)",
-            "colAction": "Action",
-            "notConfigured": "Not configured",
-            "noEquipment": "No equipment found.",
-            "saveError": "Error saving.",
-            "invalidRate": "Invalid hourly rate.",
-            "configure": "Configure",
-            "modify": "Edit"
-        },
-        "commercialParams": {
-            "title": "Global commercial parameters",
-            "subtitle": "Set the allowed margin range for service quotes. Sales reps must enter a margin percentage within this range when creating an order.",
-            "notConfigured": "No parameters configured. Set the margins to activate the production cost module.",
-            "minMargin": "Minimum margin (%)",
-            "maxMargin": "Maximum margin (%)",
-            "rangeHint": "Sales reps must enter a margin between {{min}}% and {{max}}%.",
-            "saveError": "Error saving.",
-            "invalidValues": "Invalid values.",
-            "outOfRange": "Margins must be between 0% and 100%.",
-            "minGtMax": "Minimum margin must be less than maximum margin.",
-            "success": "Parameters saved successfully.",
-            "create": "Create",
-            "update": "Update",
-            "lastModified": "Last modified: {{date}}"
-        },
-        "workflows": {
-            "title": "Production workflows",
-            "subtitle": "Define machine sequences for each service. Sales reps see them pre-filled when creating a new order.",
-            "newWorkflow": "New workflow",
-            "allSubsidiaries": "All subsidiaries",
-            "noWorkflow": "No workflows defined.",
-            "active": "Active",
-            "inactive": "Inactive",
-            "linkedService": "Linked service: {{name}}",
-            "noSteps": "No steps",
-            "form": {
-                "createTitle": "New workflow",
-                "editTitle": "Edit workflow",
-                "name": "Name",
-                "namePlaceholder": "e.g. Standard offset printing",
-                "description": "Description",
-                "linkedService": "Linked service (optional)",
-                "noLinkedService": "— No linked service —",
-                "isActive": "Active workflow",
-                "steps": "Steps (machines)",
-                "addStep": "Add",
-                "chooseEquipment": "— Choose a machine —",
-                "noStepsDefined": "Click \"Add\" to define steps.",
-                "nameRequired": "Name is required.",
-                "equipmentRequired": "Each step must have a machine selected.",
-                "createError": "Error creating workflow.",
-                "editError": "Error updating workflow.",
-                "update": "Update"
-            },
-            "deleteConfirm": {
-                "title": "Delete workflow",
-                "message": "This action is irreversible. Existing orders will not be affected."
-            }
-        },
-        "costModal": {
-            "title": "Production cost",
-            "prefilledWorkflow": "Pre-filled workflow: {{name}}",
-            "stepsTitle": "Production steps",
-            "addMachine": "Add a machine",
-            "noSteps": "No steps. Add a machine or select a service with a workflow.",
-            "chooseMachine": "— Machine —",
-            "hoursPlaceholder": "Hours",
-            "totalCost": "Total production cost",
-            "margin": "Margin (%) *",
-            "marginRange": "Allowed range: {{min}}% – {{max}}%",
-            "finalPrice": "Final price (= line price)",
-            "priceNote": "This amount will be applied as the unit price on the order line.",
-            "confirmButton": "Confirm cost",
-            "noStepsError": "Add at least one production step.",
-            "noEquipmentError": "Each step must have a machine selected.",
-            "invalidTimeError": "Enter a valid time (> 0) for each step.",
-            "noMarginError": "Enter a margin percentage.",
-            "marginRangeError": "Margin must be between {{min}}% and {{max}}%."
-        }
-    },
-    "purchasing": {
-        "title": "Purchase Management",
-        "newOrder": "New Purchase Order",
-        "poNumber": "PO Number",
-        "supplier": "Supplier",
-        "orderDate": "Order Date",
-        "deliveryDate": "Expected Delivery",
-        "total": "Total Amount",
-        "status": "Reception Status",
-        "receiveOrder": "Receive Order",
-        "recordPayment": "Record Payment",
-        "viewOrder": "View Order",
-        "cancelOrder": "Cancel Order",
-        "quantityReceived": "Received",
-        "status_DRAFT": "Draft",
-        "status_ORDERED": "Ordered",
-        "status_PARTIALLY_RECEIVED": "Partially Received",
-        "status_RECEIVED": "Received",
-        "status_CANCELLED": "Cancelled",
-        "paymentTerms": "Payment Terms",
-        "terms_IMMEDIATE": "Immediate Payment",
-        "terms_CREDIT": "Credit",
-        "terms_DRAFT_PAYMENT": "Draft Payment",
-        "paymentStatus": {
-            "title": "Payment Status",
-            "UNPAID": "Unpaid",
-            "PARTIALLY_PAID": "Partially Paid",
-            "PAID": "Paid"
-        },
-        "modal": {
-            "addTitle": "Create New Purchase Order",
-            "editTitle": "Edit Purchase Order",
-            "detailsTitle": "Purchase Order Details"
-        },
-        "receiveItemsModal": {
-            "title": "Receive Items",
-            "unit": "Unit",
-            "ordered": "Ordered",
-            "alreadyReceived": "Already Received",
-            "quantityToReceive": "Quantity to Receive"
-        },
-        "paymentModal": {
-            "title": "Record a Payment",
-            "totalAmount": "Total Order Amount",
-            "amountPaid": "Amount Already Paid",
-            "remainingBalance": "Remaining Balance",
-            "amountToPay": "Amount to Pay"
-        },
-         "history": {
-            "title": "Order History"
-        },
-        "form": {
-            "supplier": "Supplier",
-            "selectSupplier": "Select a supplier",
-            "orderDate": "Order Date",
-            "deliveryDate": "Expected Delivery Date",
-            "paymentTerms": "Payment Terms",
-            "products": "Products",
-            "addProduct": "Add Product",
-            "product": "Product",
-            "selectProduct": "Select a product",
-            "quantity": "Quantity",
-            "purchaseUnit": "Purchase unit",
-            "purchasePrice": "Unit Purchase Price",
-            "total": "Total",
-            "orderSummary": "Order Summary"
-        }
-    },
-    "stock": {
-        "title": "Stock Management",
-        "searchPlaceholder": "Search by name, ID...",
-        "productId": "Product ID",
-        "name": "Name",
-        "category": "Category",
-        "description": "Description",
-        "warehouse": "Warehouse",
-        "currentStock": "Current Stock",
-        "costPrice": "Cost Price",
-        "sellingPrice": "Selling Price",
-        "margin": "Margin",
-        "range": "Range",
-        "confirmPriceSaveTitle": "Confirm Save",
-        "confirmPriceSaveMessage": "Do you want to save the new prices?",
-        "belowThreshold": "Below minimum threshold",
-        "available": "Available",
-        "categories": {
-            "pub": "Advertising",
-            "carterie": "Business Cards",
-            "packaging": "Packaging",
-            "papeterie": "Stationery",
-            "restoHotels": "Restaurant & Hotels",
-            "impressionLivre": "Book Printing",
-            "bachesBanderoles": "Tarps & Banners",
-            "rollupKakemono": "Roll-ups & Kakemonos",
-            "drapeauxOriflammes": "Flags & Oriflammes",
-            "panneauxEnseignes": "Signs & Signage",
-            "standsPlv": "Stands & POS",
-            "textile": "Textile",
-            "mugsGobeletsGourdes": "Mugs, Cups & Bottles",
-            "sacsPersonnalises": "Custom Bags",
-            "evenementiel": "Events",
-            "mobilierPublicitaire": "Promotional Furniture",
-            "ecritureBureau": "Writing & Office",
-            "maisonDeco": "Home & Deco",
-            "creationSitesWeb": "Website Creation & Management",
-            "marketingDigital": "Digital Marketing & Ads",
-            "reseauxSociaux": "Social Networks",
-            "designIdentiteVisuelle": "Design & Visual Identity",
-            "papiersCartons": "Papers & Cardboards",
-            "encresChimiques": "Inks & Chemicals",
-            "supportsBaches": "Substrates & Tarps",
-            "finitionFaconnage": "Finishing & Shaping",
-            "prestationsExternes": "External Services",
-            "textilesRaw": "Textiles (Raw Material)"
-        }
-    },
-    "stockMovements": {
-        "title": "Stock movements",
-        "allTypes": "All types",
-        "date": "Date",
-        "product": "Product",
-        "type": "Type",
-        "direction": "Direction",
-        "quantity": "Quantity",
-        "reason": "Reason",
-        "in": "In",
-        "out": "Out",
-        "empty": "No movement recorded yet.",
-        "tabs": {
-            "levels": "Stock levels",
-            "movements": "Movements",
-            "inventory": "Inventory"
-        },
-        "types": {
-            "PURCHASE_RECEIPT": "Purchase receipt",
-            "CUSTOMER_RETURN": "Customer return",
-            "POSITIVE_ADJUSTMENT": "Positive adjustment",
-            "TRANSFER_IN": "Transfer in",
-            "PRODUCTION_CONSUMPTION": "Production consumption",
-            "LOSS": "Loss",
-            "BREAKAGE": "Breakage",
-            "INTERNAL_CONSUMPTION": "Internal consumption",
-            "NEGATIVE_ADJUSTMENT": "Negative adjustment",
-            "SUPPLIER_RETURN": "Supplier return",
-            "TRANSFER_OUT": "Transfer out"
-        },
-        "inventory": {
-            "title": "Inventory",
-            "subtitle": "Enter the actually counted stock — the deviation is calculated and recorded automatically.",
-            "product": "Product",
-            "selectProduct": "Select a product...",
-            "theoreticalStock": "Theoretical stock",
-            "countedStock": "Counted stock",
-            "reason": "Reason (optional)",
-            "submit": "Validate inventory",
-            "successTitle": "Inventory recorded",
-            "successMessage": "Stock has been updated.",
-            "noDeviation": "No deviation found — no movement created.",
-            "deviationRecorded": "Deviation of {{delta}} recorded."
-        },
-        "withdraw": {
-            "title": "Withdraw materials",
-            "subtitle": "Enter the quantities actually used for this order.",
-            "addLine": "Add a line",
-            "product": "Product",
-            "quantity": "Quantity",
-            "submit": "Validate withdrawal",
-            "successTitle": "Materials withdrawn",
-            "successMessage": "Stock has been updated.",
-            "empty": "Add at least one material to withdraw."
-        },
-        "manual": {
-            "newMovement": "New movement",
-            "title": "New stock movement",
-            "subtitle": "Customer return, transfer, loss, breakage, internal consumption or supplier return.",
-            "product": "Product",
-            "selectProduct": "Select a product...",
-            "submit": "Save movement",
-            "successTitle": "Movement recorded",
-            "successMessage": "Stock has been updated."
-        }
-    },
-    "productRange": {
-        "popular": "Popular",
-        "standard": "Standard",
-        "premium": "Premium",
-        "none": "None"
-    },
-    "cashRegister": {
-        "title": "Cash Register Interface",
-        "searchPlaceholder": "Search product by name...",
-        "cartTitle": "Cart",
-        "cartEmpty": "The cart is empty.",
-        "paymentSuccess": "Payment successful!",
-        "total": "Total",
-        "paymentMethod": "Payment Method",
-        "checkoutButton": "Checkout",
-        "paymentMethods": {
-            "cash": "Cash",
-            "card": "Card",
-            "check": "Check",
-            "mobile": "Mobile",
-            "BANK_TRANSFER": "Bank Transfer",
-            "CHECK": "Check",
-            "CASH": "Cash"
-        },
-        "clientSection": {
-          "title": "Customer",
-          "selectAdd": "Select / Add Customer",
-          "change": "Change",
-          "modalTitle": "Select or Create a Customer",
-          "selectTab": "Select Customer",
-          "createTab": "Create New Customer",
-          "searchClient": "Search for a customer..."
-        },
-        "createAndSelect": "Create and Select",
-        "findOrder": "Find an Order",
-        "orderSelectionModal": {
-          "title": "Select an Order",
-          "searchPlaceholder": "Search by ID, name, phone..."
-        },
-        "loadedOrder": {
-          "title": "Payment on Order",
-          "orderId": "Order #",
-          "total": "Order Total",
-          "paid": "Already Paid",
-          "remaining": "Remaining Balance",
-          "amountToPay": "Amount to Pay",
-          "newSale": "New Sale",
-          "paymentSuccess": "Payment recorded successfully!"
-        }
-    },
-    "myOrders": {
-        "title": "My Orders",
-        "historyTab": "History",
-        "newOrderTab": "New Order",
-        "noOrders": "You have no orders at the moment."
-    },
-    "newOrder": {
-        "title": "Create a new order",
-        "searchPlaceholder": "Search for a product...",
-        "productCatalog": "Product Catalog",
-        "product": "Product",
-        "price": "Price",
-        "quantity": "Qty",
-        "addToCart": "Add",
-        "orderSummary": "Your Order",
-        "cartEmpty": "Your cart is empty.",
-        "total": "Total",
-        "submitOrder": "Place Order",
-        "orderPlacedSuccess": "Order placed successfully!",
-        "item": "Item",
-        "subtotal": "Subtotal",
-        "discount": "Discount (FCFA)",
-        "searchClientOtherSubsidiary": "Search a client from another subsidiary...",
-        "paymentMethod": "Payment method",
-        "paymentMethod_PAY_ON_DELIVERY": "Pay on delivery",
-        "paymentMethod_CARD": "Credit card",
-        "paymentMethod_ORANGE_MONEY": "Orange Money",
-        "paymentMethod_WAVE": "Wave",
-        "paymentMethod_MOBILE_MONEY": "Mobile Money",
-        "paymentMethod_PAYCAAP": "PayCaap",
-        "paymentMethod_CUSTOMER_CREDIT": "Customer credit"
-    },
-    "bonDeLivraison": {
-        "title": "Delivery Note",
-        "orderNum": "Order #",
-        "date": "Date",
-        "billedTo": "Billed to",
-        "item": "Item",
-        "quantity": "Quantity",
-        "unitPrice": "Unit Price",
-        "totalPrice": "Total Price",
-        "total": "Grand Total",
-        "print": "Print Note",
-        "exportPdf": "Export to PDF"
-    },
-    "invoice": {
-        "title": "Invoice",
-        "invoiceNum": "Invoice #",
-        "billedTo": "Billed to",
-        "date": "Date",
-        "item": "Item",
-        "quantity": "Quantity",
-        "unitPrice": "Unit Price ex. tax",
-        "totalPrice": "Total Price ex. tax",
-        "total": "Grand Total",
-        "viewInvoice": "View Invoice",
-        "exportPdf": "Export to PDF",
-        "phone": "Phone",
-        "email": "Email",
-        "ifu": "Tax ID",
-        "rccm": "Trade Reg.",
-        "paymentDueDate": "Payment Due Date",
-        "subtotal": "Subtotal",
-        "tax": "Tax",
-        "totalTTC": "Total (incl. tax)",
-        "paymentInfo": "Payment Information"
-    },
-    "finance": {
-        "title": "Finance & Management",
-        "creditManagement": "Credit Management",
-        "treasury": "Treasury",
-        "prefinancement": "Pre-financing",
-        "supplierDebts": "Supplier Debts",
-        "expenses": "Expenses",
-        "externalTransactions": "External Transactions",
-        "bilan": {
-          "tabTitle": "Balance Sheet",
-          "title": "Balance Sheet",
-          "asOfDate": "As of",
-          "assets": "Assets",
-          "liabilitiesAndEquity": "Liabilities & Equity",
-          "currentAssets": "Current Assets",
-          "cash": "Cash & Cash Equivalents",
-          "accountsReceivable": "Accounts Receivable",
-          "inventory": "Inventory",
-          "fixedAssets": "Fixed Assets",
-          "equipment": "Property, Plant & Equipment",
-          "totalAssets": "Total Assets",
-          "liabilities": "Liabilities",
-          "accountsPayable": "Accounts Payable",
-          "equity": "Equity",
-          "shareCapital": "Share Capital",
-          "netIncome": "Retained Earnings (Net Income)",
-          "totalLiabilitiesAndEquity": "Total Liabilities & Equity"
-        }
-    },
-    "credit": {
-        "totalReceivables": "Total Customer Receivables",
-        "totalReceivablesDesc": "Total amount owed by customers.",
-        "customerCreditTracking": "Customer Credit Tracking",
-        "customerName": "Customer Name",
-        "company": "Company",
-        "lastPaymentDate": "Last Payment",
-        "balanceDue": "Balance Due",
-        "viewDetails": "View details",
-        "recordPayment": "Record Payment"
-    },
-    "treasury": {
-        "recentTransactions": "Recent Transactions",
-        "addExpense": "Add Expense",
-        "addIncome": "Add Income",
-        "date": "Date",
-        "description": "Description",
-        "account": "Account",
-        "type": "Type",
-        "amount": "Amount",
-        "status": "Status",
-        "statusValidated": "Validated",
-        "statusPending": "Pending",
-        "typeIncome": "Income",
-        "typeExpense": "Expense",
-        "confirmDelete": "Delete Transaction",
-        "confirmDeleteMessage": "Are you sure you want to delete this transaction? This action is irreversible.",
-        "validate": "Validate",
-        "reject": "Reject",
-        "confirmValidate": "Validate Transaction",
-        "confirmReject": "Reject Transaction",
-        "noCreatePermission": "Only the Financial Director can create transactions",
-        "modal": {
-            "addIncome": "Add New Income",
-            "addExpense": "Add New Expense"
-        }
-    },
-    "treasuryAccounts": {
-        "title": "Treasury Accounts",
-        "description": "Manage your company's bank and treasury accounts",
-        "accessDenied": "You don't have permission to manage treasury accounts",
-        "noData": "No treasury accounts found",
-        "stats": {
-            "totalAccounts": "Total Accounts",
-            "totalBalance": "Total Balance",
-            "averageBalance": "Average Balance"
-        },
-        "table": {
-            "accountName": "Account Name",
-            "balance": "Balance",
-            "currency": "Currency",
-            "actions": "Actions"
-        },
-        "actions": {
-            "create": "Create Account",
-            "edit": "Edit",
-            "delete": "Delete"
-        },
-        "create": {
-            "title": "Create Treasury Account"
-        },
-        "edit": {
-            "title": "Edit Treasury Account"
-        },
-        "form": {
-            "accountName": "Account Name",
-            "accountNamePlaceholder": "Ex: Main BNP Account",
-            "balance": "Initial Balance",
-            "currency": "Currency",
-            "accountType": "Account Type",
-            "subsidiary": "Subsidiary"
-        },
-        "accountTypes": {
-            "bank": "Bank",
-            "cash": "Cash",
-            "prefinancement": "Prefinancement Account"
-        },
-        "validation": {
-            "accountNameRequired": "Account name is required",
-            "validBalance": "Please enter a valid balance"
-        },
-        "confirm": {
-            "delete": "Are you sure you want to delete this treasury account?",
-            "deleteWithBalance": "WARNING: Account '{{accountName}}' has a balance of {{balance}}. Are you sure you want to delete it? This action is irreversible.",
-            "forceDelete": "Server refused to delete account '{{accountName}}' (balance: {{balance}}). Do you want to force delete anyway?"
-        },
-        "success": {
-            "created": "Treasury account created successfully",
-            "updated": "Treasury account updated successfully",
-            "deleted": "Treasury account deleted successfully"
-        },
-        "error": {
-            "loading": "Error loading treasury accounts",
-            "create": "Error creating treasury account",
-            "update": "Error updating treasury account",
-            "delete": "Error deleting treasury account",
-            "deleteNonZeroBalance": "Cannot delete account '{{accountName}}' with balance {{balance}}. Please first bring the balance to zero.",
-            "deleteWithTransactions": "Cannot delete this account as it contains financial transactions.",
-            "cannotDeleteNonZero": "Cannot delete: balance {{balance}}",
-            "forceDeleteFailed": "Force delete failed. Server still refuses to delete this account."
-        }
-    },
-    "supplierDebts": {
-        "totalDebts": "Total Supplier Debts",
-        "totalDebtsDesc": "Total amount owed to suppliers.",
-        "trackingTitle": "Supplier Debt Tracking",
-        "supplier": "Supplier",
-        "invoiceId": "Invoice #",
-        "dueDate": "Due Date",
-        "amount": "Amount",
-        "status": "Status",
-        "statusToPay": "To Pay",
-        "statusPaid": "Paid",
-        "statusOverdue": "Overdue"
-    },
-    "expenses": {
-        "title": "Expense Management",
-        "addExpense": "Add Expense",
-        "totalExpenses": "Total Expenses",
-        "totalExpensesDesc": "Over the selected period",
-        "table": {
-          "date": "Date",
-          "description": "Description",
-          "category": "Category",
-          "type": "Type",
-          "amount": "Amount"
-        },
-        "types": {
-          "FIXED": "Fixed",
-          "VARIABLE": "Variable"
-        },
-        "categories": {
-            "RENT": "Rent",
-            "SALARIES": "Salaries",
-            "ADVERTISING": "Advertising",
-            "TRANSPORT": "Transport/Logistics",
-            "SERVICES": "Services (IT, Accounting)",
-            "INSURANCE": "Insurance",
-            "PURCHASE_COST": "Purchase Cost",
-            "COMMISSIONS": "Commissions",
-            "PACKAGING": "Packaging",
-            "TRANSACTION_FEES": "Transaction Fees",
-            "OTHER": "Other"
-        },
-        "modal": {
-            "addTitle": "Add New Expense",
-            "editTitle": "Edit Expense",
-            "deleteTitle": "Delete Expense"
-        },
-        "filter": {
-            "category": "Category",
-            "allCategories": "All categories",
-            "type": "Type",
-            "allTypes": "All types"
-        }
-    },
-    "externalTransactions": {
-        "title": "External Transactions",
-        "noData": "No external transactions found",
-        "error": {
-            "loading": "Error loading external transactions",
-            "create": "Error creating transaction",
-            "update": "Error updating transaction",
-            "validate": "Error validating transaction",
-            "cancel": "Error cancelling transaction",
-            "delete": "Error deleting transaction"
-        },
-        "success": {
-            "created": "Transaction created successfully",
-            "updated": "Transaction updated successfully",
-            "validated": "Transaction validated successfully",
-            "cancelled": "Transaction cancelled successfully",
-            "deleted": "Transaction deleted successfully",
-            "exported": "Data exported successfully"
-        },
-        "confirm": {
-            "delete": "Are you sure you want to delete this transaction? This action is irreversible."
-        },
-        "stats": {
-            "total": "Total transactions",
-            "totalAmount": "Total amount",
-            "validated": "Validated transactions",
-            "pending": "Pending transactions",
-            "summary": "Summary",
-            "totalIncome": "Total income",
-            "totalExpenses": "Total expenses",
-            "netAmount": "Net amount"
-        },
-        "filters": {
-            "allTypes": "All types",
-            "allStatus": "All status",
-            "startDate": "Start date",
-            "endDate": "End date",
-            "search": "Search..."
-        },
-        "actions": {
-            "create": "New transaction",
-            "validate": "Validate",
-            "cancel": "Cancel",
-            "exportCSV": "Export CSV",
-            "exportPDF": "Export PDF",
-            "document": "View document"
-        },
-        "table": {
-            "date": "Date",
-            "description": "Description",
-            "amount": "Amount",
-            "type": "Type",
-            "category": "Category",
-            "status": "Status",
-            "actions": "Actions",
-            "reference": "Reference"
-        },
-        "create": {
-            "title": "Create external transaction"
-        },
-        "edit": {
-            "title": "Edit external transaction"
-        },
-        "form": {
-            "date": "Transaction date",
-            "description": "Description",
-            "amount": "Amount",
-            "type": "Transaction type",
-            "category": "Category",
-            "paymentMethod": "Payment method",
-            "referenceNumber": "Reference number",
-            "document": "Document",
-            "documentUrl": "Document URL"
-        },
-        "types": {
-            "INVESTMENT": "Investment",
-            "INVESTMENT_RETURN": "Investment return",
-            "LOAN": "Loan",
-            "DONATION": "Donation",
-            "PERSONAL_EXPENSE": "Personal expense",
-            "PERSONAL_INCOME": "Personal income",
-            "TAX_REFUND": "Tax refund",
-            "INSURANCE_PAYOUT": "Insurance payout",
-            "LEGAL_SETTLEMENT": "Legal settlement",
-            "TRANSFER_PDG": "CEO Transfer",
-            "OTHER_FINANCIAL": "Other financial transaction"
-        },
-        "categories": {
-            "REAL_ESTATE": "Real estate",
-            "VEHICLE": "Vehicle",
-            "EQUIPMENT": "Equipment",
-            "EDUCATION": "Education",
-            "HEALTH": "Health",
-            "TRAVEL": "Travel",
-            "ENTERTAINMENT": "Entertainment",
-            "PERSONAL_SAVINGS": "Personal savings",
-            "FAMILY_SUPPORT": "Family support",
-            "CHARITY": "Charity",
-            "INVESTMENT_RETURN": "Investment return",
-            "TAX_REFUND": "Tax refund",
-            "INSURANCE_PAYOUT": "Insurance payout",
-            "LEGAL_SETTLEMENT": "Legal settlement",
-            "TRANSFER_PDG": "CEO Transfer",
-            "OTHER": "Other"
-        },
-        "status": {
-            "DRAFT": "Draft",
-            "VALIDATED": "Validated",
-            "CANCELLED": "Cancelled"
-        },
-        "notifications": {
-            "created": {
-                "title": "New External Transaction Created",
-                "message": "{{creator}} created a new external transaction: {{description}} for {{amount}}"
-            },
-            "updated": {
-                "title": "External Transaction Updated",
-                "message": "{{creator}} updated the external transaction: {{description}} for {{amount}}"
-            },
-            "validated": {
-                "title": "External Transaction Validated",
-                "message": "{{creator}} validated the external transaction: {{description}} for {{amount}}"
-            },
-            "cancelled": {
-                "title": "External Transaction Cancelled",
-                "message": "{{creator}} cancelled the external transaction: {{description}} for {{amount}}"
-            },
-            "deleted": {
-                "title": "External Transaction Deleted",
-                "message": "{{creator}} deleted the external transaction: {{description}} for {{amount}}"
-            }
-        }
+      "cash": "Cash",
+      "card": "Card",
+      "check": "Check",
+      "mobile": "Mobile",
+      "BANK_TRANSFER": "Bank Transfer",
+      "CHECK": "Check",
+      "CASH": "Cash"
     },
     "filter": {
         "client": "Client",
@@ -4100,143 +3696,1426 @@ const enTranslations: Translations = {
             }
         }
     },
-    "interactions": {
-        "types": {
-            "CALL": "Call",
-            "EMAIL": "Email",
-            "MEETING": "Meeting",
-            "OTHER": "Other"
-        },
-        "form": {
-            "type": "Interaction Type",
-            "notes": "Notes",
-            "notesPlaceholder": "Enter interaction details...",
-            "log": "Enregistrer"
-        }
+    "loadedOrder": {
+      "title": "Payment on Order",
+      "orderId": "Order #",
+      "total": "Order Total",
+      "paid": "Already Paid",
+      "remaining": "Remaining Balance",
+      "amountToPay": "Amount to Pay",
+      "newSale": "New Sale",
+      "paymentSuccess": "Payment recorded successfully!"
+    }
+  },
+  "myOrders": {
+    "title": "My Orders",
+    "historyTab": "History",
+    "newOrderTab": "New Order",
+    "noOrders": "You have no orders at the moment."
+  },
+  "newOrder": {
+    "title": "Create a new order",
+    "searchPlaceholder": "Search for a product...",
+    "productCatalog": "Product Catalog",
+    "product": "Product",
+    "price": "Price",
+    "quantity": "Qty",
+    "addToCart": "Add",
+    "orderSummary": "Your Order",
+    "cartEmpty": "Your cart is empty.",
+    "total": "Total",
+    "submitOrder": "Place Order",
+    "orderPlacedSuccess": "Order placed successfully!",
+    "item": "Item",
+    "subtotal": "Subtotal",
+    "discount": "Discount (FCFA)",
+    "searchClientOtherSubsidiary": "Search a client from another subsidiary...",
+    "paymentMethod": "Payment method",
+    "paymentMethod_PAY_ON_DELIVERY": "Pay on delivery",
+    "paymentMethod_CARD": "Credit card",
+    "paymentMethod_ORANGE_MONEY": "Orange Money",
+    "paymentMethod_WAVE": "Wave",
+    "paymentMethod_MOBILE_MONEY": "Mobile Money",
+    "paymentMethod_PAYCAAP": "PayCaap",
+    "paymentMethod_CUSTOMER_CREDIT": "Customer credit"
+  },
+  "bonDeLivraison": {
+    "title": "Delivery Note",
+    "orderNum": "Order #",
+    "date": "Date",
+    "billedTo": "Billed to",
+    "item": "Item",
+    "quantity": "Quantity",
+    "unitPrice": "Unit Price",
+    "totalPrice": "Total Price",
+    "total": "Grand Total",
+    "print": "Print Note",
+    "exportPdf": "Export to PDF"
+  },
+  "invoice": {
+    "title": "Invoice",
+    "invoiceNum": "Invoice #",
+    "billedTo": "Billed to",
+    "date": "Date",
+    "item": "Item",
+    "quantity": "Quantity",
+    "unitPrice": "Unit Price ex. tax",
+    "totalPrice": "Total Price ex. tax",
+    "total": "Grand Total",
+    "viewInvoice": "View Invoice",
+    "exportPdf": "Export to PDF",
+    "phone": "Phone",
+    "email": "Email",
+    "ifu": "Tax ID",
+    "rccm": "Trade Reg.",
+    "paymentDueDate": "Payment Due Date",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "totalTTC": "Total (incl. tax)",
+    "paymentInfo": "Payment Information"
+  },
+  "finance": {
+    "title": "Finance & Management",
+    "creditManagement": "Credit Management",
+    "treasury": "Treasury",
+    "prefinancement": "Pre-financing",
+    "supplierDebts": "Supplier Debts",
+    "expenses": "Expenses",
+    "externalTransactions": "External Transactions",
+    "bilan": {
+      "tabTitle": "Balance Sheet",
+      "title": "Balance Sheet",
+      "asOfDate": "As of",
+      "assets": "Assets",
+      "liabilitiesAndEquity": "Liabilities & Equity",
+      "currentAssets": "Current Assets",
+      "cash": "Cash & Cash Equivalents",
+      "accountsReceivable": "Accounts Receivable",
+      "inventory": "Inventory",
+      "fixedAssets": "Fixed Assets",
+      "equipment": "Property, Plant & Equipment",
+      "totalAssets": "Total Assets",
+      "liabilities": "Liabilities",
+      "accountsPayable": "Accounts Payable",
+      "longTermDebts": "Long-Term Debts",
+      "equity": "Equity",
+      "shareCapital": "Share Capital",
+      "netIncome": "Retained Earnings (Net Income)",
+      "retainedEarnings": "Retained Earnings",
+      "totalLiabilitiesAndEquity": "Total Liabilities & Equity"
+    }
+  },
+  "credit": {
+    "totalReceivables": "Total Customer Receivables",
+    "totalReceivablesDesc": "Total amount owed by customers.",
+    "customerCreditTracking": "Customer Credit Tracking",
+    "customerName": "Customer Name",
+    "company": "Company",
+    "lastPaymentDate": "Last Payment",
+    "balanceDue": "Balance Due",
+    "viewDetails": "View details",
+    "recordPayment": "Record Payment"
+  },
+  "treasury": {
+    "recentTransactions": "Recent Transactions",
+    "addExpense": "Add Expense",
+    "addIncome": "Add Income",
+    "date": "Date",
+    "description": "Description",
+    "account": "Account",
+    "type": "Type",
+    "amount": "Amount",
+    "status": "Status",
+    "statusValidated": "Validated",
+    "statusPending": "Pending",
+    "typeIncome": "Income",
+    "typeExpense": "Expense",
+    "confirmDelete": "Delete Transaction",
+    "confirmDeleteMessage": "Are you sure you want to delete this transaction? This action is irreversible.",
+    "validate": "Validate",
+    "reject": "Reject",
+    "confirmValidate": "Validate Transaction",
+    "confirmReject": "Reject Transaction",
+    "noCreatePermission": "Only the Financial Director can create transactions",
+    "modal": {
+      "addIncome": "Add New Income",
+      "addExpense": "Add New Expense"
+    }
+  },
+  "treasuryAccounts": {
+    "title": "Treasury Accounts",
+    "description": "Manage your company's bank and treasury accounts",
+    "accessDenied": "You don't have permission to manage treasury accounts",
+    "noData": "No treasury accounts found",
+    "stats": {
+      "totalAccounts": "Total Accounts",
+      "totalBalance": "Total Balance",
+      "averageBalance": "Average Balance"
     },
-    "product": {
-        "generationFailed": "Generation failed. Please try again.",
-        "serviceUnavailable": "The AI service is currently unavailable.",
-        "noImageGenerated": "No image was generated. Try a different prompt.",
-        "descriptionGenerationError": "Description generation failed. Please try again.",
-        "imageGenerationNoImage": "No image was generated. Try a different description.",
-        "imageGenerationError": "Image generation failed. The service may be unavailable."
+    "table": {
+      "accountName": "Account Name",
+      "balance": "Balance",
+      "currency": "Currency",
+      "actions": "Actions"
     },
-    "calculator": {
-        "title": "Price Calculator",
-        "configure": "Configure",
-        "format": "Format",
-        "grammage": "Paper Weight",
-        "printSide": "Printing",
-        "lamination": "Lamination",
-        "quantity": "Quantity",
-        "unitPrice": "Unit price",
-        "totalPrice": "Total price",
-        "addToCart": "Add to Cart",
-        "size": "Size",
-        "color": "Color",
-        "material": "Material",
-        "dimension": "Dimension",
-        "binding": "Binding",
-        "folding": "Folding",
-        "corners": "Corners",
-        "rounded": "Rounded",
-        "square": "Square",
-        "eyelets": "Eyelets",
-        "yes": "Yes",
-        "no": "No",
-        "pages": "Pages",
-        "handles": "Handles",
-        "flat": "Flat",
-        "twisted": "Twisted",
-        "stub": "Detachable Stub",
-        "numbering": "Numbering",
-        "uploadFile": "Upload your file",
-        "dragAndDrop": "Drag & drop or click to select",
-        "fileUploaded": "File uploaded:",
-        "removeFile": "Remove"
+    "actions": {
+      "create": "Create Account",
+      "edit": "Edit",
+      "delete": "Delete"
     },
-    "maintenance": {
-        "title": "Maintenance Management",
-        "description": "View and record maintenance interventions by equipment.",
-        "addEquipment": "Add Equipment",
-        "equipmentName": "Equipment Name",
-        "status": "Status",
-        "lastMaintenance": "Last Maintenance",
-        "nextMaintenance": "Next Maintenance",
-        "history": "History",
-        "logMaintenance": "Log Maintenance",
-        "status_OPERATIONAL": "Operational",
-        "status_NEEDS_MAINTENANCE": "Needs Maintenance",
-        "status_OUT_OF_SERVICE": "Out of Service",
-        "modal": {
-            "addTitle": "Add Equipment",
-            "editTitle": "Edit Equipment",
-            "deleteTitle": "Delete Equipment",
-            "logTitle": "Maintenance History for {{name}}",
-            "addLogTitle": "Add an Intervention"
-        },
-        "form": {
-            "name": "Equipment Name",
-            "status": "Status",
-            "maintenanceDate": "Maintenance Date",
-            "lastMaintenanceDate": "Last Maintenance Date",
-            "nextMaintenanceDate": "Next Maintenance Date",
-            "technician": "Technician",
-            "description": "Intervention Description",
-            "cost": "Cost (XOF)",
-            "acquisitionDate": "Acquisition Date",
-            "acquisitionValue": "Acquisition Value"
-        }
+    "create": {
+      "title": "Create Treasury Account"
     },
-    "equipements": {
-        "title": "Equipment & Assets",
-        "listTitle": "Equipment List",
-        "acquisitionDate": "Acquisition Date",
-        "acquisitionValue": "Acquisition Value",
-        "status_OPERATIONAL": "Operational",
-        "status_UNDER_MAINTENANCE": "Under maintenance",
-        "status_OUT_OF_SERVICE": "Out of service",
-        "status_NEEDS_MAINTENANCE": "Needs maintenance"
+    "edit": {
+      "title": "Edit Treasury Account"
+    },
+    "form": {
+      "accountName": "Account Name",
+      "accountNamePlaceholder": "Ex: Main BNP Account",
+      "balance": "Initial Balance",
+      "currency": "Currency",
+      "accountType": "Account Type",
+      "subsidiary": "Subsidiary"
+    },
+    "accountTypes": {
+      "bank": "Bank",
+      "cash": "Cash",
+      "prefinancement": "Prefinancement Account"
+    },
+    "validation": {
+      "accountNameRequired": "Account name is required",
+      "validBalance": "Please enter a valid balance"
+    },
+    "confirm": {
+      "delete": "Are you sure you want to delete this treasury account?",
+      "deleteWithBalance": "WARNING: Account '{{accountName}}' has a balance of {{balance}}. Are you sure you want to delete it? This action is irreversible.",
+      "forceDelete": "Server refused to delete account '{{accountName}}' (balance: {{balance}}). Do you want to force delete anyway?"
+    },
+    "success": {
+      "created": "Treasury account created successfully",
+      "updated": "Treasury account updated successfully",
+      "deleted": "Treasury account deleted successfully"
+    },
+    "error": {
+      "loading": "Error loading treasury accounts",
+      "create": "Error creating treasury account",
+      "update": "Error updating treasury account",
+      "delete": "Error deleting treasury account",
+      "deleteNonZeroBalance": "Cannot delete account '{{accountName}}' with balance {{balance}}. Please first bring the balance to zero.",
+      "deleteWithTransactions": "Cannot delete this account as it contains financial transactions.",
+      "cannotDeleteNonZero": "Cannot delete: balance {{balance}}",
+      "forceDeleteFailed": "Force delete failed. Server still refuses to delete this account."
+    }
+  },
+  "supplierDebts": {
+    "totalDebts": "Total Supplier Debts",
+    "totalDebtsDesc": "Total amount owed to suppliers.",
+    "trackingTitle": "Supplier Debt Tracking",
+    "supplier": "Supplier",
+    "invoiceId": "Invoice #",
+    "dueDate": "Due Date",
+    "amount": "Amount",
+    "status": "Status",
+    "statusToPay": "To Pay",
+    "statusPaid": "Paid",
+    "statusOverdue": "Overdue"
+  },
+  "expenses": {
+    "title": "Expense Management",
+    "addExpense": "Add Expense",
+    "totalExpenses": "Total Expenses",
+    "totalExpensesDesc": "Over the selected period",
+    "table": {
+      "date": "Date",
+      "description": "Description",
+      "category": "Category",
+      "type": "Type",
+      "amount": "Amount"
+    },
+    "types": {
+      "FIXED": "Fixed",
+      "VARIABLE": "Variable"
+    },
+    "categories": {
+      "RENT": "Rent",
+      "SALARIES": "Salaries",
+      "ADVERTISING": "Advertising",
+      "TRANSPORT": "Transport/Logistics",
+      "SERVICES": "Services (IT, Accounting)",
+      "INSURANCE": "Insurance",
+      "PURCHASE_COST": "Purchase Cost",
+      "COMMISSIONS": "Commissions",
+      "PACKAGING": "Packaging",
+      "TRANSACTION_FEES": "Transaction Fees",
+      "OTHER": "Other"
+    },
+    "modal": {
+      "addTitle": "Add New Expense",
+      "editTitle": "Edit Expense",
+      "deleteTitle": "Delete Expense"
+    },
+    "filter": {
+      "category": "Category",
+      "allCategories": "All categories",
+      "type": "Type",
+      "allTypes": "All types"
+    }
+  },
+  "externalTransactions": {
+    "title": "External Transactions",
+    "noData": "No external transactions found",
+    "error": {
+      "loading": "Error loading external transactions",
+      "create": "Error creating transaction",
+      "update": "Error updating transaction",
+      "validate": "Error validating transaction",
+      "cancel": "Error cancelling transaction",
+      "delete": "Error deleting transaction"
+    },
+    "success": {
+      "created": "Transaction created successfully",
+      "updated": "Transaction updated successfully",
+      "validated": "Transaction validated successfully",
+      "cancelled": "Transaction cancelled successfully",
+      "deleted": "Transaction deleted successfully",
+      "exported": "Data exported successfully"
+    },
+    "confirm": {
+      "delete": "Are you sure you want to delete this transaction? This action is irreversible."
+    },
+    "stats": {
+      "total": "Total transactions",
+      "totalAmount": "Total amount",
+      "validated": "Validated transactions",
+      "pending": "Pending transactions",
+      "summary": "Summary",
+      "totalIncome": "Total income",
+      "totalExpenses": "Total expenses",
+      "netAmount": "Net amount"
+    },
+    "filters": {
+      "allTypes": "All types",
+      "allStatus": "All status",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "search": "Search..."
+    },
+    "actions": {
+      "create": "New transaction",
+      "validate": "Validate",
+      "cancel": "Cancel",
+      "exportCSV": "Export CSV",
+      "exportPDF": "Export PDF",
+      "document": "View document"
+    },
+    "table": {
+      "date": "Date",
+      "description": "Description",
+      "amount": "Amount",
+      "type": "Type",
+      "category": "Category",
+      "status": "Status",
+      "actions": "Actions",
+      "reference": "Reference"
+    },
+    "create": {
+      "title": "Create external transaction"
+    },
+    "edit": {
+      "title": "Edit external transaction"
+    },
+    "form": {
+      "date": "Transaction date",
+      "description": "Description",
+      "amount": "Amount",
+      "type": "Transaction type",
+      "category": "Category",
+      "paymentMethod": "Payment method",
+      "referenceNumber": "Reference number",
+      "document": "Document",
+      "documentUrl": "Document URL"
+    },
+    "types": {
+      "INVESTMENT": "Investment",
+      "INVESTMENT_RETURN": "Investment return",
+      "LOAN": "Loan",
+      "DONATION": "Donation",
+      "PERSONAL_EXPENSE": "Personal expense",
+      "PERSONAL_INCOME": "Personal income",
+      "TAX_REFUND": "Tax refund",
+      "INSURANCE_PAYOUT": "Insurance payout",
+      "LEGAL_SETTLEMENT": "Legal settlement",
+      "TRANSFER_PDG": "CEO Transfer",
+      "OTHER_FINANCIAL": "Other financial transaction"
+    },
+    "categories": {
+      "REAL_ESTATE": "Real estate",
+      "VEHICLE": "Vehicle",
+      "EQUIPMENT": "Equipment",
+      "EDUCATION": "Education",
+      "HEALTH": "Health",
+      "TRAVEL": "Travel",
+      "ENTERTAINMENT": "Entertainment",
+      "PERSONAL_SAVINGS": "Personal savings",
+      "FAMILY_SUPPORT": "Family support",
+      "CHARITY": "Charity",
+      "INVESTMENT_RETURN": "Investment return",
+      "TAX_REFUND": "Tax refund",
+      "INSURANCE_PAYOUT": "Insurance payout",
+      "LEGAL_SETTLEMENT": "Legal settlement",
+      "TRANSFER_PDG": "CEO Transfer",
+      "OTHER": "Other"
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "VALIDATED": "Validated",
+      "CANCELLED": "Cancelled"
     },
     "notifications": {
-        "title": "Notifications",
-        "markAllAsRead": "Mark all as read",
-        "markAsRead": "Mark as read",
-        "noNotifications": "No notifications",
-        "error": {
-            "loading": "Error loading notifications",
-            "markAsRead": "Error marking notification as read",
-            "markAllAsRead": "Error marking all notifications as read"
-        },
-        "types": {
-            "EXTERNAL_TRANSACTION_CREATED": "External Transaction Created",
-            "EXTERNAL_TRANSACTION_UPDATED": "External Transaction Updated",
-            "EXTERNAL_TRANSACTION_VALIDATED": "External Transaction Validated",
-            "EXTERNAL_TRANSACTION_CANCELLED": "External Transaction Cancelled",
-            "EXTERNAL_TRANSACTION_DELETED": "External Transaction Deleted"
-        }
-    },
-    "bonDeCommande": {
-        "title": "Purchase Order",
-        "orderNum": "Order Number",
-        "date": "Date",
-        "dueDate": "Due Date",
-        "billedTo": "Billed To",
-        "item": "Product",
-        "items": "Order Details",
-        "quantity": "Quantity",
-        "unitPrice": "Unit Price",
-        "totalPrice": "Total",
-        "total": "TOTAL",
-        "paymentMethod": "Payment Method",
-        "paymentDueDate": "Payment Due Date",
-        "print": "Print",
-        "exportPdf": "Export to PDF",
-        "footer": "Thank you for your trust. This order is valid until",
-        "status": "Status",
-        "noData": "No orders"
+      "created": {
+        "title": "New External Transaction Created",
+        "message": "{{creator}} created a new external transaction: {{description}} for {{amount}}"
+      },
+      "updated": {
+        "title": "External Transaction Updated",
+        "message": "{{creator}} updated the external transaction: {{description}} for {{amount}}"
+      },
+      "validated": {
+        "title": "External Transaction Validated",
+        "message": "{{creator}} validated the external transaction: {{description}} for {{amount}}"
+      },
+      "cancelled": {
+        "title": "External Transaction Cancelled",
+        "message": "{{creator}} cancelled the external transaction: {{description}} for {{amount}}"
+      },
+      "deleted": {
+        "title": "External Transaction Deleted",
+        "message": "{{creator}} deleted the external transaction: {{description}} for {{amount}}"
+      }
     }
+  },
+  "filter": {
+    "client": "Client",
+    "allClients": "All clients",
+    "product": "Product",
+    "allProducts": "All products",
+    "status": "Status",
+    "allStatuses": "All statuses",
+    "reset": "Reset",
+    "allTime": "All time",
+    "noResults": "No orders found for the selected filters.",
+    "noTransactions": "No transactions found for the selected filters.",
+    "orderStatus": "Order Status",
+    "paymentStatus": "Payment Status",
+    "allOrderStatuses": "All Order Statuses",
+    "allPaymentStatuses": "All Payment Statuses",
+    "apply": "Apply"
+  },
+  "configuration": {
+    "title": "General Configuration",
+    "products": "Products",
+    "units": "Units",
+    "unitsManagement": {
+      "title": "Units of measure",
+      "subtitle": "Shared reference list — base unit and packaging units for stock products.",
+      "addNew": "New unit",
+      "name": "Name",
+      "namePlaceholder": "Sheet",
+      "symbol": "Symbol (optional)",
+      "symbolPlaceholder": "u",
+      "create": "Create",
+      "save": "Save",
+      "cancel": "Cancel",
+      "empty": "No unit created yet.",
+      "createError": "Could not create the unit (name already used?).",
+      "deleteError": "This unit is used by at least one stock product."
+    },
+    "services": "Services",
+    "addService": "Add a service",
+    "referenceLists": "Reference lists",
+    "users": "Users",
+    "suppliers": "Suppliers",
+    "taxes": "Taxes",
+    "treasury": "Treasury",
+    "productManagement": "Product Management",
+    "addProduct": "Add Product",
+    "addTax": "Add Tax",
+    "productId": "ID",
+    "name": "Name",
+    "category": "Category",
+    "sellingPrice": "Selling Price",
+    "stock": "Stock",
+    "clientManagement": "Client",
+    "addClient": "Add Client",
+    "company": "Company",
+    "email": "Email",
+    "phone": "Phone",
+    "userManagement": "User Management",
+    "addUser": "Add User",
+    "role": "Role",
+    "supplierManagement": "Supplier Management",
+    "addSupplier": "Add Supplier",
+    "taxManagement": "Tax Management",
+    "equipmentCosts": "Machine costs",
+    "commercialParams": "Commercial params",
+    "productionWorkflows": "Workflows",
+    "catalogue": "Catalogue",
+    "production": "Production",
+    "modal": {
+      "editProductTitle": "Edit Product",
+      "addProductTitle": "Add New Product",
+      "editClientTitle": "Edit Client",
+      "addClientTitle": "Add New Client",
+      "editUserTitle": "Edit User",
+      "addUserTitle": "Add New User",
+      "editSupplierTitle": "Edit Supplier",
+      "addSupplierTitle": "Add New Supplier",
+      "deleteProductTitle": "Delete Product",
+      "deleteClientTitle": "Delete Client",
+      "deleteUserTitle": "Delete User",
+      "deleteSupplierTitle": "Delete Supplier",
+      "deleteEmployeeTitle": "Delete Employee",
+      "editEmployeeTitle": "Edit Employee",
+      "addEmployeeTitle": "Add Employee",
+      "deleteConfirmMessage": "Are you sure you want to delete {{itemName}}? This action cannot be undone.",
+      "recordAttendanceTitle": "Signature for {{employeeName}}",
+      "viewSignatureTitle": "Signature of {{name}}",
+      "payrollSignatureTitle": "Signature for {{employeeName}}'s Payroll",
+      "employeeDetailsTitle": "Employee Details",
+      "addAbsenceTitle": "Record a New Absence",
+      "editAbsenceTitle": "Edit an Absence",
+      "deleteAbsenceTitle": "Delete an Absence",
+      "editTaxTitle": "Edit Tax",
+      "addTaxTitle": "Add New Tax",
+      "deleteTaxTitle": "Delete Tax",
+      "editServiceTitle": "Edit service",
+      "addServiceTitle": "Add service",
+      "deleteServiceTitle": "Delete service"
+    },
+    "serviceForm": {
+      "name": "Name",
+      "category": "Category",
+      "range": "Range",
+      "description": "Description",
+      "generateWithAI": "Generate with AI",
+      "isActive": "Active",
+      "isVisibleOnSite": "Visible on storefront",
+      "displayOrder": "Display order",
+      "images": "Images",
+      "maxImages": "max {{count}}",
+      "imageTooLarge": "Image exceeds the maximum size of 5MB",
+      "removeImage": "Remove image",
+      "acceptedFormats": "Accepted formats: JPG, PNG, GIF, WEBP • Max size: 5MB"
+    },
+    "builder": {
+      "back": "Back to services",
+      "configureFields": "Configure fields"
+    },
+    "form": {
+      "name": "Name",
+      "category": "Category",
+      "description": "Description",
+      "passwordRequired": "Password is required for a new user.",
+      "passwordsDoNotMatch": "Passwords do not match.",
+      "costPrice": "Cost Price",
+      "sellingPrice": "Selling Price",
+      "stock": "Stock",
+      "warehouse": "Warehouse",
+      "range": "Range",
+      "company": "Company",
+      "email": "Email",
+      "phone": "Phone",
+      "since": "Customer since",
+      "role": "Role",
+      "address": "Address",
+      "formSection": {
+        "personal": "Personal Information",
+        "professional": "Professional Information",
+        "salary": "Salary & Benefits",
+        "documents": "Documents",
+        "leaves": "Leaves"
+      },
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "birthDate": "Birth Date",
+      "gender": "Gender",
+      "nationality": "Nationality",
+      "ssn": "Social Security Number",
+      "position": "Position",
+      "department": "Department",
+      "hireDate": "Hire Date",
+      "contractType": "Contract Type",
+      "employeeStatus": "Employee Status",
+      "workLocation": "Work Location",
+      "baseSalary": "Base Salary",
+      "bonus": "Bonus",
+      "benefits": "Benefits (comma-separated)",
+      "paymentMethod": "Payment Method",
+      "absenceType": "Absence Type",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "reason": "Reason",
+      "document": "Justification Document",
+      "uploadFile": "Upload a file",
+      "generateWithAI": "Generate with AI",
+      "rate": "Rate (%)",
+      "isDefault": "Default Tax",
+      "minThreshold": "Minimum threshold",
+      "baseUnit": "Base unit",
+      "selectUnit": "Select a unit...",
+      "packagingUnits": "Packaging units",
+      "packagingUnitsHelp": "Purchase units (e.g. Ream, Box) and their equivalence in the base unit.",
+      "conversionFactor": "Conversion factor"
+    }
+  },
+  "specBuilder": {
+    "fieldTypes": {
+      "TEXT": "Text", "TEXTAREA": "Long text", "NUMBER": "Number", "DECIMAL": "Decimal number",
+      "AMOUNT": "Amount", "SELECT": "Dropdown list", "MULTISELECT": "Multi-select",
+      "RADIO": "Radio buttons", "CHECKBOX": "Checkbox", "BOOLEAN": "Yes / No", "DATE": "Date",
+      "TIME": "Time", "COLOR": "Color", "UPLOAD": "Upload", "URL": "URL", "EMAIL": "Email",
+      "PHONE": "Phone", "DIMENSIONS": "Dimensions (Width x Height)"
+    },
+    "card": {
+      "required": "Required",
+      "reorder": "Reorder"
+    },
+    "drawer": {
+      "editTitle": "Edit specification",
+      "addTitle": "New specification",
+      "nameRequired": "Name is required",
+      "technicalKeyRequired": "Technical key is required",
+      "technicalKeyPattern": "snake_case required (e.g. paper_weight)",
+      "fieldRequired": "Required",
+      "name": "Name",
+      "technicalKey": "Technical key",
+      "technicalKeyPlaceholder": "e.g. paper_weight",
+      "type": "Type",
+      "group": "Group",
+      "noGroup": "No group",
+      "helpText": "Help text",
+      "placeholder": "Placeholder",
+      "unit": "Unit (mm, cm, g, kg, pages...)",
+      "internalDescription": "Internal description",
+      "required": "Required",
+      "visibleToClient": "Visible to client",
+      "visibleToProduction": "Visible to production",
+      "editableAfterValidation": "Editable after validation",
+      "searchable": "Usable in search",
+      "possibleValues": "Possible values",
+      "optionsSourceInline": "Entered here",
+      "optionsSourceReference": "Shared reference list",
+      "selectReferenceList": "Select a reference list...",
+      "optionValuePlaceholder": "Value (e.g. A4)",
+      "optionLabelPlaceholder": "Displayed label",
+      "addOption": "Add a value",
+      "uploadConfigTitle": "Upload configuration",
+      "uploadExtensions": "Allowed extensions (comma-separated)",
+      "uploadExtensionsPlaceholder": "PDF, AI, PSD, CDR",
+      "uploadMaxSize": "Max size (MB)",
+      "uploadMaxFiles": "Max number of files",
+      "dimensionsConfigTitle": "Dimension bounds",
+      "dimMinWidth": "Min width",
+      "dimMaxWidth": "Max width",
+      "dimMinHeight": "Min height",
+      "dimMaxHeight": "Max height",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "groupList": {
+      "addField": "Add a field",
+      "noGroup": "No group",
+      "emptyGroup": "No fields in this group.",
+      "addGroup": "Add a group",
+      "deleteGroupTooltip": "Delete group"
+    },
+    "builder": {
+      "fieldsTitle": "Technical fields — {{productName}}",
+      "previewTitle": "Preview — sales view",
+      "loading": "Loading Builder...",
+      "loadError": "Unable to load this service's configuration.",
+      "noFields": "No fields configured for this service yet.",
+      "newGroupPlaceholder": "Group name (e.g. Paper)",
+      "cancel": "Cancel",
+      "confirmDeleteSpec": "Delete specification \"{{name}}\"? This action cannot be undone.",
+      "confirmDeleteGroup": "Delete group \"{{name}}\"? Its fields will be moved to \"No group\"."
+    },
+    "referenceLists": {
+      "title": "Value reference lists",
+      "subtitle": "Value lists shared across several services (e.g. paper types, weights).",
+      "addNew": "New reference list",
+      "technicalKey": "Technical key",
+      "technicalKeyPlaceholder": "paper_types",
+      "displayName": "Display name",
+      "displayNamePlaceholder": "Paper types",
+      "create": "Create",
+      "cancel": "Cancel",
+      "valueCount": "value(s)",
+      "empty": "No reference list created yet.",
+      "valuePlaceholder": "Value (e.g. A4)",
+      "labelPlaceholder": "Displayed label",
+      "createError": "Could not create the reference list (key already used?)."
+    },
+    "valuesModal": {
+      "title": "Technical specifications — {{productName}}",
+      "subtitle": "Fill in this line's specifications before adding it to the cart.",
+      "cancel": "Cancel",
+      "confirm": "Add to cart"
+    },
+    "formRenderer": {
+      "selectPlaceholder": "Select..."
+    }
+  },
+  "hr": {
+    "title": "Human Resources Management",
+    "tabs": {
+      "employees": "Employees",
+      "attendance": "Attendance",
+      "payroll": "Payroll",
+      "absences": "Absences"
+    },
+    "employees": {
+      "title": "Employee Database",
+      "add": "Add Employee",
+      "id": "ID",
+      "fullName": "Full Name",
+      "position": "Position",
+      "department": "Department",
+      "contractType": "Contract",
+      "status": "Status"
+    },
+    "table": {
+      "name": "Name",
+      "email": "Email",
+      "department": "Department",
+      "position": "Position",
+      "status": "Status",
+      "salary": "Salary",
+      "actions": "Actions"
+    },
+    "attendance": {
+      "title": "Attendance Management",
+      "record": "Record Attendance",
+      "employee": "Employee",
+      "date": "Date",
+      "status": "Status",
+      "arrivalTime": "Arrival",
+      "breakTime": "Break",
+      "departureTime": "Departure",
+      "signature": "Signature",
+      "status_PRESENT": "Present",
+      "status_ABSENT_JUSTIFIED": "Absent (J)",
+      "status_ABSENT_UNJUSTIFIED": "Absent (UJ)",
+      "status_HOLIDAY": "Holiday",
+      "viewSignature": "View",
+      "notSigned": "Not signed"
+    },
+    "payroll": {
+      "title": "Payroll Scales & Configuration",
+      "taxBracketsDesc": "Configure standard payroll parameters for Cameroon",
+      "process": "Process this month's payroll",
+      "employee": "Employee",
+      "period": "Period",
+      "netSalary": "Net Salary",
+      "paymentDate": "Payment Date",
+      "status": "Status",
+      "signature": "Signature",
+      "status_PENDING": "Pending",
+      "status_PAID": "Paid",
+      "sign": "Sign",
+      "payAction": "Record Payment",
+      "detailsTitle": "Payroll Details - {{period}}",
+      "recordPaymentTitle": "Record a Payment",
+      "recordPaymentSubtitle": "Confirm payment for {{employeeName}} of {{amount}}.",
+      "deductions": "Deductions",
+      "socialDeductions": "Social Contributions",
+      "taxDeductions": "Tax Deductions",
+      "absenceDeductions": "Absence Deductions",
+      "minWage": "Minimum Wage",
+      "cnpsEmployeeRate": "CNPS Employee Rate",
+      "success": {
+        "updated": "Configuration updated successfully"
+      },
+      "error": {
+        "update": "Error updating configuration"
+      },
+      "modal": {
+        "updateSmigDesc": "Update the minimum wage (SMIG) currently in effect",
+        "updateCnpsTitle": "Update CNPS Rates",
+        "updateIrppTitle": "Update IRPP Tax Brackets",
+        "updateLeaveTitle": "Update Leave Entitlements"
+      },
+      "form": {
+        "minWage": "Minimum Wage",
+        "minAmount": "Minimum Amount",
+        "maxAmount": "Maximum Amount",
+        "rate": "Rate",
+        "above": "Above",
+        "daysPerYear": "days per year",
+        "employeeRate": "Employee Rate",
+        "employerRate": "Employer Rate",
+        "paid": "Paid",
+        "unpaid": "Unpaid"
+      },
+      "infoBox": {
+        "title": "Note"
+      },
+      "infoBoxText": "These are the standard rates for Cameroon 2024. All values are used automatically when calculating employee payroll. Changes will apply to future payroll calculations."
+    },
+    "modals": {
+      "sign": {
+        "title": "Signature for {{employeeName}}",
+        "clear": "Clear",
+        "save": "Save Signature"
+      }
+    },
+    "gender": {
+      "MALE": "Male",
+      "FEMALE": "Female",
+      "OTHER": "Other"
+    },
+    "contractType": {
+      "CDI": "Permanent",
+      "CDD": "Fixed-term",
+      "FREELANCE": "Freelance",
+      "INTERNSHIP": "Internship"
+    },
+    "employeeStatus": {
+      "ACTIVE": "Active",
+      "ON_LEAVE": "On Leave",
+      "RESIGNED": "Resigned",
+      "TERMINATED": "Terminated"
+    },
+    "paymentMethod": {
+      "BANK_TRANSFER": "Bank Transfer",
+      "CHECK": "Check",
+      "CASH": "Cash"
+    },
+    "bankingDetails": "Banking Details",
+    "bankName": "Bank Name",
+    "bankAccountNumber": "Account Number (RIB/IBAN)",
+    "maritalStatus": "Marital Status",
+    "maritalStatusOptions": {
+      "SINGLE": "Single",
+      "MARRIED": "Married",
+      "DIVORCED": "Divorced",
+      "WIDOWED": "Widowed"
+    },
+    "numberDependents": "Number of Dependents",
+    "dependentsHelperText": "For tax deduction calculation",
+    "form": {
+      "sections": {
+        "personal": "Personal Information",
+        "professional": "Professional Information",
+        "salary": "Salary & Compensation",
+        "documents": "Documents",
+        "leaves": "Leave Entitlements"
+      },
+      "salarySection": {
+        "title": "Salary & Compensation",
+        "subtitle": "Financial information",
+        "baseSalary": "Base Salary",
+        "baseSalaryHelper": "Minimum salary (FCFA)",
+        "bonus": "Bonus",
+        "bonusHelper": "Additional compensation (FCFA)",
+        "paymentMethod": "Payment Method"
+      },
+      "documentsSection": {
+        "title": "Documents",
+        "subtitle": "Employee documentation",
+        "uploadMessage": "📄 Document upload functionality would be implemented here"
+      },
+      "leavesSection": {
+        "title": "Leave Entitlements",
+        "subtitle": "Leave balance configuration",
+        "tabBalance": "Leave Balance",
+        "tabRecords": "Leave History"
+      }
+    },
+    "cancel": "Cancel",
+    "leaves": {
+      "leaveHistory": "Leave History",
+      "addLeaveRecord": "Record Leave",
+      "noRecords": "No leave records",
+      "daysHelper": "Number of leave days",
+      "unpaidHelperText": "Unpaid leave days",
+      "balanceInfo": "Available leave balance",
+      "leaveType": "Leave Type",
+      "days": "Days",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "configureBalance": "Configure Leave Balance"
+    },
+    "documents": {
+      "title": "Documents",
+      "addDocument": "Add Document",
+      "document": "Document",
+      "name": "Document Name",
+      "type": "Document Type",
+      "expiryDate": "Expiry Date",
+      "status": "Status",
+      "selectType": "Select a type",
+      "noDocuments": "No documents added",
+      "file": "File",
+      "selectFile": "Select a file",
+      "fileSelected": "File selected",
+      "noFileSelected": "No file selected",
+      "contract": "Employment Contract",
+      "idCard": "ID Card / National ID",
+      "workPermit": "Work Permit",
+      "diplomas": "Diplomas & Certifications",
+      "uploaded": "✓ Uploaded",
+      "download": "Download",
+      "remove": "Remove",
+      "dragOrClick": "Drag and drop your file here, or click to select",
+      "addDiplomas": "Add Diplomas & Certifications",
+      "diplomasHelper": "You can upload multiple diplomas and certification documents",
+      "uploadedDiplomas": "Uploaded Diplomas",
+      "requirements": "Required documents: Employment Contract, ID Card/National ID, and Work Permit. Diplomas are optional but recommended."
+    },
+    "documentType": {
+      "idCard": "ID Card",
+      "passport": "Passport",
+      "contract": "Contract",
+      "cv": "CV",
+      "diploma": "Diploma",
+      "other": "Other"
+    },
+    "documentStatus": {
+      "valid": "Valid",
+      "expired": "Expired",
+      "pending": "Pending"
+    },
+    "leaveType": {
+      "annual": "Annual Leave",
+      "sick": "Sick Leave",
+      "personal": "Personal Leave",
+      "maternity": "Maternity Leave",
+      "paternity": "Paternity Leave",
+      "other": "Other Leave",
+      "unpaid": "Unpaid Leave"
+    },
+    "leaveBalance": {
+      "title": "Leave Balance",
+      "summary": "Summary",
+      "totalDays": "Total Days",
+      "days": "days",
+      "unpaidLeave": "Unpaid Leave",
+      "totalEntitlements": "Total Leave Entitlements"
+    },
+    "absences": {
+      "title": "Absence Management",
+      "add": "Record Absence",
+      "table": {
+        "employee": "Employee",
+        "type": "Type",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "reason": "Reason",
+        "document": "Document",
+        "download": "Download",
+        "noDocument": "None"
+      }
+    },
+    "absenceType": {
+      "JUSTIFIED": "Justified",
+      "UNJUSTIFIED": "Unjustified"
+    },
+    "stats": {
+      "totalEmployees": "Total Employees",
+      "totalEmployeesSubtitle": "Active & all statuses",
+      "active": "Active",
+      "activeSubtitle": "% of workforce",
+      "onLeave": "On Leave",
+      "onLeaveSubtitle": "Currently away",
+      "recentlyAdded": "Recently Added",
+      "recentlyAddedSubtitle": "Last 30 days"
+    },
+    "actions": {
+      "export": "Export",
+      "csv": "CSV",
+      "pdf": "PDF",
+      "edit": "Edit",
+      "delete": "Delete",
+      "view": "View",
+      "confirm": "Are you sure?"
+    },
+    "details": {
+      "personalInfo": "Personal Information",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "birthDate": "Birth Date",
+      "nationality": "Nationality",
+      "phone": "Phone",
+      "email": "Email",
+      "address": "Address",
+      "professionalInfo": "Professional Information",
+      "department": "Department",
+      "position": "Position",
+      "workLocation": "Work Location",
+      "hireDate": "Hire Date",
+      "contractType": "Contract Type",
+      "status": "Status",
+      "yearsOfService": "Years of Service",
+      "contract": "Contract",
+      "salary": "Salary & Compensation",
+      "baseSalary": "Base Salary",
+      "bonus": "Bonus",
+      "paymentMethod": "Payment Method",
+      "lastSalaryAdjustment": "Last Salary Adjustment",
+      "leaveEntitlements": "Leave Entitlements",
+      "cameroonInfo": "Cameroon Information",
+      "cnpsNumber": "CNPS Number",
+      "cnpsCategory": "CNPS Category",
+      "taxId": "N-tif",
+      "maritalStatus": "Marital Status",
+      "bankAccount": "Bank Account",
+      "bankAccountNumber": "Bank Account Number",
+      "documents": "Documents",
+      "idCard": "ID Card",
+      "workPermit": "Work Permit",
+      "diplomas": "Diplomas"
+    },
+    "payrollInfo": {
+      "cameroonPayroll": "Cameroon Payroll",
+      "belowSmig": "Salary below SMIG",
+      "grossSalary": "Gross Salary",
+      "smig": "SMIG 2024",
+      "deductions": "Deductions",
+      "cnpsEmployee": "CNPS Employee (11%)",
+      "cnpsEmployer": "Employer Contribution (17.6%)",
+      "fcfa": "FCFA",
+      "taxInfo": "Tax Info",
+      "dependents": "Dependents",
+      "taxReduction": "Tax reduction"
+    },
+    "editEmployee": "Edit Employee",
+    "addEmployee": "Add Employee",
+    "updateEmployee": "Update Employee"
+  },
+  "secretariat": {
+    "title": "Secretariat",
+    "tabs": {
+      "documents": "Documents",
+      "meetings": "Meetings",
+      "tasks": "Tasks"
+    },
+    "documents": {
+      "title": "Document Management",
+      "add": "Add Document",
+      "table": {
+        "name": "Document Name",
+        "category": "Category",
+        "uploadDate": "Upload Date",
+        "status": "Status",
+        "file": "File"
+      },
+      "categories": {
+        "LEGAL": "Legal",
+        "FINANCIAL": "Financial",
+        "HR": "HR",
+        "CONTRACT": "Contract",
+        "OTHER": "Other"
+      },
+      "statuses": {
+        "DRAFT": "Draft",
+        "FINAL": "Final",
+        "ARCHIVED": "Archived"
+      },
+      "modal": {
+        "addTitle": "Add New Document",
+        "editTitle": "Edit Document",
+        "deleteTitle": "Delete Document"
+      }
+    },
+    "meetings": {
+      "title": "Meeting Tracking",
+      "add": "Schedule Meeting",
+      "table": {
+        "title": "Title",
+        "date": "Date & Time",
+        "location": "Location",
+        "participants": "Participants"
+      },
+      "modal": {
+        "addTitle": "Schedule New Meeting",
+        "editTitle": "Edit Meeting",
+        "detailsTitle": "Meeting Details",
+        "deleteTitle": "Cancel Meeting"
+      },
+      "details": {
+        "agenda": "Agenda",
+        "minutes": "Minutes",
+        "noMinutes": "No minutes written."
+      }
+    },
+    "tasks": {
+      "title": "Task Management",
+      "add": "Add Task",
+      "table": {
+        "title": "Task",
+        "assignedTo": "Assigned To",
+        "dueDate": "Due Date",
+        "status": "Status"
+      },
+      "statuses": {
+        "TODO": "To Do",
+        "IN_PROGRESS": "In Progress",
+        "DONE": "Done"
+      },
+      "modal": {
+        "addTitle": "Create New Task",
+        "editTitle": "Edit Task",
+        "deleteTitle": "Delete Task"
+      }
+    }
+  },
+  "crm": {
+    "title": "CRM",
+    "allSubsidiaries": "All subsidiaries",
+    "allCommercials": "All sales reps",
+    "tabs": {
+      "dashboard": "Dashboard",
+      "leads": "Leads",
+      "accounts": "Accounts",
+      "contacts": "Contacts",
+      "deals": "Deals",
+      "tasks": "Tasks",
+      "pipeline": "Pipeline",
+      "contracts": "Signed Contracts"
+    },
+    "tasks": {
+      "title": "Task Management",
+      "addTask": "Add Task",
+      "filterByStatus": "Filter by status",
+      "filterByDueDate": "Filter by due date",
+      "allStatuses": "All statuses",
+      "allDates": "All dates",
+      "today": "Today",
+      "thisWeek": "This week",
+      "overdue": "Overdue",
+      "status_TODO": "To Do",
+      "status_IN_PROGRESS": "In Progress",
+      "status_DONE": "Done",
+      "relatedTo": "Related to",
+      "assignedTo": "Assigned to",
+      "dueDate": "Due date",
+      "priority": "Priority",
+      "priority_LOW": "Low",
+      "priority_MEDIUM": "Medium",
+      "priority_HIGH": "High",
+      "filterByPriority": "Filter by priority",
+      "allPriorities": "All priorities",
+      "complete": "completed",
+
+    },
+    "taskModal": {
+      "addTitle": "Add New Task",
+      "editTitle": "Edit Task",
+      "title": "Title",
+      "description": "Description",
+      "contact": "Contact",
+      "selectContact": "Select a contact",
+      "opportunity": "Opportunity (optional)",
+      "selectOpportunity": "Select an opportunity",
+      "noOpportunities": "No opportunities for this contact",
+      "dueDate": "Due Date",
+      "status": "Status",
+      "assignedTo": "Assigned to"
+    },
+    "leads": {
+      "title": "Lead Management",
+      "add": "Add Lead",
+      "convert": "Convert",
+      "name": "Name",
+      "company": "Company",
+      "email": "Email",
+      "phone": "Phone",
+      "status": "Status",
+      "status_NEW": "New",
+      "status_CONTACTED": "Contacted",
+      "status_QUALIFIED": "Qualified",
+      "status_LOST": "Lost",
+      "modal": {
+        "addTitle": "Add New Lead",
+        "editTitle": "Edit Lead",
+        "deleteTitle": "Delete Lead"
+      }
+    },
+    "accounts": {
+      "title": "Account Management",
+      "add": "Add Account",
+      "name": "Account Name",
+      "industry": "Industry",
+      "phone": "Phone",
+      "address": "Address",
+      "modal": {
+        "addTitle": "Add New Account",
+        "editTitle": "Edit Account",
+        "deleteTitle": "Delete Account"
+      }
+    },
+    "activities": {
+      "addTask": "Add Action",
+      "selectTask": "Select an action",
+      "contact": "Contact",
+      "selectContact": "Select a contact",
+      "dueDate": "Due Date",
+      "overdue": "Overdue",
+      "today": "Today",
+      "upcoming": "Upcoming",
+      "completed": "Completed",
+      "noActivity": "No activity to display."
+    },
+    "taskTitles": {
+      "follow_up_call": "Make a follow-up call",
+      "send_quote": "Send a quote",
+      "schedule_meeting": "Schedule a meeting",
+      "follow_up_proposal": "Follow up on proposal",
+      "send_documentation": "Send documentation",
+      "check_in_email": "Send a check-in email"
+    },
+    "dashboard": {
+      "pipelineValue": "Pipeline Value",
+      "conversionRate": "Conversion Rate",
+      "newOpportunities": "New Opportunities",
+      "newWebOpportunities": "New Opportunities (Web)",
+      "salesFunnel": "Sales Funnel",
+      "myTasks": "My Tasks",
+      "recentActivity": "Recent Activity"
+    },
+    "pipeline": {
+      "addOpportunity": "Add Opportunity"
+    },
+
+    "opportunity": {
+      "stages": {
+        "QUALIFICATION": "Qualification",
+        "PROPOSAL": "Proposal",
+        "NEGOTIATION": "Negotiation",
+        "WON": "Won",
+        "LOST": "Lost"
+      },
+      "modal": {
+        "addTitle": "Add New Opportunity",
+        "editTitle": "Edit Opportunity",
+        "deleteTitle": "Delete Opportunity"
+      },
+      "form": {
+        "name": "Opportunity Name",
+        "client": "Client/Prospect",
+        "selectClient": "Select a client",
+        "value": "Estimated Value",
+        "stage": "Stage",
+        "products": "Concerned Products",
+        "selectProducts": "Select products",
+        "closeDate": "Expected Close Date"
+      }
+    },
+    "contacts": {
+      "title": "Contact Management",
+      "add": "Add Contact",
+      "contact": "Contact",
+      "company": "Company",
+      "email": "Email",
+      "phone": "Phone",
+      "status": "Status",
+      "contracts": "Signed Contracts",
+      "opportunities": "Opportunities",
+      "statuses": {
+        "PROSPECT": "Prospect",
+        "ACTIVE": "Active",
+        "INACTIVE": "Inactive"
+      },
+      "details": {
+        "title": "Contact Details",
+        "info": "Information",
+        "interactions": "Interactions",
+        "logInteraction": "Log Interaction",
+        "tasks": "Tasks",
+        "opportunities": "Opportunities",
+        "contracts": "Signed Contracts",
+        "noInteractions": "No interactions logged."
+      }
+    },
+    "contracts": {
+      "title": "Signed Contract Management",
+      "add": "Add Contract",
+      "table": {
+        "title": "Contract Title",
+        "client": "Client",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "amount": "Amount",
+        "status": "Status"
+      },
+      "status_DRAFT": "Draft",
+      "status_ACTIVE": "Active",
+      "status_EXPIRED": "Expired",
+      "status_CANCELLED": "Cancelled",
+      "modal": {
+        "addTitle": "Add New Contract",
+        "editTitle": "Edit Contract",
+        "deleteTitle": "Delete Contract"
+      }
+    },
+    "interactions": {
+      "types": {
+        "CALL": "Call",
+        "EMAIL": "Email",
+        "MEETING": "Meeting",
+        "OTHER": "Other"
+      },
+      "form": {
+        "type": "Interaction Type",
+        "notes": "Notes",
+        "notesPlaceholder": "Enter interaction details...",
+        "log": "Enregistrer"
+      },
+      "modal": {
+        "addTitle": "Add New Contract",
+        "editTitle": "Edit Contract",
+        "deleteTitle": "Delete Contract"
+      }
+    }
+  },
+  "interactions": {
+    "types": {
+      "CALL": "Call",
+      "EMAIL": "Email",
+      "MEETING": "Meeting",
+      "OTHER": "Other"
+    },
+    "form": {
+      "type": "Interaction Type",
+      "notes": "Notes",
+      "notesPlaceholder": "Enter interaction details...",
+      "log": "Enregistrer"
+    }
+  },
+  "product": {
+    "generationFailed": "Generation failed. Please try again.",
+    "serviceUnavailable": "The AI service is currently unavailable.",
+    "noImageGenerated": "No image was generated. Try a different prompt.",
+    "descriptionGenerationError": "Description generation failed. Please try again.",
+    "imageGenerationNoImage": "No image was generated. Try a different description.",
+    "imageGenerationError": "Image generation failed. The service may be unavailable."
+  },
+  "calculator": {
+    "title": "Price Calculator",
+    "configure": "Configure",
+    "format": "Format",
+    "grammage": "Paper Weight",
+    "printSide": "Printing",
+    "lamination": "Lamination",
+    "quantity": "Quantity",
+    "unitPrice": "Unit price",
+    "totalPrice": "Total price",
+    "addToCart": "Add to Cart",
+    "size": "Size",
+    "color": "Color",
+    "material": "Material",
+    "dimension": "Dimension",
+    "binding": "Binding",
+    "folding": "Folding",
+    "corners": "Corners",
+    "rounded": "Rounded",
+    "square": "Square",
+    "eyelets": "Eyelets",
+    "yes": "Yes",
+    "no": "No",
+    "pages": "Pages",
+    "handles": "Handles",
+    "flat": "Flat",
+    "twisted": "Twisted",
+    "stub": "Detachable Stub",
+    "numbering": "Numbering",
+    "uploadFile": "Upload your file",
+    "dragAndDrop": "Drag & drop or click to select",
+    "fileUploaded": "File uploaded:",
+    "removeFile": "Remove"
+  },
+  "maintenance": {
+    "title": "Maintenance Management",
+    "description": "View and record maintenance interventions by equipment.",
+    "addEquipment": "Add Equipment",
+    "equipmentName": "Equipment Name",
+    "status": "Status",
+    "lastMaintenance": "Last Maintenance",
+    "nextMaintenance": "Next Maintenance",
+    "history": "History",
+    "logMaintenance": "Log Maintenance",
+    "status_OPERATIONAL": "Operational",
+    "status_NEEDS_MAINTENANCE": "Needs Maintenance",
+    "status_OUT_OF_SERVICE": "Out of Service",
+    "modal": {
+      "addTitle": "Add Equipment",
+      "editTitle": "Edit Equipment",
+      "deleteTitle": "Delete Equipment",
+      "logTitle": "Maintenance History for {{name}}",
+      "addLogTitle": "Add an Intervention"
+    },
+    "form": {
+      "name": "Equipment Name",
+      "status": "Status",
+      "maintenanceDate": "Maintenance Date",
+      "lastMaintenanceDate": "Last Maintenance Date",
+      "nextMaintenanceDate": "Next Maintenance Date",
+      "technician": "Technician",
+      "description": "Intervention Description",
+      "cost": "Cost (XOF)",
+      "acquisitionDate": "Acquisition Date",
+      "acquisitionValue": "Acquisition Value"
+    }
+  },
+  "equipements": {
+    "title": "Equipment & Assets",
+    "listTitle": "Equipment List",
+    "acquisitionDate": "Acquisition Date",
+    "acquisitionValue": "Acquisition Value",
+    "status_OPERATIONAL": "Operational",
+    "status_UNDER_MAINTENANCE": "Under maintenance",
+    "status_OUT_OF_SERVICE": "Out of service",
+    "status_NEEDS_MAINTENANCE": "Needs maintenance"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllAsRead": "Mark all as read",
+    "markAsRead": "Mark as read",
+    "noNotifications": "No notifications",
+    "error": {
+      "loading": "Error loading notifications",
+      "markAsRead": "Error marking notification as read",
+      "markAllAsRead": "Error marking all notifications as read"
+    },
+    "types": {
+      "EXTERNAL_TRANSACTION_CREATED": "External Transaction Created",
+      "EXTERNAL_TRANSACTION_UPDATED": "External Transaction Updated",
+      "EXTERNAL_TRANSACTION_VALIDATED": "External Transaction Validated",
+      "EXTERNAL_TRANSACTION_CANCELLED": "External Transaction Cancelled",
+      "EXTERNAL_TRANSACTION_DELETED": "External Transaction Deleted"
+    }
+  },
+  "bonDeCommande": {
+    "title": "Purchase Order",
+    "orderNum": "Order Number",
+    "date": "Date",
+    "dueDate": "Due Date",
+    "billedTo": "Billed To",
+    "item": "Product",
+    "items": "Order Details",
+    "quantity": "Quantity",
+    "unitPrice": "Unit Price",
+    "totalPrice": "Total",
+    "total": "TOTAL",
+    "paymentMethod": "Payment Method",
+    "paymentDueDate": "Payment Due Date",
+    "print": "Print",
+    "exportPdf": "Export to PDF",
+    "footer": "Thank you for your trust. This order is valid until",
+    "status": "Status",
+    "noData": "No orders"
+  }
 };
 
 const translations: { [key: string]: Translations } = {
@@ -4252,7 +5131,7 @@ const I18nContext = createContext<{
   formatNumber: (amount: number, options?: Intl.NumberFormatOptions) => string;
 }>({
   language: 'fr',
-  setLanguage: () => {},
+  setLanguage: () => { },
   t: (key: string) => key,
   formatCurrency: (amount: number) => String(amount),
   formatNumber: (amount: number) => String(amount),
@@ -4263,48 +5142,48 @@ export const useI18n = () => useContext(I18nContext);
 type I18nProviderProps = { children: React.ReactNode };
 
 export const I18nProvider: React.FC<I18nProviderProps> = ({ children }) => {
-    const [language, setLanguage] = useState('fr');
+  const [language, setLanguage] = useState('fr');
 
-    const t = useCallback((key: string, params?: { [key: string]: any }) => {
-        const keys = key.split('.');
-        let value: any = translations[language] || translations['fr'];
-        for (const k of keys) {
-            if (value && typeof value === 'object' && k in value) {
-                value = value[k];
-            } else {
-                return key; // Key not found
-            }
-        }
-        if (typeof value === 'string' && params) {
-            return Object.entries(params).reduce((acc, [paramKey, paramValue]) => {
-                return acc.replace(`{{${paramKey}}}`, paramValue);
-            }, value);
-        }
-        return typeof value === 'string' ? value : key;
-    }, [language]);
+  const t = useCallback((key: string, params?: { [key: string]: any }) => {
+    const keys = key.split('.');
+    let value: any = translations[language] || translations['fr'];
+    for (const k of keys) {
+      if (value && typeof value === 'object' && k in value) {
+        value = value[k];
+      } else {
+        return key; // Key not found
+      }
+    }
+    if (typeof value === 'string' && params) {
+      return Object.entries(params).reduce((acc, [paramKey, paramValue]) => {
+        return acc.replace(`{{${paramKey}}}`, paramValue);
+      }, value);
+    }
+    return typeof value === 'string' ? value : key;
+  }, [language]);
 
-    const formatCurrency = useCallback((amount: number) => {
-        // Gérer les valeurs NaN, null, undefined ou non numériques
-        if (isNaN(amount) || amount === null || amount === undefined || typeof amount !== 'number') {
-            return new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US', {
-                style: 'currency',
-                currency: 'XOF', // CFA Franc
-            }).format(0);
-        }
-        
-        return new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US', {
-            style: 'currency',
-            currency: 'XOF', // CFA Franc
-        }).format(amount);
-    }, [language]);
+  const formatCurrency = useCallback((amount: number) => {
+    // Gérer les valeurs NaN, null, undefined ou non numériques
+    if (isNaN(amount) || amount === null || amount === undefined || typeof amount !== 'number') {
+      return new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US', {
+        style: 'currency',
+        currency: 'XOF', // CFA Franc
+      }).format(0);
+    }
 
-    const formatNumber = useCallback((amount: number, options?: Intl.NumberFormatOptions) => {
-        return new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US', options).format(amount);
-    }, [language]);
+    return new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US', {
+      style: 'currency',
+      currency: 'XOF', // CFA Franc
+    }).format(amount);
+  }, [language]);
 
-    return (
-        <I18nContext.Provider value={{ language, setLanguage, t, formatCurrency, formatNumber }}>
-            {children}
-        </I18nContext.Provider>
-    );
+  const formatNumber = useCallback((amount: number, options?: Intl.NumberFormatOptions) => {
+    return new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US', options).format(amount);
+  }, [language]);
+
+  return (
+    <I18nContext.Provider value={{ language, setLanguage, t, formatCurrency, formatNumber }}>
+      {children}
+    </I18nContext.Provider>
+  );
 };

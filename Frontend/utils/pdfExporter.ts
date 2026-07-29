@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 
 interface PdfHeader {
     key: string;
@@ -66,4 +67,55 @@ export const exportToPdf = (title: string, headers: PdfHeader[], data: any[], fi
         console.error('Error exporting to PDF:', error);
         throw new Error(`Failed to export PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+};
+
+/**
+ * Capture un élément DOM (ex : un gabarit d'impression caché avec DocumentHeader)
+ * en image, l'assemble en PDF paginé, puis ouvre le PDF dans un nouvel onglet et
+ * déclenche l'impression via le viewer natif du navigateur.
+ */
+export const printElementAsPdf = async (element: HTMLElement): Promise<void> => {
+    const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+    const imgData = canvas.toDataURL('image/png');
+
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+
+    let heightLeft = imgHeight;
+    let position = 0;
+    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+    heightLeft -= pdfHeight;
+    while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+        heightLeft -= pdfHeight;
+    }
+
+    const blob = pdf.output('blob');
+    const url = URL.createObjectURL(blob);
+    const newWindow = window.open(url, '_blank');
+
+    if (!newWindow) {
+        pdf.save('document.pdf');
+        URL.revokeObjectURL(url);
+        return;
+    }
+
+    let triggered = false;
+    const doPrint = () => {
+        if (triggered) return;
+        triggered = true;
+        try {
+            newWindow.print();
+        } catch {
+            // Le navigateur peut refuser l'appel programmatique : l'utilisateur imprime via Ctrl+P dans l'onglet PDF.
+        }
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    };
+
+    newWindow.addEventListener('load', () => setTimeout(doPrint, 300));
+    setTimeout(doPrint, 3000);
 };

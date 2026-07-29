@@ -1,3 +1,4 @@
+import React from 'react';
 import { createRouter, createRoute, createRootRoute, Outlet, redirect, createRootRouteWithContext } from '@tanstack/react-router';
 import App from './App'; // Nous allons refactorer App.tsx pour qu'il devienne notre layout
 import { useAppContext } from './context/AppContext';
@@ -18,8 +19,11 @@ import Caisse from './components/caisse/Caisse';
 import MesCommandes from './Pages/MesCommandes';
 import Finance from './Pages/Finance';
 import Accounting from './Pages/Accounting';
+import AccountingAccessAdmin from './Pages/AccountingAccessAdmin';
 import Configuration from './Pages/Configuration';
 import HrManagement from './Pages/HrManagement';
+import AttendanceCards from './components/hr/AttendanceCards';
+import AttendanceHistory from './components/hr/AttendanceHistory';
 import Secretariat from './Pages/Secretariat';
 import Production from './Pages/Production';
 import Maintenance from './components/maintenance/Maintenance';
@@ -206,8 +210,18 @@ const securityRoute = createRoute({ getParentRoute: () => dashboardRoute, path: 
 // Routes qui dépendaient auparavant de wrappers
 const secretariatRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/secretariat', component: Secretariat });
 const hrRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/hr', component: HrManagement });
+// AttendanceCards prend `subsidiary` en prop obligatoire (meme convention que dans
+// HrManagement.tsx) - un composant de route ne recoit pas de props custom, d'ou ce
+// petit wrapper qui lit le contexte auth comme le fait HrManagement.
+const AttendanceCardsRoute: React.FC = () => {
+  const { subsidiary } = useAuth();
+  return <AttendanceCards subsidiary={subsidiary} />;
+};
+const hrCardsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/hr/cards', component: AttendanceCardsRoute });
+const hrHistoryRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/hr/history', component: AttendanceHistory });
 const financeRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/finance', component: Finance });
 const accountingRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/accounting', component: Accounting });
+const accountingAccessRequestsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/accounting-access-requests', component: AccountingAccessAdmin });
 
 
 // 6. Création de l'arbre des routes
@@ -227,8 +241,11 @@ const routeTree = rootRoute.addChildren([
     mesCommandesRoute,
     financeRoute,
     accountingRoute,
+    accountingAccessRequestsRoute,
     configurationRoute,
     hrRoute,
+    hrCardsRoute,
+    hrHistoryRoute,
     secretariatRoute,
     productionRoute,
     maintenanceRoute,

@@ -7,6 +7,8 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { UpsertCommercialParamsDto } from './dto/upsert-commercial-params.dto';
 import { Prisma } from '@prisma/client';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 @Injectable()
 export class CommercialParamsService {
@@ -34,6 +36,7 @@ export class CommercialParamsService {
 
     return this.prisma.commercialParams.create({
       data: {
+        id: generateId(ID_PREFIXES.COMMERCIALPARAMS),
         minMarginPercent: new Prisma.Decimal(dto.minMarginPercent),
         maxMarginPercent: new Prisma.Decimal(dto.maxMarginPercent),
         updatedById: user.id,

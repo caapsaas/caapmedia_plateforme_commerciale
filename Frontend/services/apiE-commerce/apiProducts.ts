@@ -74,12 +74,12 @@ export const createProduct = async (productData: ProductFormData) => {
  * @param id - L'ID du service à mettre à jour.
  * @param productData - Les données du service à mettre à jour.
  */
-export const updateProduct = async (id: string, productData: Partial<ProductFormData>): Promise<Product> => {
+export const updateProduct = async (id: string, productData: Partial<ProductFormData> & { existingImages?: string[] }): Promise<Product> => {
     const formData = new FormData();
 
     // Ajoute les champs de texte et numériques
     Object.entries(productData).forEach(([key, value]) => {
-        if (key !== 'productImages' && value !== undefined && value !== null) {
+        if (key !== 'productImages' && key !== 'existingImages' && value !== undefined && value !== null) {
             formData.append(key, String(value));
         }
     });
@@ -89,6 +89,16 @@ export const updateProduct = async (id: string, productData: Partial<ProductForm
         productData.productImages.forEach(file => {
             formData.append('productImages', file);
         });
+    }
+
+    // Images existantes à conserver — permet de retirer une image individuellement
+    // sans supprimer tout le lot au prochain upload (voir products.service.ts#update).
+    if (productData.existingImages && productData.existingImages.length > 0) {
+        productData.existingImages.forEach(url => {
+            formData.append('existingImages', url);
+        });
+    } else {
+        formData.append('existingImages', '');
     }
 
     const { data } = await api.patch(`/products/${id}`, formData, {

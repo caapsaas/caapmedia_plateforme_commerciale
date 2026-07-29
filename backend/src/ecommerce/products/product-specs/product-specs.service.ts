@@ -12,6 +12,8 @@ import {
   UpdateSpecGroupDto,
   UpdateSpecificationDto,
 } from './dto/product-spec.dto';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 export interface ResolvedOption {
   value: string;
@@ -80,7 +82,12 @@ export class ProductSpecsService {
       (await this.prisma.productSpecGroup.count({ where: { productId } })) + 1;
 
     return this.prisma.productSpecGroup.create({
-      data: { productId, name: dto.name, order },
+      data: {
+        id: generateId(ID_PREFIXES.PRODUCTSPECGROUP),
+        productId,
+        name: dto.name,
+        order,
+      },
     });
   }
 
@@ -130,6 +137,7 @@ export class ProductSpecsService {
 
     return this.prisma.productSpecification.create({
       data: {
+        id: generateId(ID_PREFIXES.PRODUCTSPECIFICATION),
         productId,
         groupId: dto.groupId,
         name: dto.name,

@@ -1,11 +1,67 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 import { JournalEntryStatus } from '@prisma/client';
+import {
+  resolveScopeContext,
+  resolveEffectiveSubsidiaryId,
+  assertSubsidiaryAccess,
+  SubsidiaryScopeContext,
+} from 'src/common/utils/subsidiary-scope';
+import { AccountingBalanceService } from '../shared/accounting-balance.service';
+import { ACCOUNTING_GLOBAL_SCOPE_ROLES } from '../shared/accounting-scope-roles.const';
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly balanceService: AccountingBalanceService,
+  ) {}
+
+  /**
+   * Résout l'exercice fiscal demandé et vérifie l'accès (un utilisateur sans
+   * portée globale ne peut consulter que les exercices de sa propre filiale).
+   * Sert uniquement de référence de PÉRIODE (`startDate`/`endDate`) — le
+   * périmètre filiale réel de la requête est décidé séparément par
+   * `resolveEffectiveSubsidiaryId`, pour permettre une vue consolidée sur
+   * cette même période à travers toutes les filiales.
+   */
+  private async resolveFiscalYearPeriod(
+    fiscalYearId: string,
+    ctx: SubsidiaryScopeContext,
+  ) {
+    const fiscalYear = await this.prisma.fiscalYear.findUnique({
+      where: { id: fiscalYearId },
+    });
+    if (!fiscalYear)
+      throw new NotFoundException(
+        `Exercice fiscal "${fiscalYearId}" introuvable.`,
+      );
+    assertSubsidiaryAccess(fiscalYear.subsidiaryId, ctx);
+    return fiscalYear;
+  }
+
+  /**
+   * Réduit la période du rapport à une sous-plage (`startDate`/`endDate`) au
+   * sein de l'exercice fiscal — permet de sortir un grand livre/une balance/un
+   * journal centralisateur sur un trimestre par exemple. Les bornes fournies
+   * sont toujours contraintes à l'intérieur de l'exercice (jamais au-delà).
+   */
+  private resolveDateRange(
+    fiscalYear: { startDate: Date; endDate: Date },
+    startDate?: string,
+    endDate?: string,
+  ): { startDate: Date; endDate: Date } {
+    const requestedStart = startDate ? new Date(startDate) : fiscalYear.startDate;
+    const requestedEnd = endDate ? new Date(endDate) : fiscalYear.endDate;
+    return {
+      startDate:
+        requestedStart < fiscalYear.startDate
+          ? fiscalYear.startDate
+          : requestedStart,
+      endDate: requestedEnd > fiscalYear.endDate ? fiscalYear.endDate : requestedEnd,
+    };
+  }
 
   // ================================================================= //
   //                      GRAND LIVRE DES COMPTES                      //
@@ -19,12 +75,29 @@ export class ReportsService {
     fiscalYearId: string,
     accountNumber?: string,
     journalCode?: string,
+    subsidiaryIdFilter?: string,
+    startDateFilter?: string,
+    endDateFilter?: string,
   ) {
+    const ctx = resolveScopeContext(user, ACCOUNTING_GLOBAL_SCOPE_ROLES);
+    const fiscalYear = await this.resolveFiscalYearPeriod(fiscalYearId, ctx);
+    const { startDate, endDate } = this.resolveDateRange(
+      fiscalYear,
+      startDateFilter,
+      endDateFilter,
+    );
+    const effectiveSubsidiaryId = resolveEffectiveSubsidiaryId(
+      ctx,
+      subsidiaryIdFilter,
+    );
+
     const where: any = {
       journalEntry: {
-        subsidiaryId: user.subsidiaryId,
-        fiscalYearId,
         status: JournalEntryStatus.POSTED,
+        entryDate: { gte: startDate, lte: endDate },
+        ...(effectiveSubsidiaryId
+          ? { subsidiaryId: effectiveSubsidiaryId }
+          : {}),
         ...(journalCode ? { journal: { code: journalCode } } : {}),
       },
       ...(accountNumber ? { account: { accountNumber } } : {}),
@@ -56,10 +129,10 @@ export class ReportsService {
       string,
       {
         account: any;
-        mouvements: any[];
+        movements: any[];
         totalDebit: number;
         totalCredit: number;
-        solde: number;
+        balance: number;
       }
     >();
 
@@ -68,10 +141,10 @@ export class ReportsService {
       if (!grouped.has(num)) {
         grouped.set(num, {
           account: line.account,
-          mouvements: [],
+          movements: [],
           totalDebit: 0,
           totalCredit: 0,
-          solde: 0,
+          balance: 0,
         });
       }
       const entry = grouped.get(num);
@@ -79,15 +152,15 @@ export class ReportsService {
       const credit = Number(line.creditAmount);
       entry.totalDebit += debit;
       entry.totalCredit += credit;
-      entry.solde += debit - credit;
-      entry.mouvements.push({
+      entry.balance += debit - credit;
+      entry.movements.push({
         date: line.journalEntry.entryDate,
-        pièce: line.journalEntry.entryNumber,
-        journal: line.journalEntry.journal?.code,
-        libellé: line.journalEntry.description,
-        débit: debit,
-        crédit: credit,
-        solde: entry.solde,
+        entryNumber: line.journalEntry.entryNumber,
+        journalCode: line.journalEntry.journal?.code,
+        description: line.journalEntry.description,
+        debit,
+        credit,
+        runningBalance: entry.balance,
       });
     }
 
@@ -101,13 +174,33 @@ export class ReportsService {
    * Tableau synthétique : solde débiteur/créditeur de chaque compte.
    * Conforme SYSCOHADA : balance à 4 colonnes (mouv. débit, mouv. crédit, solde D, solde C).
    */
-  async getBalanceGenerale(user: JwtUser, fiscalYearId: string) {
+  async getBalanceGenerale(
+    user: JwtUser,
+    fiscalYearId: string,
+    subsidiaryIdFilter?: string,
+    startDateFilter?: string,
+    endDateFilter?: string,
+  ) {
+    const ctx = resolveScopeContext(user, ACCOUNTING_GLOBAL_SCOPE_ROLES);
+    const fiscalYear = await this.resolveFiscalYearPeriod(fiscalYearId, ctx);
+    const { startDate, endDate } = this.resolveDateRange(
+      fiscalYear,
+      startDateFilter,
+      endDateFilter,
+    );
+    const effectiveSubsidiaryId = resolveEffectiveSubsidiaryId(
+      ctx,
+      subsidiaryIdFilter,
+    );
+
     const lines = await this.prisma.journalEntryLine.findMany({
       where: {
         journalEntry: {
-          subsidiaryId: user.subsidiaryId,
-          fiscalYearId,
           status: JournalEntryStatus.POSTED,
+          entryDate: { gte: startDate, lte: endDate },
+          ...(effectiveSubsidiaryId
+            ? { subsidiaryId: effectiveSubsidiaryId }
+            : {}),
         },
       },
       include: {
@@ -183,12 +276,29 @@ export class ReportsService {
     user: JwtUser,
     fiscalYearId: string,
     journalCode?: string,
+    subsidiaryIdFilter?: string,
+    startDateFilter?: string,
+    endDateFilter?: string,
   ) {
+    const ctx = resolveScopeContext(user, ACCOUNTING_GLOBAL_SCOPE_ROLES);
+    const fiscalYear = await this.resolveFiscalYearPeriod(fiscalYearId, ctx);
+    const { startDate, endDate } = this.resolveDateRange(
+      fiscalYear,
+      startDateFilter,
+      endDateFilter,
+    );
+    const effectiveSubsidiaryId = resolveEffectiveSubsidiaryId(
+      ctx,
+      subsidiaryIdFilter,
+    );
+
     const entries = await this.prisma.journalEntry.findMany({
       where: {
-        subsidiaryId: user.subsidiaryId,
-        fiscalYearId,
         status: JournalEntryStatus.POSTED,
+        entryDate: { gte: startDate, lte: endDate },
+        ...(effectiveSubsidiaryId
+          ? { subsidiaryId: effectiveSubsidiaryId }
+          : {}),
         ...(journalCode ? { journal: { code: journalCode } } : {}),
       },
       include: {
@@ -207,7 +317,7 @@ export class ReportsService {
       string,
       {
         journal: any;
-        écritures: any[];
+        entries: any[];
         totalDebit: number;
         totalCredit: number;
       }
@@ -218,7 +328,7 @@ export class ReportsService {
       if (!grouped.has(code)) {
         grouped.set(code, {
           journal: entry.journal,
-          écritures: [],
+          entries: [],
           totalDebit: 0,
           totalCredit: 0,
         });
@@ -234,17 +344,17 @@ export class ReportsService {
       );
       g.totalDebit += totDebit;
       g.totalCredit += totCredit;
-      g.écritures.push({
-        numéro: entry.entryNumber,
+      g.entries.push({
+        entryNumber: entry.entryNumber,
         date: entry.entryDate,
-        libellé: entry.description,
+        description: entry.description,
         totalDebit: totDebit,
         totalCredit: totCredit,
-        lignes: entry.lines.map((l) => ({
-          compte: l.account.accountNumber,
-          libellé: l.account.accountName,
-          débit: Number(l.debitAmount),
-          crédit: Number(l.creditAmount),
+        lines: entry.lines.map((l) => ({
+          accountNumber: l.account.accountNumber,
+          accountName: l.account.accountName,
+          debit: Number(l.debitAmount),
+          credit: Number(l.creditAmount),
         })),
       });
     }
@@ -256,37 +366,76 @@ export class ReportsService {
   //               BILAN + COMPTE DE RÉSULTAT SYSCOHADA               //
   // ================================================================= //
   /**
-   * États financiers de synthèse conformes SYSCOHADA révisé.
-   * Utilise les soldes des comptes postés sur l'exercice.
+   * États financiers de synthèse conformes SYSCOHADA révisé. Version simplifiée
+   * (calculée directement par préfixe de compte, pas encore template-driven —
+   * voir Phase 6 du plan pour la version BalanceSheetTemplate/Value).
    */
-  async getSyscohadaStatements(user: JwtUser, fiscalYearId: string) {
-    const { balance } = await this.getBalanceGenerale(user, fiscalYearId);
+  async getSyscohadaStatements(
+    user: JwtUser,
+    fiscalYearId: string,
+    subsidiaryIdFilter?: string,
+  ) {
+    const ctx = resolveScopeContext(user, ACCOUNTING_GLOBAL_SCOPE_ROLES);
+    const fiscalYear = await this.resolveFiscalYearPeriod(fiscalYearId, ctx);
+    const effectiveSubsidiaryId = resolveEffectiveSubsidiaryId(
+      ctx,
+      subsidiaryIdFilter,
+    );
+    const { startDate, endDate } = fiscalYear;
 
-    const getBalance = (prefix: string | string[]) => {
-      const prefixes = Array.isArray(prefix) ? prefix : [prefix];
-      return balance
-        .filter((r) => prefixes.some((p) => r.accountNumber.startsWith(p)))
-        .reduce((s, r) => s + r.soldeDebiteur - r.soldeCrediteur, 0);
-    };
+    const bal = (prefix: string | string[]) =>
+      this.balanceService.getAccountBalanceByPrefix(
+        prefix,
+        startDate,
+        endDate,
+        effectiveSubsidiaryId,
+      );
 
-    // ── BILAN ACTIF ──────────────────────────────────────────────────
+    // ── BILAN ACTIF / PASSIF ─────────────────────────────────────────
+    const [
+      immobilisationsBrutes,
+      amortissements,
+      stocks,
+      creancesClients,
+      tvaDeductible,
+      tresorerie,
+      capitalSocial,
+      reserves,
+      dettesLongTerme,
+      dettesFournisseurs,
+      tvaCollectee,
+      autresDettes,
+    ] = await Promise.all([
+      bal(['21', '22']),
+      bal('28'),
+      bal(['31', '32']),
+      bal('411'),
+      bal(['4451', '4452']),
+      bal(['521', '571']),
+      bal('101'),
+      bal('111'),
+      bal('162'),
+      bal('401'),
+      bal('4431'),
+      bal(['421', '431', '447']),
+    ]);
+
     const bilan = {
       actif: {
-        immobilisationsNettes:
-          getBalance(['21', '22']) - Math.abs(getBalance(['28'])),
-        stocks: getBalance(['31', '32']),
-        creancesClients: getBalance('411'),
-        tvaDeductible: getBalance(['4451', '4452']),
-        tresorerie: getBalance(['521', '571']),
+        immobilisationsNettes: immobilisationsBrutes - Math.abs(amortissements),
+        stocks,
+        creancesClients,
+        tvaDeductible,
+        tresorerie,
       },
       passif: {
-        capitalSocial: Math.abs(getBalance('101')),
-        reserves: Math.abs(getBalance('111')),
-        resultatExercice: 0, // calculé depuis le P&L
-        dettesLongTerme: Math.abs(getBalance('162')),
-        dettesFournisseurs: Math.abs(getBalance('401')),
-        tvaCollectee: Math.abs(getBalance('4431')),
-        autresDettes: Math.abs(getBalance(['421', '431', '447'])),
+        capitalSocial: Math.abs(capitalSocial),
+        reserves: Math.abs(reserves),
+        resultatExercice: 0, // calculé depuis le P&L ci-dessous
+        dettesLongTerme: Math.abs(dettesLongTerme),
+        dettesFournisseurs: Math.abs(dettesFournisseurs),
+        tvaCollectee: Math.abs(tvaCollectee),
+        autresDettes: Math.abs(autresDettes),
       },
     };
     bilan.actif['totalActif'] = Object.values(bilan.actif).reduce(
@@ -295,20 +444,44 @@ export class ReportsService {
     );
 
     // ── COMPTE DE RÉSULTAT ───────────────────────────────────────────
+    const [
+      ventesMarchandises,
+      prestationsServices,
+      autresProduits,
+      achatsMarchandises,
+      chargesExternes,
+      chargesPersonnel,
+      dotationsAmort,
+      chargesFinancieres,
+      autresCharges,
+      is,
+    ] = await Promise.all([
+      bal('701'),
+      bal('706'),
+      bal(['707', '74', '75', '77', '78']),
+      bal(['601', '602']),
+      bal(['61', '62']),
+      bal(['641', '644', '645', '646']),
+      bal('681'),
+      bal('661'),
+      bal(['63', '65', '67', '68']),
+      bal('691'),
+    ]);
+
     const comptResultat = {
       produits: {
-        ventesMarchandises: Math.abs(getBalance('701')),
-        prestationsServices: Math.abs(getBalance('706')),
-        autresProduits: Math.abs(getBalance(['707', '74', '75', '77', '78'])),
+        ventesMarchandises: Math.abs(ventesMarchandises),
+        prestationsServices: Math.abs(prestationsServices),
+        autresProduits: Math.abs(autresProduits),
       },
       charges: {
-        achatsMarchandises: getBalance(['601', '602']),
-        chargesExternes: getBalance(['61', '62']),
-        chargesPersonnel: getBalance(['641', '644', '645', '646']),
-        dotationsAmort: getBalance('681'),
-        chargesFinancieres: getBalance('661'),
-        autresCharges: getBalance(['63', '65', '67', '68']),
-        is: getBalance('691'),
+        achatsMarchandises,
+        chargesExternes,
+        chargesPersonnel,
+        dotationsAmort,
+        chargesFinancieres,
+        autresCharges,
+        is,
       },
     };
 

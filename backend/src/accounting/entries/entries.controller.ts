@@ -12,9 +12,10 @@ import {
 import { EntriesService } from './entries.service';
 import type { CreateJournalEntryDto } from './entries.service';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
+import { AccountingAccessGuard } from 'src/accounting-access/accounting-access.guard';
 import type { JournalEntryStatus } from '@prisma/client';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AccountingAccessGuard)
 @Controller('accounting/entries')
 export class EntriesController {
   constructor(private readonly entriesService: EntriesService) {}
@@ -28,9 +29,19 @@ export class EntriesController {
   findAll(
     @Req() req: any,
     @Query('fiscalYearId') fiscalYearId?: string,
-    @Query('status') status?: string,
+    @Query('status') status?: JournalEntryStatus,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('subsidiaryId') subsidiaryId?: string,
   ) {
-    return this.entriesService.findAll(req.user, fiscalYearId, status as any);
+    return this.entriesService.findAll(
+      req.user,
+      fiscalYearId,
+      status,
+      startDate,
+      endDate,
+      subsidiaryId,
+    );
   }
 
   @Get(':id')
@@ -46,5 +57,10 @@ export class EntriesController {
   @Patch(':id/cancel')
   cancel(@Param('id') id: string, @Req() req: any) {
     return this.entriesService.cancel(id, req.user);
+  }
+
+  @Post(':id/reverse')
+  reverse(@Param('id') id: string, @Req() req: any) {
+    return this.entriesService.reverse(id, req.user);
   }
 }

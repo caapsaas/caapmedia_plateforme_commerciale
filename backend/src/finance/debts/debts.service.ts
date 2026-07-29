@@ -4,15 +4,15 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
-import { UserRole, DebtStatus, TransactionType, Prisma } from '@prisma/client';
+import { UserRole, DebtStatus, TransactionType } from '@prisma/client';
 import { CreateSupplierDebtDto } from './dto/create-supplier-debt.dto';
 import { PaySupplierDebtDto } from './dto/pay-supplier-debt.dto';
 import { TreasuryService } from '../treasury/treasury.service';
 import { CreateLongTermDebtDto } from './dto/create-long-term-debt.dto';
 import { UpdateLongTermDebtDto } from './dto/update-long-term-debt.dto';
-import { validate as isUUID } from 'uuid';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 import { checkRole } from 'src/common/auth/role/check-role.util';
+import { AccountingOutboxService } from 'src/accounting/outbox/accounting-outbox.service';
 
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
@@ -21,15 +21,8 @@ export class DebtsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly treasuryService: TreasuryService,
+    private readonly accountingOutbox: AccountingOutboxService,
   ) {}
-
-  private validateSubsidiaryId(subsidiaryId: string) {
-    if (!isUUID(subsidiaryId)) {
-      throw new BadRequestException(
-        'ID de filiale invalide dans le token utilisateur.',
-      );
-    }
-  }
 
   // ================================================================= //
   //                         SUPPLIER DEBTS                            //
@@ -45,7 +38,6 @@ export class DebtsService {
       ],
       'Permission denied to create supplier debts.',
     );
-    this.validateSubsidiaryId(user.subsidiaryId);
 
     return this.prisma.supplierDebt.create({
       data: {
@@ -59,7 +51,6 @@ export class DebtsService {
   }
 
   async findAllSupplierDebts(user: JwtUser) {
-    this.validateSubsidiaryId(user.subsidiaryId);
     return this.prisma.supplierDebt.findMany({
       where: { subsidiaryId: user.subsidiaryId },
       orderBy: { dueDate: 'asc' },
@@ -77,7 +68,6 @@ export class DebtsService {
       [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER],
       'Permission denied to pay supplier debts.',
     );
-    this.validateSubsidiaryId(user.subsidiaryId);
 
     const debt = await this.prisma.supplierDebt.findFirst({
       where: { id, subsidiaryId: user.subsidiaryId },
@@ -98,18 +88,33 @@ export class DebtsService {
       });
 
       // Utilise la méthode qui accepte le contexte tx pour rester dans la même transaction
-      await this.treasuryService.createExpenseTransactionWithTx(
-        tx,
-        {
-          transactionDate: new Date(dto.paymentDate).toISOString(),
-          description: `Paiement facture fournisseur: ${debt.supplierName} - Facture N°${debt.invoiceId}`,
-          financialTransactionType: TransactionType.DEPENSE,
+      const { transaction, accountType } =
+        await this.treasuryService.createExpenseTransactionWithTx(
+          tx,
+          {
+            transactionDate: new Date(dto.paymentDate).toISOString(),
+            description: `Paiement facture fournisseur: ${debt.supplierName} - Facture N°${debt.invoiceId}`,
+            financialTransactionType: TransactionType.DEPENSE,
+            amount: debt.amount.toNumber(),
+            treasuryAccountId: dto.treasuryAccountId,
+            relatedDocumentId: debt.id,
+          },
+          user.subsidiaryId,
+        );
+
+      // Intention de journalisation posée dans la MÊME transaction (pattern Outbox).
+      await this.accountingOutbox.enqueue(tx, {
+        eventType: 'SUPPLIER_DEBT_PAYMENT',
+        subsidiaryId: user.subsidiaryId,
+        payload: {
+          userId: user.id,
+          operationDate: new Date(dto.paymentDate).toISOString(),
           amount: debt.amount.toNumber(),
-          treasuryAccountId: dto.treasuryAccountId,
-          relatedDocumentId: debt.id,
+          description: transaction.description,
+          sourceId: transaction.id,
+          accountType,
         },
-        user.subsidiaryId,
-      );
+      });
 
       return updatedDebt;
     });
@@ -125,7 +130,6 @@ export class DebtsService {
       [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
       'Permission denied to create long-term debts.',
     );
-    this.validateSubsidiaryId(user.subsidiaryId);
 
     return this.prisma.longTermDebt.create({
       data: {
@@ -139,7 +143,6 @@ export class DebtsService {
   }
 
   async findAllLongTermDebts(user: JwtUser) {
-    this.validateSubsidiaryId(user.subsidiaryId);
     return this.prisma.longTermDebt.findMany({
       where: { subsidiaryId: user.subsidiaryId },
       orderBy: { maturityDate: 'asc' },
@@ -156,7 +159,6 @@ export class DebtsService {
       [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
       'Permission denied to update long-term debts.',
     );
-    this.validateSubsidiaryId(user.subsidiaryId);
 
     const debt = await this.prisma.longTermDebt.findFirst({
       where: { id, subsidiaryId: user.subsidiaryId },

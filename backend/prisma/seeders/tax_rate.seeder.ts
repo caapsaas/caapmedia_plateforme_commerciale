@@ -27,19 +27,6 @@ export async function runTaxRateSeeder(prisma: PrismaClient) {
             where: { taxRatesName: t.taxRatesName },
         });
         if (existing) {
-            console.log(`TaxRate ${t.taxRatesName} already exists, skipping`);
-            continue;
-        }
-        await prisma.taxRate.create({
-            data: {
-                taxRatesName: t.taxRatesName,
-                rate: t.rate,
-                isDefault: t.isDefault,
-                description: t.description,
-            },
-        });
-
-        if (existing) {
             await prisma.taxRate.update({
                 where: { id: existing.id },
                 data: {

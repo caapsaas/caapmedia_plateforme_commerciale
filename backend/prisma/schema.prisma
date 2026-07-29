@@ -8,20 +8,20 @@ datasource db {
 }
 
 model Subsidiary {
-  id                            String                         @id @map("id") @db.Text @default(uuid())
-  subsidiaryName                String                         @map("subsidiary_name") @db.VarChar(255)
-  logoSvg                       String                         @map("logo_svg")
-  address                       String                         @map("address")
-  phone                         String                         @map("phone") @db.VarChar(255)
-  email                         String                         @unique @map("email") @db.VarChar(255)
-  ifu                           String                         @map("ifu") @db.VarChar(255)
-  rccm                          String                         @map("rccm") @db.VarChar(255)
-  bankName                      String                         @map("bank_name") @db.VarChar(255)
-  accountNumber                 String                         @map("account_number") @db.VarChar(255)
-  swiftCode                     String                         @map("swift_code") @db.VarChar(255)
-  shareCapital                  Decimal                        @map("share_capital") @db.Decimal(15, 2)
-  isHeadquarter                 Boolean                        @default(false) @map("is_headquarter")
-  taxRate                       Decimal                        @default(0.30) @map("tax_rate") @db.Decimal(5, 2)
+  id             String  @id @map("id") @db.Text
+  subsidiaryName String  @map("subsidiary_name") @db.VarChar(255)
+  logoSvg        String  @map("logo_svg")
+  address        String  @map("address")
+  phone          String  @map("phone") @db.VarChar(255)
+  email          String  @unique @map("email") @db.VarChar(255)
+  ifu            String  @map("ifu") @db.VarChar(255)
+  rccm           String  @map("rccm") @db.VarChar(255)
+  bankName       String  @map("bank_name") @db.VarChar(255)
+  accountNumber  String  @map("account_number") @db.VarChar(255)
+  swiftCode      String  @map("swift_code") @db.VarChar(255)
+  shareCapital   Decimal @map("share_capital") @db.Decimal(15, 2)
+  isHeadquarter  Boolean @default(false) @map("is_headquarter")
+  taxRate        Decimal @default(0.30) @map("tax_rate") @db.Decimal(5, 2)
 
   // Geolocation fields for attendance (QR code géolocalisé carelle)
   latitude                      Float?                         @map("latitude")
@@ -58,11 +58,9 @@ model Subsidiary {
   externalFinancialTransactions ExternalFinancialTransaction[]
   PrefinancementAccount         PrefinancementAccount[]
   PrefinancementTransaction     PrefinancementTransaction[]
-  accountingAccounts            AccountingAccount[]
   fiscalYears                   FiscalYear[]
   journalEntries                JournalEntry[]
-  accountingJournals            AccountingJournal[]
-  accountMappings               AccountMapping[]
+  accountingJournalSequences    AccountingJournalSequence[]
   proformas                     Proforma[]
   payrollConfiguration          PayrollConfiguration?
 
@@ -72,7 +70,7 @@ model Subsidiary {
 }
 
 model User {
-  id                            String                         @id @map("id") @db.Text @default(uuid())
+  id                            String                         @id @default(uuid()) @map("id") @db.Text
   userName                      String                         @map("user_name") @db.VarChar(255)
   email                         String                         @unique @map("email") @db.VarChar(255)
   passwordHash                  String                         @map("password_hash")
@@ -108,6 +106,8 @@ model User {
   equipementCostConfigs         EquipementCostConfig[]         @relation("EquipementCostConfigUpdatedBy")
   commercialParamsUpdates       CommercialParams[]             @relation("CommercialParamsUpdatedBy")
   proformas                     Proforma[]
+  accountingAccessRequests      AccountingAccessRequest[]      @relation("AccountingAccessRequester")
+  accountingAccessReviews       AccountingAccessRequest[]      @relation("AccountingAccessReviewer")
 
   @@map("users")
 }
@@ -116,8 +116,8 @@ model User {
 /// contrairement a l'access token JWT stateless (voir Doc/architecture-
 /// multi-filiale-auth-rbac.md section 3.1). Seul le hash est stocke.
 model RefreshToken {
-  id        String    @id @default(uuid()) @map("id") @db.Text
-  userId    String    @map("user_id") @db.Text
+  id        String    @id @default(uuid()) @map("id")
+  userId    String    @map("user_id")
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   tokenHash String    @unique @map("token_hash")
   expiresAt DateTime  @map("expires_at")
@@ -148,9 +148,9 @@ enum AuthAuditEvent {
 /// survivre a la suppression d'un compte, et une tentative de login echouee
 /// n'a pas toujours d'utilisateur identifie (email inexistant).
 model AuthAuditLog {
-  id        String         @id @default(uuid()) @db.Text
+  id        String         @id @default(uuid())
   event     AuthAuditEvent
-  userId    String?        @map("user_id") @db.Text
+  userId    String?        @map("user_id")
   email     String?        @map("email")
   ipAddress String?        @map("ip_address")
   userAgent String?        @map("user_agent")
@@ -164,7 +164,7 @@ model AuthAuditLog {
 }
 
 model Notification {
-  id            String           @id @map("id") @default(uuid())
+  id            String           @id @default(uuid()) @map("id")
   title         String           @map("title") @db.VarChar(255)
   message       String           @map("message")
   read          Boolean          @default(false) @map("read")
@@ -198,33 +198,33 @@ enum ItemType {
 // ItemStock. Les champs propres à un seul type restent nullable pour l'autre —
 // l'écran d'édition les masque selon le type.
 model Item {
-  id                   String               @id @default(uuid()) @map("id") @db.Text
-  type                 ItemType             @map("type")
-  name                 String               @map("name") @db.VarChar(255)
-  category             String               @map("category") @db.VarChar(255)
-  description          String               @map("description")
-  productRange         String?              @map("product_range") @db.VarChar(255)
-  isActive             Boolean              @default(true) @map("is_active")
+  id           String   @id @map("id")
+  type         ItemType @map("type")
+  name         String   @map("name") @db.VarChar(255)
+  category     String   @map("category") @db.VarChar(255)
+  description  String   @map("description")
+  productRange String?  @map("product_range") @db.VarChar(255)
+  isActive     Boolean  @default(true) @map("is_active")
 
   // Champs SERVICE uniquement
-  isVisibleOnSite      Boolean              @default(true) @map("is_visible_on_site")
-  displayOrder         Int?                 @map("display_order")
+  isVisibleOnSite Boolean @default(true) @map("is_visible_on_site")
+  displayOrder    Int?    @map("display_order")
 
   // Champs STOCK_PRODUCT uniquement — valeurs globales par défaut (prix
   // d'achat, seuil, fournisseur principal) ; la quantité réelle est dans ItemStock.
-  sku                  String?              @map("sku") @db.VarChar(100)
-  minThreshold         Decimal?             @map("min_threshold")
-  stockManaged         Boolean              @default(false) @map("stock_managed")
-  mainSupplierId       String?              @map("main_supplier_id") @db.Text
+  sku            String?  @map("sku") @db.VarChar(100)
+  minThreshold   Decimal? @map("min_threshold")
+  stockManaged   Boolean  @default(false) @map("stock_managed")
+  mainSupplierId String?  @map("main_supplier_id")
   // Unité dans laquelle le stock est réellement enregistré (Chantier 2) — ex.
   // Papier -> Feuille. Les unités d'achat (ItemPackagingUnit) convertissent vers elle.
-  baseUnitId           String?              @map("base_unit_id") @db.Text
+  baseUnitId     String?  @map("base_unit_id")
 
   opportunitieProducts OpportunityProduct[]
   orderItems           OrderItem[]
   productImages        ProductImage[]
-  mainSupplier         Supplier?            @relation(fields: [mainSupplierId], references: [id])
-  baseUnit             Unit?                @relation("ItemBaseUnit", fields: [baseUnitId], references: [id])
+  mainSupplier         Supplier?              @relation(fields: [mainSupplierId], references: [id])
+  baseUnit             Unit?                  @relation("ItemBaseUnit", fields: [baseUnitId], references: [id])
   packagingUnits       ItemPackagingUnit[]
   purchaseOrderItems   PurchaseOrderItem[]
   // Chantier 5 : un service (SERVICE) définit son propre modèle de formulaire.
@@ -247,7 +247,7 @@ model Item {
 // Référentiel d'unités de mesure administrable (Chantier 2) — ex. Feuille,
 // Rame, Rouleau, Kilogramme, Mètre... partagé par tous les produits de stock.
 model Unit {
-  id     String  @id @default(uuid()) @map("id") @db.Text
+  id     String  @id @map("id")
   name   String  @unique @map("name") @db.VarChar(100)
   symbol String? @map("symbol") @db.VarChar(20)
 
@@ -263,9 +263,9 @@ model Unit {
 // À la réception d'un achat, la quantité reçue (dans cette unité) est
 // convertie automatiquement en unité de base avant d'incrémenter ItemStock.
 model ItemPackagingUnit {
-  id               String  @id @default(uuid()) @map("id") @db.Text
-  itemId           String  @map("item_id") @db.Text
-  unitId           String  @map("unit_id") @db.Text
+  id               String  @id @map("id")
+  itemId           String  @map("item_id")
+  unitId           String  @map("unit_id")
   conversionFactor Decimal @map("conversion_factor") @db.Decimal(15, 4)
 
   item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
@@ -279,9 +279,9 @@ model ItemPackagingUnit {
 // une filiale — l'Item lui-même est global (catalogue partagé), seule cette
 // table distingue "combien chaque filiale en a, et où".
 model ItemStock {
-  id           String     @id @default(uuid()) @map("id") @db.Text
-  itemId       String     @map("item_id") @db.Text
-  subsidiaryId String     @map("subsidiary_id") @db.Text
+  id           String     @id @map("id")
+  itemId       String     @map("item_id")
+  subsidiaryId String     @map("subsidiary_id")
   stock        Decimal    @default(0) @map("stock")
   warehouse    String?    @map("warehouse") @db.VarChar(255)
   item         Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
@@ -311,17 +311,17 @@ enum StockMovementType {
 }
 
 model StockMovement {
-  id              String            @id @default(uuid()) @map("id") @db.Text
-  itemId          String            @map("item_id") @db.Text
-  subsidiaryId    String            @map("subsidiary_id") @db.Text
+  id              String            @id @map("id")
+  itemId          String            @map("item_id")
+  subsidiaryId    String            @map("subsidiary_id")
   type            StockMovementType @map("type")
   // Toujours positif, en unité de base — le sens (entrée/sortie) se déduit du type.
   quantity        Decimal           @map("quantity") @db.Decimal(15, 4)
   reason          String?           @map("reason")
   // Lien facultatif, traçabilité uniquement (jamais utilisé pour calculer quoi que ce soit).
-  orderId         String?           @map("order_id") @db.Text
-  purchaseOrderId String?           @map("purchase_order_id") @db.Text
-  createdById     String?           @map("created_by_id") @db.Text
+  orderId         String?           @map("order_id")
+  purchaseOrderId String?           @map("purchase_order_id")
+  createdById     String?           @map("created_by_id")
   createdAt       DateTime          @default(now()) @map("created_at")
 
   item          Item           @relation(fields: [itemId], references: [id], onDelete: Cascade)
@@ -337,10 +337,10 @@ model StockMovement {
 }
 
 model ProductImage {
-  id        String  @id @default(uuid()) @map("id")
+  id        String  @id @map("id")
   imageName String  @map("image_name") @db.VarChar(255)
   imageUrl  String  @map("image_url")
-  productId String? @map("product_id") @db.Text
+  productId String? @map("product_id")
   product   Item?   @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("product_image")
@@ -376,11 +376,11 @@ enum SpecFieldType {
 }
 
 model ProductSpecGroup {
-  id             String                  @id @default(uuid()) @map("id") @db.Text
-  productId      String                  @map("product_id") @db.Text
-  name           String                  @map("name") @db.VarChar(150)
-  order          Int                     @map("order")
-  product        Item                    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id             String                 @id @map("id")
+  productId      String                 @map("product_id")
+  name           String                 @map("name") @db.VarChar(150)
+  order          Int                    @map("order")
+  product        Item                   @relation(fields: [productId], references: [id], onDelete: Cascade)
   specifications ProductSpecification[]
 
   @@index([productId])
@@ -388,9 +388,9 @@ model ProductSpecGroup {
 }
 
 model ProductSpecification {
-  id                      String            @id @default(uuid()) @map("id") @db.Text
-  productId               String            @map("product_id") @db.Text
-  groupId                 String?           @map("group_id") @db.Text
+  id                      String            @id @map("id")
+  productId               String            @map("product_id")
+  groupId                 String?           @map("group_id")
   name                    String            @map("name") @db.VarChar(150)
   // Clé technique utilisée dans specValues (ex: "paper_weight") — unique par produit.
   technicalKey            String            @map("technical_key") @db.VarChar(100)
@@ -426,7 +426,7 @@ model ProductSpecification {
 // Référentiels partagés entre produits (Types de papier, Grammages, Couleurs...)
 // — administrables sans toucher au code, référencés par ProductSpecification.possibleValues.
 model SpecReferenceList {
-  id     String               @id @default(uuid()) @map("id") @db.Text
+  id     String               @id @map("id")
   key    String               @unique @map("key") @db.VarChar(100)
   name   String               @map("name") @db.VarChar(150)
   values SpecReferenceValue[]
@@ -435,8 +435,8 @@ model SpecReferenceList {
 }
 
 model SpecReferenceValue {
-  id     String            @id @default(uuid()) @map("id") @db.Text
-  listId String            @map("list_id") @db.Text
+  id     String            @id @map("id")
+  listId String            @map("list_id")
   value  String            @map("value") @db.VarChar(150)
   label  String            @map("label") @db.VarChar(150)
   order  Int               @map("order")
@@ -447,61 +447,61 @@ model SpecReferenceValue {
 }
 
 model Employee {
-  id                       String                      @id @map("id") @default(uuid())
-  lastName                 String                      @map("last_name") @db.VarChar(100)
-  firstName                String                      @map("first_name") @db.VarChar(100)
-  birthDate                DateTime                    @map("birth_date")
-  address                  String                      @map("address")
-  phone                    String                      @map("phone") @db.VarChar(20)
-  email                    String                      @unique @map("email") @db.VarChar(150)
-  nationality              String                      @map("nationality") @db.VarChar(50)
-  socialSecurityNumber     String                      @map("social_security_number") @db.VarChar(50)
-  positions                String                      @map("positions") @db.VarChar(100)
-  department               String                      @map("department") @db.VarChar(100)
-  hireDate                 DateTime                    @map("hire_date")
-  workLocation             String                      @map("work_location") @db.VarChar(100)
-  baseSalary               Decimal                     @default(0) @map("base_salary") @db.Decimal(15, 2)
-  bonus                    Decimal                     @default(0) @map("bonus") @db.Decimal(15, 2)
-  benefits                 String[]                    @map("benefits")
-  lastSalaryAdjustmentDate DateTime?                   @map("last_salary_adjustment_date")
-  leaveBalance             Decimal?                    @default(0) @map("leave_balance") @db.Decimal(5, 2)
+  id                       String    @id @default(uuid()) @map("id")
+  lastName                 String    @map("last_name") @db.VarChar(100)
+  firstName                String    @map("first_name") @db.VarChar(100)
+  birthDate                DateTime  @map("birth_date")
+  address                  String    @map("address")
+  phone                    String    @map("phone") @db.VarChar(20)
+  email                    String    @unique @map("email") @db.VarChar(150)
+  nationality              String    @map("nationality") @db.VarChar(50)
+  socialSecurityNumber     String    @map("social_security_number") @db.VarChar(50)
+  positions                String    @map("positions") @db.VarChar(100)
+  department               String    @map("department") @db.VarChar(100)
+  hireDate                 DateTime  @map("hire_date")
+  workLocation             String    @map("work_location") @db.VarChar(100)
+  baseSalary               Decimal   @default(0) @map("base_salary") @db.Decimal(15, 2)
+  bonus                    Decimal   @default(0) @map("bonus") @db.Decimal(15, 2)
+  benefits                 String[]  @map("benefits")
+  lastSalaryAdjustmentDate DateTime? @map("last_salary_adjustment_date")
+  leaveBalance             Decimal?  @default(0) @map("leave_balance") @db.Decimal(5, 2)
 
   // Banking Information
-  bankName                 String?                     @map("bank_name") @db.VarChar(100)
-  bankAccountNumber        String?                     @map("bank_account_number") @db.VarChar(50)
+  bankName          String? @map("bank_name") @db.VarChar(100)
+  bankAccountNumber String? @map("bank_account_number") @db.VarChar(50)
 
   // Personal Information
-  numberDependents         Int                         @default(0) @map("number_dependents")
-  situationMatrimony       String                      @default("SINGLE") @map("situation_matrimony") @db.VarChar(20)
+  numberDependents   Int    @default(0) @map("number_dependents")
+  situationMatrimony String @default("SINGLE") @map("situation_matrimony") @db.VarChar(20)
 
   // Cameroon-specific fields
-  cnpsNumber               String?                     @map("cnps_number") @db.VarChar(20)
-  cnpsNumberEncrypted      String?                     @map("cnps_number_encrypted")
-  categoryCodeCNPS         String                      @default("B") @map("category_code_cnps") @db.VarChar(1)
-  taxIdNTif                String?                     @map("tax_id_ntif") @db.VarChar(15)
+  cnpsNumber          String? @map("cnps_number") @db.VarChar(20)
+  cnpsNumberEncrypted String? @map("cnps_number_encrypted")
+  categoryCodeCNPS    String  @default("B") @map("category_code_cnps") @db.VarChar(1)
+  taxIdNTif           String? @map("tax_id_ntif") @db.VarChar(15)
 
-  subsidiaryId             String                      @map("subsidiary_id")
-  managerId                String?                     @map("manager_id")
-  gender                   Gender                      @map("gender")
-  contractType             ContractType                @map("contract_type")
-  status                   EmployeeStatus              @map("status")
-  paymentMethod            PaymentMethod               @map("payment_method")
-  absenceRecords           AbsenceRecord[]
-  attendanceRecords        AttendanceRecord[]
-  documents                EmployeeDocument[]
-  leaveRecords             EmployeeLeaveRecord[]
-  leaveBalances            EmployeeLeaveBalance[]
-  performanceReviews       EmployeePerformanceReview[]
-  positionHistory          EmployeePositionHistory[]
-  trainings                EmployeeTraining[]
-  manager                  Employee?                   @relation("EmployeeManager", fields: [managerId], references: [id])
-  subordinates             Employee[]                  @relation("EmployeeManager")
-  subsidiary               Subsidiary                  @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-  leads                    Lead[]
-  meetingParticipants      MeetingParticipant[]
-  payrollRecords           PayrollRecord[]
-  secretariatTasks         SecretariatTask[]
-  dailyQrCodes             DailyQrCode[]
+  subsidiaryId        String                      @map("subsidiary_id")
+  managerId           String?                     @map("manager_id")
+  gender              Gender                      @map("gender")
+  contractType        ContractType                @map("contract_type")
+  status              EmployeeStatus              @map("status")
+  paymentMethod       PaymentMethod               @map("payment_method")
+  absenceRecords      AbsenceRecord[]
+  attendanceRecords   AttendanceRecord[]
+  documents           EmployeeDocument[]
+  leaveRecords        EmployeeLeaveRecord[]
+  leaveBalances       EmployeeLeaveBalance[]
+  performanceReviews  EmployeePerformanceReview[]
+  positionHistory     EmployeePositionHistory[]
+  trainings           EmployeeTraining[]
+  manager             Employee?                   @relation("EmployeeManager", fields: [managerId], references: [id])
+  subordinates        Employee[]                  @relation("EmployeeManager")
+  subsidiary          Subsidiary                  @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  leads               Lead[]
+  meetingParticipants MeetingParticipant[]
+  payrollRecords      PayrollRecord[]
+  secretariatTasks    SecretariatTask[]
+  dailyQrCodes        DailyQrCode[]
 
   @@index([subsidiaryId, lastName])
   @@index([status])
@@ -510,7 +510,7 @@ model Employee {
 }
 
 model EmployeeDocument {
-  id           String       @id @map("id") @db.Text @default(uuid())
+  id           String       @id @default(uuid()) @map("id") @db.Text
   documentName String       @map("document_name") @db.VarChar(255)
   url          String       @map("url")
   employeeId   String       @map("employee_id")
@@ -521,7 +521,7 @@ model EmployeeDocument {
 }
 
 model EmployeePositionHistory {
-  id               String    @id @map("id") @db.Text @default(uuid())
+  id               String    @id @default(uuid()) @map("id") @db.Text
   employeePosition String    @map("employee_position") @db.VarChar(100)
   department       String?   @map("department") @db.VarChar(100)
   startDate        DateTime  @map("start_date")
@@ -533,7 +533,7 @@ model EmployeePositionHistory {
 }
 
 model EmployeeTraining {
-  id           String   @id @map("id") @db.Text @default(uuid())
+  id           String   @id @default(uuid()) @map("id") @db.Text
   trainingName String   @map("training_name") @db.VarChar(255)
   trainingDate DateTime @map("training_date")
   provider     String?  @map("provider") @db.VarChar(255)
@@ -544,7 +544,7 @@ model EmployeeTraining {
 }
 
 model EmployeePerformanceReview {
-  id             String   @id @map("id") @db.Text @default(uuid())
+  id             String   @id @default(uuid()) @map("id") @db.Text
   reviewDate     DateTime @map("review_date")
   reviewer       String?  @map("reviewer") @db.VarChar(255)
   rating         Int?     @map("rating")
@@ -556,7 +556,7 @@ model EmployeePerformanceReview {
 }
 
 model EmployeeLeaveRecord {
-  id              String    @id @map("id") @db.Text @default(uuid())
+  id              String    @id @default(uuid()) @map("id") @db.Text
   startDate       DateTime  @map("start_date")
   endDate         DateTime  @map("end_date")
   days            Int       @map("days")
@@ -568,7 +568,7 @@ model EmployeeLeaveRecord {
 }
 
 model EmployeeLeaveBalance {
-  id          String    @id @map("id") @default(uuid())
+  id          String    @id @default(uuid()) @map("id")
   employeeId  String    @map("employee_id")
   leaveType   LeaveType @map("leave_type")
   days        Decimal   @default(0) @map("days") @db.Decimal(5, 2)
@@ -581,7 +581,7 @@ model EmployeeLeaveBalance {
 }
 
 model Account {
-  id            String        @id @map("id") @default(uuid())
+  id            String        @id @map("id")
   accountName   String        @map("account_name") @db.VarChar(255)
   industry      String        @map("industry") @db.VarChar(255)
   phone         String        @map("phone") @db.VarChar(255)
@@ -601,7 +601,7 @@ model Account {
 }
 
 model Contact {
-  id            String         @id @map("id") @default(uuid())
+  id            String         @id @map("id")
   contactName   String         @map("contact_name") @db.VarChar(255)
   company       String         @map("company") @db.VarChar(255)
   email         String         @unique @map("email") @db.VarChar(255)
@@ -634,7 +634,7 @@ model Contact {
 }
 
 model Sale {
-  id            String                @id @map("id") @default(uuid())
+  id            String                @id @map("id")
   productName   String                @map("product_name") @db.VarChar(255)
   quantity      Int                   @map("quantity")
   totalPrice    Decimal               @map("total_price") @db.Decimal(15, 2)
@@ -664,7 +664,7 @@ model Sale {
 }
 
 model TaxRate {
-  id           String  @id @map("id") @db.Text @default(uuid())
+  id           String  @id @map("id") @db.Text
   taxRatesName String  @map("tax_rates_name") @db.VarChar(255)
   rate         Decimal @map("rate") @db.Decimal(5, 4)
   isDefault    Boolean @default(false) @map("is_default")
@@ -676,7 +676,7 @@ model TaxRate {
 }
 
 model Opportunity {
-  id                String               @id @map("id") @default(uuid())
+  id                String               @id @map("id")
   opportunityName   String               @map("opportunity_name") @db.VarChar(255)
   opportunityValue  Decimal              @map("opportunity_value") @db.Decimal(15, 2)
   closeDate         DateTime             @map("close_date")
@@ -699,7 +699,7 @@ model Opportunity {
 }
 
 model OpportunityProduct {
-  id            String      @id @map("id") @default(uuid())
+  id            String      @id @map("id")
   opportunityId String      @map("opportunity_id")
   productId     String      @map("product_id")
   opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
@@ -709,7 +709,7 @@ model OpportunityProduct {
 }
 
 model OrderGroup {
-  id          String   @id @map("id") @default(uuid())
+  id          String   @id @default(uuid()) @map("id")
   groupCode   String   @unique @map("group_code")
   customerId  String   @map("customer_id")
   totalAmount Decimal  @default(0) @map("total_amount") @db.Decimal(15, 2)
@@ -721,7 +721,7 @@ model OrderGroup {
 }
 
 model Order {
-  id                String                   @id @map("id") @default(uuid())
+  id                String                   @id @map("id")
   orderDate         DateTime                 @default(now()) @map("order_date")
   customerName      String                   @map("customer_name") @db.VarChar(255)
   subtotal          Decimal                  @default(0) @map("subtotal") @db.Decimal(15, 2)
@@ -761,7 +761,7 @@ model Order {
 }
 
 model OrderProductionHistory {
-  id         String           @id @map("id") @db.Text @default(uuid())
+  id         String           @id @map("id") @db.Text
   changeDate DateTime         @default(now()) @map("change_date")
   orderId    String           @map("order_id")
   status     ProductionStatus @map("status")
@@ -771,27 +771,27 @@ model OrderProductionHistory {
 }
 
 model OrderItem {
-  id             String          @id @map("id") @default(uuid())
-  quantity       Int             @map("quantity")
-  unitPrice      Decimal         @map("unit_price") @db.Decimal(15, 2)
+  id                String                      @id @map("id")
+  quantity          Int                         @map("quantity")
+  unitPrice         Decimal                     @map("unit_price") @db.Decimal(15, 2)
   // Remise négociée sur cette ligne (montant, pas %) et total figé historiquement
   // (unitPrice * quantity - discount) — jamais recalculés après coup (Chantier 4).
-  discount       Decimal         @default(0) @map("discount") @db.Decimal(15, 2)
-  total          Decimal         @map("total") @db.Decimal(15, 2)
-  designFileName String?         @map("design_file_name") @db.VarChar(255)
-  designFileUrl  String?         @map("design_file_url")
+  discount          Decimal                     @default(0) @map("discount") @db.Decimal(15, 2)
+  total             Decimal                     @map("total") @db.Decimal(15, 2)
+  designFileName    String?                     @map("design_file_name") @db.VarChar(255)
+  designFileUrl     String?                     @map("design_file_url")
   // Chantier 5 : valeurs saisies par le commercial (technicalKey -> valeur) et
   // copie figée de la définition (groupes+specs) utilisée au moment de la
   // commande — le produit peut évoluer ensuite sans jamais affecter cette ligne.
-  specValues     Json?           @map("spec_values")
-  specSnapshot   Json?           @map("spec_snapshot")
-  productId      String?         @map("product_id") @db.Text
-  orderId        String?         @map("order_id") @db.Text
-  order            Order?                      @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product          Item?                       @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productOptions   ProductOption[]
+  specValues        Json?                       @map("spec_values")
+  specSnapshot      Json?                       @map("spec_snapshot")
+  productId         String?                     @map("product_id")
+  orderId           String?                     @map("order_id")
+  order             Order?                      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product           Item?                       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productOptions    ProductOption[]
   // Coût de production figé au moment de la commande (services uniquement).
-  productionSteps  OrderItemProductionStep[]
+  productionSteps   OrderItemProductionStep[]
   productionSummary OrderItemProductionSummary?
 
   @@index([productId])
@@ -800,7 +800,7 @@ model OrderItem {
 }
 
 model ProductOption {
-  id          String     @id @map("id") @db.Text @default(uuid())
+  id          String     @id @map("id") @db.Text
   optionType  String     @map("option_type")
   optionValue String     @map("option_value") @db.VarChar(150)
   orderItemId String?    @map("order_item_id")
@@ -810,7 +810,7 @@ model ProductOption {
 }
 
 model Kpi {
-  id         String     @id @map("id") @default(uuid())
+  id         String     @id @default(uuid()) @map("id")
   titleKey   String     @map("title_key") @db.VarChar(100)
   kpiValue   String     @map("kpi_value") @db.VarChar(50)
   change     String     @map("change") @db.VarChar(50)
@@ -820,7 +820,7 @@ model Kpi {
 }
 
 model Supplier {
-  id             String          @id @map("id") @default(uuid())
+  id             String          @id @default(uuid()) @map("id")
   supplierName   String          @map("supplier_name") @db.VarChar(255)
   company        String          @map("company") @db.VarChar(255)
   email          String          @map("email") @db.VarChar(255)
@@ -836,7 +836,7 @@ model Supplier {
 }
 
 model PurchaseOrder {
-  id                   String                 @id @map("id") @default(uuid())
+  id                   String                 @id @default(uuid()) @map("id")
   supplierName         String                 @map("supplier_name") @db.VarChar(255)
   orderDate            DateTime               @map("order_date")
   expectedDeliveryDate DateTime               @map("expected_delivery_date")
@@ -863,17 +863,17 @@ model PurchaseOrder {
 }
 
 model PurchaseOrderItem {
-  id               String        @id @map("id") @db.Text @default(uuid())
+  id               String        @id @default(uuid()) @map("id") @db.Text
   productName      String        @map("product_name") @db.VarChar(255)
   quantity         Int           @map("quantity")
   quantityReceived Int           @map("quantity_received")
   purchasePrice    Decimal       @map("purchase_price") @db.Decimal(15, 2)
-  purchaseOrderId  String        @map("purchase_order_id") @db.Text
-  productId        String        @map("product_id") @db.Text
+  purchaseOrderId  String        @map("purchase_order_id")
+  productId        String        @map("product_id")
   // Unité dans laquelle "quantity"/"quantityReceived" sont exprimées (Chantier
   // 2) — null = unité de base du produit. La conversion vers l'unité de base
   // (ItemStock) se fait automatiquement à la réception, jamais saisie à la main.
-  purchaseUnitId   String?       @map("purchase_unit_id") @db.Text
+  purchaseUnitId   String?       @map("purchase_unit_id")
   product          Item          @relation(fields: [productId], references: [id], onDelete: Cascade)
   purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   purchaseUnit     Unit?         @relation(fields: [purchaseUnitId], references: [id])
@@ -883,7 +883,7 @@ model PurchaseOrderItem {
 }
 
 model PurchaseOrderHistory {
-  id              String        @id @map("id") @db.Text @default(uuid())
+  id              String        @id @default(uuid()) @map("id") @db.Text
   eventName       String        @map("event_name") @db.VarChar(255)
   eventDate       DateTime      @default(now()) @map("event_date")
   purchaseOrderId String        @map("purchase_order_id")
@@ -893,7 +893,7 @@ model PurchaseOrderHistory {
 }
 
 model CreditAccount {
-  id              String     @id @map("id") @default(uuid())
+  id              String     @id @default(uuid()) @map("id")
   clientName      String     @map("client_name") @db.VarChar(255)
   companyName     String     @map("company_name") @db.VarChar(255)
   balance         Decimal    @map("balance") @db.Decimal(15, 2)
@@ -907,7 +907,7 @@ model CreditAccount {
 }
 
 model TreasuryAccount {
-  id                    String                 @id @map("id") @default(uuid())
+  id                    String                 @id @default(uuid()) @map("id")
   accountName           String                 @map("account_name") @db.VarChar(255)
   balance               Decimal                @map("balance") @db.Decimal(15, 2)
   currency              String                 @map("currency") @db.VarChar(10)
@@ -921,7 +921,7 @@ model TreasuryAccount {
 }
 
 model FinancialTransaction {
-  id                       String          @id @map("id") @default(uuid())
+  id                       String          @id @default(uuid()) @map("id")
   transactionDate          DateTime        @map("transaction_date")
   description              String?         @map("description")
   amount                   Decimal         @map("amount") @db.Decimal(15, 2)
@@ -941,7 +941,7 @@ model FinancialTransaction {
 }
 
 model ExternalFinancialTransaction {
-  id                          String                      @id @map("id") @default(uuid())
+  id                          String                      @id @default(uuid()) @map("id")
   transactionDate             DateTime                    @map("transaction_date")
   description                 String                      @map("description")
   amount                      Decimal                     @map("amount") @db.Decimal(15, 2)
@@ -966,7 +966,7 @@ model ExternalFinancialTransaction {
 }
 
 model CompanyDocument {
-  id           String           @id @map("id") @default(uuid())
+  id           String           @id @default(uuid()) @map("id")
   documentName String           @map("document_name") @db.VarChar(255)
   uploadDate   DateTime         @default(now()) @map("upload_date")
   fileUrl      String           @map("file_url")
@@ -982,7 +982,7 @@ model CompanyDocument {
 }
 
 model Meeting {
-  id              String               @id @map("id") @default(uuid())
+  id              String               @id @default(uuid()) @map("id")
   title           String               @db.VarChar(255)
   meetingDate     DateTime             @map("meeting_date")
   meetingTime     DateTime             @map("meeting_time")
@@ -998,7 +998,7 @@ model Meeting {
 }
 
 model MeetingParticipant {
-  id         String   @id @map("id") @db.Text @default(uuid())
+  id         String   @id @default(uuid()) @map("id") @db.Text
   meetingId  String   @map("meeting_id")
   employeeId String   @map("employee_id")
   employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
@@ -1009,7 +1009,7 @@ model MeetingParticipant {
 }
 
 model SecretariatTask {
-  id           String                @id @map("id") @default(uuid())
+  id           String                @id @default(uuid()) @map("id")
   title        String                @db.VarChar(255)
   description  String
   dueDate      DateTime              @map("due_date")
@@ -1026,7 +1026,7 @@ model SecretariatTask {
 }
 
 model Interaction {
-  id               String          @id @map("id") @default(uuid())
+  id               String          @id @default(uuid()) @map("id")
   interactionDate  DateTime        @map("interaction_date")
   notes            String
   contactId        String          @map("contact_id")
@@ -1039,7 +1039,7 @@ model Interaction {
 }
 
 model CrmTask {
-  id            String          @id @map("id") @default(uuid())
+  id            String          @id @default(uuid()) @map("id")
   title         String          @db.VarChar(255)
   description   String?
   dueDate       DateTime        @map("due_date")
@@ -1056,7 +1056,7 @@ model CrmTask {
 }
 
 model Lead {
-  id           String     @id @map("id") @default(uuid())
+  id           String     @id @default(uuid()) @map("id")
   leadName     String     @map("lead_name") @db.VarChar(255)
   company      String     @db.VarChar(255)
   email        String     @unique @db.VarChar(255)
@@ -1076,7 +1076,7 @@ model Lead {
 }
 
 model Contract {
-  id           String         @id @map("id") @default(uuid())
+  id           String         @id @default(uuid()) @map("id")
   title        String
   startDate    DateTime       @map("start_date")
   endDate      DateTime       @map("end_date")
@@ -1090,21 +1090,33 @@ model Contract {
   @@map("contracts")
 }
 
+enum FixedAssetStatus {
+  ACTIVE
+  DISPOSED
+}
+
 model FixedAsset {
-  id               String     @id @map("id") @default(uuid())
-  fixedAssetsName  String     @map("fixed_assets_name") @db.VarChar(255)
-  acquisitionDate  DateTime   @map("acquisition_date")
-  acquisitionCost  Decimal    @map("acquisition_cost") @db.Decimal(15, 2)
-  depreciationRate Decimal    @map("depreciation_rate") @db.Decimal(5, 2)
-  subsidiaryId     String     @map("subsidiary_id")
-  subsidiary       Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  id                     String           @id @map("id")
+  fixedAssetsName        String           @map("fixed_assets_name") @db.VarChar(255)
+  acquisitionDate        DateTime         @map("acquisition_date")
+  acquisitionCost        Decimal          @map("acquisition_cost") @db.Decimal(15, 2)
+  depreciationRate       Decimal          @map("depreciation_rate") @db.Decimal(5, 2)
+  residualValue          Decimal          @default(0) @map("residual_value") @db.Decimal(15, 2)
+  cumulativeAmortization Decimal          @default(0) @map("cumulative_amortization") @db.Decimal(15, 2)
+  lastAmortizationYear   Int?             @map("last_amortization_year")
+  status                 FixedAssetStatus @default(ACTIVE) @map("status")
+  disposalDate           DateTime?        @map("disposal_date")
+  disposalAmount         Decimal?         @map("disposal_amount") @db.Decimal(15, 2)
+  subsidiaryId           String           @map("subsidiary_id")
+  subsidiary             Subsidiary       @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
   @@index([subsidiaryId, acquisitionDate])
+  @@index([status])
   @@map("fixed_assets")
 }
 
 model LongTermDebt {
-  id             String     @id @map("id") @default(uuid())
+  id             String     @id @default(uuid()) @map("id")
   debtsName      String     @map("debts_name") @db.VarChar(255)
   initialAmount  Decimal    @map("initial_amount") @db.Decimal(15, 2)
   currentBalance Decimal    @map("current_balance") @db.Decimal(15, 2)
@@ -1118,15 +1130,15 @@ model LongTermDebt {
 }
 
 model Equipment {
-  id                  String              @id @map("id") @default(uuid())
-  equipmentName       String              @map("equipment_name") @db.VarChar(255)
-  lastMaintenanceDate DateTime            @map("last_maintenance_date")
-  nextMaintenanceDate DateTime            @map("next_maintenance_date")
-  acquisitionDate     DateTime            @map("acquisition_date")
-  acquisitionValue    Decimal             @map("acquisition_value") @db.Decimal(15, 2)
-  subsidiaryId        String              @map("subsidiary_id")
+  id                  String                    @id @default(uuid()) @map("id")
+  equipmentName       String                    @map("equipment_name") @db.VarChar(255)
+  lastMaintenanceDate DateTime                  @map("last_maintenance_date")
+  nextMaintenanceDate DateTime                  @map("next_maintenance_date")
+  acquisitionDate     DateTime                  @map("acquisition_date")
+  acquisitionValue    Decimal                   @map("acquisition_value") @db.Decimal(15, 2)
+  subsidiaryId        String                    @map("subsidiary_id")
   status              EquipmentStatus
-  subsidiary          Subsidiary               @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  subsidiary          Subsidiary                @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
   maintenanceRecords  MaintenanceRecord[]
   // Coût horaire d'utilisation (module coût de production) — table séparée.
   costConfig          EquipementCostConfig?
@@ -1141,7 +1153,7 @@ model Equipment {
 }
 
 model MaintenanceRecord {
-  id              String    @id @map("id") @default(uuid())
+  id              String    @id @default(uuid()) @map("id")
   maintenanceDate DateTime  @map("maintenance_date")
   technician      String    @db.VarChar(255)
   description     String
@@ -1159,11 +1171,11 @@ model MaintenanceRecord {
 // Coût horaire d'utilisation d'une machine (séparé du module Maintenance).
 // Le Super Admin renseigne cette valeur ; elle est figée dans chaque commande.
 model EquipementCostConfig {
-  id          String    @id @default(uuid()) @map("id") @db.Text
-  equipmentId String    @unique @map("equipment_id") @db.Text
+  id          String    @id @map("id")
+  equipmentId String    @unique @map("equipment_id")
   hourlyRate  Decimal   @map("hourly_rate") @db.Decimal(15, 2)
   updatedAt   DateTime  @updatedAt @map("updated_at")
-  updatedById String?   @map("updated_by_id") @db.Text
+  updatedById String?   @map("updated_by_id")
   equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
   updatedBy   User?     @relation("EquipementCostConfigUpdatedBy", fields: [updatedById], references: [id])
 
@@ -1174,11 +1186,11 @@ model EquipementCostConfig {
 // Représente la liste ordonnée des machines utilisées habituellement.
 // Global : pas de subsidiaryId — un workflow s'applique à toutes les filiales.
 model ProductionWorkflow {
-  id          String                   @id @default(uuid()) @map("id") @db.Text
+  id          String                   @id @map("id")
   name        String                   @map("name") @db.VarChar(255)
   description String?                  @map("description")
   // Un service peut avoir au plus un workflow par défaut (relation 1-1 optionnelle).
-  itemId      String?                  @unique @map("item_id") @db.Text
+  itemId      String?                  @unique @map("item_id")
   isActive    Boolean                  @default(true) @map("is_active")
   createdAt   DateTime                 @default(now()) @map("created_at")
   updatedAt   DateTime                 @updatedAt @map("updated_at")
@@ -1190,9 +1202,9 @@ model ProductionWorkflow {
 
 // Étape ordonnée d'un workflow (une machine à un rang donné).
 model ProductionWorkflowStep {
-  id          String             @id @default(uuid()) @map("id") @db.Text
-  workflowId  String             @map("workflow_id") @db.Text
-  equipmentId String             @map("equipment_id") @db.Text
+  id          String             @id @map("id")
+  workflowId  String             @map("workflow_id")
+  equipmentId String             @map("equipment_id")
   stepOrder   Int                @map("step_order")
   workflow    ProductionWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
   equipment   Equipment          @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
@@ -1205,11 +1217,11 @@ model ProductionWorkflowStep {
 // Paramètres commerciaux globaux (singleton — une seule ligne en base).
 // Définit l'intervalle de marge autorisé que les commerciaux peuvent appliquer.
 model CommercialParams {
-  id               String   @id @default(uuid()) @map("id") @db.Text
+  id               String   @id @map("id")
   minMarginPercent Decimal  @map("min_margin_percent") @db.Decimal(5, 2)
   maxMarginPercent Decimal  @map("max_margin_percent") @db.Decimal(5, 2)
   updatedAt        DateTime @updatedAt @map("updated_at")
-  updatedById      String?  @map("updated_by_id") @db.Text
+  updatedById      String?  @map("updated_by_id")
   updatedBy        User?    @relation("CommercialParamsUpdatedBy", fields: [updatedById], references: [id])
 
   @@map("commercial_params")
@@ -1218,9 +1230,9 @@ model CommercialParams {
 // Étape de production figée dans une ligne de commande (instantané historique).
 // Créée à la validation de la commande — jamais modifiée ensuite.
 model OrderItemProductionStep {
-  id                    String    @id @default(uuid()) @map("id") @db.Text
-  orderItemId           String    @map("order_item_id") @db.Text
-  equipmentId           String    @map("equipment_id") @db.Text
+  id                    String    @id @map("id")
+  orderItemId           String    @map("order_item_id")
+  equipmentId           String    @map("equipment_id")
   // Snapshot du nom de la machine au moment de la commande.
   equipmentNameSnapshot String    @map("equipment_name_snapshot") @db.VarChar(255)
   stepOrder             Int       @map("step_order")
@@ -1237,8 +1249,8 @@ model OrderItemProductionStep {
 
 // Résumé financier de production figé dans une ligne de commande.
 model OrderItemProductionSummary {
-  id                  String    @id @default(uuid()) @map("id") @db.Text
-  orderItemId         String    @unique @map("order_item_id") @db.Text
+  id                  String    @id @map("id")
+  orderItemId         String    @unique @map("order_item_id")
   totalProductionCost Decimal   @map("total_production_cost") @db.Decimal(15, 2)
   marginPercent       Decimal   @map("margin_percent") @db.Decimal(5, 2)
   finalPrice          Decimal   @map("final_price") @db.Decimal(15, 2)
@@ -1250,7 +1262,7 @@ model OrderItemProductionSummary {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model AbsenceRecord {
-  id           String      @id @map("id") @default(uuid())
+  id           String      @id @default(uuid()) @map("id")
   employeeName String      @map("employee_name") @db.VarChar(255)
   startDate    DateTime    @map("start_date")
   endDate      DateTime    @map("end_date")
@@ -1269,14 +1281,14 @@ model AbsenceRecord {
 }
 
 model AttendanceRecord {
-  id                    String           @id @map("id") @default(uuid())
-  employeeName          String           @map("employee_name") @db.VarChar(255)
-  attendanceDate        DateTime         @map("attendance_date")
-  arrivalTime           DateTime?        @map("arrival_time")
-  departureTime         DateTime?        @map("departure_time")
-  breakStartTime        DateTime?        @map("break_start_time")
-  breakEndTime          DateTime?        @map("break_end_time")
-  signature             String?
+  id             String    @id @default(uuid()) @map("id")
+  employeeName   String    @map("employee_name") @db.VarChar(255)
+  attendanceDate DateTime  @map("attendance_date")
+  arrivalTime    DateTime? @map("arrival_time")
+  departureTime  DateTime? @map("departure_time")
+  breakStartTime DateTime? @map("break_start_time")
+  breakEndTime   DateTime? @map("break_end_time")
+  signature      String?
 
   // Geolocation fields
   arrivalLatitude       Float?           @map("arrival_latitude")
@@ -1291,8 +1303,8 @@ model AttendanceRecord {
   subsidiaryId          String           @map("subsidiary_id")
   status                AttendanceStatus @map("status")
 
-  employee              Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  subsidiary            Subsidiary       @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  employee   Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  subsidiary Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
   @@index([subsidiaryId, attendanceDate])
   @@index([employeeId])
@@ -1303,7 +1315,7 @@ model AttendanceRecord {
 }
 
 model PayrollRecord {
-  id            String        @id @map("id") @default(uuid())
+  id            String        @id @default(uuid()) @map("id")
   employeeName  String        @map("employee_name") @db.VarChar(255)
   payrollPeriod String        @map("payroll_period") @db.VarChar(7)
   grossSalary   Decimal       @map("gross_salary") @db.Decimal(12, 2)
@@ -1324,7 +1336,7 @@ model PayrollRecord {
 }
 
 model SupplierDebt {
-  id              String        @id @map("id") @default(uuid())
+  id              String        @id @default(uuid()) @map("id")
   supplierName    String        @map("supplier_name") @db.VarChar(255)
   invoiceId       String        @map("invoice_id") @db.VarChar(50)
   dueDate         DateTime      @map("due_date")
@@ -1343,7 +1355,7 @@ model SupplierDebt {
 }
 
 model ExpenseRecord {
-  id                String          @id @map("id") @default(uuid())
+  id                String          @id @default(uuid()) @map("id")
   expenseDate       DateTime        @map("expense_date")
   description       String
   amount            Decimal         @db.Decimal(12, 2)
@@ -1359,29 +1371,34 @@ model ExpenseRecord {
 }
 
 // Plan comptable
+// Plan comptable — référentiel GLOBAL partagé par toutes les filiales (une seule
+// entité légale à succursales, pas des entités séparées) — voir
+// Doc/module-comptabilite-plan-implementation.md §6.1.
 model AccountingAccount {
-  id              String                @id @map("id") @default(uuid())
+  id              String                @id @map("id")
   accountNumber   String                @unique @map("account_number") @db.VarChar(10)
   accountName     String                @map("account_name") @db.VarChar(255)
   accountType     AccountingAccountType @map("account_type")
+  class           Int?                  @map("class")
   parentAccountId String?               @map("parent_account_id")
   isActive        Boolean               @default(true) @map("is_active")
-  subsidiaryId    String                @map("subsidiary_id")
   createdAt       DateTime              @default(now()) @map("created_at")
   updatedAt       DateTime              @updatedAt @map("updated_at")
 
   parentAccount AccountingAccount?  @relation("AccountHierarchy", fields: [parentAccountId], references: [id])
   childAccounts AccountingAccount[] @relation("AccountHierarchy")
-  subsidiary    Subsidiary          @relation(fields: [subsidiaryId], references: [id])
   journalLines  JournalEntryLine[]
 
-  @@index([subsidiaryId, accountNumber])
+  @@index([accountNumber])
+  @@index([isActive])
   @@map("accounting_accounts")
 }
 
-// Exercices fiscaux
+// Exercices/périodes comptables, par filiale — bornes libres (pas forcément l'année
+// civile), avec contrôle de chevauchement et clôture bloquée tant que des écritures
+// DRAFT subsistent (voir PeriodsService).
 model FiscalYear {
-  id           String   @id @map("id") @default(uuid())
+  id           String   @id @map("id")
   name         String   @map("name") @db.VarChar(100)
   startDate    DateTime @map("start_date")
   endDate      DateTime @map("end_date")
@@ -1396,79 +1413,107 @@ model FiscalYear {
 
   @@unique([subsidiaryId, name])
   @@index([subsidiaryId, isActive])
+  @@index([subsidiaryId, startDate, endDate])
   @@map("fiscal_years")
 }
 
-// Journaux comptables (JV, JA, JB, JOD)
+// Journaux comptables (JV/JA/JB/JC/JOD) — référentiel global, partagé par toutes les
+// filiales (comme AccountingAccount).
 model AccountingJournal {
-  id           String         @id @map("id") @default(uuid())
-  code         String         @map("code") @db.VarChar(10)
-  name         String         @map("name") @db.VarChar(100)
-  journalType  JournalType    @map("journal_type")
-  subsidiaryId String         @map("subsidiary_id")
-  isActive     Boolean        @default(true) @map("is_active")
-  subsidiary   Subsidiary     @relation(fields: [subsidiaryId], references: [id])
-  entries      JournalEntry[]
+  id          String                      @id @map("id")
+  code        String                      @unique @map("code") @db.VarChar(10)
+  name        String                      @map("name") @db.VarChar(100)
+  journalType JournalType                 @map("journal_type")
+  isActive    Boolean                     @default(true) @map("is_active")
+  entries     JournalEntry[]
+  sequences   AccountingJournalSequence[]
 
-  @@unique([subsidiaryId, code])
   @@map("accounting_journals")
 }
 
-// Règles de journalisation automatique Finance → Comptabilité
-model AccountMapping {
-  id               String     @id @map("id") @default(uuid())
-  operationType    String     @map("operation_type") @db.VarChar(100)
-  journalCode      String     @map("journal_code") @db.VarChar(10)
-  debitAccountNum  String     @map("debit_account_num") @db.VarChar(10)
-  creditAccountNum String     @map("credit_account_num") @db.VarChar(10)
-  description      String     @map("description") @db.VarChar(255)
-  subsidiaryId     String     @map("subsidiary_id")
-  subsidiary       Subsidiary @relation(fields: [subsidiaryId], references: [id])
+/// Compteur atomique de numérotation séquentielle du Livre-journal, par journal /
+/// filiale / exercice (obligation OHADA — AUDCIF art. 19-21 : numérotation continue,
+/// sans trou, opposable en cas de contrôle fiscal). Incrémenté via une seule opération
+/// UPDATE atomique (Prisma `increment`) pour éviter toute collision en cas de
+/// validations concurrentes.
+model AccountingJournalSequence {
+  id           String            @id @map("id")
+  journalId    String            @map("journal_id")
+  subsidiaryId String            @map("subsidiary_id")
+  year         Int               @map("year")
+  lastNumber   Int               @default(0) @map("last_number")
+  journal      AccountingJournal @relation(fields: [journalId], references: [id])
+  subsidiary   Subsidiary        @relation(fields: [subsidiaryId], references: [id])
 
-  @@unique([subsidiaryId, operationType])
+  @@unique([journalId, subsidiaryId, year])
+  @@map("accounting_journal_sequences")
+}
+
+// Table de correspondance clé fonctionnelle -> compte comptable (ex: "SALES_CLIENT" ->
+// "411100"), consultée par la génération automatique d'écritures pour rester
+// reconfigurable sans déploiement de code. Référentiel global, pas par filiale.
+model AccountMapping {
+  id          String @id @map("id")
+  key         String @unique @map("key") @db.VarChar(100)
+  accountCode String @map("account_code") @db.VarChar(10)
+
   @@map("account_mappings")
 }
 
 // Écritures comptables
 model JournalEntry {
-  id           String             @id @map("id") @default(uuid())
-  entryNumber  String             @unique @map("entry_number") @db.VarChar(50)
-  entryDate    DateTime           @map("entry_date")
-  description  String             @map("description")
-  status       JournalEntryStatus @default(DRAFT) @map("status")
-  totalAmount  Decimal            @map("total_amount") @db.Decimal(15, 2)
-  fiscalYearId String             @map("fiscal_year_id")
-  subsidiaryId String             @map("subsidiary_id")
-  createdBy    String             @map("created_by")
-  journalId    String?            @map("journal_id")
-  sourceType   String?            @map("source_type") @db.VarChar(100)
-  sourceId     String?            @map("source_id") @db.VarChar(100)
-  createdAt    DateTime           @default(now()) @map("created_at")
-  updatedAt    DateTime           @updatedAt @map("updated_at")
+  id                String             @id @map("id")
+  // Référence métier stable (anti-doublon des écritures automatiques, voir
+  // EntriesService.createAutomaticEntry) — jamais un numéro d'ordre légal.
+  entryNumber       String             @unique @map("entry_number") @db.VarChar(80)
+  entryDate         DateTime           @map("entry_date")
+  description       String             @map("description")
+  status            JournalEntryStatus @default(DRAFT) @map("status")
+  fiscalYearId      String?            @map("fiscal_year_id")
+  subsidiaryId      String             @map("subsidiary_id")
+  // Nullable : une écriture automatique (createAutomaticEntry) n'a pas d'auteur humain.
+  createdBy         String?            @map("created_by")
+  journalId         String             @map("journal_id")
+  /// Numéro de pièce légal, attribué uniquement au passage à POSTED (jamais en DRAFT,
+  /// qui peut être annulé sans laisser de trou dans la séquence légale) — séquentiel et
+  /// continu par journal/filiale/exercice, voir AccountingJournalSequence.
+  sequentialNumber  String?            @map("sequential_number")
+  /// Extourne (contre-passation) : lien vers l'écriture d'origine si celle-ci est une
+  /// écriture de contre-passation. L'écriture d'origine n'est JAMAIS modifiée -
+  /// principe d'intangibilité OHADA - seule une nouvelle écriture inverse est créée et
+  /// liée ici.
+  reversalOfEntryId String?            @map("reversal_of_entry_id")
+  sourceType        String?            @map("source_type") @db.VarChar(100)
+  sourceId          String?            @map("source_id") @db.VarChar(100)
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
 
-  fiscalYear FiscalYear          @relation(fields: [fiscalYearId], references: [id])
-  subsidiary Subsidiary          @relation(fields: [subsidiaryId], references: [id])
-  creator    User                @relation(fields: [createdBy], references: [id])
-  journal    AccountingJournal?  @relation(fields: [journalId], references: [id])
-  lines      JournalEntryLine[]
+  fiscalYear        FiscalYear?        @relation(fields: [fiscalYearId], references: [id])
+  subsidiary        Subsidiary         @relation(fields: [subsidiaryId], references: [id])
+  creator           User?              @relation(fields: [createdBy], references: [id])
+  journal           AccountingJournal  @relation(fields: [journalId], references: [id])
+  lines             JournalEntryLine[]
+  reversalOfEntry   JournalEntry?      @relation("EntryReversal", fields: [reversalOfEntryId], references: [id])
+  reversedByEntries JournalEntry[]     @relation("EntryReversal")
 
+  @@unique([subsidiaryId, sequentialNumber])
   @@index([subsidiaryId, entryDate])
-  @@index([status])
+  @@index([subsidiaryId, status])
   @@index([fiscalYearId])
   @@index([journalId])
   @@index([sourceType, sourceId])
   @@map("journal_entries")
 }
 
-// Lignes d'écriture comptable
+// Lignes d'écriture comptable — pas de champ `balance` stocké : toujours recalculé
+// depuis debit/credit (évite un solde dérivé qui peut diverger de sa source).
 model JournalEntryLine {
-  id             String  @id @map("id") @default(uuid())
+  id             String  @id @map("id")
   journalEntryId String  @map("journal_entry_id")
   accountId      String  @map("account_id")
   description    String  @map("description")
   debitAmount    Decimal @default(0) @map("debit_amount") @db.Decimal(15, 2)
   creditAmount   Decimal @default(0) @map("credit_amount") @db.Decimal(15, 2)
-  balance        Decimal @default(0) @map("balance") @db.Decimal(15, 2)
 
   journalEntry JournalEntry      @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
   account      AccountingAccount @relation(fields: [accountId], references: [id])
@@ -1480,28 +1525,87 @@ model JournalEntryLine {
 
 // Énumérations comptables
 enum AccountingAccountType {
-  ASSET     // Actif (Classe 2-5)
+  ASSET // Actif (Classe 2-5)
   LIABILITY // Passif (Classe 1-4)
-  EQUITY    // Capitaux propres (Classe 1)
-  REVENUE   // Produits (Classe 7-8)
-  EXPENSE   // Charges (Classe 6)
+  EQUITY // Capitaux propres (Classe 1)
+  REVENUE // Produits (Classe 7-8)
+  EXPENSE // Charges (Classe 6)
 }
 
 enum JournalEntryStatus {
-  DRAFT     // Brouillon
-  POSTED    // Validé/Comptabilisé
-  CANCELLED // Annulé
+  DRAFT // Brouillon
+  POSTED // Validé/comptabilisé — seule source de vérité pour "l'écriture est validée"
+  CANCELLED // Annulé (jamais appliqué à une écriture déjà POSTED - voir extourne/reversal)
 }
 
 enum JournalType {
-  VENTES   // Journal des ventes (JV)
-  ACHATS   // Journal des achats (JA)
-  TRESORERIE // Journal de trésorerie/banque (JB)
-  OD       // Journal des opérations diverses (JOD)
+  VENTES // Journal des ventes (JV)
+  ACHATS // Journal des achats (JA)
+  BANQUE // Journal de banque (JB)
+  CAISSE // Journal de caisse (JC)
+  OD // Journal des opérations diverses (JOD)
+}
+
+enum AccountingOutboxStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+/// Pattern Outbox transactionnel : l'intention de générer une écriture comptable est
+/// enregistrée dans la MÊME transaction que l'opération métier, puis traitée de façon
+/// asynchrone avec retry par AccountingOutboxProcessor — contrairement à un appel
+/// direct après commit, une écriture ne peut plus être silencieusement perdue si le
+/// moteur comptable est momentanément indisponible.
+model AccountingOutboxEntry {
+  id           String                 @id @map("id")
+  eventType    String                 @map("event_type")
+  payload      Json                   @map("payload")
+  status       AccountingOutboxStatus @default(PENDING) @map("status")
+  attempts     Int                    @default(0) @map("attempts")
+  lastError    String?                @map("last_error")
+  subsidiaryId String                 @map("subsidiary_id")
+  createdAt    DateTime               @default(now()) @map("created_at")
+  processedAt  DateTime?              @map("processed_at")
+
+  @@index([status, createdAt])
+  @@index([subsidiaryId])
+  @@map("accounting_outbox_entries")
+}
+
+enum AccountingAccessStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Accès temporaire à la comptabilité (JIT) — indépendant du RBAC standard.
+/// Un ADMIN du siège a l'accès libre (voir AccountingAccessService) ; tout
+/// autre utilisateur, y compris FINANCIAL_DIRECTOR, doit passer par une
+/// demande approuvée et non expirée. Voir
+/// Doc/module-comptabilite-plan-implementation.md §2.10.
+model AccountingAccessRequest {
+  id            String                 @id @map("id")
+  userId        String                 @map("user_id")
+  justification String                 @map("justification")
+  status        AccountingAccessStatus @default(PENDING) @map("status")
+  requestedAt   DateTime               @default(now()) @map("requested_at")
+  reviewedBy    String?                @map("reviewed_by")
+  reviewedAt    DateTime?              @map("reviewed_at")
+  rejectionNote String?                @map("rejection_note")
+  expiresAt     DateTime?              @map("expires_at")
+
+  user     User  @relation("AccountingAccessRequester", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer User? @relation("AccountingAccessReviewer", fields: [reviewedBy], references: [id])
+
+  @@index([userId, status])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("accounting_access_requests")
 }
 
 model Newsletter {
-  id        String   @id @map("id") @default(uuid())
+  id        String   @id @default(uuid()) @map("id")
   email     String   @unique
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -1839,6 +1943,9 @@ enum NotificationType {
   EXTERNAL_TRANSACTION_VALIDATED
   EXTERNAL_TRANSACTION_CREATED
   EXTERNAL_TRANSACTION_CANCELLED
+  ACCOUNTING_ACCESS_REQUESTED
+  ACCOUNTING_ACCESS_APPROVED
+  ACCOUNTING_ACCESS_REJECTED
 }
 
 enum RecipientType {
@@ -1909,47 +2016,47 @@ enum ProformaStatus {
 }
 
 model Proforma {
-  id              String   @id @map("id") @default(uuid())
-  proformaNumber  String   @unique @map("proforma_number") @db.VarChar(50)
+  id             String @id @default(uuid()) @map("id")
+  proformaNumber String @unique @map("proforma_number") @db.VarChar(50)
 
   // Lien au Lead
-  leadId          String   @map("lead_id")
-  lead            Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId String @map("lead_id")
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   // Lien à l'Opportunity (optionnel)
-  opportunityId   String?  @map("opportunity_id")
-  opportunity     Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  opportunityId String?      @map("opportunity_id")
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
 
   // Informations client
-  clientName      String   @map("client_name") @db.VarChar(255)
-  clientEmail     String   @map("client_email") @db.VarChar(255)
-  clientPhone     String   @map("client_phone") @db.VarChar(255)
-  clientCompany   String?  @map("client_company") @db.VarChar(255)
+  clientName    String  @map("client_name") @db.VarChar(255)
+  clientEmail   String  @map("client_email") @db.VarChar(255)
+  clientPhone   String  @map("client_phone") @db.VarChar(255)
+  clientCompany String? @map("client_company") @db.VarChar(255)
 
   // Items
-  items           ProformaItem[]
+  items ProformaItem[]
 
   // Montants
-  subtotal        Decimal  @default(0) @map("subtotal") @db.Decimal(15, 2)
-  taxRate         Decimal  @default(0) @map("tax_rate") @db.Decimal(5, 2)
-  taxAmount       Decimal  @default(0) @map("tax_amount") @db.Decimal(15, 2)
-  totalAmount     Decimal  @default(0) @map("total_amount") @db.Decimal(15, 2)
+  subtotal    Decimal @default(0) @map("subtotal") @db.Decimal(15, 2)
+  taxRate     Decimal @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  taxAmount   Decimal @default(0) @map("tax_amount") @db.Decimal(15, 2)
+  totalAmount Decimal @default(0) @map("total_amount") @db.Decimal(15, 2)
 
   // Statut & Validité
-  status          ProformaStatus @default(DRAFT) @map("status")
-  validityDate    DateTime @map("validity_date")
-  notes           String?  @map("notes")
+  status       ProformaStatus @default(DRAFT) @map("status")
+  validityDate DateTime       @map("validity_date")
+  notes        String?        @map("notes")
 
   // Tracking
-  createdBy       String   @map("created_by")
-  createdByUser   User     @relation(fields: [createdBy], references: [id])
-  createdAt       DateTime @default(now()) @map("created_at")
-  sentAt          DateTime? @map("sent_at")
-  viewedAt        DateTime? @map("viewed_at")
-  acceptedAt      DateTime? @map("accepted_at")
+  createdBy     String    @map("created_by")
+  createdByUser User      @relation(fields: [createdBy], references: [id])
+  createdAt     DateTime  @default(now()) @map("created_at")
+  sentAt        DateTime? @map("sent_at")
+  viewedAt      DateTime? @map("viewed_at")
+  acceptedAt    DateTime? @map("accepted_at")
 
-  subsidiaryId    String   @map("subsidiary_id")
-  subsidiary      Subsidiary @relation(fields: [subsidiaryId], references: [id])
+  subsidiaryId String     @map("subsidiary_id")
+  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id])
 
   @@index([leadId])
   @@index([opportunityId])
@@ -1960,17 +2067,17 @@ model Proforma {
 }
 
 model ProformaItem {
-  id              String   @id @map("id") @default(uuid())
+  id String @id @default(uuid()) @map("id")
 
-  proformaId      String   @map("proforma_id")
-  proforma        Proforma @relation(fields: [proformaId], references: [id], onDelete: Cascade)
+  proformaId String   @map("proforma_id")
+  proforma   Proforma @relation(fields: [proformaId], references: [id], onDelete: Cascade)
 
-  productId       String   @map("product_id") @db.Text
-  product         Item     @relation(fields: [productId], references: [id])
+  productId String @map("product_id")
+  product   Item   @relation(fields: [productId], references: [id])
 
-  quantity        Int      @map("quantity")
-  unitPrice       Decimal  @map("unit_price") @db.Decimal(15, 2)
-  description     String?  @map("description") @db.VarChar(500)
+  quantity    Int     @map("quantity")
+  unitPrice   Decimal @map("unit_price") @db.Decimal(15, 2)
+  description String? @map("description") @db.VarChar(500)
 
   @@index([proformaId])
   @@index([productId])
@@ -1991,93 +2098,93 @@ enum ContributionType {
 }
 
 model PayrollConfiguration {
-  id                    String     @id @map("id") @db.Text @default(uuid())
-  subsidiaryId          String     @unique @map("subsidiary_id") @db.Text
-  subsidiary            Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  id           String     @id @default(uuid()) @map("id") @db.Text
+  subsidiaryId String     @unique @map("subsidiary_id") @db.Text
+  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
-  minWage               Decimal    @default(0) @map("min_wage") @db.Decimal(12, 2)
-  minWagePeriod         String     @default("monthly") @map("min_wage_period") @db.VarChar(50)
-  minWageEffectiveDate  DateTime   @map("min_wage_effective_date")
+  minWage              Decimal  @default(0) @map("min_wage") @db.Decimal(12, 2)
+  minWagePeriod        String   @default("monthly") @map("min_wage_period") @db.VarChar(50)
+  minWageEffectiveDate DateTime @map("min_wage_effective_date")
 
-  cnpsEmployeeRate      Decimal    @default(5.4) @map("cnps_employee_rate") @db.Decimal(5, 2)
-  cnpsEmployerRate      Decimal    @default(6.4) @map("cnps_employer_rate") @db.Decimal(5, 2)
+  cnpsEmployeeRate Decimal @default(5.4) @map("cnps_employee_rate") @db.Decimal(5, 2)
+  cnpsEmployerRate Decimal @default(6.4) @map("cnps_employer_rate") @db.Decimal(5, 2)
 
-  createdAt             DateTime   @default(now()) @map("created_at")
-  updatedAt             DateTime   @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  salaryComponents      SalaryComponent[]
-  taxBrackets           TaxBracket[]
-  allowanceRules        AllowanceRule[]
+  salaryComponents SalaryComponent[]
+  taxBrackets      TaxBracket[]
+  allowanceRules   AllowanceRule[]
 
   @@map("payroll_configurations")
 }
 
 model SalaryComponent {
-  id                      String                  @id @map("id") @db.Text @default(uuid())
-  payrollConfigId         String                  @map("payroll_config_id") @db.Text
-  payrollConfig           PayrollConfiguration    @relation(fields: [payrollConfigId], references: [id], onDelete: Cascade)
+  id              String               @id @default(uuid()) @map("id") @db.Text
+  payrollConfigId String               @map("payroll_config_id") @db.Text
+  payrollConfig   PayrollConfiguration @relation(fields: [payrollConfigId], references: [id], onDelete: Cascade)
 
-  name                    String                  @map("name") @db.VarChar(255)
-  description             String?                 @map("description")
-  type                    SalaryComponentType     @map("type")
+  name        String              @map("name") @db.VarChar(255)
+  description String?             @map("description")
+  type        SalaryComponentType @map("type")
 
-  rate                    Decimal?                @map("rate") @db.Decimal(5, 2)
-  fixedAmount             Decimal?                @map("fixed_amount") @db.Decimal(12, 2)
-  contributionType        ContributionType?       @map("contribution_type")
+  rate             Decimal?          @map("rate") @db.Decimal(5, 2)
+  fixedAmount      Decimal?          @map("fixed_amount") @db.Decimal(12, 2)
+  contributionType ContributionType? @map("contribution_type")
 
-  isActive                Boolean                 @default(true) @map("is_active")
-  displayOrder            Int                     @map("display_order")
+  isActive     Boolean @default(true) @map("is_active")
+  displayOrder Int     @map("display_order")
 
-  createdAt               DateTime                @default(now()) @map("created_at")
-  updatedAt               DateTime                @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([payrollConfigId])
   @@map("salary_components")
 }
 
 model TaxBracket {
-  id                    String                  @id @map("id") @db.Text @default(uuid())
-  payrollConfigId       String                  @map("payroll_config_id") @db.Text
-  payrollConfig         PayrollConfiguration    @relation(fields: [payrollConfigId], references: [id], onDelete: Cascade)
+  id              String               @id @default(uuid()) @map("id") @db.Text
+  payrollConfigId String               @map("payroll_config_id") @db.Text
+  payrollConfig   PayrollConfiguration @relation(fields: [payrollConfigId], references: [id], onDelete: Cascade)
 
-  minSalary             Decimal                 @map("min_salary") @db.Decimal(12, 2)
-  maxSalary             Decimal?                @map("max_salary") @db.Decimal(12, 2)
-  rate                  Decimal                 @map("rate") @db.Decimal(5, 2)
-  deductible            Decimal                 @default(0) @map("deductible") @db.Decimal(12, 2)
+  minSalary  Decimal  @map("min_salary") @db.Decimal(12, 2)
+  maxSalary  Decimal? @map("max_salary") @db.Decimal(12, 2)
+  rate       Decimal  @map("rate") @db.Decimal(5, 2)
+  deductible Decimal  @default(0) @map("deductible") @db.Decimal(12, 2)
 
-  effectiveDate         DateTime                @map("effective_date")
-  expiryDate            DateTime?               @map("expiry_date")
+  effectiveDate DateTime  @map("effective_date")
+  expiryDate    DateTime? @map("expiry_date")
 
-  createdAt             DateTime                @default(now()) @map("created_at")
-  updatedAt             DateTime                @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([payrollConfigId, effectiveDate])
   @@map("tax_brackets")
 }
 
 model AllowanceRule {
-  id                    String                  @id @map("id") @db.Text @default(uuid())
-  payrollConfigId       String                  @map("payroll_config_id") @db.Text
-  payrollConfig         PayrollConfiguration    @relation(fields: [payrollConfigId], references: [id], onDelete: Cascade)
+  id              String               @id @default(uuid()) @map("id") @db.Text
+  payrollConfigId String               @map("payroll_config_id") @db.Text
+  payrollConfig   PayrollConfiguration @relation(fields: [payrollConfigId], references: [id], onDelete: Cascade)
 
-  name                  String                  @map("name") @db.VarChar(255)
-  description           String?                 @map("description")
+  name        String  @map("name") @db.VarChar(255)
+  description String? @map("description")
 
-  minAge                Int?                    @map("min_age")
-  maxAge                Int?                    @map("max_age")
-  minSalary             Decimal?                @map("min_salary") @db.Decimal(12, 2)
-  numberOfDependents   Int?                    @map("number_of_dependents")
+  minAge             Int?     @map("min_age")
+  maxAge             Int?     @map("max_age")
+  minSalary          Decimal? @map("min_salary") @db.Decimal(12, 2)
+  numberOfDependents Int?     @map("number_of_dependents")
 
-  amount                Decimal?                @map("amount") @db.Decimal(12, 2)
-  percentageOfSalary    Decimal?                @map("percentage_of_salary") @db.Decimal(5, 2)
+  amount             Decimal? @map("amount") @db.Decimal(12, 2)
+  percentageOfSalary Decimal? @map("percentage_of_salary") @db.Decimal(5, 2)
 
-  effectiveDate         DateTime                @map("effective_date")
-  expiryDate            DateTime?               @map("expiry_date")
+  effectiveDate DateTime  @map("effective_date")
+  expiryDate    DateTime? @map("expiry_date")
 
-  isActive              Boolean                 @default(true) @map("is_active")
+  isActive Boolean @default(true) @map("is_active")
 
-  createdAt             DateTime                @default(now()) @map("created_at")
-  updatedAt             DateTime                @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([payrollConfigId, effectiveDate])
   @@map("allowance_rules")

@@ -120,27 +120,50 @@ export class AnalyticsService {
       where: { ...subsidiaryFilter, since: dateFilter },
     });
 
-    // Valeur du stock (matières premières uniquement — les services n'ont pas de stock).
-    // Le champ `price` ayant été supprimé du schéma Item, la valeur monétaire
-    // n'est pas calculable automatiquement ; on retourne 0 et on garde la catégorie.
-    const stockLevels = await this.prisma.itemStock.findMany({
-      where: {
-        ...subsidiaryFilter,
-        stock: { gt: 0 },
-      },
+    // Répartition du stock par catégorie — on charge tous les Item STOCK_PRODUCT
+    // avec leurs niveaux de stock pour la filiale ; le champ price ayant été
+    // supprimé, la valeur monétaire n'est pas calculable, on expose la quantité.
+    const stockItemsWithLevels = await this.prisma.item.findMany({
+      where: { type: 'STOCK_PRODUCT' },
       select: {
-        stock: true,
-        item: { select: { category: true } },
+        category: true,
+        stockLevels: {
+          where: subsidiaryId ? { subsidiaryId } : {},
+          select: { stock: true },
+        },
       },
     });
+
+    // Agrégation par catégorie : somme des quantités, puis fallback sur le
+    // nombre d'articles si toutes les quantités sont à 0.
+    const categoryMap = new Map<
+      string,
+      { itemCount: number; stockSum: number }
+    >();
+    for (const item of stockItemsWithLevels) {
+      const cat = item.category || 'Non catégorisé';
+      const current = categoryMap.get(cat) ?? { itemCount: 0, stockSum: 0 };
+      current.itemCount += 1;
+      current.stockSum += item.stockLevels.reduce(
+        (s, l) => s + Number(l.stock),
+        0,
+      );
+      categoryMap.set(cat, current);
+    }
+
+    const hasRealStock = [...categoryMap.values()].some((v) => v.stockSum > 0);
+    const stockByCategoryResult = [...categoryMap.entries()].map(
+      ([category, { itemCount, stockSum }]) => ({
+        category,
+        _sum: { stock: hasRealStock ? stockSum : itemCount },
+      }),
+    );
+
     const stockValue = new Prisma.Decimal(0);
 
     // Performance des ventes (agrégation par jour)
-    // Utilisation de SQL brut pour une performance optimale sur le groupement par date.
-    // Le filtre filiale est un fragment conditionnel: consolidation (TRUE) si
-    // subsidiaryId est absent (scope global sans drill-down), sinon egalite stricte.
     const subsidiarySqlFilter = subsidiaryId
-      ? Prisma.sql`"subsidiary_id" = ${subsidiaryId}::uuid`
+      ? Prisma.sql`"subsidiary_id" = ${subsidiaryId}`
       : Prisma.sql`TRUE`;
     const salesPerformance: { date: string; sales: number }[] = await this
       .prisma.$queryRaw`
@@ -156,52 +179,13 @@ export class AnalyticsService {
       ORDER BY date ASC;
     `;
 
-    // Répartition du stock par catégorie (quantité + valeur monétaire) — la
-    // catégorie vit sur Item, pas ItemStock, donc pas de groupBy Prisma direct
-    // possible ici : agrégation manuelle sur les niveaux de stock déjà chargés.
-    const categoryTotals = new Map<
-      string,
-      { stockSum: Prisma.Decimal; valueSum: Prisma.Decimal }
-    >();
-    for (const s of stockLevels) {
-      const category = s.item.category || 'Non catégorisé';
-      const entry = categoryTotals.get(category) ?? {
-        stockSum: new Prisma.Decimal(0),
-        valueSum: new Prisma.Decimal(0),
-      };
-      entry.stockSum = entry.stockSum.add(s.stock);
-      // price supprimé du schéma — valeur monétaire non calculable
-      entry.valueSum = entry.valueSum.add(new Prisma.Decimal(0));
-      categoryTotals.set(category, entry);
-    }
-
-    const stockByCategoryResult = [...categoryTotals.entries()].map(
-      ([category, { stockSum }]) => ({
-        category,
-        _sum: { stock: stockSum },
-      }),
-    );
-
-    const stockDistribution = [...categoryTotals.entries()].reduce(
-      (acc, [category, { valueSum }]) => {
-        acc[category] = valueSum;
-        return acc;
-      },
-      {} as Record<string, Prisma.Decimal>,
-    );
-
     return {
       totalSales: totalSales.toNumber(),
       netRevenue: netRevenue.toNumber(),
       newCustomers: newCustomersCount,
       stockValue: stockValue.toNumber(),
       salesPerformance,
-      stockDistribution: Object.fromEntries(
-        Object.entries(stockDistribution).map(([key, value]) => [
-          key,
-          value.toNumber(),
-        ]),
-      ),
+      stockDistribution: {},
       stockByCategory: stockByCategoryResult,
     };
   }
@@ -266,7 +250,7 @@ export class AnalyticsService {
     // Le catalogue de services étant désormais global (sans filiale), le filtre filiale
     // porte uniquement sur `s.subsidiary_id` — la jointure ne peut plus filtrer sur `p.subsidiary_id`.
     const subsidiarySqlFilter = subsidiaryId
-      ? Prisma.sql`s.subsidiary_id = ${subsidiaryId}::uuid`
+      ? Prisma.sql`s.subsidiary_id = ${subsidiaryId}`
       : Prisma.sql`TRUE`;
     const salesByCategory: { category: string; total: number }[] = await this
       .prisma.$queryRaw`

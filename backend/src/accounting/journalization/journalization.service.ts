@@ -1,17 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from 'src/common/utils/prisma/prisma.service';
-import {
-  JournalEntryStatus,
-  AccountType,
-  ExpenseCategory,
-  Prisma,
-} from '@prisma/client';
-import { AccountsService } from '../accounts/accounts.service';
-import { JournalsService } from '../journals/journals.service';
+import { Injectable } from '@nestjs/common';
+import { AccountType, ExpenseCategory } from '@prisma/client';
+import { EntriesService } from '../entries/entries.service';
 import { PeriodsService } from '../periods/periods.service';
+import { MappingsService } from '../accounts/mappings.service';
 
-import { generateId } from 'src/common/utils/generate-id.util';
-import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 // TVA UEMOA standard (18%) et IS (30%)
 export const TVA_RATE = 0.18;
 export const IS_RATE = 0.3;
@@ -39,143 +31,100 @@ export interface JournalizationContext {
   withTva?: boolean; // inclure TVA dans l'écriture
 }
 
+interface BuiltLine {
+  accountNumber: string;
+  description: string;
+  debitAmount: number;
+  creditAmount: number;
+}
+
 // Mapping des catégories de dépenses → numéros de comptes SYSCOHADA
 const EXPENSE_CATEGORY_ACCOUNT: Record<string, string> = {
-  RENT: '613',
-  SALARIES: '641',
-  ADVERTISING: '627',
-  TRANSPORT: '624',
-  SERVICES: '628',
-  INSURANCE: '631',
-  PURCHASE_COST: '601',
-  COMMISSIONS: '628',
-  PACKAGING: '604',
-  TRANSACTION_FEES: '628',
-  OTHER: '659',
+  RENT: '613000',
+  SALARIES: '641000',
+  ADVERTISING: '627000',
+  TRANSPORT: '624000',
+  SERVICES: '628000',
+  INSURANCE: '631000',
+  PURCHASE_COST: '601000',
+  COMMISSIONS: '628000',
+  PACKAGING: '604000',
+  TRANSACTION_FEES: '628000',
+  OTHER: '659000',
 };
 
+/**
+ * Point d'entrée pour la génération automatique d'écritures depuis les domaines
+ * métier (trésorerie, ventes, achats, dettes, immobilisations). Construit les
+ * lignes débit/crédit puis délègue TOUJOURS à `EntriesService.createAutomaticEntry`
+ * — jamais d'écriture directe en base ici, pour garder un point d'entrée unique
+ * (voir Doc/module-comptabilite-plan-implementation.md §2.2/§2.7).
+ */
 @Injectable()
 export class JournalizationService {
-  private readonly logger = new Logger(JournalizationService.name);
-
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly accountsService: AccountsService,
-    private readonly journalsService: JournalsService,
+    private readonly entriesService: EntriesService,
     private readonly periodsService: PeriodsService,
+    private readonly mappingsService: MappingsService,
   ) {}
 
   /**
-   * Point d'entrée unique. Crée une écriture comptable DRAFT en partie double
-   * pour n'importe quelle opération financière.
-   * Silencieux en cas d'erreur pour ne pas bloquer l'opération source.
+   * Point d'entrée unique. Construit et crée l'écriture comptable pour une
+   * opération financière donnée. Propage toute erreur — l'appelant est
+   * `AccountingOutboxProcessor` (retry borné + dead-letter après 5 tentatives,
+   * voir Doc/module-comptabilite-plan-implementation.md §2.3), donc rien ne
+   * doit être avalé silencieusement ici.
    */
   async journalize(ctx: JournalizationContext): Promise<void> {
-    try {
-      await this.doJournalize(ctx);
-    } catch (err) {
-      this.logger.error(
-        `Journalisation échouée pour ${ctx.sourceType}/${ctx.sourceId}: ${err.message}`,
-        err.stack,
-      );
-    }
-  }
+    const { subsidiaryId, operationDate, description, sourceType, sourceId } =
+      ctx;
 
-  private async doJournalize(ctx: JournalizationContext): Promise<void> {
-    const {
-      subsidiaryId,
-      userId,
-      operationDate,
-      amount,
-      description,
-      sourceType,
-      sourceId,
-    } = ctx;
+    // S'assure qu'un exercice existe pour l'année courante (convenience —
+    // n'empêche pas de travailler sur des exercices personnalisés créés à la
+    // main ; EntriesService résout de toute façon la bonne période par date).
+    await this.periodsService.getOrCreateCurrentFiscalYear(subsidiaryId);
 
-    // 1. Récupérer (ou créer) l'exercice fiscal courant
-    const fiscalYear = await this.periodsService.getOrCreateCurrentFiscalYear(
-      subsidiaryId,
-      userId,
-    );
-
-    // 2. Construire les lignes débit/crédit selon le type d'opération
-    const { journalCode, lines } = await this.buildLines(ctx);
-
+    const mappings = await this.mappingsService.getMap();
+    const { journalCode, lines } = this.buildLines(ctx, mappings);
     if (!lines || lines.length === 0) return;
 
-    // 3. Récupérer le journal concerné
-    const journal = await this.journalsService.findByCode(
+    await this.entriesService.createAutomaticEntry({
+      date: operationDate,
+      reference: `${sourceType}-${sourceId}`,
+      description,
       journalCode,
       subsidiaryId,
-    );
-
-    // 4. Numéro d'écriture séquentiel
-    const entryNumber = await this.generateEntryNumber(
-      subsidiaryId,
-      journalCode,
-    );
-
-    const totalDebit = lines.reduce((s, l) => s + l.debitAmount, 0);
-
-    await this.prisma.journalEntry.create({
-      data: {
-        id: generateId(ID_PREFIXES.JOURNALENTRY),
-        entryNumber,
-        entryDate: operationDate,
-        description,
-        status: JournalEntryStatus.DRAFT,
-        totalAmount: new Prisma.Decimal(totalDebit),
-        fiscalYearId: fiscalYear.id,
-        subsidiaryId,
-        createdBy: userId,
-        journalId: journal.id,
-        sourceType,
-        sourceId,
-        lines: {
-          create: lines.map((l) => ({
-            id: generateId(ID_PREFIXES.JOURNALENTRYLINE),
-            accountId: l.accountId,
-            description: l.description,
-            debitAmount: new Prisma.Decimal(l.debitAmount),
-            creditAmount: new Prisma.Decimal(l.creditAmount),
-            balance: new Prisma.Decimal(l.debitAmount - l.creditAmount),
-          })),
-        },
-      },
+      sourceType,
+      sourceId,
+      lines,
     });
   }
 
-  private async buildLines(ctx: JournalizationContext) {
-    const {
-      subsidiaryId,
-      amount,
-      sourceType,
-      accountType,
-      expenseCategory,
-      withTva,
-    } = ctx;
+  private buildLines(
+    ctx: JournalizationContext,
+    mappings: Record<string, string>,
+  ): { journalCode: string; lines: BuiltLine[] } {
+    const { amount, sourceType, accountType, expenseCategory, withTva } = ctx;
 
-    const acc = (num: string) => this.getAccountId(num, subsidiaryId);
-    const treasuryAccount = accountType === AccountType.CAISSE ? '571' : '521';
+    const treasuryAccount =
+      accountType === AccountType.CAISSE
+        ? mappings['CASH_ACCOUNT'] || '571000'
+        : mappings['BANK_ACCOUNT'] || '521000';
 
     switch (sourceType) {
       // ── RECETTE TRÉSORERIE ──────────────────────────────────────────
       case 'TREASURY_INCOME': {
-        const [debitId, creditId] = await Promise.all([
-          acc(treasuryAccount),
-          acc('411'),
-        ]);
         return {
-          journalCode: 'JB',
+          journalCode: accountType === AccountType.CAISSE ? 'JC' : 'JB',
           lines: [
             {
-              accountId: debitId,
+              accountNumber: treasuryAccount,
               description: 'Encaissement',
               debitAmount: amount,
               creditAmount: 0,
             },
             {
-              accountId: creditId,
+              accountNumber: mappings['SALES_CLIENT'] || '411000',
               description: 'Client',
               debitAmount: 0,
               creditAmount: amount,
@@ -187,65 +136,59 @@ export class JournalizationService {
       // ── DÉPENSE TRÉSORERIE ──────────────────────────────────────────
       case 'TREASURY_EXPENSE': {
         const chargeNum =
-          EXPENSE_CATEGORY_ACCOUNT[expenseCategory ?? 'OTHER'] ?? '659';
+          EXPENSE_CATEGORY_ACCOUNT[expenseCategory ?? 'OTHER'] ?? '659000';
         const amountHT = withTva ? amount / (1 + TVA_RATE) : amount;
         const tvaAmount = withTva ? amount - amountHT : 0;
 
-        const linePromises = [acc(chargeNum), acc(treasuryAccount)];
-        if (withTva) linePromises.push(acc('4451'));
-        const [chargeId, treasuryId, tvaId] = await Promise.all(linePromises);
-
-        const lines: any[] = [
+        const lines: BuiltLine[] = [
           {
-            accountId: chargeId,
+            accountNumber: chargeNum,
             description: 'Charge',
             debitAmount: amountHT,
             creditAmount: 0,
           },
           {
-            accountId: treasuryId,
+            accountNumber: treasuryAccount,
             description: 'Règlement',
             debitAmount: 0,
             creditAmount: amount,
           },
         ];
-        if (withTva && tvaId) {
+        if (withTva) {
           lines.splice(1, 0, {
-            accountId: tvaId,
+            accountNumber: mappings['TVA_DEDUCTIBLE_ACHAT'] || '445100',
             description: 'TVA déductible 18%',
             debitAmount: tvaAmount,
             creditAmount: 0,
           });
         }
-        return { journalCode: 'JB', lines };
+        return {
+          journalCode: accountType === AccountType.CAISSE ? 'JC' : 'JB',
+          lines,
+        };
       }
 
       // ── VENTE CLIENT (PAYÉE) ────────────────────────────────────────
       case 'SALE_PAID': {
         const amountHT = amount / (1 + TVA_RATE);
         const tvaAmount = amount - amountHT;
-        const [clientId, venteId, tvaId] = await Promise.all([
-          acc('411'),
-          acc('706'),
-          acc('4431'),
-        ]);
         return {
           journalCode: 'JV',
           lines: [
             {
-              accountId: clientId,
+              accountNumber: mappings['SALES_CLIENT'] || '411000',
               description: 'Vente client',
               debitAmount: amount,
               creditAmount: 0,
             },
             {
-              accountId: venteId,
+              accountNumber: mappings['SALES_REVENUE'] || '706000',
               description: 'Produit HT',
               debitAmount: 0,
               creditAmount: amountHT,
             },
             {
-              accountId: tvaId,
+              accountNumber: mappings['TVA_COLLECTEE'] || '443100',
               description: 'TVA collectée 18%',
               debitAmount: 0,
               creditAmount: tvaAmount,
@@ -257,31 +200,26 @@ export class JournalizationService {
       // ── DÉPENSE OPÉRATIONNELLE (ExpenseRecord) ──────────────────────
       case 'EXPENSE_RECORD': {
         const chargeNum =
-          EXPENSE_CATEGORY_ACCOUNT[expenseCategory ?? 'OTHER'] ?? '659';
+          EXPENSE_CATEGORY_ACCOUNT[expenseCategory ?? 'OTHER'] ?? '659000';
         const amountHT = amount / (1 + TVA_RATE);
         const tvaAmount = amount - amountHT;
-        const [chargeId, fournId, tvaId] = await Promise.all([
-          acc(chargeNum),
-          acc('401'),
-          acc('4452'),
-        ]);
         return {
           journalCode: 'JOD',
           lines: [
             {
-              accountId: chargeId,
+              accountNumber: chargeNum,
               description: 'Charge enregistrée',
               debitAmount: amountHT,
               creditAmount: 0,
             },
             {
-              accountId: tvaId,
+              accountNumber: mappings['TVA_DEDUCTIBLE_ACHAT'] || '445200',
               description: 'TVA déductible 18%',
               debitAmount: tvaAmount,
               creditAmount: 0,
             },
             {
-              accountId: fournId,
+              accountNumber: mappings['PURCHASE_SUPPLIER'] || '401000',
               description: 'Fournisseur ou caisse',
               debitAmount: 0,
               creditAmount: amount,
@@ -292,21 +230,17 @@ export class JournalizationService {
 
       // ── PAIEMENT DETTE FOURNISSEUR ──────────────────────────────────
       case 'SUPPLIER_DEBT_PAYMENT': {
-        const [fournId, treasuryId] = await Promise.all([
-          acc('401'),
-          acc(treasuryAccount),
-        ]);
         return {
           journalCode: 'JA',
           lines: [
             {
-              accountId: fournId,
+              accountNumber: mappings['PURCHASE_SUPPLIER'] || '401000',
               description: 'Apurement dette fournisseur',
               debitAmount: amount,
               creditAmount: 0,
             },
             {
-              accountId: treasuryId,
+              accountNumber: treasuryAccount,
               description: 'Règlement',
               debitAmount: 0,
               creditAmount: amount,
@@ -317,18 +251,17 @@ export class JournalizationService {
 
       // ── RÉCEPTION EMPRUNT LONG TERME ────────────────────────────────
       case 'LONG_TERM_DEBT_RECEIPT': {
-        const [bankId, empruntId] = await Promise.all([acc('521'), acc('162')]);
         return {
           journalCode: 'JB',
           lines: [
             {
-              accountId: bankId,
+              accountNumber: mappings['BANK_ACCOUNT'] || '521000',
               description: 'Réception emprunt',
               debitAmount: amount,
               creditAmount: 0,
             },
             {
-              accountId: empruntId,
+              accountNumber: mappings['LONG_TERM_DEBT'] || '162000',
               description: 'Emprunt LT',
               debitAmount: 0,
               creditAmount: amount,
@@ -339,18 +272,17 @@ export class JournalizationService {
 
       // ── ACQUISITION IMMOBILISATION ──────────────────────────────────
       case 'FIXED_ASSET_ACQUISITION': {
-        const [immoId, bankId] = await Promise.all([acc('215'), acc('521')]);
         return {
           journalCode: 'JOD',
           lines: [
             {
-              accountId: immoId,
+              accountNumber: mappings['FIXED_ASSET'] || '215000',
               description: 'Acquisition immobilisation',
               debitAmount: amount,
               creditAmount: 0,
             },
             {
-              accountId: bankId,
+              accountNumber: mappings['BANK_ACCOUNT'] || '521000',
               description: 'Règlement',
               debitAmount: 0,
               creditAmount: amount,
@@ -362,33 +294,5 @@ export class JournalizationService {
       default:
         return { journalCode: 'JOD', lines: [] };
     }
-  }
-
-  private async getAccountId(
-    accountNumber: string,
-    subsidiaryId: string,
-  ): Promise<string> {
-    const account = await this.accountsService.findByNumber(
-      accountNumber,
-      subsidiaryId,
-    );
-    if (!account) {
-      throw new Error(
-        `Compte SYSCOHADA "${accountNumber}" introuvable pour la filiale ${subsidiaryId}. ` +
-          `Lancez le seed du plan comptable via POST /accounting/accounts/seed.`,
-      );
-    }
-    return account.id;
-  }
-
-  private async generateEntryNumber(
-    subsidiaryId: string,
-    journalCode: string,
-  ): Promise<string> {
-    const year = new Date().getFullYear();
-    const count = await this.prisma.journalEntry.count({
-      where: { subsidiaryId, sourceType: { not: null } },
-    });
-    return `${journalCode}-${year}-${String(count + 1).padStart(6, '0')}`;
   }
 }

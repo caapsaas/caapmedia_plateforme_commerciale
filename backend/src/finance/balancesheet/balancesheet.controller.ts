@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Query,
-  Req,
-  UseGuards,
-  SetMetadata,
-} from '@nestjs/common';
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import { BalancesheetService } from './balancesheet.service';
 import { BalanceSheetDto } from './dto/balance-sheet.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
@@ -70,15 +63,22 @@ export class BalancesheetController {
   /**
    * Endpoint pour récupérer les créances clients
    * GET /finances-stats/customer-receivables?subsidiaryId=xxx
+   *
+   * Réponse enveloppée dans `{ totalReceivables }` pour matcher le contrat
+   * attendu par le frontend (Frontend/services/apiStatistic/apiFinanceStats.ts)
+   * — avant ce correctif, cette route renvoyait un nombre brut alors que
+   * CreditManagement.tsx lisait `response.totalReceivables` (toujours undefined).
    */
   @Get('customer-receivables')
   async getCustomerReceivables(
     @Req() req: { user: ScopableUser },
     @Query('subsidiaryId') subsidiaryId?: string,
-  ): Promise<number> {
-    return this.balancesheetService.getCustomerReceivables(
-      this.resolveSubsidiaryId(req, subsidiaryId),
-    );
+  ): Promise<{ totalReceivables: number }> {
+    const totalReceivables =
+      await this.balancesheetService.getCustomerReceivables(
+        this.resolveSubsidiaryId(req, subsidiaryId),
+      );
+    return { totalReceivables };
   }
 
   /**
@@ -86,13 +86,8 @@ export class BalancesheetController {
    * GET /finances-stats/inventory?subsidiaryId=xxx
    */
   @Get('inventory')
-  async getInventoryValue(
-    @Req() req: { user: ScopableUser },
-    @Query('subsidiaryId') subsidiaryId?: string,
-  ): Promise<number> {
-    return this.balancesheetService.getInventoryValue(
-      this.resolveSubsidiaryId(req, subsidiaryId),
-    );
+  getInventoryValue(): number {
+    return this.balancesheetService.getInventoryValue();
   }
 
   /**
@@ -126,15 +121,19 @@ export class BalancesheetController {
   /**
    * Endpoint pour récupérer les dettes fournisseurs
    * GET /finances-stats/supplier-debts?subsidiaryId=xxx
+   *
+   * Réponse enveloppée dans `{ totalDebts }`, voir le commentaire sur
+   * `getCustomerReceivables` ci-dessus pour la raison.
    */
   @Get('supplier-debts')
   async getSupplierDebts(
     @Req() req: { user: ScopableUser },
     @Query('subsidiaryId') subsidiaryId?: string,
-  ): Promise<number> {
-    return this.balancesheetService.getSupplierDebts(
+  ): Promise<{ totalDebts: number }> {
+    const totalDebts = await this.balancesheetService.getSupplierDebts(
       this.resolveSubsidiaryId(req, subsidiaryId),
     );
+    return { totalDebts };
   }
 
   /**

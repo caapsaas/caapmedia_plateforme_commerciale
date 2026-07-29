@@ -12,6 +12,11 @@ import {
 import { User } from '@prisma/client';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import {
+  resolveScopeContext,
+  withSubsidiaryScope,
+  assertSubsidiaryAccess,
+} from 'src/common/utils/subsidiary-scope';
 
 @Injectable()
 export class SuppliersService {
@@ -49,13 +54,16 @@ export class SuppliersService {
   }
 
   /**
-   * Methode pour recuperer tout les fournisseurs d'une filiale
+   * Methode pour recuperer les fournisseurs : vue globale (toutes filiales)
+   * pour SUPER_ADMIN, scope filiale sinon. `subsidiaryId` permet un
+   * drill-down explicite depuis une vue consolidee.
    * @param user Utilisateur connecte
-   * @returns Tout les fournisseurs d'une filiale
+   * @returns Les fournisseurs visibles par l'utilisateur
    */
-  async findAll(user: User) {
+  async findAll(user: User, subsidiaryId?: string) {
+    const ctx = resolveScopeContext(user);
     return this.prisma.supplier.findMany({
-      where: { subsidiaryId: user.subsidiaryId },
+      where: withSubsidiaryScope({}, ctx, subsidiaryId),
       orderBy: { supplierName: 'asc' },
     });
   }
@@ -71,9 +79,10 @@ export class SuppliersService {
       where: { id },
     });
 
-    if (!supplier || supplier.subsidiaryId !== user.subsidiaryId) {
+    if (!supplier) {
       throw new NotFoundException(`Fournisseur avec l'ID "${id}" non trouvé.`);
     }
+    assertSubsidiaryAccess(supplier.subsidiaryId, resolveScopeContext(user));
     return supplier;
   }
 

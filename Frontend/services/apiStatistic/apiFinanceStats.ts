@@ -41,10 +41,14 @@ export interface BalanceSheet {
     totalAssets: number;
     liabilities: {
         supplierDebts: number;
-        shareCapital: number;
-        netIncome: number;
+        longTermDebts: number;
     };
     totalLiabilities: number;
+    equity: {
+        shareCapital: number;
+        retainedEarnings: number;
+    };
+    totalEquity: number;
 }
 
 /**

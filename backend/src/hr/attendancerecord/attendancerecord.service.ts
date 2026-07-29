@@ -8,6 +8,30 @@ import { AttendanceRecord, AttendanceStatus } from '@prisma/client';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
+interface CreateAttendanceFromScanPayload {
+  employeeId: string;
+  subsidiaryId: string;
+  employeeName: string;
+  attendanceDate: Date;
+  arrivalTime: Date;
+  status: AttendanceStatus;
+  qrCodeToken?: string;
+  arrivalLatitude?: number;
+  arrivalLongitude?: number;
+  accuracyMeters?: number;
+  isGeolocationValid?: boolean;
+}
+
+interface CompleteAttendanceFromScanPayload {
+  recordId: string;
+  departureTime: Date;
+  status: AttendanceStatus;
+  departureLatitude?: number;
+  departureLongitude?: number;
+  accuracyMeters?: number;
+  isGeolocationValid?: boolean;
+}
+
 @Injectable()
 export class AttendanceRecordService {
   private readonly logger = new Logger(AttendanceRecordService.name);

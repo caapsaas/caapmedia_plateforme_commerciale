@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   UseGuards,
   Req,
+  Query,
   SetMetadata,
 } from '@nestjs/common';
 import { SuppliersService } from './suppliers.service';
@@ -37,13 +38,14 @@ export class SuppliersController {
   }
 
   /**
-   * EndPoint pour recuperer tout les fournisseurs d'une filiale
+   * EndPoint pour recuperer les fournisseurs (toutes filiales pour SUPER_ADMIN,
+   * scope filiale sinon - drill-down possible via ?subsidiaryId=)
    * Exemple d'url: /purchasing/suppliers
    */
   @Get()
   @Roles(UserRole.ADMIN)
-  findAll(@Req() req) {
-    return this.suppliersService.findAll(req.user);
+  findAll(@Req() req, @Query('subsidiaryId') subsidiaryId?: string) {
+    return this.suppliersService.findAll(req.user, subsidiaryId);
   }
 
   /**

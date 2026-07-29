@@ -6,6 +6,8 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateUnitDto, UpdateUnitDto } from './dto/unit.dto';
+import { generateId } from 'src/common/utils/generate-id.util';
+import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
 // Référentiel d'unités de mesure (Chantier 2) — administrable, partagé par
 // tous les produits de stock (unité de base + unités d'emballage/achat).
@@ -26,7 +28,9 @@ export class UnitsService {
   }
 
   create(dto: CreateUnitDto) {
-    return this.prisma.unit.create({ data: dto });
+    return this.prisma.unit.create({
+      data: { id: generateId(ID_PREFIXES.UNIT), ...dto },
+    });
   }
 
   async update(id: string, dto: UpdateUnitDto) {

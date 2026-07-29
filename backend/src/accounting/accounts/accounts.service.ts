@@ -2,10 +2,10 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
-import { AccountingAccountType, Prisma } from '@prisma/client';
-import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
+import { AccountingAccountType } from '@prisma/client';
 
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
@@ -13,99 +13,302 @@ export interface CreateAccountDto {
   accountNumber: string;
   accountName: string;
   accountType: AccountingAccountType;
+  class?: number;
   parentAccountId?: string;
 }
 
-// Plan comptable SYSCOHADA révisé — comptes clés utilisés par la journalisation automatique
+// Plan comptable SYSCOHADA révisé — codes à 6 chiffres (parité de nomenclature
+// avec la référence gmo), comptes clés utilisés par la journalisation automatique.
+// Référentiel GLOBAL (pas par filiale) : une seule entité légale à succursales.
+// NB : les rapports (reports.service.ts, balancesheet.service.ts) agrègent par
+// PRÉFIXE de compte (startsWith) — chaque code ci-dessous conserve le même
+// préfixe que son ancien équivalent court pour ne rien casser (ex : 101 → 101000,
+// 4431 → 443100, 601 → 601000). Ne pas changer un préfixe sans vérifier
+// getAccountBalanceByPrefix() dans accounting-balance.service.ts et ses appelants.
 export const SYSCOHADA_SEED_ACCOUNTS = [
   // CLASSE 1 — CAPITAUX
-  { num: '101', name: 'Capital social', type: 'EQUITY' },
-  { num: '111', name: 'Réserve légale', type: 'EQUITY' },
-  { num: '120', name: "Résultat net de l'exercice", type: 'EQUITY' },
+  { num: '101000', name: 'Capital social', type: 'EQUITY', class: 1 },
+  { num: '110000', name: 'Report à nouveau', type: 'EQUITY', class: 1 },
+  { num: '111000', name: 'Réserve légale', type: 'EQUITY', class: 1 },
+  { num: '120000', name: "Résultat net de l'exercice", type: 'EQUITY', class: 1 },
   {
-    num: '162',
+    num: '162000',
     name: 'Emprunts auprès des établissements de crédit',
     type: 'LIABILITY',
+    class: 1,
   },
-  { num: '163', name: 'Autres emprunts à long terme', type: 'LIABILITY' },
-  // CLASSE 2 — IMMOBILISATIONS
-  { num: '211', name: 'Terrains', type: 'ASSET' },
-  { num: '215', name: 'Matériel et outillage', type: 'ASSET' },
-  { num: '218', name: 'Autres immobilisations corporelles', type: 'ASSET' },
-  { num: '221', name: 'Brevets, licences, logiciels', type: 'ASSET' },
-  { num: '281', name: 'Amortissements des immobilisations', type: 'ASSET' },
-  // CLASSE 3 — STOCKS
-  { num: '31', name: 'Stocks de marchandises', type: 'ASSET' },
-  { num: '32', name: 'Stocks de matières premières', type: 'ASSET' },
-  // CLASSE 4 — TIERS
-  { num: '401', name: 'Fournisseurs', type: 'LIABILITY' },
   {
-    num: '408',
+    num: '163000',
+    name: 'Autres emprunts à long terme',
+    type: 'LIABILITY',
+    class: 1,
+  },
+  // CLASSE 2 — IMMOBILISATIONS
+  { num: '211000', name: 'Terrains', type: 'ASSET', class: 2 },
+  { num: '215000', name: 'Matériel et outillage', type: 'ASSET', class: 2 },
+  {
+    num: '218000',
+    name: 'Autres immobilisations corporelles',
+    type: 'ASSET',
+    class: 2,
+  },
+  { num: '221000', name: 'Brevets, licences, logiciels', type: 'ASSET', class: 2 },
+  {
+    num: '281000',
+    name: 'Amortissements des immobilisations',
+    type: 'ASSET',
+    class: 2,
+  },
+  // CLASSE 3 — STOCKS
+  { num: '310000', name: 'Stocks de marchandises', type: 'ASSET', class: 3 },
+  { num: '320000', name: 'Stocks de matières premières', type: 'ASSET', class: 3 },
+  // CLASSE 4 — TIERS
+  { num: '401000', name: 'Fournisseurs', type: 'LIABILITY', class: 4 },
+  {
+    num: '408000',
     name: 'Fournisseurs — Factures non parvenues',
     type: 'LIABILITY',
+    class: 4,
   },
-  { num: '411', name: 'Clients', type: 'ASSET' },
-  { num: '418', name: 'Clients — Produits à recevoir', type: 'ASSET' },
-  { num: '421', name: 'Personnel — Rémunérations dues', type: 'LIABILITY' },
-  { num: '431', name: 'Sécurité sociale — Cotisations', type: 'LIABILITY' },
-  { num: '4431', name: 'TVA collectée (18%)', type: 'LIABILITY' },
-  { num: '4451', name: 'TVA déductible sur achats', type: 'ASSET' },
-  { num: '4452', name: 'TVA déductible sur services', type: 'ASSET' },
-  { num: '447', name: 'Impôt sur les sociétés (IS)', type: 'LIABILITY' },
-  { num: '471', name: "Produits constatés d'avance", type: 'LIABILITY' },
-  { num: '481', name: "Charges constatées d'avance", type: 'ASSET' },
-  // CLASSE 5 — TRÉSORERIE
-  { num: '521', name: 'Banques comptes courants', type: 'ASSET' },
-  { num: '522', name: 'Banques — Découverts', type: 'LIABILITY' },
-  { num: '571', name: 'Caisse', type: 'ASSET' },
-  { num: '581', name: 'Virements internes', type: 'ASSET' },
-  // CLASSE 6 — CHARGES
-  { num: '601', name: 'Achats de marchandises', type: 'EXPENSE' },
-  { num: '602', name: 'Achats de matières premières', type: 'EXPENSE' },
-  { num: '604', name: "Achats d'emballages", type: 'EXPENSE' },
-  { num: '606', name: 'Achats de fournitures de bureau', type: 'EXPENSE' },
-  { num: '613', name: 'Locations et charges locatives', type: 'EXPENSE' },
-  { num: '614', name: 'Charges locatives et de copropriété', type: 'EXPENSE' },
-  { num: '621', name: 'Personnel extérieur', type: 'EXPENSE' },
+  { num: '411000', name: 'Clients', type: 'ASSET', class: 4 },
+  { num: '411300', name: 'Clients divers', type: 'ASSET', class: 4 },
   {
-    num: '624',
+    num: '418000',
+    name: 'Clients — Produits à recevoir',
+    type: 'ASSET',
+    class: 4,
+  },
+  {
+    num: '421000',
+    name: 'Personnel — Rémunérations dues',
+    type: 'LIABILITY',
+    class: 4,
+  },
+  {
+    num: '425000',
+    name: 'Personnel — Avances et acomptes',
+    type: 'ASSET',
+    class: 4,
+  },
+  {
+    num: '431000',
+    name: 'Sécurité sociale — Cotisations (CNSS)',
+    type: 'LIABILITY',
+    class: 4,
+  },
+  {
+    num: '462000',
+    name: "Créances sur cessions d'immobilisations",
+    type: 'ASSET',
+    class: 4,
+  },
+  { num: '443100', name: 'TVA collectée (18%)', type: 'LIABILITY', class: 4 },
+  { num: '445100', name: 'TVA déductible sur achats', type: 'ASSET', class: 4 },
+  { num: '445200', name: 'TVA déductible sur services', type: 'ASSET', class: 4 },
+  {
+    num: '446000',
+    name: 'État — Autres impôts sur chiffre d\'affaires (BIC)',
+    type: 'LIABILITY',
+    class: 4,
+  },
+  {
+    num: '447000',
+    name: 'Impôt sur les sociétés (IS)',
+    type: 'LIABILITY',
+    class: 4,
+  },
+  {
+    num: '447100',
+    name: "État — IUTS (impôt sur salaires) à verser",
+    type: 'LIABILITY',
+    class: 4,
+  },
+  {
+    num: '447300',
+    name: 'État — TPA à verser',
+    type: 'LIABILITY',
+    class: 4,
+  },
+  {
+    num: '447500',
+    name: 'État — TVA retenue à la source',
+    type: 'LIABILITY',
+    class: 4,
+  },
+  {
+    num: '447800',
+    name: 'État — Autres retenues sur salaires à verser',
+    type: 'LIABILITY',
+    class: 4,
+  },
+  {
+    num: '471000',
+    name: "Produits constatés d'avance",
+    type: 'LIABILITY',
+    class: 4,
+  },
+  { num: '481000', name: "Charges constatées d'avance", type: 'ASSET', class: 4 },
+  // CLASSE 5 — TRÉSORERIE
+  { num: '521000', name: 'Banques comptes courants', type: 'ASSET', class: 5 },
+  { num: '522000', name: 'Banques — Découverts', type: 'LIABILITY', class: 5 },
+  { num: '571000', name: 'Caisse', type: 'ASSET', class: 5 },
+  { num: '571100', name: 'Caisse — boîte de dépense', type: 'ASSET', class: 5 },
+  { num: '571200', name: 'Caisse — coffre-fort', type: 'ASSET', class: 5 },
+  { num: '581000', name: 'Virements internes', type: 'ASSET', class: 5 },
+  // CLASSE 6 — CHARGES
+  { num: '601000', name: 'Achats de marchandises', type: 'EXPENSE', class: 6 },
+  {
+    num: '602000',
+    name: 'Achats de matières premières',
+    type: 'EXPENSE',
+    class: 6,
+  },
+  { num: '603000', name: 'Variation de stocks de marchandises', type: 'EXPENSE', class: 6 },
+  { num: '604000', name: "Achats d'emballages", type: 'EXPENSE', class: 6 },
+  {
+    num: '605200',
+    name: 'Eau, électricité et factures diverses',
+    type: 'EXPENSE',
+    class: 6,
+  },
+  {
+    num: '606000',
+    name: 'Achats de fournitures de bureau',
+    type: 'EXPENSE',
+    class: 6,
+  },
+  {
+    num: '611000',
+    name: 'Transport — collecte fournisseur',
+    type: 'EXPENSE',
+    class: 6,
+  },
+  {
+    num: '612000',
+    name: 'Transport — livraison client',
+    type: 'EXPENSE',
+    class: 6,
+  },
+  {
+    num: '613000',
+    name: 'Locations et charges locatives',
+    type: 'EXPENSE',
+    class: 6,
+  },
+  {
+    num: '614000',
+    name: 'Charges locatives et de copropriété',
+    type: 'EXPENSE',
+    class: 6,
+  },
+  { num: '621000', name: 'Personnel extérieur', type: 'EXPENSE', class: 6 },
+  {
+    num: '624000',
     name: 'Transport de marchandises et déplacements',
     type: 'EXPENSE',
+    class: 6,
   },
-  { num: '625', name: 'Déplacements, missions et réceptions', type: 'EXPENSE' },
   {
-    num: '627',
+    num: '625000',
+    name: 'Déplacements, missions et réceptions',
+    type: 'EXPENSE',
+    class: 6,
+  },
+  {
+    num: '627000',
     name: 'Publicité, publication, relations publiques',
     type: 'EXPENSE',
+    class: 6,
   },
-  { num: '628', name: 'Divers frais et charges', type: 'EXPENSE' },
-  { num: '631', name: 'Impôts et taxes (hors IS)', type: 'EXPENSE' },
-  { num: '641', name: 'Appointements et salaires', type: 'EXPENSE' },
-  { num: '644', name: 'Primes et gratifications', type: 'EXPENSE' },
-  { num: '645', name: 'Indemnités et avantages divers', type: 'EXPENSE' },
-  { num: '646', name: 'Cotisations aux organismes sociaux', type: 'EXPENSE' },
-  { num: '651', name: 'Pertes sur créances irrécouvrables', type: 'EXPENSE' },
-  { num: '659', name: 'Charges diverses', type: 'EXPENSE' },
-  { num: '661', name: 'Intérêts sur emprunts', type: 'EXPENSE' },
   {
-    num: '671',
+    num: '627200',
+    name: 'Frais de marketing',
+    type: 'EXPENSE',
+    class: 6,
+  },
+  { num: '628000', name: 'Divers frais et charges', type: 'EXPENSE', class: 6 },
+  { num: '631000', name: 'Impôts et taxes (hors IS)', type: 'EXPENSE', class: 6 },
+  { num: '638000', name: 'Expressions de besoin', type: 'EXPENSE', class: 6 },
+  { num: '641000', name: 'Appointements et salaires', type: 'EXPENSE', class: 6 },
+  { num: '641400', name: 'TPA (taxe sur salaires)', type: 'EXPENSE', class: 6 },
+  { num: '644000', name: 'Primes et gratifications', type: 'EXPENSE', class: 6 },
+  {
+    num: '645000',
+    name: 'Indemnités et avantages divers',
+    type: 'EXPENSE',
+    class: 6,
+  },
+  {
+    num: '646000',
+    name: 'Cotisations aux organismes sociaux',
+    type: 'EXPENSE',
+    class: 6,
+  },
+  {
+    num: '651000',
+    name: 'Pertes sur créances irrécouvrables',
+    type: 'EXPENSE',
+    class: 6,
+  },
+  {
+    num: '658000',
+    name: 'Charges HAO (hors activité ordinaire)',
+    type: 'EXPENSE',
+    class: 6,
+  },
+  { num: '659000', name: 'Charges diverses', type: 'EXPENSE', class: 6 },
+  { num: '661000', name: 'Intérêts sur emprunts', type: 'EXPENSE', class: 6 },
+  {
+    num: '671000',
     name: "Valeurs comptables des cessions d'actif",
     type: 'EXPENSE',
+    class: 6,
   },
-  { num: '681', name: 'Dotations aux amortissements', type: 'EXPENSE' },
-  { num: '691', name: 'Impôt sur les bénéfices (IS — 30%)', type: 'EXPENSE' },
-  // CLASSE 7 — PRODUITS
-  { num: '701', name: 'Ventes de marchandises', type: 'REVENUE' },
-  { num: '706', name: 'Prestations de services', type: 'REVENUE' },
-  { num: '707', name: 'Produits des activités annexes', type: 'REVENUE' },
-  { num: '721', name: 'Production immobilisée', type: 'REVENUE' },
-  { num: '741', name: "Subventions d'exploitation", type: 'REVENUE' },
-  { num: '754', name: 'Revenus des créances financières', type: 'REVENUE' },
-  { num: '771', name: "Produits de cession d'actif", type: 'REVENUE' },
   {
-    num: '781',
+    num: '681000',
+    name: 'Dotations aux amortissements',
+    type: 'EXPENSE',
+    class: 6,
+  },
+  {
+    num: '691000',
+    name: 'Impôt sur les bénéfices (IS — 30%)',
+    type: 'EXPENSE',
+    class: 6,
+  },
+  // CLASSE 7 — PRODUITS
+  { num: '701000', name: 'Ventes de marchandises', type: 'REVENUE', class: 7 },
+  { num: '706000', name: 'Prestations de services', type: 'REVENUE', class: 7 },
+  {
+    num: '707000',
+    name: 'Produits des activités annexes',
+    type: 'REVENUE',
+    class: 7,
+  },
+  { num: '721000', name: 'Production immobilisée', type: 'REVENUE', class: 7 },
+  {
+    num: '741000',
+    name: "Subventions d'exploitation",
+    type: 'REVENUE',
+    class: 7,
+  },
+  {
+    num: '754000',
+    name: 'Revenus des créances financières',
+    type: 'REVENUE',
+    class: 7,
+  },
+  {
+    num: '771000',
+    name: "Produits de cession d'actif",
+    type: 'REVENUE',
+    class: 7,
+  },
+  {
+    num: '781000',
     name: 'Reprises sur provisions et dépréciations',
     type: 'REVENUE',
+    class: 7,
   },
 ];
 
@@ -114,10 +317,10 @@ export class AccountsService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Initialise le plan comptable SYSCOHADA pour une filiale.
-   * Idempotent : ignore les comptes déjà existants.
+   * Initialise le plan comptable SYSCOHADA (référentiel global, partagé par
+   * toutes les filiales). Idempotent : upsert par numéro de compte.
    */
-  async seedSyscohada(subsidiaryId: string): Promise<void> {
+  async seedSyscohada(): Promise<void> {
     for (const acc of SYSCOHADA_SEED_ACCOUNTS) {
       await this.prisma.accountingAccount.upsert({
         where: { accountNumber: acc.num },
@@ -126,20 +329,21 @@ export class AccountsService {
           accountNumber: acc.num,
           accountName: acc.name,
           accountType: acc.type as AccountingAccountType,
+          class: acc.class,
           isActive: true,
-          subsidiaryId,
         },
-        update: {},
+        update: {
+          accountName: acc.name,
+          accountType: acc.type as AccountingAccountType,
+          class: acc.class,
+        },
       });
     }
   }
 
-  async create(dto: CreateAccountDto, user: JwtUser) {
-    const exists = await this.prisma.accountingAccount.findFirst({
-      where: {
-        accountNumber: dto.accountNumber,
-        subsidiaryId: user.subsidiaryId,
-      },
+  async create(dto: CreateAccountDto) {
+    const exists = await this.prisma.accountingAccount.findUnique({
+      where: { accountNumber: dto.accountNumber },
     });
     if (exists)
       throw new ConflictException(
@@ -147,18 +351,13 @@ export class AccountsService {
       );
 
     return this.prisma.accountingAccount.create({
-      data: {
-        id: generateId(ID_PREFIXES.ACCOUNTINGACCOUNT),
-        ...dto,
-        subsidiaryId: user.subsidiaryId,
-      },
+      data: { id: generateId(ID_PREFIXES.ACCOUNTINGACCOUNT), ...dto },
     });
   }
 
-  async findAll(user: JwtUser, type?: AccountingAccountType) {
+  async findAll(type?: AccountingAccountType) {
     return this.prisma.accountingAccount.findMany({
       where: {
-        subsidiaryId: user.subsidiaryId,
         isActive: true,
         ...(type ? { accountType: type } : {}),
       },
@@ -166,27 +365,38 @@ export class AccountsService {
     });
   }
 
-  async findOne(id: string, user: JwtUser) {
-    const account = await this.prisma.accountingAccount.findFirst({
-      where: { id, subsidiaryId: user.subsidiaryId },
+  async findOne(id: string) {
+    const account = await this.prisma.accountingAccount.findUnique({
+      where: { id },
     });
     if (!account) throw new NotFoundException(`Compte ${id} introuvable.`);
     return account;
   }
 
-  async findByNumber(accountNumber: string, subsidiaryId: string) {
+  async findByNumber(accountNumber: string) {
     return this.prisma.accountingAccount.findFirst({
-      where: { accountNumber, subsidiaryId, isActive: true },
+      where: { accountNumber, isActive: true },
     });
   }
 
-  async update(id: string, dto: Partial<CreateAccountDto>, user: JwtUser) {
-    await this.findOne(id, user);
+  async update(id: string, dto: Partial<CreateAccountDto>) {
+    await this.findOne(id);
     return this.prisma.accountingAccount.update({ where: { id }, data: dto });
   }
 
-  async deactivate(id: string, user: JwtUser) {
-    await this.findOne(id, user);
+  /** Désactive un compte — refuse s'il est déjà utilisé dans des écritures. */
+  async deactivate(id: string) {
+    const account = await this.prisma.accountingAccount.findUnique({
+      where: { id },
+      include: { journalLines: { take: 1 } },
+    });
+    if (!account) throw new NotFoundException(`Compte ${id} introuvable.`);
+    if (account.journalLines.length > 0) {
+      throw new BadRequestException(
+        'Ce compte est utilisé dans des écritures comptables et ne peut pas être désactivé.',
+      );
+    }
+
     return this.prisma.accountingAccount.update({
       where: { id },
       data: { isActive: false },

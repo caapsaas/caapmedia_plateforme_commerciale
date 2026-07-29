@@ -343,6 +343,7 @@ export class PurchaseOrdersService {
           },
           update: { stock: { increment: baseQuantityReceived } },
           create: {
+            id: generateId(ID_PREFIXES.ITEMSTOCK),
             itemId: orderItem.productId,
             subsidiaryId: order.subsidiaryId,
             stock: baseQuantityReceived,
@@ -353,6 +354,7 @@ export class PurchaseOrdersService {
         // génère automatiquement une entrée, en unité de base.
         await tx.stockMovement.create({
           data: {
+            id: generateId(ID_PREFIXES.STOCKMOVEMENT),
             itemId: orderItem.productId,
             subsidiaryId: order.subsidiaryId,
             type: 'PURCHASE_RECEIPT',

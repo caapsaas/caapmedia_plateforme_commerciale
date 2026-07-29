@@ -5,11 +5,7 @@ import { ConfigService } from '@nestjs/config';
 export class EmailService {
   constructor(private readonly configService: ConfigService) {}
 
-  async sendWelcomeEmail(
-    email: string,
-    tempPassword: string,
-    contactName: string,
-  ) {
+  sendWelcomeEmail(email: string, tempPassword: string, contactName: string) {
     // TODO: Implémenter l'envoi d'email réel avec un service comme SendGrid, Nodemailer, etc.
     console.log(`
       📧 EMAIL DE BIENVENUE - À ENVOYER
@@ -37,7 +33,7 @@ export class EmailService {
     return { success: true, message: 'Email envoyé avec succès' };
   }
 
-  async sendPasswordResetEmail(
+  sendPasswordResetEmail(
     email: string,
     tempPassword: string,
     contactName: string,
@@ -66,5 +62,31 @@ export class EmailService {
       success: true,
       message: 'Email de réinitialisation envoyé avec succès',
     };
+  }
+
+  sendAccountingAccessNotificationEmail(
+    email: string,
+    recipientName: string,
+    subject: string,
+    body: string,
+  ) {
+    // TODO: Implémenter l'envoi d'email réel avec un service comme SendGrid, Nodemailer, etc.
+    console.log(`
+      📧 EMAIL COMPTABILITÉ - À ENVOYER
+      =====================================
+      Destinataire: ${email}
+      Sujet: ${subject}
+
+      Cher/Chère ${recipientName},
+
+      ${body}
+
+      Lien de connexion: ${this.configService.get('FRONTEND_URL')}/dashboard
+
+      Cordialement,
+      L'équipe CAAP Media
+    `);
+
+    return { success: true, message: 'Email envoyé avec succès' };
   }
 }

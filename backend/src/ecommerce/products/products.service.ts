@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateProductDto, UpdateProductDto } from './dto/create-product.dto';
 import { ItemType } from '@prisma/client';
@@ -43,6 +47,7 @@ export class ProductsService {
   ) {
     const product = await this.prisma.item.create({
       data: {
+        id: generateId(ID_PREFIXES.PRODUCT),
         ...createProductDto,
         type: ItemType.SERVICE,
         productImages: files?.length
@@ -148,15 +153,42 @@ export class ProductsService {
     updateProductDto: UpdateProductDto,
     files: Express.Multer.File[],
   ) {
-    const { productImages, ...productData } = updateProductDto;
+    const { productImages, existingImages, ...productData } = updateProductDto;
 
     // Vérifie que le service existe
-    await this.findOne(id);
+    const currentProduct = await this.findOne(id);
 
-    // Capture les anciennes images avant transaction pour nettoyage ultérieur
-    const oldImages = files?.length
-      ? await this.prisma.productImage.findMany({ where: { productId: id } })
-      : [];
+    // URLs des images existantes à conserver. Si le champ n'est pas fourni,
+    // on ne touche à aucune image existante (compatibilité avec un appelant
+    // qui n'enverrait que des champs texte).
+    const keptImageUrls =
+      existingImages !== undefined
+        ? (Array.isArray(existingImages)
+            ? existingImages
+            : [existingImages]
+          ).filter(Boolean)
+        : (currentProduct.productImages as { imageUrl: string }[]).map(
+            (img) => img.imageUrl,
+          );
+
+    if (
+      keptImageUrls.length + (files?.length || 0) >
+      FILE_UPLOAD_CONFIG.LIMITS.MAX_FILES_PER_UPLOAD
+    ) {
+      for (const file of files || []) {
+        await deleteImageFile(
+          buildRelativeImagePath(
+            FILE_UPLOAD_CONFIG.UPLOAD_DIRS.PRODUCTS,
+            file.filename,
+          ),
+        );
+      }
+      throw new BadRequestException(FILE_UPLOAD_CONFIG.ERRORS.TOO_MANY_FILES);
+    }
+
+    const imagesToRemove = (
+      currentProduct.productImages as { id: string; imageUrl: string }[]
+    ).filter((img) => !keptImageUrls.includes(img.imageUrl));
 
     const product = await this.prisma.$transaction(async (tx) => {
       // Mise à jour des infos de base
@@ -165,10 +197,15 @@ export class ProductsService {
         data: productData,
       });
 
-      // Mise à jour des images
-      if (files?.length) {
-        await tx.productImage.deleteMany({ where: { productId: id } });
+      // Supprime uniquement les images retirées par l'utilisateur
+      if (imagesToRemove.length) {
+        await tx.productImage.deleteMany({
+          where: { id: { in: imagesToRemove.map((img) => img.id) } },
+        });
+      }
 
+      // Ajoute les nouvelles images sans toucher à celles conservées
+      if (files?.length) {
         const newImageData = files.map((file) => ({
           id: generateId(ID_PREFIXES.PRODUCTIMAGE),
           imageName: file.originalname,
@@ -189,11 +226,9 @@ export class ProductsService {
       });
     });
 
-    // Cleanup des anciennes images après succès de la transaction
-    if (files?.length) {
-      for (const image of oldImages) {
-        await deleteImageFile(image.imageUrl);
-      }
+    // Cleanup des fichiers physiques des images retirées, après succès de la transaction
+    for (const image of imagesToRemove) {
+      await deleteImageFile(image.imageUrl);
     }
 
     return this.mapDecimals(product);

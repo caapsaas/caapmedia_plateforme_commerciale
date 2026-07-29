@@ -9,7 +9,7 @@ import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { UserRole } from '@prisma/client';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 import { checkRole } from 'src/common/auth/role/check-role.util';
-import { JournalizationService } from 'src/accounting/journalization/journalization.service';
+import { AccountingOutboxService } from 'src/accounting/outbox/accounting-outbox.service';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
@@ -17,7 +17,7 @@ import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 export class ExpensesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly journalization: JournalizationService,
+    private readonly accountingOutbox: AccountingOutboxService,
   ) {}
 
   async create(createExpenseDto: CreateExpenseDto, user: JwtUser) {
@@ -27,29 +27,33 @@ export class ExpensesService {
       'You do not have permission to create an expense.',
     );
 
-    const record = await this.prisma.expenseRecord.create({
-      data: {
-        id: generateId(ID_PREFIXES.EXPENSE),
-        ...createExpenseDto,
-        expenseDate: new Date(createExpenseDto.expenseDate),
+    return this.prisma.$transaction(async (tx) => {
+      const record = await tx.expenseRecord.create({
+        data: {
+          id: generateId(ID_PREFIXES.EXPENSE),
+          ...createExpenseDto,
+          expenseDate: new Date(createExpenseDto.expenseDate),
+          subsidiaryId: user.subsidiaryId,
+        },
+      });
+
+      // Intention de journalisation posée dans la MÊME transaction (pattern Outbox).
+      await this.accountingOutbox.enqueue(tx, {
+        eventType: 'EXPENSE_RECORD',
         subsidiaryId: user.subsidiaryId,
-      },
-    });
+        payload: {
+          userId: user.id,
+          operationDate: record.expenseDate.toISOString(),
+          amount: Number(record.amount),
+          description: record.description,
+          sourceId: record.id,
+          expenseCategory: record.category,
+          withTva: true,
+        },
+      });
 
-    // Journalisation automatique SYSCOHADA
-    await this.journalization.journalize({
-      subsidiaryId: user.subsidiaryId,
-      userId: user.id,
-      operationDate: record.expenseDate,
-      amount: Number(record.amount),
-      description: record.description,
-      sourceType: 'EXPENSE_RECORD',
-      sourceId: record.id,
-      expenseCategory: record.category,
-      withTva: true,
+      return record;
     });
-
-    return record;
   }
 
   async findAll(user: JwtUser) {

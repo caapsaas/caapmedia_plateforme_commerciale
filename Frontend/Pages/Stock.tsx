@@ -51,6 +51,7 @@ const Stock: React.FC = () => {
     const [subsidiaryFilter, setSubsidiaryFilter] = useState<string>('');
     const [editingItemId, setEditingItemId] = useState<string | null>(null);
     const [editedPrice, setEditedPrice] = useState<number>(0);
+    const [showSaveConfirm, setShowSaveConfirm] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<StockItem | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
