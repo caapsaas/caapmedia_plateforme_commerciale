@@ -182,7 +182,7 @@ const Sidebar: React.FC = () => {
             groupIcon: <IconFinance className="h-5 w-5" />,
             items: [
               { to: '/dashboard/finance', label: t('sidebar.finance'), icon: <IconFinance className="h-5 w-5" /> },
-              { to: '/dashboard/accounting', label: 'Comptabilité', icon: <IconAccounting className="h-5 w-5" /> },
+              { to: '/dashboard/accountings', label: 'Comptabilité', icon: <IconAccounting className="h-5 w-5" /> },
               ...(isHeadquarterAdminUser ? [{
                 to: '/dashboard/accounting-access-requests',
                 label: (
@@ -276,7 +276,7 @@ const Sidebar: React.FC = () => {
             groupIcon: <IconFinance className="h-5 w-5" />,
             items: [
               { to: '/dashboard/finance', label: t('sidebar.finance'), icon: <IconFinance className="h-5 w-5" /> },
-              { to: '/dashboard/accounting', label: 'Comptabilité', icon: <IconAccounting className="h-5 w-5" /> },
+              { to: '/dashboard/accountings', label: 'Comptabilité', icon: <IconAccounting className="h-5 w-5" /> },
             ],
           },
         ];

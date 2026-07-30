@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Contact, Opportunity, Interaction, CrmTask, User, ContactStatus, Contract, ContractStatus } from '../../types';
 import { useI18n } from '../../i18n';
+import { getContactsPaginated } from '../../services/apiCrm/apiCrm';
 import IconPlus from '../icons/IconPlus';
 import IconEye from '../icons/IconEye';
 import IconEdit from '../icons/IconEdit';
@@ -9,10 +11,17 @@ import ContactDetailsModal from './ContactDetailsModal';
 import ContactFormModal from './ContactFormModal';
 import ContactAccountActions from './ContactAccountActions';
 import ConfirmationModal from '../common/ConfirmationModal';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
 import { LockIcon, MailIcon } from 'lucide-react';
 
+const CONTACTS_PAGE_SIZE = 10;
+
 interface ContactManagementProps {
-    clients: Contact[];
+    subsidiaryId: string;
+    filterSubsidiaryId?: string;
+    filterSalesRepId?: string;
     opportunities: Opportunity[];
     interactions: Interaction[];
     crmTasks: CrmTask[];
@@ -24,14 +33,16 @@ interface ContactManagementProps {
     onEnablePortal?: (contactId: string) => Promise<{ tempPassword: string; message: string }>;
 }
 
-const ContactManagement: React.FC<ContactManagementProps> = ({ 
-    clients = [], 
-    opportunities = [], 
-    interactions = [], 
-    crmTasks = [], 
-    contracts = [], 
-    onLogInteraction, 
-    onSave, 
+const ContactManagement: React.FC<ContactManagementProps> = ({
+    subsidiaryId,
+    filterSubsidiaryId,
+    filterSalesRepId,
+    opportunities = [],
+    interactions = [],
+    crmTasks = [],
+    contracts = [],
+    onLogInteraction,
+    onSave,
     onDelete,
     onResetPassword,
     onEnablePortal
@@ -42,6 +53,28 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
     const [editingContact, setEditingContact] = useState<Contact | null>(null);
     const [deletingContact, setDeletingContact] = useState<Contact | null>(null);
     const [accountActionsContact, setAccountActionsContact] = useState<Contact | null>(null);
+    const [page, setPage] = useState(1);
+
+    useEffect(() => {
+        setPage(1);
+    }, [filterSubsidiaryId, filterSalesRepId]);
+
+    const { data: paginatedContacts, isLoading } = useQuery({
+        // Le préfixe ['contacts', subsidiaryId] doit rester aligné avec
+        // queryKey('contacts') dans Pages/Crm.tsx pour que l'invalidation des
+        // mutations (create/update/delete) déclenche aussi le refetch ici.
+        queryKey: ['contacts', subsidiaryId, 'paginated', page, filterSubsidiaryId, filterSalesRepId],
+        queryFn: () =>
+            getContactsPaginated({
+                page,
+                limit: CONTACTS_PAGE_SIZE,
+                subsidiaryId: filterSubsidiaryId,
+                salesRepId: filterSalesRepId,
+            }),
+    });
+
+    const clients = paginatedContacts?.data || [];
+    const meta = paginatedContacts?.meta;
 
 
     const handleOpenAddModal = () => {
@@ -115,7 +148,15 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
                         </tr>
                     </thead>
                     <tbody>
-                        {clients.map((client) => {
+                        {isLoading ? (
+                            <TableSkeleton rows={CONTACTS_PAGE_SIZE} columns={7} />
+                        ) : clients.length === 0 ? (
+                            <tr>
+                                <td colSpan={7}>
+                                    <EmptyState icon="document" title={t('crm.contacts.title')} description={t('common.notAvailable')} />
+                                </td>
+                            </tr>
+                        ) : clients.map((client) => {
                             const contractCount = contracts.filter(c => c.clientId === client.id && c.status === ContractStatus.ACTIVE).length;
                             const hasAccount = !!client.password;
                             return (
@@ -170,6 +211,7 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
                     </tbody>
                 </table>
             </div>
+            {meta && <Pagination meta={meta} onPageChange={setPage} />}
             {selectedClient && (
                 <ContactDetailsModal 
                     isOpen={!!selectedClient}

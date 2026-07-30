@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Product } from '../../types/models';
 import { ProductFormData } from '../../types/forms';
@@ -17,7 +17,12 @@ import IconImage from '../icons/IconImage';
 import ServiceFormModal from './ServiceFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
 import ProductSpecBuilder from './ProductSpecBuilder/ProductSpecBuilder';
-import { getServicesCatalog, createProduct, updateProduct, deleteProduct } from '../../services/apiE-commerce/apiProducts';
+import { getProductsPaginated, createProduct, updateProduct, deleteProduct } from '../../services/apiE-commerce/apiProducts';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+
+const SERVICES_PAGE_SIZE = 10;
 
 // Catalogue de services (Chantier 1 : donnée globale, non scopée filiale) +
 // point d'entrée vers le Builder de spécifications techniques (Chantier 5).
@@ -30,11 +35,20 @@ const ServicesCatalogManagement: React.FC = () => {
     const [editingItem, setEditingItem] = useState<Product | null>(null);
     const [deletingItem, setDeletingItem] = useState<Product | null>(null);
     const [builderTarget, setBuilderTarget] = useState<Product | null>(null);
+    const [page, setPage] = useState(1);
+    const [search, setSearch] = useState('');
 
-    const { data: services = [], isLoading, isError } = useQuery<Product[]>({
-        queryKey: ['servicesCatalog'],
-        queryFn: getServicesCatalog,
+    const { data: paginatedServices, isLoading, isError } = useQuery({
+        queryKey: ['servicesCatalog', 'paginated', page, search],
+        queryFn: () => getProductsPaginated({ page, limit: SERVICES_PAGE_SIZE, search: search || undefined }),
     });
+
+    const services = paginatedServices?.data || [];
+    const meta = paginatedServices?.meta;
+
+    useEffect(() => {
+        setPage(1);
+    }, [search]);
 
     const { mutate: saveMutate } = useMutation({
         mutationFn: ({ id, data }: { id?: string; data: ProductFormData }) =>
@@ -81,7 +95,6 @@ const ServicesCatalogManagement: React.FC = () => {
         );
     }
 
-    if (isLoading) return <div>{t('common.loading')}</div>;
     if (isError) return <div>Erreur lors du chargement des services.</div>;
 
     return (
@@ -92,6 +105,15 @@ const ServicesCatalogManagement: React.FC = () => {
                     <IconPlus className="h-4 w-4" />
                     <span>{t('configuration.addService')}</span>
                 </button>
+            </div>
+            <div className="mb-4">
+                <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder={t('common.search')}
+                    className="w-full sm:w-72 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#c6e911]"
+                />
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-slate-500">
@@ -105,7 +127,15 @@ const ServicesCatalogManagement: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {services.map(item => (
+                        {isLoading ? (
+                            <TableSkeleton rows={SERVICES_PAGE_SIZE} columns={5} />
+                        ) : services.length === 0 ? (
+                            <tr>
+                                <td colSpan={5}>
+                                    <EmptyState icon="document" title={t('configuration.services')} description={t('common.notAvailable')} />
+                                </td>
+                            </tr>
+                        ) : services.map(item => (
                             <tr key={item.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4">
                                     <div className={`h-10 w-10 flex items-center justify-center rounded-lg border overflow-hidden ${item.productImages?.[0] ? 'border-slate-200 bg-slate-100' : 'border-dashed border-slate-300 text-slate-300'}`}>
@@ -148,6 +178,7 @@ const ServicesCatalogManagement: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+            {meta && <Pagination meta={meta} onPageChange={setPage} />}
 
             {isModalOpen && (
                 <ServiceFormModal

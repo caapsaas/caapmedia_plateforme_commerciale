@@ -8,6 +8,7 @@ import IconBullhorn from '../icons/IconBullhorn';
 import IconClipboardCheck from '../icons/IconClipboardCheck';
 import IconChatBubbleLeftRight from '../icons/IconChatBubbleLeftRight';
 import IconTrendingUp from '../icons/IconTrendingUp';
+import EmptyState from '../ui/EmptyState';
 
 interface CrmDashboardProps {
     subsidiary: Subsidiary;
@@ -109,9 +110,7 @@ const CrmDashboard: React.FC<CrmDashboardProps> = ({
                         {t('crm.dashboard.salesFunnel')}
                     </h3>
                     {opportunities.length === 0 ? (
-                        <p className="text-sm text-slate-400 text-center py-8">
-                            {t('common.noData')}
-                        </p>
+                        <EmptyState icon="document" title={t('common.noData')} />
                     ) : (
                         <div className="space-y-4">
                             {funnelData.map(stage => (
@@ -146,9 +145,7 @@ const CrmDashboard: React.FC<CrmDashboardProps> = ({
                         {t('crm.dashboard.myTasks')}
                     </h3>
                     {pendingTasks.length === 0 ? (
-                        <p className="text-sm text-slate-400 text-center py-8">
-                            {t('common.noData')}
-                        </p>
+                        <EmptyState icon="document" title={t('common.noData')} />
                     ) : (
                         <ul className="space-y-3 overflow-y-auto max-h-72">
                             {pendingTasks.map(task => (
@@ -182,7 +179,7 @@ const CrmDashboard: React.FC<CrmDashboardProps> = ({
                     {t('crm.dashboard.recentActivity')}
                 </h3>
                 {recentInteractions.length === 0 ? (
-                    <p className="text-sm text-slate-400 text-center py-6">{t('common.noData')}</p>
+                    <EmptyState icon="inbox" title={t('common.noData')} />
                 ) : (
                     <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                         {recentInteractions.map(interaction => (

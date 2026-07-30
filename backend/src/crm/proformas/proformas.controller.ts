@@ -17,6 +17,7 @@ import { RoleGuard } from '../../common/auth/role/role.guard';
 import { CurrentUser, Roles } from '../../common/auth/role/role.decorator';
 import type { User } from '@prisma/client';
 import { UserRole, ProformaStatus } from '@prisma/client';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @Controller('crm/proformas')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -38,8 +39,21 @@ export class ProformasController {
   }
 
   @Get()
-  findAll(@CurrentUser() user: User, @Query('status') status?: ProformaStatus) {
-    return this.proformasService.findAll(user.subsidiaryId, status);
+  findAll(
+    @CurrentUser() user: User,
+    @Query() paginationQuery: PaginationQueryDto,
+    @Query('status') status?: ProformaStatus,
+  ) {
+    return this.proformasService.findAll(
+      user.subsidiaryId,
+      paginationQuery,
+      status,
+    );
+  }
+
+  @Get('status-counts')
+  getStatusCounts(@CurrentUser() user: User) {
+    return this.proformasService.getStatusCounts(user.subsidiaryId);
   }
 
   @Get(':id')

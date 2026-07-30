@@ -207,7 +207,7 @@ const AttendanceCardsRoute: React.FC = () => {
 const hrCardsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/hr/cards', component: AttendanceCardsRoute });
 const hrHistoryRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/hr/history', component: AttendanceHistory });
 const financeRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/finance', component: Finance });
-const accountingRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/accounting', component: Accounting });
+const accountingRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/accountings', component: Accounting });
 const accountingAccessRequestsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/accounting-access-requests', component: AccountingAccessAdmin });
 
 

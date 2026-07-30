@@ -31,6 +31,7 @@ import { UserRole } from '@prisma/client';
 import { CreateCompanyDocumentDto } from './dto/create-company-document.dto';
 import { UpdateCompanyDocumentDto } from './dto/update-company-document.dto';
 import { SearchCompanyDocumentsDto } from './dto/search-company-documents.dto';
+import { PaginationQueryDto } from '../common/pagination/dto/pagination-query.dto';
 import {
   CreateMeetingDto,
   UpdateMeetingDto,
@@ -150,8 +151,14 @@ export class SecretariatController {
 
   @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Get('documents')
-  async getAllCompanyDocuments(@Req() req) {
-    return this.secretariatService.getAllCompanyDocuments(req.user);
+  async getAllCompanyDocuments(
+    @Req() req,
+    @Query() paginationQuery: PaginationQueryDto,
+  ) {
+    return this.secretariatService.getAllCompanyDocuments(
+      req.user,
+      paginationQuery,
+    );
   }
 
   @Roles(UserRole.SECRETARY, UserRole.ADMIN)
@@ -193,8 +200,11 @@ export class SecretariatController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Get('meetings')
-  async getAllMeetings(@Req() req) {
-    return this.secretariatService.getAllMeetings(req.user);
+  async getAllMeetings(
+    @Req() req,
+    @Query() paginationQuery: PaginationQueryDto,
+  ) {
+    return this.secretariatService.getAllMeetings(req.user, paginationQuery);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
@@ -270,8 +280,14 @@ export class SecretariatController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Get('tasks')
-  async getAllSecretariatTasks(@Req() req) {
-    return this.secretariatService.getAllSecretariatTasks(req.user);
+  async getAllSecretariatTasks(
+    @Req() req,
+    @Query() paginationQuery: PaginationQueryDto,
+  ) {
+    return this.secretariatService.getAllSecretariatTasks(
+      req.user,
+      paginationQuery,
+    );
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)

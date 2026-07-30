@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     PurchaseOrder, PurchaseOrderStatus, PaymentStatus,
-    StockItem, Supplier, Subsidiary, UserRole,
+    Subsidiary, UserRole,
 } from '../../types/models';
 import { useAuth } from '../../context/AuthContext';
 import { useI18n } from '../../i18n';
@@ -11,8 +11,6 @@ import {
     getPurchaseOrders, createPurchaseOrder, receivePurchaseOrderItems,
     recordPurchaseOrderPayment, CreatePurchaseOrderDto, ReceiveItemsDto,
 } from '../../services/apiPurchasing/apiPurchase_order';
-import { getSuppliers } from '../../services/apiPurchasing/apiSupplier';
-import { getStockItemsBySubsidiary } from '../../services/apiPurchasing/apiStockItems';
 import { getSubsidiaries } from '../../services/apiCommon/apiSubsidiaries';
 import IconPlus from '../icons/IconPlus';
 import IconEye from '../icons/IconEye';
@@ -94,17 +92,6 @@ const Purchasing: React.FC = () => {
         enabled: isSuperAdmin || !!subsidiary,
     });
 
-    const { data: stockItems = [] } = useQuery<StockItem[]>({
-        queryKey: ['stockItems', subsidiary?.id],
-        queryFn: () => getStockItemsBySubsidiary(),
-        enabled: !!subsidiary,
-    });
-
-    const { data: suppliers = [] } = useQuery<Supplier[]>({
-        queryKey: ['suppliers', subsidiary?.id],
-        queryFn: () => getSuppliers(),
-        enabled: !!subsidiary,
-    });
 
     const invalidate = () => queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
 
@@ -336,7 +323,7 @@ const Purchasing: React.FC = () => {
                 <PurchaseOrderFormModal
                     isOpen onClose={closeModal}
                     onSave={(data: CreatePurchaseOrderDto) => createPO(data)}
-                    stockItems={stockItems} suppliers={suppliers}
+                    subsidiaryId={subsidiary?.id || ''}
                 />
             )}
             {modal === 'details' && selectedPO && subsidiary && (

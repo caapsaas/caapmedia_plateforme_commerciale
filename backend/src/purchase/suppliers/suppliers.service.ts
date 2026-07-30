@@ -17,6 +17,9 @@ import {
   withSubsidiaryScope,
   assertSubsidiaryAccess,
 } from 'src/common/utils/subsidiary-scope';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
+import { paginate, PaginatedResult } from 'src/common/pagination/pagination';
+import type { Supplier, Prisma } from '@prisma/client';
 
 @Injectable()
 export class SuppliersService {
@@ -60,12 +63,36 @@ export class SuppliersService {
    * @param user Utilisateur connecte
    * @returns Les fournisseurs visibles par l'utilisateur
    */
-  async findAll(user: User, subsidiaryId?: string) {
+  async findAll(
+    user: User,
+    paginationQuery: PaginationQueryDto,
+    subsidiaryId?: string,
+  ): Promise<PaginatedResult<Supplier>> {
     const ctx = resolveScopeContext(user);
-    return this.prisma.supplier.findMany({
-      where: withSubsidiaryScope({}, ctx, subsidiaryId),
-      orderBy: { supplierName: 'asc' },
-    });
+    const where: Prisma.SupplierWhereInput = withSubsidiaryScope(
+      {},
+      ctx,
+      subsidiaryId,
+    );
+
+    if (paginationQuery.search) {
+      where.OR = [
+        {
+          supplierName: {
+            contains: paginationQuery.search,
+            mode: 'insensitive',
+          },
+        },
+        { company: { contains: paginationQuery.search, mode: 'insensitive' } },
+        { email: { contains: paginationQuery.search, mode: 'insensitive' } },
+      ];
+    }
+
+    return paginate<Supplier>(
+      this.prisma.supplier,
+      { where, orderBy: { supplierName: 'asc' } },
+      paginationQuery,
+    );
   }
 
   /**

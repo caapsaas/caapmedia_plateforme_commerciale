@@ -80,8 +80,15 @@ export class TreasuryController {
   findAllTransactions(
     @CurrentUser() user: JwtUser,
     @Query('subsidiaryId') subsidiaryId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.treasuryService.findAllTransactions(user, subsidiaryId);
+    return this.treasuryService.findAllTransactions(
+      user,
+      subsidiaryId,
+      page ? parseInt(page, 10) : undefined,
+      limit ? parseInt(limit, 10) : undefined,
+    );
   }
 
   @Delete('transactions/:id')

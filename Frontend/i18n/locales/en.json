@@ -66,10 +66,21 @@
     "close": "Close",
     "view": "View",
     "search": "Search",
+    "searchPlaceholder": "Search...",
     "notAvailable": "Not available",
     "success": "Success",
     "warning": "Warning",
     "info": "Information",
+    "showing": "Showing",
+    "to": "to",
+    "of": "of",
+    "results": "results",
+    "previous": "Previous",
+    "next": "Next",
+    "noResultsFound": "No results found.",
+    "loadingMore": "Loading more...",
+    "scrollForMore": "Scroll to load more",
+    "select": "Select...",
     "error": {
       "load": "Error loading data."
     }

@@ -8,6 +8,7 @@ import IconTruck from '../icons/IconTruck';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import PurchaseChart from '../../Pages/PurchaseChart';
 import { PurchaseAnalysis } from '../../services/apiStatistic/apiAnalytics';
+import EmptyState from '../ui/EmptyState';
 
 
 interface PurchaseAnalysisViewProps {
@@ -75,6 +76,9 @@ const PurchaseAnalysisView: React.FC<PurchaseAnalysisViewProps> = ({ data }) => 
         </div>
         <div className="bg-white p-6 rounded-xl shadow-md">
             <h3 className="font-semibold text-lg mb-4 text-slate-700">{t('purchaseAnalysis.topPurchasedProducts')}</h3>
+            {topPurchasedProducts.length === 0 ? (
+                <EmptyState icon="stock" title={t('purchaseAnalysis.topPurchasedProducts')} description={t('common.notAvailable')} />
+            ) : (
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-slate-500">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50">
@@ -87,7 +91,7 @@ const PurchaseAnalysisView: React.FC<PurchaseAnalysisViewProps> = ({ data }) => 
                     <tbody>
                         {topPurchasedProducts.map(product => (
                             <tr key={product.name} className="bg-white border-b hover:bg-slate-50">
-                                <td className="px-6 py-4 font-semibold">{product.name}</td> 
+                                <td className="px-6 py-4 font-semibold">{product.name}</td>
                                 <td className="px-6 py-4 text-right">{product.quantity}</td>
                                 <td className="px-6 py-4 text-right font-bold">{formatCurrency(product.value)}</td>
                             </tr>
@@ -95,6 +99,7 @@ const PurchaseAnalysisView: React.FC<PurchaseAnalysisViewProps> = ({ data }) => 
                     </tbody>
                 </table>
             </div>
+            )}
         </div>
     </div>
   );

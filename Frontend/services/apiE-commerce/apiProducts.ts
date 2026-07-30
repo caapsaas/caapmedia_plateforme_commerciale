@@ -1,6 +1,7 @@
 import { api } from '../api';
 import { Product } from '../../types/models';
 import { ProductFormData } from '../../types/forms';
+import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
 /**
  * Récupère la page du catalogue de services visible sur le site vitrine
@@ -26,10 +27,23 @@ export const getProduitsSearch = async (searchTerm: string) => {
 };
 
 /**
- * Récupère tout le catalogue de services (vue admin, donnée globale — plus de scope filiale).
+ * Récupère tout le catalogue de services (vue admin, donnée globale — plus de
+ * scope filiale). Limit élevée pour préserver le comportement "tout charger"
+ * des nombreux appelants existants (POS, CRM, production...).
  */
-export const getServicesCatalog = async () => {
-    const { data } = await api.get('/products');
+export const getServicesCatalog = async (): Promise<Product[]> => {
+    const { data } = await api.get<PaginatedResponse<Product>>('/products', { params: { limit: 500 } });
+    return data.data;
+};
+
+/**
+ * Version paginée/recherchable pour les vues qui affichent le catalogue page
+ * par page (ServicesCatalogManagement).
+ */
+export const getProductsPaginated = async (
+    params: PaginationParams,
+): Promise<PaginatedResponse<Product>> => {
+    const { data } = await api.get<PaginatedResponse<Product>>('/products', { params });
     return data;
 };
 

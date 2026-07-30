@@ -11,6 +11,9 @@ import { addDays } from 'date-fns';
 
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
+import { paginate, PaginatedResult } from 'src/common/pagination/pagination';
+import type { Proforma, Prisma } from '@prisma/client';
 @Injectable()
 export class ProformasService {
   constructor(private readonly prisma: PrismaService) {}
@@ -82,25 +85,73 @@ export class ProformasService {
     });
   }
 
-  async findAll(subsidiaryId: string, status?: ProformaStatus) {
-    const where = { subsidiaryId };
+  async findAll(
+    subsidiaryId: string,
+    paginationQuery: PaginationQueryDto,
+    status?: ProformaStatus,
+  ): Promise<PaginatedResult<Proforma>> {
+    const where: Prisma.ProformaWhereInput = { subsidiaryId };
     if (status) {
-      Object.assign(where, { status });
+      where.status = status;
     }
 
-    return this.prisma.proforma.findMany({
-      where,
-      include: {
-        items: {
-          include: {
-            product: true,
+    if (paginationQuery.search) {
+      where.OR = [
+        {
+          proformaNumber: {
+            contains: paginationQuery.search,
+            mode: 'insensitive',
           },
         },
-        lead: true,
-        createdByUser: true,
+        {
+          clientName: { contains: paginationQuery.search, mode: 'insensitive' },
+        },
+        {
+          clientCompany: {
+            contains: paginationQuery.search,
+            mode: 'insensitive',
+          },
+        },
+      ];
+    }
+
+    return paginate<Proforma>(
+      this.prisma.proforma,
+      {
+        where,
+        include: {
+          items: { include: { product: true } },
+          lead: true,
+          createdByUser: true,
+        },
+        orderBy: { createdAt: 'desc' },
       },
-      orderBy: { createdAt: 'desc' },
-    });
+      paginationQuery,
+    );
+  }
+
+  /**
+   * Compte les proformas par statut pour alimenter les badges d'onglets côté
+   * frontend, sans avoir à charger toute la liste en mémoire.
+   */
+  async getStatusCounts(subsidiaryId: string) {
+    const [all, draft, sent, accepted, rejected] = await Promise.all([
+      this.prisma.proforma.count({ where: { subsidiaryId } }),
+      this.prisma.proforma.count({
+        where: { subsidiaryId, status: ProformaStatus.DRAFT },
+      }),
+      this.prisma.proforma.count({
+        where: { subsidiaryId, status: ProformaStatus.SENT },
+      }),
+      this.prisma.proforma.count({
+        where: { subsidiaryId, status: ProformaStatus.ACCEPTED },
+      }),
+      this.prisma.proforma.count({
+        where: { subsidiaryId, status: ProformaStatus.REJECTED },
+      }),
+    ]);
+
+    return { all, draft, sent, accepted, rejected };
   }
 
   async findOne(id: string) {

@@ -15,6 +15,7 @@ import { MappingsService } from './mappings.service';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { AccountingAccessGuard } from 'src/accounting-access/accounting-access.guard';
 import type { AccountingAccountType } from '@prisma/client';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @UseGuards(JwtAuthGuard, AccountingAccessGuard)
 @Controller('accounting/accounts')
@@ -47,8 +48,16 @@ export class AccountsController {
   }
 
   @Get()
-  findAll(@Query('type') type?: string) {
-    return this.accountsService.findAll(type as AccountingAccountType);
+  findAll(
+    @Query() paginationQuery: PaginationQueryDto,
+    @Query('type') type?: string,
+    @Query('includeInactive') includeInactive?: string,
+  ) {
+    return this.accountsService.findAll(
+      paginationQuery,
+      type as AccountingAccountType,
+      includeInactive === 'true',
+    );
   }
 
   @Get(':id')

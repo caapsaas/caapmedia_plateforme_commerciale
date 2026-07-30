@@ -7,12 +7,14 @@ import { useToast } from '../../context/ToastContext';
 import { useCanModifyAccounting } from '../../hooks/useCanModifyAccounting';
 import { getMappings, updateMapping, seedMappings, AccountMapping } from '../../services/apiAccounting/apiMappings';
 import { getJournals, seedJournals, AccountingJournal } from '../../services/apiAccounting/apiJournals';
-import { getAccounts, AccountingAccount } from '../../services/apiAccounting/apiAccounts';
+import { getAccountsPaginated, AccountingAccount } from '../../services/apiAccounting/apiAccounts';
 import {
   getFiscalYears, createFiscalYear, closeFiscalYear, reopenFiscalYear,
   FiscalYear, CreateFiscalYearDto,
 } from '../../services/apiAccounting/apiPeriods';
 import ConfirmationModal from '../common/ConfirmationModal';
+import { AsyncSelect } from '../ui/AsyncSelect';
+import TableSkeleton from '../ui/TableSkeleton';
 
 interface AccountingSettingsProps {
   fiscalPeriods: FiscalYear[];
@@ -120,11 +122,6 @@ const MappingsTab: React.FC<{ canModify: boolean }> = ({ canModify }) => {
     queryFn: getMappings,
   });
 
-  const { data: accounts = [] } = useQuery<AccountingAccount[]>({
-    queryKey: ['accounting-accounts'],
-    queryFn: () => getAccounts(),
-  });
-
   const updateMutation = useMutation({
     mutationFn: ({ key, accountCode }: { key: string; accountCode: string }) => updateMapping(key, accountCode),
     onSuccess: () => {
@@ -153,9 +150,18 @@ const MappingsTab: React.FC<{ canModify: boolean }> = ({ canModify }) => {
   };
 
   const byKey = new Map(mappings.map((m) => [m.key, m]));
-  const activeAccounts = accounts.filter((a) => a.isActive);
 
-  if (isLoading) return <div className="py-8 text-center text-slate-500 text-sm">Chargement...</div>;
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <table className="min-w-full">
+          <tbody>
+            <TableSkeleton rows={8} columns={2} />
+          </tbody>
+        </table>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -197,17 +203,20 @@ const MappingsTab: React.FC<{ canModify: boolean }> = ({ canModify }) => {
                           <p className="text-[11px] text-slate-400 font-mono">{key}</p>
                         </td>
                         <td className="px-4 py-2.5 text-right w-64">
-                          <select
-                            value={mapping.accountCode}
-                            onChange={(e) => canModify && updateMutation.mutate({ key, accountCode: e.target.value })}
+                          <AsyncSelect<AccountingAccount>
+                            queryKey="accounting-settings-mapping-accounts"
+                            isClearable={false}
                             disabled={!canModify || updateMutation.isPending}
-                            className={`w-full border border-slate-200 rounded-lg px-2 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#c6e911] ${!canModify ? 'opacity-50 cursor-not-allowed bg-slate-50' : ''}`}
-                          >
-                            <option value={mapping.accountCode}>{mapping.accountCode}</option>
-                            {activeAccounts.filter((a) => a.accountNumber !== mapping.accountCode).map((a) => (
-                              <option key={a.id} value={a.accountNumber}>{a.accountNumber} — {a.accountName}</option>
-                            ))}
-                          </select>
+                            value={mapping.accountCode}
+                            defaultOptions={[{ id: mapping.accountCode, accountNumber: mapping.accountCode, accountName: '' } as AccountingAccount]}
+                            onChange={(value) => canModify && value && updateMutation.mutate({ key, accountCode: value })}
+                            getOptionLabel={(a) => a.accountName ? `${a.accountNumber} — ${a.accountName}` : a.accountNumber}
+                            getOptionValue={(a) => a.accountNumber}
+                            fetcher={async ({ page, limit, search }) => {
+                              const res = await getAccountsPaginated({ page, limit, search });
+                              return { ...res, data: res.data.filter((a) => a.accountNumber !== mapping.accountCode) };
+                            }}
+                          />
                         </td>
                       </tr>
                     );

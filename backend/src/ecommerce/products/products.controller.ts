@@ -27,6 +27,7 @@ import {
   validateImageFile,
   generateSecureFilename,
 } from 'src/common/utils/image.util';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 // Catalogue de services (Chantier 1) : donnée globale, pas de scope filiale.
 @Controller('products')
@@ -107,8 +108,8 @@ export class ProductsController {
     UserRole.PRODUCTION_DIRECTOR,
     UserRole.FINANCIAL_DIRECTOR,
   )
-  findAll() {
-    return this.productsService.findAll();
+  findAll(@Query() paginationQuery: PaginationQueryDto) {
+    return this.productsService.findAll(paginationQuery);
   }
 
   /**

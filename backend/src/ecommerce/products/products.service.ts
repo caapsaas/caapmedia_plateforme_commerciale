@@ -13,6 +13,9 @@ import {
   buildRelativeImagePath,
   deleteImageFile,
 } from 'src/common/utils/image.util';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
+import { paginate } from 'src/common/pagination/pagination';
+import type { Prisma } from '@prisma/client';
 
 // Catalogue de services (Chantier 1) : donnée globale, sans prix ni stock.
 // Le CRUD des produits de stock (matières premières, scopé filiale) vit dans
@@ -70,14 +73,35 @@ export class ProductsService {
   }
 
   /**
-   * @returns // Liste de tous les services du catalogue (donnée globale)
+   * @returns // Liste de tous les services du catalogue (donnée globale), paginée
    */
-  async findAll() {
-    const products = await this.prisma.item.findMany({
-      where: { type: ItemType.SERVICE },
-      include: this.includeAll,
-    });
-    return products.map((p) => this.mapDecimals(p));
+  async findAll(paginationQuery: PaginationQueryDto = {}) {
+    const where: Prisma.ItemWhereInput = { type: ItemType.SERVICE };
+    if (paginationQuery.search) {
+      where.OR = [
+        { name: { contains: paginationQuery.search, mode: 'insensitive' } },
+        { category: { contains: paginationQuery.search, mode: 'insensitive' } },
+      ];
+    }
+
+    type ProductWithImages = Prisma.ItemGetPayload<{
+      include: { productImages: true };
+    }>;
+    const result = await paginate<ProductWithImages>(
+      // Cast nécessaire : le délégué Prisma généré a des surcharges de
+      // findMany() par forme d'`include` que l'interface générique
+      // PaginatableModel<T> ne peut pas unifier structurellement.
+      this.prisma.item as unknown as Parameters<
+        typeof paginate<ProductWithImages>
+      >[0],
+      { where, include: this.includeAll },
+      paginationQuery,
+    );
+
+    return {
+      ...result,
+      data: result.data.map((p) => this.mapDecimals(p)),
+    };
   }
 
   async findMany(page: number, category?: string) {

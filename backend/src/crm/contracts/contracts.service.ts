@@ -9,6 +9,10 @@ import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
+import { paginate, PaginatedResult } from 'src/common/pagination/pagination';
+import { withSubsidiaryScope } from 'src/common/utils/subsidiary-scope';
+import type { Contract } from '@prisma/client';
 
 @Injectable()
 export class ContractsService {
@@ -37,25 +41,39 @@ export class ContractsService {
     });
   }
 
-  async findAll(user: User) {
+  async findAll(
+    user: User,
+    paginationQuery: PaginationQueryDto,
+    filterSubsidiaryId?: string,
+  ): Promise<PaginatedResult<Contract>> {
     const isSuperAdmin = user.userRole === UserRole.SUPER_ADMIN;
-    const where: Prisma.ContractWhereInput = isSuperAdmin
-      ? {}
-      : { subsidiaryId: user.subsidiaryId };
+    const scopeCtx = {
+      subsidiaryId: user.subsidiaryId,
+      hasGlobalScope: isSuperAdmin,
+    };
+    const where: Prisma.ContractWhereInput = withSubsidiaryScope(
+      {},
+      scopeCtx,
+      filterSubsidiaryId,
+    );
 
     if (!isSuperAdmin && user.userRole === UserRole.COMMERCIAL) {
       where.client = { salesRepId: user.id };
     }
 
-    return this.prisma.contract.findMany({
-      where,
-      include: {
-        client: true, // Inclure les informations du client
+    if (paginationQuery.search) {
+      where.title = { contains: paginationQuery.search, mode: 'insensitive' };
+    }
+
+    return paginate<Contract>(
+      this.prisma.contract,
+      {
+        where,
+        include: { client: true },
+        orderBy: { startDate: 'desc' },
       },
-      orderBy: {
-        startDate: 'desc',
-      },
-    });
+      paginationQuery,
+    );
   }
 
   async findOne(id: string, user: User) {

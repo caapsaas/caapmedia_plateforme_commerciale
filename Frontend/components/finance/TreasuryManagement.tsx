@@ -14,6 +14,8 @@ import IconEye from '../icons/IconEye';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTreasuryAccounts, getFinancialTransactions, createIncomeTransaction, createExpenseTransaction, deleteTransaction } from '../../services/apiFinance/apiTreasury';
 import TransactionFormModal, { TransactionFormData } from './TransactionFormModal';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 
 interface TreasuryManagementProps {
     subsidiary: Subsidiary;
@@ -226,17 +228,18 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
     };
 
     
-    const isLoading = l1 || l2;
-
-    if (isLoading) {
-        return <div className="p-6 text-center">{t('common.loading')}</div>;
-    }
-
     return (
         <>
             <div className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 no-print">
-                    {treasuryAccounts.map(account => (
+                    {l1 ? (
+                        Array.from({ length: 4 }).map((_, i) => (
+                            <div key={i} className="bg-white p-6 rounded-xl shadow-md flex flex-col animate-pulse">
+                                <div className="h-4 bg-slate-200 rounded w-24 mb-4" />
+                                <div className="h-8 bg-slate-200 rounded w-32" />
+                            </div>
+                        ))
+                    ) : treasuryAccounts.map(account => (
                         <div key={account.id} className="bg-white p-6 rounded-xl shadow-md flex flex-col">
                             <h4 className="font-semibold text-slate-500">{account.accountName}</h4>
                             <div className="flex-grow flex items-end mt-2">
@@ -289,7 +292,15 @@ const TreasuryManagement: React.FC<TreasuryManagementProps> = ({ subsidiary }) =
                                 </tr>
                             </thead>
                             <tbody>
-                                {transactions.map((tx) => (
+                                {l2 ? (
+                                    <TableSkeleton rows={8} columns={8} />
+                                ) : transactions.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8}>
+                                            <EmptyState icon="finance" title={t('treasury.recentTransactions')} description={t('common.notAvailable')} />
+                                        </td>
+                                    </tr>
+                                ) : transactions.map((tx) => (
                                     <tr key={tx.id} className="bg-white border-b hover:bg-slate-50">
                                         <td className="px-6 py-4">{new Date(tx.transactionDate).toLocaleDateString()}</td>
                                         <td className="px-6 py-4 font-medium text-slate-800">{tx.description}</td>

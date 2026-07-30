@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Subsidiary, SecretariatTask, SecretariatTaskStatus, Employee } from '../../types';
 import { useI18n } from '../../i18n';
 import IconPlus from '../icons/IconPlus';
@@ -11,21 +12,40 @@ import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
-import { SaveSecretariatTaskDto } from '../../services/apisecretariat/apiSecretariat';
+import { SaveSecretariatTaskDto, getSecretariatTasks, getSecretariatTasksPaginated } from '../../services/apisecretariat/apiSecretariat';
+import EmptyState from '../ui/EmptyState';
+import TableSkeleton from '../ui/TableSkeleton';
+import Pagination from '../common/Pagination';
+
+const TASKS_PAGE_SIZE = 10;
 
 interface TaskManagementProps {
     subsidiary: Subsidiary;
-    tasks: SecretariatTask[];
     employees: Employee[];
     onSave: (data: SaveSecretariatTaskDto) => void;
     onDelete: (id: string) => void;
 }
 
-const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary, tasks, employees, onSave, onDelete }) => {
+const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary, employees, onSave, onDelete }) => {
     const { t } = useI18n();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<SecretariatTask | null>(null);
     const [deletingTask, setDeletingTask] = useState<SecretariatTask | null>(null);
+    const [page, setPage] = useState(1);
+    const [search, setSearch] = useState('');
+    const [isExporting, setIsExporting] = useState(false);
+
+    useEffect(() => {
+        setPage(1);
+    }, [search]);
+
+    const { data: paginatedTasks, isLoading } = useQuery({
+        queryKey: ['secretariatTasks', subsidiary.id, 'paginated', page, search],
+        queryFn: () => getSecretariatTasksPaginated({ page, limit: TASKS_PAGE_SIZE, search: search || undefined }),
+    });
+
+    const tasks = paginatedTasks?.data || [];
+    const meta = paginatedTasks?.meta;
 
     const handleOpenAddModal = () => {
         setEditingTask(null);
@@ -78,34 +98,43 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary, tasks, empl
 
     const handlePrint = () => window.print();
 
-    const handleExportCsv = () => {
-        const headers = [
-            { key: 'title', label: t('secretariat.tasks.table.title') },
-            { key: 'assignedTo', label: t('secretariat.tasks.table.assignedTo') },
-            { key: 'dueDate', label: t('secretariat.tasks.table.dueDate') },
-            { key: 'status', label: t('secretariat.tasks.table.status') },
-        ];
-        const data = tasks.map(task => ({
+    const buildExportHeaders = () => [
+        { key: 'title', label: t('secretariat.tasks.table.title') },
+        { key: 'assignedTo', label: t('secretariat.tasks.table.assignedTo') },
+        { key: 'dueDate', label: t('secretariat.tasks.table.dueDate') },
+        { key: 'status', label: t('secretariat.tasks.table.status') },
+    ];
+
+    // L'export porte sur l'ensemble des tâches (pas seulement la page
+    // affichée) — on va chercher la liste complète à la demande plutôt que
+    // de la garder en mémoire en permanence.
+    const fetchAllForExport = async () => {
+        const all = await getSecretariatTasks();
+        return all.map(task => ({
             ...task,
             assignedTo: getAssigneeName(task.assignedToId),
             status: t(`secretariat.tasks.statuses.${task.status}`),
         }));
-        exportToCsv('liste_taches', headers, data);
     };
 
-    const handleExportPdf = () => {
-        const headers = [
-            { key: 'title', label: t('secretariat.tasks.table.title') },
-            { key: 'assignedTo', label: t('secretariat.tasks.table.assignedTo') },
-            { key: 'dueDate', label: t('secretariat.tasks.table.dueDate') },
-            { key: 'status', label: t('secretariat.tasks.table.status') },
-        ];
-        const data = tasks.map(task => ({
-            ...task,
-            assignedTo: getAssigneeName(task.assignedToId),
-            status: t(`secretariat.tasks.statuses.${task.status}`),
-        }));
-        exportToPdf(t('secretariat.tasks.title'), headers, data, 'taches');
+    const handleExportCsv = async () => {
+        setIsExporting(true);
+        try {
+            const data = await fetchAllForExport();
+            exportToCsv('liste_taches', buildExportHeaders(), data);
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const handleExportPdf = async () => {
+        setIsExporting(true);
+        try {
+            const data = await fetchAllForExport();
+            exportToPdf(t('secretariat.tasks.title'), buildExportHeaders(), data, 'taches');
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     return (
@@ -121,15 +150,24 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary, tasks, empl
                         <IconPrint className="h-4 w-4" />
                         <span>{t('common.print')}</span>
                     </button>
-                    <button onClick={handleExportCsv} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
+                    <button onClick={handleExportCsv} disabled={isExporting} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors disabled:opacity-50">
                         <IconExport className="h-4 w-4" />
                         <span>{t('common.export')}</span>
                     </button>
-                    <button onClick={handleExportPdf} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
+                    <button onClick={handleExportPdf} disabled={isExporting} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors disabled:opacity-50">
                         <IconPdf className="h-4 w-4" />
                         <span>{t('common.exportPdf')}</span>
                     </button>
                 </div>
+            </div>
+            <div className="mb-4 no-print">
+                <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder={t('common.search')}
+                    className="w-full sm:w-72 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#c6e911]"
+                />
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-slate-500">
@@ -143,7 +181,15 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary, tasks, empl
                         </tr>
                     </thead>
                     <tbody>
-                        {tasks.map((task) => (
+                        {isLoading ? (
+                            <TableSkeleton rows={TASKS_PAGE_SIZE} columns={5} />
+                        ) : tasks.length === 0 ? (
+                            <tr>
+                                <td colSpan={5}>
+                                    <EmptyState icon="document" title={t('secretariat.tasks.title')} description={t('common.notAvailable')} />
+                                </td>
+                            </tr>
+                        ) : tasks.map((task) => (
                             <tr key={task.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4">
                                     <div className="font-semibold text-slate-900">{task.title}</div>
@@ -175,6 +221,7 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary, tasks, empl
                     </tbody>
                 </table>
             </div>
+            {meta && <Pagination meta={meta} onPageChange={setPage} />}
 
             {isModalOpen && (
                 <TaskFormModal

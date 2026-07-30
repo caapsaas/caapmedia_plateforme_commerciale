@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Calendar, ChevronDown, ChevronRight, Download, Printer } from 'lucide-react';
 import { getGrandLivre, GrandLivreAccount } from '../../services/apiAccounting/apiReports';
-import { getAccounts, AccountingAccount } from '../../services/apiAccounting/apiAccounts';
+import { getAccountsPaginated, AccountingAccount } from '../../services/apiAccounting/apiAccounts';
+import { AsyncSelect } from '../ui/AsyncSelect';
 import { FiscalYear } from '../../services/apiAccounting/apiPeriods';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -35,11 +36,6 @@ const GrandLivre: React.FC<GrandLivreProps> = ({ fiscalPeriods }) => {
       setFiscalYearId((open || fiscalPeriods[0]).id);
     }
   }, [fiscalPeriods, fiscalYearId]);
-
-  const { data: chartAccounts = [] } = useQuery<AccountingAccount[]>({
-    queryKey: ['accounting-accounts'],
-    queryFn: () => getAccounts(),
-  });
 
   const { data: accounts = [], isLoading } = useQuery<GrandLivreAccount[]>({
     queryKey: ['grand-livre', fiscalYearId, subsidiaryId, selectedAccountNumber, startDate, endDate],
@@ -156,16 +152,16 @@ const GrandLivre: React.FC<GrandLivreProps> = ({ fiscalPeriods }) => {
         </div>
         <div className="flex items-center space-x-2">
           <span className="text-sm font-medium text-slate-600">Compte :</span>
-          <select
-            value={selectedAccountNumber}
-            onChange={(e) => setSelectedAccountNumber(e.target.value)}
-            className="px-3 py-1.5 border border-slate-200 rounded text-sm outline-none focus:ring-2 focus:ring-[#c6e911] min-w-[220px]"
-          >
-            <option value="">Tous les comptes mouvementés</option>
-            {chartAccounts.filter((a) => a.isActive).map((a) => (
-              <option key={a.id} value={a.accountNumber}>{a.accountNumber} — {a.accountName}</option>
-            ))}
-          </select>
+          <AsyncSelect<AccountingAccount>
+            queryKey="grand-livre-accounts"
+            placeholder="Tous les comptes mouvementés"
+            className="min-w-[260px]"
+            value={selectedAccountNumber || undefined}
+            onChange={(value) => setSelectedAccountNumber(value || '')}
+            getOptionLabel={(a) => `${a.accountNumber} — ${a.accountName}`}
+            getOptionValue={(a) => a.accountNumber}
+            fetcher={({ page, limit, search }) => getAccountsPaginated({ page, limit, search })}
+          />
         </div>
       </div>
 

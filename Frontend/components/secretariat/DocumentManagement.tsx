@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Subsidiary, CompanyDocument, DocumentStatus } from '../../types';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
@@ -13,21 +14,41 @@ import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
+import EmptyState from '../ui/EmptyState';
+import TableSkeleton from '../ui/TableSkeleton';
+import Pagination from '../common/Pagination';
 import { getImageUrl } from '../../utils/imageUtils';
+import { getCompanyDocuments, getCompanyDocumentsPaginated } from '../../services/apisecretariat/apiSecretariat';
+
+const DOCUMENTS_PAGE_SIZE = 10;
 
 interface DocumentManagementProps {
     subsidiary: Subsidiary;
-    documents: CompanyDocument[];
     onSave: (data: FormData) => void;
     onDelete: (id: string) => void;
 }
 
-const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, documents, onSave, onDelete }) => {
+const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, onSave, onDelete }) => {
     const { t } = useI18n();
     const toast = useToast();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingDocument, setEditingDocument] = useState<CompanyDocument | null>(null);
     const [deletingDocument, setDeletingDocument] = useState<CompanyDocument | null>(null);
+    const [page, setPage] = useState(1);
+    const [search, setSearch] = useState('');
+    const [isExporting, setIsExporting] = useState(false);
+
+    useEffect(() => {
+        setPage(1);
+    }, [search]);
+
+    const { data: paginatedDocuments, isLoading } = useQuery({
+        queryKey: ['companyDocuments', subsidiary.id, 'paginated', page, search],
+        queryFn: () => getCompanyDocumentsPaginated({ page, limit: DOCUMENTS_PAGE_SIZE, search: search || undefined }),
+    });
+
+    const documents = paginatedDocuments?.data || [];
+    const meta = paginatedDocuments?.meta;
 
     const handleOpenAddModal = () => {
         setEditingDocument(null);
@@ -85,43 +106,47 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
         toast.info('Impression lancée', 'La page est en cours d\'impression.');
     };
 
-    const handleExportCsv = () => {
+    const buildExportHeaders = () => [
+        { key: 'name', label: t('secretariat.documents.table.name') },
+        { key: 'category', label: t('secretariat.documents.table.category') },
+        { key: 'uploadDate', label: t('secretariat.documents.table.uploadDate') },
+        { key: 'status', label: t('secretariat.documents.table.status') },
+    ];
+
+    // L'export porte sur l'ensemble des documents (pas seulement la page
+    // affichée) — on va chercher la liste complète à la demande.
+    const fetchAllForExport = async () => {
+        const all = await getCompanyDocuments();
+        return all.map(d => ({
+            ...d,
+            category: t(`secretariat.documents.categories.${d.category}`),
+            status: t(`secretariat.documents.statuses.${d.status}`),
+        }));
+    };
+
+    const handleExportCsv = async () => {
+        setIsExporting(true);
         try {
-            const headers = [
-                { key: 'name', label: t('secretariat.documents.table.name') },
-                { key: 'category', label: t('secretariat.documents.table.category') },
-                { key: 'uploadDate', label: t('secretariat.documents.table.uploadDate') },
-                { key: 'status', label: t('secretariat.documents.table.status') },
-            ];
-            const data = documents.map(d => ({
-                ...d,
-                category: t(`secretariat.documents.categories.${d.category}`),
-                status: t(`secretariat.documents.statuses.${d.status}`),
-            }));
-            exportToCsv('liste_documents', headers, data);
+            const data = await fetchAllForExport();
+            exportToCsv('liste_documents', buildExportHeaders(), data);
             toast.success('Export CSV réussi!', 'Les données ont été exportées au format CSV.');
         } catch (error) {
             toast.error('Erreur d\'export', 'Une erreur est survenue lors de l\'export CSV.');
+        } finally {
+            setIsExporting(false);
         }
     };
 
-    const handleExportPdf = () => {
+    const handleExportPdf = async () => {
+        setIsExporting(true);
         try {
-            const headers = [
-                { key: 'name', label: t('secretariat.documents.table.name') },
-                { key: 'category', label: t('secretariat.documents.table.category') },
-                { key: 'uploadDate', label: t('secretariat.documents.table.uploadDate') },
-                { key: 'status', label: t('secretariat.documents.table.status') },
-            ];
-            const data = documents.map(d => ({
-                ...d,
-                category: t(`secretariat.documents.categories.${d.category}`),
-                status: t(`secretariat.documents.statuses.${d.status}`),
-            }));
-            exportToPdf(t('secretariat.documents.title'), headers, data, 'documents');
+            const data = await fetchAllForExport();
+            exportToPdf(t('secretariat.documents.title'), buildExportHeaders(), data, 'documents');
             toast.success('Export PDF réussi!', 'Les données ont été exportées au format PDF.');
         } catch (error) {
             toast.error('Erreur d\'export', 'Une erreur est survenue lors de l\'export PDF.');
+        } finally {
+            setIsExporting(false);
         }
     };
 
@@ -181,15 +206,24 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
                         <IconPrint className="h-4 w-4" />
                         <span>{t('common.print')}</span>
                     </button>
-                    <button onClick={handleExportCsv} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
+                    <button onClick={handleExportCsv} disabled={isExporting} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors disabled:opacity-50">
                         <IconExport className="h-4 w-4" />
                         <span>{t('common.export')}</span>
                     </button>
-                    <button onClick={handleExportPdf} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
+                    <button onClick={handleExportPdf} disabled={isExporting} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors disabled:opacity-50">
                         <IconPdf className="h-4 w-4" />
                         <span>{t('common.exportPdf')}</span>
                     </button>
                 </div>
+            </div>
+            <div className="mb-4 no-print">
+                <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder={t('common.search')}
+                    className="w-full sm:w-72 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#c6e911]"
+                />
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-slate-500">
@@ -203,7 +237,15 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
                         </tr>
                     </thead>
                     <tbody>
-                        {documents.map((doc) => (
+                        {isLoading ? (
+                            <TableSkeleton rows={DOCUMENTS_PAGE_SIZE} columns={5} />
+                        ) : documents.length === 0 ? (
+                            <tr>
+                                <td colSpan={5}>
+                                    <EmptyState icon="document" title={t('secretariat.documents.title')} description={t('common.notAvailable')} />
+                                </td>
+                            </tr>
+                        ) : documents.map((doc) => (
                             <tr key={doc.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{doc.name}</td>
                                 <td className="px-6 py-4">{t(`secretariat.documents.categories.${doc.category}`)}</td>
@@ -229,6 +271,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, doc
                     </tbody>
                 </table>
             </div>
+            {meta && <Pagination meta={meta} onPageChange={setPage} />}
 
             {isModalOpen && (
                 <DocumentFormModal

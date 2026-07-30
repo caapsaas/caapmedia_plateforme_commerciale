@@ -33,7 +33,7 @@ const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClo
 
   const { data: products = [] } = useQuery({
     queryKey: ['products'],
-    queryFn: getProducts,
+    queryFn: () => getProducts(1),
   });
 
   const mutation = useMutation({

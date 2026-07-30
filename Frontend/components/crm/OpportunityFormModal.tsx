@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Opportunity, Contact, Product, OpportunityStage } from '../../types';
 import { useI18n } from '../../i18n';
+import { getContactsPaginated } from '../../services/apiCrm/apiCrm';
+import { AsyncSelect } from '../ui/AsyncSelect';
 
 interface OpportunityFormModalProps {
     isOpen: boolean;
@@ -15,7 +17,7 @@ interface OpportunityFormModalProps {
         productIds: string[];
     }) => void;
     opportunity: Opportunity | null;
-    clients: Contact[];
+    subsidiaryId: string;
     products: Product[];
 }
 
@@ -24,7 +26,7 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
     onClose,
     onSave,
     opportunity,
-    clients,
+    subsidiaryId,
     products
 }) => {
     const { t } = useI18n();
@@ -60,25 +62,16 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
+        const numValue = name === 'opportunityValue' ? parseFloat(value) : value;
+        setFormData(prev => ({ ...prev, [name]: numValue }));
+    };
 
-        if (name === 'contactId') {
-            const selectedClient = clients.find(c => c.id === value);
-            const accountId = selectedClient?.accountId || '';
-            
-            // Afficher un avertissement si le contact n'a pas de compte associé
-            if (value && !accountId) {
-                console.warn('Le contact sélectionné n\'a pas de compte associé. Veuillez manuellement entrer un ID de compte.');
-            }
-            
-            setFormData(prev => ({
-                ...prev,
-                contactId: value,
-                accountId: accountId,
-            }));
-        } else {
-            const numValue = name === 'opportunityValue' ? parseFloat(value) : value;
-            setFormData(prev => ({ ...prev, [name]: numValue }));
-        }
+    const handleContactChange = (value: string | undefined, option?: Contact) => {
+        setFormData(prev => ({
+            ...prev,
+            contactId: value || '',
+            accountId: option?.accountId || '',
+        }));
     };
 
     const handleProductChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -146,26 +139,19 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
                             </div>
 
                             <div>
-                                <label htmlFor="contactId" className="block text-sm font-medium text-slate-700">
-                                    {t('crm.opportunity.form.client')}
-                                </label>
-                                <select
-                                    name="contactId"
-                                    id="contactId"
-                                    value={formData.contactId}
-                                    onChange={handleChange}
-                                    required
-                                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"
-                                >
-                                    <option value="" disabled>
-                                        {t('crm.opportunity.form.selectClient')}
-                                    </option>
-                                    {clients.filter(c => c.accountId).map(c => (
-                                        <option key={c.id} value={c.id}>
-                                            {c.contactName} - {c.company}
-                                        </option>
-                                    ))}
-                                </select>
+                                <AsyncSelect<Contact>
+                                    queryKey="opportunity-form-contacts"
+                                    label={t('crm.opportunity.form.client')}
+                                    placeholder={t('crm.opportunity.form.selectClient')}
+                                    value={formData.contactId || undefined}
+                                    onChange={handleContactChange}
+                                    getOptionLabel={(c) => `${c.contactName} - ${c.company}`}
+                                    getOptionValue={(c) => c.id}
+                                    fetcher={async ({ page, limit, search }) => {
+                                        const res = await getContactsPaginated({ page, limit, search, subsidiaryId });
+                                        return { ...res, data: res.data.filter(c => c.accountId) };
+                                    }}
+                                />
                                 <p className="text-xs text-slate-500 mt-1">
                                     Seuls les contacts avec un compte associé sont affichés
                                 </p>

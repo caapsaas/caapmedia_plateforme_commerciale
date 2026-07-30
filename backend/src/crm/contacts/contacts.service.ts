@@ -9,13 +9,16 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { EmailService } from 'src/common/utils/email/email.service';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
-import { Prisma, User, UserRole, ContactStatus } from '@prisma/client';
+import { Prisma, User, UserRole, ContactStatus, Contact } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { ContactLoginDto } from './dto/contact-login.dto';
 import { RegisterContactDto } from './dto/register-contact.dto';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
+import { paginate, PaginatedResult } from 'src/common/pagination/pagination';
+import { withSubsidiaryScope } from 'src/common/utils/subsidiary-scope';
 
 @Injectable()
 export class ContactsService {
@@ -88,25 +91,71 @@ export class ContactsService {
     };
   }
 
-  async findAll(user: User) {
+  async findAll(
+    user: User,
+    paginationQuery: PaginationQueryDto,
+    filterSubsidiaryId?: string,
+    filterSalesRepId?: string,
+  ): Promise<PaginatedResult<Contact>> {
     const isSuperAdmin = user.userRole === UserRole.SUPER_ADMIN;
-    const where: Prisma.ContactWhereInput = isSuperAdmin
-      ? {}
-      : { subsidiaryId: user.subsidiaryId };
+    const scopeCtx = {
+      subsidiaryId: user.subsidiaryId,
+      hasGlobalScope: isSuperAdmin,
+    };
+    const where: Prisma.ContactWhereInput = withSubsidiaryScope(
+      {},
+      scopeCtx,
+      filterSubsidiaryId,
+    );
 
-    if (!isSuperAdmin && user.userRole === UserRole.COMMERCIAL) {
+    if (isSuperAdmin) {
+      if (filterSalesRepId) {
+        where.salesRepId = filterSalesRepId;
+      }
+    } else if (user.userRole === UserRole.COMMERCIAL) {
       where.salesRepId = user.id;
     }
 
-    return this.prisma.contact.findMany({
-      where,
-      include: {
-        salesRep: { select: { userName: true } },
-        account: { select: { accountName: true } },
-        _count: { select: { opportunities: true, orders: true } },
+    if (paginationQuery.search) {
+      where.AND = [
+        {
+          OR: [
+            {
+              contactName: {
+                contains: paginationQuery.search,
+                mode: 'insensitive',
+              },
+            },
+            {
+              email: { contains: paginationQuery.search, mode: 'insensitive' },
+            },
+            {
+              phone: { contains: paginationQuery.search, mode: 'insensitive' },
+            },
+            {
+              company: {
+                contains: paginationQuery.search,
+                mode: 'insensitive',
+              },
+            },
+          ],
+        },
+      ];
+    }
+
+    return paginate<Contact>(
+      this.prisma.contact,
+      {
+        where,
+        include: {
+          salesRep: { select: { userName: true } },
+          account: { select: { accountName: true } },
+          _count: { select: { opportunities: true, orders: true } },
+        },
+        orderBy: { contactName: 'asc' },
       },
-      orderBy: { contactName: 'asc' },
-    });
+      paginationQuery,
+    );
   }
 
   /**

@@ -16,6 +16,9 @@ import {
 } from '@prisma/client';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
+import { paginate } from 'src/common/pagination/pagination';
+import type { Prisma } from '@prisma/client';
 
 type ItemWithRelations = Item & {
   stockLevels: ItemStock[];
@@ -103,22 +106,45 @@ export class StockItemsService {
     return this.toFlat(item, user.subsidiaryId);
   }
 
-  async findAll(user: any, subsidiaryId?: string) {
+  async findAll(
+    user: any,
+    paginationQuery: PaginationQueryDto,
+    subsidiaryId?: string,
+  ) {
     const isSuperAdmin = user.userRole === 'SUPER_ADMIN';
     const effectiveSid =
       isSuperAdmin && subsidiaryId ? subsidiaryId : user.subsidiaryId;
     const stockLevelsWhere =
       isSuperAdmin && !subsidiaryId ? {} : { subsidiaryId: effectiveSid };
 
-    const items = await this.prisma.item.findMany({
-      where: { type: ItemType.STOCK_PRODUCT },
-      orderBy: { name: 'asc' },
-      include: {
-        ...STOCK_ITEM_INCLUDE,
-        stockLevels: { where: stockLevelsWhere },
+    const where: Prisma.ItemWhereInput = { type: ItemType.STOCK_PRODUCT };
+    if (paginationQuery.search) {
+      where.name = { contains: paginationQuery.search, mode: 'insensitive' };
+    }
+
+    const result = await paginate<ItemWithRelations>(
+      // Le délégué Prisma généré a des surcharges de findMany() par forme
+      // d'`include` que l'interface générique PaginatableModel<T> ne peut pas
+      // unifier structurellement — cast nécessaire, la forme réelle de la
+      // requête (via `include` ci-dessous) reste correcte et vérifiée.
+      this.prisma.item as unknown as Parameters<
+        typeof paginate<ItemWithRelations>
+      >[0],
+      {
+        where,
+        orderBy: { name: 'asc' },
+        include: {
+          ...STOCK_ITEM_INCLUDE,
+          stockLevels: { where: stockLevelsWhere },
+        },
       },
-    });
-    return items.map((item) => this.toFlat(item, effectiveSid));
+      paginationQuery,
+    );
+
+    return {
+      ...result,
+      data: result.data.map((item) => this.toFlat(item, effectiveSid)),
+    };
   }
 
   async findOne(id: string, user: any) {

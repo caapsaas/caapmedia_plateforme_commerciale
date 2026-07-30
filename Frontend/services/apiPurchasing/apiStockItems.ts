@@ -1,15 +1,29 @@
 import { api } from '../api';
 import { ItemPackagingUnit, StockItem } from '../../types/models';
 import { StockItemFormData } from '../../types/forms';
+import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
 const BASE_URL = '/purchase/stock-items';
 
 /**
  * Récupère les produits de stock (matières premières/consommables) de la filiale
- * de l'utilisateur connecté.
+ * de l'utilisateur connecté. Limit élevée pour préserver le comportement
+ * "tout charger" des appelants existants (recherche/tri client-side, export).
  */
 export const getStockItemsBySubsidiary = async (subsidiaryId?: string): Promise<StockItem[]> => {
-    const { data } = await api.get(BASE_URL, { params: subsidiaryId ? { subsidiaryId } : undefined });
+    const { data } = await api.get<PaginatedResponse<StockItem>>(BASE_URL, {
+        params: { ...(subsidiaryId ? { subsidiaryId } : {}), limit: 500 },
+    });
+    return data.data;
+};
+
+/**
+ * Version paginée/recherchable pour les selects (AsyncSelect).
+ */
+export const getStockItemsPaginated = async (
+    params: PaginationParams & { subsidiaryId?: string },
+): Promise<PaginatedResponse<StockItem>> => {
+    const { data } = await api.get<PaginatedResponse<StockItem>>(BASE_URL, { params });
     return data;
 };
 

@@ -24,6 +24,10 @@ import { ContactsService } from '../contacts/contacts.service';
 import { CreateContactDto } from '../contacts/dto/create-contact.dto';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
+import { paginate, PaginatedResult } from 'src/common/pagination/pagination';
+import { withSubsidiaryScope } from 'src/common/utils/subsidiary-scope';
+import type { Lead } from '@prisma/client';
 
 @Injectable()
 export class LeadsService {
@@ -119,23 +123,66 @@ export class LeadsService {
     });
   }
 
-  async findAll(user: User) {
+  async findAll(
+    user: User,
+    paginationQuery: PaginationQueryDto,
+    filterSubsidiaryId?: string,
+    filterSalesRepId?: string,
+  ): Promise<PaginatedResult<Lead>> {
     const isSuperAdmin = user.userRole === UserRole.SUPER_ADMIN;
-    const where: Prisma.LeadWhereInput = isSuperAdmin
-      ? {}
-      : { subsidiaryId: user.subsidiaryId };
+    const scopeCtx = {
+      subsidiaryId: user.subsidiaryId,
+      hasGlobalScope: isSuperAdmin,
+    };
+    const where: Prisma.LeadWhereInput = withSubsidiaryScope(
+      {},
+      scopeCtx,
+      filterSubsidiaryId,
+    );
 
-    if (!isSuperAdmin) {
+    if (isSuperAdmin) {
+      if (filterSalesRepId) {
+        where.salesRepId = filterSalesRepId;
+      }
+    } else {
       const privilegedRoles: UserRole[] = [UserRole.ADMIN, UserRole.SECRETARY];
       if (!privilegedRoles.includes(user.userRole)) {
         where.OR = [{ salesRepId: user.id }, { salesRepId: null }];
       }
     }
 
-    return this.prisma.lead.findMany({
-      where,
-      orderBy: { leadName: 'asc' },
-    });
+    if (paginationQuery.search) {
+      where.AND = [
+        {
+          OR: [
+            {
+              leadName: {
+                contains: paginationQuery.search,
+                mode: 'insensitive',
+              },
+            },
+            {
+              email: { contains: paginationQuery.search, mode: 'insensitive' },
+            },
+            {
+              phone: { contains: paginationQuery.search, mode: 'insensitive' },
+            },
+            {
+              company: {
+                contains: paginationQuery.search,
+                mode: 'insensitive',
+              },
+            },
+          ],
+        },
+      ];
+    }
+
+    return paginate<Lead>(
+      this.prisma.lead,
+      { where, orderBy: { leadName: 'asc' } },
+      paginationQuery,
+    );
   }
 
   async findOne(id: string) {

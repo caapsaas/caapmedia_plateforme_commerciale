@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ExpensesService } from './expense.service';
@@ -14,6 +15,7 @@ import { CurrentUser } from 'src/common/auth/role/role.decorator';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('finance/expenses')
@@ -29,8 +31,11 @@ export class ExpensesController {
   }
 
   @Get()
-  findAll(@CurrentUser() user: JwtUser) {
-    return this.expensesService.findAll(user);
+  findAll(
+    @CurrentUser() user: JwtUser,
+    @Query() paginationQuery: PaginationQueryDto,
+  ) {
+    return this.expensesService.findAll(user, paginationQuery);
   }
 
   @Get(':id')

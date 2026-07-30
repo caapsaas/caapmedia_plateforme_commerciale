@@ -13,11 +13,12 @@ import {
   JournalEntry, JournalEntryStatus, CreateEntryDto,
 } from '../../services/apiAccounting/apiEntries';
 import { getJournals, AccountingJournal } from '../../services/apiAccounting/apiJournals';
-import { getAccounts, AccountingAccount } from '../../services/apiAccounting/apiAccounts';
+import { getAccountsPaginated, AccountingAccount } from '../../services/apiAccounting/apiAccounts';
 import { FiscalYear } from '../../services/apiAccounting/apiPeriods';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
 import SubsidiaryFilter from '../filters/SubsidiaryFilter';
+import { AsyncSelect } from '../ui/AsyncSelect';
 
 const STATUS_LABELS: Record<JournalEntryStatus, string> = {
   DRAFT: 'Brouillon',
@@ -70,11 +71,6 @@ const JournalEntries: React.FC<JournalEntriesProps> = ({ fiscalPeriods }) => {
   const { data: journals = [] } = useQuery<AccountingJournal[]>({
     queryKey: ['accounting-journals'],
     queryFn: getJournals,
-  });
-
-  const { data: accounts = [] } = useQuery<AccountingAccount[]>({
-    queryKey: ['accounting-accounts'],
-    queryFn: () => getAccounts(),
   });
 
   const createMutation = useMutation({
@@ -539,17 +535,16 @@ const JournalEntries: React.FC<JournalEntriesProps> = ({ fiscalPeriods }) => {
                     <tbody className="divide-y divide-slate-100">
                       {form.lines.map((line, idx) => (
                         <tr key={idx}>
-                          <td className="px-4 py-2">
-                            <select
-                              value={line.accountId}
-                              onChange={(e) => updateLine(idx, 'accountId', e.target.value)}
-                              className="w-full px-2 py-1.5 border border-slate-200 rounded text-sm focus:ring-1 focus:ring-[#c6e911] outline-none"
-                            >
-                              <option value="">—</option>
-                              {accounts.filter((a) => a.isActive).map((a) => (
-                                <option key={a.id} value={a.id}>{a.accountNumber} – {a.accountName}</option>
-                              ))}
-                            </select>
+                          <td className="px-4 py-2 min-w-[220px]">
+                            <AsyncSelect<AccountingAccount>
+                              queryKey="journal-entry-accounts"
+                              placeholder="—"
+                              value={line.accountId || undefined}
+                              onChange={(value) => updateLine(idx, 'accountId', value || '')}
+                              getOptionLabel={(a) => `${a.accountNumber} – ${a.accountName}`}
+                              getOptionValue={(a) => a.id}
+                              fetcher={({ page, limit, search }) => getAccountsPaginated({ page, limit, search })}
+                            />
                           </td>
                           <td className="px-4 py-2">
                             <input

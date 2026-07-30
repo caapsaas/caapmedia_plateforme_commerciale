@@ -1,24 +1,56 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Contract, ContractStatus, Contact } from '../../types';
 import { useI18n } from '../../i18n';
+import { getContractsPaginated } from '../../services/apiCrm/apiCrm';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
 import ContractFormModal from './ContractFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+
+const CONTRACTS_PAGE_SIZE = 10;
 
 interface ContractManagementProps {
-    contracts: Contract[];
+    subsidiaryId: string;
+    filterSubsidiaryId?: string;
     contacts: Contact[];
     onSave: (data: Omit<Contract, 'id' | 'subsidiaryId'> & { id?: string }) => void;
     onDelete: (id: string) => void;
 }
 
-const ContractManagement: React.FC<ContractManagementProps> = ({ contracts = [], contacts, onSave, onDelete }) => {
+const ContractManagement: React.FC<ContractManagementProps> = ({
+    subsidiaryId,
+    filterSubsidiaryId,
+    contacts,
+    onSave,
+    onDelete,
+}) => {
     const { t, formatCurrency } = useI18n();
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingContract, setEditingContract] = useState<Contract | null>(null);
     const [deletingContract, setDeletingContract] = useState<Contract | null>(null);
+    const [page, setPage] = useState(1);
+
+    useEffect(() => {
+        setPage(1);
+    }, [filterSubsidiaryId]);
+
+    const { data: paginatedContracts, isLoading } = useQuery({
+        queryKey: ['contracts', subsidiaryId, 'paginated', page, filterSubsidiaryId],
+        queryFn: () =>
+            getContractsPaginated({
+                page,
+                limit: CONTRACTS_PAGE_SIZE,
+                subsidiaryId: filterSubsidiaryId,
+            }),
+    });
+
+    const contracts = paginatedContracts?.data || [];
+    const meta = paginatedContracts?.meta;
 
     const formatDate = (dateString: string) => {
         if (!dateString) return 'Non définie';
@@ -98,7 +130,15 @@ const ContractManagement: React.FC<ContractManagementProps> = ({ contracts = [],
                         </tr>
                     </thead>
                     <tbody>
-                        {contracts.map((contract) => (
+                        {isLoading ? (
+                            <TableSkeleton rows={CONTRACTS_PAGE_SIZE} columns={7} />
+                        ) : contracts.length === 0 ? (
+                            <tr>
+                                <td colSpan={7}>
+                                    <EmptyState icon="document" title={t('crm.contracts.title')} description={t('common.notAvailable')} />
+                                </td>
+                            </tr>
+                        ) : contracts.map((contract) => (
                             <tr key={contract.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{contract.title}</td>
                                 <td className="px-6 py-4">{getClientName(contract.clientId)}</td>
@@ -123,8 +163,9 @@ const ContractManagement: React.FC<ContractManagementProps> = ({ contracts = [],
                     </tbody>
                 </table>
             </div>
+            {meta && <Pagination meta={meta} onPageChange={setPage} />}
             {isFormModalOpen && (
-                <ContractFormModal 
+                <ContractFormModal
                     isOpen={isFormModalOpen}
                     onClose={handleCloseModals}
                     onSave={handleSave}

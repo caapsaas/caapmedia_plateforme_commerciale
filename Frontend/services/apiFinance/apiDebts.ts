@@ -46,9 +46,13 @@ export const createSupplierDebt = async (debtData: SupplierDebtCreationData): Pr
 /**
  * Récupère toutes les dettes fournisseurs de la filiale.
  */
+/**
+ * Limit élevée pour préserver le comportement "tout charger" nécessaire à
+ * l'export CSV/PDF de SupplierDebts.tsx.
+ */
 export const getSupplierDebts = async (): Promise<SupplierDebt[]> => {
-  const { data } = await api.get<SupplierDebt[]>('/finance/debts/supplier');
-  return data;
+  const { data } = await api.get<{ data: SupplierDebt[] }>('/finance/debts/supplier', { params: { limit: 500 } });
+  return data.data;
 };
 
 /**

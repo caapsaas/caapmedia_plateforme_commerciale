@@ -15,13 +15,16 @@ import IconPdf from '../icons/IconPdf';
 import PeriodFilter from '../filters/PeriodFilter';
 import SelectFilter from '../filters/SelectFilter';
 import { saveExpense, deleteExpense } from '../../services/apiFinance/apiExpense';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 
 interface ExpenseManagementProps {
     subsidiary: Subsidiary;
     expenseRecords: ExpenseRecord[];
+    isLoading?: boolean;
 }
 
-const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expenseRecords: allExpenseRecords }) => {
+const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expenseRecords: allExpenseRecords, isLoading = false }) => {
     const { t, formatCurrency } = useI18n();
     const toast = useToast();
     const [expenses, setExpenses] = useState(allExpenseRecords.filter(e => e.subsidiaryId === subsidiary.id));
@@ -218,7 +221,15 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredExpenses.map((exp) => (
+                            {isLoading ? (
+                                <TableSkeleton rows={8} columns={6} />
+                            ) : filteredExpenses.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6}>
+                                        <EmptyState icon="finance" title={t('expenses.title')} description={t('common.notAvailable')} />
+                                    </td>
+                                </tr>
+                            ) : filteredExpenses.map((exp) => (
                                 <tr key={exp.id} className="bg-white border-b hover:bg-slate-50">
                                     <td className="px-6 py-4">{exp.date ? new Date(exp.date).toLocaleDateString('fr-FR') : ''}</td>
                                     <td className="px-6 py-4 font-medium">{exp.description}</td>

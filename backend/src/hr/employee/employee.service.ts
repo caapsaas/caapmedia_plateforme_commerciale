@@ -20,6 +20,8 @@ import {
 } from '@prisma/client';
 import { generateId } from '../../common/utils/generate-id.util';
 import { ID_PREFIXES } from '../../common/constants/id-prefixes.const';
+import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
+import { paginate, PaginatedResult } from '../../common/pagination/pagination';
 
 @Injectable()
 export class EmployeeService {
@@ -256,7 +258,8 @@ export class EmployeeService {
   async findAll(
     subsidiaryId: string | null,
     includeRelations = false,
-  ): Promise<Employee[]> {
+    paginationQuery: PaginationQueryDto = {},
+  ): Promise<PaginatedResult<Employee>> {
     const include = includeRelations
       ? {
           manager: true,
@@ -272,15 +275,30 @@ export class EmployeeService {
       : {};
 
     // SUPER_ADMIN (subsidiaryId === null) voit tous les employés toutes filiales
-    const where = subsidiaryId ? { subsidiaryId } : {};
+    const where: Prisma.EmployeeWhereInput = subsidiaryId
+      ? { subsidiaryId }
+      : {};
 
-    const employees = await this.prisma.employee.findMany({
-      where,
-      include,
-      orderBy: { lastName: 'asc' },
-    });
+    if (paginationQuery.search) {
+      where.OR = [
+        {
+          firstName: { contains: paginationQuery.search, mode: 'insensitive' },
+        },
+        { lastName: { contains: paginationQuery.search, mode: 'insensitive' } },
+        { email: { contains: paginationQuery.search, mode: 'insensitive' } },
+      ];
+    }
 
-    return employees.map((emp) => this.convertEmployeeToDTO(emp));
+    const result = await paginate<Employee>(
+      this.prisma.employee,
+      { where, include, orderBy: { lastName: 'asc' } },
+      paginationQuery,
+    );
+
+    return {
+      ...result,
+      data: result.data.map((emp) => this.convertEmployeeToDTO(emp)),
+    };
   }
 
   /**

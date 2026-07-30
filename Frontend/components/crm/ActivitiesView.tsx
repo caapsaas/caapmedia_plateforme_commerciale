@@ -8,6 +8,7 @@ import IconUsers from '../icons/IconUsers';
 import IconClipboardList from '../icons/IconClipboardList';
 import IconChevronDown from '../icons/IconChevronDown';
 import IconChatBubbleLeftRight from '../icons/IconChatBubbleLeftRight';
+import EmptyState from '../ui/EmptyState';
 
 interface ActivitiesViewProps {
     contacts: Contact[];
@@ -185,7 +186,7 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({ contacts, interactions,
                             ))}
                         </tbody>
                     </table>
-                     {sortedTasks.length === 0 && <p className="text-center py-8 text-slate-500">{t('crm.activities.noActivity')}</p>}
+                     {sortedTasks.length === 0 && <EmptyState icon="document" title={t('crm.activities.noActivity')} />}
                 </div>
             </div>
 
@@ -202,7 +203,7 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({ contacts, interactions,
                             <p className="text-xs text-slate-400">{new Date(interaction.date).toLocaleString()}</p>
                         </li>
                     ))}
-                     {recentInteractions.length === 0 && <p className="text-sm text-slate-500">{t('crm.contacts.details.noInteractions')}</p>}
+                     {recentInteractions.length === 0 && <EmptyState icon="inbox" title={t('crm.contacts.details.noInteractions')} />}
                 </ul>
             </div>
         </div>

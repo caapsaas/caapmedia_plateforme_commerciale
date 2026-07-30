@@ -21,6 +21,8 @@ import {
   CreateSecretariatTaskDto,
   UpdateSecretariatTaskDto,
 } from './dto/task.dto';
+import { PaginationQueryDto } from '../common/pagination/dto/pagination-query.dto';
+import { paginate } from '../common/pagination/pagination';
 
 @Injectable()
 export class SecretariatService {
@@ -232,28 +234,38 @@ export class SecretariatService {
     return { message: 'Company document deleted successfully' };
   }
 
-  async getAllCompanyDocuments(currentUser: {
-    id: string;
-    role: UserRole;
-    subsidiaryId: string;
-  }) {
+  async getAllCompanyDocuments(
+    currentUser: {
+      id: string;
+      role: UserRole;
+      subsidiaryId: string;
+    },
+    paginationQuery: PaginationQueryDto = {},
+  ) {
     // Les admins peuvent voir tous les documents, les autres sont limités à leur filiale
-    const where =
+    const where: Prisma.CompanyDocumentWhereInput =
       currentUser.role === UserRole.ADMIN
         ? {}
         : { subsidiaryId: currentUser.subsidiaryId };
 
-    const documents = await this.prisma.companyDocument.findMany({
-      where,
-      include: { subsidiary: true },
-      orderBy: { uploadDate: 'desc' },
-    });
+    if (paginationQuery.search) {
+      where.documentName = {
+        contains: paginationQuery.search,
+        mode: 'insensitive',
+      };
+    }
+
+    const result = await paginate(
+      this.prisma.companyDocument,
+      { where, include: { subsidiary: true }, orderBy: { uploadDate: 'desc' } },
+      paginationQuery,
+    );
 
     this.logger.log(
-      `Retrieved ${documents.length} company documents`,
+      `Retrieved ${result.data.length} company documents`,
       'SecretariatService',
     );
-    return documents;
+    return result;
   }
 
   async searchCompanyDocuments(
@@ -567,33 +579,44 @@ export class SecretariatService {
     return { message: 'Meeting deleted successfully' };
   }
 
-  async getAllMeetings(currentUser: {
-    id: string;
-    role: UserRole;
-    subsidiaryId: string;
-  }) {
+  async getAllMeetings(
+    currentUser: {
+      id: string;
+      role: UserRole;
+      subsidiaryId: string;
+    },
+    paginationQuery: PaginationQueryDto = {},
+  ) {
     // Les admins peuvent voir toutes les réunions, les autres sont limités à leur filiale
-    const where =
+    const where: Prisma.MeetingWhereInput =
       currentUser.role === UserRole.ADMIN
         ? {}
         : { subsidiaryId: currentUser.subsidiaryId };
 
-    const meetings = await this.prisma.meeting.findMany({
-      where,
-      include: {
-        subsidiary: true,
-        participants: {
-          include: { employee: true }, // Ajout : Inclure les détails des employés dans les participants
+    if (paginationQuery.search) {
+      where.title = { contains: paginationQuery.search, mode: 'insensitive' };
+    }
+
+    const result = await paginate(
+      this.prisma.meeting,
+      {
+        where,
+        include: {
+          subsidiary: true,
+          participants: {
+            include: { employee: true }, // Ajout : Inclure les détails des employés dans les participants
+          },
         },
+        orderBy: { meetingDate: 'desc' },
       },
-      orderBy: { meetingDate: 'desc' },
-    });
+      paginationQuery,
+    );
 
     this.logger.log(
-      `Retrieved ${meetings.length} meetings`,
+      `Retrieved ${result.data.length} meetings`,
       'SecretariatService',
     );
-    return meetings;
+    return result;
   }
 
   async searchMeetings(
@@ -952,28 +975,39 @@ export class SecretariatService {
     return { message: 'Secretariat task deleted successfully' };
   }
 
-  async getAllSecretariatTasks(currentUser: {
-    id: string;
-    role: UserRole;
-    subsidiaryId: string;
-  }) {
+  async getAllSecretariatTasks(
+    currentUser: {
+      id: string;
+      role: UserRole;
+      subsidiaryId: string;
+    },
+    paginationQuery: PaginationQueryDto = {},
+  ) {
     // Les admins peuvent voir toutes les tâches, les autres sont limités à leur filiale
-    const where =
+    const where: Prisma.SecretariatTaskWhereInput =
       currentUser.role === UserRole.ADMIN
         ? {}
         : { subsidiaryId: currentUser.subsidiaryId };
 
-    const tasks = await this.prisma.secretariatTask.findMany({
-      where,
-      include: { subsidiary: true, assignedTo: true },
-      orderBy: { dueDate: 'asc' },
-    });
+    if (paginationQuery.search) {
+      where.title = { contains: paginationQuery.search, mode: 'insensitive' };
+    }
+
+    const result = await paginate(
+      this.prisma.secretariatTask,
+      {
+        where,
+        include: { subsidiary: true, assignedTo: true },
+        orderBy: { dueDate: 'asc' },
+      },
+      paginationQuery,
+    );
 
     this.logger.log(
-      `Retrieved ${tasks.length} secretariat tasks`,
+      `Retrieved ${result.data.length} secretariat tasks`,
       'SecretariatService',
     );
-    return tasks;
+    return result;
   }
 
   async searchSecretariatTasks(
