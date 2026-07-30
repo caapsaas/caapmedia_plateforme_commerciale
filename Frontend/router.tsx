@@ -22,8 +22,6 @@ import Accounting from './Pages/Accounting';
 import AccountingAccessAdmin from './Pages/AccountingAccessAdmin';
 import Configuration from './Pages/Configuration';
 import HrManagement from './Pages/HrManagement';
-import AttendanceCards from './components/hr/AttendanceCards';
-import AttendanceHistory from './components/hr/AttendanceHistory';
 import Secretariat from './Pages/Secretariat';
 import Production from './Pages/Production';
 import Maintenance from './components/maintenance/Maintenance';
@@ -99,17 +97,6 @@ const checkInRoute = createRoute({
   component: CheckInPage,
 });
 
-const hrCardsRoute = createRoute({
-  getParentRoute: () => hrRoute,
-  path: '/cards',
-  component: AttendanceCards,
-});
-
-const hrHistoryRoute = createRoute({
-  getParentRoute: () => hrRoute,
-  path: '/history',
-  component: AttendanceHistory,
-});
 // 3. Routes protégées pour le compte client
 const customerAccountRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -210,6 +197,7 @@ const securityRoute = createRoute({ getParentRoute: () => dashboardRoute, path: 
 // Routes qui dépendaient auparavant de wrappers
 const secretariatRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/secretariat', component: Secretariat });
 const hrRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/hr', component: HrManagement });
+
 // AttendanceCards prend `subsidiary` en prop obligatoire (meme convention que dans
 // HrManagement.tsx) - un composant de route ne recoit pas de props custom, d'ou ce
 // petit wrapper qui lit le contexte auth comme le fait HrManagement.
@@ -217,8 +205,19 @@ const AttendanceCardsRoute: React.FC = () => {
   const { subsidiary } = useAuth();
   return <AttendanceCards subsidiary={subsidiary} />;
 };
-const hrCardsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/hr/cards', component: AttendanceCardsRoute });
-const hrHistoryRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/hr/history', component: AttendanceHistory });
+
+const hrCardsRoute = createRoute({
+  getParentRoute: () => hrRoute,
+  path: '/cards',
+  component: AttendanceCardsRoute,
+});
+
+const hrHistoryRoute = createRoute({
+  getParentRoute: () => hrRoute,
+  path: '/history',
+  component: AttendanceHistory,
+});
+
 const financeRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/finance', component: Finance });
 const accountingRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/accounting', component: Accounting });
 const accountingAccessRequestsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/accounting-access-requests', component: AccountingAccessAdmin });

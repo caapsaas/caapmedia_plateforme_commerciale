@@ -14,6 +14,8 @@ import { AttendanceRecordService } from '../attendancerecord.service';
 import { AttendanceQrDailyService } from '../services/attendance-qr-daily.service';
 import { AttendanceGeolocationService } from '../services/attendance-geolocation.service';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
+import { CreateAttendanceRecordDto } from '../dto/atendancerecord.dto';
+
 import { Roles } from 'src/common/auth/role/role.decorator';
 import { AttendanceStatus } from '@prisma/client';
 
@@ -132,41 +134,46 @@ export class AttendanceCheckInController {
     }
 
     // ========== CAS 2 : Arrivée existe, pas encore de départ → CHECK-OUT ==========
-    if (todayRecord.arrivalTime && !todayRecord.departureTime) {
-      const updated = await this.attendanceService.completeFromScan({
-        recordId: todayRecord.id,
-        departureTime: new Date(),
-        status: 'LEFT', // ou AttendanceStatus.LEFT si vous l’avez dans l’enum
-      };
+if (todayRecord.arrivalTime && !todayRecord.departureTime) {
+  const updatePayload: any = {
+    departureTime: new Date(),
+    status: AttendanceStatus.LEFT, // ou 'LEFT' si ton enum ne l’a pas encore
+  };
 
-      if (dto.latitude !== undefined) updatePayload.departureLatitude = dto.latitude;
-      if (dto.longitude !== undefined) updatePayload.departureLongitude = dto.longitude;
-      if (dto.accuracy !== undefined) updatePayload.accuracyMeters = dto.accuracy;
+  if (dto.latitude !== undefined) {
+    updatePayload.departureLatitude = dto.latitude;
+  }
+  if (dto.longitude !== undefined) {
+    updatePayload.departureLongitude = dto.longitude;
+  }
+  if (dto.accuracy !== undefined) {
+    updatePayload.accuracyMeters = dto.accuracy;
+  }
 
-      const updated = await this.attendanceService.update(
-        todayRecord.id,
-        updatePayload,
-      );
+  const updated = await this.attendanceService.update(
+    todayRecord.id,
+    updatePayload,
+  );
 
-      this.logger.log(`✓ Check-out created for employee ${employeeId}`);
+  this.logger.log(`✓ Check-out created for employee ${employeeId}`);
 
-      const arrivalTime = new Date(updated.arrivalTime!);
-      const departureTime = new Date(updated.departureTime!);
-      const durationMs = departureTime.getTime() - arrivalTime.getTime();
-      const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
-      const durationMins = Math.floor(
-        (durationMs % (1000 * 60 * 60)) / (1000 * 60),
-      );
+  const arrivalTime = new Date(updated.arrivalTime!);
+  const departureTime = new Date(updated.departureTime!);
+  const durationMs = departureTime.getTime() - arrivalTime.getTime();
+  const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
+  const durationMins = Math.floor(
+    (durationMs % (1000 * 60 * 60)) / (1000 * 60),
+  );
 
-      return {
-        success: true,
-        type: 'check-out',
-        message: `Départ enregistré à ${departureTime.toLocaleTimeString('fr-FR')}`,
-        status: 'PARTI',
-        duration: `${durationHours}h ${durationMins}min`,
-        record: updated,
-      };
-    }
+  return {
+    success: true,
+    type: 'check-out',
+    message: `Départ enregistré à ${departureTime.toLocaleTimeString('fr-FR')}`,
+    status: 'PARTI',
+    duration: `${durationHours}h ${durationMins}min`,
+    record: updated,
+  };
+}
 
     // ========== CAS 3 : Déjà check-in + check-out ==========
     throw new BadRequestException(
