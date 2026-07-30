@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
   ParseUUIDPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { AbsenceRecordService } from './absencerecord.service';
 import {
@@ -24,13 +25,21 @@ import { Roles } from '../../common/auth/role/role.decorator';
 export class AbsencerecordController {
   constructor(private readonly absenceRecordService: AbsenceRecordService) {}
 
+  // ------------------------------------------------------------------
+  // Création manuelle d'une absence
+  // ------------------------------------------------------------------
   @Post()
-  @Roles('HR_MANAGER', 'ADMIN')
+  @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
   create(
     @Body() createAbsenceRecordDto: CreateAbsenceRecordDto,
     @Request() req,
   ) {
+    if (!createAbsenceRecordDto.employeeId) {
+      throw new BadRequestException('employeeId is required');
+    }
+
     const subsidiaryId = req.user.subsidiaryId;
+
     return this.absenceRecordService.create(
       createAbsenceRecordDto,
       createAbsenceRecordDto.employeeId,
@@ -38,21 +47,44 @@ export class AbsencerecordController {
     );
   }
 
+  // ------------------------------------------------------------------
+  // ★ Génération manuelle des absences du jour
+  //    (le cron s'exécute aussi automatiquement à 18h)
+  // ------------------------------------------------------------------
+  @Post('generate-daily')
+  @Roles('ADMIN', 'SUPER_ADMIN')
+  async generateDailyAbsences() {
+    await this.absenceRecordService.generateDailyAbsences();
+    return {
+      success: true,
+      message: 'Génération des absences du jour lancée avec succès',
+    };
+  }
+
+  // ------------------------------------------------------------------
+  // Liste des absences de la filiale
+  // ------------------------------------------------------------------
   @Get()
-  @Roles('HR_MANAGER', 'ADMIN')
+  @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
   findAll(@Request() req) {
     const subsidiaryId = req.user.subsidiaryId;
     return this.absenceRecordService.findAll(subsidiaryId);
   }
 
+  // ------------------------------------------------------------------
+  // Détail d'une absence
+  // ------------------------------------------------------------------
   @Get(':id')
-  @Roles('HR_MANAGER', 'ADMIN')
+  @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
   findOne(@Param('id') id: string) {
     return this.absenceRecordService.findOne(id);
   }
 
+  // ------------------------------------------------------------------
+  // Mise à jour
+  // ------------------------------------------------------------------
   @Patch(':id')
-  @Roles('HR_MANAGER', 'ADMIN')
+  @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateAbsenceRecordDto: UpdateAbsenceRecordDto,
@@ -60,8 +92,11 @@ export class AbsencerecordController {
     return this.absenceRecordService.update(id, updateAbsenceRecordDto);
   }
 
+  // ------------------------------------------------------------------
+  // Suppression
+  // ------------------------------------------------------------------
   @Delete(':id')
-  @Roles('HR_MANAGER', 'ADMIN')
+  @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
   remove(@Param('id') id: string) {
     return this.absenceRecordService.remove(id);
   }

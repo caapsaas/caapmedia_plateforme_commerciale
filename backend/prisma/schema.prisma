@@ -1291,17 +1291,17 @@ model AttendanceRecord {
   signature      String?
 
   // Geolocation fields
-  arrivalLatitude    Float?  @map("arrival_latitude")
-  arrivalLongitude   Float?  @map("arrival_longitude")
-  departureLatitude  Float?  @map("departure_latitude")
-  departureLongitude Float?  @map("departure_longitude")
-  isGeolocationValid Boolean @default(false) @map("is_geolocation_valid")
-  accuracyMeters     Float?  @map("accuracy_meters")
-  qrCodeToken        String? @unique @map("qr_code_token")
+  arrivalLatitude       Float?           @map("arrival_latitude")
+  arrivalLongitude      Float?           @map("arrival_longitude")
+  departureLatitude     Float?           @map("departure_latitude")
+  departureLongitude    Float?           @map("departure_longitude")
+  isGeolocationValid    Boolean          @default(false) @map("is_geolocation_valid")
+  accuracyMeters        Float?           @map("accuracy_meters")
+  qrCodeToken           String?          @map("qr_code_token")
 
-  employeeId   String           @map("employee_id")
-  subsidiaryId String           @map("subsidiary_id")
-  status       AttendanceStatus @map("status")
+  employeeId            String           @map("employee_id")
+  subsidiaryId          String           @map("subsidiary_id")
+  status                AttendanceStatus @map("status")
 
   employee   Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   subsidiary Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
@@ -1744,6 +1744,7 @@ enum PayrollStatus {
 enum AbsenceType {
   JUSTIFIED
   UNJUSTIFIED
+  
 }
 
 enum DocumentCategory {
@@ -2190,17 +2191,17 @@ model AllowanceRule {
 }
 
 model DailyQrCode {
-  id           String   @id @default(uuid())
-  subsidiaryId String   @map("subsidiary_id")
-  employeeId   String?  @map("employee_id")
-  token        String   @unique
-  issuedAt     DateTime @default(now()) @map("issued_at")
-  expiresAt    DateTime @map("expires_at")
-  isActive     Boolean  @default(true) @map("is_active")
-  qrUrl        String?  @map("qr_url")
+  id            String     @id @default(uuid())
+  subsidiaryId  String     @map("subsidiary_id")
+  employeeId    String    @map("employee_id")
+  token         String     @unique
+  issuedAt      DateTime   @default(now()) @map("issued_at")
+  expiresAt     DateTime?    @map("expires_at")
+  isActive      Boolean    @default(true) @map("is_active")
+  qrUrl         String?    @map("qr_url")
 
-  subsidiary Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-  employee   Employee?  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  subsidiary    Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  employee      Employee?  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@index([subsidiaryId, isActive])
   @@index([employeeId, isActive])

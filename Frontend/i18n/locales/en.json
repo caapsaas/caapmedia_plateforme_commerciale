@@ -334,6 +334,8 @@
     "tabs": {
       "employees": "Employees",
       "attendance": "Attendance",
+      "attendance_cards": "Attendance Cards",
+      "attendance_history": "Attendance History",
       "payroll": "Payroll",
       "absences": "Absences"
     },

@@ -11,8 +11,10 @@ import { PartialType } from '@nestjs/mapped-types';
 import { AttendanceStatus } from '@prisma/client';
 
 export class CreateAttendanceRecordDto {
+  // ← Rendu optionnel car fourni séparément dans le service
+  @IsOptional()
   @IsString()
-  employeeId: string;
+  employeeId?: string;
 
   @IsOptional()
   @IsString()
