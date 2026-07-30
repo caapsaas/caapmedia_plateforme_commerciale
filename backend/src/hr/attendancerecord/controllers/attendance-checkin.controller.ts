@@ -78,109 +78,96 @@ export class AttendanceCheckInController {
   // ------------------------------------------------------------------
   // ★ Check-in / Check-out via scan QR (pas besoin de JWT)
   // ------------------------------------------------------------------
-  @Post('check-in')
-  async checkIn(@Body() dto: CheckInDto) {
-    // 1. Valider le QR token
-    const { employeeId, subsidiaryId } = await this.qrService.validateQrToken(
-      dto.qrToken,
-    );
+@Post('check-in')
+async checkIn(@Body() dto: CheckInDto) {
+  const { employeeId, subsidiaryId } = await this.qrService.validateQrToken(
+    dto.qrToken,
+  );
 
-    this.logger.log(`Check-in/check-out attempt for employee ${employeeId}`);
+  this.logger.log(`Check-in/check-out attempt for employee ${employeeId}`);
 
-    // 2. Chercher s’il existe déjà un enregistrement aujourd’hui
-    const todayRecord = await this.attendanceService.findTodayRecord(
+  // 1) Chercher d'abord par token (plus fiable que la date seule)
+  let todayRecord = await this.attendanceService.findByQrToken(dto.qrToken);
+
+  // 2) Fallback : présence du jour pour cet employé
+  if (!todayRecord) {
+    todayRecord = await this.attendanceService.findTodayRecord(
       employeeId,
       subsidiaryId,
     );
+  }
 
-    // ========== CAS 1 : Aucun enregistrement → CHECK-IN ==========
-    if (!todayRecord) {
-      const isLate = await this.geoService.isArrivalLate(new Date());
+  // ========== CAS 1 : aucun enregistrement → CHECK-IN ==========
+  if (!todayRecord) {
+    const isLate = await this.geoService.isArrivalLate(new Date());
+    const employee = await this.attendanceService.findEmployeeById(employeeId);
 
-      const employee = await this.attendanceService.findEmployeeById(employeeId);
-      if (!employee) {
-        throw new BadRequestException('Employé non trouvé');
-      }
-
-      const attendanceData: CreateAttendanceRecordDto = {
-        employeeName: `${employee.firstName} ${employee.lastName}`,
-        attendanceDate: new Date(),
-        arrivalTime: new Date(),
-        status: isLate ? AttendanceStatus.LATE : AttendanceStatus.PRESENT,
-        signature: dto.signature,
-        arrivalLatitude: dto.latitude,
-        arrivalLongitude: dto.longitude,
-        accuracyMeters: dto.accuracy,
-        isGeolocationValid: dto.latitude !== undefined && dto.longitude !== undefined,
-        qrCodeToken: dto.qrToken,
-      };
-
-      const result = await this.attendanceService.create(
-        attendanceData,
-        employeeId,
-        subsidiaryId,
-      );
-
-      this.logger.log(`✓ Check-in created for employee ${employeeId}`);
-
-      return {
-        success: true,
-        type: 'check-in',
-        message: `Arrivée enregistrée à ${new Date().toLocaleTimeString('fr-FR')}`,
-        employeeName: `${employee.firstName} ${employee.lastName}`,
-        status: isLate ? 'EN RETARD' : 'PRÉSENT',
-        record: result,
-      };
+    if (!employee) {
+      throw new BadRequestException('Employé non trouvé');
     }
 
-    // ========== CAS 2 : Arrivée existe, pas encore de départ → CHECK-OUT ==========
-if (todayRecord.arrivalTime && !todayRecord.departureTime) {
-  const updatePayload: any = {
-    departureTime: new Date(),
-    status: AttendanceStatus.LEFT, // ou 'LEFT' si ton enum ne l’a pas encore
-  };
+    const result = await this.attendanceService.createFromScan({
+      employeeId,
+      subsidiaryId,
+      employeeName: `${employee.firstName} ${employee.lastName}`,
+      attendanceDate: new Date(),
+      arrivalTime: new Date(),
+      status: isLate ? AttendanceStatus.LATE : AttendanceStatus.PRESENT,
+      qrCodeToken: dto.qrToken,
+      signature: dto.signature,
+      arrivalLatitude: dto.latitude,
+      arrivalLongitude: dto.longitude,
+      accuracyMeters: dto.accuracy,
+      isGeolocationValid:
+        dto.latitude !== undefined && dto.longitude !== undefined,
+    });
 
-  if (dto.latitude !== undefined) {
-    updatePayload.departureLatitude = dto.latitude;
+    return {
+      success: true,
+      type: 'check-in',
+      message: `Arrivée enregistrée à ${new Date().toLocaleTimeString('fr-FR')}`,
+      employeeName: `${employee.firstName} ${employee.lastName}`,
+      status: isLate ? 'EN RETARD' : 'PRÉSENT',
+      record: result,
+    };
   }
-  if (dto.longitude !== undefined) {
-    updatePayload.departureLongitude = dto.longitude;
-  }
-  if (dto.accuracy !== undefined) {
-    updatePayload.accuracyMeters = dto.accuracy;
-  }
 
-  const updated = await this.attendanceService.update(
-    todayRecord.id,
-    updatePayload,
-  );
+  // ========== CAS 2 : arrivée OK, pas de départ → CHECK-OUT ==========
+  if (todayRecord.arrivalTime && !todayRecord.departureTime) {
+    const updated = await this.attendanceService.completeFromScan({
+      recordId: todayRecord.id,
+      departureTime: new Date(),
+      status: AttendanceStatus.LEFT, // adapte si ton enum est différent
+      departureLatitude: dto.latitude,
+      departureLongitude: dto.longitude,
+      accuracyMeters: dto.accuracy,
+      isGeolocationValid:
+        dto.latitude !== undefined && dto.longitude !== undefined,
+    });
 
-  this.logger.log(`✓ Check-out created for employee ${employeeId}`);
-
-  const arrivalTime = new Date(updated.arrivalTime!);
-  const departureTime = new Date(updated.departureTime!);
-  const durationMs = departureTime.getTime() - arrivalTime.getTime();
-  const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
-  const durationMins = Math.floor(
-    (durationMs % (1000 * 60 * 60)) / (1000 * 60),
-  );
-
-  return {
-    success: true,
-    type: 'check-out',
-    message: `Départ enregistré à ${departureTime.toLocaleTimeString('fr-FR')}`,
-    status: 'PARTI',
-    duration: `${durationHours}h ${durationMins}min`,
-    record: updated,
-  };
-}
-
-    // ========== CAS 3 : Déjà check-in + check-out ==========
-    throw new BadRequestException(
-      "Un enregistrement complet (arrivée + départ) existe déjà pour aujourd'hui",
+    const arrivalTime = new Date(updated.arrivalTime!);
+    const departureTime = new Date(updated.departureTime!);
+    const durationMs = departureTime.getTime() - arrivalTime.getTime();
+    const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
+    const durationMins = Math.floor(
+      (durationMs % (1000 * 60 * 60)) / (1000 * 60),
     );
+
+    return {
+      success: true,
+      type: 'check-out',
+      message: `Départ enregistré à ${departureTime.toLocaleTimeString('fr-FR')}`,
+      status: 'PARTI',
+      duration: `${durationHours}h ${durationMins}min`,
+      record: updated,
+    };
   }
 
+  // ========== CAS 3 : déjà complet ==========
+  throw new BadRequestException(
+    "Un enregistrement complet (arrivée + départ) existe déjà pour aujourd'hui",
+  );
+}
   // ------------------------------------------------------------------
   // Check-out manuel (authentifié)
   // ------------------------------------------------------------------
