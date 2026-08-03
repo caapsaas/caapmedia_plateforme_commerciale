@@ -10,6 +10,8 @@ import IconCheckCircle from '../icons/IconCheckCircle';
 import IconCancelX from '../icons/IconCancelX';
 import IconMapPin from '../icons/IconMapPin';
 import IconUserClock from '../icons/IconUserClock';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 
 interface Employee {
   id: string;
@@ -396,58 +398,61 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
         </div>
 
         {employeesLoading ? (
-          <div className="text-center py-12 text-slate-500">
-            <div className="animate-spin w-8 h-8 border-4 border-slate-300 border-t-[#c6e911] rounded-full mx-auto"></div>
-            <p className="mt-3">Chargement des employés...</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100">
+                <div className="bg-slate-200 animate-pulse h-24" />
+                <div className="p-6 flex flex-col items-center">
+                  <div className="h-40 w-40 bg-slate-200 rounded-xl animate-pulse mb-4" />
+                  <div className="h-3 w-32 bg-slate-200 rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
           </div>
+        ) : !filteredEmployees || filteredEmployees.length === 0 ? (
+          <EmptyState icon="inbox" title="Aucun employé trouvé" />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredEmployees && filteredEmployees.length > 0 ? (
-              filteredEmployees.map((item: EmployeeWithQr) => {
-                const employee = item.employee;
-                return (
-                  <div key={employee.id} id={`card-${employee.id}`} className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100 transition-shadow hover:shadow-lg">
-                    {/* Employee Header */}
-                    <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 p-6 text-white text-center">
-                      <h3 className="text-xl font-bold mb-1">{employee.firstName} {employee.lastName}</h3>
-                      <p className="text-sm text-indigo-100">{employee.positions || 'Poste non défini'}</p>
-                      <p className="text-xs text-indigo-200 mt-1">{employee.department || 'Département non défini'}</p>
+            {filteredEmployees.map((item: EmployeeWithQr) => {
+              const employee = item.employee;
+              return (
+                <div key={employee.id} id={`card-${employee.id}`} className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100 transition-shadow hover:shadow-lg">
+                  {/* Employee Header */}
+                  <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 p-6 text-white text-center">
+                    <h3 className="text-xl font-bold mb-1">{employee.firstName} {employee.lastName}</h3>
+                    <p className="text-sm text-indigo-100">{employee.positions || 'Poste non défini'}</p>
+                    <p className="text-xs text-indigo-200 mt-1">{employee.department || 'Département non défini'}</p>
+                  </div>
+
+                  {/* QR Code */}
+                  <div className="p-6 flex flex-col items-center">
+                    <p className="text-xs font-semibold text-slate-500 mb-4 uppercase tracking-wider">Carte d'accès & pointage</p>
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-inner mb-4">
+                      <QRCode
+                        value={item.token}
+                        size={160}
+                        level="H"
+                        includeMargin
+                      />
                     </div>
 
-                    {/* QR Code */}
-                    <div className="p-6 flex flex-col items-center">
-                      <p className="text-xs font-semibold text-slate-500 mb-4 uppercase tracking-wider">Carte d'accès & pointage</p>
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-inner mb-4">
-                        <QRCode
-                          value={item.token}
-                          size={160}
-                          level="H"
-                          includeMargin
-                        />
-                      </div>
+                    <p className="text-xs text-slate-500 text-center mb-6">
+                      Valide jusqu'à {new Date(item.expiresAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
 
-                      <p className="text-xs text-slate-500 text-center mb-6">
-                        Valide jusqu'à {new Date(item.expiresAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-
-                      <div className="w-full flex gap-2 action-buttons">
-                        <button
-                          onClick={() => downloadCard(employee.id, `${employee.firstName} ${employee.lastName}`)}
-                          className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
-                        >
-                          <Download className="w-4 h-4" />
-                          Enregistrer (JPG)
-                        </button>
-                      </div>
+                    <div className="w-full flex gap-2 action-buttons">
+                      <button
+                        onClick={() => downloadCard(employee.id, `${employee.firstName} ${employee.lastName}`)}
+                        className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+                      >
+                        <Download className="w-4 h-4" />
+                        Enregistrer (JPG)
+                      </button>
                     </div>
                   </div>
-                );
-              })
-            ) : (
-              <div className="col-span-full text-center py-12 text-slate-500">
-                Aucun employé trouvé
-              </div>
-            )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -458,12 +463,6 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
           <h2 className="text-2xl font-bold text-slate-800">Historique des Présences</h2>
         </div>
 
-        {historyLoading ? (
-          <div className="text-center py-12 text-slate-500">
-            <div className="animate-spin w-8 h-8 border-4 border-slate-300 border-t-[#c6e911] rounded-full mx-auto"></div>
-            <p className="mt-3">Chargement...</p>
-          </div>
-        ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gradient-to-r from-slate-50 to-slate-100 border-b-2 border-slate-200">
@@ -477,7 +476,9 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {attendanceHistory && attendanceHistory.length > 0 ? (
+                {historyLoading ? (
+                  <TableSkeleton rows={10} columns={6} />
+                ) : attendanceHistory && attendanceHistory.length > 0 ? (
                   attendanceHistory.map((record: AttendanceRecord) => (
                     <tr key={record.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 text-slate-800 font-medium">{record.employeeName}</td>
@@ -532,15 +533,14 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                      Aucun enregistrement pour ce mois
+                    <td colSpan={6}>
+                      <EmptyState icon="inbox" title="Aucun enregistrement pour ce mois" />
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-        )}
       </div>
     </div>
   );

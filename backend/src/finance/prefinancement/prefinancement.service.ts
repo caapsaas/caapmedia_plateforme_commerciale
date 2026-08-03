@@ -9,6 +9,8 @@ import { TreasuryService } from '../treasury/treasury.service';
 
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { paginate } from 'src/common/pagination/pagination';
+import { FindPrefinancementTransactionsDto } from './dto/find-prefinancement-transactions.dto';
 @Injectable()
 export class PrefinancementService {
   constructor(
@@ -105,20 +107,7 @@ export class PrefinancementService {
     });
   }
 
-  async findTransactions(filters: {
-    subsidiaryId?: string;
-    type?: 'CREDIT' | 'DEBIT';
-    category?:
-      | 'MATERIELS_PREMIER'
-      | 'MAIN_D_OEUVRE'
-      | 'ENERGIE'
-      | 'TRANSPORT'
-      | 'AUTRE';
-    status?: 'VALIDE' | 'EN_ATTENTE' | 'ANNULE';
-    search?: string;
-    startDate?: string;
-    endDate?: string;
-  }) {
+  async findTransactions(filters: FindPrefinancementTransactionsDto) {
     const where: any = {};
 
     if (filters.subsidiaryId) {
@@ -150,10 +139,11 @@ export class PrefinancementService {
       }
     }
 
-    return this.prisma.prefinancementTransaction.findMany({
-      where,
-      orderBy: { date: 'desc' },
-    });
+    return paginate(
+      this.prisma.prefinancementTransaction,
+      { where, orderBy: { date: 'desc' } },
+      filters,
+    );
   }
 
   async findTransactionById(id: string) {

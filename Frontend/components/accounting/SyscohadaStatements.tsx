@@ -10,6 +10,7 @@ import DocumentHeader from '../common/DocumentHeader';
 import { printElementAsPdf } from '../../utils/pdfExporter';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import EmptyState from '../ui/EmptyState';
 
 interface SyscohadaStatementsProps {
   fiscalPeriods: FiscalYear[];
@@ -193,11 +194,15 @@ const SyscohadaStatements: React.FC<SyscohadaStatementsProps> = ({ fiscalPeriods
       </div>
 
       {!fiscalYearId ? (
-        <div className="py-12 text-center text-slate-400">Créez un exercice fiscal pour consulter les états financiers.</div>
+        <EmptyState icon="document" title="Aucun exercice fiscal" description="Créez un exercice fiscal pour consulter les états financiers." />
       ) : isLoading ? (
-        <div className="py-12 text-center text-slate-500">Chargement des états financiers...</div>
+        <div className="space-y-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white border border-slate-100 rounded-xl shadow-sm h-14 animate-pulse" style={{ opacity: 1 - i * 0.15 }} />
+          ))}
+        </div>
       ) : !data ? (
-        <div className="py-12 text-center text-slate-400">Aucune donnée disponible.</div>
+        <EmptyState icon="document" title="Aucune donnée disponible." />
       ) : activeStatement === 'bilan' ? (
         /* ====== BILAN ====== */
         <div>

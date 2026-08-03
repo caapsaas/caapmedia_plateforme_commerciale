@@ -4,7 +4,6 @@ import {
   Delete,
   Get,
   Param,
-  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -58,13 +57,13 @@ export class StockItemsController {
   }
 
   @Get(':id')
-  findOne(@Param('id', new ParseUUIDPipe()) id: string, @Req() req: any) {
+  findOne(@Param('id') id: string, @Req() req: any) {
     return this.stockItemsService.findOne(id, req.user);
   }
 
   @Patch(':id/update-price')
   updatePrice(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('id') id: string,
     @Body() updateStockItemPriceDto: UpdateStockItemPriceDto,
     @Req() req: any,
   ) {
@@ -77,7 +76,7 @@ export class StockItemsController {
 
   @Patch(':id')
   update(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('id') id: string,
     @Body() updateStockItemDto: UpdateStockItemDto,
     @Req() req: any,
   ) {
@@ -85,23 +84,20 @@ export class StockItemsController {
   }
 
   @Delete(':id')
-  remove(@Param('id', new ParseUUIDPipe()) id: string, @Req() req: any) {
+  remove(@Param('id') id: string, @Req() req: any) {
     return this.stockItemsService.remove(id, req.user);
   }
 
   // --- Unités d'emballage/achat (Chantier 2) ---
 
   @Get(':id/packaging-units')
-  listPackagingUnits(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Req() req: any,
-  ) {
+  listPackagingUnits(@Param('id') id: string, @Req() req: any) {
     return this.stockItemsService.listPackagingUnits(id, req.user);
   }
 
   @Post(':id/packaging-units')
   addPackagingUnit(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('id') id: string,
     @Body() dto: CreatePackagingUnitDto,
     @Req() req: any,
   ) {
@@ -110,16 +106,14 @@ export class StockItemsController {
 
   @Patch('packaging-units/:packagingUnitId')
   updatePackagingUnit(
-    @Param('packagingUnitId', new ParseUUIDPipe()) packagingUnitId: string,
+    @Param('packagingUnitId') packagingUnitId: string,
     @Body() dto: UpdatePackagingUnitDto,
   ) {
     return this.stockItemsService.updatePackagingUnit(packagingUnitId, dto);
   }
 
   @Delete('packaging-units/:packagingUnitId')
-  removePackagingUnit(
-    @Param('packagingUnitId', new ParseUUIDPipe()) packagingUnitId: string,
-  ) {
+  removePackagingUnit(@Param('packagingUnitId') packagingUnitId: string) {
     return this.stockItemsService.removePackagingUnit(packagingUnitId);
   }
 }

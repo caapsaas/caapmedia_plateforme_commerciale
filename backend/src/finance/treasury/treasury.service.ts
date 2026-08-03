@@ -20,6 +20,8 @@ import { AccountingOutboxService } from 'src/accounting/outbox/accounting-outbox
 
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { paginate } from 'src/common/pagination/pagination';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 @Injectable()
 export class TreasuryService {
   constructor(
@@ -272,8 +274,7 @@ export class TreasuryService {
   async findAllTransactions(
     user: JwtUser,
     subsidiaryId?: string,
-    page = 1,
-    limit = 50,
+    paginationQuery: PaginationQueryDto = {},
   ) {
     checkRole(
       user,
@@ -283,22 +284,16 @@ export class TreasuryService {
 
     const ctx = resolveScopeContext(user);
     const where = withSubsidiaryScope({}, ctx, subsidiaryId);
-    const skip = (page - 1) * limit;
 
-    const [data, total] = await Promise.all([
-      this.prisma.financialTransaction.findMany({
+    return paginate(
+      this.prisma.financialTransaction,
+      {
         where,
         orderBy: { transactionDate: 'desc' },
         include: { treasuryAccount: { select: { accountName: true } } },
-        skip,
-        take: limit,
-      }),
-      this.prisma.financialTransaction.count({
-        where,
-      }),
-    ]);
-
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+      },
+      paginationQuery,
+    );
   }
 
   async deleteTransaction(id: string, user: JwtUser) {

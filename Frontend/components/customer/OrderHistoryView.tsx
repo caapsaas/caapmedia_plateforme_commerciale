@@ -1,6 +1,7 @@
 import React from 'react';
 import { OrderStatus, OrderGroup } from '../../types';
 import { useI18n } from '../../i18n';
+import EmptyState from '../ui/EmptyState';
 
 interface OrderHistoryViewProps {
     orders: OrderGroup[];
@@ -27,6 +28,9 @@ const OrderHistoryView: React.FC<OrderHistoryViewProps> = ({ orders }) => {
         <div>
             <h2 className="text-xl font-bold mb-4">{t('customerAccount.myOrders')}</h2>
             <div className="overflow-x-auto">
+                {orders.length === 0 ? (
+                    <EmptyState icon="order" title={t('myOrders.noOrders')} />
+                ) : (
                 <table className="w-full text-sm text-left text-slate-500">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50">
                         <tr>
@@ -51,7 +55,7 @@ const OrderHistoryView: React.FC<OrderHistoryViewProps> = ({ orders }) => {
                         ))}
                     </tbody>
                 </table>
-                 {orders.length === 0 && <p className="text-center py-8 text-slate-500">{t('myOrders.noOrders')}</p>}
+                )}
             </div>
         </div>
     );

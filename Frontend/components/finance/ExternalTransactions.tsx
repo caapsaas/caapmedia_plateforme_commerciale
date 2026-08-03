@@ -7,6 +7,7 @@ import { useHasRole } from '../../hooks/useHasRole';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import { exportToCSV, formatAmount, calculateTotals } from '../../utils/exportUtils';
+import EmptyState from '../ui/EmptyState';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';
@@ -494,9 +495,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
         </div>
 
         {transactions.length === 0 && (
-          <div className="py-16 text-center">
-            <p className="text-sm font-medium text-slate-500">{t('externalTransactions.noData')}</p>
-          </div>
+          <EmptyState icon="finance" title={t('externalTransactions.noData')} />
         )}
       </div>
 

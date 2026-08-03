@@ -5,6 +5,7 @@ import {
   Patch,
   Param,
   Body,
+  Query,
   UseGuards,
   Req,
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ import { CreateAccessRequestDto } from './dto/create-access-request.dto';
 import { ApproveAccessRequestDto } from './dto/approve-access-request.dto';
 import { RejectAccessRequestDto } from './dto/reject-access-request.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('accounting-access')
@@ -20,8 +22,8 @@ export class AccountingAccessController {
   constructor(private readonly accessService: AccountingAccessService) {}
 
   @Get()
-  findAll(@Req() req: any) {
-    return this.accessService.findAll(req.user);
+  findAll(@Req() req: any, @Query() paginationQuery: PaginationQueryDto) {
+    return this.accessService.findAll(req.user, paginationQuery);
   }
 
   @Get('my-status')

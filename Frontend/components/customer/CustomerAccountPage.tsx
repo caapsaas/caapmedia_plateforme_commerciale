@@ -6,6 +6,7 @@ import OrderHistoryView from './OrderHistoryView';
 import SecurityView from './SecurityView';
 import IconArrowLeft from '../icons/IconArrowLeft';
 import ECommerceFooter from '../ecommerce/ECommerceFooter';
+import TableSkeleton from '../ui/TableSkeleton';
 import { useNavigate, Navigate, Link } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateContact } from '../../services/apiCrm/apicontacts';
@@ -55,7 +56,11 @@ const CustomerAccountPage: React.FC = () => {
         return <ProfileView customer={contact} onUpdateClient={handleUpdateClient} />;
       case 'orders':
         if (isLoadingOrders) {
-          return <div>Chargement de l'historique des commandes...</div>;
+          return (
+            <table className="w-full text-sm text-left">
+              <tbody><TableSkeleton rows={5} columns={4} /></tbody>
+            </table>
+          );
         }
         return <OrderHistoryView orders={orders} />;
       case 'security':

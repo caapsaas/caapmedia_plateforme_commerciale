@@ -4,6 +4,8 @@ import { api } from '../../services/api';
 import IconCheckCircle from '../icons/IconCheckCircle';
 import IconUserClock from '../icons/IconUserClock';
 import { Search, Filter, X } from 'lucide-react';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 
 interface AttendanceRecord {
   id: string;
@@ -41,6 +43,9 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = () => {
   const [month, setMonth] = useState(now.getMonth() + 1);
 
   // Appel de findAll → GET /hr/attendance-records
+  // Limit élevée : ce composant filtre mois/année/statut/recherche côté
+  // client sur le jeu de données complet — sans ça, seuls les 10 premiers
+  // enregistrements (page par défaut) seraient visibles.
   const {
     data: attendanceHistory,
     isLoading: historyLoading,
@@ -48,7 +53,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = () => {
   } = useQuery({
     queryKey: ['attendance-records'],
     queryFn: async () => {
-      const response = await api.get('/hr/attendance-records');
+      const response = await api.get('/hr/attendance-records', { params: { limit: 500 } });
       const payload = response.data;
 
       if (Array.isArray(payload)) return payload as AttendanceRecord[];
@@ -314,12 +319,6 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = () => {
       )}
 
       {/* Tableau */}
-      {historyLoading ? (
-        <div className="text-center py-12 text-slate-500">
-          <div className="animate-spin w-8 h-8 border-4 border-slate-300 border-t-[#c6e911] rounded-full mx-auto"></div>
-          <p className="mt-3">Chargement...</p>
-        </div>
-      ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gradient-to-r from-slate-50 to-slate-100 border-b-2 border-slate-200">
@@ -348,7 +347,9 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {filteredRecords.length > 0 ? (
+              {historyLoading ? (
+                <TableSkeleton rows={10} columns={7} />
+              ) : filteredRecords.length > 0 ? (
                 filteredRecords.map((record) => (
                   <tr
                     key={record.id}
@@ -399,20 +400,21 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = () => {
                 ))
               ) : (
                 <tr>
-                  <td
-                    colSpan={7}
-                    className="px-6 py-12 text-center text-slate-500"
-                  >
-                    {hasActiveFilters
-                      ? 'Aucun résultat pour ces filtres'
-                      : 'Aucun enregistrement pour ce mois'}
+                  <td colSpan={7}>
+                    <EmptyState
+                      icon="inbox"
+                      title={
+                        hasActiveFilters
+                          ? 'Aucun résultat pour ces filtres'
+                          : 'Aucun enregistrement pour ce mois'
+                      }
+                    />
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-      )}
     </div>
   );
 };

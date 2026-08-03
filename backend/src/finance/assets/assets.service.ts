@@ -14,6 +14,8 @@ import { AccountingOutboxService } from 'src/accounting/outbox/accounting-outbox
 
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { paginate } from 'src/common/pagination/pagination';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 @Injectable()
 export class AssetsService {
   constructor(
@@ -76,11 +78,15 @@ export class AssetsService {
     });
   }
 
-  async findAll(user: JwtUser) {
-    return this.prisma.fixedAsset.findMany({
-      where: { subsidiaryId: user.subsidiaryId },
-      orderBy: { acquisitionDate: 'desc' },
-    });
+  async findAll(user: JwtUser, paginationQuery: PaginationQueryDto = {}) {
+    return paginate(
+      this.prisma.fixedAsset,
+      {
+        where: { subsidiaryId: user.subsidiaryId },
+        orderBy: { acquisitionDate: 'desc' },
+      },
+      paginationQuery,
+    );
   }
 
   async findOne(id: string, user: JwtUser) {

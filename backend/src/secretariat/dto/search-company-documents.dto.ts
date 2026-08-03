@@ -1,7 +1,8 @@
 import { IsString, IsEnum, IsOptional } from 'class-validator';
 import { DocumentCategory, DocumentStatus } from '@prisma/client';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
-export class SearchCompanyDocumentsDto {
+export class SearchCompanyDocumentsDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   documentName?: string;

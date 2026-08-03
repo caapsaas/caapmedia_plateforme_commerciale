@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsInt,
   IsNotEmpty,
   IsEnum,
@@ -156,11 +157,13 @@ export class CreateOrderBySalesRepDto {
   @Type(() => CreateOrderItemDto)
   items: CreateOrderItemDto[];
 
+  // Applique ou non la TVA (taux par défaut configuré dans le module taxes) à
+  // cette commande — décidé par le commercial au moment de la création.
+  // Défaut à true : la TVA est appliquée sauf décision explicite contraire.
   @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(100)
-  customTaxRate?: number;
+  @IsBoolean()
+  @Type(() => Boolean)
+  applyTax?: boolean;
 }
 
 export class RecordPaymentDto {

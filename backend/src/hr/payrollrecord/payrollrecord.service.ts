@@ -9,10 +9,17 @@ import {
   CreatePayrollRecordDto,
   UpdatePayrollRecordDto,
 } from './dto/payrollrecord.dto';
-import { PayrollRecord, EmployeeStatus, PayrollStatus } from '@prisma/client';
+import {
+  PayrollRecord,
+  EmployeeStatus,
+  PayrollStatus,
+  Prisma,
+} from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { paginate } from 'src/common/pagination/pagination';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 // Extended type for payroll records with employee data
 type PayrollRecordWithEmployee = PayrollRecord & {
@@ -64,28 +71,46 @@ export class PayrollRecordService {
     });
   }
 
-  async findAll(subsidiaryId: string): Promise<PayrollRecordWithSalary[]> {
-    const records = await this.prisma.payrollRecord.findMany({
-      where: { subsidiaryId },
-      include: {
-        employee: {
-          select: {
-            firstName: true,
-            lastName: true,
-            baseSalary: true,
-            bonus: true,
+  async findAll(subsidiaryId: string, paginationQuery: PaginationQueryDto = {}) {
+    const where: Prisma.PayrollRecordWhereInput = { subsidiaryId };
+
+    if (paginationQuery.search) {
+      where.employeeName = {
+        contains: paginationQuery.search,
+        mode: 'insensitive',
+      };
+    }
+
+    const result = await paginate(
+      this.prisma.payrollRecord,
+      {
+        where,
+        include: {
+          employee: {
+            select: {
+              firstName: true,
+              lastName: true,
+              baseSalary: true,
+              bonus: true,
+            },
           },
         },
+        orderBy: { payrollPeriod: 'desc' },
       },
-      orderBy: { payrollPeriod: 'desc' },
-    });
+      paginationQuery,
+    );
 
     // Transformer les données pour inclure baseSalary et bonus de l'employé
-    return records.map((record) => ({
-      ...record,
-      baseSalary: record.employee.baseSalary,
-      bonus: record.employee.bonus,
-    }));
+    return {
+      ...result,
+      data: (result.data as unknown as PayrollRecordWithEmployee[]).map(
+        (record) => ({
+          ...record,
+          baseSalary: record.employee.baseSalary,
+          bonus: record.employee.bonus,
+        }),
+      ),
+    };
   }
 
   async findOne(id: string): Promise<PayrollRecordWithSalary> {

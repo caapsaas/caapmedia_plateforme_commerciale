@@ -16,17 +16,20 @@ import IconEye from '../icons/IconEye'; // Importer l'icône pour le bouton "Dé
 import IconCreditCard from '../icons/IconCreditCard';
 import { UseMutateFunction } from '@tanstack/react-query';
 import SearchBar from './SearchBar';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 
 interface PayrollManagementProps {
     subsidiary: Subsidiary;
     employees: Employee[];
     payrolls: PayrollRecord[];
+    isLoading?: boolean;
     onProcessPayroll: UseMutateFunction<{ count: number; }, Error, { period: string; }, unknown>;
     onRecordPayment: UseMutateFunction<PayrollRecord, Error, { payrollId: string; paymentDate: string; }, unknown>;
     onSaveSignature: UseMutateFunction<PayrollRecord, Error, { payrollId: string; signature: string; }, unknown>;
 }
 
-const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary, employees, payrolls, onProcessPayroll, onRecordPayment, onSaveSignature }) => {
+const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary, employees, payrolls, isLoading = false, onProcessPayroll, onRecordPayment, onSaveSignature }) => {
     const { t, formatCurrency } = useI18n();
     const toast = useToast();
     const [viewingSignature, setViewingSignature] = useState<{name: string, signature: string} | null>(null);
@@ -163,7 +166,15 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({ subsidiary, emplo
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredPayrolls.map((record) => (
+                        {isLoading ? (
+                            <TableSkeleton rows={7} columns={7} />
+                        ) : filteredPayrolls.length === 0 ? (
+                            <tr>
+                                <td colSpan={7}>
+                                    <EmptyState icon="finance" title={t('hr.payroll.title')} />
+                                </td>
+                            </tr>
+                        ) : filteredPayrolls.map((record) => (
                             <tr key={record.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{record.employeeName}</td>
                                 <td className="px-6 py-4">{record.period}</td>

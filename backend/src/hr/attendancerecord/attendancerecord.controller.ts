@@ -4,6 +4,7 @@ import {
   Post,
   Param,
   Body,
+  Query,
   UseGuards,
   Request,
   Patch,
@@ -19,6 +20,7 @@ import {
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles } from '../../common/auth/role/role.decorator';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
+import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
 
 @Controller('hr/attendance-records')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -54,18 +56,12 @@ export class AttendanceRecordController {
   // ------------------------------------------------------------------
   // Liste de toutes les présences de la filiale
   // ------------------------------------------------------------------
-@Get()
-@Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
-async findAll(@Request() req) {
-  const subsidiaryId = req.user.subsidiaryId;
-  console.log('findAll subsidiaryId =', subsidiaryId);
-  console.log('user =', req.user);
-
-  const result = await this.attendanceRecordService.findAll(subsidiaryId);
-  console.log('findAll count =', result.length);
-
-  return result;
-}
+  @Get()
+  @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
+  findAll(@Request() req, @Query() paginationQuery: PaginationQueryDto) {
+    const subsidiaryId = req.user.subsidiaryId;
+    return this.attendanceRecordService.findAll(subsidiaryId, paginationQuery);
+  }
 
   // ------------------------------------------------------------------
   // Détail d'une présence

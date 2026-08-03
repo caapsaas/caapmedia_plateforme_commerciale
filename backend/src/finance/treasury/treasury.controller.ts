@@ -17,6 +17,7 @@ import { CurrentUser } from 'src/common/auth/role/role.decorator';
 import { CreateTreasuryAccountDto } from './dto/create-treasury-account.dto';
 import { UpdateTreasuryAccountDto } from './dto/update-treasury-account.dto';
 import { CreateFinancialTransactionDto } from './dto/create-financial-transaction.dto';
+import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('finance/treasury')
@@ -79,15 +80,13 @@ export class TreasuryController {
   @Get('transactions')
   findAllTransactions(
     @CurrentUser() user: JwtUser,
+    @Query() paginationQuery: PaginationQueryDto,
     @Query('subsidiaryId') subsidiaryId?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
   ) {
     return this.treasuryService.findAllTransactions(
       user,
       subsidiaryId,
-      page ? parseInt(page, 10) : undefined,
-      limit ? parseInt(limit, 10) : undefined,
+      paginationQuery,
     );
   }
 

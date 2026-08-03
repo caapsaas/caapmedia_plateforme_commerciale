@@ -1,40 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '../../i18n';
-import { Lead } from '../../types';
+import { Lead, Product, TaxRate } from '../../types';
 import { createProforma, CreateProformaData, ProformaItem } from '../../services/apiCrm/apiProformas';
-import { getProducts } from '../../services/apiE-commerce/apiProducts';
+import { getLeadsPaginated } from '../../services/apiCrm/apiCrm';
+import { getProductsPaginated } from '../../services/apiE-commerce/apiProducts';
+import { getTaxes } from '../../services/apiE-commerce/apitaxes';
 import IconPlus from '../icons/IconPlus';
 import IconDelete from '../icons/IconDelete';
 import IconCheckCircle from '../icons/IconCheckCircle';
+import { AsyncSelect } from '../ui/AsyncSelect';
 
 interface CreateProformaModalProps {
   isOpen: boolean;
   onClose: () => void;
-  leads: Lead[];
 }
 
-const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClose, leads }) => {
+const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClose }) => {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [selectedLeadId, setSelectedLeadId] = useState<string>('');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [clientCompany, setClientCompany] = useState('');
-  const [taxRate, setTaxRate] = useState(18);
+  // Le taux de TVA par défaut vient toujours du backend (module taxes) ; 0 ici
+  // n'est qu'un état de chargement neutre le temps que taxRates arrive.
+  const [taxRate, setTaxRate] = useState(0);
+  const [taxRateTouched, setTaxRateTouched] = useState(false);
   const [validityDays, setValidityDays] = useState(30);
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<ProformaItem[]>([]);
+  const [productLabels, setProductLabels] = useState<Record<string, string>>({});
   const [selectedProductId, setSelectedProductId] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(0);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const { data: products = [] } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => getProducts(1),
+  const { data: taxRates = [] } = useQuery<TaxRate[]>({
+    queryKey: ['taxes'],
+    queryFn: getTaxes,
   });
+
+  // Pré-remplit le taux de TVA avec le taux par défaut configuré côté backend
+  // dès qu'il est chargé — tant que le commercial n'a pas modifié le champ.
+  useEffect(() => {
+    if (taxRateTouched) return;
+    const defaultRate = taxRates.find((t) => t.isDefault);
+    if (defaultRate) setTaxRate(defaultRate.rate * 100);
+  }, [taxRates, taxRateTouched]);
 
   const mutation = useMutation({
     mutationFn: (data: CreateProformaData) => createProforma(data),
@@ -48,16 +63,21 @@ const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClo
     },
   });
 
-  const selectedLead = leads.find((l) => l.id === selectedLeadId);
-
-  const handleSelectLead = (leadId: string) => {
-    setSelectedLeadId(leadId);
-    const lead = leads.find((l) => l.id === leadId);
+  const handleSelectLead = (leadId: string | undefined, lead?: Lead) => {
+    setSelectedLeadId(leadId ?? '');
     if (lead) {
       setClientName(lead.leadName);
       setClientEmail(lead.email);
       setClientPhone(lead.phone);
       setClientCompany(lead.company);
+    }
+  };
+
+  const handleSelectProduct = (productId: string | undefined, product?: Product) => {
+    setSelectedProductId(productId ?? '');
+    setSelectedProduct(product ?? null);
+    if (product) {
+      setProductLabels((prev) => ({ ...prev, [product.id]: `${product.name} (${product.category})` }));
     }
   };
 
@@ -73,6 +93,7 @@ const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClo
 
     setItems([...items, newItem]);
     setSelectedProductId('');
+    setSelectedProduct(null);
     setQuantity(1);
     setUnitPrice(0);
   };
@@ -116,18 +137,19 @@ const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClo
     setClientEmail('');
     setClientPhone('');
     setClientCompany('');
-    setTaxRate(18);
+    setTaxRate(0);
+    setTaxRateTouched(false);
     setValidityDays(30);
     setNotes('');
     setItems([]);
     setSelectedProductId('');
+    setSelectedProduct(null);
     setQuantity(1);
     setUnitPrice(0);
     setIsSuccess(false);
   };
 
   const { subtotal, taxAmount, total } = calculateTotal();
-  const selectedProduct = products.find((p) => p.id === selectedProductId);
 
   if (!isOpen) return null;
 
@@ -160,18 +182,15 @@ const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClo
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Sélectionner un Lead *
               </label>
-              <select
-                value={selectedLeadId}
-                onChange={(e) => handleSelectLead(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
-              >
-                <option value="">-- Choisir un lead --</option>
-                {leads.map((lead) => (
-                  <option key={lead.id} value={lead.id}>
-                    {lead.leadName} ({lead.company})
-                  </option>
-                ))}
-              </select>
+              <AsyncSelect<Lead>
+                queryKey="proforma-leads"
+                placeholder="-- Choisir un lead --"
+                value={selectedLeadId || undefined}
+                onChange={handleSelectLead}
+                getOptionLabel={(l) => `${l.leadName} (${l.company})`}
+                getOptionValue={(l) => l.id}
+                fetcher={({ page, limit, search }) => getLeadsPaginated({ page, limit, search })}
+              />
             </div>
 
             {/* Informations Client */}
@@ -233,22 +252,16 @@ const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClo
                     <label className="block text-sm font-medium text-slate-700 mb-2">
                       Produit
                     </label>
-                    <select
-                      value={selectedProductId}
-                      onChange={(e) => {
-                        setSelectedProductId(e.target.value);
-                        const prod = products.find((p) => p.id === e.target.value);
-                        if (prod) setUnitPrice(prod.sellingPrice);
-                      }}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
-                    >
-                      <option value="">-- Choisir un produit --</option>
-                      {products.map((prod) => (
-                        <option key={prod.id} value={prod.id}>
-                          {prod.productName} ({prod.mainCategory})
-                        </option>
-                      ))}
-                    </select>
+                    <AsyncSelect<Product>
+                      queryKey="proforma-products"
+                      placeholder="-- Choisir un produit --"
+                      value={selectedProductId || undefined}
+                      onChange={handleSelectProduct}
+                      defaultOptions={selectedProduct ? [selectedProduct] : []}
+                      getOptionLabel={(p) => `${p.name} (${p.category})`}
+                      getOptionValue={(p) => p.id}
+                      fetcher={({ page, limit, search }) => getProductsPaginated({ page, limit, search })}
+                    />
                   </div>
 
                   <div className="grid grid-cols-3 gap-3">
@@ -303,10 +316,9 @@ const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClo
                       </thead>
                       <tbody>
                         {items.map((item, idx) => {
-                          const prod = products.find((p) => p.id === item.productId);
                           return (
                             <tr key={idx} className="border-b">
-                              <td className="py-2">{prod?.productName}</td>
+                              <td className="py-2">{productLabels[item.productId]}</td>
                               <td className="text-right">{item.quantity}</td>
                               <td className="text-right">{item.unitPrice.toLocaleString()}</td>
                               <td className="text-right font-semibold">
@@ -343,7 +355,7 @@ const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClo
                       min="0"
                       max="100"
                       value={taxRate}
-                      onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => { setTaxRateTouched(true); setTaxRate(parseFloat(e.target.value) || 0); }}
                       className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
                     />
                   </div>

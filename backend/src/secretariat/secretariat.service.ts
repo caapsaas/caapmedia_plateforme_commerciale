@@ -273,7 +273,7 @@ export class SecretariatService {
       documentName?: string;
       category?: DocumentCategory;
       status?: DocumentStatus;
-    },
+    } & PaginationQueryDto,
     currentUser: { id: string; role: UserRole; subsidiaryId: string },
   ) {
     // Construire les conditions de recherche
@@ -294,17 +294,17 @@ export class SecretariatService {
       where.status = query.status;
     }
 
-    const documents = await this.prisma.companyDocument.findMany({
-      where,
-      include: { subsidiary: true },
-      orderBy: { uploadDate: 'desc' },
-    });
+    const result = await paginate(
+      this.prisma.companyDocument,
+      { where, include: { subsidiary: true }, orderBy: { uploadDate: 'desc' } },
+      query,
+    );
 
     this.logger.log(
-      `Found ${documents.length} company documents matching query`,
+      `Found ${result.data.length} company documents matching query`,
       'SecretariatService',
     );
-    return documents;
+    return result;
   }
 
   // CRUD for Meeting
@@ -620,7 +620,7 @@ export class SecretariatService {
   }
 
   async searchMeetings(
-    query: { title?: string; meetingDate?: Date },
+    query: { title?: string; meetingDate?: Date } & PaginationQueryDto,
     currentUser: { id: string; role: UserRole; subsidiaryId: string },
   ) {
     // Construire les conditions de recherche
@@ -635,22 +635,26 @@ export class SecretariatService {
       where.meetingDate = query.meetingDate;
     }
 
-    const meetings = await this.prisma.meeting.findMany({
-      where,
-      include: {
-        subsidiary: true,
-        participants: {
-          include: { employee: true }, // Ajout : Inclure les détails des employés dans les participants
+    const result = await paginate(
+      this.prisma.meeting,
+      {
+        where,
+        include: {
+          subsidiary: true,
+          participants: {
+            include: { employee: true }, // Ajout : Inclure les détails des employés dans les participants
+          },
         },
+        orderBy: { meetingDate: 'desc' },
       },
-      orderBy: { meetingDate: 'desc' },
-    });
+      query,
+    );
 
     this.logger.log(
-      `Found ${meetings.length} meetings matching query`,
+      `Found ${result.data.length} meetings matching query`,
       'SecretariatService',
     );
-    return meetings;
+    return result;
   }
 
   // Méthodes supplémentaires pour gérer les participants individuellement
@@ -1011,7 +1015,11 @@ export class SecretariatService {
   }
 
   async searchSecretariatTasks(
-    query: { title?: string; status?: SecretariatTaskStatus; dueDate?: Date },
+    query: {
+      title?: string;
+      status?: SecretariatTaskStatus;
+      dueDate?: Date;
+    } & PaginationQueryDto,
     currentUser: { id: string; role: UserRole; subsidiaryId: string },
   ) {
     // Construire les conditions de recherche
@@ -1029,16 +1037,20 @@ export class SecretariatService {
       where.dueDate = query.dueDate;
     }
 
-    const tasks = await this.prisma.secretariatTask.findMany({
-      where,
-      include: { subsidiary: true, assignedTo: true },
-      orderBy: { dueDate: 'asc' },
-    });
+    const result = await paginate(
+      this.prisma.secretariatTask,
+      {
+        where,
+        include: { subsidiary: true, assignedTo: true },
+        orderBy: { dueDate: 'asc' },
+      },
+      query,
+    );
 
     this.logger.log(
-      `Found ${tasks.length} secretariat tasks matching query`,
+      `Found ${result.data.length} secretariat tasks matching query`,
       'SecretariatService',
     );
-    return tasks;
+    return result;
   }
 }

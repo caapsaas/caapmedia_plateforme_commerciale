@@ -14,6 +14,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { StockMovementType } from '@prisma/client';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 // Types que l'utilisateur peut déclencher manuellement (Chantier 3) — les
 // autres (PURCHASE_RECEIPT, PRODUCTION_CONSUMPTION, *_ADJUSTMENT) ont chacun
@@ -86,7 +87,7 @@ export class WithdrawForOrderDto {
   items: WithdrawItemDto[];
 }
 
-export class FindStockMovementsDto {
+export class FindStockMovementsDto extends PaginationQueryDto {
   @IsUUID()
   @IsOptional()
   subsidiaryId?: string;

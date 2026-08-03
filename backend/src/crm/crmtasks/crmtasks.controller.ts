@@ -5,6 +5,7 @@ import {
   Body,
   Patch,
   Param,
+  Query,
   Delete,
   UseGuards,
   ParseUUIDPipe,
@@ -17,6 +18,7 @@ import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { CurrentUser, Roles } from 'src/common/auth/role/role.decorator';
 import { type User, UserRole } from '@prisma/client';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @Controller('crm/tasks')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -41,8 +43,8 @@ export class CrmtasksController {
     UserRole.SECRETARY,
     UserRole.FINANCIAL_DIRECTOR,
   )
-  findAll(@CurrentUser() user: User) {
-    return this.crmtasksService.findAll(user);
+  findAll(@CurrentUser() user: User, @Query() paginationQuery: PaginationQueryDto) {
+    return this.crmtasksService.findAll(user, paginationQuery);
   }
 
   @Get(':id')

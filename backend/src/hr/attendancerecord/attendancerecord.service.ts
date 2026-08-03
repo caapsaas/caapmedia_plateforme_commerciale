@@ -4,9 +4,11 @@ import {
   CreateAttendanceRecordDto,
   UpdateAttendanceRecordDto,
 } from './dto/atendancerecord.dto';
-import { AttendanceRecord, AttendanceStatus } from '@prisma/client';
+import { AttendanceRecord, AttendanceStatus, Prisma } from '@prisma/client';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { paginate } from 'src/common/pagination/pagination';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 interface CreateAttendanceFromScanPayload {
   employeeId: string;
@@ -152,6 +154,48 @@ export class AttendanceRecordService {
     });
   }
 
+  /**
+   * Variante paginée de findByDateRange, pour l'historique "toute la
+   * filiale" (history-all) qui croît avec l'effectif × le nombre de jours —
+   * contrairement à l'historique personnel (borné à ~31 lignes/mois) ou aux
+   * stats mensuelles (ont besoin du tableau complet pour les compter).
+   */
+  async findByDateRangePaginated(
+    subsidiaryId: string,
+    startDate: Date,
+    endDate: Date,
+    qrOnly: boolean = false,
+    paginationQuery: PaginationQueryDto = {},
+  ) {
+    const where: Prisma.AttendanceRecordWhereInput = {
+      subsidiaryId,
+      attendanceDate: { gte: startDate, lt: endDate },
+      ...(qrOnly ? { qrCodeToken: { not: null } } : {}),
+      ...(paginationQuery.search
+        ? {
+            employeeName: {
+              contains: paginationQuery.search,
+              mode: 'insensitive',
+            },
+          }
+        : {}),
+    };
+
+    return paginate(
+      this.prisma.attendanceRecord,
+      {
+        where,
+        include: {
+          employee: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+        },
+        orderBy: { attendanceDate: 'desc' },
+      },
+      paginationQuery,
+    );
+  }
+
   // ------------------------------------------------------------------
   // Statistiques mensuelles
   // ------------------------------------------------------------------
@@ -188,16 +232,29 @@ export class AttendanceRecordService {
   // ------------------------------------------------------------------
   // Autres méthodes (inchangées)
   // ------------------------------------------------------------------
-  async findAll(subsidiaryId: string): Promise<AttendanceRecord[]> {
-    return this.prisma.attendanceRecord.findMany({
-      //where: { subsidiaryId },
-      include: {
-        employee: {
-          select: { id: true, firstName: true, lastName: true },
+  async findAll(subsidiaryId: string, paginationQuery: PaginationQueryDto = {}) {
+    const where: Prisma.AttendanceRecordWhereInput = { subsidiaryId };
+
+    if (paginationQuery.search) {
+      where.employeeName = {
+        contains: paginationQuery.search,
+        mode: 'insensitive',
+      };
+    }
+
+    return paginate(
+      this.prisma.attendanceRecord,
+      {
+        where,
+        include: {
+          employee: {
+            select: { id: true, firstName: true, lastName: true },
+          },
         },
+        orderBy: { attendanceDate: 'desc' },
       },
-      orderBy: { attendanceDate: 'desc' },
-    });
+      paginationQuery,
+    );
   }
 
   async findOne(id: string): Promise<AttendanceRecord> {

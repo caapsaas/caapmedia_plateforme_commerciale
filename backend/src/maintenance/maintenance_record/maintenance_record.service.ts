@@ -6,7 +6,9 @@ import {
   CreateMaintenanceRecordDto,
   UpdateMaintenanceRecordDto,
   SearchMaintenanceRecordDto,
+  FindMaintenanceRecordsDto,
 } from './dto/create-maintenance_record.dto';
+import { paginate } from 'src/common/pagination/pagination';
 
 @Injectable()
 export class MaintenanceRecordService {
@@ -35,15 +37,19 @@ export class MaintenanceRecordService {
 
   /**
    *
-   * @param equipmentId // ID de l'équipement
-   * @returns // Liste des maintenances de l'équipement
+   * @param query // equipmentId + pagination
+   * @returns // Liste paginée des maintenances de l'équipement
    */
-  async findAll(equipmentId: string) {
-    const maintenanceRecords = await this.prisma.maintenanceRecord.findMany({
-      where: { equipmentId },
-      include: this.includeAll,
-    });
-    return maintenanceRecords;
+  async findAll(query: FindMaintenanceRecordsDto) {
+    return paginate(
+      this.prisma.maintenanceRecord,
+      {
+        where: { equipmentId: query.equipmentId },
+        include: this.includeAll,
+        orderBy: { maintenanceDate: 'desc' },
+      },
+      query,
+    );
   }
 
   /**
@@ -103,22 +109,26 @@ export class MaintenanceRecordService {
    * @returns // Liste des maintenances correspondant aux filtres
    */
   async search(dto: SearchMaintenanceRecordDto) {
-    const maintenanceRecords = await this.prisma.maintenanceRecord.findMany({
-      where: {
-        equipmentId: dto.equipmentId,
-        technician: dto.technician
-          ? { contains: dto.technician, mode: 'insensitive' }
-          : undefined,
-        maintenanceDate:
-          dto.fromDate || dto.toDate
-            ? {
-                gte: dto.fromDate ? new Date(dto.fromDate) : undefined,
-                lte: dto.toDate ? new Date(dto.toDate) : undefined,
-              }
+    return paginate(
+      this.prisma.maintenanceRecord,
+      {
+        where: {
+          equipmentId: dto.equipmentId,
+          technician: dto.technician
+            ? { contains: dto.technician, mode: 'insensitive' }
             : undefined,
+          maintenanceDate:
+            dto.fromDate || dto.toDate
+              ? {
+                  gte: dto.fromDate ? new Date(dto.fromDate) : undefined,
+                  lte: dto.toDate ? new Date(dto.toDate) : undefined,
+                }
+              : undefined,
+        },
+        include: this.includeAll,
+        orderBy: { maintenanceDate: 'desc' },
       },
-      include: this.includeAll,
-    });
-    return maintenanceRecords;
+      dto,
+    );
   }
 }

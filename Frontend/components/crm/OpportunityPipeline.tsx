@@ -5,6 +5,7 @@ import { useToast } from '../../context/ToastContext';
 import IconPlus from '../icons/IconPlus';
 import OpportunityCard from './OpportunityCard';
 import OpportunityFormModal from './OpportunityFormModal';
+import EmptyState from '../ui/EmptyState';
 
 interface OpportunityPipelineProps {
     subsidiary: Subsidiary;
@@ -46,8 +47,10 @@ const Column: React.FC<{
                 <p className="text-xs text-slate-500">{opportunities.length} opportunités - {formatCurrency(totalValue)}</p>
             </div>
             <div className="mt-4 space-y-3 h-full overflow-y-auto p-2">
-                {opportunities.map(opp => (
-                    <OpportunityCard 
+                {opportunities.length === 0 ? (
+                    <p className="text-center text-xs text-slate-400 py-6">{t('crm.pipeline.emptyColumn')}</p>
+                ) : opportunities.map(opp => (
+                    <OpportunityCard
                         key={opp.id}
                         opportunity={opp}
                         clientName={clients.find(c => c.id === opp.contactId)?.contactName || 'N/A'}

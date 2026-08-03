@@ -4,7 +4,6 @@ import {
   Delete,
   Get,
   Param,
-  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -49,38 +48,32 @@ export class SpecReferenceListsController {
 
   @Get(':id')
   @Roles(...READ_ROLES)
-  findOne(@Param('id', new ParseUUIDPipe()) id: string) {
+  findOne(@Param('id') id: string) {
     return this.service.findOne(id);
   }
 
   @Patch(':id')
   @Roles(...BUILDER_ROLES)
-  update(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() dto: UpdateReferenceListDto,
-  ) {
+  update(@Param('id') id: string, @Body() dto: UpdateReferenceListDto) {
     return this.service.update(id, dto);
   }
 
   @Delete(':id')
   @Roles(...BUILDER_ROLES)
-  remove(@Param('id', new ParseUUIDPipe()) id: string) {
+  remove(@Param('id') id: string) {
     return this.service.remove(id);
   }
 
   @Post(':id/values')
   @Roles(...BUILDER_ROLES)
-  addValue(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() dto: CreateReferenceValueDto,
-  ) {
+  addValue(@Param('id') id: string, @Body() dto: CreateReferenceValueDto) {
     return this.service.addValue(id, dto);
   }
 
   @Patch('values/:valueId')
   @Roles(...BUILDER_ROLES)
   updateValue(
-    @Param('valueId', new ParseUUIDPipe()) valueId: string,
+    @Param('valueId') valueId: string,
     @Body() dto: UpdateReferenceValueDto,
   ) {
     return this.service.updateValue(valueId, dto);
@@ -88,7 +81,7 @@ export class SpecReferenceListsController {
 
   @Delete('values/:valueId')
   @Roles(...BUILDER_ROLES)
-  removeValue(@Param('valueId', new ParseUUIDPipe()) valueId: string) {
+  removeValue(@Param('valueId') valueId: string) {
     return this.service.removeValue(valueId);
   }
 }

@@ -14,6 +14,7 @@ import {
 } from '../../services/apiE-commerce/apiOrders';
 import { getSubsidiaries } from '../../services/apiCommon/apiSubsidiaries';
 import ConfirmationModal from '../common/ConfirmationModal';
+import EmptyState from '../ui/EmptyState';
 
 const BACKEND_BASE = 'http://localhost:3000';
 
@@ -630,12 +631,8 @@ const ProductionValidationView: React.FC = () => {
                     </table>
                 </div>
             ) : orders.length === 0 ? (
-                <div className="text-center py-20 bg-white rounded-xl border border-slate-200">
-                    <svg className="w-12 h-12 mx-auto mb-3 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="font-medium text-slate-500">File d'attente vide</p>
-                    <p className="text-sm text-slate-400 mt-1">Toutes les commandes ont été traitées.</p>
+                <div className="bg-white rounded-xl border border-slate-200">
+                    <EmptyState icon="order" title="File d'attente vide" description="Toutes les commandes ont été traitées." />
                 </div>
             ) : (
                 <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">

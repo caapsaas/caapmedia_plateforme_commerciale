@@ -5,6 +5,7 @@ import {
   Body,
   Patch,
   Param,
+  Query,
   Delete,
   UseGuards,
   Request,
@@ -20,6 +21,7 @@ import {
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles } from '../../common/auth/role/role.decorator';
+import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
 
 @Controller('hr/payroll-records')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -42,9 +44,9 @@ export class PayrollrecordController {
 
   @Get()
   @Roles('HR_MANAGER', 'ADMIN')
-  findAll(@Request() req) {
+  findAll(@Request() req, @Query() paginationQuery: PaginationQueryDto) {
     const subsidiaryId = req.user.subsidiaryId;
-    return this.payrollRecordService.findAll(subsidiaryId);
+    return this.payrollRecordService.findAll(subsidiaryId, paginationQuery);
   }
 
   @Get(':id')

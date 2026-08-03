@@ -14,6 +14,8 @@ import { ACCOUNTING_GLOBAL_SCOPE_ROLES } from '../shared/accounting-scope-roles.
 
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { paginate } from 'src/common/pagination/pagination';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 export interface CreateJournalEntryDto {
   entryDate: string;
@@ -68,6 +70,7 @@ export class EntriesService {
     startDate?: string,
     endDate?: string,
     subsidiaryIdFilter?: string,
+    paginationQuery: PaginationQueryDto = {},
   ) {
     const ctx = resolveScopeContext(user, ACCOUNTING_GLOBAL_SCOPE_ROLES);
     const where = withSubsidiaryScope(
@@ -82,23 +85,35 @@ export class EntriesService {
               },
             }
           : {}),
+        ...(paginationQuery.search
+          ? {
+              description: {
+                contains: paginationQuery.search,
+                mode: 'insensitive' as const,
+              },
+            }
+          : {}),
       },
       ctx,
       subsidiaryIdFilter,
     );
 
-    return this.prisma.journalEntry.findMany({
-      where,
-      orderBy: { entryDate: 'desc' },
-      include: {
-        journal: { select: { code: true, name: true } },
-        lines: {
-          include: {
-            account: { select: { accountNumber: true, accountName: true } },
+    return paginate(
+      this.prisma.journalEntry,
+      {
+        where,
+        orderBy: { entryDate: 'desc' },
+        include: {
+          journal: { select: { code: true, name: true } },
+          lines: {
+            include: {
+              account: { select: { accountNumber: true, accountName: true } },
+            },
           },
         },
       },
-    });
+      paginationQuery,
+    );
   }
 
   async findOne(id: string, user: JwtUser) {

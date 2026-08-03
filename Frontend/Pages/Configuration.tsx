@@ -14,6 +14,7 @@ import ProductionWorkflowManagement from '../components/configuration/Production
 import { useI18n } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
+import CrmListSkeleton from '../components/ui/CrmListSkeleton';
 
 type ConfigGroup = 'catalogue' | 'users' | 'suppliers' | 'clients' | 'taxes' | 'treasury' | 'production';
 type CatalogueSub = 'products' | 'units' | 'services' | 'referenceLists';
@@ -52,7 +53,7 @@ const Configuration: React.FC = () => {
     const isSuperAdmin = activeRole === UserRole.SUPER_ADMIN;
 
     const renderActiveView = () => {
-        if (!subsidiary) return <div>{t('common.loading')}</div>;
+        if (!subsidiary) return <CrmListSkeleton columns={5} />;
 
         switch (activeGroup) {
             case 'catalogue':

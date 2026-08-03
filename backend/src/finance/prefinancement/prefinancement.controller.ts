@@ -13,6 +13,7 @@ import { PrefinancementService } from './prefinancement.service';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { CurrentUser } from 'src/common/auth/role/role.decorator';
 import type { User } from '@prisma/client';
+import { FindPrefinancementTransactionsDto } from './dto/find-prefinancement-transactions.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('finance/prefinancement')
@@ -94,28 +95,11 @@ export class PrefinancementController {
   @Get('transactions')
   findTransactions(
     @CurrentUser() user: User,
-    @Query('subsidiaryId') subsidiaryId?: string,
-    @Query('type') type?: 'CREDIT' | 'DEBIT',
-    @Query('category')
-    category?:
-      | 'MATERIELS_PREMIER'
-      | 'MAIN_D_OEUVRE'
-      | 'ENERGIE'
-      | 'TRANSPORT'
-      | 'AUTRE',
-    @Query('status') status?: 'VALIDE' | 'EN_ATTENTE' | 'ANNULE',
-    @Query('search') search?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query() query: FindPrefinancementTransactionsDto,
   ) {
     return this.prefenancementService.findTransactions({
-      subsidiaryId: subsidiaryId || user.subsidiaryId,
-      type,
-      category,
-      status,
-      search,
-      startDate,
-      endDate,
+      ...query,
+      subsidiaryId: query.subsidiaryId || user.subsidiaryId,
     });
   }
 

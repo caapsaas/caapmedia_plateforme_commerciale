@@ -6,6 +6,8 @@ import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import { useQueryClient } from '@tanstack/react-query';
 import TreasuryAccountFormModal from './TreasuryAccountFormModal';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 import { getTreasuryAccounts, createTreasuryAccount, updateTreasuryAccount, deleteTreasuryAccount, CreateTreasuryAccountData, UpdateTreasuryAccountData } from '../../services/apiFinance/apiTreasuryAccounts';
 
 interface TreasuryAccountManagementProps {
@@ -182,10 +184,6 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
     );
   }
 
-  if (loading) {
-    return <div className="p-6 text-center">{t('common.loading')}</div>;
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -256,7 +254,9 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {accounts.map((account) => (
+              {loading ? (
+                <TableSkeleton rows={5} columns={4} />
+              ) : accounts.map((account) => (
                 <tr key={account.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {account.accountName}
@@ -297,10 +297,8 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
           </table>
         </div>
         
-        {accounts.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            {t('treasuryAccounts.noData')}
-          </div>
+        {!loading && accounts.length === 0 && (
+          <EmptyState icon="finance" title={t('treasuryAccounts.noData')} />
         )}
       </div>
 

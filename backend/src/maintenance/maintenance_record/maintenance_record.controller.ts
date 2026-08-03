@@ -8,13 +8,13 @@ import {
   Param,
   Query,
   UseGuards,
-  ParseUUIDPipe,
 } from '@nestjs/common';
 import { MaintenanceRecordService } from 'src/maintenance/maintenance_record/maintenance_record.service';
 import {
   CreateMaintenanceRecordDto,
   UpdateMaintenanceRecordDto,
   SearchMaintenanceRecordDto,
+  FindMaintenanceRecordsDto,
 } from 'src/maintenance/maintenance_record/dto/create-maintenance_record.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
@@ -44,8 +44,8 @@ export class MaintenanceRecordController {
   @Get()
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR)
-  findAll(@Query('equipmentId', new ParseUUIDPipe()) equipmentId: string) {
-    return this.service.findAll(equipmentId);
+  findAll(@Query() query: FindMaintenanceRecordsDto) {
+    return this.service.findAll(query);
   }
 
   /**

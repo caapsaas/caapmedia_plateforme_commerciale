@@ -9,6 +9,8 @@ import { LoggerService } from '../../utils/logger/logger.service';
 import { UserRole } from '@prisma/client';
 import { generateId } from '../../utils/generate-id.util';
 import { ID_PREFIXES } from '../../constants/id-prefixes.const';
+import { PaginationQueryDto } from '../../pagination/dto/pagination-query.dto';
+import { paginate } from '../../pagination/pagination';
 
 @Injectable()
 export class SubsidiaryService {
@@ -30,6 +32,7 @@ export class SubsidiaryService {
       accountNumber: string;
       swiftCode: string;
       shareCapital: number;
+      taxRate?: number;
     },
     currentUser: { id: string; role: UserRole; subsidiaryId: string },
   ) {
@@ -81,6 +84,7 @@ export class SubsidiaryService {
       accountNumber: subsidiary.accountNumber,
       swiftCode: subsidiary.swiftCode,
       shareCapital: subsidiary.shareCapital,
+      taxRate: subsidiary.taxRate.toNumber(),
     };
   }
 
@@ -98,6 +102,7 @@ export class SubsidiaryService {
       accountNumber?: string;
       swiftCode?: string;
       shareCapital?: number;
+      taxRate?: number;
     },
     currentUser: { id: string; role: UserRole; subsidiaryId: string },
   ) {
@@ -166,6 +171,7 @@ export class SubsidiaryService {
       accountNumber: updatedSubsidiary.accountNumber,
       swiftCode: updatedSubsidiary.swiftCode,
       shareCapital: updatedSubsidiary.shareCapital,
+      taxRate: updatedSubsidiary.taxRate.toNumber(),
     };
   }
 
@@ -206,42 +212,50 @@ export class SubsidiaryService {
     return { message: 'Subsidiary deleted successfully' };
   }
 
-  async getAllSubsidiaries(currentUser: {
-    id: string;
-    role: UserRole;
-    subsidiaryId: string;
-  }) {
+  async getAllSubsidiaries(
+    currentUser: {
+      id: string;
+      role: UserRole;
+      subsidiaryId: string;
+    },
+    paginationQuery: PaginationQueryDto = {},
+  ) {
     const isGlobalScope =
       currentUser.role === UserRole.ADMIN ||
       currentUser.role === UserRole.SUPER_ADMIN;
     const where = isGlobalScope ? {} : { id: currentUser.subsidiaryId };
 
-    const subsidiaries = await this.prisma.subsidiary.findMany({
-      where,
-      orderBy: { subsidiaryName: 'asc' },
-    });
+    const result = await paginate(
+      this.prisma.subsidiary,
+      { where, orderBy: { subsidiaryName: 'asc' } },
+      paginationQuery,
+    );
 
     this.logger.log(
-      `Retrieved ${subsidiaries.length} subsidiaries`,
+      `Retrieved ${result.data.length} subsidiaries`,
       'SubsidiaryService',
     );
-    return subsidiaries.map((subsidiary) => ({
-      id: subsidiary.id,
-      subsidiaryName: subsidiary.subsidiaryName,
-      email: subsidiary.email,
-      address: subsidiary.address,
-      phone: subsidiary.phone,
-      ifu: subsidiary.ifu,
-      rccm: subsidiary.rccm,
-      bankName: subsidiary.bankName,
-      accountNumber: subsidiary.accountNumber,
-      swiftCode: subsidiary.swiftCode,
-      shareCapital: subsidiary.shareCapital,
-    }));
+    return {
+      ...result,
+      data: result.data.map((subsidiary) => ({
+        id: subsidiary.id,
+        subsidiaryName: subsidiary.subsidiaryName,
+        email: subsidiary.email,
+        address: subsidiary.address,
+        phone: subsidiary.phone,
+        ifu: subsidiary.ifu,
+        rccm: subsidiary.rccm,
+        bankName: subsidiary.bankName,
+        accountNumber: subsidiary.accountNumber,
+        swiftCode: subsidiary.swiftCode,
+        shareCapital: subsidiary.shareCapital,
+        taxRate: subsidiary.taxRate.toNumber(),
+      })),
+    };
   }
 
   async searchSubsidiaries(
-    query: { subsidiaryName?: string; email?: string },
+    query: { subsidiaryName?: string; email?: string } & PaginationQueryDto,
     currentUser: { id: string; role: UserRole; subsidiaryId: string },
   ) {
     const isGlobalScope =
@@ -258,27 +272,32 @@ export class SubsidiaryService {
       where.email = { contains: query.email, mode: 'insensitive' };
     }
 
-    const subsidiaries = await this.prisma.subsidiary.findMany({
-      where,
-      orderBy: { subsidiaryName: 'asc' },
-    });
+    const result = await paginate(
+      this.prisma.subsidiary,
+      { where, orderBy: { subsidiaryName: 'asc' } },
+      query,
+    );
 
     this.logger.log(
-      `Found ${subsidiaries.length} subsidiaries matching query`,
+      `Found ${result.data.length} subsidiaries matching query`,
       'SubsidiaryService',
     );
-    return subsidiaries.map((subsidiary) => ({
-      id: subsidiary.id,
-      subsidiaryName: subsidiary.subsidiaryName,
-      email: subsidiary.email,
-      address: subsidiary.address,
-      phone: subsidiary.phone,
-      ifu: subsidiary.ifu,
-      rccm: subsidiary.rccm,
-      bankName: subsidiary.bankName,
-      accountNumber: subsidiary.accountNumber,
-      swiftCode: subsidiary.swiftCode,
-      shareCapital: subsidiary.shareCapital,
-    }));
+    return {
+      ...result,
+      data: result.data.map((subsidiary) => ({
+        id: subsidiary.id,
+        subsidiaryName: subsidiary.subsidiaryName,
+        email: subsidiary.email,
+        address: subsidiary.address,
+        phone: subsidiary.phone,
+        ifu: subsidiary.ifu,
+        rccm: subsidiary.rccm,
+        bankName: subsidiary.bankName,
+        accountNumber: subsidiary.accountNumber,
+        swiftCode: subsidiary.swiftCode,
+        shareCapital: subsidiary.shareCapital,
+        taxRate: subsidiary.taxRate.toNumber(),
+      })),
+    };
   }
 }

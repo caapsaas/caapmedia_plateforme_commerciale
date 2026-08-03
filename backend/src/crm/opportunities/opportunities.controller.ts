@@ -5,9 +5,9 @@ import {
   Body,
   Patch,
   Param,
+  Query,
   Delete,
   UseGuards,
-  ParseUUIDPipe,
 } from '@nestjs/common';
 import { OpportunitiesService } from './opportunities.service';
 import { CreateOpportunityDto } from './dto/create-opportunity.dto';
@@ -16,6 +16,7 @@ import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { CurrentUser, Roles } from 'src/common/auth/role/role.decorator';
 import { type User, UserRole } from '@prisma/client';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @Controller('crm/opportunities')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -43,8 +44,8 @@ export class OpportunitiesController {
     UserRole.SECRETARY,
     UserRole.FINANCIAL_DIRECTOR,
   )
-  findAll(@CurrentUser() user: User) {
-    return this.opportunitiesService.findAll(user);
+  findAll(@CurrentUser() user: User, @Query() paginationQuery: PaginationQueryDto) {
+    return this.opportunitiesService.findAll(user, paginationQuery);
   }
 
   @Get(':id')
@@ -54,7 +55,7 @@ export class OpportunitiesController {
     UserRole.SECRETARY,
     UserRole.FINANCIAL_DIRECTOR,
   )
-  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  findOne(@Param('id') id: string, @CurrentUser() user: User) {
     return this.opportunitiesService.findOne(id, user);
   }
 
@@ -66,7 +67,7 @@ export class OpportunitiesController {
     UserRole.FINANCIAL_DIRECTOR,
   )
   update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() updateOpportunityDto: UpdateOpportunityDto,
     @CurrentUser() user: User,
   ) {
@@ -80,7 +81,7 @@ export class OpportunitiesController {
     UserRole.SECRETARY,
     UserRole.FINANCIAL_DIRECTOR,
   )
-  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  remove(@Param('id') id: string, @CurrentUser() user: User) {
     return this.opportunitiesService.remove(id, user);
   }
 }

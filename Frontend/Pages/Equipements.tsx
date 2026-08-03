@@ -17,6 +17,7 @@ import IconEdit from '../components/icons/IconEdit';
 import IconDelete from '../components/icons/IconDelete';
 import EquipmentFormModal from '../components/maintenance/EquipmentFormModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
+import EmptyState from '../components/ui/EmptyState';
 
 type SaveEquipmentDto = CreateEquipmentDto & { id?: string };
 
@@ -169,13 +170,12 @@ const Equipements: React.FC = () => {
                                 ))
                             ) : equipment.length === 0 ? (
                                 <tr>
-                                    <td colSpan={showFiliale ? 7 : 6} className="py-20 text-center">
-                                        <svg className="w-10 h-10 mx-auto mb-3 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        </svg>
-                                        <p className="font-medium text-slate-500">{t('maintenance.noEquipment')}</p>
-                                        <p className="text-xs text-slate-400 mt-1">Cliquez sur « {t('maintenance.addEquipment')} » pour commencer.</p>
+                                    <td colSpan={showFiliale ? 7 : 6}>
+                                        <EmptyState
+                                            icon="stock"
+                                            title={t('maintenance.noEquipment')}
+                                            description={`Cliquez sur « ${t('maintenance.addEquipment')} » pour commencer.`}
+                                        />
                                     </td>
                                 </tr>
                             ) : equipment.map(item => {

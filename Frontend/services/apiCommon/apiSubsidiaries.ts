@@ -1,5 +1,6 @@
 import { api } from '../api';
 import { Subsidiary } from '../../types';
+import { PaginatedResponse } from '../../types/pagination.types';
 
 export type SubsidiaryCreationData = Omit<Subsidiary, 'id'>;
 
@@ -16,8 +17,8 @@ export interface SubsidiarySearchQuery {
  * @returns Une liste de filiales.
  */
 export const getSubsidiaries = async (): Promise<Subsidiary[]> => {
-  const { data } = await api.get<Subsidiary[]>('/subsidiaries');
-  return data;
+  const { data } = await api.get<PaginatedResponse<Subsidiary>>('/subsidiaries', { params: { limit: 500 } });
+  return data.data;
 };
 
 /**
@@ -60,6 +61,6 @@ export const deleteSubsidiary = async (id: string): Promise<{ message: string }>
  * @returns Une liste de filiales correspondantes.
  */
 export const searchSubsidiaries = async (query: SubsidiarySearchQuery): Promise<Subsidiary[]> => {
-  const { data } = await api.get<Subsidiary[]>('/subsidiaries/search', { params: query });
-  return data;
+  const { data } = await api.get<PaginatedResponse<Subsidiary>>('/subsidiaries/search', { params: { ...query, limit: 500 } });
+  return data.data;
 };

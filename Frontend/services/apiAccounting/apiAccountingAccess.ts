@@ -1,4 +1,5 @@
 import { api } from '../api';
+import { PaginatedResponse } from '../../types/pagination.types';
 
 export type AccountingAccessStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
@@ -33,8 +34,8 @@ export const getPendingAccessCount = async (): Promise<number> => {
 };
 
 export const getAccessRequests = async (): Promise<AccountingAccessRequest[]> => {
-  const { data } = await api.get<AccountingAccessRequest[]>('/accounting-access');
-  return data;
+  const { data } = await api.get<PaginatedResponse<AccountingAccessRequest>>('/accounting-access', { params: { limit: 500 } });
+  return data.data;
 };
 
 export const createAccessRequest = async (justification: string): Promise<AccountingAccessRequest> => {

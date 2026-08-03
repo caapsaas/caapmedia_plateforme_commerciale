@@ -18,6 +18,7 @@ import { SpecValues } from '../components/common/FormRenderer';
 import type { ProductionCostResult, ProductionStep, ProductionSummary } from '../components/ecommerce/ProductionCostModal';
 import AddItemMultiStepModal from '../components/ecommerce/AddItemMultiStepModal';
 import { getImageUrl } from '../utils/imageUtils';
+import EmptyState from '../components/ui/EmptyState';
 import { LazyLoadImage } from 'react-lazy-load-image-component';
 import 'react-lazy-load-image-component/src/effects/blur.css';
 
@@ -57,6 +58,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
 
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>(selectedCustomer?.id || '');
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CustomerPaymentMethod>(CustomerPaymentMethod.PAY_ON_DELIVERY);
+    const [applyTax, setApplyTax] = useState(true);
     const [globalSearchTerm, setGlobalSearchTerm] = useState('');
     const [externalCustomer, setExternalCustomer] = useState<GlobalContactSearchResult | null>(null);
 
@@ -199,8 +201,11 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
         [cart]
     );
 
-    const defaultTaxRate = useMemo(() => taxRates.find(t => t.isDefault) || { rate: 0.1925, id: '' }, [taxRates]);
-    const taxAmount = useMemo(() => subtotal * defaultTaxRate.rate, [subtotal, defaultTaxRate]);
+    // Le taux vient toujours du backend (taxe par défaut configurée) — aucune
+    // valeur métier en dur ici ; { rate: 0, id: '' } n'est qu'un état de
+    // chargement neutre le temps que taxRates arrive.
+    const defaultTaxRate = useMemo(() => taxRates.find(t => t.isDefault) || { rate: 0, id: '' }, [taxRates]);
+    const taxAmount = useMemo(() => applyTax ? subtotal * defaultTaxRate.rate : 0, [subtotal, defaultTaxRate, applyTax]);
     const totalAmount = useMemo(() => subtotal + taxAmount, [subtotal, taxAmount]);
 
     const handleSubmitOrder = () => {
@@ -232,7 +237,8 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
             taxAmount,
             totalAmount,
             taxRateId: defaultTaxRate.id,
-            taxRateValue: defaultTaxRate.rate,
+            taxRateValue: applyTax ? defaultTaxRate.rate : 0,
+            applyTax,
             paymentDueDate: paymentDueDate.toISOString().split('T')[0],
             status: OrderStatus.NEW,
             productionStatus: ProductionStatus.PREPRESS,
@@ -286,7 +292,9 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200">
-                                {filteredProducts.map(product => (
+                                {filteredProducts.length === 0 ? (
+                                    <tr><td colSpan={4}><EmptyState icon="search" title={t('filter.noResults')} /></td></tr>
+                                ) : filteredProducts.map(product => (
                                     <tr key={product.id}>
                                         <td className="px-4 py-3">
                                             <div className="h-12 w-12 rounded-md overflow-hidden bg-slate-100">
@@ -451,10 +459,18 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                         <span>{t('invoice.subtotal')}</span>
                         <span>{formatCurrency(subtotal)}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                        <span>{t('invoice.tax')} ({(defaultTaxRate.rate * 100).toFixed(2)}%)</span>
+                    <label className="flex items-center justify-between text-sm cursor-pointer">
+                        <span className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                checked={applyTax}
+                                onChange={(e) => setApplyTax(e.target.checked)}
+                                className="h-4 w-4 rounded border-slate-300 text-[#c6e911] focus:ring-[#c6e911]"
+                            />
+                            {t('invoice.tax')} {applyTax && `(${(defaultTaxRate.rate * 100).toFixed(2)}%)`}
+                        </span>
                         <span>{formatCurrency(taxAmount)}</span>
-                    </div>
+                    </label>
                     <div className="flex justify-between font-bold text-lg pt-2 border-t mt-2">
                         <span>{t('newOrder.total')}</span>
                         <span>{formatCurrency(totalAmount)}</span>

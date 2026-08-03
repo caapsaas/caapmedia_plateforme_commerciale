@@ -5,6 +5,7 @@ import {
   Body,
   Patch,
   Param,
+  Query,
   Delete,
   UseGuards,
   Request,
@@ -19,6 +20,7 @@ import {
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles } from '../../common/auth/role/role.decorator';
+import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
 
 @Controller('hr/absence-records')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -66,9 +68,9 @@ export class AbsencerecordController {
   // ------------------------------------------------------------------
   @Get()
   @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
-  findAll(@Request() req) {
+  findAll(@Request() req, @Query() paginationQuery: PaginationQueryDto) {
     const subsidiaryId = req.user.subsidiaryId;
-    return this.absenceRecordService.findAll(subsidiaryId);
+    return this.absenceRecordService.findAll(subsidiaryId, paginationQuery);
   }
 
   // ------------------------------------------------------------------

@@ -11,6 +11,8 @@ import { getFormDefinition } from '../../services/apiE-commerce/apiProductSpecs'
 import SpecValuesModal from '../common/SpecValuesModal';
 import { SpecValues } from '../common/FormRenderer';
 import { FormDefinition } from '../../types/models';
+import { LazyLoadImage } from 'react-lazy-load-image-component';
+import 'react-lazy-load-image-component/src/effects/blur.css';
 
 interface PriceCalculatorModalProps {
     isOpen: boolean;
@@ -58,11 +60,6 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
         setQuantity(isNaN(newQuantity) || newQuantity < 1 ? 1 : newQuantity);
     };
 
-    const handleBasePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newPrice = parseFloat(e.target.value);
-        setBasePrice(isNaN(newPrice) || newPrice < 0 ? 0 : newPrice);
-    };
-    
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             setDesignFile(e.target.files[0]);
@@ -95,6 +92,14 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
 
     const handleSubmit = async () => {
         if (!product || (requirePrice && unitPrice <= 0)) return;
+
+        // Site vitrine (requirePrice=false) : commande directe via WhatsApp, on
+        // ne fait pas remplir les spécifications techniques au client — elles
+        // seront discutées avec le commercial. Seule la Caisse (POS) les collecte.
+        if (!requirePrice) {
+            finalizeAddToCart();
+            return;
+        }
 
         const schema = await queryClient.fetchQuery({
             queryKey: ['form-definition', product.id],
@@ -136,10 +141,11 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
                         {/* Image Column */}
                         <div>
                             <div className="w-full aspect-[4/3] rounded-lg overflow-hidden bg-slate-100 mb-2">
-                                <img
+                                <LazyLoadImage
                                     alt={product.name}
                                     src={activeImageUrl}
-                                    loading="lazy"
+                                    effect="blur"
+                                    wrapperClassName="w-full h-full"
                                     className="w-full h-full object-cover"
                                 />
                             </div>
@@ -152,10 +158,11 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
                                             className={`aspect-square rounded-md overflow-hidden focus:outline-none ring-2 ring-offset-1 ${activeImageIndex === index ? 'ring-[#c6e911]' : 'ring-transparent'}`}
                                             aria-label={`View image ${index + 1}`}
                                         >
-                                            <img
+                                            <LazyLoadImage
                                                 alt={`Thumbnail ${index + 1}`}
                                                 src={getImageUrl(image.imageUrl)}
-                                                loading="lazy"
+                                                effect="blur"
+                                                wrapperClassName="w-full h-full"
                                                 className="w-full h-full object-cover"
                                             />
                                         </button>
@@ -235,7 +242,7 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
                              <p className="text-sm text-slate-600">{formatCurrency(unitPrice)} / {t('calculator.unitPrice')}</p>
                         </div>
                     ) : <div />}
-                    <button onClick={handleSubmit} disabled={requirePrice && unitPrice <= 0} className="px-8 py-4 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f] disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors text-base">
+                    <button onClick={handleSubmit} disabled={requirePrice && unitPrice <= 0} className="px-4 py-2 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f] disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors text-sm">
                         {t('calculator.addToCart')}
                     </button>
                 </div>

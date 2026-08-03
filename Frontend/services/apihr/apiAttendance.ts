@@ -1,5 +1,6 @@
 import { api } from '../api';
 import { AttendanceRecord } from '../../types';
+import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
 /**
  * Données pour la création manuelle d'un enregistrement de présence.
@@ -46,10 +47,28 @@ export interface CheckInResponse {
 // ============================================================
 
 /**
- * Récupère tous les enregistrements de présence de la filiale.
+ * Récupère tous les enregistrements de présence de la filiale (compat —
+ * charge tout avec une limite haute, pour les appelants pas encore migrés
+ * vers la pagination).
  */
 export const getAttendanceRecords = async (): Promise<AttendanceRecord[]> => {
-  const { data } = await api.get<AttendanceRecord[]>('/hr/attendance-records');
+  const { data } = await api.get<PaginatedResponse<AttendanceRecord>>(
+    '/hr/attendance-records',
+    { params: { limit: 500 } },
+  );
+  return data.data;
+};
+
+/**
+ * Version paginée/recherchable (page/limit/search).
+ */
+export const getAttendanceRecordsPaginated = async (
+  params: PaginationParams,
+): Promise<PaginatedResponse<AttendanceRecord>> => {
+  const { data } = await api.get<PaginatedResponse<AttendanceRecord>>(
+    '/hr/attendance-records',
+    { params },
+  );
   return data;
 };
 
@@ -159,17 +178,31 @@ export const getAttendanceHistory = async (
 };
 
 /**
- * Historique de toute la filiale (uniquement les scans QR).
+ * Historique de toute la filiale pour un mois donné (compat — limite haute,
+ * un mois × tout l'effectif peut dépasser la page par défaut).
  */
 export const getAllAttendanceHistory = async (
   year?: number,
   month?: number,
 ): Promise<AttendanceRecord[]> => {
-  const { data } = await api.get<AttendanceRecord[]>(
+  const { data } = await api.get<PaginatedResponse<AttendanceRecord>>(
     '/hr/attendance-checkin/history-all',
     {
-      params: { year, month },
+      params: { year, month, limit: 500 },
     },
+  );
+  return data.data;
+};
+
+/**
+ * Version paginée/recherchable (page/limit/search) de l'historique filiale.
+ */
+export const getAllAttendanceHistoryPaginated = async (
+  params: PaginationParams & { year?: number; month?: number },
+): Promise<PaginatedResponse<AttendanceRecord>> => {
+  const { data } = await api.get<PaginatedResponse<AttendanceRecord>>(
+    '/hr/attendance-checkin/history-all',
+    { params },
   );
   return data;
 };

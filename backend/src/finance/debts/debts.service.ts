@@ -151,11 +151,18 @@ export class DebtsService {
     });
   }
 
-  async findAllLongTermDebts(user: JwtUser) {
-    return this.prisma.longTermDebt.findMany({
-      where: { subsidiaryId: user.subsidiaryId },
-      orderBy: { maturityDate: 'asc' },
-    });
+  async findAllLongTermDebts(
+    user: JwtUser,
+    paginationQuery: PaginationQueryDto = {},
+  ) {
+    return paginate(
+      this.prisma.longTermDebt,
+      {
+        where: { subsidiaryId: user.subsidiaryId },
+        orderBy: { maturityDate: 'asc' },
+      },
+      paginationQuery,
+    );
   }
 
   async updateLongTermDebt(

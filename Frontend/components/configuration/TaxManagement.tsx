@@ -1,7 +1,10 @@
 
-import React, { useState } from 'react';
-import { TaxRate } from '../../types';
+import React, { useState, useEffect } from 'react';
+import { TaxRate, UserRole } from '../../types';
 import { useI18n } from '../../i18n';
+import { useAuth } from '../../context/AuthContext';
+import { useHasRole } from '../../hooks/useHasRole';
+import { useToast } from '../../context/ToastContext';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
@@ -9,13 +12,33 @@ import ConfirmationModal from '../common/ConfirmationModal';
 import TaxFormModal from './TaxFormModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTaxes, createTax, updateTax, deleteTax } from '../../services/apiE-commerce/apitaxes';
+import { updateSubsidiary } from '../../services/apiCommon/apiSubsidiaries';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 
 const TaxManagement: React.FC = () => {
     const { t } = useI18n();
     const queryClient = useQueryClient();
+    const { subsidiary } = useAuth();
+    const { hasRole } = useHasRole();
+    const toast = useToast();
+    const canEditIsRate = hasRole([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.HR_MANAGER]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTax, setEditingTax] = useState<TaxRate | null>(null);
     const [deletingTax, setDeletingTax] = useState<TaxRate | null>(null);
+    const [isRateValue, setIsRateValue] = useState(0);
+
+    useEffect(() => {
+        if (subsidiary) setIsRateValue((subsidiary.taxRate ?? 0) * 100);
+    }, [subsidiary?.id, subsidiary?.taxRate]);
+
+    const { mutate: saveIsRateMutate, isPending: isSavingIsRate } = useMutation({
+        mutationFn: (taxRate: number) => updateSubsidiary(subsidiary!.id, { taxRate }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['subsidiaries'] });
+            toast.success(t('configuration.isRateSaved'));
+        },
+    });
 
     const { data: taxRates = [], isLoading, isError } = useQuery<TaxRate[]>({
         queryKey: ['taxes'],
@@ -69,16 +92,43 @@ const TaxManagement: React.FC = () => {
         }
     };
 
-    if (isLoading) {
-        return <div>{t('common.loading')}</div>;
-    }
-
     if (isError) {
         return <div>{t('common.error.load', { item: 'taxes' })}</div>;
     }
 
     return (
-        <div className="bg-white p-6 rounded-xl shadow-md">
+        <div className="space-y-6">
+            {subsidiary && (
+                <div className="bg-white p-6 rounded-xl shadow-md">
+                    <h3 className="text-xl font-semibold text-slate-800 mb-1">{t('configuration.isRate')}</h3>
+                    <p className="text-sm text-slate-500 mb-4">{t('configuration.isRateDescription')}</p>
+                    <div className="flex items-end gap-3">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">{t('configuration.form.rate')} (%)</label>
+                            <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                value={isRateValue}
+                                disabled={!canEditIsRate}
+                                onChange={(e) => setIsRateValue(parseFloat(e.target.value) || 0)}
+                                className="w-32 px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#c6e911] disabled:bg-slate-100"
+                            />
+                        </div>
+                        {canEditIsRate && (
+                            <button
+                                onClick={() => saveIsRateMutate(isRateValue / 100)}
+                                disabled={isSavingIsRate}
+                                className="px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors disabled:opacity-50"
+                            >
+                                {t('common.save')}
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
+            <div className="bg-white p-6 rounded-xl shadow-md">
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-semibold text-slate-800">{t('configuration.taxManagement')}</h3>
                 <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
@@ -97,7 +147,15 @@ const TaxManagement: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {taxRates.map((tax) => (
+                        {isLoading ? (
+                            <TableSkeleton rows={4} columns={4} />
+                        ) : taxRates.length === 0 ? (
+                            <tr>
+                                <td colSpan={4}>
+                                    <EmptyState icon="inbox" title={t('configuration.taxManagement')} description={t('common.notAvailable')} />
+                                </td>
+                            </tr>
+                        ) : taxRates.map((tax) => (
                             <tr key={tax.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{tax.taxRatesName}</td>
                                 <td className="px-6 py-4">{(tax.rate * 100).toFixed(2)}%</td>
@@ -110,6 +168,7 @@ const TaxManagement: React.FC = () => {
                         ))}
                     </tbody>
                 </table>
+            </div>
             </div>
 
             {isModalOpen && (

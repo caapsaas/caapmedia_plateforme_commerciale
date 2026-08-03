@@ -40,6 +40,8 @@ import {
     PrefinancementFilters
 } from '../../services/apiFinance/apiPrefinancement';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 
 const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsidiary }) => {
     const { t, formatCurrency } = useI18n();
@@ -351,10 +353,6 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
 
     const isLoading = isLoadingAccount || isLoadingTransactions || isLoadingStatistics;
 
-    if (isLoading) {
-        return <div className="p-6 text-center">{t('common.loading')}</div>;
-    }
-
     return (
         <>
             <div className="space-y-6">
@@ -586,7 +584,7 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
                     </div>
                 </div>
 
-                {filteredTransactions.length > 0 && (
+                {(isLoading || filteredTransactions.length > 0) && (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left text-slate-500">
                         <thead className="text-xs text-slate-700 uppercase bg-slate-50">
@@ -602,7 +600,9 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredTransactions.map((transaction) => (
+                            {isLoading ? (
+                                <TableSkeleton rows={6} columns={8} />
+                            ) : filteredTransactions.map((transaction) => (
                                 <tr key={transaction.id} className="bg-white border-b hover:bg-slate-50">
                                     <td className="px-6 py-4">{new Date(transaction.date).toLocaleDateString('fr-FR')}</td>
                                     <td className="px-6 py-4 font-medium text-slate-800">{transaction.referenceNumber || '-'}</td>
@@ -682,10 +682,11 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
                     </div>
                 )}
                 
-                {filteredTransactions.length === 0 && (
-                    <div className="text-center py-8 text-slate-500">
-                        {searchTerm ? "Aucune transaction ne correspond à votre recherche." : "Aucune transaction trouvée."}
-                    </div>
+                {!isLoading && filteredTransactions.length === 0 && (
+                    <EmptyState
+                        icon={searchTerm ? 'search' : 'finance'}
+                        title={searchTerm ? "Aucune transaction ne correspond à votre recherche." : "Aucune transaction trouvée."}
+                    />
                 )}
             </div>
             

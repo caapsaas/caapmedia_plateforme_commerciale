@@ -14,6 +14,8 @@ import ProductImportModal from './ProductImportModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getStockItemsBySubsidiary, createStockItem, updateStockItem, deleteStockItem } from '../../services/apiPurchasing/apiStockItems';
 import { useAuth } from '../../context/AuthContext';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 
 const ProductManagement: React.FC = () => {
     const { t, formatCurrency } = useI18n();
@@ -89,10 +91,6 @@ const ProductManagement: React.FC = () => {
         }
     };
 
-    if (isLoading) {
-        return <div>{t('common.loading')}</div>;
-    }
-
     if (isError) {
         return <div>Erreur lors du chargement des produits.</div>;
     }
@@ -125,7 +123,15 @@ const ProductManagement: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {items.map((item) => (
+                        {isLoading ? (
+                            <TableSkeleton rows={6} columns={6} />
+                        ) : items.length === 0 ? (
+                            <tr>
+                                <td colSpan={6}>
+                                    <EmptyState icon="stock" title={t('configuration.productManagement')} description={t('common.notAvailable')} />
+                                </td>
+                            </tr>
+                        ) : items.map((item) => (
                             <tr key={item.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{item.name}</td>
                                 <td className="px-6 py-4">{item.productRange ? t(rangeToKeyMap[item.productRange] || item.productRange) : 'Non specifie'}</td>

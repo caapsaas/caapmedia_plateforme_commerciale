@@ -1,5 +1,6 @@
 import { api } from '../api';
 import { ExternalFinancialTransaction, ExternalTransactionType, ExternalTransactionCategory, ExternalTransactionStatus, PaymentMethod } from '../../types/models';
+import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
 export interface CreateExternalTransactionData {
   transactionDate: string;
@@ -69,14 +70,17 @@ export const createExternalTransaction = async (data: CreateExternalTransactionD
   }
 };
 
-// Récupérer toutes les transactions externes
+/**
+ * Transactions financières externes. Limit élevée : la vue a besoin du jeu
+ * complet pour les stats client-side et l'export CSV/PDF.
+ */
 export const getExternalTransactions = async (
-  subsidiaryId: string, 
+  subsidiaryId: string,
   filters?: ExternalTransactionFilters
 ): Promise<ExternalFinancialTransaction[]> => {
   try {
-    const params: any = { subsidiaryId };
-    
+    const params: any = { subsidiaryId, limit: 500 };
+
     if (filters?.type) params.type = filters.type;
     if (filters?.category) params.category = filters.category;
     if (filters?.status) params.status = filters.status;
@@ -84,12 +88,26 @@ export const getExternalTransactions = async (
     if (filters?.endDate) params.endDate = filters.endDate;
     if (filters?.search) params.search = filters.search;
 
-    const { data: response } = await api.get<ExternalFinancialTransaction[]>('/finance/external-transactions', { params });
-    return response;
+    const { data: response } = await api.get<PaginatedResponse<ExternalFinancialTransaction>>('/finance/external-transactions', { params });
+    return response.data;
   } catch (error) {
     console.error('Error fetching external transactions:', error);
     throw error;
   }
+};
+
+/**
+ * Version paginée/recherchable (page/limit) pour un futur usage en
+ * pagination cliquable réelle.
+ */
+export const getExternalTransactionsPaginated = async (
+  subsidiaryId: string,
+  filters: ExternalTransactionFilters & PaginationParams = {},
+): Promise<PaginatedResponse<ExternalFinancialTransaction>> => {
+  const { data } = await api.get<PaginatedResponse<ExternalFinancialTransaction>>('/finance/external-transactions', {
+    params: { subsidiaryId, ...filters },
+  });
+  return data;
 };
 
 // Récupérer une transaction externe par ID

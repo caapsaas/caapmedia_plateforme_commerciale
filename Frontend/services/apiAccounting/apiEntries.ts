@@ -1,4 +1,5 @@
 import { api } from '../api';
+import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
 export type JournalEntryStatus = 'DRAFT' | 'POSTED' | 'CANCELLED';
 
@@ -44,6 +45,11 @@ export interface CreateEntryDto {
   lines: CreateEntryLineDto[];
 }
 
+/**
+ * Charge toutes les écritures correspondant aux filtres (compat — limite
+ * haute, pour les vues qui ont besoin du jeu de données complet : tri/export
+ * côté client dans JournalEntries.tsx, agrégats dans AccountingDashboard.tsx).
+ */
 export const getEntries = async (
   fiscalYearId?: string,
   status?: JournalEntryStatus,
@@ -51,13 +57,30 @@ export const getEntries = async (
   endDate?: string,
   subsidiaryId?: string,
 ): Promise<JournalEntry[]> => {
-  const params: Record<string, string> = {};
+  const params: Record<string, string | number> = { limit: 500 };
   if (fiscalYearId) params.fiscalYearId = fiscalYearId;
   if (status) params.status = status;
   if (startDate) params.startDate = startDate;
   if (endDate) params.endDate = endDate;
   if (subsidiaryId) params.subsidiaryId = subsidiaryId;
-  const { data } = await api.get<JournalEntry[]>('/accounting/entries', { params });
+  const { data } = await api.get<PaginatedResponse<JournalEntry>>('/accounting/entries', { params });
+  return data.data;
+};
+
+/**
+ * Version paginée/recherchable (page/limit/search) pour un futur usage en
+ * pagination cliquable réelle.
+ */
+export const getEntriesPaginated = async (
+  params: PaginationParams & {
+    fiscalYearId?: string;
+    status?: JournalEntryStatus;
+    startDate?: string;
+    endDate?: string;
+    subsidiaryId?: string;
+  },
+): Promise<PaginatedResponse<JournalEntry>> => {
+  const { data } = await api.get<PaginatedResponse<JournalEntry>>('/accounting/entries', { params });
   return data;
 };
 

@@ -112,22 +112,25 @@ const PayrollScaleManagement: React.FC = () => {
     }
   };
 
-  if (!subsidiary) {
+  if (!subsidiary || loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-center">
-          <p className="text-slate-600">{t('common.loading')}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-center">
-          <p className="text-slate-600">{t('common.loading')}</p>
-        </div>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader gradient>
+            <div className="h-6 w-48 bg-slate-200 rounded animate-pulse" />
+            <div className="h-4 w-64 bg-slate-200 rounded animate-pulse mt-2" />
+          </CardHeader>
+          <CardBody>
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="border border-slate-200 rounded-lg p-4">
+                  <div className="h-4 w-56 bg-slate-200 rounded animate-pulse mb-3" />
+                  <div className="h-8 w-32 bg-slate-200 rounded animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
       </div>
     );
   }

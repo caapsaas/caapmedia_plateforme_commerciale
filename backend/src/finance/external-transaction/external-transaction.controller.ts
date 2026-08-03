@@ -22,6 +22,7 @@ import {
 import { ExternalTransactionService } from './external-transaction.service';
 import { CreateExternalTransactionDto } from './dto/create-external-transaction.dto';
 import { UpdateExternalTransactionDto } from './dto/update-external-transaction.dto';
+import { FindExternalTransactionsDto } from './dto/find-external-transactions.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 
 @ApiTags('external-transactions')
@@ -76,23 +77,8 @@ export class ExternalTransactionController {
     required: false,
     description: 'Rechercher dans description ou référence',
   })
-  async findAll(
-    @Query('subsidiaryId') subsidiaryId: string,
-    @Query('type') type?: string,
-    @Query('category') category?: string,
-    @Query('status') status?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-    @Query('search') search?: string,
-  ) {
-    return await this.externalTransactionService.findAll(subsidiaryId, {
-      type,
-      category,
-      status: status as any,
-      startDate,
-      endDate,
-      search,
-    });
+  async findAll(@Query() query: FindExternalTransactionsDto) {
+    return await this.externalTransactionService.findAll(query);
   }
 
   @Get('statistics')

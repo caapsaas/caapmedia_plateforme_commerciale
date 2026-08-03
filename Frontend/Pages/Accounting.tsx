@@ -15,6 +15,7 @@ import JournalCentralisateur from '../components/accounting/JournalCentralisateu
 import SyscohadaStatements from '../components/accounting/SyscohadaStatements';
 import AccountingSettings from '../components/accounting/AccountingSettings';
 import AccountingAccessRequestView from '../components/accounting/AccountingAccessRequestView';
+import CrmListSkeleton from '../components/ui/CrmListSkeleton';
 
 type AccountingTab =
   | 'dashboard'
@@ -102,7 +103,7 @@ const Accounting: React.FC = () => {
   }, [canSeeStatements]);
 
   if (!subsidiary || isLoadingAccess) {
-    return <div className="p-6 text-center text-slate-500">Chargement...</div>;
+    return <CrmListSkeleton columns={5} />;
   }
 
   if (!accessStatus?.hasAccess) {

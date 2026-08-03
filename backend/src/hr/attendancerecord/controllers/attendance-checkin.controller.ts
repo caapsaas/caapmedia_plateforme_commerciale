@@ -18,6 +18,7 @@ import { CreateAttendanceRecordDto } from '../dto/atendancerecord.dto';
 
 import { Roles } from 'src/common/auth/role/role.decorator';
 import { AttendanceStatus } from '@prisma/client';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 interface CheckInDto {
   qrToken: string;
@@ -267,6 +268,7 @@ if (todayRecord.arrivalTime && !todayRecord.departureTime) {
     @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
     async getAllAttendanceHistory(
       @Request() req,
+      @Query() paginationQuery: PaginationQueryDto,
       @Query('year') year?: number,
       @Query('month') month?: number,
     ) {
@@ -283,12 +285,12 @@ if (todayRecord.arrivalTime && !todayRecord.departureTime) {
       );
 
       // false = toutes les présences (sans filtre qrCodeToken)
-      return this.attendanceService.findByDateRange(
-        null,
+      return this.attendanceService.findByDateRangePaginated(
         req.user.subsidiaryId,
         startDate,
         endDate,
         false,
+        paginationQuery,
       );
     }
 

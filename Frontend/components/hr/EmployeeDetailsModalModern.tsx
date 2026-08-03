@@ -360,8 +360,13 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
           {/* Leave Information */}
           <CollapsibleSection title={t('hr.details.leaveEntitlements')} icon={Umbrella} defaultOpen={true}>
             {isLoading ? (
-              <div className="text-center py-4">
-                <p className="text-sm text-slate-600">{t('common.loading')}</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                    <div className="h-3 w-16 bg-slate-200 rounded animate-pulse" />
+                    <div className="h-6 w-10 bg-slate-200 rounded animate-pulse mt-2" />
+                  </div>
+                ))}
               </div>
             ) : employeeData?.leaveBalance ? (
               <LeaveBalanceWidget
@@ -477,8 +482,16 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
           {/* Documents */}
           <CollapsibleSection title={t('hr.details.documents')} icon={FileText} defaultOpen={true}>
             {isLoading ? (
-              <div className="text-center py-4">
-                <p className="text-sm text-slate-600">{t('common.loading')}</p>
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="border border-slate-200 rounded-lg p-4 flex items-center gap-3">
+                    <div className="h-9 w-9 bg-slate-200 rounded-lg animate-pulse flex-shrink-0" />
+                    <div className="flex-1">
+                      <div className="h-4 w-32 bg-slate-200 rounded animate-pulse" />
+                      <div className="h-3 w-20 bg-slate-200 rounded animate-pulse mt-2" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : employeeData?.documents ? (
               <div className="space-y-3">

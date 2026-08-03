@@ -6,6 +6,8 @@ import {
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { CreateExternalTransactionDto } from './dto/create-external-transaction.dto';
 import { UpdateExternalTransactionDto } from './dto/update-external-transaction.dto';
+import { FindExternalTransactionsDto } from './dto/find-external-transactions.dto';
+import { paginate } from '../../common/pagination/pagination';
 import {
   ExternalTransactionStatus,
   ExternalTransactionType,
@@ -144,52 +146,43 @@ export class ExternalTransactionService {
     }
   }
 
-  async findAll(
-    subsidiaryId: string,
-    filters?: {
-      type?: string;
-      category?: string;
-      status?: ExternalTransactionStatus;
-      startDate?: string;
-      endDate?: string;
-      search?: string;
-    },
-  ) {
+  async findAll(query: FindExternalTransactionsDto) {
     const where: any = {
-      subsidiaryId,
+      subsidiaryId: query.subsidiaryId,
     };
 
-    if (filters?.type) {
-      where.externalTransactionType = filters.type;
+    if (query.type) {
+      where.externalTransactionType = query.type;
     }
 
-    if (filters?.category) {
-      where.externalTransactionCategory = filters.category;
+    if (query.category) {
+      where.externalTransactionCategory = query.category;
     }
 
-    if (filters?.status) {
-      where.status = filters.status;
+    if (query.status) {
+      where.status = query.status;
     }
 
-    if (filters?.startDate || filters?.endDate) {
+    if (query.startDate || query.endDate) {
       where.transactionDate = {};
-      if (filters.startDate) {
-        where.transactionDate.gte = new Date(filters.startDate);
+      if (query.startDate) {
+        where.transactionDate.gte = new Date(query.startDate);
       }
-      if (filters.endDate) {
-        where.transactionDate.lte = new Date(filters.endDate);
+      if (query.endDate) {
+        where.transactionDate.lte = new Date(query.endDate);
       }
     }
 
-    if (filters?.search) {
+    if (query.search) {
       where.OR = [
-        { description: { contains: filters.search, mode: 'insensitive' } },
-        { referenceNumber: { contains: filters.search, mode: 'insensitive' } },
+        { description: { contains: query.search, mode: 'insensitive' } },
+        { referenceNumber: { contains: query.search, mode: 'insensitive' } },
       ];
     }
 
-    const transactions =
-      await this.prisma.externalFinancialTransaction.findMany({
+    return paginate(
+      this.prisma.externalFinancialTransaction,
+      {
         where,
         orderBy: {
           transactionDate: 'desc',
@@ -209,9 +202,9 @@ export class ExternalTransactionService {
             },
           },
         },
-      });
-
-    return transactions;
+      },
+      query,
+    );
   }
 
   async findOne(id: string) {

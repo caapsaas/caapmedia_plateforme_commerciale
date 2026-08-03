@@ -13,6 +13,7 @@ import {
 } from './dto/stock-movement.dto';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { paginate } from 'src/common/pagination/pagination';
 
 // Types qui AJOUTENT au stock — tout le reste retire. Source unique de vérité
 // pour le sens d'un mouvement, jamais dupliquée/redéclarée ailleurs.
@@ -39,23 +40,27 @@ export class StockMovementsService {
         : {}
       : { subsidiaryId: user.subsidiaryId };
 
-    return this.prisma.stockMovement.findMany({
-      where: {
-        ...subsidiaryWhere,
-        ...(query.itemId && { itemId: query.itemId }),
-        ...(query.type && { type: query.type }),
-        ...(query.startDate || query.endDate
-          ? {
-              createdAt: {
-                ...(query.startDate && { gte: new Date(query.startDate) }),
-                ...(query.endDate && { lte: new Date(query.endDate) }),
-              },
-            }
-          : {}),
+    return paginate(
+      this.prisma.stockMovement,
+      {
+        where: {
+          ...subsidiaryWhere,
+          ...(query.itemId && { itemId: query.itemId }),
+          ...(query.type && { type: query.type }),
+          ...(query.startDate || query.endDate
+            ? {
+                createdAt: {
+                  ...(query.startDate && { gte: new Date(query.startDate) }),
+                  ...(query.endDate && { lte: new Date(query.endDate) }),
+                },
+              }
+            : {}),
+        },
+        include: { item: { select: { name: true } } },
+        orderBy: { createdAt: 'desc' },
       },
-      include: { item: { select: { name: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
+      query,
+    );
   }
 
   async createManual(dto: CreateStockMovementDto, user: any) {

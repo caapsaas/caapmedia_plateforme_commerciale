@@ -15,6 +15,8 @@ import {
 import { EntriesService } from '../entries/entries.service';
 import { MappingsService } from '../accounts/mappings.service';
 import { DisposeFixedAssetDto } from './dto/dispose-fixed-asset.dto';
+import { paginate } from 'src/common/pagination/pagination';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 const ACCOUNTING_GLOBAL_SCOPE_ROLES = [UserRole.FINANCIAL_DIRECTOR];
 
@@ -270,17 +272,25 @@ export class ImmobilisationsService {
     });
   }
 
-  async findAll(user: JwtUser, subsidiaryIdFilter?: string) {
+  async findAll(
+    user: JwtUser,
+    subsidiaryIdFilter?: string,
+    paginationQuery: PaginationQueryDto = {},
+  ) {
     const ctx = resolveScopeContext(user, ACCOUNTING_GLOBAL_SCOPE_ROLES);
     const effectiveSubsidiaryId = resolveEffectiveSubsidiaryId(
       ctx,
       subsidiaryIdFilter,
     );
-    return this.prisma.fixedAsset.findMany({
-      where: effectiveSubsidiaryId
-        ? { subsidiaryId: effectiveSubsidiaryId }
-        : {},
-      orderBy: { acquisitionDate: 'desc' },
-    });
+    return paginate(
+      this.prisma.fixedAsset,
+      {
+        where: effectiveSubsidiaryId
+          ? { subsidiaryId: effectiveSubsidiaryId }
+          : {},
+        orderBy: { acquisitionDate: 'desc' },
+      },
+      paginationQuery,
+    );
   }
 }

@@ -10,6 +10,9 @@ import ConfirmationModal from '../common/ConfirmationModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { getContacts, saveContact, deleteContact } from '../../services/apiCrm/apiCrm';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
+import CrmListSkeleton from '../ui/CrmListSkeleton';
 
 
 const ClientManagement: React.FC = () => {
@@ -82,11 +85,7 @@ const ClientManagement: React.FC = () => {
         }
     };
 
-    if (!subsidiary) return <div className="p-6 text-center">{t('common.loading')}</div>;
-
-    if (isLoading) {
-        return <div className="p-6 text-center">{t('common.loading')}</div>;
-    }
+    if (!subsidiary) return <CrmListSkeleton columns={6} />;
 
     if (isError) {
         return <div className="p-6 text-center text-red-500">Erreur lors du chargement des clients.</div>;
@@ -114,7 +113,15 @@ const ClientManagement: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {contacts.map((contact) => (
+                        {isLoading ? (
+                            <TableSkeleton rows={6} columns={6} />
+                        ) : contacts.length === 0 ? (
+                            <tr>
+                                <td colSpan={6}>
+                                    <EmptyState icon="inbox" title={t('configuration.clientManagement')} description={t('common.notAvailable')} />
+                                </td>
+                            </tr>
+                        ) : contacts.map((contact) => (
                             <tr key={contact.id} className="bg-white border-b hover:bg-slate-50">
                                 <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{contact.id}</th>
                                 <td className="px-6 py-4 font-semibold">{contact.contactName}</td>

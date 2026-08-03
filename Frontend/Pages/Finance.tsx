@@ -20,6 +20,7 @@ import ExternalTransactions from '../components/finance/ExternalTransactions';
 import PrefinancementManagement from '../components/finance/PrefinancementManagement';
 import BalanceSheet from '../components/finance/BalanceSheet';
 import TabBar, { TabItem } from '../components/ui/TabBar';
+import CrmListSkeleton from '../components/ui/CrmListSkeleton';
 
 import IconCreditCard from '../components/icons/IconCreditCard';
 import IconWallet from '../components/icons/IconWallet';
@@ -172,7 +173,7 @@ const Finance: React.FC = () => {
                     )}
                 </div>
             ) : !effectiveSubsidiary ? (
-                <div className="py-10 text-center text-sm text-slate-400">{t('common.loading')}</div>
+                <CrmListSkeleton columns={5} />
             ) : (
                 renderContent()
             )}

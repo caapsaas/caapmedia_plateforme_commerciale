@@ -29,7 +29,7 @@ const Pagination: React.FC<PaginationProps> = ({ meta, onPageChange, className =
           key={i}
           onClick={() => onPageChange(i)}
           className={`w-10 h-10 flex items-center justify-center rounded-md transition-all duration-200 font-medium ${
-            i === page ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
+            i === page ? 'bg-[#adc40f] text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
           {i}

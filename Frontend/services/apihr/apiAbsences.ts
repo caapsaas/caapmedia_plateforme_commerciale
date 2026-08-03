@@ -1,5 +1,6 @@
 import { api } from '../api';
 import { AbsenceRecord } from '../../types';
+import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
 /**
  * Données pour la création d'un enregistrement d'absence.
@@ -22,7 +23,19 @@ export type AbsenceRecordUpdateData = Partial<AbsenceRecordCreationData>;
  * Protégé par rôle (HR_MANAGER, ADMIN, SUPER_ADMIN).
  */
 export const getAbsenceRecords = async (): Promise<AbsenceRecord[]> => {
-  const { data } = await api.get<AbsenceRecord[]>('/hr/absence-records');
+  const { data } = await api.get<PaginatedResponse<AbsenceRecord>>('/hr/absence-records', {
+    params: { limit: 500 },
+  });
+  return data.data;
+};
+
+/**
+ * Version paginée/recherchable (page/limit/search).
+ */
+export const getAbsenceRecordsPaginated = async (
+  params: PaginationParams,
+): Promise<PaginatedResponse<AbsenceRecord>> => {
+  const { data } = await api.get<PaginatedResponse<AbsenceRecord>>('/hr/absence-records', { params });
   return data;
 };
 

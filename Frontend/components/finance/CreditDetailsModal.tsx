@@ -3,6 +3,8 @@ import { getOrders } from '../../services/apiE-commerce/apiOrders';
 import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '../../i18n';
 import { CreditAccount } from '../../types';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 
 
 
@@ -30,10 +32,8 @@ const CreditDetailsModal: React.FC<{ isOpen: boolean; onClose: () => void; accou
                     </button>
                 </div>
                 <div className="p-6 overflow-y-auto">
-                    {isLoading ? (
-                        <div className="text-center py-8">{t('common.loading')}</div>
-                    ) : unpaidOrders.length === 0 ? (
-                        <div className="text-center py-8 text-slate-500">Aucune commande impayée trouvée.</div>
+                    {!isLoading && unpaidOrders.length === 0 ? (
+                        <EmptyState icon="order" title="Aucune commande impayée trouvée." />
                     ) : (
                         <table className="w-full text-sm text-left text-slate-500">
                             <thead className="text-xs text-slate-700 uppercase bg-slate-50">
@@ -47,7 +47,9 @@ const CreditDetailsModal: React.FC<{ isOpen: boolean; onClose: () => void; accou
                                 </tr>
                             </thead>
                             <tbody>
-                                {unpaidOrders.map((order: any) => (
+                                {isLoading ? (
+                                    <TableSkeleton rows={4} columns={6} />
+                                ) : unpaidOrders.map((order: any) => (
                                     <tr key={order.id} className="bg-white border-b hover:bg-slate-50">
                                         <td className="px-6 py-4 font-medium">{order.id}</td>
                                         <td className="px-6 py-4">{new Date(order.date).toLocaleDateString()}</td>

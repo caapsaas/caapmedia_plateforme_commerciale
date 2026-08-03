@@ -122,6 +122,12 @@ export class ReportsService {
         { account: { accountNumber: 'asc' } },
         { journalEntry: { entryDate: 'asc' } },
       ],
+      // Filet de sécurité : le solde cumulatif par compte doit rester calculé
+      // sur l'intégralité de la période (pas de pagination cliquable possible
+      // sans casser le running balance) — ce plafond protège seulement contre
+      // un scan pathologique (ex: filtre de dates trop large sur des années
+      // de données), pas un usage normal borné à un exercice fiscal.
+      take: 20000,
     });
 
     // Regrouper par compte et calculer les soldes cumulatifs
@@ -208,6 +214,9 @@ export class ReportsService {
           select: { accountNumber: true, accountName: true, accountType: true },
         },
       },
+      // Filet de sécurité : voir getGrandLivre — les totaux par compte doivent
+      // rester agrégés sur l'intégralité de la période.
+      take: 20000,
     });
 
     const map = new Map<
@@ -310,6 +319,9 @@ export class ReportsService {
         },
       },
       orderBy: [{ journal: { code: 'asc' } }, { entryDate: 'asc' }],
+      // Filet de sécurité : voir getGrandLivre — le récapitulatif par journal
+      // doit rester agrégé sur l'intégralité de la période.
+      take: 20000,
     });
 
     // Grouper par journal

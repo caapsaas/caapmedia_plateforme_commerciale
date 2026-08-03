@@ -10,6 +10,8 @@ import { UpdateOpportunityDto } from './dto/update-opportunity.dto';
 import { Prisma, User, UserRole } from '@prisma/client';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { paginate } from 'src/common/pagination/pagination';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @Injectable()
 export class OpportunitiesService {
@@ -64,7 +66,7 @@ export class OpportunitiesService {
     });
   }
 
-  async findAll(user: User) {
+  async findAll(user: User, paginationQuery: PaginationQueryDto = {}) {
     const isSuperAdmin = user.userRole === UserRole.SUPER_ADMIN;
     const where: Prisma.OpportunityWhereInput = isSuperAdmin
       ? {}
@@ -77,15 +79,26 @@ export class OpportunitiesService {
       }
     }
 
-    return this.prisma.opportunity.findMany({
-      where,
-      include: {
-        contact: { select: { contactName: true } },
-        account: { select: { accountName: true } },
-        user: { select: { userName: true } },
+    if (paginationQuery.search) {
+      where.opportunityName = {
+        contains: paginationQuery.search,
+        mode: 'insensitive',
+      };
+    }
+
+    return paginate(
+      this.prisma.opportunity,
+      {
+        where,
+        include: {
+          contact: { select: { contactName: true } },
+          account: { select: { accountName: true } },
+          user: { select: { userName: true } },
+        },
+        orderBy: { closeDate: 'desc' },
       },
-      orderBy: { closeDate: 'desc' },
-    });
+      paginationQuery,
+    );
   }
 
   async findOne(id: string, user: User) {

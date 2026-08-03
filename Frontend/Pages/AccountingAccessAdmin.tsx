@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Ban, CheckCircle2, Clock, ShieldCheck, XCircle } from 'lucide-react';
+import { Ban, CheckCircle2, Clock, ShieldCheck } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import {
   getAccessRequests, approveAccessRequest, rejectAccessRequest,
   AccountingAccessRequest, AccountingAccessStatus,
 } from '../services/apiAccounting/apiAccountingAccess';
+import TableSkeleton from '../components/ui/TableSkeleton';
+import EmptyState from '../components/ui/EmptyState';
 
 const STATUS_LABELS: Record<AccountingAccessStatus, string> = {
   PENDING: 'En attente',
@@ -71,21 +73,21 @@ const AccountingAccessAdmin: React.FC = () => {
         <p className="text-sm text-slate-500 mt-1">Accès temporaire (JIT) au module comptabilité — réservé aux administrateurs du siège.</p>
       </div>
 
-      {isLoading ? (
-        <div className="py-12 text-center text-slate-500">Chargement...</div>
-      ) : (
-        <>
+      <>
           {/* Pending */}
           <div>
             <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-500 uppercase mb-2">
-              {pending.length > 0 && <Clock className="h-3.5 w-3.5 text-amber-500" />}
-              En attente ({pending.length})
+              {!isLoading && pending.length > 0 && <Clock className="h-3.5 w-3.5 text-amber-500" />}
+              En attente ({isLoading ? '…' : pending.length})
             </h3>
-            {pending.length === 0 ? (
-              <div className="bg-white rounded-xl border border-slate-200 py-8 text-center text-slate-400 text-sm">
-                <XCircle className="h-8 w-8 text-slate-200 mx-auto mb-2" />
-                Aucune demande en attente.
+            {isLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="bg-white rounded-xl border border-slate-200 p-5 h-20 animate-pulse" style={{ opacity: 1 - i * 0.2 }} />
+                ))}
               </div>
+            ) : pending.length === 0 ? (
+              <EmptyState icon="warning" title="Aucune demande en attente." />
             ) : (
               <div className="space-y-3">
                 {pending.map((req) => (
@@ -135,8 +137,10 @@ const AccountingAccessAdmin: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {processed.length === 0 ? (
-                    <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">Aucun historique.</td></tr>
+                  {isLoading ? (
+                    <TableSkeleton rows={4} columns={5} />
+                  ) : processed.length === 0 ? (
+                    <tr><td colSpan={5}><EmptyState icon="document" title="Aucun historique." /></td></tr>
                   ) : (
                     processed.map((req) => (
                       <tr key={req.id} className="hover:bg-slate-50">
@@ -157,7 +161,6 @@ const AccountingAccessAdmin: React.FC = () => {
             </div>
           </div>
         </>
-      )}
 
       {/* Approve Modal */}
       {approveTarget && (

@@ -11,6 +11,7 @@ import IconPlus from '../icons/IconPlus';
 import IconDelete from '../icons/IconDelete';
 import IconChevronDown from '../icons/IconChevronDown';
 import IconChevronRight from '../icons/IconChevronRight';
+import EmptyState from '../ui/EmptyState';
 
 // Référentiels partagés entre plusieurs services (Chantier 5) : ex. "Types de
 // papier", "Grammages" — administrés une seule fois, réutilisables dans le
@@ -60,8 +61,6 @@ const SpecReferenceListsManagement: React.FC = () => {
         setNewValueDrafts(prev => ({ ...prev, [listId]: { value: '', label: '' } }));
     };
 
-    if (isLoading) return <div>{t('common.loading')}</div>;
-
     return (
         <div className="bg-white p-6 rounded-xl shadow-md">
             <div className="flex justify-between items-center mb-4">
@@ -75,6 +74,18 @@ const SpecReferenceListsManagement: React.FC = () => {
                 </button>
             </div>
 
+            {isLoading ? (
+                <div className="space-y-3">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="border border-slate-200 rounded-lg p-3 flex items-center gap-2">
+                            <div className="h-4 w-4 bg-slate-200 rounded animate-pulse" />
+                            <div className="h-4 w-40 bg-slate-200 rounded animate-pulse" />
+                            <div className="h-3 w-24 bg-slate-200 rounded animate-pulse" />
+                        </div>
+                    ))}
+                </div>
+            ) : (
+            <>
             {isAddingList && (
                 <div className="mb-4 p-4 bg-slate-50 border border-slate-200 rounded-lg grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
                     <div>
@@ -144,8 +155,10 @@ const SpecReferenceListsManagement: React.FC = () => {
                         </div>
                     );
                 })}
-                {lists.length === 0 && <p className="text-sm text-slate-400 italic">{t('specBuilder.referenceLists.empty')}</p>}
+                {lists.length === 0 && <EmptyState icon="document" title={t('specBuilder.referenceLists.empty')} />}
             </div>
+            </>
+            )}
         </div>
     );
 };

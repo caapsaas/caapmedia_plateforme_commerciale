@@ -22,6 +22,7 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { useAuth } from "../../context/AuthContext";
 import ProductsGrid from "../products/productsGrids";
+import PriceCalculatorModal from "./PriceCalculatorModal";
 type SignupFormData = Omit<
   ContactRegisterData,
   "subsidiaryId" | "since" | "isVerified"
@@ -45,6 +46,7 @@ const ECommercePage: React.FC = () => {
     }
   });
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [detailsProduct, setDetailsProduct] = useState<Product | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -298,8 +300,11 @@ const ECommercePage: React.FC = () => {
         productHierarchy={PRODUCT_HIERARCHY.filter(
           (cat) => cat.category !== "Matières Premières",
         )}
+        selectedMainCategory={selectedMainCategory}
         onSelectMainCategory={handleSelectMainCategory}
         onSelectSubcategory={handleSelectSubcategory}
+        cartItemCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
+        onCartClick={() => setIsCartOpen(true)}
       />
       <HeroBanner
         onNavigateToRealisations={onNavigateToRealisations}
@@ -317,10 +322,10 @@ const ECommercePage: React.FC = () => {
           selectedSubcategory={selectedSubcategory}
           showFavorites={showFavorites}
           likedProducts={likedProducts}
-          onAddToCart={() => {}}
           onLike={handleLikeProduct}
           onUnlike={handleUnlikeProduct}
           onResetFilters={handleSelectAllCategories}
+          onViewDetails={setDetailsProduct}
         />
         {/* Section Info & Conseils */}
         <section className="mt-20 bg-white py-12 lg:py-16 rounded-3xl shadow-sm border border-slate-100">
@@ -753,6 +758,14 @@ const ECommercePage: React.FC = () => {
           onUpdateQuantity={handleUpdateQuantity}
         />
       )}
+
+      <PriceCalculatorModal
+        isOpen={!!detailsProduct}
+        product={detailsProduct}
+        onClose={() => setDetailsProduct(null)}
+        onAddToCart={handleAddToCart}
+        requirePrice={false}
+      />
 
       {isAuthModalOpen && (
         <AuthModal

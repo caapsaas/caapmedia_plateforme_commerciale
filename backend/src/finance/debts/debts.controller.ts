@@ -61,8 +61,11 @@ export class DebtsController {
   }
 
   @Get('long-term')
-  findAllLongTermDebts(@CurrentUser() user: JwtUser) {
-    return this.debtsService.findAllLongTermDebts(user);
+  findAllLongTermDebts(
+    @CurrentUser() user: JwtUser,
+    @Query() paginationQuery: PaginationQueryDto,
+  ) {
+    return this.debtsService.findAllLongTermDebts(user, paginationQuery);
   }
 
   @Patch('long-term/:id')

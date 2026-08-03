@@ -13,6 +13,8 @@ import {
 import { AbsenceRecord, Prisma } from '@prisma/client';
 import { generateId } from '../../common/utils/generate-id.util';
 import { ID_PREFIXES } from '../../common/constants/id-prefixes.const';
+import { paginate } from '../../common/pagination/pagination';
+import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
 
 @Injectable()
 export class AbsenceRecordService {
@@ -51,12 +53,25 @@ export class AbsenceRecordService {
     });
   }
 
-  async findAll(subsidiaryId: string) {
-    return this.prisma.absenceRecord.findMany({
-      where: { subsidiaryId },
-      include: { employee: true },
-      orderBy: { startDate: 'desc' },
-    });
+  async findAll(subsidiaryId: string, paginationQuery: PaginationQueryDto = {}) {
+    const where: Prisma.AbsenceRecordWhereInput = { subsidiaryId };
+
+    if (paginationQuery.search) {
+      where.employeeName = {
+        contains: paginationQuery.search,
+        mode: 'insensitive',
+      };
+    }
+
+    return paginate(
+      this.prisma.absenceRecord,
+      {
+        where,
+        include: { employee: true },
+        orderBy: { startDate: 'desc' },
+      },
+      paginationQuery,
+    );
   }
 
   async findOne(id: string): Promise<AbsenceRecord> {

@@ -10,6 +10,7 @@ import IconCheckCircle from '../icons/IconCheckCircle';
 import IconCancelX from '../icons/IconCancelX';
 import IconMapPin from '../icons/IconMapPin';
 import IconUserClock from '../icons/IconUserClock';
+import EmptyState from '../ui/EmptyState';
 
 interface Employee {
   id: string;
@@ -522,14 +523,22 @@ const AttendanceCards: React.FC<AttendanceCardsProps> = ({ subsidiary }) => {
         </div>
 
         {employeesLoading ? (
-          <div className="text-center py-12 text-slate-500">
-            <div className="animate-spin w-8 h-8 border-4 border-slate-300 border-t-[#c6e911] rounded-full mx-auto"></div>
-            <p className="mt-3">Chargement des employés...</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100">
+                <div className="bg-slate-200 animate-pulse h-24" />
+                <div className="p-6 flex flex-col items-center">
+                  <div className="h-40 w-40 bg-slate-200 rounded-xl animate-pulse mb-4" />
+                  <div className="h-3 w-32 bg-slate-200 rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
           </div>
+        ) : !filteredEmployees || filteredEmployees.length === 0 ? (
+          <EmptyState icon="inbox" title="Aucun employé trouvé" />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredEmployees && filteredEmployees.length > 0 ? (
-              filteredEmployees.map((item: EmployeeWithQr) => {
+            {filteredEmployees.map((item: EmployeeWithQr) => {
                 const employee = item.employee;
                 return (
                   <div
@@ -588,12 +597,7 @@ const AttendanceCards: React.FC<AttendanceCardsProps> = ({ subsidiary }) => {
                     </div>
                   </div>
                 );
-              })
-            ) : (
-              <div className="col-span-full text-center py-12 text-slate-500">
-                Aucun employé trouvé
-              </div>
-            )}
+              })}
           </div>
         )}
       </div>

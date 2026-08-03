@@ -5,6 +5,8 @@ import { getSubsidiaries } from '../../services/apiCommon/apiSubsidiaries';
 import { Subsidiary, UserRole } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useI18n } from '../../i18n';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 
 const EquipmentCostManagement: React.FC = () => {
     const { user } = useAuth();
@@ -75,9 +77,6 @@ const EquipmentCostManagement: React.FC = () => {
 
             {error && <p className="text-red-600 text-sm">{error}</p>}
 
-            {isLoading ? (
-                <p className="text-slate-500 text-sm">{t('common.loading')}</p>
-            ) : (
                 <div className="overflow-x-auto rounded-lg border border-slate-200">
                     <table className="w-full text-sm text-left text-slate-600">
                         <thead className="text-xs text-slate-700 uppercase bg-slate-50">
@@ -90,7 +89,9 @@ const EquipmentCostManagement: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200">
-                            {equipments.map(eq => (
+                            {isLoading ? (
+                                <TableSkeleton rows={5} columns={isSuperAdmin ? 5 : 4} />
+                            ) : equipments.map(eq => (
                                 <tr key={eq.id} className="bg-white hover:bg-slate-50">
                                     <td className="px-4 py-3 font-medium text-slate-800">{eq.equipmentName}</td>
                                     <td className="px-4 py-3">
@@ -154,17 +155,16 @@ const EquipmentCostManagement: React.FC = () => {
                                     </td>
                                 </tr>
                             ))}
-                            {equipments.length === 0 && (
+                            {!isLoading && equipments.length === 0 && (
                                 <tr>
-                                    <td colSpan={isSuperAdmin ? 5 : 4} className="px-4 py-8 text-center text-slate-400 italic">
-                                        {t('production.equipmentCosts.noEquipment')}
+                                    <td colSpan={isSuperAdmin ? 5 : 4}>
+                                        <EmptyState icon="stock" title={t('production.equipmentCosts.noEquipment')} />
                                     </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
-            )}
         </div>
     );
 };

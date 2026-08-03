@@ -5,7 +5,6 @@ import {
   Delete,
   Get,
   Param,
-  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -149,7 +148,7 @@ export class ProductsController {
     UserRole.PRODUCTION_DIRECTOR,
     UserRole.FINANCIAL_DIRECTOR,
   )
-  findOne(@Param('id', new ParseUUIDPipe()) id: string) {
+  findOne(@Param('id') id: string) {
     return this.productsService.findOne(id);
   }
 
@@ -228,7 +227,7 @@ export class ProductsController {
     UserRole.PRODUCTION_DIRECTOR,
     UserRole.FINANCIAL_DIRECTOR,
   )
-  remove(@Param('id', new ParseUUIDPipe()) id: string) {
+  remove(@Param('id') id: string) {
     return this.productsService.remove(id);
   }
 }

@@ -178,6 +178,6 @@ export const getContactProfile = async (): Promise<Omit<Contact, 'passwordHash'>
  * @returns Une liste de commandes.
  */
 export const getContactOrders = async (): Promise<Order[]> => {
-  const { data } = await api.get<Order[]>('/crm/contacts/orders');
-  return data;
+  const { data } = await api.get<PaginatedResponse<Order>>('/crm/contacts/orders', { params: { limit: 500 } });
+  return data.data;
 };

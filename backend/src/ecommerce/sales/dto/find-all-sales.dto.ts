@@ -1,5 +1,6 @@
 import { IsOptional, IsString, IsEnum } from 'class-validator';
 import { CustomerPaymentMethod, SaleStatus } from '@prisma/client';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 // Réutilisation de l'enum de période pour la cohérence
 export enum OrderPeriod {
@@ -13,7 +14,7 @@ export enum OrderPeriod {
   CUSTOM = 'custom',
 }
 
-export class FindAllSalesDto {
+export class FindAllSalesDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   customerId?: string;

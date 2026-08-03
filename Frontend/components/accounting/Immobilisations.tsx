@@ -8,6 +8,8 @@ import {
 import { getTreasuryAccounts } from '../../services/apiFinance/apiTreasuryAccounts';
 import { generateAnnualDepreciation, disposeFixedAsset } from '../../services/apiAccounting/apiImmobilisations';
 import { FixedAsset } from '../../types';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 
 const Immobilisations: React.FC = () => {
   const queryClient = useQueryClient();
@@ -131,9 +133,9 @@ const Immobilisations: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-500">Chargement...</td></tr>
+                <TableSkeleton rows={6} columns={8} />
               ) : assets.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">Aucune immobilisation.</td></tr>
+                <tr><td colSpan={8}><EmptyState icon="finance" title="Aucune immobilisation." /></td></tr>
               ) : (
                 assets.map((asset) => (
                   <tr key={asset.id} className={`hover:bg-slate-50 ${asset.status === 'DISPOSED' ? 'opacity-50' : ''}`}>

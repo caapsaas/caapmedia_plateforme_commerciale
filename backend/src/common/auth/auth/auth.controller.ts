@@ -37,6 +37,7 @@ import {
   setCsrfCookie,
   REFRESH_TOKEN_COOKIE,
 } from '../cookie.util';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 class RegisterDto {
   @IsString()
@@ -106,7 +107,7 @@ class UpdateUserDto {
   subsidiaryId?: string;
 }
 
-class SearchUsersDto {
+class SearchUsersDto extends PaginationQueryDto {
   @IsOptional()
   @IsEmail()
   email?: string;
@@ -318,8 +319,11 @@ export class AuthController {
     UserRole.FINANCIAL_DIRECTOR,
   )
   @Get('users')
-  async getAllUsers(@Request() req) {
-    return this.authService.getAllUsers(req.user);
+  async getAllUsers(
+    @Request() req,
+    @Query() paginationQuery: PaginationQueryDto,
+  ) {
+    return this.authService.getAllUsers(req.user, paginationQuery);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)

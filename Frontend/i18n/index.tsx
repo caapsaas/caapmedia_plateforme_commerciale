@@ -213,6 +213,7 @@ const frTranslations = {
     "items": "articles",
     "total": "Total",
     "orderViaWhatsApp": "Commander via WhatsApp",
+    "viewDetails": "Voir les détails",
     "checkout": "Passer la commande",
     "checkoutTitle": "Finaliser votre commande",
     "customerInfo": "Vos informations",
@@ -391,6 +392,7 @@ const frTranslations = {
     "status_PRINTING": "Impression",
     "status_FINISHING": "Finition",
     "status_READY_FOR_DELIVERY": "Prêt pour Livraison",
+    "emptyColumn": "Aucune commande",
     "equipmentCosts": {
       "title": "Coût horaire par machine",
       "subtitle": "Définissez le taux horaire de chaque équipement. Ces taux sont utilisés pour calculer le coût de production des commandes de services.",
@@ -669,6 +671,7 @@ const frTranslations = {
   "cashRegister": {
     "title": "Interface de Caisse",
     "searchPlaceholder": "Rechercher un produit par nom...",
+    "noProducts": "Aucun produit trouvé.",
     "cartTitle": "Panier",
     "cartEmpty": "Le panier est vide.",
     "paymentSuccess": "Paiement réussi !",
@@ -1159,6 +1162,9 @@ const frTranslations = {
     "supplierManagement": "Gestion des Fournisseurs",
     "addSupplier": "Ajouter un fournisseur",
     "taxManagement": "Gestion des Taxes",
+    "isRate": "Taux d'IS (Impôt sur les Sociétés)",
+    "isRateDescription": "Taux utilisé pour le calcul de l'impôt sur les sociétés dans le compte de résultat.",
+    "isRateSaved": "Taux d'IS mis à jour avec succès.",
     "equipmentCosts": "Coûts machines",
     "commercialParams": "Params commerciaux",
     "productionWorkflows": "Workflows",
@@ -1893,7 +1899,8 @@ const frTranslations = {
       "recentActivity": "Activité Récente",
     },
     "pipeline": {
-      "addOpportunity": "Ajouter une Opportunité"
+      "addOpportunity": "Ajouter une Opportunité",
+      "emptyColumn": "Aucune opportunité"
     },
     "opportunity": {
       "stages": {
@@ -2338,6 +2345,7 @@ const enTranslations: Translations = {
     "items": "items",
     "total": "Total",
     "orderViaWhatsApp": "Order via WhatsApp",
+    "viewDetails": "View details",
     "checkout": "Checkout",
     "checkoutTitle": "Finalize Your Order",
     "customerInfo": "Your Information",
@@ -2516,6 +2524,7 @@ const enTranslations: Translations = {
     "status_PRINTING": "Printing",
     "status_FINISHING": "Finishing",
     "status_READY_FOR_DELIVERY": "Ready for Delivery",
+    "emptyColumn": "No orders",
     "equipmentCosts": {
       "title": "Hourly cost per machine",
       "subtitle": "Set the hourly rate for each piece of equipment. These rates are used to calculate the production cost for service orders.",
@@ -2794,6 +2803,7 @@ const enTranslations: Translations = {
   "cashRegister": {
     "title": "Cash Register Interface",
     "searchPlaceholder": "Search product by name...",
+    "noProducts": "No products found.",
     "cartTitle": "Cart",
     "cartEmpty": "The cart is empty.",
     "paymentSuccess": "Payment successful!",
@@ -2871,6 +2881,9 @@ const enTranslations: Translations = {
         "supplierManagement": "Supplier Management",
         "addSupplier": "Add Supplier",
         "taxManagement": "Tax Management",
+        "isRate": "Corporate Tax Rate (IS)",
+        "isRateDescription": "Rate used to compute corporate income tax in the income statement.",
+        "isRateSaved": "Corporate tax rate updated successfully.",
         "equipmentCosts": "Machine costs",
         "commercialParams": "Commercial params",
         "productionWorkflows": "Workflows",
@@ -3602,9 +3615,10 @@ const enTranslations: Translations = {
             "recentActivity": "Recent Activity"
         },
         "pipeline": {
-            "addOpportunity": "Add Opportunity"
+            "addOpportunity": "Add Opportunity",
+            "emptyColumn": "No opportunities"
         },
-     
+
         "opportunity": {
             "stages": {
                 "QUALIFICATION": "Qualification",
@@ -4156,6 +4170,9 @@ const enTranslations: Translations = {
     "supplierManagement": "Supplier Management",
     "addSupplier": "Add Supplier",
     "taxManagement": "Tax Management",
+    "isRate": "Corporate Tax Rate (IS)",
+    "isRateDescription": "Rate used to compute corporate income tax in the income statement.",
+    "isRateSaved": "Corporate tax rate updated successfully.",
     "equipmentCosts": "Machine costs",
     "commercialParams": "Commercial params",
     "productionWorkflows": "Workflows",
@@ -4885,7 +4902,8 @@ const enTranslations: Translations = {
       "recentActivity": "Recent Activity"
     },
     "pipeline": {
-      "addOpportunity": "Add Opportunity"
+      "addOpportunity": "Add Opportunity",
+      "emptyColumn": "No opportunities"
     },
 
     "opportunity": {

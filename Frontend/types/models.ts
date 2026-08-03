@@ -148,6 +148,9 @@ export interface Subsidiary {
   shareCapital: number;
   logoSvg?: string;
   isHeadquarter?: boolean;
+  // Taux d'IS (impôt sur les sociétés, 0-1) utilisé dans le compte de résultat —
+  // configurable par filiale, distinct de la TVA (module taxes).
+  taxRate?: number;
 }
 
 export interface User {
@@ -470,6 +473,7 @@ export interface Order {
   taxAmount: number;
   taxRateId: string;
   taxRateValue: number;
+  applyTax?: boolean;
   status: OrderStatus;
   productionStatus: ProductionStatus;
   productionHistory: { status: ProductionStatus; changeDate?: string; date?: string }[];

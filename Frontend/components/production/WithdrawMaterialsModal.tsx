@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { StockItem } from '../../types/models';
-import { getStockItemsBySubsidiary } from '../../services/apiPurchasing/apiStockItems';
+import { getStockItemsPaginated } from '../../services/apiPurchasing/apiStockItems';
 import { withdrawForOrder } from '../../services/apiPurchasing/apiStockMovements';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useI18n } from '../../i18n';
 import IconPlus from '../icons/IconPlus';
 import IconDelete from '../icons/IconDelete';
+import { AsyncSelect } from '../ui/AsyncSelect';
 
 interface WithdrawMaterialsModalProps {
     isOpen: boolean;
@@ -31,13 +32,9 @@ const WithdrawMaterialsModal: React.FC<WithdrawMaterialsModalProps> = ({ isOpen,
 
     const [lines, setLines] = useState<WithdrawLine[]>([]);
     const [itemId, setItemId] = useState('');
+    const [selectedItem, setSelectedItem] = useState<StockItem | null>(null);
+    const [itemLabels, setItemLabels] = useState<Record<string, string>>({});
     const [quantity, setQuantity] = useState('');
-
-    const { data: items = [] } = useQuery<StockItem[]>({
-        queryKey: ['stockItems', subsidiary?.id],
-        queryFn: () => getStockItemsBySubsidiary(),
-        enabled: isOpen && !!subsidiary,
-    });
 
     const withdrawMutation = useMutation({
         mutationFn: withdrawForOrder,
@@ -50,10 +47,17 @@ const WithdrawMaterialsModal: React.FC<WithdrawMaterialsModalProps> = ({ isOpen,
         },
     });
 
+    const handleSelectItem = (value: string | undefined, item?: StockItem) => {
+        setItemId(value ?? '');
+        setSelectedItem(item ?? null);
+        if (item) setItemLabels(prev => ({ ...prev, [item.id]: item.name }));
+    };
+
     const handleAddLine = () => {
         if (!itemId || !quantity || Number(quantity) <= 0) return;
         setLines(prev => [...prev, { itemId, quantity: Number(quantity) }]);
         setItemId('');
+        setSelectedItem(null);
         setQuantity('');
     };
 
@@ -78,10 +82,18 @@ const WithdrawMaterialsModal: React.FC<WithdrawMaterialsModalProps> = ({ isOpen,
 
                 <div className="p-6 max-h-[60vh] overflow-y-auto space-y-4">
                     <div className="grid grid-cols-12 gap-2 items-center">
-                        <select value={itemId} onChange={e => setItemId(e.target.value)} className="col-span-7 border-slate-300 rounded-md shadow-sm py-2 px-3 border text-sm">
-                            <option value="">{t('stockMovements.withdraw.product')}</option>
-                            {items.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-                        </select>
+                        <div className="col-span-7">
+                            <AsyncSelect<StockItem>
+                                queryKey={`withdraw-materials-items-${subsidiary?.id}`}
+                                placeholder={t('stockMovements.withdraw.product')}
+                                value={itemId || undefined}
+                                onChange={handleSelectItem}
+                                defaultOptions={selectedItem ? [selectedItem] : []}
+                                getOptionLabel={(item) => item.name}
+                                getOptionValue={(item) => item.id}
+                                fetcher={({ page, limit, search }) => getStockItemsPaginated({ page, limit, search, subsidiaryId: subsidiary?.id })}
+                            />
+                        </div>
                         <input
                             type="number"
                             min="0"
@@ -98,10 +110,9 @@ const WithdrawMaterialsModal: React.FC<WithdrawMaterialsModalProps> = ({ isOpen,
 
                     <div className="space-y-2">
                         {lines.map((line, index) => {
-                            const item = items.find(i => i.id === line.itemId);
                             return (
                                 <div key={index} className="flex items-center justify-between text-sm bg-slate-50 rounded-md px-3 py-2">
-                                    <span>{item?.name ?? line.itemId} — {line.quantity}</span>
+                                    <span>{itemLabels[line.itemId] ?? line.itemId} — {line.quantity}</span>
                                     <button type="button" onClick={() => handleRemoveLine(index)} className="p-1 text-red-500 hover:bg-red-100 rounded-full">
                                         <IconDelete className="h-4 w-4" />
                                     </button>

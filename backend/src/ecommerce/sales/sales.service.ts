@@ -10,6 +10,7 @@ import { ItemType, Prisma, SaleStatus, UserRole } from '@prisma/client';
 import { ProductSpecsService } from '../products/product-specs/product-specs.service';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { paginate } from 'src/common/pagination/pagination';
 import {
   sub,
   startOfMonth,
@@ -204,10 +205,18 @@ export class SalesService {
       where.saleDate = dateFilter;
     }
 
-    return this.prisma.sale.findMany({
-      where,
-      include: { customer: true, salesRep: true },
-      orderBy: { saleDate: 'desc' },
-    });
+    if (query.search) {
+      where.productName = { contains: query.search, mode: 'insensitive' };
+    }
+
+    return paginate(
+      this.prisma.sale,
+      {
+        where,
+        include: { customer: true, salesRep: true },
+        orderBy: { saleDate: 'desc' },
+      },
+      query,
+    );
   }
 }
