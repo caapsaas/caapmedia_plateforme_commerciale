@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Outlet, useLocation } from '@tanstack/react-router';
 import { Employee, PayrollRecord, AbsenceRecord } from '../types';
 import { useAppContext } from '../context/AppContext';
 import { useI18n } from '../i18n';
@@ -20,6 +21,11 @@ const HrManagement: React.FC = () => {
     const queryClient = useQueryClient();
     const { subsidiary } = useAuth();
     const [activeTab, setActiveTab] = useState<HrView>('employees');
+    const location = useLocation();
+    
+    // Vérifier si on est sur une route enfant (cards, history, signing)
+    const isChildRoute = location.pathname.includes('/dashboard/hr/') && 
+                         location.pathname !== '/dashboard/hr';
 
     if (!subsidiary) {
         return <div className="p-6 text-center">{t('common.loading')}</div>;
@@ -48,7 +54,11 @@ const HrManagement: React.FC = () => {
     const { mutate: onSaveAbsence } = useMutation({ mutationFn: saveAbsenceRecord, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['absences', subsidiary.id] }) });
     const { mutate: onDeleteAbsence } = useMutation({ mutationFn: deleteAbsenceRecord, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['absences', subsidiary.id] }) });
     const { mutate: onProcessPayroll } = useMutation({ mutationFn: processPayroll, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['payrolls', subsidiary.id] }) });
-    const { mutate: onSaveSignature } = useMutation({ mutationFn: signPayrollRecord, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['payrolls', subsidiary.id] }) });
+    const { mutate: onSaveSignature } = useMutation({ 
+        mutationFn: ({ payrollId, signature }: { payrollId: string; signature: string }) => 
+            signPayrollRecord(payrollId, signature),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['payrolls', subsidiary.id] }) 
+    });
 
     const isLoading = isLoadingEmployees || isLoadingAbsences || isLoadingPayrolls;
 
@@ -75,7 +85,6 @@ const HrManagement: React.FC = () => {
                             employees={employees}
                             payrolls={payrolls}
                             onProcessPayroll={onProcessPayroll}
-                            onRecordPayment={() => {}}
                             onSaveSignature={onSaveSignature}
                         />;
             case 'absences':
@@ -104,20 +113,28 @@ const HrManagement: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                <h2 className="text-3xl font-bold text-slate-800">{t('hr.title')}</h2>
-                <div className="flex items-center flex-wrap gap-2 p-1 bg-slate-200 rounded-lg self-start sm:self-center">
-                    <TabButton view="employees" label={t('hr.tabs.employees')} />
-                    <TabButton view="attendance-cards" label={t('hr.tabs.attendance_cards')} />
-                    <TabButton view="attendance-history" label={t('hr.tabs.attendance_history')} />
-                    <TabButton view="absences" label={t('hr.tabs.absences')} />
-                    <TabButton view="payroll" label={t('hr.tabs.payroll')} />
-                </div>
-            </div>
+            {/* N'afficher les onglets et le contenu que si on n'est pas sur une route enfant */}
+            {!isChildRoute && (
+                <>
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                        <h2 className="text-3xl font-bold text-slate-800">{t('hr.title')}</h2>
+                        <div className="flex items-center flex-wrap gap-2 p-1 bg-slate-200 rounded-lg self-start sm:self-center">
+                            <TabButton view="employees" label={t('hr.tabs.employees')} />
+                            <TabButton view="attendance-cards" label={t('hr.tabs.attendance_cards')} />
+                            <TabButton view="attendance-history" label={t('hr.tabs.attendance_history')} />
+                            <TabButton view="absences" label={t('hr.tabs.absences')} />
+                            <TabButton view="payroll" label={t('hr.tabs.payroll')} />
+                        </div>
+                    </div>
 
-            <div>
-                {renderActiveView()}
-            </div>
+                    <div>
+                        {renderActiveView()}
+                    </div>
+                </>
+            )}
+
+            {/* Outlet pour les routes enfants (ex: /dashboard/hr/signing) */}
+            <Outlet />
         </div>
     );
 };

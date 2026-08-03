@@ -64,9 +64,9 @@ const CnpsRatesModal: React.FC<CnpsRatesModalProps> = ({
         <form onSubmit={handleSubmit}>
           <div className="p-6">
             <h3 className="text-lg font-bold text-slate-900">
-              {t('payroll.modal.updateCnpsTitle')}
+              {t('hr.payroll.modal.updateCnpsTitle')}
             </h3>
-            <p className="text-sm text-slate-600 mt-2">{t('payroll.modal.updateCnpsDesc')}</p>
+            <p className="text-sm text-slate-600 mt-2">{t('hr.payroll.modal.updateCnpsDesc')}</p>
 
             {error && (
               <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -77,7 +77,7 @@ const CnpsRatesModal: React.FC<CnpsRatesModalProps> = ({
             <div className="mt-6 space-y-4">
               <div>
                 <label htmlFor="empRate" className="block text-sm font-medium text-slate-700">
-                  {t('payroll.form.employeeRate')}
+                  {t('hr.payroll.form.employeeRate')}
                 </label>
                 <div className="mt-1 flex items-center">
                   <input
@@ -98,7 +98,7 @@ const CnpsRatesModal: React.FC<CnpsRatesModalProps> = ({
 
               <div>
                 <label htmlFor="empRateEmp" className="block text-sm font-medium text-slate-700">
-                  {t('payroll.form.employerRate')}
+                  {t('hr.payroll.form.employerRate')}
                 </label>
                 <div className="mt-1 flex items-center">
                   <input

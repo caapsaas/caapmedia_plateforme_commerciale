@@ -1315,23 +1315,59 @@ model AttendanceRecord {
 }
 
 model PayrollRecord {
-  id            String        @id @default(uuid()) @map("id")
-  employeeName  String        @map("employee_name") @db.VarChar(255)
-  payrollPeriod String        @map("payroll_period") @db.VarChar(7)
-  grossSalary   Decimal       @map("gross_salary") @db.Decimal(12, 2)
-  deductions    Decimal       @db.Decimal(12, 2)
-  netSalary     Decimal       @map("net_salary") @db.Decimal(12, 2)
-  paymentDate   DateTime?     @map("payment_date")
-  signature     String?
-  employeeId    String        @map("employee_id")
-  subsidiaryId  String        @map("subsidiary_id")
-  status        PayrollStatus @map("status")
-  employee      Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  subsidiary    Subsidiary    @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  id              String        @id @default(uuid()) @map("id")
+  
+  // Période & Identification
+  payrollPeriod   String        @map("payroll_period") @db.VarChar(7) // YYYY-MM
+  employeeName    String        @map("employee_name") @db.VarChar(255) // snapshot (utile même si employé modifié)
+  
+  // === RÉMUNÉRATION (détail du brut) ===
+  baseSalary      Decimal       @map("base_salary") @db.Decimal(12, 2)
+  bonus           Decimal       @default(0) @map("bonus") @db.Decimal(12, 2)
+  allowances      Decimal       @default(0) @map("allowances") @db.Decimal(12, 2) // transport, logement, etc.
+  overtime        Decimal       @default(0) @map("overtime") @db.Decimal(12, 2)
+  otherEarnings   Decimal       @default(0) @map("other_earnings") @db.Decimal(12, 2)
+  grossSalary     Decimal       @map("gross_salary") @db.Decimal(12, 2)
 
+  // === RETENUES SALARIALES (détail) ===
+  cnpsEmployee    Decimal       @default(0) @map("cnps_employee") @db.Decimal(12, 2) // 4.2% plafonné
+  cfcEmployee     Decimal       @default(0) @map("cfc_employee") @db.Decimal(12, 2)  // 1%
+  irpp            Decimal       @default(0) @map("irpp") @db.Decimal(12, 2)
+  cac             Decimal       @default(0) @map("cac") @db.Decimal(12, 2)           // 10% de l'IRPP
+  otherDeductions Decimal       @default(0) @map("other_deductions") @db.Decimal(12, 2) // avances, prêts, absences...
+  deductions      Decimal       @map("deductions") @db.Decimal(12, 2)                  // total retenues
+  netSalary       Decimal       @map("net_salary") @db.Decimal(12, 2)
+
+  // === CHARGES PATRONALES (coût employeur) ===
+  cnpsEmployer    Decimal       @default(0) @map("cnps_employer") @db.Decimal(12, 2) // pension + familial + AT
+  cfcEmployer     Decimal       @default(0) @map("cfc_employer") @db.Decimal(12, 2)  // 1.5%
+  fne             Decimal       @default(0) @map("fne") @db.Decimal(12, 2)           // 1%
+  totalEmployerCost Decimal     @default(0) @map("total_employer_cost") @db.Decimal(12, 2)
+
+  // === DÉTAIL JSON (optionnel mais très utile) ===
+  deductionsDetail Json?        @map("deductions_detail") // tableau détaillé des retenues
+  calculationMeta  Json?        @map("calculation_meta")  // taux appliqués, plafond CNPS, groupe de risque, etc.
+
+  // === MÉTADONNÉES ===
+  paymentDate     DateTime?     @map("payment_date")
+  signature       String?
+  status          PayrollStatus @map("status")
+  notes           String?       @db.Text
+
+  // Relations
+  employeeId      String        @map("employee_id")
+  subsidiaryId    String        @map("subsidiary_id")
+  employee        Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  subsidiary      Subsidiary    @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  @@unique([employeeId, payrollPeriod]) // empêche les doublons pour un même mois
   @@index([subsidiaryId, payrollPeriod])
   @@index([employeeId])
   @@index([status])
+  @@index([payrollPeriod])
   @@map("payroll_records")
 }
 
@@ -2109,12 +2145,24 @@ model PayrollConfiguration {
   cnpsEmployeeRate Decimal @default(5.4) @map("cnps_employee_rate") @db.Decimal(5, 2)
   cnpsEmployerRate Decimal @default(6.4) @map("cnps_employer_rate") @db.Decimal(5, 2)
 
+  // Cameroon-specific tax rates
+  cfcEmployeeRate         Decimal @default(0.01) @map("cfc_employee_rate") @db.Decimal(5, 4)
+  cfcEmployerRate         Decimal @default(0.015) @map("cfc_employer_rate") @db.Decimal(5, 4)
+  fneRate                 Decimal @default(0.01) @map("fne_rate") @db.Decimal(5, 4)
+  cnpsCap                 Decimal @default(750000) @map("cnps_cap") @db.Decimal(12, 2)
+  professionalExpenseRate Decimal @default(0.30) @map("professional_expense_rate") @db.Decimal(5, 4)
+  fixedAbatementAnnual    Decimal @default(500000) @map("fixed_abatement_annual") @db.Decimal(12, 2)
+  riskGroupARate          Decimal @default(0.0175) @map("risk_group_a_rate") @db.Decimal(5, 4)
+  riskGroupBRate          Decimal @default(0.025) @map("risk_group_b_rate") @db.Decimal(5, 4)
+  riskGroupCRate          Decimal @default(0.05) @map("risk_group_c_rate") @db.Decimal(5, 4)
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   salaryComponents SalaryComponent[]
   taxBrackets      TaxBracket[]
   allowanceRules   AllowanceRule[]
+  leaveEntitlements LeaveEntitlement[]
 
   @@map("payroll_configurations")
 }
@@ -2188,6 +2236,23 @@ model AllowanceRule {
 
   @@index([payrollConfigId, effectiveDate])
   @@map("allowance_rules")
+}
+
+model LeaveEntitlement {
+  id              String               @id @default(uuid()) @map("id") @db.Text
+  payrollConfigId String               @map("payroll_config_id") @db.Text
+  payrollConfig   PayrollConfiguration @relation(fields: [payrollConfigId], references: [id], onDelete: Cascade)
+
+  type        String  @map("type") @db.VarChar(255)
+  daysPerYear Int     @map("days_per_year")
+  isPaid      Boolean @map("is_paid")
+  description String? @map("description")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([payrollConfigId])
+  @@map("leave_entitlements")
 }
 
 model DailyQrCode {

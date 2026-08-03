@@ -33,12 +33,24 @@ export class EmployeeService {
   private convertEmployeeToDTO(employee: any): any {
     if (!employee) return employee;
 
-    return {
+    const dto = {
       ...employee,
       baseSalary: employee.baseSalary ? Number(employee.baseSalary) : 0,
       bonus: employee.bonus ? Number(employee.bonus) : 0,
       leaveBalance: employee.leaveBalance ? Number(employee.leaveBalance) : 0,
     };
+
+    // Convert documents from array format to object format if includeRelations was used
+    if (employee.documents && Array.isArray(employee.documents)) {
+      dto.documents = this.convertDocumentsToFrontendFormat(employee.documents);
+    }
+
+    // Convert leaveBalances from array format to object format if includeRelations was used
+    if (employee.leaveBalances && Array.isArray(employee.leaveBalances)) {
+      dto.leaveBalance = this.convertLeaveBalancesToFrontendFormat(employee.leaveBalances);
+    }
+
+    return dto;
   }
 
   /**
@@ -71,6 +83,56 @@ export class EmployeeService {
     });
 
     return leaveBalanceObj;
+  }
+
+  /**
+   * Helper method to convert documents from database format to frontend format
+   * Database format: array of EmployeeDocument with docType
+   * Frontend format: object with contract, idCard, workPermit, diplomas
+   */
+  private convertDocumentsToFrontendFormat(documents: any[]): {
+    contract: { name: string; url: string } | null;
+    idCard: { name: string; url: string } | null;
+    workPermit: { name: string; url: string } | null;
+    diplomas: { name: string; url: string }[];
+  } {
+    const result = {
+      contract: null as { name: string; url: string } | null,
+      idCard: null as { name: string; url: string } | null,
+      workPermit: null as { name: string; url: string } | null,
+      diplomas: [] as { name: string; url: string }[],
+    };
+
+    if (!documents || !Array.isArray(documents)) {
+      return result;
+    }
+
+    documents.forEach((doc) => {
+      const docType = doc.docType || doc.documentType;
+      if (!docType) return;
+
+      const docData = {
+        name: doc.documentName || doc.name || '',
+        url: doc.url || '',
+      };
+
+      switch (docType) {
+        case 'CONTRACT':
+          result.contract = docData;
+          break;
+        case 'ID_CARD':
+          result.idCard = docData;
+          break;
+        case 'WORK_PERMIT':
+          result.workPermit = docData;
+          break;
+        case 'DIPLOMA':
+          result.diplomas.push(docData);
+          break;
+      }
+    });
+
+    return result;
   }
 
   /**
@@ -197,6 +259,7 @@ export class EmployeeService {
           'MATERNITY',
           'PATERNITY',
           'OTHER',
+          'UNPAID',
         ] as LeaveType[];
 
         for (const leaveType of leaveTypes) {
@@ -211,6 +274,61 @@ export class EmployeeService {
               days: days,
             },
           });
+        }
+
+        // Handle documents if provided
+        if (createEmployeeDto.documents) {
+          const docsData = createEmployeeDto.documents as any;
+
+          if (docsData.contract) {
+            await prisma.employeeDocument.create({
+              data: {
+                id: generateId(ID_PREFIXES.EMPLOYEEDOCUMENT),
+                employeeId: newEmployee.id,
+                documentName: docsData.contract.name || 'Contract',
+                url: docsData.contract.url,
+                docType: 'CONTRACT' as DocumentType,
+              },
+            });
+          }
+
+          if (docsData.idCard) {
+            await prisma.employeeDocument.create({
+              data: {
+                id: generateId(ID_PREFIXES.EMPLOYEEDOCUMENT),
+                employeeId: newEmployee.id,
+                documentName: docsData.idCard.name || 'ID Card',
+                url: docsData.idCard.url,
+                docType: 'ID_CARD' as DocumentType,
+              },
+            });
+          }
+
+          if (docsData.workPermit) {
+            await prisma.employeeDocument.create({
+              data: {
+                id: generateId(ID_PREFIXES.EMPLOYEEDOCUMENT),
+                employeeId: newEmployee.id,
+                documentName: docsData.workPermit.name || 'Work Permit',
+                url: docsData.workPermit.url,
+                docType: 'WORK_PERMIT' as DocumentType,
+              },
+            });
+          }
+
+          if (docsData.diplomas && Array.isArray(docsData.diplomas)) {
+            for (const diploma of docsData.diplomas) {
+              await prisma.employeeDocument.create({
+                data: {
+                  id: generateId(ID_PREFIXES.EMPLOYEEDOCUMENT),
+                  employeeId: newEmployee.id,
+                  documentName: diploma.name || 'Diploma',
+                  url: diploma.url,
+                  docType: 'DIPLOMA' as DocumentType,
+                },
+              });
+            }
+          }
         }
 
         return newEmployee;
@@ -494,11 +612,17 @@ export class EmployeeService {
         'contractType',
         'status',
         'paymentMethod',
-        'managerId',
         'baseSalary',
         'bonus',
         'benefits',
         'lastSalaryAdjustmentDate',
+        'bankName',
+        'bankAccountNumber',
+        'cnpsNumber',
+        'categoryCodeCNPS',
+        'taxIdNTif',
+        'numberDependents',
+        'situationMatrimony',
       ];
 
       // Copier uniquement les champs valides
@@ -600,77 +724,80 @@ export class EmployeeService {
         // Update documents if provided
         // Handle both formats: frontend format { contract, idCard, workPermit, diplomas } and backend format [{ documentName, url, docType }]
         if (updateEmployeeDto.documents) {
-          // Clear existing documents
-          await prisma.employeeDocument.deleteMany({
-            where: { employeeId: id },
-          });
-
           // Handle frontend format: { contract, idCard, workPermit, diplomas }
           const docsData = updateEmployeeDto.documents as any;
+
+          // Build the expected documents map from the input
+          const expectedDocs = new Map<string, { name: string; url: string }>();
 
           if (Array.isArray(docsData)) {
             // Handle backend format: array of { documentName, url, docType }
             for (const doc of docsData) {
-              await prisma.employeeDocument.create({
-                data: {
-                  id: generateId(ID_PREFIXES.EMPLOYEEDOCUMENT),
-                  employeeId: id,
-                  documentName: doc.documentName,
-                  url: doc.url,
-                  docType: doc.docType,
-                },
-              });
+              const key = `${doc.docType}_${doc.documentName}`;
+              expectedDocs.set(key, { name: doc.documentName, url: doc.url });
             }
           } else {
             // Handle frontend format: { contract: { name, url }, idCard: { name, url }, workPermit: { name, url }, diplomas: [...] }
             if (docsData.contract) {
-              await prisma.employeeDocument.create({
-                data: {
-                  id: generateId(ID_PREFIXES.EMPLOYEEDOCUMENT),
-                  employeeId: id,
-                  documentName: docsData.contract.name || 'Contract',
-                  url: docsData.contract.url,
-                  docType: 'CONTRACT' as DocumentType,
-                },
-              });
+              expectedDocs.set('CONTRACT_contract', { name: docsData.contract.name, url: docsData.contract.url });
             }
-
             if (docsData.idCard) {
-              await prisma.employeeDocument.create({
-                data: {
-                  id: generateId(ID_PREFIXES.EMPLOYEEDOCUMENT),
-                  employeeId: id,
-                  documentName: docsData.idCard.name || 'ID Card',
-                  url: docsData.idCard.url,
-                  docType: 'ID_CARD' as DocumentType,
-                },
-              });
+              expectedDocs.set('ID_CARD_idCard', { name: docsData.idCard.name, url: docsData.idCard.url });
             }
-
             if (docsData.workPermit) {
+              expectedDocs.set('WORK_PERMIT_workPermit', { name: docsData.workPermit.name, url: docsData.workPermit.url });
+            }
+            if (docsData.diplomas && Array.isArray(docsData.diplomas)) {
+              docsData.diplomas.forEach((diploma: any, index: number) => {
+                expectedDocs.set(`DIPLOMA_diploma_${index}`, { name: diploma.name, url: diploma.url });
+              });
+            }
+          }
+
+          // Get existing documents
+          const existingDocs = await prisma.employeeDocument.findMany({
+            where: { employeeId: id },
+          });
+
+          // Delete documents that are not in the expected list
+          for (const existingDoc of existingDocs) {
+            const key = `${existingDoc.docType}_${existingDoc.documentName}`;
+            if (!expectedDocs.has(key)) {
+              await prisma.employeeDocument.delete({
+                where: { id: existingDoc.id },
+              });
+            }
+          }
+
+          // Create or update documents
+          for (const [key, docData] of expectedDocs.entries()) {
+            const [docType, ...nameParts] = key.split('_');
+            const docName = nameParts.join('_');
+
+            // Check if document already exists
+            const existingDoc = existingDocs.find(
+              (d) => d.docType === docType && d.documentName === docName
+            );
+
+            if (existingDoc) {
+              // Update existing document
+              await prisma.employeeDocument.update({
+                where: { id: existingDoc.id },
+                data: {
+                  url: docData.url,
+                },
+              });
+            } else {
+              // Create new document
               await prisma.employeeDocument.create({
                 data: {
                   id: generateId(ID_PREFIXES.EMPLOYEEDOCUMENT),
                   employeeId: id,
-                  documentName: docsData.workPermit.name || 'Work Permit',
-                  url: docsData.workPermit.url,
-                  docType: 'WORK_PERMIT' as DocumentType,
+                  documentName: docData.name,
+                  url: docData.url,
+                  docType: docType as DocumentType,
                 },
               });
-            }
-
-            if (docsData.diplomas && Array.isArray(docsData.diplomas)) {
-              for (const diploma of docsData.diplomas) {
-                await prisma.employeeDocument.create({
-                  data: {
-                    id: generateId(ID_PREFIXES.EMPLOYEEDOCUMENT),
-                    employeeId: id,
-                    documentName: diploma.name || 'Diploma',
-                    url: diploma.url,
-                    docType: 'DIPLOMA' as DocumentType,
-                  },
-                });
-              }
             }
           }
         }

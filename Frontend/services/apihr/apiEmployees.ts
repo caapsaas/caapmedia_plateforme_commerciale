@@ -96,10 +96,13 @@ export const saveEmployee = async (employeeData: EmployeeSaveData): Promise<Empl
         baseSalary: employeeData.baseSalary,
         bonus: employeeData.bonus,
         benefits: employeeData.benefits,
-        lastSalaryAdjustmentDate: formatDateToString(employeeData.lastSalaryAdjustmentDate),
+        lastSalaryAdjustmentDate: formatDateToString(employeeData.lastSalaryAdjustmentDate || undefined),
         paymentMethod: employeeData.paymentMethod,
-        bankName: employeeData.bankName,
-        bankAccountNumber: employeeData.bankAccountNumber,
+        // Banking information only if payment method is BANK_TRANSFER
+        ...(employeeData.paymentMethod === 'BANK_TRANSFER' && {
+            bankName: employeeData.bankName,
+            bankAccountNumber: employeeData.bankAccountNumber,
+        }),
 
         // Informations spécifiques Cameroun
         cnpsNumber: employeeData.cnpsNumber,
@@ -129,22 +132,22 @@ export const saveEmployee = async (employeeData: EmployeeSaveData): Promise<Empl
             }))
             : [],
 
-        // Documents - Envoyer seulement les documents avec URLs valides (pas de File objects)
-        // Les fichiers doivent être uploadés séparément d'abord
+        // Documents - Envoyer les documents avec URLs valides
+        // Si un nouveau fichier est présent (file), il sera uploadé séparément
         documents: employeeData.documents ? {
-            contract: employeeData.documents.contract && !((employeeData.documents.contract as any).file)
+            contract: employeeData.documents.contract && employeeData.documents.contract.url
                 ? {
                     name: employeeData.documents.contract.name,
                     url: employeeData.documents.contract.url,
                   }
                 : null,
-            idCard: employeeData.documents.idCard && !((employeeData.documents.idCard as any).file)
+            idCard: employeeData.documents.idCard && employeeData.documents.idCard.url
                 ? {
                     name: employeeData.documents.idCard.name,
                     url: employeeData.documents.idCard.url,
                   }
                 : null,
-            workPermit: employeeData.documents.workPermit && !((employeeData.documents.workPermit as any).file)
+            workPermit: employeeData.documents.workPermit && employeeData.documents.workPermit.url
                 ? {
                     name: employeeData.documents.workPermit.name,
                     url: employeeData.documents.workPermit.url,
@@ -152,7 +155,7 @@ export const saveEmployee = async (employeeData: EmployeeSaveData): Promise<Empl
                 : null,
             diplomas: employeeData.documents.diplomas
                 ? employeeData.documents.diplomas
-                    .filter((d) => !((d as any).file))
+                    .filter((d) => d.url)
                     .map((d) => ({
                         name: d.name,
                         url: d.url,

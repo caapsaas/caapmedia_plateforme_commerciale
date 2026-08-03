@@ -33,7 +33,9 @@ type EmployeeFormDataType = {
     benefits: string[];
     lastSalaryAdjustmentDate: string | null;
     paymentMethod: PaymentMethod;
-    documents: Array<{name: string, type: string, expiryDate: string, status: string, file: File | null}>;
+    bankName?: string;
+    bankAccountNumber?: string;
+    documents: Array<{name: string, type: string, expiryDate: string, status: string, file: File | null, url?: string}>;
     leaveBalance: {
         annual: number;
         sick: number;
@@ -41,6 +43,7 @@ type EmployeeFormDataType = {
         maternity: number;
         paternity: number;
         other: number;
+        unpaid: number;
     };
     leaveRecords: LeaveRecord[];
 };
@@ -71,21 +74,24 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
         benefits: [],
         lastSalaryAdjustmentDate: null,
         paymentMethod: PaymentMethod.BANK_TRANSFER,
-        documents: [] as Array<{name: string, type: string, expiryDate: string, status: string, file: File | null}>,
+        bankName: '',
+        bankAccountNumber: '',
+        documents: [] as Array<{name: string, type: string, expiryDate: string, status: string, file: File | null, url?: string}>,
         leaveBalance: {
             annual: 0,
             sick: 0,
             personal: 0,
             maternity: 0,
             paternity: 0,
-            other: 0
+            other: 0,
+            unpaid: 0
         },
         leaveRecords: []
     };
     
     const [formData, setFormData] = useState<EmployeeFormDataType>(initialFormState);
     const [benefitsString, setBenefitsString] = useState('');
-    const [documentsList, setDocumentsList] = useState<Array<{name: string, type: string, expiryDate: string, status: string, file: File | null}>>([]);
+    const [documentsList, setDocumentsList] = useState<Array<{name: string, type: string, expiryDate: string, status: string, file: File | null, url?: string}>>([]);
 
     useEffect(() => {
         try {
@@ -104,10 +110,10 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                     lastSalaryAdjustmentDate: employee.lastSalaryAdjustmentDate ? (() => { try { return new Date(employee.lastSalaryAdjustmentDate).toISOString().split('T')[0]; } catch { return null; } })() : null,
                     // Transform documents object to flat array structure avec gestion d'erreur
                     documents: [
-                        ...(documents?.contract ? [{...documents.contract, type: 'CONTRACT', expiryDate: '', status: 'VALID', file: null}] : []),
-                        ...(documents?.idCard ? [{...documents.idCard, type: 'ID_CARD', expiryDate: '', status: 'VALID', file: null}] : []),
-                        ...(documents?.workPermit ? [{...documents.workPermit, type: 'PASSPORT', expiryDate: '', status: 'VALID', file: null}] : []),
-                        ...(documents?.diplomas?.map(diploma => ({...diploma, type: 'DIPLOMA', expiryDate: '', status: 'VALID', file: null})) || [])
+                        ...(documents?.contract ? [{...documents.contract, type: 'CONTRACT', expiryDate: '', status: 'VALID', file: null, url: documents.contract.url}] : []),
+                        ...(documents?.idCard ? [{...documents.idCard, type: 'ID_CARD', expiryDate: '', status: 'VALID', file: null, url: documents.idCard.url}] : []),
+                        ...(documents?.workPermit ? [{...documents.workPermit, type: 'PASSPORT', expiryDate: '', status: 'VALID', file: null, url: documents.workPermit.url}] : []),
+                        ...(documents?.diplomas?.map(diploma => ({...diploma, type: 'DIPLOMA', expiryDate: '', status: 'VALID', file: null, url: diploma.url})) || [])
                     ],
                     leaveBalance: leaveBalance || {
                         annual: 0,
@@ -115,7 +121,8 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                         personal: 0,
                         maternity: 0,
                         paternity: 0,
-                        other: 0
+                        other: 0,
+                        unpaid: 0
                     },
                     leaveRecords: leaveRecords || []
                 };
@@ -142,7 +149,18 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         const isNumeric = ['baseSalary', 'bonus'].includes(name);
-        setFormData(prev => ({ ...prev, [name]: isNumeric ? parseFloat(value) || 0 : value }));
+
+        setFormData(prev => {
+            const updated = { ...prev, [name]: isNumeric ? parseFloat(value) || 0 : value };
+
+            // Si le moyen de paiement change de BANK_TRANSFER à autre chose, vider les champs bancaires
+            if (name === 'paymentMethod' && value !== PaymentMethod.BANK_TRANSFER) {
+                updated.bankName = '';
+                updated.bankAccountNumber = '';
+            }
+
+            return updated;
+        });
     };
 
     const handleBenefitsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,7 +184,7 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
     };
 
     const addDocument = () => {
-        setDocumentsList([...documentsList, { name: '', type: '', expiryDate: '', status: 'VALID', file: null }]);
+        setDocumentsList([...documentsList, { name: '', type: '', expiryDate: '', status: 'VALID', file: null, url: '' }]);
     };
 
     const removeDocument = (index: number) => {
@@ -190,22 +208,22 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
         const transformedDocuments = {
             contract: documentsList.find(doc => doc.type === 'CONTRACT') ? {
                 name: documentsList.find(doc => doc.type === 'CONTRACT')!.name,
-                url: '', // URL will be set by backend,
+                url: documentsList.find(doc => doc.type === 'CONTRACT')!.url || '',
                 file: documentsList.find(doc => doc.type === 'CONTRACT')!.file
             } : null,
             idCard: documentsList.find(doc => doc.type === 'ID_CARD') ? {
                 name: documentsList.find(doc => doc.type === 'ID_CARD')!.name,
-                url: '', // URL will be set by backend,
+                url: documentsList.find(doc => doc.type === 'ID_CARD')!.url || '',
                 file: documentsList.find(doc => doc.type === 'ID_CARD')!.file
             } : null,
             workPermit: documentsList.find(doc => doc.type === 'PASSPORT') ? {
                 name: documentsList.find(doc => doc.type === 'PASSPORT')!.name,
-                url: '', // URL will be set by backend,
+                url: documentsList.find(doc => doc.type === 'PASSPORT')!.url || '',
                 file: documentsList.find(doc => doc.type === 'PASSPORT')!.file
             } : null,
             diplomas: documentsList.filter(doc => doc.type === 'DIPLOMA').map(doc => ({
                 name: doc.name,
-                url: '', // URL will be set by backend,
+                url: doc.url || '',
                 file: doc.file
             }))
         };
@@ -367,6 +385,21 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                             </select>
                                         </div>
                                     </div>
+                                    {formData.paymentMethod === PaymentMethod.BANK_TRANSFER && (
+                                        <div className="border-t border-slate-200 pt-4 mt-4">
+                                            <h4 className="text-sm font-medium text-slate-700 mb-3">Coordonnées bancaires</h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label htmlFor="bankName" className="block text-sm font-medium text-slate-700">Nom de la banque</label>
+                                                    <input type="text" name="bankName" id="bankName" value={formData.bankName || ''} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                                </div>
+                                                <div>
+                                                    <label htmlFor="bankAccountNumber" className="block text-sm font-medium text-slate-700">Numéro de compte</label>
+                                                    <input type="text" name="bankAccountNumber" id="bankAccountNumber" value={formData.bankAccountNumber || ''} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                             {activeTab === 'documents' && (
@@ -445,6 +478,13 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                             </div>
                                             <div className="mt-3">
                                                 <label className="block text-sm font-medium text-slate-700">{t('hr.documents.file')}</label>
+                                                {doc.url && (
+                                                    <div className="mb-2">
+                                                        <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:text-blue-800 underline">
+                                                            Voir le document existant
+                                                        </a>
+                                                    </div>
+                                                )}
                                                 <input
                                                     type="file"
                                                     onChange={(e) => handleDocumentFileChange(index, e.target.files?.[0] || null)}
@@ -527,6 +567,16 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                                 id="otherLeave"
                                                 value={formData.leaveBalance?.other || 0}
                                                 onChange={(e) => handleLeaveBalanceChange('other', parseFloat(e.target.value) || 0)}
+                                                className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="unpaidLeave" className="block text-sm font-medium text-slate-700">{t('hr.leaveType.unpaid')}</label>
+                                            <input
+                                                type="number"
+                                                id="unpaidLeave"
+                                                value={formData.leaveBalance?.unpaid || 0}
+                                                onChange={(e) => handleLeaveBalanceChange('unpaid', parseFloat(e.target.value) || 0)}
                                                 className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm"
                                             />
                                         </div>

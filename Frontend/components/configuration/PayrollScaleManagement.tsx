@@ -6,6 +6,7 @@ import SmigUpdateModal from './SmigUpdateModal';
 import CnpsRatesModal from './CnpsRatesModal';
 import IrppBracketsModal from './IrppBracketsModal';
 import LeaveEntitlementsModal from './LeaveEntitlementsModal';
+import CameroonTaxRatesModal from './CameroonTaxRatesModal';
 import {
   getFullPayrollConfiguration,
   updatePayrollConfiguration,
@@ -27,6 +28,7 @@ const PayrollScaleManagement: React.FC = () => {
   const [cnpsModalOpen, setCnpsModalOpen] = useState(false);
   const [irppModalOpen, setIrppModalOpen] = useState(false);
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
+  const [cameroonTaxModalOpen, setCameroonTaxModalOpen] = useState(false);
 
   const subsidiaryId = subsidiary?.id || '';
 
@@ -43,7 +45,7 @@ const PayrollScaleManagement: React.FC = () => {
       const data = await getFullPayrollConfiguration(subsidiaryId);
       setConfig(data);
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : t('payroll.error.update');
+      const errorMsg = err instanceof Error ? err.message : t('hr.payroll.error.update');
       setError(errorMsg);
       console.error('Error loading payroll configuration:', err);
     } finally {
@@ -56,10 +58,12 @@ const PayrollScaleManagement: React.FC = () => {
     try {
       const updated = await updatePayrollConfiguration(subsidiaryId, data);
       setConfig(updated);
-      setSuccessMsg(t('payroll.success.updated'));
+      setSuccessMsg(t('hr.payroll.success.updated'));
       setTimeout(() => setSuccessMsg(''), 3000);
-    } catch (err) {
-      throw new Error(err instanceof Error ? err.message : t('payroll.error.update'));
+    } catch (err: any) {
+      console.error('Full error from backend:', err);
+      console.error('Error response:', err.response?.data);
+      throw new Error(err instanceof Error ? err.message : t('hr.payroll.error.update'));
     } finally {
       setSaving(false);
     }
@@ -73,10 +77,10 @@ const PayrollScaleManagement: React.FC = () => {
     try {
       const updated = await updatePayrollConfiguration(subsidiaryId, data);
       setConfig(updated);
-      setSuccessMsg(t('payroll.success.updated'));
+      setSuccessMsg(t('hr.payroll.success.updated'));
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
-      throw new Error(err instanceof Error ? err.message : t('payroll.error.update'));
+      throw new Error(err instanceof Error ? err.message : t('hr.payroll.error.update'));
     } finally {
       setSaving(false);
     }
@@ -87,11 +91,11 @@ const PayrollScaleManagement: React.FC = () => {
     try {
       const updated = await updatePayrollConfiguration(subsidiaryId, { irppBrackets: data.irppBrackets });
       setConfig(updated);
-      setSuccessMsg(t('payroll.success.updated'));
+      setSuccessMsg(t('hr.payroll.success.updated'));
       setTimeout(() => setSuccessMsg(''), 3000);
       setIrppModalOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('payroll.error.update'));
+      setError(err instanceof Error ? err.message : t('hr.payroll.error.update'));
     } finally {
       setSaving(false);
     }
@@ -102,11 +106,36 @@ const PayrollScaleManagement: React.FC = () => {
     try {
       const updated = await updatePayrollConfiguration(subsidiaryId, { leaveEntitlements: data.leaveEntitlements });
       setConfig(updated);
-      setSuccessMsg(t('payroll.success.updated'));
+      setSuccessMsg(t('hr.payroll.success.updated'));
       setTimeout(() => setSuccessMsg(''), 3000);
       setLeaveModalOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('payroll.error.update'));
+      setError(err instanceof Error ? err.message : t('hr.payroll.error.update'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveCameroonTax = async (data: {
+    cfcEmployeeRate?: number;
+    cfcEmployerRate?: number;
+    fneRate?: number;
+    cnpsCap?: number;
+    professionalExpenseRate?: number;
+    fixedAbatementAnnual?: number;
+    riskGroupARate?: number;
+    riskGroupBRate?: number;
+    riskGroupCRate?: number;
+  }) => {
+    setSaving(true);
+    try {
+      const updated = await updatePayrollConfiguration(subsidiaryId, data);
+      setConfig(updated);
+      setSuccessMsg(t('hr.payroll.success.updated'));
+      setTimeout(() => setSuccessMsg(''), 3000);
+      setCameroonTaxModalOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('hr.payroll.error.update'));
     } finally {
       setSaving(false);
     }
@@ -138,7 +167,7 @@ const PayrollScaleManagement: React.FC = () => {
         <Card>
           <CardBody>
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-sm text-red-700">{error || t('payroll.error.update')}</p>
+              <p className="text-sm text-red-700">{error || t('hr.payroll.error.update')}</p>
             </div>
           </CardBody>
         </Card>
@@ -170,8 +199,8 @@ const PayrollScaleManagement: React.FC = () => {
 
       <Card>
         <CardHeader gradient>
-          <h3 className="text-xl font-bold">{t('payroll.title')}</h3>
-          <p className="text-sm text-slate-600 mt-1">{t('payroll.taxBracketsDesc')}</p>
+          <h3 className="text-xl font-bold">{t('hr.payroll.title')}</h3>
+          <p className="text-sm text-slate-600 mt-1">{t('hr.payroll.taxBracketsDesc')}</p>
         </CardHeader>
         <CardBody>
           <div className="space-y-4">
@@ -180,9 +209,9 @@ const PayrollScaleManagement: React.FC = () => {
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <h4 className="font-semibold text-slate-900">
-                    {t('payroll.form.minWage')}
+                    {t('hr.payroll.form.minWage')}
                   </h4>
-                  <p className="text-sm text-slate-600">{t('payroll.modal.updateSmigDesc')}</p>
+                  <p className="text-sm text-slate-600">{t('hr.payroll.modal.updateSmigDesc')}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-[#c6e911]">
@@ -205,12 +234,12 @@ const PayrollScaleManagement: React.FC = () => {
             {/* CNPS Rates */}
             <div className="border border-slate-200 rounded-lg p-4">
               <h4 className="font-semibold text-slate-900 mb-4">
-                {t('payroll.cnpsEmployeeRate')} {t('payroll.form.employeeRate')} & {t('payroll.form.employerRate')}
+                {t('hr.payroll.cnpsEmployeeRate')} {t('hr.payroll.form.employeeRate')} & {t('hr.payroll.form.employerRate')}
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-slate-50 rounded-lg p-4">
                   <p className="text-sm text-slate-600 uppercase font-semibold">
-                    {t('payroll.form.employeeRate')}
+                    {t('hr.payroll.form.employeeRate')}
                   </p>
                   <p className="text-2xl font-bold mt-2">
                     {((config.cnpsEmployeeRate || 0.054) * 100).toFixed(2)}%
@@ -218,7 +247,7 @@ const PayrollScaleManagement: React.FC = () => {
                 </div>
                 <div className="bg-slate-50 rounded-lg p-4">
                   <p className="text-sm text-slate-600 uppercase font-semibold">
-                    {t('payroll.form.employerRate')}
+                    {t('hr.payroll.form.employerRate')}
                   </p>
                   <p className="text-2xl font-bold mt-2">
                     {((config.cnpsEmployerRate || 0.064) * 100).toFixed(2)}%
@@ -237,20 +266,20 @@ const PayrollScaleManagement: React.FC = () => {
             {/* IRPP Brackets */}
             <div className="border border-slate-200 rounded-lg p-4">
               <h4 className="font-semibold text-slate-900 mb-4">
-                {t('payroll.modal.updateIrppTitle')}
+                {t('hr.payroll.modal.updateIrppTitle')}
               </h4>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-100">
                     <tr>
                       <th className="px-4 py-2 text-left font-semibold">
-                        {t('payroll.form.minAmount')}
+                        {t('hr.payroll.form.minAmount')}
                       </th>
                       <th className="px-4 py-2 text-left font-semibold">
-                        {t('payroll.form.maxAmount')}
+                        {t('hr.payroll.form.maxAmount')}
                       </th>
                       <th className="px-4 py-2 text-left font-semibold">
-                        {t('payroll.form.rate')}
+                        {t('hr.payroll.form.rate')}
                       </th>
                     </tr>
                   </thead>
@@ -269,7 +298,7 @@ const PayrollScaleManagement: React.FC = () => {
                         </td>
                         <td className="px-4 py-2">
                           {bracket.maxSalary === null
-                            ? `${t('payroll.form.above')} ${(bracket.minSalary || 0).toLocaleString('fr-FR')}`
+                            ? `${t('hr.payroll.form.above')} ${(bracket.minSalary || 0).toLocaleString('fr-FR')}`
                             : (bracket.maxSalary || 0).toLocaleString('fr-FR')}
                         </td>
                         <td className="px-4 py-2 font-semibold">
@@ -291,10 +320,99 @@ const PayrollScaleManagement: React.FC = () => {
               </button>
             </div>
 
+            {/* Cameroon Tax Rates */}
+            <div className="border border-slate-200 rounded-lg p-4">
+              <h4 className="font-semibold text-slate-900 mb-4">
+                {t('hr.payroll.cameroonTaxRates.title')}
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <p className="text-sm text-slate-600 uppercase font-semibold">
+                    {t('hr.payroll.cameroonTaxRates.cfcEmployee')}
+                  </p>
+                  <p className="text-2xl font-bold mt-2">
+                    {((config.cfcEmployeeRate || 0.01) * 100).toFixed(2)}%
+                  </p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <p className="text-sm text-slate-600 uppercase font-semibold">
+                    {t('hr.payroll.cameroonTaxRates.cfcEmployer')}
+                  </p>
+                  <p className="text-2xl font-bold mt-2">
+                    {((config.cfcEmployerRate || 0.015) * 100).toFixed(2)}%
+                  </p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <p className="text-sm text-slate-600 uppercase font-semibold">
+                    {t('hr.payroll.cameroonTaxRates.fne')}
+                  </p>
+                  <p className="text-2xl font-bold mt-2">
+                    {((config.fneRate || 0.01) * 100).toFixed(2)}%
+                  </p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <p className="text-sm text-slate-600 uppercase font-semibold">
+                    {t('hr.payroll.cameroonTaxRates.cnpsCap')}
+                  </p>
+                  <p className="text-2xl font-bold mt-2">
+                    {(config.cnpsCap || 750000).toLocaleString('fr-FR')} FCFA
+                  </p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <p className="text-sm text-slate-600 uppercase font-semibold">
+                    {t('hr.payroll.cameroonTaxRates.professionalExpense')}
+                  </p>
+                  <p className="text-2xl font-bold mt-2">
+                    {((config.professionalExpenseRate || 0.30) * 100).toFixed(2)}%
+                  </p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <p className="text-sm text-slate-600 uppercase font-semibold">
+                    {t('hr.payroll.cameroonTaxRates.fixedAbatement')}
+                  </p>
+                  <p className="text-2xl font-bold mt-2">
+                    {(config.fixedAbatementAnnual || 500000).toLocaleString('fr-FR')} FCFA
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4">
+                <p className="text-sm font-semibold text-slate-900 mb-2">
+                  {t('hr.payroll.cameroonTaxRates.riskRates')}
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-slate-50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-slate-600 font-semibold">Groupe A</p>
+                    <p className="text-lg font-bold mt-1">
+                      {((config.riskGroupARate || 0.0175) * 100).toFixed(2)}%
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-slate-600 font-semibold">Groupe B</p>
+                    <p className="text-lg font-bold mt-1">
+                      {((config.riskGroupBRate || 0.025) * 100).toFixed(2)}%
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-slate-600 font-semibold">Groupe C</p>
+                    <p className="text-lg font-bold mt-1">
+                      {((config.riskGroupCRate || 0.05) * 100).toFixed(2)}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setCameroonTaxModalOpen(true)}
+                disabled={saving}
+                className="mt-4 px-4 py-2 bg-[#c6e911] text-slate-800 rounded-lg font-semibold hover:bg-[#adc40f] transition-colors disabled:opacity-50"
+              >
+                {t('common.edit')}
+              </button>
+            </div>
+
             {/* Leave Entitlements */}
             <div className="border border-slate-200 rounded-lg p-4">
               <h4 className="font-semibold text-slate-900 mb-4">
-                {t('payroll.modal.updateLeaveTitle')}
+                {t('hr.payroll.modal.updateLeaveTitle')}
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {(config.leaveEntitlements || [
@@ -305,10 +423,10 @@ const PayrollScaleManagement: React.FC = () => {
                 ]).map((leave, idx) => (
                   <div key={idx} className="bg-slate-50 rounded-lg p-4">
                     <p className="text-sm text-slate-600">
-                      {leave.type} {leave.isPaid ? `(${t('payroll.form.paid')})` : `(${t('payroll.form.unpaid')})`}
+                      {leave.type} {leave.isPaid ? `(${t('hr.payroll.form.paid')})` : `(${t('hr.payroll.form.unpaid')})`}
                     </p>
                     <p className="text-2xl font-bold mt-2">
-                      {leave.daysPerYear} {t('payroll.form.daysPerYear')}
+                      {leave.daysPerYear} {t('hr.payroll.form.daysPerYear')}
                     </p>
                   </div>
                 ))}
@@ -330,7 +448,7 @@ const PayrollScaleManagement: React.FC = () => {
         <CardBody>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-700">
-              ℹ️ <strong>{t('payroll.infoBox.title')}:</strong> {t('payroll.infoBoxText')}
+              ℹ️ <strong>{t('hr.payroll.infoBox.title')}:</strong> {t('hr.payroll.infoBoxText')}
             </p>
           </div>
         </CardBody>
@@ -386,6 +504,22 @@ const PayrollScaleManagement: React.FC = () => {
             { type: t('hr.leaveType.paternity'), daysPerYear: 3, isPaid: true },
           ]
         }
+        isLoading={saving}
+      />
+
+      <CameroonTaxRatesModal
+        isOpen={cameroonTaxModalOpen}
+        onClose={() => setCameroonTaxModalOpen(false)}
+        onSave={handleSaveCameroonTax}
+        cfcEmployeeRate={config.cfcEmployeeRate || 0.01}
+        cfcEmployerRate={config.cfcEmployerRate || 0.015}
+        fneRate={config.fneRate || 0.01}
+        cnpsCap={config.cnpsCap || 750000}
+        professionalExpenseRate={config.professionalExpenseRate || 0.30}
+        fixedAbatementAnnual={config.fixedAbatementAnnual || 500000}
+        riskGroupARate={config.riskGroupARate || 0.0175}
+        riskGroupBRate={config.riskGroupBRate || 0.025}
+        riskGroupCRate={config.riskGroupCRate || 0.05}
         isLoading={saving}
       />
     </div>

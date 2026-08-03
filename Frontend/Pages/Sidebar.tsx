@@ -363,9 +363,11 @@ const Sidebar: React.FC = () => {
       <div className={sidebarClasses}>
         {/* ── Logo ── */}
         <div className={`flex items-center justify-center transition-all duration-300 border-b border-white/10 bg-white/5 backdrop-blur-sm ${isSidebarCollapsed ? 'p-3' : 'p-4'}`}>
-          <div className={`bg-white rounded-lg p-2 transition-all duration-300 ${isSidebarCollapsed ? 'h-10 w-10' : 'h-16 w-16'}`}>
-            <IconGmoLogo className="w-full h-full" />
-          </div>
+          <img 
+            src="/CaapMedia.png" 
+            alt="CaapMedia Logo" 
+            className={`rounded-lg transition-all duration-300 ${isSidebarCollapsed ? 'h-10 w-10' : 'h-16 w-16'}`}
+          />
         </div>
 
         {/* ── Filiale ── */}

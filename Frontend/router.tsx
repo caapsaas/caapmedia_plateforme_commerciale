@@ -27,6 +27,7 @@ import Production from './Pages/Production';
 import Maintenance from './components/maintenance/Maintenance';
 import Equipements from './Pages/Equipements';
 import SecuritySettings from './Pages/SecuritySettings';
+import PayrollSigningPage from './Pages/PayrollSigningPage';
 import { getDefaultViewForRole, ANALYTICS_ALLOWED_ROLES } from './utils/roleViews';
 
 
@@ -218,6 +219,12 @@ const hrHistoryRoute = createRoute({
   component: AttendanceHistory,
 });
 
+const hrSigningRoute = createRoute({
+  getParentRoute: () => hrRoute,
+  path: '/signing',
+  component: PayrollSigningPage,
+});
+
 const financeRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/finance', component: Finance });
 const accountingRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/accounting', component: Accounting });
 const accountingAccessRequestsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/accounting-access-requests', component: AccountingAccessAdmin });
@@ -242,9 +249,11 @@ const routeTree = rootRoute.addChildren([
     accountingRoute,
     accountingAccessRequestsRoute,
     configurationRoute,
-    hrRoute,
-    hrCardsRoute,
-    hrHistoryRoute,
+    hrRoute.addChildren([
+      hrCardsRoute,
+      hrHistoryRoute,
+      hrSigningRoute,
+    ]),
     secretariatRoute,
     productionRoute,
     maintenanceRoute,

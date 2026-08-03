@@ -14,6 +14,7 @@ import {
   IsUUID,
   IsNumber,
   ValidateNested,
+  ValidateIf,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
@@ -203,13 +204,13 @@ export class CreateEmployeeDto {
   @IsEnum(PaymentMethod)
   paymentMethod: PaymentMethod;
 
-  // Banking Information (optional)
-  @IsOptional()
+  // Banking Information (only required if paymentMethod is BANK_TRANSFER)
+  @ValidateIf((o) => o.paymentMethod === PaymentMethod.BANK_TRANSFER)
   @IsString()
   @Length(1, 100)
   bankName?: string;
 
-  @IsOptional()
+  @ValidateIf((o) => o.paymentMethod === PaymentMethod.BANK_TRANSFER)
   @IsString()
   bankAccountNumber?: string;
 
