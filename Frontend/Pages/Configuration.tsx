@@ -11,12 +11,13 @@ import TreasuryAccountManagement from '../components/configuration/TreasuryAccou
 import EquipmentCostManagement from '../components/configuration/EquipmentCostManagement';
 import CommercialParamsManagement from '../components/configuration/CommercialParamsManagement';
 import ProductionWorkflowManagement from '../components/configuration/ProductionWorkflowManagement';
+import PayrollScaleManagement from '../components/configuration/PayrollScaleManagement';
 import { useI18n } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
 import CrmListSkeleton from '../components/ui/CrmListSkeleton';
 
-type ConfigGroup = 'catalogue' | 'users' | 'suppliers' | 'clients' | 'taxes' | 'treasury' | 'production';
+type ConfigGroup = 'catalogue' | 'users' | 'suppliers' | 'clients' | 'taxes' | 'treasury' | 'production' | 'payroll';
 type CatalogueSub = 'products' | 'units' | 'services' | 'referenceLists';
 type ProductionSub = 'equipmentCosts' | 'commercialParams' | 'productionWorkflows';
 
@@ -69,6 +70,7 @@ const Configuration: React.FC = () => {
             case 'clients':   return <ClientManagement />;
             case 'taxes':     return <TaxManagement />;
             case 'treasury':  return <TreasuryAccountManagement subsidiary={subsidiary} />;
+            case 'payroll':   return <PayrollScaleManagement />;
             case 'production':
                 switch (productionSub) {
                     case 'equipmentCosts':      return <EquipmentCostManagement />;
@@ -101,6 +103,7 @@ const Configuration: React.FC = () => {
                             <TabButton label={t('configuration.clientManagement')}{...group('clients')} />
                             <TabButton label={t('configuration.taxes')}          {...group('taxes')} />
                             <TabButton label={t('configuration.treasury')}       {...group('treasury')} />
+                            <TabButton label={t('hr.payroll.title')}             {...group('payroll')} />
                             {isSuperAdmin && (
                                 <>
                                     <div className="w-px bg-slate-300 mx-1 self-stretch" />

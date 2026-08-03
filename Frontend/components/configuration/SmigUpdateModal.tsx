@@ -40,10 +40,12 @@ const SmigUpdateModal: React.FC<SmigUpdateModalProps> = ({
     }
 
     try {
-      await onSave({
+      const payload = {
         minWage: value,
         minWageEffectiveDate: effectiveDate,
-      });
+      };
+      console.log('Sending payload to backend:', payload);
+      await onSave(payload);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'));
@@ -58,9 +60,9 @@ const SmigUpdateModal: React.FC<SmigUpdateModalProps> = ({
         <form onSubmit={handleSubmit}>
           <div className="p-6">
             <h3 className="text-lg font-bold text-slate-900">
-              {t('payroll.modal.updateSmigTitle')}
+              {t('hr.payroll.modal.updateSmigTitle')}
             </h3>
-            <p className="text-sm text-slate-600 mt-2">{t('payroll.modal.updateSmigDesc')}</p>
+            <p className="text-sm text-slate-600 mt-2">{t('hr.payroll.modal.updateSmigDesc')}</p>
 
             {error && (
               <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -71,7 +73,7 @@ const SmigUpdateModal: React.FC<SmigUpdateModalProps> = ({
             <div className="mt-6 space-y-4">
               <div>
                 <label htmlFor="minWage" className="block text-sm font-medium text-slate-700">
-                  {t('payroll.form.minWage')} (FCFA)
+                  {t('hr.payroll.form.minWage')} (FCFA)
                 </label>
                 <input
                   type="number"
@@ -88,7 +90,7 @@ const SmigUpdateModal: React.FC<SmigUpdateModalProps> = ({
 
               <div>
                 <label htmlFor="effectiveDate" className="block text-sm font-medium text-slate-700">
-                  {t('payroll.form.effectiveDate')}
+                  {t('hr.payroll.form.effectiveDate')}
                 </label>
                 <input
                   type="date"

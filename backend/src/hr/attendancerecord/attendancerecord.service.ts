@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import {
   CreateAttendanceRecordDto,
@@ -17,11 +22,12 @@ interface CreateAttendanceFromScanPayload {
   attendanceDate: Date;
   arrivalTime: Date;
   status: AttendanceStatus;
-  qrCodeToken?: string;
+  qrCodeToken: string;
   arrivalLatitude?: number;
   arrivalLongitude?: number;
   accuracyMeters?: number;
   isGeolocationValid?: boolean;
+  signature?: string;
 }
 
 interface CompleteAttendanceFromScanPayload {
@@ -41,7 +47,7 @@ export class AttendanceRecordService {
   constructor(private readonly prisma: PrismaService) {}
 
   // ------------------------------------------------------------------
-  // Création d'une présence
+  // Création d'une présence (classique)
   // ------------------------------------------------------------------
   async create(
     createAttendanceRecordDto: CreateAttendanceRecordDto,
@@ -49,6 +55,26 @@ export class AttendanceRecordService {
     subsidiaryId: string,
   ): Promise<AttendanceRecord> {
     this.logger.log(`Creating attendance record for employee ${employeeId}`);
+
+    // Empêche un 2e create le même jour pour le même employé
+    const existingToday = await this.findTodayRecord(employeeId, subsidiaryId);
+    if (existingToday) {
+      throw new BadRequestException(
+        "Un enregistrement de présence existe déjà pour aujourd'hui",
+      );
+    }
+
+    // Empêche de réutiliser un token déjà lié à un autre enregistrement
+    if (createAttendanceRecordDto.qrCodeToken) {
+      const existingToken = await this.findByQrToken(
+        createAttendanceRecordDto.qrCodeToken,
+      );
+      if (existingToken) {
+        throw new BadRequestException(
+          'Ce QR code a déjà été utilisé pour un pointage',
+        );
+      }
+    }
 
     return this.prisma.attendanceRecord.create({
       data: {
@@ -63,8 +89,6 @@ export class AttendanceRecordService {
         breakStartTime: createAttendanceRecordDto.breakStartTime ?? null,
         breakEndTime: createAttendanceRecordDto.breakEndTime ?? null,
         signature: createAttendanceRecordDto.signature ?? null,
-
-        // Géolocalisation (informatif uniquement)
         arrivalLatitude: createAttendanceRecordDto.arrivalLatitude ?? null,
         arrivalLongitude: createAttendanceRecordDto.arrivalLongitude ?? null,
         departureLatitude: createAttendanceRecordDto.departureLatitude ?? null,
@@ -72,8 +96,6 @@ export class AttendanceRecordService {
         isGeolocationValid:
           createAttendanceRecordDto.isGeolocationValid ?? false,
         accuracyMeters: createAttendanceRecordDto.accuracyMeters ?? null,
-
-        // Token QR (important pour le filtre qrOnly)
         qrCodeToken: createAttendanceRecordDto.qrCodeToken ?? null,
       },
       include: {
@@ -84,25 +106,150 @@ export class AttendanceRecordService {
   }
 
   // ------------------------------------------------------------------
+  // ★ Création depuis scan QR (1er scan = ARRIVÉE)
+  // ------------------------------------------------------------------
+  async createFromScan(
+    payload: CreateAttendanceFromScanPayload,
+  ): Promise<AttendanceRecord> {
+    this.logger.log(
+      `createFromScan - employee ${payload.employeeId}, token ${payload.qrCodeToken}`,
+    );
+
+    // 1) Token déjà utilisé ?
+    const byToken = await this.findByQrToken(payload.qrCodeToken);
+    if (byToken) {
+      // Si arrivée déjà faite et pas de départ → ce n'est pas un create, c'est un checkout
+      if (byToken.arrivalTime && !byToken.departureTime) {
+        throw new BadRequestException(
+          'CHECKOUT_REQUIRED', // le controller peut intercepter et faire le départ
+        );
+      }
+      throw new BadRequestException(
+        "Ce QR code a déjà été utilisé pour un pointage complet aujourd'hui",
+      );
+    }
+
+    // 2) Présence déjà existante aujourd'hui pour cet employé ?
+    const existingToday = await this.findTodayRecord(
+      payload.employeeId,
+      payload.subsidiaryId,
+    );
+    if (existingToday) {
+      if (existingToday.arrivalTime && !existingToday.departureTime) {
+        throw new BadRequestException('CHECKOUT_REQUIRED');
+      }
+      throw new BadRequestException(
+        "Un enregistrement complet existe déjà pour aujourd'hui",
+      );
+    }
+
+    // 3) Création (1er scan)
+    return this.prisma.attendanceRecord.create({
+      data: {
+        id: generateId(ID_PREFIXES.ATTENDANCE),
+        employeeId: payload.employeeId,
+        subsidiaryId: payload.subsidiaryId,
+        employeeName: payload.employeeName,
+        attendanceDate: payload.attendanceDate,
+        arrivalTime: payload.arrivalTime,
+        status: payload.status,
+        qrCodeToken: payload.qrCodeToken, // unique → 1 seul enregistrement pour ce token
+        signature: payload.signature ?? null,
+        arrivalLatitude: payload.arrivalLatitude ?? null,
+        arrivalLongitude: payload.arrivalLongitude ?? null,
+        accuracyMeters: payload.accuracyMeters ?? null,
+        isGeolocationValid: payload.isGeolocationValid ?? false,
+      },
+      include: {
+        employee: true,
+        subsidiary: true,
+      },
+    });
+  }
+
+  // ------------------------------------------------------------------
+  // ★ Complétion depuis scan QR (2e scan = DÉPART)
+  //    → on UPDATE le même enregistrement (même qrCodeToken)
+  // ------------------------------------------------------------------
+  async completeFromScan(
+    payload: CompleteAttendanceFromScanPayload,
+  ): Promise<AttendanceRecord> {
+    this.logger.log(`completeFromScan - record ${payload.recordId}`);
+
+    const record = await this.findOne(payload.recordId);
+
+    if (!record.arrivalTime) {
+      throw new BadRequestException(
+        "Impossible de faire un départ : aucune arrivée enregistrée",
+      );
+    }
+
+    if (record.departureTime) {
+      throw new BadRequestException(
+        "Un départ a déjà été enregistré pour cet enregistrement",
+      );
+    }
+
+    return this.prisma.attendanceRecord.update({
+      where: { id: payload.recordId },
+      data: {
+        departureTime: payload.departureTime,
+        status: payload.status,
+        departureLatitude: payload.departureLatitude ?? null,
+        departureLongitude: payload.departureLongitude ?? null,
+        accuracyMeters: payload.accuracyMeters ?? record.accuracyMeters,
+        isGeolocationValid:
+          payload.isGeolocationValid ?? record.isGeolocationValid,
+        // ⚠️ on ne touche PAS à qrCodeToken → il reste unique et identifie la journée
+      },
+      include: {
+        employee: true,
+        subsidiary: true,
+      },
+    });
+  }
+
+  // ------------------------------------------------------------------
+  // Trouver un enregistrement par token QR (clé unique)
+  // ------------------------------------------------------------------
+  async findByQrToken(qrCodeToken: string): Promise<AttendanceRecord | null> {
+    return this.prisma.attendanceRecord.findFirst({
+      where: { qrCodeToken },
+    });
+  }
+
+  // ------------------------------------------------------------------
   // Vérifier s'il existe déjà une présence aujourd'hui
   // ------------------------------------------------------------------
   async findTodayRecord(
     employeeId: string,
     subsidiaryId: string,
   ): Promise<AttendanceRecord | null> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
 
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    // Plage "aujourd'hui" en UTC (adapte si tu es en timezone fixe Afrique/…)
+    const startOfDay = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0),
+    );
+    const endOfDay = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() + 1,
+        0,
+        0,
+        0,
+        0,
+      ),
+    );
 
     return this.prisma.attendanceRecord.findFirst({
       where: {
         employeeId,
         subsidiaryId,
         attendanceDate: {
-          gte: today,
-          lt: tomorrow,
+          gte: startOfDay,
+          lt: endOfDay,
         },
       },
     });
@@ -215,9 +362,15 @@ export class AttendanceRecordService {
       endDate,
     );
 
-    const present = records.filter((r) => r.status === AttendanceStatus.PRESENT).length;
-    const absent = records.filter((r) => r.status === AttendanceStatus.ABSENT).length;
-    const late = records.filter((r) => r.status === AttendanceStatus.LATE).length;
+    const present = records.filter(
+      (r) => r.status === AttendanceStatus.PRESENT,
+    ).length;
+    const absent = records.filter(
+      (r) => r.status === AttendanceStatus.ABSENT,
+    ).length;
+    const late = records.filter(
+      (r) => r.status === AttendanceStatus.LATE,
+    ).length;
 
     return {
       year,
@@ -230,7 +383,7 @@ export class AttendanceRecordService {
   }
 
   // ------------------------------------------------------------------
-  // Autres méthodes (inchangées)
+  // Autres méthodes
   // ------------------------------------------------------------------
   async findAll(subsidiaryId: string, paginationQuery: PaginationQueryDto = {}) {
     const where: Prisma.AttendanceRecordWhereInput = { subsidiaryId };

@@ -34,19 +34,6 @@
     "openMenu": "Ouvrir le menu",
     "changeRole": "Changer de rôle"
   },
-  "filter": {
-    "client": "Client",
-    "noResults": "Aucun résultat"
-  },
-  "invoice": {
-    "subtotal": "Sous-total",
-    "tax": "Taxe"
-  },
-  "cashRegister": {
-    "clientSection": {
-      "selectAdd": "Sélectionner ou ajouter"
-    }
-  },
   "common": {
     "cancel": "Annuler",
     "save": "Enregistrer",
@@ -430,7 +417,7 @@
       "documentsSection": {
         "title": "Documents",
         "subtitle": "Documentation de l'employé",
-        "uploadMessage": "📄 La fonctionnalité de téléchargement de documents sera implémentée ici"
+        "uploadMessage": "La fonctionnalité de téléchargement de documents sera implémentée ici"
       },
       "leavesSection": {
         "title": "Droits aux congés",
@@ -438,19 +425,6 @@
         "tabBalance": "Soldes",
         "tabRecords": "Historique des congés"
       }
-    },
-    "leaves": {
-      "leaveHistory": "Historique des congés",
-      "addLeaveRecord": "Enregistrer un congé",
-      "noRecords": "Aucun enregistrement de congé",
-      "daysHelper": "Nombre de jours de congé",
-      "unpaidHelperText": "Jours de congé non payés",
-      "balanceInfo": "Solde des congés disponibles",
-      "leaveType": "Type de congé",
-      "days": "Jours",
-      "startDate": "Date de début",
-      "endDate": "Date de fin",
-      "configureBalance": "Configurer le solde des congés"
     },
     "documents": {
       "title": "Documents",
@@ -461,7 +435,7 @@
       "expiryDate": "Date d'expiration",
       "status": "Statut",
       "selectType": "Sélectionner un type",
-      "noDocuments": "Aucun document ajouté",
+      "noDocuments": "Aucun document n'a été ajouté pour cet employé",
       "contract": "Contrat de travail",
       "contractDesc": "Contrat d'emploi ou accord",
       "idCard": "Carte d'identité / CNI",
@@ -469,10 +443,9 @@
       "workPermit": "Permis de travail",
       "workPermitDesc": "Permis de travail ou visa",
       "diplomas": "Diplômes et certifications",
-      "uploaded": "✓ Importé",
+      "uploaded": "Importé",
       "download": "Télécharger",
       "remove": "Supprimer",
-      "noDocuments": "Aucun document n'a été ajouté pour cet employé",
       "removeDocument": "Retirer ce document",
       "dragOrClick": "Glissez-déposez votre fichier ici, ou cliquez pour sélectionner",
       "dragDrop": "Glissez-déposez un fichier ou cliquez",
@@ -481,7 +454,7 @@
       "addDiploma": "Ajouter un diplôme",
       "diplomasTitle": "Diplômes et qualifications",
       "diplomasHelper": "Vous pouvez ajouter plusieurs diplômes",
-      "uploaddedDiplomas": "Diplômes ajoutés",
+      "uploadedDiplomas": "Diplômes ajoutés",
       "fileSelected": "Fichier sélectionné",
       "toUpload": "À uploader",
       "mainDocuments": "Documents principaux",
@@ -594,7 +567,63 @@
       "performanceReviews": "Évaluations de performance",
       "reviewer": "Évaluateur",
       "rating": "Note"
-    }
+    },
+    "payroll": {
+      "signingTitle": "Signature",
+      "status": {
+        "pending": "En attente"
+      },
+      "title": "Barèmes de paie",
+      "taxBracketsDesc": "Configurez les paramètres fiscaux et sociaux pour le calcul de la paie",
+      "form": {
+        "minWage": "SMIG",
+        "effectiveDate": "Date d'effet",
+        "employeeRate": "Taux employé",
+        "employerRate": "Taux employeur",
+        "minAmount": "Min",
+        "maxAmount": "Max",
+        "rate": "Taux",
+        "description": "Description",
+        "above": "Au-dessus de",
+        "paid": "Payé",
+        "unpaid": "Non payé",
+        "daysPerYear": "jours/an",
+        "leaveType": "Type de congé",
+        "isPaid": "Payé"
+      },
+      "modal": {
+        "updateSmigTitle": "Mettre à jour le SMIG",
+        "updateSmigDesc": "Salaire minimum interprofessionnel garanti",
+        "updateCnpsTitle": "Mettre à jour les taux CNPS",
+        "updateCnpsDesc": "Taux de la Caisse Nationale de Prévoyance Sociale",
+        "updateIrppTitle": "Tranches d'IRPP",
+        "updateIrppDesc": "Tranches d'impôt sur le revenu",
+        "updateLeaveTitle": "Droits aux congés",
+        "updateLeaveDesc": "Configurer les droits aux congés et le statut payé/non payé"
+      },
+      "cameroonTaxRates": {
+        "title": "Paramètres fiscaux camerounais",
+        "cfcEmployee": "CFC Employé",
+        "cfcEmployer": "CFC Employeur",
+        "fne": "FNE",
+        "cnpsCap": "Plafond CNPS",
+        "professionalExpense": "Abattement professionnel",
+        "fixedAbatement": "Abattement fixe annuel",
+        "riskRates": "Taux d'accident du travail"
+      },
+      "success": {
+        "updated": "Configuration mise à jour avec succès"
+      },
+      "error": {
+        "update": "Erreur lors de la mise à jour de la configuration",
+        "invalidBracket": "Tranche d'impôt invalide"
+      },
+      "infoBox": {
+        "title": "Information",
+        "text": "Ces paramètres sont utilisés pour le calcul automatique de la paie. Modifiez-les uniquement si la législation change."
+      }
+    },
+    "employeeLabel": "Employé"
   },
   "pnl": {
     "title": "Compte de Résultat",
@@ -644,19 +673,6 @@
       "VALIDATED": "Validé",
       "CANCELLED": "Annulé"
     }
-  },
-  "newOrder": {
-    "productCatalog": "Catalogue des produits",
-    "searchPlaceholder": "Rechercher un produit...",
-    "price": "Prix",
-    "product": "Produit",
-    "quantity": "Quantité",
-    "addToCart": "Ajouter au panier",
-    "orderSummary": "Résumé de la commande",
-    "cartEmpty": "Panier vide",
-    "total": "Total",
-    "submitOrder": "Placer la commande",
-    "orderPlacedSuccess": "Commande créée avec succès !"
   },
   "bonDeCommande": {
     "title": "Bon de Commande",
@@ -855,7 +871,7 @@
     "deleteError": "Impossible de supprimer la machine.",
     "deleteConfirm": {
       "title": "Supprimer la machine",
-      "message": "Voulez-vous supprimer « {{name}} » ? Cette action est irréversible."
+      "message": "Voulez-vous supprimer « {{name}} » ? Cette action est irréversible."
     },
     "statusLabel": "Statut"
   },
@@ -946,7 +962,8 @@
     "paymentMethod_WAVE": "Wave",
     "paymentMethod_MOBILE_MONEY": "Mobile Money",
     "paymentMethod_PAYCAAP": "PayCaap",
-    "paymentMethod_CUSTOMER_CREDIT": "Crédit client"
+    "paymentMethod_CUSTOMER_CREDIT": "Crédit client",
+    "price": "Prix"
   },
   "payroll": {
     "title": "Barèmes de paie",
@@ -963,6 +980,16 @@
     "type": "Type",
     "cameroonLaw": "Références légales",
     "taxBracketsDesc": "Gestion des tranches d'imposition sur les revenus",
+    "signingTitle": "Signature des fiches de paie",
+    "noPendingPayrolls": "Aucune fiche de paie en attente de signature",
+    "sign": "Signer",
+    "period": "Période",
+    "status": {
+      "pending": "En attente",
+      "paid": "Payée"
+    },
+    "signatureSuccess": "Signature enregistrée avec succès",
+    "signatureError": "Erreur lors de la signature",
     "modal": {
       "updateSmigTitle": "Mettre à jour le Salaire Minimum (SMIG)",
       "updateSmigDesc": "Mettre à jour le salaire minimum garanti au Cameroun",

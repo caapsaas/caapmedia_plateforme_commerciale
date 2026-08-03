@@ -31,9 +31,9 @@ const IrppBracketsModal: React.FC<IrppBracketsModalProps> = ({
     const bracket = updated[index] as any;
 
     if (field === 'minSalary' || field === 'maxSalary' || field === 'minAmount' || field === 'maxAmount') {
-      bracket[field] = parseFloat(value as string) || 0;
+      bracket[field] = Number(value) || 0;
     } else if (field === 'rate') {
-      bracket[field] = parseFloat(value as string) / 100 || 0;
+      bracket[field] = Number(value) || 0;
     } else {
       bracket[field] = value;
     }
@@ -44,22 +44,45 @@ const IrppBracketsModal: React.FC<IrppBracketsModalProps> = ({
     e.preventDefault();
     setError('');
 
+    console.log('Submitting brackets:', localBrackets);
+
     if (localBrackets.length === 0) {
-      setError(t('payroll.errors.emptyBrackets'));
+      setError(t('hr.payroll.errors.emptyBrackets'));
       return;
     }
 
     for (const bracket of localBrackets) {
-      if (bracket.minAmount < 0 || bracket.rate < 0 || bracket.rate > 1) {
-        setError(t('payroll.errors.invalidBracket'));
+      const minSalary = Number((bracket as any).minSalary ?? (bracket as any).minAmount ?? 0);
+      const maxSalary = (bracket as any).maxSalary !== null ? Number((bracket as any).maxSalary ?? (bracket as any).maxAmount) : null;
+      const rate = Number((bracket as any).rate ?? 0);
+
+      console.log('Validating bracket:', { minSalary, maxSalary, rate });
+
+      if (minSalary < 0 || rate < 0 || rate > 100) {
+        console.error('Invalid bracket values:', { minSalary, maxSalary, rate });
+        setError(t('hr.payroll.errors.invalidBracket'));
+        return;
+      }
+      if (maxSalary !== null && maxSalary < minSalary) {
+        console.error('Max salary < min salary:', { minSalary, maxSalary });
+        setError('Le montant maximum doit être supérieur au montant minimum');
         return;
       }
     }
 
     try {
-      await onSave({ irppBrackets: localBrackets });
+      // Convert rate from percentage (0-100) to decimal (0-1) for backend
+      // Also ensure all numeric fields are numbers, not strings
+      const bracketsForBackend = localBrackets.map((bracket: any) => ({
+        minSalary: Number(bracket.minSalary ?? bracket.minAmount ?? 0),
+        maxSalary: bracket.maxSalary !== null ? Number(bracket.maxSalary ?? bracket.maxAmount) : null,
+        rate: (Number(bracket.rate || 0)) / 100,
+        deductible: bracket.deductible !== undefined ? Number(bracket.deductible) : undefined,
+      }));
+      await onSave({ irppBrackets: bracketsForBackend });
       onClose();
     } catch (err) {
+      console.error('Error saving IRPP brackets:', err);
       setError(err instanceof Error ? err.message : t('common.error'));
     }
   };
@@ -72,9 +95,9 @@ const IrppBracketsModal: React.FC<IrppBracketsModalProps> = ({
         <form onSubmit={handleSubmit}>
           <div className="p-6">
             <h3 className="text-lg font-bold text-slate-900">
-              {t('payroll.modal.updateIrppTitle')}
+              {t('hr.payroll.modal.updateIrppTitle')}
             </h3>
-            <p className="text-sm text-slate-600 mt-2">{t('payroll.modal.updateIrppDesc')}</p>
+            <p className="text-sm text-slate-600 mt-2">{t('hr.payroll.modal.updateIrppDesc')}</p>
 
             {error && (
               <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -87,9 +110,9 @@ const IrppBracketsModal: React.FC<IrppBracketsModalProps> = ({
                 <table className="w-full text-sm">
                   <thead className="bg-slate-100">
                     <tr>
-                      <th className="px-4 py-2 text-left font-semibold">{t('payroll.form.minAmount')}</th>
-                      <th className="px-4 py-2 text-left font-semibold">{t('payroll.form.maxAmount')}</th>
-                      <th className="px-4 py-2 text-left font-semibold">{t('payroll.form.rate')}</th>
+                      <th className="px-4 py-2 text-left font-semibold">{t('hr.payroll.form.minAmount')}</th>
+                      <th className="px-4 py-2 text-left font-semibold">{t('hr.payroll.form.maxAmount')}</th>
+                      <th className="px-4 py-2 text-left font-semibold">{t('hr.payroll.form.rate')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -125,11 +148,8 @@ const IrppBracketsModal: React.FC<IrppBracketsModalProps> = ({
                             <div className="flex items-center">
                               <input
                                 type="number"
-                                value={typeof rateVal === 'number' ? (rateVal > 1 ? rateVal : rateVal * 100) : 0}
-                                onChange={(e) => {
-                                  const val = parseFloat(e.target.value);
-                                  handleBracketChange(idx, 'rate', val > 1 ? val / 100 : val);
-                                }}
+                                value={rateVal}
+                                onChange={(e) => handleBracketChange(idx, 'rate', e.target.value)}
                                 min="0"
                                 max="100"
                                 step="0.1"

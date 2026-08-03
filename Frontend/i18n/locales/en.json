@@ -34,19 +34,6 @@
     "openMenu": "Open menu",
     "changeRole": "Change role"
   },
-  "filter": {
-    "client": "Client",
-    "noResults": "No results"
-  },
-  "invoice": {
-    "subtotal": "Subtotal",
-    "tax": "Tax"
-  },
-  "cashRegister": {
-    "clientSection": {
-      "selectAdd": "Select or Add"
-    }
-  },
   "common": {
     "cancel": "Cancel",
     "save": "Save",
@@ -57,7 +44,7 @@
     "version": "Version",
     "print": "Print",
     "export": "Export",
-    "exportPdf": "Export PDF",
+    "exportPdf": "Export to PDF",
     "loading": "Loading...",
     "saving": "Saving...",
     "accessDenied": "Access denied",
@@ -430,7 +417,7 @@
       "documentsSection": {
         "title": "Documents",
         "subtitle": "Employee documentation",
-        "uploadMessage": "📄 Document upload functionality would be implemented here"
+        "uploadMessage": "Document upload functionality would be implemented here"
       },
       "leavesSection": {
         "title": "Leave Entitlements",
@@ -438,19 +425,6 @@
         "tabBalance": "Balance",
         "tabRecords": "Leave History"
       }
-    },
-    "leaves": {
-      "leaveHistory": "Leave History",
-      "addLeaveRecord": "Record Leave",
-      "noRecords": "No leave records",
-      "daysHelper": "Number of leave days",
-      "unpaidHelperText": "Unpaid leave days",
-      "balanceInfo": "Available leave balance",
-      "leaveType": "Leave Type",
-      "days": "Days",
-      "startDate": "Start Date",
-      "endDate": "End Date",
-      "configureBalance": "Configure Leave Balance"
     },
     "documents": {
       "title": "Documents",
@@ -461,7 +435,7 @@
       "expiryDate": "Expiry Date",
       "status": "Status",
       "selectType": "Select a type",
-      "noDocuments": "No documents added",
+      "noDocuments": "No documents have been added for this employee",
       "contract": "Employment Contract",
       "contractDesc": "Employment contract or agreement",
       "idCard": "ID Card / National ID",
@@ -469,11 +443,10 @@
       "workPermit": "Work Permit",
       "workPermitDesc": "Work permit or visa",
       "diplomas": "Diplomas & Certifications",
-      "uploaded": "✓ Uploaded",
+      "uploaded": "Uploaded",
       "download": "Download",
       "remove": "Remove",
       "removeDocument": "Remove this document",
-      "noDocuments": "No documents have been added for this employee",
       "dragOrClick": "Drag and drop your file here, or click to select",
       "dragDrop": "Drag and drop a file or click",
       "selectFile": "Select",
@@ -594,7 +567,63 @@
       "performanceReviews": "Performance Reviews",
       "reviewer": "Reviewer",
       "rating": "Rating"
-    }
+    },
+    "payroll": {
+      "signingTitle": "Signing",
+      "status": {
+        "pending": "Pending"
+      },
+      "title": "Payroll Scales",
+      "taxBracketsDesc": "Configure tax and social parameters for payroll calculation",
+      "form": {
+        "minWage": "Minimum Wage",
+        "effectiveDate": "Effective Date",
+        "employeeRate": "Employee Rate",
+        "employerRate": "Employer Rate",
+        "minAmount": "Min",
+        "maxAmount": "Max",
+        "rate": "Rate",
+        "description": "Description",
+        "above": "Above",
+        "paid": "Paid",
+        "unpaid": "Unpaid",
+        "daysPerYear": "days/year",
+        "leaveType": "Leave Type",
+        "isPaid": "Is Paid"
+      },
+      "modal": {
+        "updateSmigTitle": "Update SMIG",
+        "updateSmigDesc": "Guaranteed Interprofessional Minimum Wage",
+        "updateCnpsTitle": "Update CNPS Rates",
+        "updateCnpsDesc": "National Social Insurance Fund rates",
+        "updateIrppTitle": "IRPP Brackets",
+        "updateIrppDesc": "Income tax brackets",
+        "updateLeaveTitle": "Leave Entitlements",
+        "updateLeaveDesc": "Configure leave entitlements and paid/unpaid status"
+      },
+      "cameroonTaxRates": {
+        "title": "Cameroon Tax Parameters",
+        "cfcEmployee": "CFC Employee",
+        "cfcEmployer": "CFC Employer",
+        "fne": "FNE",
+        "cnpsCap": "CNPS Cap",
+        "professionalExpense": "Professional Expense",
+        "fixedAbatement": "Fixed Annual Abatement",
+        "riskRates": "Work Accident Rates"
+      },
+      "success": {
+        "updated": "Configuration updated successfully"
+      },
+      "error": {
+        "update": "Error updating configuration",
+        "invalidBracket": "Invalid tax bracket"
+      },
+      "infoBox": {
+        "title": "Information",
+        "text": "These parameters are used for automatic payroll calculation. Modify only if legislation changes."
+      }
+    },
+    "employeeLabel": "Employee"
   },
   "pnl": {
     "title": "Profit & Loss Statement",
@@ -644,19 +673,6 @@
       "VALIDATED": "Validated",
       "CANCELLED": "Cancelled"
     }
-  },
-  "newOrder": {
-    "productCatalog": "Product Catalog",
-    "searchPlaceholder": "Search for a product...",
-    "price": "Price",
-    "product": "Product",
-    "quantity": "Quantity",
-    "addToCart": "Add to Cart",
-    "orderSummary": "Order Summary",
-    "cartEmpty": "Cart is empty",
-    "total": "Total",
-    "submitOrder": "Place Order",
-    "orderPlacedSuccess": "Order created successfully!"
   },
   "bonDeCommande": {
     "title": "Purchase Order",
@@ -946,7 +962,8 @@
     "paymentMethod_WAVE": "Wave",
     "paymentMethod_MOBILE_MONEY": "Mobile Money",
     "paymentMethod_PAYCAAP": "PayCaap",
-    "paymentMethod_CUSTOMER_CREDIT": "Customer credit"
+    "paymentMethod_CUSTOMER_CREDIT": "Customer credit",
+    "price": "Price"
   },
   "payroll": {
     "title": "Payroll Scales",
@@ -963,6 +980,16 @@
     "type": "Type",
     "cameroonLaw": "Legal References",
     "taxBracketsDesc": "Income tax brackets management",
+    "signingTitle": "Payroll Signature",
+    "noPendingPayrolls": "No pending payroll slips to sign",
+    "sign": "Sign",
+    "period": "Period",
+    "status": {
+      "pending": "Pending",
+      "paid": "Paid"
+    },
+    "signatureSuccess": "Signature saved successfully",
+    "signatureError": "Error during signature",
     "modal": {
       "updateSmigTitle": "Update Minimum Wage (SMIG)",
       "updateSmigDesc": "Update the minimum guaranteed salary for Cameroon",

@@ -802,6 +802,10 @@ export interface Employee {
     // Personal Information
     numberDependents?: number;
     situationMatrimony?: string;
+    // Cameroon-specific fields
+    cnpsNumber?: string;
+    categoryCodeCNPS?: string;
+    taxIdNTif?: string;
 }
 
 export enum LeaveType {
@@ -856,35 +860,70 @@ export interface AttendanceRecord {
 }
 
 export enum PayrollStatus {
-    PENDING = 'PENDING',
-    PAID = 'PAID',
+  PENDING = 'PENDING',
+  PAID = 'PAID',
+  CANCELLED = 'CANCELLED',
 }
 
 export interface PayrollRecord {
-    id: string;
-    employeeId: string;
-    employeeName: string;
-    subsidiaryId: string;
-    period: string; // e.g. "2024-07"
+  id: string;
+  employeeName: string;
+  employeeId: string;
+  subsidiaryId: string;
+
+  // Période (nouveau nom backend)
+  payrollPeriod: string; // Format YYYY-MM
+
+  // Compatibilité éventuelle avec l'ancien champ
+  period?: string;
+
+  // Rémunération
+  baseSalary?: number;
+  bonus?: number;
+  allowances?: number;
+  overtime?: number;
+  otherEarnings?: number;
+  grossSalary: number;
+
+  // Retenues salariales
+  cnpsEmployee?: number;
+  cfcEmployee?: number;
+  irpp?: number;
+  cac?: number;
+  otherDeductions?: number;
+  deductions: number;
+  netSalary: number;
+
+  // Charges patronales
+  cnpsEmployer?: number;
+  cfcEmployer?: number;
+  fne?: number;
+  totalEmployerCost?: number;
+
+  // Détail
+  deductionsDetail?: {
+    label: string;
+    amount: number;
+    type?: string;
+  }[];
+  calculationMeta?: Record<string, any>;
+
+  // Métadonnées
+  paymentDate?: string | null;
+  signature?: string | null;
+  status: PayrollStatus;
+  notes?: string | null;
+
+  createdAt?: string;
+  updatedAt?: string;
+
+  // Relation optionnelle
+  employee?: {
+    firstName: string;
+    lastName: string;
     baseSalary: number;
-    grossSalary: number;
-    bonus: number;
-    deductions: {
-        social: number;
-        tax: number;
-        absences: number;
-    };
-    calculatedDeductions?: {
-        social: number;
-        tax: number;
-        absences: number;
-    };
-    netSalary: number;
-    paymentDate: string | null;
-    status: PayrollStatus;
-    signature: string | null;
-    createdAt: string;
-    updatedAt: string;
+    bonus?: number;
+  };
 }
 
 export enum AbsenceType {

@@ -52,7 +52,7 @@ const LeaveEntitlementsModal: React.FC<LeaveEntitlementsModalProps> = ({
     }
 
     for (const entitlement of localEntitlements) {
-      if (!entitlement.type || entitlement.daysPerYear < 0) {
+      if (!entitlement.type || (typeof entitlement.daysPerYear === 'number' && entitlement.daysPerYear < 0)) {
         setError(t('payroll.errors.invalidEntitlement'));
         return;
       }
@@ -74,9 +74,9 @@ const LeaveEntitlementsModal: React.FC<LeaveEntitlementsModalProps> = ({
         <form onSubmit={handleSubmit}>
           <div className="p-6">
             <h3 className="text-lg font-bold text-slate-900">
-              {t('payroll.modal.updateLeaveTitle')}
+              {t('hr.payroll.modal.updateLeaveTitle')}
             </h3>
-            <p className="text-sm text-slate-600 mt-2">{t('payroll.modal.updateLeaveDesc')}</p>
+            <p className="text-sm text-slate-600 mt-2">{t('hr.payroll.modal.updateLeaveDesc')}</p>
 
             {error && (
               <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -89,10 +89,10 @@ const LeaveEntitlementsModal: React.FC<LeaveEntitlementsModalProps> = ({
                 <table className="w-full text-sm">
                   <thead className="bg-slate-100">
                     <tr>
-                      <th className="px-4 py-2 text-left font-semibold">{t('payroll.form.leaveType')}</th>
-                      <th className="px-4 py-2 text-left font-semibold">{t('payroll.form.daysPerYear')}</th>
-                      <th className="px-4 py-2 text-left font-semibold">{t('payroll.form.isPaid')}</th>
-                      <th className="px-4 py-2 text-left font-semibold">{t('payroll.form.description')}</th>
+                      <th className="px-4 py-2 text-left font-semibold">{t('hr.payroll.form.leaveType')}</th>
+                      <th className="px-4 py-2 text-left font-semibold">{t('hr.payroll.form.daysPerYear')}</th>
+                      <th className="px-4 py-2 text-left font-semibold">{t('hr.payroll.form.isPaid')}</th>
+                      <th className="px-4 py-2 text-left font-semibold">{t('hr.payroll.form.description')}</th>
                     </tr>
                   </thead>
                   <tbody>

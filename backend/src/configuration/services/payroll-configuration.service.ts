@@ -55,6 +55,15 @@ export class PayrollConfigurationService {
         minWageEffectiveDate: now,
         cnpsEmployeeRate: 5.4,
         cnpsEmployerRate: 6.4,
+        cfcEmployeeRate: 0.01,
+        cfcEmployerRate: 0.015,
+        fneRate: 0.01,
+        cnpsCap: 750000,
+        professionalExpenseRate: 0.30,
+        fixedAbatementAnnual: 500000,
+        riskGroupARate: 0.0175,
+        riskGroupBRate: 0.025,
+        riskGroupCRate: 0.05,
       },
       include: {
         salaryComponents: true,
@@ -163,14 +172,33 @@ export class PayrollConfigurationService {
       minWageEffectiveDate: config.minWageEffectiveDate,
       cnpsEmployeeRate: config.cnpsEmployeeRate,
       cnpsEmployerRate: config.cnpsEmployerRate,
+      cfcEmployeeRate: config.cfcEmployeeRate,
+      cfcEmployerRate: config.cfcEmployerRate,
+      fneRate: config.fneRate,
+      cnpsCap: config.cnpsCap,
+      professionalExpenseRate: config.professionalExpenseRate,
+      fixedAbatementAnnual: config.fixedAbatementAnnual,
+      riskGroupARate: config.riskGroupARate,
+      riskGroupBRate: config.riskGroupBRate,
+      riskGroupCRate: config.riskGroupCRate,
     };
 
     const updateData: any = {
       minWage: dto.minWage ?? config.minWage,
-      minWageEffectiveDate:
-        dto.minWageEffectiveDate ?? config.minWageEffectiveDate,
+      minWageEffectiveDate: dto.minWageEffectiveDate
+        ? new Date(dto.minWageEffectiveDate)
+        : config.minWageEffectiveDate,
       cnpsEmployeeRate: dto.cnpsEmployeeRate ?? config.cnpsEmployeeRate,
       cnpsEmployerRate: dto.cnpsEmployerRate ?? config.cnpsEmployerRate,
+      cfcEmployeeRate: dto.cfcEmployeeRate ?? config.cfcEmployeeRate,
+      cfcEmployerRate: dto.cfcEmployerRate ?? config.cfcEmployerRate,
+      fneRate: dto.fneRate ?? config.fneRate,
+      cnpsCap: dto.cnpsCap ?? config.cnpsCap,
+      professionalExpenseRate: dto.professionalExpenseRate ?? config.professionalExpenseRate,
+      fixedAbatementAnnual: dto.fixedAbatementAnnual ?? config.fixedAbatementAnnual,
+      riskGroupARate: dto.riskGroupARate ?? config.riskGroupARate,
+      riskGroupBRate: dto.riskGroupBRate ?? config.riskGroupBRate,
+      riskGroupCRate: dto.riskGroupCRate ?? config.riskGroupCRate,
     };
 
     // Handle tax brackets update if provided
@@ -189,6 +217,20 @@ export class PayrollConfigurationService {
       };
     }
 
+    // Handle leave entitlements update if provided
+    if (dto.leaveEntitlements) {
+      updateData.leaveEntitlements = {
+        deleteMany: { payrollConfigId: config.id },
+        create: dto.leaveEntitlements.map((entitlement) => ({
+          id: `entitlement_${Date.now()}_${Math.random()}`,
+          type: entitlement.type,
+          daysPerYear: entitlement.daysPerYear,
+          isPaid: entitlement.isPaid,
+          description: entitlement.description,
+        })),
+      };
+    }
+
     const updated = await this.prisma.payrollConfiguration.update({
       where: { subsidiaryId },
       data: updateData,
@@ -196,6 +238,7 @@ export class PayrollConfigurationService {
         salaryComponents: { where: { isActive: true } },
         taxBrackets: { orderBy: { minSalary: 'asc' } },
         allowanceRules: true,
+        leaveEntitlements: true,
       },
     });
 

@@ -9,26 +9,29 @@ import {
   IsArray,
   ValidateNested,
   IsBoolean,
+  IsNumber,
+  IsInt,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class TaxBracketDto {
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({}, { message: 'Le salaire minimum doit être un nombre' })
   @Min(0, { message: 'Le salaire minimum ne peut pas être négatif' })
   @IsOptional()
   minSalary?: number;
 
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({}, { message: 'Le salaire maximum doit être un nombre' })
   @Min(0, { message: 'Le salaire maximum ne peut pas être négatif' })
   @IsOptional()
   maxSalary?: number | null;
 
-  @IsDecimal({ decimal_digits: '1,4' })
+  @IsNumber({}, { message: 'Le taux doit être un nombre' })
   @Min(0, { message: 'Le taux ne peut pas être négatif' })
   @Max(1, { message: 'Le taux ne peut pas dépasser 100%' })
   rate: number;
 
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({}, { message: 'La déduction doit être un nombre' })
+  @Min(0, { message: 'La déduction ne peut pas être négative' })
   @IsOptional()
   deductible?: number;
 }
@@ -37,7 +40,7 @@ export class LeaveEntitlementDto {
   @IsString()
   type: string;
 
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsInt()
   @Min(0, { message: 'Les jours de congé ne peuvent pas être négatifs' })
   @Max(365, { message: 'Les jours de congé ne peuvent pas dépasser 365' })
   daysPerYear: number;
@@ -82,7 +85,7 @@ export class CreatePayrollConfigDto {
 }
 
 export class UpdatePayrollConfigDto {
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({}, { message: 'Le salaire minimum doit être un nombre' })
   @Min(50000, { message: 'Le salaire minimum doit être au moins 50000 FCFA' })
   @Max(500000, {
     message: 'Le salaire minimum ne peut pas dépasser 500000 FCFA',
@@ -100,17 +103,69 @@ export class UpdatePayrollConfigDto {
   @IsOptional()
   minWageEffectiveDate?: string;
 
-  @IsDecimal({ decimal_digits: '1,4' })
+  @IsNumber({}, { message: 'Le taux CNPS employé doit être un nombre' })
   @Min(0, { message: 'Le taux CNPS employé ne peut pas être négatif' })
   @Max(0.2, { message: 'Le taux CNPS employé ne peut pas dépasser 20%' })
   @IsOptional()
   cnpsEmployeeRate?: number;
 
-  @IsDecimal({ decimal_digits: '1,4' })
+  @IsNumber({}, { message: 'Le taux CNPS employeur doit être un nombre' })
   @Min(0, { message: 'Le taux CNPS employeur ne peut pas être négatif' })
   @Max(0.3, { message: 'Le taux CNPS employeur ne peut pas dépasser 30%' })
   @IsOptional()
   cnpsEmployerRate?: number;
+
+  @IsNumber({}, { message: 'Le taux CFC employé doit être un nombre' })
+  @Min(0, { message: 'Le taux CFC employé ne peut pas être négatif' })
+  @Max(0.2, { message: 'Le taux CFC employé ne peut pas dépasser 20%' })
+  @IsOptional()
+  cfcEmployeeRate?: number;
+
+  @IsNumber({}, { message: 'Le taux CFC employeur doit être un nombre' })
+  @Min(0, { message: 'Le taux CFC employeur ne peut pas être négatif' })
+  @Max(0.3, { message: 'Le taux CFC employeur ne peut pas dépasser 30%' })
+  @IsOptional()
+  cfcEmployerRate?: number;
+
+  @IsNumber({}, { message: 'Le taux FNE doit être un nombre' })
+  @Min(0, { message: 'Le taux FNE ne peut pas être négatif' })
+  @Max(0.1, { message: 'Le taux FNE ne peut pas dépasser 10%' })
+  @IsOptional()
+  fneRate?: number;
+
+  @IsNumber({}, { message: 'Le plafond CNPS doit être un nombre' })
+  @Min(0, { message: 'Le plafond CNPS ne peut pas être négatif' })
+  @IsOptional()
+  cnpsCap?: number;
+
+  @IsNumber({}, { message: 'Le taux d\'abattement professionnel doit être un nombre' })
+  @Min(0, { message: 'Le taux d\'abattement professionnel ne peut pas être négatif' })
+  @Max(1, { message: 'Le taux d\'abattement professionnel ne peut pas dépasser 100%' })
+  @IsOptional()
+  professionalExpenseRate?: number;
+
+  @IsNumber({}, { message: 'L\'abattement fixe annuel doit être un nombre' })
+  @Min(0, { message: 'L\'abattement fixe annuel ne peut pas être négatif' })
+  @IsOptional()
+  fixedAbatementAnnual?: number;
+
+  @IsNumber({}, { message: 'Le taux du groupe A doit être un nombre' })
+  @Min(0, { message: 'Le taux du groupe A ne peut pas être négatif' })
+  @Max(0.1, { message: 'Le taux du groupe A ne peut pas dépasser 10%' })
+  @IsOptional()
+  riskGroupARate?: number;
+
+  @IsNumber({}, { message: 'Le taux du groupe B doit être un nombre' })
+  @Min(0, { message: 'Le taux du groupe B ne peut pas être négatif' })
+  @Max(0.15, { message: 'Le taux du groupe B ne peut pas dépasser 15%' })
+  @IsOptional()
+  riskGroupBRate?: number;
+
+  @IsNumber({}, { message: 'Le taux du groupe C doit être un nombre' })
+  @Min(0, { message: 'Le taux du groupe C ne peut pas être négatif' })
+  @Max(0.2, { message: 'Le taux du groupe C ne peut pas dépasser 20%' })
+  @IsOptional()
+  riskGroupCRate?: number;
 
   @IsArray()
   @ValidateNested({ each: true })

@@ -3,6 +3,7 @@ import {
   Logger,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import {
@@ -20,57 +21,145 @@ import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 import { paginate } from 'src/common/pagination/pagination';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
+import { CameroonPayrollCalculatorService } from './cameroonpayrollcalculator.service';
 
-// Extended type for payroll records with employee data
-type PayrollRecordWithEmployee = PayrollRecord & {
-  employee: {
+// Type enrichi retourné par le service (avec infos employé)
+type PayrollRecordWithDetails = PayrollRecord & {
+  employee?: {
+    firstName: string;
+    lastName: string;
     baseSalary: Decimal;
-    bonus: Decimal;
+    bonus: Decimal | null;
   };
-};
-
-// Return type that includes baseSalary and bonus
-type PayrollRecordWithSalary = Omit<PayrollRecordWithEmployee, 'employee'> & {
-  baseSalary: Decimal;
-  bonus: Decimal;
+  subsidiary?: {
+    id: string;
+    subsidiaryName: string;
+  };
 };
 
 @Injectable()
 export class PayrollRecordService {
   private readonly logger = new Logger(PayrollRecordService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly calculator: CameroonPayrollCalculatorService,
+  ) {}
 
+  /**
+   * Crée une fiche de paie manuellement (avec ou sans calcul automatique)
+   */
   async create(
     dto: CreatePayrollRecordDto,
     employeeId: string,
     subsidiaryId: string,
   ): Promise<PayrollRecord> {
     this.logger.log(
-      `Creating payroll record for employee ${employeeId} in subsidiary ${subsidiaryId}`,
+      `Création fiche de paie pour employé ${employeeId} - période ${dto.payrollPeriod}`,
     );
-    // Calcul netSalary si pas fourni : gross - deductions
-    const netSalary =
-      dto.netSalary ?? Number(dto.grossSalary) - Number(dto.deductions);
+
+    const existing = await this.prisma.payrollRecord.findUnique({
+      where: {
+        employeeId_payrollPeriod: {
+          employeeId,
+          payrollPeriod: dto.payrollPeriod,
+        },
+      },
+    });
+
+    if (existing) {
+      throw new ConflictException(
+        `Une fiche de paie existe déjà pour cet employé sur la période ${dto.payrollPeriod}`,
+      );
+    }
+
+    let calculated = null;
+    if (!dto.grossSalary || dto.grossSalary === 0) {
+      const employee = await this.prisma.employee.findUnique({
+        where: { id: employeeId },
+      });
+
+      if (!employee) {
+        throw new NotFoundException(`Employé ${employeeId} introuvable`);
+      }
+
+      calculated = this.calculator.calculate({
+        baseSalary: Number(employee.baseSalary),
+        bonus: Number(employee.bonus || 0),
+        allowances: Number(dto.allowances || 0),
+        overtime: Number(dto.overtime || 0),
+        riskGroup: 'A',
+        applyCfc: true,
+        applyFne: true,
+      });
+    }
+
+    const data: Prisma.PayrollRecordCreateInput = {
+      id: generateId(ID_PREFIXES.PAYROLL),
+      employeeName: dto.employeeName,
+      payrollPeriod: dto.payrollPeriod,
+
+      // Rémunération
+      baseSalary: dto.baseSalary ?? calculated?.grossSalary ?? 0,
+      bonus: dto.bonus ?? 0,
+      allowances: dto.allowances ?? 0,
+      overtime: dto.overtime ?? 0,
+      otherEarnings: dto.otherEarnings ?? 0,
+      grossSalary: dto.grossSalary ?? calculated?.grossSalary ?? 0,
+
+      // Retenues salariales
+      cnpsEmployee: dto.cnpsEmployee ?? calculated?.cnpsEmployee ?? 0,
+      cfcEmployee: dto.cfcEmployee ?? calculated?.cfcEmployee ?? 0,
+      irpp: dto.irpp ?? calculated?.irpp ?? 0,
+      cac: dto.cac ?? calculated?.cac ?? 0,
+      otherDeductions: dto.otherDeductions ?? 0,
+      deductions: dto.deductions ?? calculated?.totalDeductions ?? 0,
+      netSalary: dto.netSalary ?? calculated?.netSalary ?? 0,
+
+      // Charges patronales
+      cnpsEmployer: dto.cnpsEmployer ?? calculated?.totalEmployerCharges ?? 0,
+      cfcEmployer: dto.cfcEmployer ?? calculated?.cfcEmployer ?? 0,
+      fne: dto.fne ?? calculated?.fne ?? 0,
+      totalEmployerCost:
+        dto.totalEmployerCost ?? calculated?.totalEmployerCost ?? 0,
+
+      deductionsDetail:
+        calculated?.deductionsDetail ?? dto.deductionsDetail ?? null,
+      calculationMeta: calculated
+        ? {
+            riskGroup: 'A',
+            cnpsCap: 750000,
+            calculatedAt: new Date().toISOString(),
+          }
+        : null,
+
+      paymentDate: dto.paymentDate,
+      signature: dto.signature,
+      status: dto.status ?? PayrollStatus.PENDING,
+      notes: dto.notes,
+
+      employee: { connect: { id: employeeId } },
+      subsidiary: { connect: { id: subsidiaryId } },
+    };
 
     return this.prisma.payrollRecord.create({
-      data: {
-        id: generateId(ID_PREFIXES.PAYROLL),
-        employeeName: dto.employeeName,
-        payrollPeriod: dto.payrollPeriod,
-        grossSalary: dto.grossSalary,
-        deductions: dto.deductions,
-        netSalary: netSalary,
-        paymentDate: dto.paymentDate,
-        status: dto.status,
-        signature: dto.signature,
-        employeeId: employeeId,
-        subsidiaryId: subsidiaryId,
+      data,
+      include: {
+        employee: {
+          select: {
+            firstName: true,
+            lastName: true,
+            baseSalary: true,
+            bonus: true,
+          },
+        },
       },
-      include: { employee: true },
     });
   }
 
+  /**
+   * Récupère toutes les fiches de paie d'une filiale
+   */
   async findAll(subsidiaryId: string, paginationQuery: PaginationQueryDto = {}) {
     const where: Prisma.PayrollRecordWhereInput = { subsidiaryId };
 
@@ -81,7 +170,7 @@ export class PayrollRecordService {
       };
     }
 
-    const result = await paginate(
+    return paginate(
       this.prisma.payrollRecord,
       {
         where,
@@ -95,102 +184,184 @@ export class PayrollRecordService {
             },
           },
         },
-        orderBy: { payrollPeriod: 'desc' },
+        orderBy: [{ payrollPeriod: 'desc' }, { employeeName: 'asc' }],
       },
       paginationQuery,
     );
-
-    // Transformer les données pour inclure baseSalary et bonus de l'employé
-    return {
-      ...result,
-      data: (result.data as unknown as PayrollRecordWithEmployee[]).map(
-        (record) => ({
-          ...record,
-          baseSalary: record.employee.baseSalary,
-          bonus: record.employee.bonus,
-        }),
-      ),
-    };
   }
 
-  async findOne(id: string): Promise<PayrollRecordWithSalary> {
+  /**
+   * Récupère toutes les fiches de paie de toutes les filiales (vue globale SUPER_ADMIN)
+   */
+  async findAllGlobal(): Promise<PayrollRecordWithDetails[]> {
+    return this.prisma.payrollRecord.findMany({
+      include: {
+        employee: {
+          select: {
+            firstName: true,
+            lastName: true,
+            baseSalary: true,
+            bonus: true,
+          },
+        },
+        subsidiary: {
+          select: {
+            id: true,
+            subsidiaryName: true,
+          },
+        },
+      },
+      orderBy: [{ payrollPeriod: 'desc' }, { employeeName: 'asc' }],
+    });
+  }
+
+  /**
+   * Récupère une fiche de paie par ID
+   */
+  async findOne(id: string): Promise<PayrollRecordWithDetails> {
     const record = await this.prisma.payrollRecord.findUnique({
       where: { id },
-      include: { employee: true },
+      include: {
+        employee: {
+          select: {
+            firstName: true,
+            lastName: true,
+            baseSalary: true,
+            bonus: true,
+          },
+        },
+      },
     });
+
     if (!record) {
-      throw new NotFoundException(`Payroll record with ID ${id} not found.`);
+      throw new NotFoundException(`Fiche de paie ${id} introuvable`);
     }
 
-    // Transformer les données pour inclure baseSalary et bonus de l'employé
-    return {
-      ...record,
-      baseSalary: record.employee.baseSalary,
-      bonus: record.employee.bonus,
-    };
+    return record;
   }
 
+  /**
+   * Met à jour une fiche de paie
+   */
   async update(
     id: string,
     dto: UpdatePayrollRecordDto,
   ): Promise<PayrollRecord> {
-    await this.findOne(id); // Vérifie l'existence
+    await this.findOne(id);
+
+    const current = await this.prisma.payrollRecord.findUnique({
+      where: { id },
+    });
+
+    if (current?.status === PayrollStatus.PAID) {
+      throw new BadRequestException(
+        'Impossible de modifier une fiche de paie déjà payée',
+      );
+    }
+
+    const { employeeId, ...updateData } = dto as any;
+
+    const gross = updateData.grossSalary ?? Number(current.grossSalary);
+    const deductions =
+      updateData.deductions ??
+      Number(current.deductions);
+
     return this.prisma.payrollRecord.update({
       where: { id },
-      data: dto,
+      data: {
+        ...updateData,
+        deductions: updateData.deductions,
+        netSalary:
+          updateData.netSalary ??
+          (gross !== undefined && deductions !== undefined
+            ? Number(gross) - Number(deductions)
+            : undefined),
+      },
     });
   }
 
+  /**
+   * Supprime une fiche de paie
+   */
   async remove(id: string): Promise<PayrollRecord> {
-    await this.findOne(id); // Vérifie l'existence
+    const record = await this.findOne(id);
+
+    if (record.status === PayrollStatus.PAID) {
+      throw new BadRequestException(
+        'Impossible de supprimer une fiche de paie déjà payée',
+      );
+    }
+
     return this.prisma.payrollRecord.delete({ where: { id } });
   }
 
   /**
-   * Signe une fiche de paie
-   * @param id L'ID de la fiche de paie
-   * @param signature La signature (texte ou base64)
+   * Signe une fiche de paie et la passe en statut PAID
    */
   async signPayrollRecord(
     id: string,
     signature: string,
-  ): Promise<PayrollRecordWithSalary> {
-    this.logger.log(`Signing payroll record ${id}`);
+  ): Promise<PayrollRecordWithDetails> {
+    this.logger.log(`Signature de la fiche de paie ${id}`);
 
-    const record = await this.findOne(id); // Utilise findOne transformé
+    const record = await this.findOne(id);
 
-    const updatedRecord = await this.prisma.payrollRecord.update({
+    if (record.status === PayrollStatus.PAID) {
+      throw new BadRequestException('Cette fiche de paie est déjà signée/payée');
+    }
+
+    const updated = await this.prisma.payrollRecord.update({
       where: { id },
       data: {
         signature,
         status: PayrollStatus.PAID,
+        paymentDate: new Date(),
       },
-      include: { employee: true },
+      include: {
+        employee: {
+          select: {
+            firstName: true,
+            lastName: true,
+            baseSalary: true,
+            bonus: true,
+          },
+        },
+      },
     });
 
-    // Retourner les données transformées avec baseSalary et bonus
-    return {
-      ...updatedRecord,
-      baseSalary: updatedRecord.employee.baseSalary,
-      bonus: updatedRecord.employee.bonus,
-    };
+    return updated;
   }
 
   /**
-   * Traite la paie pour une filiale et une période données.
-   * Crée des fiches de paie pour tous les employés actifs qui n'en ont pas encore pour cette période.
-   * @param subsidiaryId L'ID de la filiale.
-   * @param period La période de paie (ex: "YYYY-MM").
+   * Traite la paie d'une filiale pour une période donnée.
+   * Crée automatiquement les fiches de paie pour tous les employés actifs
+   * qui n'en ont pas encore pour cette période.
    */
   async processPayroll(
     subsidiaryId: string,
     period: string,
-  ): Promise<{ count: number }> {
+    options?: {
+      riskGroup?: 'A' | 'B' | 'C';
+      applyCfc?: boolean;
+      applyFne?: boolean;
+    },
+  ): Promise<{ count: number; message: string }> {
     this.logger.log(
-      `Processing payroll for subsidiary ${subsidiaryId} for period ${period}`,
+      `Traitement de la paie - Filiale: ${subsidiaryId} | Période: ${period}`,
     );
 
-    // 1. Récupérer les employés actifs de la filiale
+    // --- Validations ---
+    if (!subsidiaryId?.trim()) {
+      throw new BadRequestException('subsidiaryId manquant');
+    }
+
+    if (!/^\d{4}-\d{2}$/.test(period)) {
+      throw new BadRequestException(
+        'Format de période invalide. Utilisez YYYY-MM (ex: 2026-07)',
+      );
+    }
+
+    // --- 1. Récupérer les employés ACTIVE de la filiale ---
     const activeEmployees = await this.prisma.employee.findMany({
       where: {
         subsidiaryId,
@@ -198,14 +369,47 @@ export class PayrollRecordService {
       },
     });
 
+    // Diagnostic si aucun employé ACTIVE
     if (activeEmployees.length === 0) {
+      const allEmployees = await this.prisma.employee.findMany({
+        where: { subsidiaryId },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          status: true,
+        },
+      });
+
       this.logger.warn(
-        `No active employees found for subsidiary ${subsidiaryId}.`,
+        `Aucun employé ACTIVE pour subsidiaryId=${subsidiaryId}. ` +
+          `Total employés de la filiale: ${allEmployees.length}`,
       );
-      return { count: 0 };
+      this.logger.warn(
+        `Détail statuts: ${JSON.stringify(
+          allEmployees.map((e) => ({
+            name: `${e.firstName} ${e.lastName}`,
+            status: e.status,
+          })),
+        )}`,
+      );
+
+      if (allEmployees.length === 0) {
+        return {
+          count: 0,
+          message: `Aucun employé trouvé pour cette filiale (subsidiaryId=${subsidiaryId}). Vérifiez que les employés sont bien rattachés à cette filiale.`,
+        };
+      }
+
+      // Il y a des employés, mais aucun n'est ACTIVE
+      const statuses = [...new Set(allEmployees.map((e) => e.status))];
+      return {
+        count: 0,
+        message: `Aucun employé actif trouvé. ${allEmployees.length} employé(s) présent(s) avec le(s) statut(s): ${statuses.join(', ')}. Passez leur statut à ACTIVE pour générer la paie.`,
+      };
     }
 
-    // 2. Récupérer les fiches de paie déjà existantes pour cette période
+    // --- 2. Fiches déjà existantes pour cette période ---
     const existingPayrolls = await this.prisma.payrollRecord.findMany({
       where: {
         subsidiaryId,
@@ -214,42 +418,172 @@ export class PayrollRecordService {
       },
       select: { employeeId: true },
     });
+
     const existingEmployeeIds = new Set(
       existingPayrolls.map((p) => p.employeeId),
     );
 
-    // 3. Filtrer les employés qui n'ont pas encore de fiche de paie
+    // --- 3. Employés sans fiche pour cette période ---
     const employeesToProcess = activeEmployees.filter(
       (e) => !existingEmployeeIds.has(e.id),
     );
 
     if (employeesToProcess.length === 0) {
       this.logger.log(
-        `All active employees already have a payroll record for period ${period}.`,
+        `Tous les employés actifs ont déjà une fiche de paie pour ${period}`,
       );
-      return { count: 0 };
+      return {
+        count: 0,
+        message: `Tous les employés actifs ont déjà une fiche pour ${period}`,
+      };
     }
 
-    // 4. Créer les nouvelles fiches de paie en une seule transaction
-    const newPayrollsData = employeesToProcess.map((employee) => ({
-      employeeId: employee.id,
-      employeeName: `${employee.firstName} ${employee.lastName}`,
-      payrollPeriod: period,
-      grossSalary: employee.baseSalary, // Utilise le salaire de base de l'employé
-      deductions: 0, // Initialisé à 0
-      netSalary: employee.baseSalary, // Initialisé au salaire de base
-      status: PayrollStatus.PENDING,
-      subsidiaryId: subsidiaryId,
-    }));
+    // --- 4. Calcul et préparation des données ---
+    const riskGroup = options?.riskGroup ?? 'A';
+    const applyCfc = options?.applyCfc ?? true;
+    const applyFne = options?.applyFne ?? true;
 
+    const newPayrollsData = employeesToProcess.map((employee) => {
+      const calc = this.calculator.calculate({
+        baseSalary: Number(employee.baseSalary),
+        bonus: Number(employee.bonus || 0),
+        riskGroup,
+        applyCfc,
+        applyFne,
+      });
+
+      return {
+        id: generateId(ID_PREFIXES.PAYROLL),
+        employeeId: employee.id,
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        payrollPeriod: period,
+
+        baseSalary: employee.baseSalary,
+        bonus: employee.bonus || 0,
+        allowances: 0,
+        overtime: 0,
+        otherEarnings: 0,
+        grossSalary: calc.grossSalary,
+
+        cnpsEmployee: calc.cnpsEmployee,
+        cfcEmployee: calc.cfcEmployee,
+        irpp: calc.irpp,
+        cac: calc.cac,
+        otherDeductions: 0,
+        deductions: calc.totalDeductions,
+        netSalary: calc.netSalary,
+
+        cnpsEmployer:
+          calc.cnpsEmployerPension +
+          calc.cnpsFamilyBenefits +
+          calc.cnpsAccidentRisk,
+        cfcEmployer: calc.cfcEmployer,
+        fne: calc.fne,
+        totalEmployerCost: calc.totalEmployerCost,
+
+        deductionsDetail: calc.deductionsDetail,
+        calculationMeta: {
+          riskGroup,
+          cnpsCap: 750000,
+          cnpsEmployeeRate: 0.042,
+          cfcEmployeeRate: applyCfc ? 0.01 : 0,
+          calculatedAt: new Date().toISOString(),
+        },
+
+        status: PayrollStatus.PENDING,
+        subsidiaryId,
+      };
+    });
+
+    // --- 5. Création en masse ---
     const result = await this.prisma.payrollRecord.createMany({
       data: newPayrollsData,
-      skipDuplicates: true, // Au cas où, pour éviter les erreurs de concurrence
+      skipDuplicates: true,
     });
 
     this.logger.log(
-      `Successfully created ${result.count} new payroll records.`,
+      `✅ ${result.count} fiche(s) de paie créée(s) pour la période ${period}`,
     );
-    return { count: result.count };
+
+    return {
+      count: result.count,
+      message: `${result.count} fiche(s) de paie générée(s) avec succès pour ${period}`,
+    };
+  }
+
+  /**
+   * Simule le calcul de paie pour un employé (sans sauvegarder)
+   */
+  async simulatePayroll(
+    employeeId: string,
+    options?: {
+      bonus?: number;
+      allowances?: number;
+      overtime?: number;
+      riskGroup?: 'A' | 'B' | 'C';
+    },
+  ) {
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+    });
+
+    if (!employee) {
+      throw new NotFoundException(`Employé ${employeeId} introuvable`);
+    }
+
+    const result = this.calculator.calculate({
+      baseSalary: Number(employee.baseSalary),
+      bonus: options?.bonus ?? Number(employee.bonus || 0),
+      allowances: options?.allowances ?? 0,
+      overtime: options?.overtime ?? 0,
+      riskGroup: options?.riskGroup ?? 'A',
+      applyCfc: true,
+      applyFne: true,
+    });
+
+    return {
+      employee: {
+        id: employee.id,
+        fullName: `${employee.firstName} ${employee.lastName}`,
+        baseSalary: employee.baseSalary,
+      },
+      simulation: result,
+    };
+  }
+
+  /**
+   * Récupère les fiches de paie d'un employé
+   */
+  async findByEmployee(employeeId: string): Promise<PayrollRecord[]> {
+    return this.prisma.payrollRecord.findMany({
+      where: { employeeId },
+      orderBy: { payrollPeriod: 'desc' },
+    });
+  }
+
+  /**
+   * Récupère les fiches de paie d'une période pour une filiale
+   */
+  async findByPeriod(
+    subsidiaryId: string,
+    period: string,
+  ): Promise<PayrollRecordWithDetails[]> {
+    return this.prisma.payrollRecord.findMany({
+      where: {
+        subsidiaryId,
+        payrollPeriod: period,
+      },
+      include: {
+        employee: {
+          select: {
+            firstName: true,
+            lastName: true,
+            baseSalary: true,
+            bonus: true,
+          },
+        },
+      },
+      orderBy: { employeeName: 'asc' },
+    });
   }
 }

@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { PayrollRecordService } from './payrollrecord.service';
-import { PayrollrecordController } from './payrollrecord.controller';
+import { CameroonPayrollCalculatorService } from './cameroonpayrollcalculator.service';
+import { PayrollRecordController } from './payrollrecord.controller';
+import { UtilsModule } from '../../common/utils/utils.module';
 
 @Module({
-  // On importe le PrismaModule, pas les services directement
-  controllers: [PayrollrecordController],
-  providers: [PayrollRecordService],
+  imports: [UtilsModule],
+  controllers: [PayrollRecordController],
+  providers: [PayrollRecordService, CameroonPayrollCalculatorService],
 })
 export class PayrollrecordModule {}

@@ -94,68 +94,17 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
       setIsLoading(true);
       getEmployeeWithRelations(employee.id)
         .then((fullEmployee) => {
-          // Normaliser le format des documents si le backend retourne un array
-          const normalizedEmployee = { ...fullEmployee };
-          if (Array.isArray(fullEmployee.documents)) {
-            normalizedEmployee.documents = {
-              contract: null,
-              idCard: null,
-              workPermit: null,
-              diplomas: [],
-            };
-          }
-
-          // Construire leaveBalance à partir de leaveBalances (format backend)
-          let leaveBalance = {
-            annual: 0,
-            sick: 0,
-            personal: 0,
-            maternity: 0,
-            paternity: 0,
-            other: 0,
-            unpaid: 0,
-          };
-
-          if (Array.isArray((fullEmployee as any).leaveBalances)) {
-            const balances = (fullEmployee as any).leaveBalances;
-            balances.forEach((balance: any) => {
-              const days = parseInt(balance.days) || 0;
-              const type = balance.leaveType.toLowerCase();
-
-              if (type === 'annual') leaveBalance.annual = days;
-              else if (type === 'sick') leaveBalance.sick = days;
-              else if (type === 'personal') leaveBalance.personal = days;
-              else if (type === 'maternity') leaveBalance.maternity = days;
-              else if (type === 'paternity') leaveBalance.paternity = days;
-              else if (type === 'other') leaveBalance.other = days;
-              else if (type === 'unpaid') leaveBalance.unpaid = days;
-            });
-          } else if (typeof fullEmployee.leaveBalance === 'number' || !fullEmployee.leaveBalance) {
-            // Si c'est un nombre ou null, utiliser les valeurs par défaut
-            leaveBalance = {
-              annual: 0,
-              sick: 0,
-              personal: 0,
-              maternity: 0,
-              paternity: 0,
-              other: 0,
-              unpaid: 0,
-            };
-          } else {
-            leaveBalance = fullEmployee.leaveBalance;
-          }
-
-          normalizedEmployee.leaveBalance = leaveBalance;
-
+          // Le backend transforme déjà les documents et leaveBalances au bon format
+          // On utilise directement les données du backend
           console.log('Employee data loaded:', {
-            id: normalizedEmployee.id,
-            name: `${normalizedEmployee.firstName} ${normalizedEmployee.lastName}`,
-            hasDocuments: !!normalizedEmployee.documents && typeof normalizedEmployee.documents === 'object',
-            hasLeaveBalance: !!normalizedEmployee.leaveBalance && typeof normalizedEmployee.leaveBalance === 'object',
-            leaveBalance: normalizedEmployee.leaveBalance,
-            documents: normalizedEmployee.documents,
+            id: fullEmployee.id,
+            name: `${fullEmployee.firstName} ${fullEmployee.lastName}`,
+            hasDocuments: !!fullEmployee.documents && typeof fullEmployee.documents === 'object',
+            hasLeaveBalance: !!fullEmployee.leaveBalance && typeof fullEmployee.leaveBalance === 'object',
+            leaveBalance: fullEmployee.leaveBalance,
+            documents: fullEmployee.documents,
           });
-          setEmployeeData(normalizedEmployee);
+          setEmployeeData(fullEmployee);
           setIsLoading(false);
         })
         .catch((error) => {
