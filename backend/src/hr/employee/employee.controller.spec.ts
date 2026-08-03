@@ -52,9 +52,10 @@ describe('EmployeeController', () => {
       ];
       jest.spyOn(service, 'findAll').mockResolvedValue(mockEmployees as any);
 
-      const result = await controller.findAll({
-        user: { subsidiaryId: 'sub-1' },
-      });
+      const result = await controller.findAll(
+        { user: { subsidiaryId: 'sub-1' } },
+        {},
+      );
       expect(result).toEqual(mockEmployees);
     });
   });

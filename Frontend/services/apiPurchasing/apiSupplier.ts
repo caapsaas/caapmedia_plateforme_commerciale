@@ -1,5 +1,6 @@
 import { api } from '../api';
 import { Supplier } from '../../types';
+import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
 
 /**
@@ -12,10 +13,21 @@ export const createSupplier = async (data: Omit<Supplier, 'id' | 'subsidiaryId'>
 };
 
 /**
- * Récupère tous les fournisseurs de la filiale de l'utilisateur.
+ * Récupère tous les fournisseurs de la filiale de l'utilisateur. Limit élevée
+ * pour préserver le comportement "tout charger" des appelants existants.
  */
 export const getSuppliers = async (): Promise<Supplier[]> => {
-    const response = await api.get<Supplier[]>('/purchasing/suppliers');
+    const response = await api.get<PaginatedResponse<Supplier>>('/purchasing/suppliers', { params: { limit: 500 } });
+    return response.data.data;
+};
+
+/**
+ * Version paginée/recherchable pour les vues liste et les selects.
+ */
+export const getSuppliersPaginated = async (
+    params: PaginationParams & { subsidiaryId?: string },
+): Promise<PaginatedResponse<Supplier>> => {
+    const response = await api.get<PaginatedResponse<Supplier>>('/purchasing/suppliers', { params });
     return response.data;
 };
 

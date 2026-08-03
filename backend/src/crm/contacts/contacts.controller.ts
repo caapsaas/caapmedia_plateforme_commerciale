@@ -23,6 +23,7 @@ import { UserRole } from '@prisma/client';
 import { RegisterContactDto } from './dto/register-contact.dto';
 import { ContactLoginDto } from './dto/contact-login.dto';
 import { ContactJwtAuthGuard } from 'src/common/auth/jwt/contact-jwt.guard';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @Controller('crm/contacts')
 export class ContactsController {
@@ -97,8 +98,18 @@ export class ContactsController {
     UserRole.HR_MANAGER,
     UserRole.PRODUCTION_DIRECTOR,
   )
-  findAll(@CurrentUser() user: User) {
-    return this.contactsService.findAll(user);
+  findAll(
+    @CurrentUser() user: User,
+    @Query() paginationQuery: PaginationQueryDto,
+    @Query('subsidiaryId') filterSubsidiaryId?: string,
+    @Query('salesRepId') filterSalesRepId?: string,
+  ) {
+    return this.contactsService.findAll(
+      user,
+      paginationQuery,
+      filterSubsidiaryId,
+      filterSalesRepId,
+    );
   }
 
   // Recherche globale (Chantier 6) : DOIT être déclarée avant ':id' pour que

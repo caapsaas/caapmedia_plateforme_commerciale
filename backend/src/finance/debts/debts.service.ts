@@ -16,6 +16,8 @@ import { AccountingOutboxService } from 'src/accounting/outbox/accounting-outbox
 
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
+import { paginate } from 'src/common/pagination/pagination';
 @Injectable()
 export class DebtsService {
   constructor(
@@ -50,11 +52,18 @@ export class DebtsService {
     });
   }
 
-  async findAllSupplierDebts(user: JwtUser) {
-    return this.prisma.supplierDebt.findMany({
-      where: { subsidiaryId: user.subsidiaryId },
-      orderBy: { dueDate: 'asc' },
-    });
+  async findAllSupplierDebts(
+    user: JwtUser,
+    paginationQuery: PaginationQueryDto = {},
+  ) {
+    return paginate(
+      this.prisma.supplierDebt,
+      {
+        where: { subsidiaryId: user.subsidiaryId },
+        orderBy: { dueDate: 'asc' },
+      },
+      paginationQuery,
+    );
   }
 
   /**

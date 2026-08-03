@@ -23,6 +23,7 @@ import {
   UpdateStockItemDto,
   UpdateStockItemPriceDto,
 } from './dto/create-stock-item.dto';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @Controller('purchase/stock-items')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -44,8 +45,16 @@ export class StockItemsController {
   }
 
   @Get()
-  findAll(@Req() req: any, @Query('subsidiaryId') subsidiaryId?: string) {
-    return this.stockItemsService.findAll(req.user, subsidiaryId);
+  findAll(
+    @Req() req: any,
+    @Query() paginationQuery: PaginationQueryDto,
+    @Query('subsidiaryId') subsidiaryId?: string,
+  ) {
+    return this.stockItemsService.findAll(
+      req.user,
+      paginationQuery,
+      subsidiaryId,
+    );
   }
 
   @Get(':id')

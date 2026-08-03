@@ -55,6 +55,10 @@ export class EquipementService {
         { subsidiary: { subsidiaryName: 'asc' } },
         { equipmentName: 'asc' },
       ],
+      // Filet de sécurité : la liste équipements alimente une sidebar
+      // maître-détail (pas de pagination cliquable pertinente pour un
+      // référentiel de parc matériel physique, par nature borné).
+      take: 1000,
     });
     return equipments;
   }

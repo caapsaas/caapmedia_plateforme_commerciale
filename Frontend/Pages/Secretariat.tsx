@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Subsidiary, Employee, CompanyDocument, Meeting, SecretariatTask } from '../types';
+import { Subsidiary, Employee } from '../types';
 import { useI18n } from '../i18n';
 import { useAppContext } from '../context/AppContext';
 import DocumentManagement from '../components/secretariat/DocumentManagement';
@@ -7,14 +7,11 @@ import MeetingManagement from '../components/secretariat/MeetingManagement';
 import TaskManagement from '../components/secretariat/TaskManagement';
 import {
     SaveMeetingDto,
-    getCompanyDocuments,
     createCompanyDocument,
     updateCompanyDocument,
     deleteCompanyDocument,
-    getMeetings,
     saveMeeting,
     deleteMeeting,
-    getSecretariatTasks,
     saveSecretariatTask,
     deleteSecretariatTask,
     SaveSecretariatTaskDto,
@@ -22,6 +19,7 @@ import {
 import { getEmployees } from '../services/apihr/apiEmployees';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
+import CrmListSkeleton from '../components/ui/CrmListSkeleton';
 
 type SecretariatView = 'documents' | 'meetings' | 'tasks';
 
@@ -32,24 +30,15 @@ const Secretariat: React.FC = () => {
     const [activeTab, setActiveTab] = useState<SecretariatView>('documents');
 
     if (!subsidiary) {
-        return <div className="p-6 text-center">{t('common.loading')}</div>;
+        return <CrmListSkeleton columns={5} />;
     }
 
     const queryKey = (key: string) => [key, subsidiary.id];
 
     // --- Data Fetching ---
-    const { data: documents = [], isLoading: isLoadingDocuments } = useQuery<CompanyDocument[]>({
-        queryKey: queryKey('companyDocuments'),
-        queryFn: getCompanyDocuments
-    });
-    const { data: meetings = [], isLoading: isLoadingMeetings } = useQuery<Meeting[]>({
-        queryKey: queryKey('meetings'),
-        queryFn: getMeetings
-    });
-    const { data: tasks = [], isLoading: isLoadingTasks } = useQuery<SecretariatTask[]>({
-        queryKey: queryKey('secretariatTasks'),
-        queryFn: getSecretariatTasks
-    });
+    // documents/meetings/tasks sont désormais chargés (et paginés) directement
+    // par chaque composant enfant — seul `employees` reste ici, nécessaire
+    // pour les selects participant/assigné dans MeetingManagement/TaskManagement.
     const { data: employees = [], isLoading: isLoadingEmployees } = useQuery<Employee[]>({
         queryKey: queryKey('employees'),
         queryFn: () => getEmployees()
@@ -81,41 +70,35 @@ const Secretariat: React.FC = () => {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('secretariatTasks') })
     });
 
-    const isLoading = isLoadingDocuments || isLoadingMeetings || isLoadingTasks || isLoadingEmployees;
-
     const renderActiveView = () => {
-        if (isLoading) {
-            return <div className="p-6 text-center">{t('common.loading')}</div>;
+        if (isLoadingEmployees) {
+            return <CrmListSkeleton columns={5} />;
         }
 
         switch (activeTab) {
             case 'documents':
-                return <DocumentManagement 
-                            subsidiary={subsidiary} 
-                            documents={documents}
+                return <DocumentManagement
+                            subsidiary={subsidiary}
                             onSave={onSaveDocument}
                             onDelete={onDeleteDocument}
                         />;
             case 'meetings':
-                return <MeetingManagement 
+                return <MeetingManagement
                             subsidiary={subsidiary}
-                            meetings={meetings}
                             employees={employees}
                             onSave={onSaveMeeting}
                             onDelete={onDeleteMeeting}
                         />;
             case 'tasks':
-                return <TaskManagement 
+                return <TaskManagement
                             subsidiary={subsidiary}
-                            tasks={tasks}
                             employees={employees}
                             onSave={onSaveTask}
                             onDelete={onDeleteTask}
                         />;
             default:
-                return <DocumentManagement 
-                            subsidiary={subsidiary} 
-                            documents={documents}
+                return <DocumentManagement
+                            subsidiary={subsidiary}
                             onSave={onSaveDocument}
                             onDelete={onDeleteDocument}
                         />;

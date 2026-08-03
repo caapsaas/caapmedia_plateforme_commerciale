@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
@@ -17,6 +18,7 @@ import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { CurrentUser, Roles } from 'src/common/auth/role/role.decorator';
 import type { User } from '@prisma/client';
 import { UserRole } from '@prisma/client';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 //import { ApiTags } from '@nestjs/swagger';
 
 @Controller('crm/accounts')
@@ -48,8 +50,18 @@ export class AccountsController {
     UserRole.SECRETARY,
     UserRole.FINANCIAL_DIRECTOR,
   )
-  findAll(@CurrentUser() user: User) {
-    return this.accountsService.findAll(user);
+  findAll(
+    @CurrentUser() user: User,
+    @Query() paginationQuery: PaginationQueryDto,
+    @Query('subsidiaryId') filterSubsidiaryId?: string,
+    @Query('salesRepId') filterSalesRepId?: string,
+  ) {
+    return this.accountsService.findAll(
+      user,
+      paginationQuery,
+      filterSubsidiaryId,
+      filterSalesRepId,
+    );
   }
 
   @Get(':id')

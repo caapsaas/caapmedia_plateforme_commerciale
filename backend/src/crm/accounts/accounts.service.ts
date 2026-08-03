@@ -11,6 +11,10 @@ import { UpdateAccountDto } from './dto/update-account.dto';
 import { Prisma, User, UserRole } from '@prisma/client';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
+import { paginate, PaginatedResult } from 'src/common/pagination/pagination';
+import { withSubsidiaryScope } from 'src/common/utils/subsidiary-scope';
+import type { Account } from '@prisma/client';
 
 @Injectable()
 export class AccountsService {
@@ -61,24 +65,67 @@ export class AccountsService {
     });
   }
 
-  async findAll(user: User) {
+  async findAll(
+    user: User,
+    paginationQuery: PaginationQueryDto,
+    filterSubsidiaryId?: string,
+    filterSalesRepId?: string,
+  ): Promise<PaginatedResult<Account>> {
     const isSuperAdmin = user.userRole === UserRole.SUPER_ADMIN;
-    const where: Prisma.AccountWhereInput = isSuperAdmin
-      ? {}
-      : { subsidiaryId: user.subsidiaryId };
+    const scopeCtx = {
+      subsidiaryId: user.subsidiaryId,
+      hasGlobalScope: isSuperAdmin,
+    };
+    const where: Prisma.AccountWhereInput = withSubsidiaryScope(
+      {},
+      scopeCtx,
+      filterSubsidiaryId,
+    );
 
-    if (!isSuperAdmin && user.userRole === UserRole.COMMERCIAL) {
+    if (isSuperAdmin) {
+      if (filterSalesRepId) {
+        where.salesRepId = filterSalesRepId;
+      }
+    } else if (user.userRole === UserRole.COMMERCIAL) {
       where.salesRepId = user.id;
     }
 
-    return this.prisma.account.findMany({
-      where,
-      include: {
-        salesRep: { select: { userName: true } },
-        _count: { select: { contacts: true, opportunities: true } },
+    if (paginationQuery.search) {
+      where.AND = [
+        {
+          OR: [
+            {
+              accountName: {
+                contains: paginationQuery.search,
+                mode: 'insensitive',
+              },
+            },
+            {
+              industry: {
+                contains: paginationQuery.search,
+                mode: 'insensitive',
+              },
+            },
+            {
+              phone: { contains: paginationQuery.search, mode: 'insensitive' },
+            },
+          ],
+        },
+      ];
+    }
+
+    return paginate<Account>(
+      this.prisma.account,
+      {
+        where,
+        include: {
+          salesRep: { select: { userName: true } },
+          _count: { select: { contacts: true, opportunities: true } },
+        },
+        orderBy: { accountName: 'asc' },
       },
-      orderBy: { accountName: 'asc' },
-    });
+      paginationQuery,
+    );
   }
 
   async findOne(id: string, user: User) {

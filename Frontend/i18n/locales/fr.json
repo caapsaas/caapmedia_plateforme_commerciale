@@ -53,13 +53,24 @@
     "close": "Fermer",
     "view": "Afficher",
     "search": "Rechercher",
+    "searchPlaceholder": "Rechercher...",
     "notAvailable": "Non disponible",
     "success": "Succès",
     "warning": "Attention",
     "info": "Information",
-    "back": "Retour",
-    "error": "Erreur",
-    "errorLoad": "Erreur lors du chargement des données."
+    "showing": "Affichage de",
+    "to": "à",
+    "of": "sur",
+    "results": "résultats",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "noResultsFound": "Aucun résultat trouvé.",
+    "loadingMore": "Chargement de la suite...",
+    "scrollForMore": "Faites défiler pour voir plus",
+    "select": "Sélectionner...",
+    "error": {
+      "load": "Erreur lors du chargement des données."
+    }
   },
   "login": {
     "errorSelectSubsidiary": "Veuillez sélectionner une filiale."

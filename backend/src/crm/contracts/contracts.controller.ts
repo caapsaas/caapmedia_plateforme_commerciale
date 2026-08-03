@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
@@ -18,6 +19,7 @@ import { UserRole } from '@prisma/client';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { CurrentUser } from 'src/common/auth/role/role.decorator';
 import type { User } from '@prisma/client';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @Controller('crm/contracts')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -40,8 +42,16 @@ export class ContractsController {
     UserRole.SECRETARY,
     UserRole.FINANCIAL_DIRECTOR,
   )
-  findAll(@CurrentUser() user: User) {
-    return this.contractsService.findAll(user);
+  findAll(
+    @CurrentUser() user: User,
+    @Query() paginationQuery: PaginationQueryDto,
+    @Query('subsidiaryId') filterSubsidiaryId?: string,
+  ) {
+    return this.contractsService.findAll(
+      user,
+      paginationQuery,
+      filterSubsidiaryId,
+    );
   }
 
   @Get(':id')

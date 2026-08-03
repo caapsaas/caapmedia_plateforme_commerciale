@@ -479,6 +479,11 @@ export class OrdersService {
         orderItems: { include: { product: true } },
       },
       orderBy: { orderDate: 'desc' },
+      // Filet de sécurité : endpoint consommé par ~10 vues (POS, CRM, finance,
+      // production) qui ont besoin du jeu de données filtré complet (totaux,
+      // exports) plutôt que d'une pagination cliquable. Ce plafond évite juste
+      // une requête littéralement non bornée en production.
+      take: 2000,
     });
 
     return orders.map((order) => this.mapOrderToResponse(order));

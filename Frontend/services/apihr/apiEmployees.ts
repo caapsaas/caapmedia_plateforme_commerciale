@@ -1,6 +1,7 @@
 
 import { api } from '../api';
 import { Employee, DocumentType, LeaveType, EmployeeFormData } from '../../types';
+import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
 /**
  * Données pour la création d'un employé.
@@ -20,14 +21,26 @@ export type EmployeeUpdateData = Partial<EmployeeCreationData>;
 export type EmployeeSaveData = EmployeeFormData & { id?: string };
 
 /**
- * Récupère la liste de tous les employés.
+ * Récupère la liste de tous les employés. Limit élevée pour préserver le
+ * comportement "tout charger" des appelants existants (recherche/tri
+ * client-side, export CSV/PDF dans EmployeeDatabaseModern).
  * @param includeRelations - Si true, inclut les relations (documents, manager, etc.).
  */
 export const getEmployees = async (includeRelations = false): Promise<Employee[]> => {
-    const { data } = await api.get<Employee[]>('/hr/employees', {
-    params: { includeRelations },
+    const { data } = await api.get<PaginatedResponse<Employee>>('/hr/employees', {
+    params: { includeRelations, limit: 500 },
   });
-  return data;
+  return data.data;
+};
+
+/**
+ * Version paginée/recherchable pour les selects (AsyncSelect).
+ */
+export const getEmployeesPaginated = async (
+    params: PaginationParams & { includeRelations?: boolean },
+): Promise<PaginatedResponse<Employee>> => {
+    const { data } = await api.get<PaginatedResponse<Employee>>('/hr/employees', { params });
+    return data;
 };
 
 /**

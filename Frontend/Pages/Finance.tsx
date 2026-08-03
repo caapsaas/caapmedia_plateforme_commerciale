@@ -51,13 +51,13 @@ const Finance: React.FC = () => {
         ? (subsidiaries.find(s => s.id === subsidiaryFilter) ?? subsidiaries[0] ?? null)
         : (subsidiary ?? null);
 
-    const { data: expenseRecords = [] } = useQuery<ExpenseRecord[]>({
+    const { data: expenseRecords = [], isLoading: isLoadingExpenses } = useQuery<ExpenseRecord[]>({
         queryKey: ['expenseRecords', effectiveSubsidiary?.id],
         queryFn: () => getExpenses(),
         enabled: !!effectiveSubsidiary,
     });
 
-    const { data: supplierDebts = [] } = useQuery<SupplierDebt[]>({
+    const { data: supplierDebts = [], isLoading: isLoadingSupplierDebts } = useQuery<SupplierDebt[]>({
         queryKey: ['supplierDebts', effectiveSubsidiary?.id],
         queryFn: () => getSupplierDebts(),
         enabled: !!effectiveSubsidiary,
@@ -103,9 +103,9 @@ const Finance: React.FC = () => {
             case FinanceView.PREFINANCEMENT:
                 return <PrefinancementManagement subsidiary={effectiveSubsidiary} />;
             case FinanceView.SUPPLIERS:
-                return <SupplierDebts subsidiary={effectiveSubsidiary} supplierDebts={supplierDebts} />;
+                return <SupplierDebts subsidiary={effectiveSubsidiary} supplierDebts={supplierDebts} isLoading={isLoadingSupplierDebts} />;
             case FinanceView.EXPENSES:
-                return <ExpenseManagement subsidiary={effectiveSubsidiary} expenseRecords={expenseRecords} />;
+                return <ExpenseManagement subsidiary={effectiveSubsidiary} expenseRecords={expenseRecords} isLoading={isLoadingExpenses} />;
             case FinanceView.PNL:
                 return (
                     <ProfitAndLossStatement

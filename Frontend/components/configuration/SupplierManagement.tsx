@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
@@ -8,7 +8,12 @@ import { useToast } from '../../context/ToastContext';
 import SupplierFormModal from './SupplierFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getSuppliers, createSupplier, updateSupplier, deleteSupplier } from '../../services/apiPurchasing/apiSupplier';
+import { getSuppliersPaginated, createSupplier, updateSupplier, deleteSupplier } from '../../services/apiPurchasing/apiSupplier';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+
+const SUPPLIERS_PAGE_SIZE = 10;
 
 const SupplierManagement: React.FC = () => {
     const { t } = useI18n();
@@ -17,11 +22,20 @@ const SupplierManagement: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
     const [deletingSupplier, setDeletingSupplier] = useState<Supplier | null>(null);
+    const [page, setPage] = useState(1);
+    const [search, setSearch] = useState('');
 
-    const { data: suppliers = [], isLoading, isError } = useQuery<Supplier[]>({
-        queryKey: ['suppliers'],
-        queryFn: getSuppliers,
+    useEffect(() => {
+        setPage(1);
+    }, [search]);
+
+    const { data: paginatedSuppliers, isLoading } = useQuery({
+        queryKey: ['suppliers', 'paginated', page, search],
+        queryFn: () => getSuppliersPaginated({ page, limit: SUPPLIERS_PAGE_SIZE, search: search || undefined }),
     });
+
+    const suppliers = paginatedSuppliers?.data || [];
+    const meta = paginatedSuppliers?.meta;
 
     const { mutate: saveSupplierMutate } = useMutation({
         mutationFn: (supplierData: Omit<Supplier, 'id' | 'subsidiaryId'> & { id?: string }) =>
@@ -83,6 +97,15 @@ const SupplierManagement: React.FC = () => {
                     <span>{t('configuration.addSupplier')}</span>
                 </button>
             </div>
+            <div className="mb-4">
+                <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder={t('common.search')}
+                    className="w-full sm:w-72 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#c6e911]"
+                />
+            </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-slate-500">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50">
@@ -96,7 +119,15 @@ const SupplierManagement: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {suppliers.map((supplier) => (
+                        {isLoading ? (
+                            <TableSkeleton rows={SUPPLIERS_PAGE_SIZE} columns={6} />
+                        ) : suppliers.length === 0 ? (
+                            <tr>
+                                <td colSpan={6}>
+                                    <EmptyState icon="truck" title={t('configuration.supplierManagement')} description={t('common.notAvailable')} />
+                                </td>
+                            </tr>
+                        ) : suppliers.map((supplier) => (
                             <tr key={supplier.id} className="bg-white border-b hover:bg-slate-50">
                                 <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{supplier.id}</th>
                                 <td className="px-6 py-4 font-semibold">{supplier.supplierName}</td>
@@ -116,6 +147,7 @@ const SupplierManagement: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+            {meta && <Pagination meta={meta} onPageChange={setPage} />}
 
             {isModalOpen && (
                 <SupplierFormModal

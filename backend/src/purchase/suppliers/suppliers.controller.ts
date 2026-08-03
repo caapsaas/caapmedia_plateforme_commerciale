@@ -21,6 +21,7 @@ import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { Roles } from 'src/common/auth/role/role.decorator';
 import { UserRole } from '@prisma/client';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @UseGuards(JwtAuthGuard, RoleGuard)
 @Controller('purchasing/suppliers')
@@ -44,8 +45,16 @@ export class SuppliersController {
    */
   @Get()
   @Roles(UserRole.ADMIN)
-  findAll(@Req() req, @Query('subsidiaryId') subsidiaryId?: string) {
-    return this.suppliersService.findAll(req.user, subsidiaryId);
+  findAll(
+    @Req() req,
+    @Query() paginationQuery: PaginationQueryDto,
+    @Query('subsidiaryId') subsidiaryId?: string,
+  ) {
+    return this.suppliersService.findAll(
+      req.user,
+      paginationQuery,
+      subsidiaryId,
+    );
   }
 
   /**

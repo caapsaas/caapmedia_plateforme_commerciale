@@ -9,6 +9,9 @@ import SalesAnalysisView from '../components/analytics/SalesAnalysisView';
 import PurchaseAnalysisView from '../components/analytics/PurchaseAnalysisView';
 import BankView from '../components/analytics/BankView';
 import SafeView from '../components/analytics/SafeView';
+import DashboardViewSkeleton from '../components/analytics/DashboardViewSkeleton';
+import SalesAnalysisViewSkeleton from '../components/analytics/SalesAnalysisViewSkeleton';
+import PurchaseAnalysisViewSkeleton from '../components/analytics/PurchaseAnalysisViewSkeleton';
 import { getDashboardStats, getSalesAnalysis, getPurchaseAnalysis, PeriodFilter as PeriodFilterType } from '../services/apiStatistic/apiAnalytics';
 import { getSubsidiaries } from '../services/apiCommon/apiSubsidiaries';
 
@@ -86,10 +89,9 @@ const Analytics: React.FC = () => {
             return <div className="p-6 text-center text-slate-500">{t('analytics.periods.selectDates')}</div>;
         }
         // Only show loading if the current active tab's data is loading
-        const isLoading = (activeTab === 'dashboard' && isLoadingDashboard) ||
-                         (activeTab === 'sales' && isLoadingSales) ||
-                         (activeTab === 'purchases' && isLoadingPurchases);
-        if (isLoading) return <div>{t('common.loading')}</div>;
+        if (activeTab === 'dashboard' && isLoadingDashboard) return <DashboardViewSkeleton />;
+        if (activeTab === 'sales' && isLoadingSales) return <SalesAnalysisViewSkeleton />;
+        if (activeTab === 'purchases' && isLoadingPurchases) return <PurchaseAnalysisViewSkeleton />;
 
         switch (activeTab) {
             case 'dashboard':

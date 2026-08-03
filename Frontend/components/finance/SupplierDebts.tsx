@@ -6,13 +6,16 @@ import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 
 interface SupplierDebtsProps {
     subsidiary: Subsidiary;
     supplierDebts: SupplierDebt[];
+    isLoading?: boolean;
 }
 
-const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts: allSupplierDebts }) => {
+const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts: allSupplierDebts, isLoading = false }) => {
     const { t, formatCurrency } = useI18n();
     const supplierDebts = allSupplierDebts.filter(d => d.subsidiaryId === subsidiary.id);
     const totalDebts = supplierDebts.filter(d => d.status !== 'Payé').reduce((acc, debt) => acc + Number(debt.amount), 0);
@@ -108,7 +111,15 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
                             </tr>
                         </thead>
                         <tbody>
-                            {supplierDebts.map((debt) => (
+                            {isLoading ? (
+                                <TableSkeleton rows={8} columns={5} />
+                            ) : supplierDebts.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5}>
+                                        <EmptyState icon="truck" title={t('supplierDebts.trackingTitle')} description={t('common.notAvailable')} />
+                                    </td>
+                                </tr>
+                            ) : supplierDebts.map((debt) => (
                                 <tr key={debt.id} className="bg-white border-b hover:bg-slate-50">
                                     <td className="px-6 py-4 font-medium text-slate-900">{debt.supplierName}</td>
                                     <td className="px-6 py-4">

@@ -1,5 +1,6 @@
 import { api } from '../api';
 import { CompanyDocument, Meeting, SecretariatTask, DocumentCategory, DocumentStatus, SecretariatTaskStatus } from '../../types';
+import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
 // --- Types ---
 
@@ -37,7 +38,17 @@ export interface SecretariatTaskSearchQuery {
  * Protégé par rôle (SECRETARY, ADMIN).
  */
 export const getCompanyDocuments = async (): Promise<CompanyDocument[]> => {
-  const { data } = await api.get<CompanyDocument[]>('/secretariat/documents');
+  const { data } = await api.get<PaginatedResponse<CompanyDocument>>('/secretariat/documents', { params: { limit: 500 } });
+  return data.data;
+};
+
+/**
+ * Version paginée/recherchable pour la vue liste (table page par page).
+ */
+export const getCompanyDocumentsPaginated = async (
+  params: PaginationParams,
+): Promise<PaginatedResponse<CompanyDocument>> => {
+  const { data } = await api.get<PaginatedResponse<CompanyDocument>>('/secretariat/documents', { params });
   return data;
 };
 
@@ -87,7 +98,17 @@ export const deleteCompanyDocument = async (id: string): Promise<{ message: stri
  * Récupère toutes les réunions.
  */
 export const getMeetings = async (): Promise<Meeting[]> => {
-  const { data } = await api.get<Meeting[]>('/secretariat/meetings');
+  const { data } = await api.get<PaginatedResponse<Meeting>>('/secretariat/meetings', { params: { limit: 500 } });
+  return data.data;
+};
+
+/**
+ * Version paginée/recherchable pour la vue liste (table page par page).
+ */
+export const getMeetingsPaginated = async (
+  params: PaginationParams,
+): Promise<PaginatedResponse<Meeting>> => {
+  const { data } = await api.get<PaginatedResponse<Meeting>>('/secretariat/meetings', { params });
   return data;
 };
 
@@ -124,7 +145,17 @@ export const deleteMeeting = async (id: string): Promise<{ message: string }> =>
  * Récupère toutes les tâches du secrétariat.
  */
 export const getSecretariatTasks = async (): Promise<SecretariatTask[]> => {
-  const { data } = await api.get<SecretariatTask[]>('/secretariat/tasks');
+  const { data } = await api.get<PaginatedResponse<SecretariatTask>>('/secretariat/tasks', { params: { limit: 500 } });
+  return data.data;
+};
+
+/**
+ * Version paginée/recherchable pour la vue liste (table page par page).
+ */
+export const getSecretariatTasksPaginated = async (
+  params: PaginationParams,
+): Promise<PaginatedResponse<SecretariatTask>> => {
+  const { data } = await api.get<PaginatedResponse<SecretariatTask>>('/secretariat/tasks', { params });
   return data;
 };
 

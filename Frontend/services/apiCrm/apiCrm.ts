@@ -10,10 +10,29 @@ import {
   OpportunityStage,
   CrmTaskStatus,
 } from '../../types';
+import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
 // --- CONTACTS ---
+
+/**
+ * Conservé pour les vues qui ont besoin de la liste complète des contacts en
+ * mémoire (filtrage/cross-référencement multi-onglets dans Pages/Crm.tsx).
+ * Limit élevée pour préserver le comportement "tout charger" existant tant
+ * que ces vues n'ont pas été migrées vers une pagination serveur dédiée.
+ */
 export const getContacts = (subsidiaryId: string): Promise<Contact[]> =>
-  api.get(`/crm/contacts?subsidiaryId=${subsidiaryId}`).then(res => res.data);
+  api
+    .get<PaginatedResponse<Contact>>('/crm/contacts', { params: { subsidiaryId, limit: 1000 } })
+    .then(res => res.data.data);
+
+/**
+ * Version paginée pour les vues qui affichent la liste des contacts
+ * page par page (table avec pagination, AsyncSelect).
+ */
+export const getContactsPaginated = (
+  params: PaginationParams & { subsidiaryId?: string; salesRepId?: string },
+): Promise<PaginatedResponse<Contact>> =>
+  api.get<PaginatedResponse<Contact>>('/crm/contacts', { params }).then(res => res.data);
 
 // A la creation, le backend genere un mot de passe temporaire pour le portail
 // client et le renvoie dans la reponse (voir contacts.service.ts) - absent
@@ -31,8 +50,24 @@ export const deleteContact = (id: string): Promise<void> =>
   api.delete(`/crm/contacts/${id}`);
 
 // --- LEADS ---
+/**
+ * Conservé pour les vues qui ont besoin de la liste complète des leads en
+ * mémoire (cross-référencement multi-onglets dans Pages/Crm.tsx, select dans
+ * ProformasManagement.tsx). Limit élevée pour préserver le comportement
+ * "tout charger" existant.
+ */
 export const getLeads = (subsidiaryId: string): Promise<Lead[]> =>
-  api.get(`/crm/leads?subsidiaryId=${subsidiaryId}`).then(res => res.data);
+  api
+    .get<PaginatedResponse<Lead>>('/crm/leads', { params: { subsidiaryId, limit: 1000 } })
+    .then(res => res.data.data);
+
+/**
+ * Version paginée pour les vues qui affichent la liste des leads page par page.
+ */
+export const getLeadsPaginated = (
+  params: PaginationParams & { subsidiaryId?: string; salesRepId?: string },
+): Promise<PaginatedResponse<Lead>> =>
+  api.get<PaginatedResponse<Lead>>('/crm/leads', { params }).then(res => res.data);
 
 export const saveLead = (data: Omit<Lead, 'id' | 'subsidiaryId'> & { id?: string }): Promise<Lead> => {
   // Cloner les données pour éviter de modifier l'objet original
@@ -52,8 +87,23 @@ export const convertLead = (leadId: string): Promise<Contact> =>
   api.post(`/crm/leads/${leadId}/convert`).then(res => res.data);
 
 // --- ACCOUNTS ---
+/**
+ * Conservé pour les vues qui ont besoin de la liste complète des comptes en
+ * mémoire (cross-référencement multi-onglets dans Pages/Crm.tsx). Limit
+ * élevée pour préserver le comportement "tout charger" existant.
+ */
 export const getAccounts = (subsidiaryId: string): Promise<Account[]> =>
-  api.get(`/crm/accounts?subsidiaryId=${subsidiaryId}`).then(res => res.data);
+  api
+    .get<PaginatedResponse<Account>>('/crm/accounts', { params: { subsidiaryId, limit: 1000 } })
+    .then(res => res.data.data);
+
+/**
+ * Version paginée pour les vues qui affichent la liste des comptes page par page.
+ */
+export const getAccountsPaginated = (
+  params: PaginationParams & { subsidiaryId?: string; salesRepId?: string },
+): Promise<PaginatedResponse<Account>> =>
+  api.get<PaginatedResponse<Account>>('/crm/accounts', { params }).then(res => res.data);
 
 export const saveAccount = (data: Omit<Account, 'id' | 'subsidiaryId'> & { id?: string }): Promise<Account> => {
   // Cloner les données pour éviter de modifier l'objet original
@@ -70,8 +120,23 @@ export const deleteAccount = (id: string): Promise<void> =>
   api.delete(`/crm/accounts/${id}`);
 
 // --- CONTRACTS ---
+/**
+ * Conservé pour les vues qui ont besoin de la liste complète des contrats en
+ * mémoire (cross-référencement multi-onglets dans Pages/Crm.tsx). Limit
+ * élevée pour préserver le comportement "tout charger" existant.
+ */
 export const getContracts = (subsidiaryId: string): Promise<Contract[]> =>
-  api.get(`/crm/contracts?subsidiaryId=${subsidiaryId}`).then(res => res.data);
+  api
+    .get<PaginatedResponse<Contract>>('/crm/contracts', { params: { subsidiaryId, limit: 1000 } })
+    .then(res => res.data.data);
+
+/**
+ * Version paginée pour les vues qui affichent la liste des contrats page par page.
+ */
+export const getContractsPaginated = (
+  params: PaginationParams & { subsidiaryId?: string },
+): Promise<PaginatedResponse<Contract>> =>
+  api.get<PaginatedResponse<Contract>>('/crm/contracts', { params }).then(res => res.data);
 
 export const saveContract = (data: Omit<Contract, 'id' | 'subsidiaryId'> & { id?: string }): Promise<Contract> => {
   // Cloner les données pour éviter de modifier l'objet original

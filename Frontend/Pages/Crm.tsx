@@ -23,6 +23,9 @@ import LeadsManagement from '../components/crm/LeadsManagement';
 import AccountManagement from '../components/crm/AccountManagement';
 import ContractManagement from '../components/crm/ContractManagement';
 import ProformasManagement from '../components/crm/ProformasManagement';
+import CrmDashboardSkeleton from '../components/ui/CrmDashboardSkeleton';
+import PipelineSkeleton from '../components/ui/PipelineSkeleton';
+import CrmListSkeleton from '../components/ui/CrmListSkeleton';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -38,7 +41,7 @@ const Crm: React.FC = () => {
     const [selectedSalesRepId, setSelectedSalesRepId] = useState('');
 
     if (!user || !subsidiary) {
-        return <div>{t('common.loading')}</div>;
+        return <CrmDashboardSkeleton />;
     }
 
     const effectiveRole = user.activeRole ?? user.userRole;
@@ -180,7 +183,26 @@ const Crm: React.FC = () => {
         const baseProps = { subsidiary, user };
 
         if (isLoading) {
-            return <div className="p-6 text-center">{t('common.loading')}</div>;
+            switch (activeTab) {
+                case 'dashboard':
+                    return <CrmDashboardSkeleton />;
+                case 'pipeline':
+                    return <PipelineSkeleton />;
+                case 'leads':
+                    return <CrmListSkeleton columns={6} />;
+                case 'accounts':
+                    return <CrmListSkeleton columns={5} />;
+                case 'contacts':
+                    return <CrmListSkeleton columns={7} />;
+                case 'contracts':
+                    return <CrmListSkeleton columns={7} />;
+                case 'proformas':
+                    return <CrmListSkeleton columns={7} />;
+                case 'activities':
+                    return <CrmListSkeleton columns={5} />;
+                default:
+                    return <CrmDashboardSkeleton />;
+            }
         }
 
         switch (activeTab) {
@@ -189,7 +211,9 @@ const Crm: React.FC = () => {
             case 'leads':
                 return <LeadsManagement
                     {...baseProps}
-                    leads={userFilteredData.leads}
+                    subsidiaryId={subsidiary.id}
+                    filterSubsidiaryId={selectedSubsidiaryId || undefined}
+                    filterSalesRepId={selectedSalesRepId || undefined}
                     onSave={(data) => onSaveLead(data)}
                     onDelete={(id) => onDeleteLead(id)}
                     onConvertLead={(id) => onConvertLead(id)}
@@ -197,14 +221,18 @@ const Crm: React.FC = () => {
             case 'accounts':
                 return <AccountManagement
                     {...baseProps}
-                    accounts={userFilteredData.accounts}
+                    subsidiaryId={subsidiary.id}
+                    filterSubsidiaryId={selectedSubsidiaryId || undefined}
+                    filterSalesRepId={selectedSalesRepId || undefined}
                     onSave={(data) => onSaveAccount(data)}
                     onDelete={(id) => onDeleteAccount(id)}
                 />;
             case 'contacts':
                 return <ContactManagement
                     {...baseProps}
-                    clients={userFilteredData.contacts}
+                    subsidiaryId={subsidiary.id}
+                    filterSubsidiaryId={selectedSubsidiaryId || undefined}
+                    filterSalesRepId={selectedSalesRepId || undefined}
                     onSave={(data) => onSaveContact(data)}
                     onDelete={(id) => onDeleteContact(id)}
                     opportunities={userFilteredData.opportunities}
@@ -216,7 +244,8 @@ const Crm: React.FC = () => {
             case 'contracts':
                 return <ContractManagement
                     {...baseProps}
-                    contracts={userFilteredData.contracts}
+                    subsidiaryId={subsidiary.id}
+                    filterSubsidiaryId={selectedSubsidiaryId || undefined}
                     contacts={contacts}
                     onSave={(data) => onSaveContract(data)}
                     onDelete={(id) => onDeleteContract(id)}

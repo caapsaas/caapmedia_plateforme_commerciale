@@ -1,4 +1,5 @@
 import { api } from '../api';
+import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
 export type AccountingAccountType = 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
 
@@ -27,9 +28,26 @@ export const seedAccounting = async (): Promise<{ message: string }> => {
   return data;
 };
 
+/**
+ * Conservé pour les vues qui ont besoin de la liste complète en mémoire
+ * (recherche/export/impression client-side dans ChartOfAccounts.tsx). Limit
+ * élevée : le plan comptable reste par nature une liste bornée (quelques
+ * centaines de comptes au maximum).
+ */
 export const getAccounts = async (type?: AccountingAccountType): Promise<AccountingAccount[]> => {
-  const params = type ? { type } : {};
-  const { data } = await api.get<AccountingAccount[]>('/accounting/accounts', { params });
+  const params = { ...(type ? { type } : {}), limit: 500 };
+  const { data } = await api.get<PaginatedResponse<AccountingAccount>>('/accounting/accounts', { params });
+  return data.data;
+};
+
+/**
+ * Version paginée/recherchable pour les selects de compte (AsyncSelect) —
+ * évite de charger tout le plan comptable dans un <select> natif.
+ */
+export const getAccountsPaginated = async (
+  params: PaginationParams & { type?: AccountingAccountType },
+): Promise<PaginatedResponse<AccountingAccount>> => {
+  const { data } = await api.get<PaginatedResponse<AccountingAccount>>('/accounting/accounts', { params });
   return data;
 };
 

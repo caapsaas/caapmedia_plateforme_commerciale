@@ -14,12 +14,14 @@ export type ExpenseRecordUpdateData = Partial<ExpenseRecordCreationData>;
 
 /**
  * Récupère toutes les charges pour la filiale de l'utilisateur connecté.
- * Protégé par rôle (ADMIN, FINANCIAL_DIRECTOR, CAISSIER).
+ * Protégé par rôle (ADMIN, FINANCIAL_DIRECTOR, CAISSIER). Limit élevée pour
+ * préserver le comportement "tout charger" nécessaire à l'export CSV/PDF de
+ * ExpenseManagement.tsx.
  */
 export const getExpenses = async (): Promise<ExpenseRecord[]> => {
-  const { data } = await api.get<any[]>('/finance/expenses');
+  const { data } = await api.get<{ data: any[] }>('/finance/expenses', { params: { limit: 500 } });
   // Mapper les champs du backend vers le frontend
-  return data.map(expense => ({
+  return data.data.map(expense => ({
     ...expense,
     date: expense.expenseDate, // expenseDate -> date
     type: expense.expenseRecordType, // expenseRecordType -> type

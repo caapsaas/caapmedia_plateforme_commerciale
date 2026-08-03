@@ -1,5 +1,6 @@
 import { api } from '../api';
 import { Contact, Order } from '../../types';
+import { PaginatedResponse } from '../../types/pagination.types';
 
 // --- Types pour les Employés (CRM Interne) ---
 
@@ -66,11 +67,15 @@ export const createContactByEmployee = async (contactData: ContactCreationData):
 
 /**
  * Récupère la liste des contacts (filtrée par rôle côté backend).
+ * Limit élevée pour préserver le comportement "tout charger" existant des
+ * appelants (sélection client en caisse, nouvelle commande, etc.).
  * @returns Un tableau de contacts.
  */
 export const getContacts = async (): Promise<Contact[]> => {
-  const { data } = await api.get<Contact[]>('/crm/contacts');
-  return data;
+  const { data } = await api.get<PaginatedResponse<Contact>>('/crm/contacts', {
+    params: { limit: 1000 },
+  });
+  return data.data;
 };
 
 /**

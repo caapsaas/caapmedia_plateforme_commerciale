@@ -1,5 +1,6 @@
 import { api } from '../api';
 import { ProformaStatus } from '../../types';
+import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
 export interface ProformaItem {
   productId: string;
@@ -51,10 +52,25 @@ export const createProforma = async (data: CreateProformaData): Promise<Proforma
   return response;
 };
 
-// Récupérer toutes les proformas
-export const getProformas = async (status?: ProformaStatus): Promise<Proforma[]> => {
-  const params = status ? { status } : {};
+// Récupérer les proformas, paginées, filtrées par statut le cas échéant
+export const getProformasPaginated = async (
+  params: PaginationParams & { status?: ProformaStatus },
+): Promise<PaginatedResponse<Proforma>> => {
   const { data } = await api.get('/crm/proformas', { params });
+  return data;
+};
+
+export interface ProformaStatusCounts {
+  all: number;
+  draft: number;
+  sent: number;
+  accepted: number;
+  rejected: number;
+}
+
+// Compte des proformas par statut, pour les badges d'onglets
+export const getProformaStatusCounts = async (): Promise<ProformaStatusCounts> => {
+  const { data } = await api.get('/crm/proformas/status-counts');
   return data;
 };
 

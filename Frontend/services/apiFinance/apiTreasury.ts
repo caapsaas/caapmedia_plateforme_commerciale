@@ -133,8 +133,15 @@ export const createExpenseTransaction = async (expenseData: TransactionCreationD
 /**
  * Récupère toutes les transactions financières de la filiale.
  */
+/**
+ * Récupère les transactions financières. Le backend paginait déjà en
+ * interne mais le controller n'exposait pas page/limit — sans ce fix, les
+ * transactions au-delà des 50 premières étaient invisibles côté UI. Limit
+ * élevée ici pour préserver le comportement "tout charger" nécessaire à
+ * l'export CSV/PDF de TreasuryManagement.tsx.
+ */
 export const getFinancialTransactions = async (subsidiaryId?: string): Promise<FinancialTransaction[]> => {
-  const params = subsidiaryId ? { subsidiaryId } : {};
+  const params = { ...(subsidiaryId ? { subsidiaryId } : {}), limit: 1000 };
   const { data } = await api.get<{ data: FinancialTransaction[]; total: number; page: number; limit: number; totalPages: number }>(
     '/finance/treasury/transactions',
     { params },

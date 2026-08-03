@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Subsidiary, Meeting, Employee } from '../../types';
 import { useI18n } from '../../i18n';
 import IconPlus from '../icons/IconPlus';
@@ -13,22 +14,41 @@ import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
-import { SaveMeetingDto } from '../../services/apisecretariat/apiSecretariat';
+import EmptyState from '../ui/EmptyState';
+import TableSkeleton from '../ui/TableSkeleton';
+import Pagination from '../common/Pagination';
+import { SaveMeetingDto, getMeetings, getMeetingsPaginated } from '../../services/apisecretariat/apiSecretariat';
+
+const MEETINGS_PAGE_SIZE = 10;
 
 interface MeetingManagementProps {
     subsidiary: Subsidiary;
-    meetings: Meeting[];
     employees: Employee[];
     onSave: (data: SaveMeetingDto) => void;
     onDelete: (id: string) => void;
 }
 
-const MeetingManagement: React.FC<MeetingManagementProps> = ({ subsidiary, meetings, employees, onSave, onDelete }) => {
+const MeetingManagement: React.FC<MeetingManagementProps> = ({ subsidiary, employees, onSave, onDelete }) => {
     const { t } = useI18n();
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
     const [viewingMeeting, setViewingMeeting] = useState<Meeting | null>(null);
     const [deletingMeeting, setDeletingMeeting] = useState<Meeting | null>(null);
+    const [page, setPage] = useState(1);
+    const [search, setSearch] = useState('');
+    const [isExporting, setIsExporting] = useState(false);
+
+    useEffect(() => {
+        setPage(1);
+    }, [search]);
+
+    const { data: paginatedMeetings, isLoading } = useQuery({
+        queryKey: ['meetings', subsidiary.id, 'paginated', page, search],
+        queryFn: () => getMeetingsPaginated({ page, limit: MEETINGS_PAGE_SIZE, search: search || undefined }),
+    });
+
+    const meetings = paginatedMeetings?.data || [];
+    const meta = paginatedMeetings?.meta;
 
     const formatDate = (isoString?: string | Date) => {
     if (!isoString) return '';
@@ -95,32 +115,51 @@ const formatTime = (isoString?: string | Date) => {
 
     const handlePrint = () => window.print();
 
-    const handleExportCsv = () => {
-        const headers = [
-            { key: 'title', label: t('secretariat.meetings.table.title') },
-            { key: 'date', label: t('secretariat.meetings.table.date') },
-            { key: 'location', label: t('secretariat.meetings.table.location') },
-            { key: 'participants', label: t('secretariat.meetings.table.participants') },
-        ];
-        const data = meetings.map(m => ({
-            ...m,
-            date: `${m.date} - ${m.time}`,
-            participants: getParticipantNames(m.participants),
-        }));
-        exportToCsv('liste_reunions', headers, data);
+    // L'export porte sur l'ensemble des réunions (pas seulement la page
+    // affichée) — on va chercher la liste complète à la demande.
+    const fetchAllForExport = async () => {
+        const all = await getMeetings();
+        return all;
     };
 
-    const handleExportPdf = () => {
-        const headers = [
-            { key: 'title', label: t('secretariat.meetings.table.title') },
-            { key: 'date', label: t('secretariat.meetings.table.date') },
-            { key: 'location', label: t('secretariat.meetings.table.location') },
-        ];
-         const data = meetings.map(m => ({
-            ...m,
-            date: `${m.date} - ${m.time}`,
-        }));
-        exportToPdf(t('secretariat.meetings.title'), headers, data, 'reunions');
+    const handleExportCsv = async () => {
+        setIsExporting(true);
+        try {
+            const headers = [
+                { key: 'title', label: t('secretariat.meetings.table.title') },
+                { key: 'date', label: t('secretariat.meetings.table.date') },
+                { key: 'location', label: t('secretariat.meetings.table.location') },
+                { key: 'participants', label: t('secretariat.meetings.table.participants') },
+            ];
+            const all = await fetchAllForExport();
+            const data = all.map(m => ({
+                ...m,
+                date: `${m.date} - ${m.time}`,
+                participants: getParticipantNames(m.participants),
+            }));
+            exportToCsv('liste_reunions', headers, data);
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const handleExportPdf = async () => {
+        setIsExporting(true);
+        try {
+            const headers = [
+                { key: 'title', label: t('secretariat.meetings.table.title') },
+                { key: 'date', label: t('secretariat.meetings.table.date') },
+                { key: 'location', label: t('secretariat.meetings.table.location') },
+            ];
+            const all = await fetchAllForExport();
+            const data = all.map(m => ({
+                ...m,
+                date: `${m.date} - ${m.time}`,
+            }));
+            exportToPdf(t('secretariat.meetings.title'), headers, data, 'reunions');
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     return (
@@ -136,15 +175,24 @@ const formatTime = (isoString?: string | Date) => {
                         <IconPrint className="h-4 w-4" />
                         <span>{t('common.print')}</span>
                     </button>
-                    <button onClick={handleExportCsv} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
+                    <button onClick={handleExportCsv} disabled={isExporting} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors disabled:opacity-50">
                         <IconExport className="h-4 w-4" />
                         <span>{t('common.export')}</span>
                     </button>
-                    <button onClick={handleExportPdf} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
+                    <button onClick={handleExportPdf} disabled={isExporting} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors disabled:opacity-50">
                         <IconPdf className="h-4 w-4" />
                         <span>{t('common.exportPdf')}</span>
                     </button>
                 </div>
+            </div>
+            <div className="mb-4 no-print">
+                <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder={t('common.search')}
+                    className="w-full sm:w-72 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#c6e911]"
+                />
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-slate-500">
@@ -158,7 +206,15 @@ const formatTime = (isoString?: string | Date) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {meetings.map((meeting) => (
+                        {isLoading ? (
+                            <TableSkeleton rows={MEETINGS_PAGE_SIZE} columns={5} />
+                        ) : meetings.length === 0 ? (
+                            <tr>
+                                <td colSpan={5}>
+                                    <EmptyState icon="document" title={t('secretariat.meetings.title')} description={t('common.notAvailable')} />
+                                </td>
+                            </tr>
+                        ) : meetings.map((meeting) => (
                             <tr key={meeting.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{meeting.title}</td>
                                 <td className="px-6 py-4">{`${formatDate(meeting.date)} - ${formatTime(meeting.time)}`}</td>
@@ -181,6 +237,7 @@ const formatTime = (isoString?: string | Date) => {
                     </tbody>
                 </table>
             </div>
+            {meta && <Pagination meta={meta} onPageChange={setPage} />}
 
             {isFormModalOpen && (
                 <MeetingFormModal 

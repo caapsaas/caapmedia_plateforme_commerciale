@@ -1,26 +1,63 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Lead, LeadStatus, User } from '../../types';
 import { useI18n } from '../../i18n';
+import { getLeadsPaginated } from '../../services/apiCrm/apiCrm';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
 import IconCheckCircle from '../icons/IconCheckCircle';
 import LeadFormModal from './LeadFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+
+const LEADS_PAGE_SIZE = 10;
 
 interface LeadsManagementProps {
-    leads: Lead[];
+    subsidiaryId: string;
+    filterSubsidiaryId?: string;
+    filterSalesRepId?: string;
     onSave: (data: Omit<Lead, 'id' | 'subsidiaryId'> & { id?: string }) => void;
     onDelete: (id: string) => void;
     onConvertLead: (leadId: string) => void;
 }
 
-const LeadsManagement: React.FC<LeadsManagementProps> = ({ leads, onSave, onDelete, onConvertLead }) => {
+const LeadsManagement: React.FC<LeadsManagementProps> = ({
+    subsidiaryId,
+    filterSubsidiaryId,
+    filterSalesRepId,
+    onSave,
+    onDelete,
+    onConvertLead,
+}) => {
     const { t } = useI18n();
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingLead, setEditingLead] = useState<Lead | null>(null);
     const [deletingLead, setDeletingLead] = useState<Lead | null>(null);
     const [convertingLead, setConvertingLead] = useState<Lead | null>(null);
+    const [page, setPage] = useState(1);
+
+    useEffect(() => {
+        setPage(1);
+    }, [filterSubsidiaryId, filterSalesRepId]);
+
+    const { data: paginatedLeads, isLoading } = useQuery({
+        // Préfixe ['leads', subsidiaryId] aligné avec queryKey('leads') dans
+        // Pages/Crm.tsx pour que l'invalidation des mutations déclenche le refetch ici.
+        queryKey: ['leads', subsidiaryId, 'paginated', page, filterSubsidiaryId, filterSalesRepId],
+        queryFn: () =>
+            getLeadsPaginated({
+                page,
+                limit: LEADS_PAGE_SIZE,
+                subsidiaryId: filterSubsidiaryId,
+                salesRepId: filterSalesRepId,
+            }),
+    });
+
+    const leads = paginatedLeads?.data || [];
+    const meta = paginatedLeads?.meta;
 
     const handleOpenAddModal = () => {
         setEditingLead(null);
@@ -93,7 +130,15 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ leads, onSave, onDele
                         </tr>
                     </thead>
                     <tbody>
-                        {leads.map((lead) => (
+                        {isLoading ? (
+                            <TableSkeleton rows={LEADS_PAGE_SIZE} columns={6} />
+                        ) : leads.length === 0 ? (
+                            <tr>
+                                <td colSpan={6}>
+                                    <EmptyState icon="document" title={t('crm.leads.title')} description={t('common.notAvailable')} />
+                                </td>
+                            </tr>
+                        ) : leads.map((lead) => (
                             <tr key={lead.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{lead.leadName}</td>
                                 <td className="px-6 py-4">{lead.company}</td>
@@ -128,6 +173,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ leads, onSave, onDele
                     </tbody>
                 </table>
             </div>
+            {meta && <Pagination meta={meta} onPageChange={setPage} />}
 
             {isFormModalOpen && (
                 <LeadFormModal 

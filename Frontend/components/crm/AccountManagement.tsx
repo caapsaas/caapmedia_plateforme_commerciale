@@ -1,23 +1,57 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Account } from '../../types';
 import { useI18n } from '../../i18n';
+import { getAccountsPaginated } from '../../services/apiCrm/apiCrm';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
 import AccountFormModal from './AccountFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+
+const ACCOUNTS_PAGE_SIZE = 10;
 
 interface AccountManagementProps {
-    accounts: Account[];
+    subsidiaryId: string;
+    filterSubsidiaryId?: string;
+    filterSalesRepId?: string;
     onSave: (data: Omit<Account, 'id' | 'subsidiaryId'> & { id?: string }) => void;
     onDelete: (id: string) => void;
 }
 
-const AccountManagement: React.FC<AccountManagementProps> = ({ accounts, onSave, onDelete }) => {
+const AccountManagement: React.FC<AccountManagementProps> = ({
+    subsidiaryId,
+    filterSubsidiaryId,
+    filterSalesRepId,
+    onSave,
+    onDelete,
+}) => {
     const { t } = useI18n();
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingAccount, setEditingAccount] = useState<Account | null>(null);
     const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
+    const [page, setPage] = useState(1);
+
+    useEffect(() => {
+        setPage(1);
+    }, [filterSubsidiaryId, filterSalesRepId]);
+
+    const { data: paginatedAccounts, isLoading } = useQuery({
+        queryKey: ['accounts', subsidiaryId, 'paginated', page, filterSubsidiaryId, filterSalesRepId],
+        queryFn: () =>
+            getAccountsPaginated({
+                page,
+                limit: ACCOUNTS_PAGE_SIZE,
+                subsidiaryId: filterSubsidiaryId,
+                salesRepId: filterSalesRepId,
+            }),
+    });
+
+    const accounts = paginatedAccounts?.data || [];
+    const meta = paginatedAccounts?.meta;
 
     const handleOpenAddModal = () => {
         setEditingAccount(null);
@@ -71,7 +105,15 @@ const AccountManagement: React.FC<AccountManagementProps> = ({ accounts, onSave,
                         </tr>
                     </thead>
                     <tbody>
-                        {accounts.map((account) => (
+                        {isLoading ? (
+                            <TableSkeleton rows={ACCOUNTS_PAGE_SIZE} columns={5} />
+                        ) : accounts.length === 0 ? (
+                            <tr>
+                                <td colSpan={5}>
+                                    <EmptyState icon="document" title={t('crm.accounts.title')} description={t('common.notAvailable')} />
+                                </td>
+                            </tr>
+                        ) : accounts.map((account) => (
                             <tr key={account.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{account.accountName}</td>
                                 <td className="px-6 py-4">{account.industry}</td>
@@ -90,9 +132,10 @@ const AccountManagement: React.FC<AccountManagementProps> = ({ accounts, onSave,
                     </tbody>
                 </table>
             </div>
+            {meta && <Pagination meta={meta} onPageChange={setPage} />}
 
             {isFormModalOpen && (
-                <AccountFormModal 
+                <AccountFormModal
                     isOpen={isFormModalOpen}
                     onClose={handleCloseModals}
                     onSave={handleSave}

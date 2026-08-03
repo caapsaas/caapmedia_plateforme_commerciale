@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '../../i18n';
 import {
-  getProformas,
+  getProformasPaginated,
+  getProformaStatusCounts,
   deleteProforma,
   sendProforma,
   acceptProforma,
@@ -10,12 +11,26 @@ import {
   Proforma,
 } from '../../services/apiCrm/apiProformas';
 import { getLeads } from '../../services/apiCrm/apiCrm';
+import { ProformaStatus } from '../../types';
 import IconPlus from '../icons/IconPlus';
 import IconDelete from '../icons/IconDelete';
 import IconEdit from '../icons/IconEdit';
 import IconDownload from '../icons/IconDownload';
 import ConfirmationModal from '../common/ConfirmationModal';
 import CreateProformaModal from './CreateProformaModal';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+
+const PROFORMAS_PAGE_SIZE = 10;
+type ProformaTab = 'all' | 'draft' | 'sent' | 'accepted' | 'rejected';
+const TAB_TO_STATUS: Record<ProformaTab, ProformaStatus | undefined> = {
+  all: undefined,
+  draft: ProformaStatus.DRAFT,
+  sent: ProformaStatus.SENT,
+  accepted: ProformaStatus.ACCEPTED,
+  rejected: ProformaStatus.REJECTED,
+};
 
 const ProformasManagement: React.FC = () => {
   const { t } = useI18n();
@@ -23,24 +38,44 @@ const ProformasManagement: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedProforma, setSelectedProforma] = useState<Proforma | null>(null);
   const [deletingProforma, setDeletingProforma] = useState<Proforma | null>(null);
-  const [activeTab, setActiveTab] = useState<'all' | 'draft' | 'sent' | 'accepted' | 'rejected'>(
-    'all',
-  );
+  const [activeTab, setActiveTab] = useState<ProformaTab>('all');
+  const [page, setPage] = useState(1);
 
-  const { data: proformas = [], isLoading } = useQuery({
-    queryKey: ['proformas'],
-    queryFn: getProformas,
+  useEffect(() => {
+    setPage(1);
+  }, [activeTab]);
+
+  const { data: paginatedProformas, isLoading } = useQuery({
+    queryKey: ['proformas', 'paginated', page, activeTab],
+    queryFn: () =>
+      getProformasPaginated({
+        page,
+        limit: PROFORMAS_PAGE_SIZE,
+        status: TAB_TO_STATUS[activeTab],
+      }),
   });
+
+  const { data: statusCounts } = useQuery({
+    queryKey: ['proformas', 'status-counts'],
+    queryFn: getProformaStatusCounts,
+  });
+
+  const proformas = paginatedProformas?.data || [];
+  const meta = paginatedProformas?.meta;
 
   const { data: leads = [] } = useQuery({
     queryKey: ['leads'],
     queryFn: () => getLeads(''),
   });
 
+  const invalidateProformas = () => {
+    queryClient.invalidateQueries({ queryKey: ['proformas'] });
+  };
+
   const deleteMutation = useMutation({
     mutationFn: deleteProforma,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['proformas'] });
+      invalidateProformas();
       setDeletingProforma(null);
     },
   });
@@ -85,11 +120,6 @@ const ProformasManagement: React.FC = () => {
     }
   };
 
-  const filteredProformas = proformas.filter((p) => {
-    if (activeTab === 'all') return true;
-    return p.status.toLowerCase() === activeTab.toUpperCase();
-  });
-
   return (
     <div className="bg-white p-6 rounded-xl shadow-md">
       <div className="flex justify-between items-center mb-6">
@@ -113,7 +143,7 @@ const ProformasManagement: React.FC = () => {
               : 'text-slate-600 hover:text-slate-800'
           }`}
         >
-          Toutes ({proformas.length})
+          Toutes ({statusCounts?.all ?? 0})
         </button>
         <button
           onClick={() => setActiveTab('draft')}
@@ -123,7 +153,7 @@ const ProformasManagement: React.FC = () => {
               : 'text-slate-600 hover:text-slate-800'
           }`}
         >
-          Brouillons ({proformas.filter((p) => p.status === 'DRAFT').length})
+          Brouillons ({statusCounts?.draft ?? 0})
         </button>
         <button
           onClick={() => setActiveTab('sent')}
@@ -133,7 +163,7 @@ const ProformasManagement: React.FC = () => {
               : 'text-slate-600 hover:text-slate-800'
           }`}
         >
-          Envoyées ({proformas.filter((p) => p.status === 'SENT').length})
+          Envoyées ({statusCounts?.sent ?? 0})
         </button>
         <button
           onClick={() => setActiveTab('accepted')}
@@ -143,7 +173,7 @@ const ProformasManagement: React.FC = () => {
               : 'text-slate-600 hover:text-slate-800'
           }`}
         >
-          Acceptées ({proformas.filter((p) => p.status === 'ACCEPTED').length})
+          Acceptées ({statusCounts?.accepted ?? 0})
         </button>
         <button
           onClick={() => setActiveTab('rejected')}
@@ -153,17 +183,12 @@ const ProformasManagement: React.FC = () => {
               : 'text-slate-600 hover:text-slate-800'
           }`}
         >
-          Refusées ({proformas.filter((p) => p.status === 'REJECTED').length})
+          Refusées ({statusCounts?.rejected ?? 0})
         </button>
       </div>
 
       {/* Table */}
-      {isLoading ? (
-        <div className="text-center py-8 text-slate-500">Chargement...</div>
-      ) : filteredProformas.length === 0 ? (
-        <div className="text-center py-8 text-slate-500">Aucune proforma trouvée</div>
-      ) : (
-        <div className="overflow-x-auto">
+      <div className="overflow-x-auto">
           <table className="w-full text-sm text-left text-slate-500">
             <thead className="text-xs text-slate-700 uppercase bg-slate-50">
               <tr>
@@ -191,7 +216,15 @@ const ProformasManagement: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredProformas.map((proforma) => (
+              {isLoading ? (
+                <TableSkeleton rows={PROFORMAS_PAGE_SIZE} columns={7} />
+              ) : proformas.length === 0 ? (
+                <tr>
+                  <td colSpan={7}>
+                    <EmptyState icon="document" title="Proformas (Devis)" description="Aucune proforma trouvée" />
+                  </td>
+                </tr>
+              ) : proformas.map((proforma) => (
                 <tr key={proforma.id} className="bg-white border-b hover:bg-slate-50">
                   <td className="px-6 py-4 font-semibold">{proforma.proformaNumber}</td>
                   <td className="px-6 py-4">{proforma.clientName}</td>
@@ -251,7 +284,7 @@ const ProformasManagement: React.FC = () => {
             </tbody>
           </table>
         </div>
-      )}
+      {meta && <Pagination meta={meta} onPageChange={setPage} />}
 
       {/* Modals */}
       {isCreateModalOpen && (

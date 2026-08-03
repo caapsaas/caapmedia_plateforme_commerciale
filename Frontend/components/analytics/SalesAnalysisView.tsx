@@ -9,6 +9,7 @@ import IconCurrency from '../icons/IconCurrency';
 import IconUsers from '../icons/IconUsers';
 import IconSales from '../icons/IconSales';
 import { SalesAnalysis } from '../../services/apiStatistic/apiAnalytics';
+import EmptyState from '../ui/EmptyState';
 
 interface SalesAnalysisViewProps {
     data: SalesAnalysis;
@@ -59,6 +60,9 @@ const SalesAnalysisView: React.FC<SalesAnalysisViewProps> = ({ data }) => {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             <div className="lg:col-span-3 bg-white p-6 rounded-xl shadow-md">
                  <h3 className="font-semibold text-lg mb-4 text-slate-700">{t('salesAnalysis.topProducts')}</h3>
+                 {topProducts.length === 0 ? (
+                    <EmptyState icon="stock" title={t('salesAnalysis.topProducts')} description={t('common.notAvailable')} />
+                 ) : (
                  <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left text-slate-500">
                         <thead className="text-xs text-slate-700 uppercase bg-slate-50">
@@ -79,6 +83,7 @@ const SalesAnalysisView: React.FC<SalesAnalysisViewProps> = ({ data }) => {
                         </tbody>
                     </table>
                  </div>
+                 )}
             </div>
             <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md min-w-0">
                  <h3 className="font-semibold text-lg mb-4 text-slate-700">{t('salesAnalysis.salesByCategory')}</h3>
@@ -88,6 +93,9 @@ const SalesAnalysisView: React.FC<SalesAnalysisViewProps> = ({ data }) => {
         
         <div className="bg-white p-6 rounded-xl shadow-md">
             <h3 className="font-semibold text-lg mb-4 text-slate-700">{t('salesAnalysis.topCustomers')}</h3>
+            {topCustomers.length === 0 ? (
+                <EmptyState icon="finance" title={t('salesAnalysis.topCustomers')} description={t('common.notAvailable')} />
+            ) : (
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-slate-500">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50">
@@ -106,6 +114,7 @@ const SalesAnalysisView: React.FC<SalesAnalysisViewProps> = ({ data }) => {
                     </tbody>
                 </table>
             </div>
+            )}
         </div>
     </div>
   );

@@ -5,6 +5,7 @@ import {
   Body,
   Patch,
   Param,
+  Query,
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
@@ -12,6 +13,7 @@ import { DebtsService } from './debts.service';
 import type { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { CurrentUser } from '../../common/auth/role/role.decorator';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 import { CreateSupplierDebtDto } from './dto/create-supplier-debt.dto';
 import { PaySupplierDebtDto } from './dto/pay-supplier-debt.dto';
@@ -33,8 +35,11 @@ export class DebtsController {
   }
 
   @Get('supplier')
-  findAllSupplierDebts(@CurrentUser() user: JwtUser) {
-    return this.debtsService.findAllSupplierDebts(user);
+  findAllSupplierDebts(
+    @CurrentUser() user: JwtUser,
+    @Query() paginationQuery: PaginationQueryDto,
+  ) {
+    return this.debtsService.findAllSupplierDebts(user, paginationQuery);
   }
 
   @Post('supplier/:id/pay')

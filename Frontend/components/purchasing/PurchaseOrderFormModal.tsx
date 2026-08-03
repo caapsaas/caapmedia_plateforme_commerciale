@@ -3,16 +3,18 @@ import { Subsidiary, StockItem, PurchaseOrderItem, PaymentTerms, Supplier } from
 import { useI18n } from '../../i18n';
 import IconDelete from '../icons/IconDelete';
 import { CreatePurchaseOrderDto } from '../../services/apiPurchasing/apiPurchase_order';
+import { getSuppliersPaginated } from '../../services/apiPurchasing/apiSupplier';
+import { getStockItemsPaginated } from '../../services/apiPurchasing/apiStockItems';
+import { AsyncSelect } from '../ui/AsyncSelect';
 
 interface PurchaseOrderFormModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: (data: CreatePurchaseOrderDto) => void;
-    stockItems: StockItem[];
-    suppliers: Supplier[];
+    subsidiaryId: string;
 }
 
-const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen, onClose, onSave, stockItems, suppliers }) => {
+const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen, onClose, onSave, subsidiaryId }) => {
     const { t, formatCurrency } = useI18n();
     const [supplierId, setSupplierId] = useState('');
     const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
@@ -20,11 +22,11 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
     const [paymentTerms, setPaymentTerms] = useState<PaymentTerms>(PaymentTerms.CREDIT);
     const [items, setItems] = useState<PurchaseOrderItem[]>([]);
     const [selectedProduct, setSelectedProduct] = useState('');
+    const [selectedProductData, setSelectedProductData] = useState<StockItem | null>(null);
     const [quantity, setQuantity] = useState(1);
     const [purchasePrice, setPurchasePrice] = useState(0);
     const [purchaseUnitId, setPurchaseUnitId] = useState('');
 
-    const selectedProductData = stockItems.find(p => p.id === selectedProduct);
     // Unité de base (pas de conversion) + unités d'emballage disponibles pour ce produit (Chantier 2).
     const availablePurchaseUnits = selectedProductData
         ? [
@@ -35,7 +37,7 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
 
     const handleAddProduct = () => {
         if (!selectedProduct || quantity <= 0 || purchasePrice <= 0) return;
-        const product = stockItems.find(p => p.id === selectedProduct);
+        const product = selectedProductData;
         if (!product) return;
 
         setItems(prev => [...prev, {
@@ -50,6 +52,7 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
 
         // Reset fields
         setSelectedProduct('');
+        setSelectedProductData(null);
         setQuantity(1);
         setPurchasePrice(0);
         setPurchaseUnitId('');
@@ -87,11 +90,16 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
                         {/* PO Header */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                              <div>
-                                <label htmlFor="supplierId" className="block text-sm font-medium text-slate-700">{t('purchasing.form.supplier')}</label>
-                                <select id="supplierId" value={supplierId} onChange={e => setSupplierId(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
-                                    <option value="" disabled>{t('purchasing.form.selectSupplier')}</option>
-                                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.supplierName}</option>)}
-                                </select>
+                                <AsyncSelect<Supplier>
+                                    queryKey="po-form-suppliers"
+                                    label={t('purchasing.form.supplier')}
+                                    placeholder={t('purchasing.form.selectSupplier')}
+                                    value={supplierId || undefined}
+                                    onChange={value => setSupplierId(value || '')}
+                                    getOptionLabel={s => s.supplierName}
+                                    getOptionValue={s => s.id}
+                                    fetcher={({ page, limit, search }) => getSuppliersPaginated({ page, limit, search, subsidiaryId })}
+                                />
                             </div>
                             <div>
                                 <label htmlFor="paymentTerms" className="block text-sm font-medium text-slate-700">{t('purchasing.form.paymentTerms')}</label>
@@ -116,11 +124,20 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
                              <h4 className="font-semibold text-slate-700">{t('purchasing.form.addProduct')}</h4>
                              <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
                                 <div className="md:col-span-2">
-                                     <label htmlFor="product" className="sr-only">{t('purchasing.form.product')}</label>
-                                     <select id="product" value={selectedProduct} onChange={e => { setPurchasePrice(stockItems.find(p => p.id === e.target.value)?.price || 0); setSelectedProduct(e.target.value); setPurchaseUnitId(''); }} className="w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border">
-                                        <option value="">{t('purchasing.form.selectProduct')}</option>
-                                        {stockItems.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                    </select>
+                                     <AsyncSelect<StockItem>
+                                        queryKey="po-form-stock-items"
+                                        placeholder={t('purchasing.form.selectProduct')}
+                                        value={selectedProduct || undefined}
+                                        onChange={(value, option) => {
+                                            setSelectedProduct(value || '');
+                                            setSelectedProductData(option || null);
+                                            setPurchasePrice(option?.price || 0);
+                                            setPurchaseUnitId('');
+                                        }}
+                                        getOptionLabel={p => p.name}
+                                        getOptionValue={p => p.id}
+                                        fetcher={({ page, limit, search }) => getStockItemsPaginated({ page, limit, search, subsidiaryId })}
+                                    />
                                 </div>
                                 <div>
                                      <label htmlFor="purchaseUnit" className="sr-only">{t('purchasing.form.purchaseUnit')}</label>

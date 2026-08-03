@@ -12,6 +12,9 @@ import { checkRole } from 'src/common/auth/role/check-role.util';
 import { AccountingOutboxService } from 'src/accounting/outbox/accounting-outbox.service';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
+import { paginate } from 'src/common/pagination/pagination';
+import type { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ExpensesService {
@@ -56,21 +59,28 @@ export class ExpensesService {
     });
   }
 
-  async findAll(user: JwtUser) {
+  async findAll(user: JwtUser, paginationQuery: PaginationQueryDto = {}) {
     checkRole(
       user,
       [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER],
       'You do not have permission to view expenses.',
     );
 
-    return this.prisma.expenseRecord.findMany({
-      where: {
-        subsidiaryId: user.subsidiaryId,
-      },
-      orderBy: {
-        expenseDate: 'desc',
-      },
-    });
+    const where: Prisma.ExpenseRecordWhereInput = {
+      subsidiaryId: user.subsidiaryId,
+    };
+    if (paginationQuery.search) {
+      where.description = {
+        contains: paginationQuery.search,
+        mode: 'insensitive',
+      };
+    }
+
+    return paginate(
+      this.prisma.expenseRecord,
+      { where, orderBy: { expenseDate: 'desc' } },
+      paginationQuery,
+    );
   }
 
   async findOne(id: string, user: JwtUser) {

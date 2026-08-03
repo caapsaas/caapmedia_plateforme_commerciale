@@ -23,6 +23,7 @@ import {
   LeaveBalanceDto,
 } from './dto/employee.dto';
 import { DocumentType, LeaveType } from '@prisma/client';
+import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles } from '../../common/auth/role/role.decorator';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
@@ -68,15 +69,22 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Get all employees of a subsidiary' })
   async findAll(
     @Request() req,
+    @Query() paginationQuery: PaginationQueryDto,
     @Query('includeRelations') includeRelations?: string,
   ) {
     const subsidiaryId = req.user.subsidiaryId;
-    this.logger.log(`Fetching employees for subsidiary ${subsidiaryId} (role: ${req.user.roles})`);
+    this.logger.log(
+      `Fetching employees for subsidiary ${subsidiaryId} (role: ${req.user.roles})`,
+    );
     const includeRel = includeRelations === 'true';
 
     // SUPER_ADMIN : vue consolidée toutes filiales (subsidiaryId = null → pas de filtre)
     const isSuperAdmin = req.user.roles?.includes('SUPER_ADMIN');
-    return this.employeeService.findAll(isSuperAdmin ? null : subsidiaryId, includeRel);
+    return this.employeeService.findAll(
+      isSuperAdmin ? null : subsidiaryId,
+      includeRel,
+      paginationQuery,
+    );
   }
 
   @Get(':id')

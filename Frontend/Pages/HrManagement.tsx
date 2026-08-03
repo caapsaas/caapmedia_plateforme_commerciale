@@ -13,6 +13,7 @@ import { getPayrollRecords, processPayroll, signPayrollRecord } from '../service
 import { getEmployees, saveEmployee, deleteEmployee, saveEmployeeWithDocumentsAndLeaves, getEmployeeWithRelations } from '../services/apihr/apiEmployees';
 import { useAuth } from '../context/AuthContext';
 import EmployeeDatabaseModern from '../components/hr/EmployeeDatabaseModern';
+import CrmListSkeleton from '../components/ui/CrmListSkeleton';
 
 type HrView = 'employees' | 'attendance-cards' | 'attendance-history' | 'payroll' | 'absences';
 
@@ -28,10 +29,13 @@ const HrManagement: React.FC = () => {
                          location.pathname !== '/dashboard/hr';
 
     if (!subsidiary) {
-        return <div className="p-6 text-center">{t('common.loading')}</div>;
+        return <CrmListSkeleton columns={7} />;
     }
 
     // --- Data Fetching ---
+    // La liste complète des employés n'est plus nécessaire pour l'onglet
+    // "employees" — EmployeeDatabaseModern se charge lui-même (paginé). Elle
+    // reste requise ici pour le croisement dans Payroll/Absences.
     const { data: employees = [], isLoading: isLoadingEmployees } = useQuery<Employee[]>({
         queryKey: ['employees', subsidiary.id],
         queryFn: () => getEmployees(true)
@@ -60,18 +64,19 @@ const HrManagement: React.FC = () => {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['payrolls', subsidiary.id] }) 
     });
 
+    // "employees" gère désormais son propre chargement (pagination serveur) ;
+    // seuls payroll/absences dépendent encore du fetch parent `employees`.
     const isLoading = isLoadingEmployees || isLoadingAbsences || isLoadingPayrolls;
 
     const renderActiveView = () => {
-        if (isLoading && activeTab !== 'attendance-cards' && activeTab !== 'attendance-history') {
-            return <div className="p-6 text-center">{t('common.loading')}</div>;
+        if (isLoading && !['attendance-cards', 'attendance-history', 'employees'].includes(activeTab)) {
+            return <CrmListSkeleton columns={7} />;
         }
 
         switch (activeTab) {
             case 'employees':
                 return <EmployeeDatabaseModern
                             subsidiary={subsidiary}
-                            employees={employees}
                             onSave={onSaveEmployee}
                             onDelete={onDeleteEmployee}
                         />;

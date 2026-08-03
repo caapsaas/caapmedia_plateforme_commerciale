@@ -199,9 +199,8 @@ const OpportunityPipeline: React.FC<OpportunityPipelineProps> = ({
                     onClose={() => setIsModalOpen(false)}
                     onSave={handleSave}
                     opportunity={editingOpportunity}
-                    clients={allClients}
+                    subsidiaryId={props.subsidiary.id}
                     products={allProducts}
-                    
                 />
             )}
         </div>

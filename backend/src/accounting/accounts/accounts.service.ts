@@ -5,10 +5,13 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
-import { AccountingAccountType } from '@prisma/client';
+import { AccountingAccountType, Prisma } from '@prisma/client';
 
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
+import { paginate, PaginatedResult } from 'src/common/pagination/pagination';
+import type { AccountingAccount } from '@prisma/client';
 export interface CreateAccountDto {
   accountNumber: string;
   accountName: string;
@@ -30,7 +33,12 @@ export const SYSCOHADA_SEED_ACCOUNTS = [
   { num: '101000', name: 'Capital social', type: 'EQUITY', class: 1 },
   { num: '110000', name: 'Report à nouveau', type: 'EQUITY', class: 1 },
   { num: '111000', name: 'Réserve légale', type: 'EQUITY', class: 1 },
-  { num: '120000', name: "Résultat net de l'exercice", type: 'EQUITY', class: 1 },
+  {
+    num: '120000',
+    name: "Résultat net de l'exercice",
+    type: 'EQUITY',
+    class: 1,
+  },
   {
     num: '162000',
     name: 'Emprunts auprès des établissements de crédit',
@@ -52,7 +60,12 @@ export const SYSCOHADA_SEED_ACCOUNTS = [
     type: 'ASSET',
     class: 2,
   },
-  { num: '221000', name: 'Brevets, licences, logiciels', type: 'ASSET', class: 2 },
+  {
+    num: '221000',
+    name: 'Brevets, licences, logiciels',
+    type: 'ASSET',
+    class: 2,
+  },
   {
     num: '281000',
     name: 'Amortissements des immobilisations',
@@ -61,7 +74,12 @@ export const SYSCOHADA_SEED_ACCOUNTS = [
   },
   // CLASSE 3 — STOCKS
   { num: '310000', name: 'Stocks de marchandises', type: 'ASSET', class: 3 },
-  { num: '320000', name: 'Stocks de matières premières', type: 'ASSET', class: 3 },
+  {
+    num: '320000',
+    name: 'Stocks de matières premières',
+    type: 'ASSET',
+    class: 3,
+  },
   // CLASSE 4 — TIERS
   { num: '401000', name: 'Fournisseurs', type: 'LIABILITY', class: 4 },
   {
@@ -104,10 +122,15 @@ export const SYSCOHADA_SEED_ACCOUNTS = [
   },
   { num: '443100', name: 'TVA collectée (18%)', type: 'LIABILITY', class: 4 },
   { num: '445100', name: 'TVA déductible sur achats', type: 'ASSET', class: 4 },
-  { num: '445200', name: 'TVA déductible sur services', type: 'ASSET', class: 4 },
+  {
+    num: '445200',
+    name: 'TVA déductible sur services',
+    type: 'ASSET',
+    class: 4,
+  },
   {
     num: '446000',
-    name: 'État — Autres impôts sur chiffre d\'affaires (BIC)',
+    name: "État — Autres impôts sur chiffre d'affaires (BIC)",
     type: 'LIABILITY',
     class: 4,
   },
@@ -119,7 +142,7 @@ export const SYSCOHADA_SEED_ACCOUNTS = [
   },
   {
     num: '447100',
-    name: "État — IUTS (impôt sur salaires) à verser",
+    name: 'État — IUTS (impôt sur salaires) à verser',
     type: 'LIABILITY',
     class: 4,
   },
@@ -147,7 +170,12 @@ export const SYSCOHADA_SEED_ACCOUNTS = [
     type: 'LIABILITY',
     class: 4,
   },
-  { num: '481000', name: "Charges constatées d'avance", type: 'ASSET', class: 4 },
+  {
+    num: '481000',
+    name: "Charges constatées d'avance",
+    type: 'ASSET',
+    class: 4,
+  },
   // CLASSE 5 — TRÉSORERIE
   { num: '521000', name: 'Banques comptes courants', type: 'ASSET', class: 5 },
   { num: '522000', name: 'Banques — Découverts', type: 'LIABILITY', class: 5 },
@@ -163,7 +191,12 @@ export const SYSCOHADA_SEED_ACCOUNTS = [
     type: 'EXPENSE',
     class: 6,
   },
-  { num: '603000', name: 'Variation de stocks de marchandises', type: 'EXPENSE', class: 6 },
+  {
+    num: '603000',
+    name: 'Variation de stocks de marchandises',
+    type: 'EXPENSE',
+    class: 6,
+  },
   { num: '604000', name: "Achats d'emballages", type: 'EXPENSE', class: 6 },
   {
     num: '605200',
@@ -227,11 +260,26 @@ export const SYSCOHADA_SEED_ACCOUNTS = [
     class: 6,
   },
   { num: '628000', name: 'Divers frais et charges', type: 'EXPENSE', class: 6 },
-  { num: '631000', name: 'Impôts et taxes (hors IS)', type: 'EXPENSE', class: 6 },
+  {
+    num: '631000',
+    name: 'Impôts et taxes (hors IS)',
+    type: 'EXPENSE',
+    class: 6,
+  },
   { num: '638000', name: 'Expressions de besoin', type: 'EXPENSE', class: 6 },
-  { num: '641000', name: 'Appointements et salaires', type: 'EXPENSE', class: 6 },
+  {
+    num: '641000',
+    name: 'Appointements et salaires',
+    type: 'EXPENSE',
+    class: 6,
+  },
   { num: '641400', name: 'TPA (taxe sur salaires)', type: 'EXPENSE', class: 6 },
-  { num: '644000', name: 'Primes et gratifications', type: 'EXPENSE', class: 6 },
+  {
+    num: '644000',
+    name: 'Primes et gratifications',
+    type: 'EXPENSE',
+    class: 6,
+  },
   {
     num: '645000',
     name: 'Indemnités et avantages divers',
@@ -355,14 +403,38 @@ export class AccountsService {
     });
   }
 
-  async findAll(type?: AccountingAccountType) {
-    return this.prisma.accountingAccount.findMany({
-      where: {
-        isActive: true,
-        ...(type ? { accountType: type } : {}),
-      },
-      orderBy: { accountNumber: 'asc' },
-    });
+  async findAll(
+    paginationQuery: PaginationQueryDto,
+    type?: AccountingAccountType,
+    includeInactive = false,
+  ): Promise<PaginatedResult<AccountingAccount>> {
+    const where: Prisma.AccountingAccountWhereInput = {
+      ...(includeInactive ? {} : { isActive: true }),
+      ...(type ? { accountType: type } : {}),
+    };
+
+    if (paginationQuery.search) {
+      where.OR = [
+        {
+          accountNumber: {
+            contains: paginationQuery.search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          accountName: {
+            contains: paginationQuery.search,
+            mode: 'insensitive',
+          },
+        },
+      ];
+    }
+
+    return paginate<AccountingAccount>(
+      this.prisma.accountingAccount,
+      { where, orderBy: { accountNumber: 'asc' } },
+      paginationQuery,
+    );
   }
 
   async findOne(id: string) {

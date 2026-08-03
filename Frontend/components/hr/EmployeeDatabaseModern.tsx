@@ -1,31 +1,36 @@
-import React, { useState, useMemo } from 'react';
-import { Subsidiary, Employee, EmployeeFormData, ContractType, EmployeeStatus } from '../../types';
+import React, { useEffect, useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { UseMutateFunction } from '@tanstack/react-query';
+import { Subsidiary, Employee, EmployeeFormData, ContractType, EmployeeStatus } from '../../types';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import ConfirmationModal from '../common/ConfirmationModal';
 import { exportToCsv } from '../../utils/csvExporter';
 import { exportToPdf } from '../../utils/pdfExporter';
 import SearchBar from './SearchBar';
-import { uploadDocumentFile, addDocumentToEmployee, addLeaveRecordToEmployee, saveEmployeeWithDocumentsAndLeaves } from '../../services/apihr/apiEmployees';
+import { getEmployees, getEmployeesPaginated, uploadDocumentFile, addDocumentToEmployee, addLeaveRecordToEmployee, saveEmployeeWithDocumentsAndLeaves } from '../../services/apihr/apiEmployees';
 
 // New UI Components
-import Card, { CardBody, CardHeader } from '../ui/Card';
+import Card, { CardBody } from '../ui/Card';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
 import { Plus, BarChart, FileText, Eye, Edit, Trash } from '../ui/Icons';
 import EmployeeStats from './EmployeeStats';
 import EmployeeFilters from './EmployeeFilters';
 import EmployeeCard from './EmployeeCard';
+import EmployeeCardSkeleton from './EmployeeCardSkeleton';
 import EmployeeFormModalModern from './EmployeeFormModalModern';
 import EmployeeDetailsModalModern from './EmployeeDetailsModalModern';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+
+const EMPLOYEES_PAGE_SIZE = 10;
 
 interface EmployeeDatabaseModernProps {
   subsidiary: Subsidiary;
-  employees: Employee[];
   onSave: UseMutateFunction<Employee, Error, Partial<Employee>, unknown>;
   onDelete: UseMutateFunction<Employee, Error, string, unknown>;
-  isLoading?: boolean;
 }
 
 type ViewMode = 'table' | 'cards';
@@ -37,10 +42,8 @@ const hasFileObject = (obj: any): boolean => {
 
 const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
   subsidiary,
-  employees,
   onSave,
   onDelete,
-  isLoading = false,
 }) => {
   const { t, formatCurrency } = useI18n();
   const toast = useToast();
@@ -57,28 +60,39 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
     const saved = localStorage.getItem('employeeSortMode');
     return (saved as SortMode) || 'name-asc';
   });
+  const [page, setPage] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
 
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
   const [viewingEmployee, setViewingEmployee] = useState<Employee | null>(null);
 
-  // Filtered and sorted employees
-  const filteredAndSortedEmployees = useMemo(() => {
-    let result = employees.filter((employee) => {
-      const searchLower = searchTerm.toLowerCase();
-      const matchesSearch =
-        employee.firstName.toLowerCase().includes(searchLower) ||
-        employee.lastName.toLowerCase().includes(searchLower) ||
-        employee.email.toLowerCase().includes(searchLower) ||
-        employee.phone.toLowerCase().includes(searchLower) ||
-        employee.positions.toLowerCase().includes(searchLower) ||
-        employee.department.toLowerCase().includes(searchLower);
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm]);
 
-      return matchesSearch;
-    });
+  // Recherche déportée côté serveur (porte sur l'ensemble des employés, pas
+  // seulement la page affichée) — le tri, lui, reste appliqué côté client
+  // sur la page courante.
+  const { data: paginatedEmployees, isLoading } = useQuery({
+    queryKey: ['employees', subsidiary.id, 'paginated', page, searchTerm],
+    queryFn: () => getEmployeesPaginated({ page, limit: EMPLOYEES_PAGE_SIZE, search: searchTerm || undefined, includeRelations: true }),
+  });
 
-    // Sort
+  const employees = paginatedEmployees?.data || [];
+  const meta = paginatedEmployees?.meta;
+
+  // Statistiques globales : nécessitent la liste complète (comptages exacts),
+  // indépendamment de la pagination de la table ci-dessous.
+  const { data: allEmployeesForStats = [] } = useQuery({
+    queryKey: ['employees', subsidiary.id, 'all-for-stats'],
+    queryFn: () => getEmployees(),
+  });
+
+  // Tri de la page courante
+  const sortedEmployees = useMemo(() => {
+    const result = [...employees];
     result.sort((a, b) => {
       switch (sortMode) {
         case 'name-asc':
@@ -93,9 +107,10 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
           return 0;
       }
     });
-
     return result;
-  }, [employees, searchTerm, sortMode]);
+  }, [employees, sortMode]);
+
+  const filteredAndSortedEmployees = sortedEmployees;
 
   // Handlers
   const handleOpenAddModal = () => {
@@ -159,9 +174,13 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
     }
   };
 
-  const handleExportCsv = () => {
+  // L'export porte sur l'ensemble des employés (pas seulement la page
+  // affichée) — on va chercher la liste complète à la demande.
+  const handleExportCsv = async () => {
+    setIsExporting(true);
     try {
-      if (filteredAndSortedEmployees.length === 0) {
+      const all = await getEmployees(true);
+      if (all.length === 0) {
         toast.warning(t('common.warning'), t('hr.noEmployeesToExport'));
         return;
       }
@@ -174,17 +193,21 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
         { key: 'contractType', label: t('configuration.form.contractType') },
         { key: 'status', label: t('hr.table.status') },
       ];
-      exportToCsv(`employees-${subsidiary.id}`, headers, filteredAndSortedEmployees);
+      exportToCsv(`employees-${subsidiary.id}`, headers, all);
       toast.success(t('common.success'), t('hr.exportedCsv'));
     } catch (error) {
       console.error('CSV export error:', error);
       toast.error(t('common.error'), t('hr.exportFailed'));
+    } finally {
+      setIsExporting(false);
     }
   };
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
+    setIsExporting(true);
     try {
-      if (filteredAndSortedEmployees.length === 0) {
+      const all = await getEmployees(true);
+      if (all.length === 0) {
         toast.warning(t('common.warning'), t('hr.noEmployeesToExport'));
         return;
       }
@@ -198,7 +221,7 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
         { key: 'contractType', label: t('hr.table.contract') },
         { key: 'status', label: t('hr.table.status') },
       ];
-      const formattedData = filteredAndSortedEmployees.map((e) => ({
+      const formattedData = all.map((e) => ({
         firstName: e.firstName,
         lastName: e.lastName,
         email: e.email,
@@ -212,6 +235,8 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
     } catch (error) {
       console.error('PDF export error:', error);
       toast.error(t('common.error'), t('hr.exportFailed'));
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -239,7 +264,7 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
         </div>
 
         {/* Stats */}
-        <EmployeeStats employees={employees} />
+        <EmployeeStats employees={allEmployeesForStats} />
 
         {/* Filters and Actions */}
         <Card className="mb-6">
@@ -252,10 +277,10 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
                 <Button variant="primary" leftIcon={<Plus size={18} />} onClick={handleOpenAddModal}>
                   {t('hr.employees.add')}
                 </Button>
-                <Button variant="secondary" leftIcon={<BarChart size={18} />} onClick={handleExportCsv}>
+                <Button variant="secondary" leftIcon={<BarChart size={18} />} onClick={handleExportCsv} disabled={isExporting}>
                   {t('hr.actions.csv')}
                 </Button>
-                <Button variant="secondary" leftIcon={<FileText size={18} />} onClick={handleExportPdf}>
+                <Button variant="secondary" leftIcon={<FileText size={18} />} onClick={handleExportPdf} disabled={isExporting}>
                   {t('hr.actions.pdf')}
                 </Button>
                 <div className="flex gap-1 border border-slate-200 rounded-lg p-1">
@@ -303,7 +328,15 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredAndSortedEmployees.map((employee, idx) => (
+                  {isLoading ? (
+                    <TableSkeleton rows={EMPLOYEES_PAGE_SIZE} columns={7} />
+                  ) : filteredAndSortedEmployees.length === 0 ? (
+                    <tr>
+                      <td colSpan={7}>
+                        <EmptyState icon="inbox" title={t('hr.employees.title')} description={t('hr.noEmployeesFound')} />
+                      </td>
+                    </tr>
+                  ) : filteredAndSortedEmployees.map((employee, idx) => (
                     <tr
                       key={employee.id}
                       className={`border-b border-slate-200 hover:bg-slate-50 transition-colors ${
@@ -373,29 +406,35 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
 
         {/* Employee List - Card View */}
         {viewMode === 'cards' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredAndSortedEmployees.map((employee) => (
-              <EmployeeCard
-                key={employee.id}
-                employee={employee}
-                onView={() => setViewingEmployee(employee)}
-                onEdit={() => {
-                  setEditingEmployee(employee);
-                  setIsFormModalOpen(true);
-                }}
-                onDelete={() => setDeletingEmployee(employee)}
-              />
-            ))}
-          </div>
+          isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: EMPLOYEES_PAGE_SIZE }).map((_, idx) => (
+                <EmployeeCardSkeleton key={idx} />
+              ))}
+            </div>
+          ) : filteredAndSortedEmployees.length === 0 ? (
+            <Card>
+              <EmptyState icon="inbox" title={t('hr.employees.title')} description={t('hr.noEmployeesFound')} />
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredAndSortedEmployees.map((employee) => (
+                <EmployeeCard
+                  key={employee.id}
+                  employee={employee}
+                  onView={() => setViewingEmployee(employee)}
+                  onEdit={() => {
+                    setEditingEmployee(employee);
+                    setIsFormModalOpen(true);
+                  }}
+                  onDelete={() => setDeletingEmployee(employee)}
+                />
+              ))}
+            </div>
+          )
         )}
 
-        {!isLoading && filteredAndSortedEmployees.length === 0 && (
-          <Card>
-            <CardBody className="text-center py-12">
-              <p className="text-slate-500 text-lg">{t('hr.noEmployeesFound')}</p>
-            </CardBody>
-          </Card>
-        )}
+        {meta && <Pagination meta={meta} onPageChange={setPage} />}
       </div>
 
       {/* Modals */}
