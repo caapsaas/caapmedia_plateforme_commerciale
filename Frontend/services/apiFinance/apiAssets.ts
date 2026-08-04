@@ -1,5 +1,6 @@
 import { api } from '../api';
 import { FixedAsset } from '../../types';
+import { PaginatedResponse } from '../../types/pagination.types';
 
 /**
  * Données pour la création d'une immobilisation.
@@ -41,8 +42,8 @@ export const createFixedAsset = async (assetData: FixedAssetCreationData): Promi
  * @returns Un tableau d'immobilisations.
  */
 export const getFixedAssets = async (): Promise<FixedAsset[]> => {
-  const { data } = await api.get<FixedAsset[]>('/finance/assets/fixed');
-  return data;
+  const { data } = await api.get<PaginatedResponse<FixedAsset>>('/finance/assets/fixed', { params: { limit: 500 } });
+  return data.data;
 };
 
 /**

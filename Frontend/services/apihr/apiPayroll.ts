@@ -1,5 +1,6 @@
 import { api } from '../api';
 import { PayrollRecord } from '../../types';
+import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
 // ============================================================
 // TYPES - Configuration de paie
@@ -217,7 +218,19 @@ export const updatePayrollConfiguration = async (
  * GET /hr/payroll-records
  */
 export const getPayrollRecords = async (): Promise<PayrollRecord[]> => {
-  const { data } = await api.get<PayrollRecord[]>('/hr/payroll-records');
+  const { data } = await api.get<PaginatedResponse<PayrollRecord>>('/hr/payroll-records', {
+    params: { limit: 500 },
+  });
+  return data.data;
+};
+
+/**
+ * Version paginée/recherchable (page/limit/search).
+ */
+export const getPayrollRecordsPaginated = async (
+  params: PaginationParams,
+): Promise<PaginatedResponse<PayrollRecord>> => {
+  const { data } = await api.get<PaginatedResponse<PayrollRecord>>('/hr/payroll-records', { params });
   return data;
 };
 

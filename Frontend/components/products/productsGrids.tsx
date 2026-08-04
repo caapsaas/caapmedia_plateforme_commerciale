@@ -15,10 +15,10 @@ interface Props {
   selectedSubcategory: string;
   showFavorites: boolean;
   likedProducts: Set<string>;
-  onAddToCart: (product: Product) => void;
   onLike: (id: string) => void;
   onUnlike: (id: string) => void;
   onResetFilters: () => void;
+  onViewDetails: (product: Product) => void;
 }
 
 export default function ProductsGrid({
@@ -27,10 +27,10 @@ export default function ProductsGrid({
   selectedSubcategory,
   showFavorites,
   likedProducts,
-  onAddToCart,
   onLike,
   onUnlike,
   onResetFilters,
+  onViewDetails,
 }: Props) {
   const [page, setPage] = useState(1);
   const [allLoaded, setAllLoaded] = useState<Product[]>([]);
@@ -140,10 +140,10 @@ export default function ProductsGrid({
             <ProductCard
               key={product.id}
               product={product}
-              onAddToCart={onAddToCart}
               isLiked={likedProducts.has(product.id)}
               onLike={onLike}
               onUnlike={onUnlike}
+              onViewDetails={onViewDetails}
             />
           ))}
 

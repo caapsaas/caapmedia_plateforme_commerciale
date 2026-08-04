@@ -84,8 +84,8 @@ export const createLongTermDebt = async (debtData: LongTermDebtCreationData): Pr
  * Récupère toutes les dettes à long terme de la filiale.
  */
 export const getLongTermDebts = async (): Promise<LongTermDebt[]> => {
-  const { data } = await api.get<LongTermDebt[]>('/finance/debts/long-term');
-  return data;
+  const { data } = await api.get<{ data: LongTermDebt[] }>('/finance/debts/long-term', { params: { limit: 500 } });
+  return data.data;
 };
 
 /**

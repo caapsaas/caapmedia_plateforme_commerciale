@@ -1,5 +1,6 @@
 import { api } from '.././api';
-import { CustomerPaymentMethod, OrderStatus, PaymentStatus, ProductionStatus } from '../../types';
+import { CustomerPaymentMethod, OrderStatus, PaymentStatus, ProductionStatus, Order } from '../../types';
+import { PaginatedResponse } from '../../types/pagination.types';
 
 /**
  * DTO pour le filtrage des commandes, correspondant à FindAllOrdersDto du backend.
@@ -139,10 +140,14 @@ export const updateProductionStatus = async (payload: { orderId: string; product
 /**
  * Récupère les commandes en attente de validation par le directeur de production.
  */
-export const getPendingValidationOrders = async (subsidiaryId?: string) => {
-    const params = subsidiaryId ? { subsidiaryId } : {};
-    const { data } = await api.get('/ecommerce/orders/pending-validation', { params });
-    return data;
+/**
+ * File d'attente de validation production — limite haute : les directeurs
+ * de production ont besoin de voir tout le backlog, pas une page à la fois.
+ */
+export const getPendingValidationOrders = async (subsidiaryId?: string): Promise<Order[]> => {
+    const params = { ...(subsidiaryId ? { subsidiaryId } : {}), limit: 500 };
+    const { data } = await api.get<PaginatedResponse<Order>>('/ecommerce/orders/pending-validation', { params });
+    return data.data;
 };
 
 /**

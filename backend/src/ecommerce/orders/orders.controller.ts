@@ -28,6 +28,7 @@ import { UserRole } from '@prisma/client';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @Controller('ecommerce/orders')
 export class OrdersController {
@@ -105,8 +106,8 @@ export class OrdersController {
   @Get('/credit')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR)
-  findAllCredit(@Req() req) {
-    return this.ordersService.getAllCustomerCredit(req.user);
+  findAllCredit(@Req() req, @Query() paginationQuery: PaginationQueryDto) {
+    return this.ordersService.getAllCustomerCredit(req.user, paginationQuery);
   }
 
   /**
@@ -130,9 +131,14 @@ export class OrdersController {
   @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR, UserRole.SUPER_ADMIN)
   findPendingValidation(
     @Req() req,
+    @Query() paginationQuery: PaginationQueryDto,
     @Query('subsidiaryId') subsidiaryId?: string,
   ) {
-    return this.ordersService.findPendingValidation(req.user, subsidiaryId);
+    return this.ordersService.findPendingValidation(
+      req.user,
+      subsidiaryId,
+      paginationQuery,
+    );
   }
 
   /**

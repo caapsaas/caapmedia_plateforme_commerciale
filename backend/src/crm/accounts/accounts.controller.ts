@@ -8,7 +8,6 @@ import {
   Delete,
   Query,
   UseGuards,
-  ParseUUIDPipe,
 } from '@nestjs/common';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { AccountsService } from './accounts.service';
@@ -72,7 +71,7 @@ export class AccountsController {
     UserRole.SECRETARY,
     UserRole.FINANCIAL_DIRECTOR,
   )
-  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  findOne(@Param('id') id: string, @CurrentUser() user: User) {
     return this.accountsService.findOne(id, user);
   }
 
@@ -85,7 +84,7 @@ export class AccountsController {
     UserRole.FINANCIAL_DIRECTOR,
   )
   update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() updateAccountDto: UpdateAccountDto,
     @CurrentUser() user: User,
   ) {
@@ -100,7 +99,7 @@ export class AccountsController {
     UserRole.SECRETARY,
     UserRole.FINANCIAL_DIRECTOR,
   )
-  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  remove(@Param('id') id: string, @CurrentUser() user: User) {
     return this.accountsService.remove(id, user);
   }
 }

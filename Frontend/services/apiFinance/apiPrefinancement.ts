@@ -1,4 +1,5 @@
 import { api } from '../api';
+import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
 // Types pour le préfinancement
 export interface PrefinancementAccount {
@@ -113,11 +114,23 @@ export const createPrefinancementTransaction = async (transactionData: Prefinanc
 };
 
 /**
- * Récupère toutes les transactions de préfinancement.
+ * Récupère toutes les transactions de préfinancement. Limit élevée : la vue
+ * a besoin du jeu complet pour le filtrage client-side et l'export CSV/PDF.
  * @param filters - Filtres optionnels.
  */
 export const getPrefinancementTransactions = async (filters?: PrefinancementFilters): Promise<PrefinancementTransaction[]> => {
-    const { data } = await api.get<PrefinancementTransaction[]>('/finance/prefinancement/transactions', { params: filters || {} });
+    const { data } = await api.get<PaginatedResponse<PrefinancementTransaction>>('/finance/prefinancement/transactions', { params: { ...filters, limit: 500 } });
+    return data.data;
+};
+
+/**
+ * Version paginée/recherchable (page/limit) pour un futur usage en
+ * pagination cliquable réelle.
+ */
+export const getPrefinancementTransactionsPaginated = async (
+    filters: PrefinancementFilters & PaginationParams = {},
+): Promise<PaginatedResponse<PrefinancementTransaction>> => {
+    const { data } = await api.get<PaginatedResponse<PrefinancementTransaction>>('/finance/prefinancement/transactions', { params: filters });
     return data;
 };
 

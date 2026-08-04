@@ -163,30 +163,34 @@ export class ContactsService {
    * de filiale — permet à un commercial de retrouver un client déjà créé dans
    * une autre filiale pour le rattacher à une nouvelle commande.
    */
-  async searchGlobal(query: string) {
+  async searchGlobal(query: string, paginationQuery: PaginationQueryDto = {}) {
     if (!query || query.trim().length < 2) {
       return [];
     }
 
-    return this.prisma.contact.findMany({
-      where: {
-        OR: [
-          { email: { contains: query, mode: 'insensitive' } },
-          { phone: { contains: query, mode: 'insensitive' } },
-          { contactName: { contains: query, mode: 'insensitive' } },
-        ],
+    const { data } = await paginate(
+      this.prisma.contact,
+      {
+        where: {
+          OR: [
+            { email: { contains: query, mode: 'insensitive' } },
+            { phone: { contains: query, mode: 'insensitive' } },
+            { contactName: { contains: query, mode: 'insensitive' } },
+          ],
+        },
+        select: {
+          id: true,
+          contactName: true,
+          company: true,
+          email: true,
+          phone: true,
+          subsidiaryId: true,
+          subsidiary: { select: { subsidiaryName: true } },
+        },
       },
-      select: {
-        id: true,
-        contactName: true,
-        company: true,
-        email: true,
-        phone: true,
-        subsidiaryId: true,
-        subsidiary: { select: { subsidiaryName: true } },
-      },
-      take: 10,
-    });
+      { page: 1, limit: 10, ...paginationQuery },
+    );
+    return data;
   }
 
   async findOne(id: string, user: User) {
@@ -370,18 +374,18 @@ export class ContactsService {
     return result;
   }
 
-  async getContactOrders(contactId: string) {
-    // On part du contact pour trouver ses commandes, ce qui est plus robuste.
-    const contactWithOrders = await this.prisma.contact.findUnique({
-      where: { id: contactId },
-      select: {
-        orders: {
-          orderBy: { orderDate: 'desc' },
-        },
+  async getContactOrders(
+    contactId: string,
+    paginationQuery: PaginationQueryDto = {},
+  ) {
+    return paginate(
+      this.prisma.order,
+      {
+        where: { customerId: contactId },
+        orderBy: { orderDate: 'desc' },
       },
-    });
-
-    return contactWithOrders?.orders || [];
+      paginationQuery,
+    );
   }
 
   async resetContactPassword(contactId: string, user: User) {

@@ -13,15 +13,18 @@ import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
 import { UseMutateFunction } from '@tanstack/react-query';
 import SignaturePad from '../common/SignaturePad';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 
 interface AttendanceManagementProps {
     subsidiary: Subsidiary;
     employees: Employee[];
     attendances: AttendanceRecord[];
+    isLoading?: boolean;
     onSave: UseMutateFunction<AttendanceRecord, Error, Partial<AttendanceRecord>, unknown>;
 }
 
-const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary, employees, attendances, onSave }) => {
+const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary, employees, attendances, isLoading = false, onSave }) => {
     const { t } = useI18n();
     const toast = useToast();
     const [viewingSignature, setViewingSignature] = useState<{name: string, signature: string} | null>(null);
@@ -285,7 +288,15 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary,
                         </tr>
                     </thead>
                     <tbody>
-                        {attendances.map((record) => (
+                        {isLoading ? (
+                            <TableSkeleton rows={7} columns={7} />
+                        ) : attendances.length === 0 ? (
+                            <tr>
+                                <td colSpan={7}>
+                                    <EmptyState icon="inbox" title={t('hr.attendance.title')} />
+                                </td>
+                            </tr>
+                        ) : attendances.map((record) => (
                             <tr key={record.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{record.employeeName}</td>
                                 <td className="px-6 py-4">{record.attendanceDate}</td>

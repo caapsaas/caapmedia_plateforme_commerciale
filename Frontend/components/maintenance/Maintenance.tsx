@@ -13,6 +13,7 @@ import { useI18n } from '../../i18n';
 import { useHasRole } from '../../hooks/useHasRole';
 import IconSearch from '../icons/IconSearch';
 import IconPlus from '../icons/IconPlus';
+import EmptyState from '../ui/EmptyState';
 
 const CAN_LOG_MAINTENANCE = [UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR];
 
@@ -179,7 +180,7 @@ const Maintenance: React.FC = () => {
                             ))}
                         </div>
                     ) : filteredEquipment.length === 0 ? (
-                        <p className="text-center text-sm text-slate-400 py-10">Aucun équipement trouvé.</p>
+                        <EmptyState icon="stock" title={t('maintenance.noEquipment')} />
                     ) : (
                         <ul className="divide-y divide-slate-50">
                             {filteredEquipment.map(item => {
@@ -371,14 +372,11 @@ const Maintenance: React.FC = () => {
                                 </p>
 
                                 {sortedHistory.length === 0 ? (
-                                    <div className="text-center py-8">
-                                        <p className="text-sm text-slate-400">Aucune intervention enregistrée.</p>
-                                        {!isSuperAdmin && (
-                                            <p className="text-xs text-slate-300 mt-1">
-                                                Cliquez sur « {t('maintenance.logMaintenance')} » ci-dessus.
-                                            </p>
-                                        )}
-                                    </div>
+                                    <EmptyState
+                                        icon="document"
+                                        title="Aucune intervention enregistrée."
+                                        description={!isSuperAdmin ? `Cliquez sur « ${t('maintenance.logMaintenance')} » ci-dessus.` : undefined}
+                                    />
                                 ) : (
                                     <ol className="relative border-l border-slate-200 space-y-0 ml-2">
                                         {sortedHistory.map((record, idx) => (

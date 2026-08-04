@@ -11,6 +11,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getOrders, createOrderBySalesRep, createOrderBySalesRepJson, FindAllOrdersDto } from '../services/apiE-commerce/apiOrders';
 import { getServicesCatalog } from '../services/apiE-commerce/apiProducts';
 import { getContacts } from '../services/apiCrm/apicontacts';
+import TableSkeleton from '../components/ui/TableSkeleton';
+import CrmListSkeleton from '../components/ui/CrmListSkeleton';
+import EmptyState from '../components/ui/EmptyState';
 
 const MesCommandes: React.FC = () => {
     const { t, formatCurrency } = useI18n();
@@ -62,7 +65,7 @@ const MesCommandes: React.FC = () => {
     });
 
     if (!subsidiary || !currentUser) {
-        return <div>Chargement ou erreur d'authentification...</div>;
+        return <CrmListSkeleton columns={5} />;
     }
     
     const handlePeriodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -100,12 +103,9 @@ const MesCommandes: React.FC = () => {
                 })) : [],
                 specValues: item.specValues,
             })),
-            opportunityId: newOrderData.opportunityId || undefined
+            opportunityId: newOrderData.opportunityId || undefined,
+            applyTax: newOrderData.applyTax,
         };
-        
-        // Debug: Afficher les données dans la console
-        console.log('Données envoyées au backend:');
-        console.log('Payload:', JSON.stringify(orderPayload, null, 2));
 
         placeOrderMutation(orderPayload);
     };
@@ -143,9 +143,7 @@ const MesCommandes: React.FC = () => {
         </button>
     );
 
-    if (isLoadingOrders || isLoadingProducts) {
-        return <div>{t('common.loading')}</div>;
-    }
+    const isLoading = isLoadingOrders || isLoadingProducts;
 
     return (
         <div className="space-y-6">
@@ -199,7 +197,9 @@ const MesCommandes: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredClientOrders.length > 0 ? (
+                                {isLoading ? (
+                                    <TableSkeleton rows={5} columns={5} />
+                                ) : filteredClientOrders.length > 0 ? (
                                     filteredClientOrders.map((order) => (
                                         <tr key={order.id} className="bg-white border-b hover:bg-slate-50">
                                             <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{order.id}</th>
@@ -224,7 +224,7 @@ const MesCommandes: React.FC = () => {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={5} className="text-center py-8 text-slate-500">{t('myOrders.noOrders')}</td>
+                                        <td colSpan={5}><EmptyState icon="order" title={t('myOrders.noOrders')} /></td>
                                     </tr>
                                 )}
                             </tbody>
@@ -233,12 +233,16 @@ const MesCommandes: React.FC = () => {
                 </div>
             )}
             {activeTab === 'new' && currentCustomer && (
-                <NewOrder 
-                    subsidiary={subsidiary} 
-                    products={products} 
-                    onOrderPlaced={handlePlaceOrder}
-                    selectedCustomer={currentCustomer}
-                />
+                isLoadingProducts ? (
+                    <CrmListSkeleton columns={4} />
+                ) : (
+                    <NewOrder
+                        subsidiary={subsidiary}
+                        products={products}
+                        onOrderPlaced={handlePlaceOrder}
+                        selectedCustomer={currentCustomer}
+                    />
+                )
             )}
 
             {isBlModalOpen && selectedOrder && (

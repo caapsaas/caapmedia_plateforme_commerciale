@@ -5,6 +5,7 @@ import { useI18n } from '../../i18n';
 import { Contact } from '../../types';
 import IconHeart from '../icons/IconHeart';
 import IconMenu from '../icons/IconMenu';
+import IconShoppingCart from '../icons/IconShoppingCart';
 import { categoryToKeyMap } from '../../constants';
 import { Link } from '@tanstack/react-router';
 
@@ -16,11 +17,14 @@ interface ECommerceHeaderProps {
     accountPath: string;
     likedItemCount?: number;
     onWishlistClick?: () => void;
+    cartItemCount?: number;
+    onCartClick?: () => void;
     searchTerm: string;
     onSearchTermChange: (term: string) => void;
     onQuoteRequest: () => void;
     onSelectAllCategories: () => void;
     productHierarchy: { category: string; slug: string; subcategories: { name: string; slug: string }[] }[];
+    selectedMainCategory?: string;
     onSelectMainCategory: (category: string) => void;
     onSelectSubcategory: (mainCategory: string, subcategory: string) => void;
 }
@@ -37,6 +41,11 @@ const ECommerceHeader: React.FC<ECommerceHeaderProps> = (props) => {
         } else {
             props.onSelectMainCategory(mainCategory);
         }
+        setIsCategoryMenuOpen(false);
+    };
+
+    const handleSelectAllCategories = () => {
+        props.onSelectAllCategories();
         setIsCategoryMenuOpen(false);
     };
 
@@ -66,9 +75,22 @@ const ECommerceHeader: React.FC<ECommerceHeaderProps> = (props) => {
                         </button>
                     </div>
                     <ul className="p-2">
+                        <li>
+                            <button
+                                onClick={handleSelectAllCategories}
+                                className={`w-full text-left font-bold p-2 rounded ${!props.selectedMainCategory ? 'bg-[#c6e911] text-slate-800' : 'hover:bg-slate-100'}`}
+                            >
+                                Toutes les catégories
+                            </button>
+                        </li>
                         {props.productHierarchy.map(mainCat => (
                             <li key={mainCat.slug}>
-                                <button onClick={() => handleCategoryClick(mainCat.category)} className="w-full text-left font-bold p-2 hover:bg-slate-100 rounded">{mainCat.category}</button>
+                                <button
+                                    onClick={() => handleCategoryClick(mainCat.category)}
+                                    className={`w-full text-left font-bold p-2 rounded ${props.selectedMainCategory === mainCat.category ? 'bg-[#c6e911] text-slate-800' : 'hover:bg-slate-100'}`}
+                                >
+                                    {mainCat.category}
+                                </button>
                                 <ul className="pl-4 border-l-2 border-slate-200 ml-2">
                                     {mainCat.subcategories.map(subCat => (
                                         <li key={subCat.slug}>
@@ -110,6 +132,20 @@ const ECommerceHeader: React.FC<ECommerceHeaderProps> = (props) => {
                     >
                         Demander un devis
                     </button>
+                    {props.onCartClick && (
+                        <button
+                            onClick={props.onCartClick}
+                            className="relative p-2.5 rounded-full hover:bg-slate-100 transition-colors"
+                            aria-label={t('ecommerce.shoppingCart')}
+                        >
+                            <IconShoppingCart className="h-7 w-7 text-slate-700" />
+                            {!!props.cartItemCount && (
+                                <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full bg-[#c6e911] text-slate-800 text-xs font-bold">
+                                    {props.cartItemCount > 9 ? '9+' : props.cartItemCount}
+                                </span>
+                            )}
+                        </button>
+                    )}
                     <div className="relative">
                         {props.currentCustomer ? (
                             <>
@@ -154,8 +190,18 @@ const ECommerceHeader: React.FC<ECommerceHeaderProps> = (props) => {
                         <span>Toutes nos catégories</span>
                     </button>
                     <nav className="hidden lg:flex items-center space-x-6 ml-6">
+                        <button
+                            onClick={props.onSelectAllCategories}
+                            className={`text-sm font-semibold ${!props.selectedMainCategory ? 'underline' : 'hover:underline'}`}
+                        >
+                            Toutes les catégories
+                        </button>
                         {props.productHierarchy.map(cat => (
-                            <button key={cat.slug} onClick={() => handleCategoryClick(cat.category)} className="text-sm font-semibold hover:underline">
+                            <button
+                                key={cat.slug}
+                                onClick={() => handleCategoryClick(cat.category)}
+                                className={`text-sm font-semibold ${props.selectedMainCategory === cat.category ? 'underline' : 'hover:underline'}`}
+                            >
                                 {cat.category}
                             </button>
                         ))}

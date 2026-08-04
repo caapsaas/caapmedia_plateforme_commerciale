@@ -4,7 +4,6 @@ import {
   Delete,
   Get,
   Param,
-  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -48,22 +47,19 @@ export class UnitsController {
 
   @Get(':id')
   @Roles(...READ_ROLES)
-  findOne(@Param('id', new ParseUUIDPipe()) id: string) {
+  findOne(@Param('id') id: string) {
     return this.unitsService.findOne(id);
   }
 
   @Patch(':id')
   @Roles(...MANAGE_ROLES)
-  update(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() dto: UpdateUnitDto,
-  ) {
+  update(@Param('id') id: string, @Body() dto: UpdateUnitDto) {
     return this.unitsService.update(id, dto);
   }
 
   @Delete(':id')
   @Roles(...MANAGE_ROLES)
-  remove(@Param('id', new ParseUUIDPipe()) id: string) {
+  remove(@Param('id') id: string) {
     return this.unitsService.remove(id);
   }
 }

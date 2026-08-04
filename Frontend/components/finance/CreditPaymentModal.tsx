@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getOrders, recordOrderPayment } from '../../services/apiE-commerce/apiOrders';
 import { useI18n } from '../../i18n';
 import { CreditAccount, CustomerPaymentMethod, Order } from '../../types';
+import EmptyState from '../ui/EmptyState';
 
 interface CreditPaymentModalProps {
     isOpen: boolean;
@@ -73,9 +74,24 @@ const CreditPaymentModal: React.FC<CreditPaymentModalProps> = ({ isOpen, onClose
                     </div>
                     <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                         {isLoadingOrders ? (
-                            <p>{t('common.loading')}</p>
+                            <div className="space-y-4 animate-pulse">
+                                <div>
+                                    <div className="h-4 w-40 bg-slate-200 rounded mb-2" />
+                                    <div className="h-9 w-full bg-slate-200 rounded" />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <div className="h-4 w-32 bg-slate-200 rounded mb-2" />
+                                        <div className="h-9 w-full bg-slate-200 rounded" />
+                                    </div>
+                                    <div>
+                                        <div className="h-4 w-32 bg-slate-200 rounded mb-2" />
+                                        <div className="h-9 w-full bg-slate-200 rounded" />
+                                    </div>
+                                </div>
+                            </div>
                         ) : unpaidOrders.length === 0 ? (
-                            <p>Aucune commande impayée à encaisser pour ce client.</p>
+                            <EmptyState icon="order" title="Aucune commande impayée à encaisser pour ce client." />
                         ) : (
                             <>
                                 <div>

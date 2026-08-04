@@ -6,6 +6,7 @@ import {
   IsDateString,
 } from 'class-validator';
 import { SecretariatTaskStatus } from '@prisma/client';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 export class CreateSecretariatTaskDto {
   @IsString()
@@ -56,7 +57,7 @@ export class UpdateSecretariatTaskDto {
   subsidiaryId?: string;
 }
 
-export class SearchSecretariatTasksDto {
+export class SearchSecretariatTasksDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   title?: string;

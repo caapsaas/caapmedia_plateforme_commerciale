@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Order, PaymentStatus, Contact } from '../../types';
 import { useI18n } from '../../i18n';
+import EmptyState from '../ui/EmptyState';
 
 interface OrderSelectionModalProps {
     isOpen: boolean;
@@ -50,6 +51,9 @@ const OrderSelectionModal: React.FC<OrderSelectionModalProps> = ({ isOpen, onClo
                         className="w-full px-4 py-2 border border-slate-300 rounded-md mb-4"
                     />
                     <div className="max-h-80 overflow-y-auto">
+                        {filteredOrders.length === 0 ? (
+                            <EmptyState icon="order" title={t('filter.noResults')} />
+                        ) : (
                         <table className="w-full text-sm text-left">
                             <thead className="text-xs text-slate-700 uppercase bg-slate-50 sticky top-0">
                                 <tr>
@@ -70,8 +74,6 @@ const OrderSelectionModal: React.FC<OrderSelectionModalProps> = ({ isOpen, onClo
                                 ))}
                             </tbody>
                         </table>
-                        {filteredOrders.length === 0 && (
-                            <p className="text-center py-4 text-slate-500">{t('filter.noResults')}</p>
                         )}
                     </div>
                 </div>

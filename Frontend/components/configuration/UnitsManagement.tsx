@@ -7,6 +7,8 @@ import { useI18n } from '../../i18n';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 
 // Référentiel d'unités de mesure (Chantier 2) — administré une seule fois,
 // réutilisé comme unité de base ou unité d'emballage sur chaque produit de
@@ -67,8 +69,6 @@ const UnitsManagement: React.FC = () => {
         }
     };
 
-    if (isLoading) return <div>{t('common.loading')}</div>;
-
     return (
         <div className="bg-white p-6 rounded-xl shadow-md">
             <div className="flex justify-between items-center mb-4">
@@ -109,7 +109,9 @@ const UnitsManagement: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {units.map(unit => (
+                        {isLoading ? (
+                            <TableSkeleton rows={5} columns={3} />
+                        ) : units.map(unit => (
                             <tr key={unit.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{unit.name}</td>
                                 <td className="px-6 py-4">{unit.symbol || '-'}</td>
@@ -125,8 +127,8 @@ const UnitsManagement: React.FC = () => {
                                 </td>
                             </tr>
                         ))}
-                        {units.length === 0 && (
-                            <tr><td colSpan={3} className="px-6 py-4 text-center text-slate-400 italic">{t('configuration.unitsManagement.empty')}</td></tr>
+                        {!isLoading && units.length === 0 && (
+                            <tr><td colSpan={3}><EmptyState icon="document" title={t('configuration.unitsManagement.empty')} /></td></tr>
                         )}
                     </tbody>
                 </table>

@@ -144,7 +144,21 @@ const Production: React.FC = () => {
                         </div>
                     )}
                     {isLoading ? (
-                        <div className="p-6 text-center text-slate-500">{t('common.loading')}</div>
+                        <div className="flex space-x-4 overflow-x-auto pb-4">
+                            {productionColumns.map(status => (
+                                <div key={status} className="w-80 bg-slate-100 rounded-lg flex-shrink-0 flex flex-col">
+                                    <div className="p-3 border-b border-slate-300">
+                                        <div className="h-4 w-28 bg-slate-200 rounded animate-pulse" />
+                                        <div className="h-3 w-16 bg-slate-200 rounded animate-pulse mt-2" />
+                                    </div>
+                                    <div className="mt-4 space-y-3 p-2">
+                                        {Array.from({ length: 2 }).map((_, i) => (
+                                            <div key={i} className="h-24 bg-white rounded-lg border border-slate-200 animate-pulse" />
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     ) : (
                         <div className="flex space-x-4 overflow-x-auto pb-4">
                             {productionColumns.map(status => (
@@ -164,7 +178,9 @@ const Production: React.FC = () => {
                                         </p>
                                     </div>
                                     <div className="mt-4 space-y-3 h-full overflow-y-auto p-2">
-                                        {productionOrders
+                                        {productionOrders.filter(order => order.productionStatus === status).length === 0 ? (
+                                            <p className="text-center text-xs text-slate-400 py-6">{t('production.emptyColumn')}</p>
+                                        ) : productionOrders
                                             .filter(order => order.productionStatus === status)
                                             .map(order => (
                                                 <ProductionOrderCard

@@ -7,6 +7,8 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { Prisma, User, UserRole, CrmTaskStatus } from '@prisma/client';
+import { paginate } from 'src/common/pagination/pagination';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @Injectable()
 export class CrmtasksService {
@@ -38,7 +40,7 @@ export class CrmtasksService {
     });
   }
 
-  async findAll(user: User) {
+  async findAll(user: User, paginationQuery: PaginationQueryDto = {}) {
     const isSuperAdmin = user.userRole === UserRole.SUPER_ADMIN;
     const where: Prisma.CrmTaskWhereInput = isSuperAdmin
       ? {}
@@ -55,14 +57,22 @@ export class CrmtasksService {
       }
     }
 
-    return this.prisma.crmTask.findMany({
-      where,
-      include: {
-        contact: { select: { contactName: true } },
-        opportunity: { select: { opportunityName: true } },
+    if (paginationQuery.search) {
+      where.title = { contains: paginationQuery.search, mode: 'insensitive' };
+    }
+
+    return paginate(
+      this.prisma.crmTask,
+      {
+        where,
+        include: {
+          contact: { select: { contactName: true } },
+          opportunity: { select: { opportunityName: true } },
+        },
+        orderBy: { dueDate: 'asc' },
       },
-      orderBy: { dueDate: 'asc' },
-    });
+      paginationQuery,
+    );
   }
 
   async findOne(id: string, user: User) {

@@ -11,6 +11,7 @@ import { useI18n } from '../../i18n';
 import { getServicesCatalog } from '../../services/apiE-commerce/apiProducts';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
+import EmptyState from '../ui/EmptyState';
 import IconDelete from '../icons/IconDelete';
 import IconX from '../icons/IconX';
 import ConfirmationModal from '../common/ConfirmationModal';
@@ -166,11 +167,8 @@ const ProductionWorkflowManagement: React.FC = () => {
                     ))}
                 </div>
             ) : workflows.length === 0 ? (
-                <div className="py-16 text-center bg-white border border-dashed border-slate-200 rounded-xl">
-                    <svg className="w-10 h-10 mx-auto mb-3 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 10h16M4 14h10M4 18h6" />
-                    </svg>
-                    <p className="text-sm font-medium text-slate-400">{t('production.workflows.noWorkflow')}</p>
+                <div className="bg-white border border-dashed border-slate-200 rounded-xl">
+                    <EmptyState icon="document" title={t('production.workflows.noWorkflow')} />
                 </div>
             ) : (
                 <div className="space-y-2">

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Product, ProductOptions } from '../../types';
 import { SpecValues } from '../common/FormRenderer';
 import { useI18n } from '../../i18n';
@@ -7,6 +7,9 @@ import IconDelete from '../icons/IconDelete';
 import IconMinus from '../icons/IconMinus';
 import IconPlus from '../icons/IconPlus';
 import { getImageUrl } from '../../utils/imageUtils';
+import { buildWhatsAppLink } from '../../utils/whatsapp';
+import { LazyLoadImage } from 'react-lazy-load-image-component';
+import 'react-lazy-load-image-component/src/effects/blur.css';
 
 export type CartItem = {
     id: string;
@@ -30,13 +33,8 @@ interface ShoppingCartProps {
 // Pas de commande en ligne (voir architecture du catalogue) — la validation
 // du panier se fait toujours via WhatsApp, jamais par un checkout backend.
 const ShoppingCart: React.FC<ShoppingCartProps> = ({ cartItems, onClose, onUpdateQuantity }) => {
-    const { t, formatCurrency } = useI18n();
+    const { t } = useI18n();
     const toast = useToast();
-
-    const total = useMemo(() =>
-        cartItems.reduce((sum, item) => sum + item.totalPrice, 0),
-        [cartItems]
-    );
 
     const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -45,15 +43,12 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ cartItems, onClose, onUpdat
     };
 
     const handleWhatsAppOrder = () => {
-        const phoneNumber = "237671890184"; // Numéro WhatsApp à configurer
-        const message = cartItems.map(item => 
-            `${item.quantity}x ${item.product.name} - ${formatCurrency(item.totalPrice)}`
+        const message = cartItems.map(item =>
+            `${item.quantity}x ${item.product.name}`
         ).join('\n');
-        
-        const fullMessage = `Bonjour, je souhaite commander les produits  suivants:\n\n${message}\n\nTotal: ${formatCurrency(total)}`;
-        const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(fullMessage)}`;
-        
-        window.open(whatsappUrl, '_blank');
+
+        const fullMessage = `Bonjour, je souhaite commander les produits  suivants:\n\n${message}`;
+        window.open(buildWhatsAppLink(fullMessage), '_blank');
         toast.success('Commande envoyée!', 'Votre commande a été envoyée via WhatsApp avec succès.');
     };
 
@@ -80,10 +75,11 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ cartItems, onClose, onUpdat
                             {cartItems.map(item => (
                                 <li key={item.id} className="flex items-start gap-4">
                                     <div className="w-16 h-16 bg-slate-100 rounded-md flex-shrink-0 overflow-hidden">
-                                        <img
+                                        <LazyLoadImage
                                             src={item.product.productImages && item.product.productImages.length > 0 ? getImageUrl(item.product.productImages[0].imageUrl) : 'https://via.placeholder.com/100'}
                                             alt={item.product.name}
-                                            loading="lazy"
+                                            effect="blur"
+                                            wrapperClassName="h-full w-full"
                                             className="h-full w-full object-cover"
                                         />
                                     </div>
@@ -125,22 +121,10 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ cartItems, onClose, onUpdat
                                         </div>
                                     </div>
                                     <div className="flex flex-col items-end">
-                                       
-                                        <p className="text-xs text-slate-500">({formatCurrency(item.unitPrice)}/u)</p>
-                                        <button 
+                                        <button
                                             onClick={() => {
-                                                const phoneNumber = "237671890184";
-                                                const message = `Bonjour, je souhaite commander: ${item.quantity}x ${item.product.name} - ${formatCurrency(item.totalPrice)}`;
-                                                
-                                                // Nettoyer le numéro (enlever les espaces et caractères spéciaux)
-                                                const cleanPhone = phoneNumber.replace(/[\s\-\(\)]/g, '');
-                                                
-                                                // Créer l'URL WhatsApp avec le bon format
-                                                const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-                                                
-                                                console.log('WhatsApp URL:', whatsappUrl); // Debug pour vérifier l'URL
-                                                
-                                                window.open(whatsappUrl, '_blank');
+                                                const message = `Bonjour, je souhaite commander: ${item.quantity}x ${item.product.name}`;
+                                                window.open(buildWhatsAppLink(message), '_blank');
                                                 toast.success('Commande envoyée!', 'Votre commande a été envoyée via WhatsApp avec succès.');
                                             }}
                                             className="mt-2 px-2 py-1 bg-[#25D366] text-white text-sm font-bold rounded hover:bg-[#128C7E] transition-all flex items-center gap-1"
@@ -162,10 +146,6 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ cartItems, onClose, onUpdat
 
                 {cartItems.length > 0 && (
                     <div className="p-4 border-t bg-slate-50 flex-shrink-0">
-                        <div className="flex justify-between items-center mb-3">
-                            <span className="font-semibold text-slate-700">{t('invoice.subtotal')}</span>
-                            <span className="text-xl font-bold text-slate-800">{formatCurrency(total)}</span>
-                        </div>
                         <button
                             onClick={handleWhatsAppOrder}
                             className="w-full px-4 py-3 bg-[#25D366] text-white font-bold rounded-lg hover:bg-[#128C7E] transition-all flex items-center justify-center gap-2"

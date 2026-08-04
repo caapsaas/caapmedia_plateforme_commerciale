@@ -7,6 +7,7 @@ import {
   Min,
 } from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 // DTO de création
 export class CreateMaintenanceRecordDto {
@@ -33,7 +34,7 @@ export class UpdateMaintenanceRecordDto extends PartialType(
 ) {}
 
 // DTO de recherche/filtre
-export class SearchMaintenanceRecordDto {
+export class SearchMaintenanceRecordDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   equipmentId?: string;
@@ -49,4 +50,10 @@ export class SearchMaintenanceRecordDto {
   @IsOptional()
   @IsString()
   technician?: string;
+}
+
+// DTO pour GET /maintenance-records (liste paginée d'un équipement)
+export class FindMaintenanceRecordsDto extends PaginationQueryDto {
+  @IsUUID()
+  equipmentId: string;
 }

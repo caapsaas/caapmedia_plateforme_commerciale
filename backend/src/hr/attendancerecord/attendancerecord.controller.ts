@@ -4,13 +4,14 @@ import {
   Post,
   Param,
   Body,
+  Query,
   UseGuards,
   Request,
   Patch,
   Delete,
   ParseUUIDPipe,
   BadRequestException,
-  Query,
+  
 } from '@nestjs/common';
 import { AttendanceRecordService } from './attendancerecord.service';
 import {

@@ -13,6 +13,7 @@ import { DisposeFixedAssetDto } from './dto/dispose-fixed-asset.dto';
 import { GenerateDepreciationDto } from './dto/generate-depreciation.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { AccountingAccessGuard } from 'src/accounting-access/accounting-access.guard';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @UseGuards(JwtAuthGuard, AccountingAccessGuard)
 @Controller('accounting/immobilisations')
@@ -22,8 +23,16 @@ export class ImmobilisationsController {
   ) {}
 
   @Get()
-  findAll(@Req() req: any, @Query('subsidiaryId') subsidiaryId?: string) {
-    return this.immobilisationsService.findAll(req.user, subsidiaryId);
+  findAll(
+    @Req() req: any,
+    @Query('subsidiaryId') subsidiaryId: string | undefined,
+    @Query() paginationQuery: PaginationQueryDto,
+  ) {
+    return this.immobilisationsService.findAll(
+      req.user,
+      subsidiaryId,
+      paginationQuery,
+    );
   }
 
   @Post('generate-depreciation')

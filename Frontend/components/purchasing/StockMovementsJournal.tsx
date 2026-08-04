@@ -6,6 +6,7 @@ import { useI18n } from '../../i18n';
 import { useHasRole } from '../../hooks/useHasRole';
 import IconPlus from '../icons/IconPlus';
 import ManualStockMovementModal from './ManualStockMovementModal';
+import EmptyState from '../ui/EmptyState';
 
 const IN_TYPES = new Set<StockMovementType>([
     StockMovementType.PURCHASE_RECEIPT,
@@ -81,12 +82,12 @@ const StockMovementsJournal: React.FC<StockMovementsJournalProps> = ({ subsidiar
                             ))
                         ) : movements.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="py-16 text-center">
-                                    <svg className="w-10 h-10 mx-auto mb-2 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                                    </svg>
-                                    <p className="text-sm font-medium text-slate-500">{t('stockMovements.empty')}</p>
-                                    {typeFilter && <p className="text-xs text-slate-400 mt-1">Essayez de supprimer le filtre.</p>}
+                                <td colSpan={6}>
+                                    <EmptyState
+                                        icon="stock"
+                                        title={t('stockMovements.empty')}
+                                        description={typeFilter ? 'Essayez de supprimer le filtre.' : undefined}
+                                    />
                                 </td>
                             </tr>
                         ) : movements.map(movement => {

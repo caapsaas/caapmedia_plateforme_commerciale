@@ -15,6 +15,7 @@ import {
 import ConfirmationModal from '../common/ConfirmationModal';
 import { AsyncSelect } from '../ui/AsyncSelect';
 import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 
 interface AccountingSettingsProps {
   fiscalPeriods: FiscalYear[];
@@ -179,9 +180,11 @@ const MappingsTab: React.FC<{ canModify: boolean }> = ({ canModify }) => {
       )}
 
       {mappings.length === 0 ? (
-        <div className="py-8 text-center text-slate-400 text-sm">
-          Aucun mapping configuré — cliquez sur « Importer mapping par défaut » ci-dessus (le plan comptable doit être initialisé d'abord, onglet Plan comptable).
-        </div>
+        <EmptyState
+          icon="document"
+          title="Aucun mapping configuré"
+          description="Cliquez sur « Importer mapping par défaut » ci-dessus (le plan comptable doit être initialisé d'abord, onglet Plan comptable)."
+        />
       ) : (
         MAPPING_GROUPS.map((group) => {
           const rows = group.keys.filter((k) => byKey.has(k));
@@ -259,8 +262,6 @@ const JournalsTab: React.FC<{ canModify: boolean }> = ({ canModify }) => {
     seedMutation.mutate();
   };
 
-  if (isLoading) return <div className="py-8 text-center text-slate-500 text-sm">Chargement...</div>;
-
   return (
     <div className="space-y-4">
       {canModify && (
@@ -286,7 +287,9 @@ const JournalsTab: React.FC<{ canModify: boolean }> = ({ canModify }) => {
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
-          {journals.map((j) => (
+          {isLoading ? (
+            <TableSkeleton rows={6} columns={4} />
+          ) : journals.map((j) => (
             <tr key={j.id} className="hover:bg-slate-50">
               <td className="px-4 py-3 text-sm font-mono font-bold text-slate-800">{j.code}</td>
               <td className="px-4 py-3 text-sm text-slate-700">{j.name}</td>
@@ -300,10 +303,12 @@ const JournalsTab: React.FC<{ canModify: boolean }> = ({ canModify }) => {
           ))}
         </tbody>
       </table>
-      {journals.length === 0 && (
-        <div className="py-8 text-center text-slate-400 text-sm">
-          Aucun journal — cliquez sur « Importer journaux par défaut » ci-dessus.
-        </div>
+      {!isLoading && journals.length === 0 && (
+        <EmptyState
+          icon="document"
+          title="Aucun journal"
+          description="Cliquez sur « Importer journaux par défaut » ci-dessus."
+        />
       )}
       </div>
     </div>
@@ -408,11 +413,11 @@ const PeriodsTab: React.FC<{ periods: FiscalYear[]; canModify: boolean }> = ({ p
               </div>
             ))
           ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-              <Calendar className="w-12 h-12 mb-3" />
-              <p className="text-sm font-medium">Aucun exercice fiscal</p>
-              <p className="text-xs">Sera créé automatiquement lors de la première journalisation.</p>
-            </div>
+            <EmptyState
+              icon="document"
+              title="Aucun exercice fiscal"
+              description="Sera créé automatiquement lors de la première journalisation."
+            />
           )}
         </div>
       </div>

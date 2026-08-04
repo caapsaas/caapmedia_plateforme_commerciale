@@ -9,9 +9,14 @@ import UserFormModal from './UserFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
-import { getAllUsers, registerUser, updateUser, deleteUser, UserRegisterData, UserUpdateData } from '../../services/apiCommon/apiUserAuth';
+import { getUsersPaginated, registerUser, updateUser, deleteUser, UserRegisterData, UserUpdateData } from '../../services/apiCommon/apiUserAuth';
 import { getSubsidiaries } from '../../services/apiCommon/apiSubsidiaries';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
+import CrmListSkeleton from '../ui/CrmListSkeleton';
+import Pagination from '../common/Pagination';
 
+const USERS_PAGE_SIZE = 10;
 
 const UserManagement: React.FC = () => {
     const { t } = useI18n();
@@ -21,13 +26,16 @@ const UserManagement: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [deletingUser, setDeletingUser] = useState<User | null>(null);
+    const [page, setPage] = useState(1);
 
     // --- Data Fetching ---
-    const { data: users = [], isLoading: isLoadingUsers } = useQuery<User[]>({
-        queryKey: ['users', subsidiary?.id],
-        queryFn: getAllUsers,
+    const { data: paginatedUsers, isLoading: isLoadingUsers } = useQuery({
+        queryKey: ['users', 'paginated', subsidiary?.id, page],
+        queryFn: () => getUsersPaginated({ page, limit: USERS_PAGE_SIZE }),
         enabled: !!subsidiary,
     });
+    const users = paginatedUsers?.data ?? [];
+    const usersMeta = paginatedUsers?.meta;
     const { data: allSubsidiaries = [], isLoading: isLoadingSubs } = useQuery<Subsidiary[]>({
         queryKey: ['subsidiaries'],
         queryFn: getSubsidiaries,
@@ -37,7 +45,7 @@ const UserManagement: React.FC = () => {
     const { mutate: createUser } = useMutation({
         mutationFn: (data: UserRegisterData) => registerUser(data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['users', subsidiary?.id] });
+            queryClient.invalidateQueries({ queryKey: ['users'] });
             toast.success('Utilisateur créé!', 'L\'utilisateur a été créé avec succès.');
             handleCloseModals();
         },
@@ -48,7 +56,7 @@ const UserManagement: React.FC = () => {
     const { mutate: editUser } = useMutation({
         mutationFn: ({ id, data }: { id: string, data: UserUpdateData }) => updateUser(id, data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['users', subsidiary?.id] });
+            queryClient.invalidateQueries({ queryKey: ['users'] });
             toast.success('Utilisateur modifié!', 'L\'utilisateur a été modifié avec succès.');
             handleCloseModals();
         },
@@ -59,7 +67,7 @@ const UserManagement: React.FC = () => {
     const { mutate: onDelete } = useMutation({ 
         mutationFn: deleteUser, 
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['users', subsidiary?.id] });
+            queryClient.invalidateQueries({ queryKey: ['users'] });
             toast.success('Utilisateur supprimé!', 'L\'utilisateur a été supprimé avec succès.');
             handleCloseModals();
         },
@@ -110,8 +118,8 @@ const UserManagement: React.FC = () => {
         }
     };
 
-    if (!subsidiary || isLoadingUsers || isLoadingSubs) {
-        return <div className="p-6 text-center">{t('common.loading')}</div>;
+    if (!subsidiary) {
+        return <CrmListSkeleton columns={5} />;
     }
 
     return (
@@ -135,7 +143,15 @@ const UserManagement: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {users.map((user) => (
+                        {isLoadingUsers ? (
+                            <TableSkeleton rows={USERS_PAGE_SIZE} columns={5} />
+                        ) : users.length === 0 ? (
+                            <tr>
+                                <td colSpan={5}>
+                                    <EmptyState icon="inbox" title={t('configuration.userManagement')} description={t('common.notAvailable')} />
+                                </td>
+                            </tr>
+                        ) : users.map((user) => (
                             <tr key={user.id} className="bg-white border-b hover:bg-slate-50">
                                 <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{user.id}</th>
                                 <td className="px-6 py-4 font-semibold">{user.userName}</td>
@@ -165,6 +181,7 @@ const UserManagement: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+            {usersMeta && <Pagination meta={usersMeta} onPageChange={setPage} />}
 
             {isModalOpen && (
                 <UserFormModal

@@ -21,6 +21,8 @@ import {
   AccessDurationUnit,
 } from './dto/approve-access-request.dto';
 import { RejectAccessRequestDto } from './dto/reject-access-request.dto';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
+import { paginate } from 'src/common/pagination/pagination';
 
 /**
  * Accès temporaire à la comptabilité (JIT) — indépendant du RBAC standard.
@@ -201,16 +203,20 @@ export class AccountingAccessService {
     return updated;
   }
 
-  async findAll(user: JwtUser) {
+  async findAll(user: JwtUser, paginationQuery: PaginationQueryDto = {}) {
     const isHqAdmin = await this.isHeadquarterAdmin(user);
-    return this.prisma.accountingAccessRequest.findMany({
-      where: isHqAdmin ? {} : { userId: user.id },
-      orderBy: { requestedAt: 'desc' },
-      include: {
-        user: { select: { userName: true, email: true } },
-        reviewer: { select: { userName: true } },
+    return paginate(
+      this.prisma.accountingAccessRequest,
+      {
+        where: isHqAdmin ? {} : { userId: user.id },
+        orderBy: { requestedAt: 'desc' },
+        include: {
+          user: { select: { userName: true, email: true } },
+          reviewer: { select: { userName: true } },
+        },
       },
-    });
+      paginationQuery,
+    );
   }
 
   async countPending(user: JwtUser): Promise<number> {

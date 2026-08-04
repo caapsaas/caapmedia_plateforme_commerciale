@@ -168,7 +168,11 @@ const GrandLivre: React.FC<GrandLivreProps> = ({ fiscalPeriods }) => {
       {!fiscalYearId ? (
         <EmptyState icon="document" title="Aucun exercice fiscal" description="Créez un exercice fiscal dans l'onglet Paramètres pour consulter le grand livre." />
       ) : isLoading ? (
-        <div className="py-12 text-center text-slate-500 text-sm">Chargement du grand livre...</div>
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="bg-white border border-slate-100 rounded-xl shadow-sm h-14 animate-pulse" style={{ opacity: 1 - i * 0.12 }} />
+          ))}
+        </div>
       ) : accounts.length === 0 ? (
         <EmptyState icon="document" title="Aucune écriture validée" description="Aucun mouvement comptable pour cet exercice." />
       ) : (

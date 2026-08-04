@@ -17,6 +17,8 @@ import IconEye from '../icons/IconEye';
 import { UseMutateFunction } from '@tanstack/react-query';
 import SearchBar from './SearchBar';
 import { getPayrollRecordsGlobal } from '../../services/apihr/apiPayroll';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 
 interface ProcessPayrollResponse {
   count: number;
@@ -27,6 +29,7 @@ interface PayrollManagementProps {
   subsidiary: Subsidiary;
   employees: Employee[];
   payrolls: PayrollRecord[];
+  isLoading?: boolean;
   onProcessPayroll: UseMutateFunction<
     ProcessPayrollResponse,
     Error,
@@ -45,6 +48,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
   subsidiary,
   employees,
   payrolls,
+  isLoading = false,
   onProcessPayroll,
   onSaveSignature,
 }) => {
@@ -435,10 +439,12 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
             </tr>
           </thead>
           <tbody>
-            {filteredPayrolls.length === 0 ? (
+            {isLoading ? (
+              <TableSkeleton rows={7} columns={globalView ? 8 : 7} />
+            ) : filteredPayrolls.length === 0 ? (
               <tr>
-                <td colSpan={globalView ? 8 : 7} className="px-4 py-8 text-center text-slate-400">
-                  Aucune fiche de paie trouvée
+                <td colSpan={globalView ? 8 : 7}>
+                  <EmptyState icon="finance" title={t('hr.payroll.title')} description="Aucune fiche de paie trouvée" />
                 </td>
               </tr>
             ) : (

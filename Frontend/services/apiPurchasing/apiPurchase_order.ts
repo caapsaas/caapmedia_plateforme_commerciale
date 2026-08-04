@@ -1,5 +1,7 @@
 import { api } from '../api';
 import { PaymentStatus, PurchaseOrderStatus, PaymentTerms } from '../../types';
+import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
+import type { PurchaseOrder } from '../../types';
 
 /**
  * DTO pour la création d'un bon de commande.
@@ -73,11 +75,25 @@ export const createPurchaseOrder = async (data: CreatePurchaseOrderDto) => {
 };
 
 /**
- * Récupère tous les bons de commande avec des options de filtrage.
- * @param query - Les critères de recherche.
+ * Récupère tous les bons de commande avec des options de filtrage (compat —
+ * limite haute, pour Purchasing.tsx qui a besoin du jeu de données filtré
+ * complet pour le tri/export côté client).
  */
-export const getPurchaseOrders = async (query?: FindAllPurchaseOrdersDto) => {
-    const response = await api.get('/purchasing/purchase-orders', { params: query });
+export const getPurchaseOrders = async (query?: FindAllPurchaseOrdersDto): Promise<PurchaseOrder[]> => {
+    const response = await api.get<PaginatedResponse<PurchaseOrder>>('/purchasing/purchase-orders', {
+        params: { ...query, limit: 500 },
+    });
+    return response.data.data;
+};
+
+/**
+ * Version paginée/recherchable (page/limit/search) pour un futur usage en
+ * pagination cliquable réelle.
+ */
+export const getPurchaseOrdersPaginated = async (
+    query: FindAllPurchaseOrdersDto & PaginationParams,
+): Promise<PaginatedResponse<PurchaseOrder>> => {
+    const response = await api.get<PaginatedResponse<PurchaseOrder>>('/purchasing/purchase-orders', { params: query });
     return response.data;
 };
 

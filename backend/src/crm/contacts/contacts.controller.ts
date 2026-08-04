@@ -10,7 +10,6 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ContactsService } from './contacts.service';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
@@ -59,9 +58,12 @@ export class ContactsController {
 
   @UseGuards(ContactJwtAuthGuard)
   @Get('orders')
-  getContactOrders(@CurrentUser() contact: any) {
+  getContactOrders(
+    @CurrentUser() contact: any,
+    @Query() paginationQuery: PaginationQueryDto,
+  ) {
     // Note: Le guard doit être capable d'identifier un 'Contact'
-    return this.contactsService.getContactOrders(contact.id);
+    return this.contactsService.getContactOrders(contact.id, paginationQuery);
   }
 
   // --- Routes existantes pour les employés (gardées) ---
@@ -126,8 +128,11 @@ export class ContactsController {
     UserRole.HR_MANAGER,
     UserRole.PRODUCTION_DIRECTOR,
   )
-  searchGlobal(@Query('q') query: string) {
-    return this.contactsService.searchGlobal(query);
+  searchGlobal(
+    @Query('q') query: string,
+    @Query() paginationQuery: PaginationQueryDto,
+  ) {
+    return this.contactsService.searchGlobal(query, paginationQuery);
   }
 
   @Get('public/:id')
@@ -148,7 +153,7 @@ export class ContactsController {
     UserRole.HR_MANAGER,
     UserRole.PRODUCTION_DIRECTOR,
   )
-  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  findOne(@Param('id') id: string, @CurrentUser() user: User) {
     return this.contactsService.findOne(id, user);
   }
 
@@ -184,7 +189,7 @@ export class ContactsController {
     UserRole.HR_MANAGER,
     UserRole.PRODUCTION_DIRECTOR,
   )
-  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+  remove(@Param('id') id: string, @CurrentUser() user: User) {
     return this.contactsService.remove(id, user);
   }
 
@@ -201,10 +206,7 @@ export class ContactsController {
     UserRole.PRODUCTION_DIRECTOR,
   )
   @HttpCode(HttpStatus.OK)
-  resetPassword(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: User,
-  ) {
+  resetPassword(@Param('id') id: string, @CurrentUser() user: User) {
     return this.contactsService.resetContactPassword(id, user);
   }
 
@@ -221,10 +223,7 @@ export class ContactsController {
     UserRole.PRODUCTION_DIRECTOR,
   )
   @HttpCode(HttpStatus.OK)
-  enablePortalAccess(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: User,
-  ) {
+  enablePortalAccess(@Param('id') id: string, @CurrentUser() user: User) {
     return this.contactsService.enablePortalAccess(id, user);
   }
 }

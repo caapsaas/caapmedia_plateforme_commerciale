@@ -20,11 +20,14 @@ import IconUsers from '../icons/IconUsers';
 import { generateDailyAbsences } from '../../services/apihr/apiAbsences';
 import { api } from '../../services/api';
 import { RefreshCw } from 'lucide-react';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 
 interface AbsenceManagementProps {
   subsidiary: Subsidiary;
   employees: Employee[];
   absences: AbsenceRecord[];
+  isLoading?: boolean;
   onSave: UseMutateFunction<AbsenceRecord, Error, Partial<AbsenceRecord>, unknown>;
   onDelete: UseMutateFunction<AbsenceRecord, Error, string, unknown>;
 }
@@ -33,6 +36,7 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({
   subsidiary,
   employees,
   absences,
+  isLoading = false,
   onSave,
   onDelete,
 }) => {
@@ -425,7 +429,9 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({
               </tr>
             </thead>
             <tbody>
-              {filteredAbsences.length > 0 ? (
+              {isLoading ? (
+                <TableSkeleton rows={7} columns={7} />
+              ) : filteredAbsences.length > 0 ? (
                 filteredAbsences.map((record) => (
                   <tr
                     key={record.id}
@@ -489,11 +495,8 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({
                 ))
               ) : (
                 <tr>
-                  <td
-                    colSpan={7}
-                    className="px-6 py-12 text-center text-slate-500"
-                  >
-                    Aucune absence trouvée
+                  <td colSpan={7}>
+                    <EmptyState icon="inbox" title="Aucune absence trouvée" />
                   </td>
                 </tr>
               )}

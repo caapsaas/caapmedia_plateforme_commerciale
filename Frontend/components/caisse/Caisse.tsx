@@ -18,6 +18,7 @@ import { CartItem } from '../ecommerce/ShoppingCart';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getServicesCatalog } from '../../services/apiE-commerce/apiProducts';
 import { getContacts, createContactByEmployee, ContactCreationData } from '../../services/apiCrm/apicontacts';
+import EmptyState from '../ui/EmptyState';
 import { getOrders, recordOrderPayment, FindAllOrdersDto } from '../../services/apiE-commerce/apiOrders';
 import { createDirectSale, CreateDirectSaleDto } from '../../services/apiE-commerce/apiSales';
 import { getImageUrl } from '../../utils/imageUtils';
@@ -244,8 +245,32 @@ const Caisse: React.FC = () => {
         return <div>{t('login.selectSubsidiary')}</div>;
     }
 
-    if (!subsidiary || isLoadingProducts || isLoadingContacts || isLoadingOrders) {
-        return <div>{t('common.loading')}</div>;
+    if (isLoadingProducts || isLoadingContacts || isLoadingOrders) {
+        return (
+            <div className="h-full flex flex-col">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-3xl font-bold text-slate-800">{t('cashRegister.title')}</h2>
+                </div>
+                <div className="flex-grow grid grid-cols-12 gap-6 h-full">
+                    <div className="col-span-12 lg:col-span-7 bg-white p-6 rounded-xl shadow-md">
+                        <div className="h-9 w-full bg-slate-100 rounded-full animate-pulse mb-4" />
+                        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {Array.from({ length: 8 }).map((_, i) => (
+                                <div key={i} className="border rounded-lg p-2">
+                                    <div className="w-full h-20 mb-2 rounded bg-slate-100 animate-pulse" />
+                                    <div className="h-4 w-3/4 bg-slate-100 rounded animate-pulse" />
+                                    <div className="h-3 w-1/2 bg-slate-100 rounded animate-pulse mt-1" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="col-span-12 lg:col-span-5 bg-white p-6 rounded-xl shadow-md">
+                        <div className="h-6 w-40 bg-slate-100 rounded animate-pulse mb-4" />
+                        <div className="h-9 w-full bg-slate-100 rounded-lg animate-pulse" />
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     return (
@@ -267,6 +292,9 @@ const Caisse: React.FC = () => {
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg className="h-5 w-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg></div>
                             </div>
                             <div className="flex-grow overflow-y-auto pr-2">
+                                {filteredProducts.length === 0 ? (
+                                    <EmptyState icon="search" title={t('cashRegister.noProducts')} />
+                                ) : (
                                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                                     {filteredProducts.map(p => (
                                         <button
@@ -284,6 +312,7 @@ const Caisse: React.FC = () => {
                                         </button>
                                     ))}
                                 </div>
+                                )}
                             </div>
                         </>
                     ) : loadedOrder && (

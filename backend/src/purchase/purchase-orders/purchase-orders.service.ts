@@ -18,6 +18,7 @@ import {
   User,
   PaymentTerms,
 } from '@prisma/client';
+import { paginate } from 'src/common/pagination/pagination';
 import { Decimal } from '@prisma/client/runtime/library';
 import {
   FindAllPurchaseOrdersDto,
@@ -209,20 +210,24 @@ export class PurchaseOrdersService {
       where.orderDate = dateFilter;
     }
 
-    return this.prisma.purchaseOrder.findMany({
-      where,
-      include: {
-        supplier: true,
-        purchaseOrderItems: {
-          include: {
-            purchaseUnit: true,
-            product: { include: { baseUnit: true } },
+    return paginate(
+      this.prisma.purchaseOrder,
+      {
+        where,
+        include: {
+          supplier: true,
+          purchaseOrderItems: {
+            include: {
+              purchaseUnit: true,
+              product: { include: { baseUnit: true } },
+            },
           },
+          purchaseOrderHistory: true,
         },
-        purchaseOrderHistory: true,
+        orderBy: { orderDate: 'desc' },
       },
-      orderBy: { orderDate: 'desc' },
-    });
+      query,
+    );
   }
 
   /**

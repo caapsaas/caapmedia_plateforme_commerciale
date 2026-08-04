@@ -14,6 +14,7 @@ import type { CreateJournalEntryDto } from './entries.service';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { AccountingAccessGuard } from 'src/accounting-access/accounting-access.guard';
 import type { JournalEntryStatus } from '@prisma/client';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @UseGuards(JwtAuthGuard, AccountingAccessGuard)
 @Controller('accounting/entries')
@@ -28,6 +29,7 @@ export class EntriesController {
   @Get()
   findAll(
     @Req() req: any,
+    @Query() paginationQuery: PaginationQueryDto,
     @Query('fiscalYearId') fiscalYearId?: string,
     @Query('status') status?: JournalEntryStatus,
     @Query('startDate') startDate?: string,
@@ -41,6 +43,7 @@ export class EntriesController {
       startDate,
       endDate,
       subsidiaryId,
+      paginationQuery,
     );
   }
 

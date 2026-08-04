@@ -4,7 +4,6 @@ import {
   Delete,
   Get,
   Param,
-  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -34,24 +33,21 @@ export class ProductSpecsController {
   // depuis le site vitrine (PriceCalculatorModal) sans authentification
   // staff, en plus des écrans internes (NewOrder.tsx, Caisse.tsx).
   @Get(':id/form-definition')
-  getFormDefinition(@Param('id', new ParseUUIDPipe()) id: string) {
+  getFormDefinition(@Param('id') id: string) {
     return this.productSpecsService.getFormDefinition(id);
   }
 
   @Get(':id/spec-structure')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(...BUILDER_ROLES)
-  getBuilderStructure(@Param('id', new ParseUUIDPipe()) id: string) {
+  getBuilderStructure(@Param('id') id: string) {
     return this.productSpecsService.getBuilderStructure(id);
   }
 
   @Post(':id/spec-groups')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(...BUILDER_ROLES)
-  createGroup(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() dto: CreateSpecGroupDto,
-  ) {
+  createGroup(@Param('id') id: string, @Body() dto: CreateSpecGroupDto) {
     return this.productSpecsService.createGroup(id, dto);
   }
 
@@ -59,7 +55,7 @@ export class ProductSpecsController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(...BUILDER_ROLES)
   updateGroup(
-    @Param('groupId', new ParseUUIDPipe()) groupId: string,
+    @Param('groupId') groupId: string,
     @Body() dto: UpdateSpecGroupDto,
   ) {
     return this.productSpecsService.updateGroup(groupId, dto);
@@ -68,7 +64,7 @@ export class ProductSpecsController {
   @Delete('spec-groups/:groupId')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(...BUILDER_ROLES)
-  removeGroup(@Param('groupId', new ParseUUIDPipe()) groupId: string) {
+  removeGroup(@Param('groupId') groupId: string) {
     return this.productSpecsService.removeGroup(groupId);
   }
 
@@ -76,7 +72,7 @@ export class ProductSpecsController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(...BUILDER_ROLES)
   createSpecification(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('id') id: string,
     @Body() dto: CreateSpecificationDto,
   ) {
     return this.productSpecsService.createSpecification(id, dto);
@@ -86,7 +82,7 @@ export class ProductSpecsController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(...BUILDER_ROLES)
   updateSpecification(
-    @Param('specId', new ParseUUIDPipe()) specId: string,
+    @Param('specId') specId: string,
     @Body() dto: UpdateSpecificationDto,
   ) {
     return this.productSpecsService.updateSpecification(specId, dto);
@@ -95,7 +91,7 @@ export class ProductSpecsController {
   @Delete('specifications/:specId')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(...BUILDER_ROLES)
-  removeSpecification(@Param('specId', new ParseUUIDPipe()) specId: string) {
+  removeSpecification(@Param('specId') specId: string) {
     return this.productSpecsService.removeSpecification(specId);
   }
 
@@ -103,7 +99,7 @@ export class ProductSpecsController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(...BUILDER_ROLES)
   reorderSpecifications(
-    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('id') id: string,
     @Body() dto: ReorderSpecificationsDto,
   ) {
     return this.productSpecsService.reorderSpecifications(id, dto);

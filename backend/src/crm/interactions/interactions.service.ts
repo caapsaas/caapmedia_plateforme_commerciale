@@ -9,6 +9,8 @@ import { CreateInteractionDto } from './dto/create-interaction.dto';
 import { UpdateInteractionDto } from './dto/update-interaction.dto';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { paginate } from 'src/common/pagination/pagination';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @Injectable()
 export class InteractionsService {
@@ -38,7 +40,7 @@ export class InteractionsService {
     });
   }
 
-  async findAll(user: User) {
+  async findAll(user: User, paginationQuery: PaginationQueryDto = {}) {
     const isSuperAdmin = user.userRole === UserRole.SUPER_ADMIN;
     const contactWhere: Prisma.ContactWhereInput = isSuperAdmin
       ? {}
@@ -50,24 +52,35 @@ export class InteractionsService {
 
     const where: Prisma.InteractionWhereInput = {
       contact: contactWhere,
+      ...(paginationQuery.search
+        ? {
+            notes: {
+              contains: paginationQuery.search,
+              mode: 'insensitive',
+            },
+          }
+        : {}),
     };
 
-    return this.prisma.interaction.findMany({
-      where: where, // Propriété explicite pour éviter l'erreur de shorthand
-      include: {
-        user: {
-          select: {
-            // Sélection de champs existants dans User (ajustez selon votre schéma Prisma)
-            id: true,
-            email: true, // Ou 'firstName', 'lastName' si disponibles
+    return paginate(
+      this.prisma.interaction,
+      {
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+            },
           },
+          contact: { select: { contactName: true } },
         },
-        contact: { select: { contactName: true } }, // Inclure le nom du contact
+        orderBy: {
+          interactionDate: 'desc',
+        },
       },
-      orderBy: {
-        interactionDate: 'desc',
-      },
-    });
+      paginationQuery,
+    );
   }
 
   async findOne(id: string, user: User) {

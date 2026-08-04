@@ -182,12 +182,19 @@ export class EquipementService {
     }
 
     // Appel à Prisma pour récupérer les équipements correspondant aux critères
+    // Même filet de sécurité que findAll : référentiel de parc matériel
+    // physique, borné par nature, pas de pagination cliquable pertinente.
     return this.prisma.equipment.findMany({
       where,
       include: {
         subsidiary: true,
         maintenanceRecords: true,
       },
+      orderBy: [
+        { subsidiary: { subsidiaryName: 'asc' } },
+        { equipmentName: 'asc' },
+      ],
+      take: 1000,
     });
   }
 }

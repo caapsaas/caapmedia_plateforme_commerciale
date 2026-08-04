@@ -1,5 +1,6 @@
 import { api } from '../api';
 import { StockMovement, StockMovementType } from '../../types/models';
+import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
 const BASE_URL = '/purchase/stock-movements';
 
@@ -11,8 +12,23 @@ export interface FindStockMovementsQuery {
     endDate?: string;
 }
 
+/**
+ * Journal des mouvements de stock. Limit élevée : StockMovementsJournal.tsx
+ * a besoin du jeu complet pour le tri/export côté client.
+ */
 export const getStockMovements = async (query?: FindStockMovementsQuery): Promise<StockMovement[]> => {
-    const { data } = await api.get(BASE_URL, { params: query });
+    const { data } = await api.get<PaginatedResponse<StockMovement>>(BASE_URL, { params: { ...query, limit: 500 } });
+    return data.data;
+};
+
+/**
+ * Version paginée/recherchable (page/limit/search) pour un futur usage en
+ * pagination cliquable réelle.
+ */
+export const getStockMovementsPaginated = async (
+    query: FindStockMovementsQuery & PaginationParams,
+): Promise<PaginatedResponse<StockMovement>> => {
+    const { data } = await api.get<PaginatedResponse<StockMovement>>(BASE_URL, { params: query });
     return data;
 };
 

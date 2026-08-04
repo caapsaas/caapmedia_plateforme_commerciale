@@ -10,12 +10,18 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../utils/prisma/prisma.service';
 import { LoggerService } from '../../utils/logger/logger.service';
 import * as bcrypt from 'bcryptjs';
-import { UserRole } from '@prisma/client';
+import { Prisma, UserRole } from '@prisma/client';
 import * as nodemailer from 'nodemailer';
 import { resolveScopeContext } from '../../utils/subsidiary-scope';
 import { RefreshTokenService, RequestMeta } from './refresh-token.service';
 import { generateId } from '../../utils/generate-id.util';
 import { ID_PREFIXES } from '../../constants/id-prefixes.const';
+import { PaginationQueryDto } from '../../pagination/dto/pagination-query.dto';
+import { paginate } from '../../pagination/pagination';
+
+type UserWithSubsidiary = Prisma.UserGetPayload<{
+  include: { subsidiary: true };
+}>;
 
 @Injectable()
 export class AuthService {
@@ -475,45 +481,60 @@ export class AuthService {
 
   //****6- Fonction de récupération de tous les utilisateurs****
 
-  async getAllUsers(currentUser: {
-    id: string;
-    role: UserRole;
-    roles?: UserRole[];
-    subsidiaryId: string;
-  }) {
+  async getAllUsers(
+    currentUser: {
+      id: string;
+      role: UserRole;
+      roles?: UserRole[];
+      subsidiaryId: string;
+    },
+    paginationQuery: PaginationQueryDto = {},
+  ) {
     // Seul un scope global (SUPER_ADMIN) voit toutes les filiales; ADMIN de filiale est desormais scope a la sienne.
     const ctx = resolveScopeContext(currentUser);
     const where = ctx.hasGlobalScope
       ? {}
       : { subsidiaryId: currentUser.subsidiaryId };
 
-    const users = await this.prisma.user.findMany({
-      where,
-      include: { subsidiary: true },
-      orderBy: { userName: 'asc' },
-    });
+    const result = await paginate<UserWithSubsidiary>(
+      // Cast nécessaire : le délégué Prisma généré a des surcharges de
+      // findMany() par forme d'`include` que l'interface générique
+      // PaginatableModel<T> ne peut pas unifier structurellement.
+      this.prisma.user as unknown as Parameters<
+        typeof paginate<UserWithSubsidiary>
+      >[0],
+      { where, include: { subsidiary: true }, orderBy: { userName: 'asc' } },
+      paginationQuery,
+    );
 
-    this.logger.log(`Retrieved ${users.length} users`, 'AuthService');
-    return users.map((user) => ({
-      id: user.id,
-      userName: user.userName,
-      email: user.email,
-      userRole: user.userRole,
-      additionalRoles: user.additionalRoles,
-      subsidiaryId: user.subsidiaryId,
-      subsidiary: user.subsidiary
-        ? {
-            id: user.subsidiary.id,
-            subsidiaryName: user.subsidiary.subsidiaryName,
-          }
-        : null,
-    }));
+    this.logger.log(`Retrieved ${result.data.length} users`, 'AuthService');
+    return {
+      ...result,
+      data: result.data.map((user) => ({
+        id: user.id,
+        userName: user.userName,
+        email: user.email,
+        userRole: user.userRole,
+        additionalRoles: user.additionalRoles,
+        subsidiaryId: user.subsidiaryId,
+        subsidiary: user.subsidiary
+          ? {
+              id: user.subsidiary.id,
+              subsidiaryName: user.subsidiary.subsidiaryName,
+            }
+          : null,
+      })),
+    };
   }
 
   //****7- Fonction de recherche d'un utilisateur****
 
   async searchUsers(
-    query: { email?: string; userName?: string; userRole?: UserRole },
+    query: {
+      email?: string;
+      userName?: string;
+      userRole?: UserRole;
+    } & PaginationQueryDto,
     currentUser: {
       id: string;
       role: UserRole;
@@ -535,33 +556,40 @@ export class AuthService {
     }
     if (query.userRole) {
       where.userRole = query.userRole;
-      where.userRole = query.userRole;
     }
 
-    const users = await this.prisma.user.findMany({
-      where,
-      include: { subsidiary: true },
-      orderBy: { userName: 'asc' },
-    });
+    const result = await paginate<UserWithSubsidiary>(
+      // Cast nécessaire : le délégué Prisma généré a des surcharges de
+      // findMany() par forme d'`include` que l'interface générique
+      // PaginatableModel<T> ne peut pas unifier structurellement.
+      this.prisma.user as unknown as Parameters<
+        typeof paginate<UserWithSubsidiary>
+      >[0],
+      { where, include: { subsidiary: true }, orderBy: { userName: 'asc' } },
+      query,
+    );
 
     this.logger.log(
-      `Found ${users.length} users matching query`,
+      `Found ${result.data.length} users matching query`,
       'AuthService',
     );
-    return users.map((user) => ({
-      id: user.id,
-      userName: user.userName,
-      email: user.email,
-      userRole: user.userRole,
-      additionalRoles: user.additionalRoles,
-      subsidiaryId: user.subsidiaryId,
-      subsidiary: user.subsidiary
-        ? {
-            id: user.subsidiary.id,
-            subsidiaryName: user.subsidiary.subsidiaryName,
-          }
-        : null,
-    }));
+    return {
+      ...result,
+      data: result.data.map((user) => ({
+        id: user.id,
+        userName: user.userName,
+        email: user.email,
+        userRole: user.userRole,
+        additionalRoles: user.additionalRoles,
+        subsidiaryId: user.subsidiaryId,
+        subsidiary: user.subsidiary
+          ? {
+              id: user.subsidiary.id,
+              subsidiaryName: user.subsidiary.subsidiaryName,
+            }
+          : null,
+      })),
+    };
   }
 
   //****8- Fonction de déconnexion d'un utilisateur****

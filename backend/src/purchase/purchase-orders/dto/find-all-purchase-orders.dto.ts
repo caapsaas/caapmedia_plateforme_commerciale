@@ -1,5 +1,6 @@
 import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 import { PaymentStatus, PurchaseOrderStatus } from '@prisma/client';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 // Réutilisation de l'enum de période pour la cohérence
 export enum OrderPeriod {
@@ -12,7 +13,7 @@ export enum OrderPeriod {
   CUSTOM = 'custom',
 }
 
-export class FindAllPurchaseOrdersDto {
+export class FindAllPurchaseOrdersDto extends PaginationQueryDto {
   @IsOptional()
   @IsUUID()
   subsidiaryId?: string;

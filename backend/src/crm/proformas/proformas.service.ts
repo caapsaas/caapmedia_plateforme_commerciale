@@ -33,10 +33,16 @@ export class ProformasService {
     // Générer le numéro Proforma
     const proformaNumber = await this.generateProformaNumber(user.subsidiaryId);
 
+    // Le taux de TVA vient toujours du taux par défaut configuré dans le
+    // module taxes ; le commercial peut le surcharger explicitement (devis
+    // négocié), mais l'absence de valeur ne doit jamais retomber sur 0.
+    const taxRate =
+      createProformaDto.taxRate ?? (await this.getDefaultTaxRatePercent());
+
     // Calculer les montants
     const { subtotal, taxAmount, totalAmount } = this.calculateAmounts(
       createProformaDto.items,
-      createProformaDto.taxRate || 0,
+      taxRate,
     );
 
     // Calculer la date d'expiration
@@ -55,7 +61,7 @@ export class ProformasService {
         clientPhone: createProformaDto.clientPhone,
         clientCompany: createProformaDto.clientCompany,
         subtotal,
-        taxRate: createProformaDto.taxRate || 0,
+        taxRate,
         taxAmount,
         totalAmount,
         validityDate,
@@ -353,6 +359,15 @@ export class ProformasService {
 
     const number = String(count + 1).padStart(4, '0');
     return `PRO-${year}-${number}`;
+  }
+
+  // Taux de TVA par défaut configuré dans le module taxes, converti en
+  // pourcentage (Proforma.taxRate est stocké en 0-100, TaxRate.rate en 0-1).
+  private async getDefaultTaxRatePercent(): Promise<number> {
+    const taxRate = await this.prisma.taxRate.findFirstOrThrow({
+      where: { isDefault: true },
+    });
+    return Number(taxRate.rate) * 100;
   }
 
   private calculateAmounts(items: ProformaItemDto[], taxRate: number) {

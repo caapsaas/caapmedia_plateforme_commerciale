@@ -153,12 +153,21 @@ export const deleteContract = (id: string): Promise<void> =>
   api.delete(`/crm/contracts/${id}`);
 
 // --- OPPORTUNITIES ---
+/**
+ * Conservé pour Pages/Crm.tsx (pipeline kanban — a besoin de toutes les
+ * opportunités visibles simultanément, pas d'une pagination cliquable).
+ */
 export const getOpportunities = (subsidiaryId: string): Promise<Opportunity[]> =>
-  api.get(`/crm/opportunities?subsidiaryId=${subsidiaryId}`)
-    .then(res => res.data)
+  api.get<PaginatedResponse<Opportunity>>('/crm/opportunities', { params: { subsidiaryId, limit: 500 } })
+    .then(res => res.data.data)
     .catch(error => {
       throw error;
     });
+
+export const getOpportunitiesPaginated = (
+  params: PaginationParams & { subsidiaryId?: string },
+): Promise<PaginatedResponse<Opportunity>> =>
+  api.get<PaginatedResponse<Opportunity>>('/crm/opportunities', { params }).then(res => res.data);
 
 export const saveOpportunity = (
   data: (Omit<Opportunity, 'id'> & { id?: string }) | (Partial<Opportunity> & { id: string }),
@@ -178,7 +187,12 @@ export const winOpportunity = (opportunity: Opportunity): Promise<void> =>
 
 // --- TASKS ---
 export const getCrmTasks = (subsidiaryId: string): Promise<CrmTask[]> =>
-  api.get(`/crm/tasks?subsidiaryId=${subsidiaryId}`).then(res => res.data);
+  api.get<PaginatedResponse<CrmTask>>('/crm/tasks', { params: { subsidiaryId, limit: 500 } }).then(res => res.data.data);
+
+export const getCrmTasksPaginated = (
+  params: PaginationParams & { subsidiaryId?: string },
+): Promise<PaginatedResponse<CrmTask>> =>
+  api.get<PaginatedResponse<CrmTask>>('/crm/tasks', { params }).then(res => res.data);
 
 export const saveTask = (data: Omit<CrmTask, 'id' | 'userId'> & { id?: string }): Promise<CrmTask> =>
   data.id
@@ -190,7 +204,12 @@ export const updateTaskStatus = ({ taskId, status }: { taskId: string; status: C
 
 // --- INTERACTIONS ---
 export const getInteractions = (subsidiaryId: string): Promise<Interaction[]> =>
-  api.get(`/crm/interactions?subsidiaryId=${subsidiaryId}`).then(res => res.data);
+  api.get<PaginatedResponse<Interaction>>('/crm/interactions', { params: { subsidiaryId, limit: 500 } }).then(res => res.data.data);
+
+export const getInteractionsPaginated = (
+  params: PaginationParams & { subsidiaryId?: string },
+): Promise<PaginatedResponse<Interaction>> =>
+  api.get<PaginatedResponse<Interaction>>('/crm/interactions', { params }).then(res => res.data);
 
 export const logInteraction = (data: Omit<Interaction, 'id' | 'date' | 'userId'>): Promise<Interaction> =>
   api.post('/crm/interactions', data).then(res => res.data);

@@ -14,6 +14,9 @@ import IconExport from '../components/icons/IconExport';
 import IconPdf from '../components/icons/IconPdf';
 import { getContacts, saveContact, deleteContact } from '../services/apiCrm/apiCrm';
 import { useAuth } from '../context/AuthContext';
+import TableSkeleton from '../components/ui/TableSkeleton';
+import EmptyState from '../components/ui/EmptyState';
+import CrmListSkeleton from '../components/ui/CrmListSkeleton';
 
 const Clients: React.FC = () => {
     const { t } = useI18n();
@@ -71,7 +74,7 @@ const Clients: React.FC = () => {
     };
 
     if (!subsidiary) {
-        return <div className="p-6 text-center">{t('common.loading')}</div>;
+        return <CrmListSkeleton columns={7} />;
     }
 
     const handlePrint = () => window.print();
@@ -123,10 +126,6 @@ const Clients: React.FC = () => {
                         </button>
                     </div>
                 </div>
-                {isLoading && (
-                    <div className="text-center p-4">{t('common.loading')}</div>
-                )}
-                {!isLoading && (
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left text-slate-500">
                         <thead className="text-xs text-slate-700 uppercase bg-slate-50">
@@ -141,7 +140,15 @@ const Clients: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {contacts.map((contact) => (
+                            {isLoading ? (
+                                <TableSkeleton rows={7} columns={7} />
+                            ) : contacts.length === 0 ? (
+                                <tr>
+                                    <td colSpan={7}>
+                                        <EmptyState icon="inbox" title={t('clients.listTitle')} description={t('common.notAvailable')} />
+                                    </td>
+                                </tr>
+                            ) : contacts.map((contact) => (
                                 <tr key={contact.id} className="bg-white border-b hover:bg-slate-50">
                                     <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{contact.id}</th>
                                     <td className="px-6 py-4">{contact.contactName}</td>
@@ -162,7 +169,6 @@ const Clients: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
-                )}
             </div>
 
             {isModalOpen && (

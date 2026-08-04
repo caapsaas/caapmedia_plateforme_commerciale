@@ -20,6 +20,8 @@ import KpiCard from '../../Pages/KpiCard';
 import IconCreditCard from '../icons/IconCreditCard';
 import CreditDetailsModal from './CreditDetailsModal';
 import CreditPaymentModal from './CreditPaymentModal';
+import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 
 interface CreditManagementProps {
     subsidiary: Subsidiary;
@@ -212,9 +214,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
         descriptionKey: 'credit.totalReceivablesDesc'
     };
 
-    if (isLoadingReceivable || isLoadingOrders) {
-        return <div className="p-6 text-center">{t('common.loading')}</div>;
-    }
+    const isLoading = isLoadingReceivable || isLoadingOrders;
 
     return (
         <div className="space-y-6">
@@ -254,7 +254,9 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredCredits.length > 0 ? (
+                            {isLoading ? (
+                                <TableSkeleton rows={5} columns={5} />
+                            ) : filteredCredits.length > 0 ? (
                                 filteredCredits.map((account) => (
                                     <tr key={`credit-${account.id}-${account.clientName}`} className="bg-white border-b hover:bg-slate-50">
                                         <td className="px-6 py-4 font-medium text-slate-900">{account.clientName}</td>
@@ -269,8 +271,11 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
                                 ))
                             ) : (
                                 <tr key="no-credits-row">
-                                    <td colSpan={5} className="text-center py-8 text-slate-500">
-                                        {searchTerm ? "Aucun crédit ne correspond à votre recherche." : "Aucun crédit client en cours."}
+                                    <td colSpan={5}>
+                                        <EmptyState
+                                            icon={searchTerm ? 'search' : 'finance'}
+                                            title={searchTerm ? "Aucun crédit ne correspond à votre recherche." : "Aucun crédit client en cours."}
+                                        />
                                     </td>
                                 </tr>
                             )}

@@ -64,15 +64,9 @@ const HrManagement: React.FC = () => {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['payrolls', subsidiary.id] }) 
     });
 
-    // "employees" gère désormais son propre chargement (pagination serveur) ;
-    // seuls payroll/absences dépendent encore du fetch parent `employees`.
-    const isLoading = isLoadingEmployees || isLoadingAbsences || isLoadingPayrolls;
-
+    // Chaque onglet gère désormais son propre skeleton (forme adaptée à sa
+    // vraie disposition) plutôt qu'un gate générique au niveau de la page.
     const renderActiveView = () => {
-        if (isLoading && !['attendance-cards', 'attendance-history', 'employees'].includes(activeTab)) {
-            return <CrmListSkeleton columns={7} />;
-        }
-
         switch (activeTab) {
             case 'employees':
                 return <EmployeeDatabaseModern
@@ -89,6 +83,7 @@ const HrManagement: React.FC = () => {
                             subsidiary={subsidiary}
                             employees={employees}
                             payrolls={payrolls}
+                            isLoading={isLoadingPayrolls}
                             onProcessPayroll={onProcessPayroll}
                             onSaveSignature={onSaveSignature}
                         />;
@@ -97,6 +92,7 @@ const HrManagement: React.FC = () => {
                             subsidiary={subsidiary}
                             employees={employees}
                             absences={absences}
+                            isLoading={isLoadingAbsences}
                             onSave={onSaveAbsence}
                             onDelete={onDeleteAbsence}
                         />;

@@ -22,8 +22,10 @@ import {
   IsUUID,
   IsNumber,
   Min,
+  Max,
 } from 'class-validator';
 import { UserRole } from '@prisma/client';
+import { PaginationQueryDto } from '../../pagination/dto/pagination-query.dto';
 
 class CreateSubsidiaryDto {
   @IsString()
@@ -59,6 +61,14 @@ class CreateSubsidiaryDto {
   @IsNumber()
   @Min(0)
   shareCapital: number;
+
+  // Taux d'IS (impôt sur les sociétés), fraction 0-1 — ex. 0.30 pour 30%.
+  // Distinct de la TVA (module taxes), utilisé dans le compte de résultat.
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  taxRate?: number;
 }
 
 class UpdateSubsidiaryDto {
@@ -106,9 +116,15 @@ class UpdateSubsidiaryDto {
   @IsNumber()
   @Min(0)
   shareCapital?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  taxRate?: number;
 }
 
-class SearchSubsidiariesDto {
+class SearchSubsidiariesDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   subsidiaryName?: string;
@@ -150,8 +166,11 @@ export class SubsidiaryController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.HR_MANAGER)
   @Get()
-  async getAllSubsidiaries(@Request() req) {
-    return this.subsidiaryService.getAllSubsidiaries(req.user);
+  async getAllSubsidiaries(
+    @Request() req,
+    @Query() paginationQuery: PaginationQueryDto,
+  ) {
+    return this.subsidiaryService.getAllSubsidiaries(req.user, paginationQuery);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)

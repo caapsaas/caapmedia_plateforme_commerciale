@@ -23,6 +23,8 @@ import {
   ItemType,
 } from '@prisma/client';
 import { FindAllOrdersDto, OrderPeriod } from './dto/find-all-orders.dto';
+import { paginate } from 'src/common/pagination/pagination';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 import {
   sub,
   startOfMonth,
@@ -59,6 +61,7 @@ export class OrdersService {
       paymentDueDate: order.paymentDueDate,
       taxRateId: order.taxRateId,
       taxRateValue: order.taxRateValue ? order.taxRateValue.toNumber() : 0,
+      applyTax: order.applyTax,
       status: order.status,
       productionStatus: order.productionStatus,
       paymentStatus: order.paymentStatus,
@@ -144,6 +147,7 @@ export class OrdersService {
       paymentDueDate,
       source,
       opportunityId,
+      applyTax = true,
     } = createOrderDto;
 
     // Le corps d'un formulaire multipart est toujours en string, il faut parser les items.
@@ -264,7 +268,11 @@ export class OrdersService {
       };
     });
 
-    const taxAmount = subtotal.mul(taxRate.rate);
+    // La TVA est optionnelle à la création : on garde toujours la référence au
+    // taux configuré par défaut (taxRateId/taxRateValue), mais le montant
+    // effectivement prélevé est nul si le commercial a décoché son application.
+    const effectiveTaxRate = applyTax ? taxRate.rate : new Decimal(0);
+    const taxAmount = subtotal.mul(effectiveTaxRate);
     const totalAmount = subtotal.add(taxAmount);
 
     return this.prisma.$transaction(async (tx) => {
@@ -277,7 +285,8 @@ export class OrdersService {
           subtotal,
           taxAmount,
           totalAmount,
-          taxRateValue: taxRate.rate,
+          taxRateValue: effectiveTaxRate,
+          applyTax,
           status: OrderStatus.PENDING_VALIDATION,
           paymentMethod: null, // Le mode de paiement sera défini lors de l'encaissement.
           productionStatus: ProductionStatus.PREPRESS,
@@ -834,11 +843,15 @@ export class OrdersService {
    * @param user connecte
    * @returns la liste des contacts/clients avec des credits
    */
-  async getAllCustomerCredit(user: any) {
-    const creditAccount = await this.prisma.creditAccount.findMany({
-      where: { subsidiaryId: user.subsidiaryId },
-    });
-    return creditAccount;
+  async getAllCustomerCredit(
+    user: any,
+    paginationQuery: PaginationQueryDto = {},
+  ) {
+    return paginate(
+      this.prisma.creditAccount,
+      { where: { subsidiaryId: user.subsidiaryId } },
+      paginationQuery,
+    );
   }
 
   /**
@@ -920,7 +933,11 @@ export class OrdersService {
     });
   }
 
-  async findPendingValidation(user: any, subsidiaryId?: string) {
+  async findPendingValidation(
+    user: any,
+    subsidiaryId?: string,
+    paginationQuery: PaginationQueryDto = {},
+  ) {
     // Super Admin : vue consolidée toutes filiales (filtrage optionnel par filiale)
     const isSuperAdmin =
       user.userRole === 'SUPER_ADMIN' || user.activeRole === 'SUPER_ADMIN';
@@ -932,10 +949,14 @@ export class OrdersService {
           : {}
         : { subsidiaryId: user.subsidiaryId }),
     };
-    return this.prisma.order.findMany({
-      where,
-      include: this.orderFullInclude,
-      orderBy: { orderDate: 'asc' },
-    });
+    return paginate(
+      this.prisma.order,
+      {
+        where,
+        include: this.orderFullInclude,
+        orderBy: { orderDate: 'asc' },
+      },
+      paginationQuery,
+    );
   }
 }

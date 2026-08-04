@@ -3,10 +3,7 @@ import { AccountType, ExpenseCategory } from '@prisma/client';
 import { EntriesService } from '../entries/entries.service';
 import { PeriodsService } from '../periods/periods.service';
 import { MappingsService } from '../accounts/mappings.service';
-
-// TVA UEMOA standard (18%) et IS (30%)
-export const TVA_RATE = 0.18;
-export const IS_RATE = 0.3;
+import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 
 export type OperationSource =
   | 'TREASURY_INCOME'
@@ -66,6 +63,7 @@ export class JournalizationService {
     private readonly entriesService: EntriesService,
     private readonly periodsService: PeriodsService,
     private readonly mappingsService: MappingsService,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -85,7 +83,14 @@ export class JournalizationService {
     await this.periodsService.getOrCreateCurrentFiscalYear(subsidiaryId);
 
     const mappings = await this.mappingsService.getMap();
-    const { journalCode, lines } = this.buildLines(ctx, mappings);
+    // Le taux de TVA appliqué aux écritures automatiques vient toujours du
+    // taux par défaut configuré dans le module taxes — jamais d'une valeur
+    // en dur ici, pour rester cohérent avec le taux réellement facturé
+    // côté ventes/commandes.
+    const tvaRate = this.requiresTvaRate(ctx)
+      ? await this.getDefaultTvaRate()
+      : 0;
+    const { journalCode, lines } = this.buildLines(ctx, mappings, tvaRate);
     if (!lines || lines.length === 0) return;
 
     await this.entriesService.createAutomaticEntry({
@@ -100,9 +105,25 @@ export class JournalizationService {
     });
   }
 
+  private requiresTvaRate(ctx: JournalizationContext): boolean {
+    return (
+      ctx.sourceType === 'SALE_PAID' ||
+      ctx.sourceType === 'EXPENSE_RECORD' ||
+      (ctx.sourceType === 'TREASURY_EXPENSE' && !!ctx.withTva)
+    );
+  }
+
+  private async getDefaultTvaRate(): Promise<number> {
+    const taxRate = await this.prisma.taxRate.findFirstOrThrow({
+      where: { isDefault: true },
+    });
+    return Number(taxRate.rate);
+  }
+
   private buildLines(
     ctx: JournalizationContext,
     mappings: Record<string, string>,
+    tvaRate: number,
   ): { journalCode: string; lines: BuiltLine[] } {
     const { amount, sourceType, accountType, expenseCategory, withTva } = ctx;
 
@@ -137,7 +158,7 @@ export class JournalizationService {
       case 'TREASURY_EXPENSE': {
         const chargeNum =
           EXPENSE_CATEGORY_ACCOUNT[expenseCategory ?? 'OTHER'] ?? '659000';
-        const amountHT = withTva ? amount / (1 + TVA_RATE) : amount;
+        const amountHT = withTva ? amount / (1 + tvaRate) : amount;
         const tvaAmount = withTva ? amount - amountHT : 0;
 
         const lines: BuiltLine[] = [
@@ -157,7 +178,7 @@ export class JournalizationService {
         if (withTva) {
           lines.splice(1, 0, {
             accountNumber: mappings['TVA_DEDUCTIBLE_ACHAT'] || '445100',
-            description: 'TVA déductible 18%',
+            description: `TVA déductible ${(tvaRate * 100).toFixed(2)}%`,
             debitAmount: tvaAmount,
             creditAmount: 0,
           });
@@ -170,7 +191,7 @@ export class JournalizationService {
 
       // ── VENTE CLIENT (PAYÉE) ────────────────────────────────────────
       case 'SALE_PAID': {
-        const amountHT = amount / (1 + TVA_RATE);
+        const amountHT = amount / (1 + tvaRate);
         const tvaAmount = amount - amountHT;
         return {
           journalCode: 'JV',
@@ -189,7 +210,7 @@ export class JournalizationService {
             },
             {
               accountNumber: mappings['TVA_COLLECTEE'] || '443100',
-              description: 'TVA collectée 18%',
+              description: `TVA collectée ${(tvaRate * 100).toFixed(2)}%`,
               debitAmount: 0,
               creditAmount: tvaAmount,
             },
@@ -201,7 +222,7 @@ export class JournalizationService {
       case 'EXPENSE_RECORD': {
         const chargeNum =
           EXPENSE_CATEGORY_ACCOUNT[expenseCategory ?? 'OTHER'] ?? '659000';
-        const amountHT = amount / (1 + TVA_RATE);
+        const amountHT = amount / (1 + tvaRate);
         const tvaAmount = amount - amountHT;
         return {
           journalCode: 'JOD',
@@ -214,7 +235,7 @@ export class JournalizationService {
             },
             {
               accountNumber: mappings['TVA_DEDUCTIBLE_ACHAT'] || '445200',
-              description: 'TVA déductible 18%',
+              description: `TVA déductible ${(tvaRate * 100).toFixed(2)}%`,
               debitAmount: tvaAmount,
               creditAmount: 0,
             },

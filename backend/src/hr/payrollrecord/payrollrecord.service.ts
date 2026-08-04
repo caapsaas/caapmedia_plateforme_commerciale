@@ -19,6 +19,7 @@ import {
 import { Decimal } from '@prisma/client/runtime/library';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+
 import { CameroonPayrollCalculatorService } from './cameroonpayrollcalculator.service';
 
 // Type enrichi retourné par le service (avec infos employé)
@@ -170,8 +171,9 @@ export class PayrollRecordService {
             bonus: true,
           },
         },
+      
       },
-      orderBy: [{ payrollPeriod: 'desc' }, { employeeName: 'asc' }],
+     
     });
   }
 

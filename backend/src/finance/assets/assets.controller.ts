@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AssetsService } from './assets.service';
@@ -14,6 +15,7 @@ import { UpdateFixedAssetDto } from './dto/update-fixed-asset.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { CurrentUser } from '../../common/auth/role/role.decorator';
 import type { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('finance/assets')
@@ -26,8 +28,11 @@ export class AssetsController {
   }
 
   @Get('fixed')
-  findAll(@CurrentUser() user: JwtUser) {
-    return this.assetsService.findAll(user);
+  findAll(
+    @CurrentUser() user: JwtUser,
+    @Query() paginationQuery: PaginationQueryDto,
+  ) {
+    return this.assetsService.findAll(user, paginationQuery);
   }
 
   @Get('fixed/:id')

@@ -12,6 +12,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSales, FindAllSalesDto } from '../services/apiE-commerce/apiSales';
 import { getServicesCatalog } from '../services/apiE-commerce/apiProducts';
 import { getContacts } from '../services/apiCrm/apicontacts';
+import TableSkeleton from '../components/ui/TableSkeleton';
+import CrmListSkeleton from '../components/ui/CrmListSkeleton';
+import EmptyState from '../components/ui/EmptyState';
 
 const Transaction: React.FC = () => {
     const { t, formatCurrency } = useI18n();
@@ -40,12 +43,10 @@ const Transaction: React.FC = () => {
     });
 
     if (!subsidiary || !currentUser) {
-        return <div>Chargement ou erreur d'authentification...</div>;
+        return <CrmListSkeleton columns={7} />;
     }
-    
-    if (isLoadingSales || isLoadingProducts) {
-        return <div>{t('common.loading')}</div>;
-    }
+
+    const isLoading = isLoadingSales || isLoadingProducts;
 
     return (
         <div className="space-y-6">
@@ -74,7 +75,9 @@ const Transaction: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {sales.length > 0 ? (
+                            {isLoading ? (
+                                <TableSkeleton rows={7} columns={7} />
+                            ) : sales.length > 0 ? (
                                 sales.map((sale) => (
                                     <tr key={sale.id} className="bg-white border-b hover:bg-slate-50">
                                         <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{sale.id}</th>
@@ -95,7 +98,7 @@ const Transaction: React.FC = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={7} className="text-center py-8 text-slate-500">{t('filter.noResults')}</td>
+                                    <td colSpan={7}><EmptyState icon="order" title={t('filter.noResults')} /></td>
                                 </tr>
                             )}
                         </tbody>

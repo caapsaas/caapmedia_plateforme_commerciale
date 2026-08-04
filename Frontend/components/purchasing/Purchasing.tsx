@@ -22,6 +22,7 @@ import PurchaseOrderFormModal from './PurchaseOrderFormModal';
 import PurchaseOrderDetailsModal from './PurchaseOrderDetailsModal';
 import ReceiveItemsModal from './ReceiveItemsModal';
 import RecordPaymentModal from './RecordPaymentModal';
+import EmptyState from '../ui/EmptyState';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const fmtDate = (d?: string | null) => {
@@ -187,16 +188,14 @@ const Purchasing: React.FC = () => {
                                         ))
                                     ) : orders.length === 0 ? (
                                         <tr>
-                                            <td colSpan={isSuperAdmin ? 10 : 9} className="py-20 text-center">
-                                                <svg className="w-12 h-12 mx-auto mb-3 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                </svg>
-                                                <p className="font-medium text-slate-500">Aucun bon de commande</p>
-                                                <p className="text-sm text-slate-400 mt-1">
-                                                    {statusFilter
+                                            <td colSpan={isSuperAdmin ? 10 : 9}>
+                                                <EmptyState
+                                                    icon="order"
+                                                    title="Aucun bon de commande"
+                                                    description={statusFilter
                                                         ? `Aucune commande avec le statut « ${PO_STATUS_LABELS[statusFilter as PurchaseOrderStatus]} ».`
                                                         : 'Les bons de commande apparaîtront ici.'}
-                                                </p>
+                                                />
                                             </td>
                                         </tr>
                                     ) : orders.map(po => {

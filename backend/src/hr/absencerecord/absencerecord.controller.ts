@@ -26,6 +26,7 @@ import {
   resolveEffectiveSubsidiaryId,
   assertSubsidiaryAccess,
 } from '../../common/utils/subsidiary-scope';
+import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
 
 @Controller('hr/absence-records')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -72,12 +73,9 @@ export class AbsencerecordController {
   // ------------------------------------------------------------------
   @Get()
   @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
-  findAll(
-    @Request() req,
-    @Query('subsidiaryId') subsidiaryIdFilter?: string,
-  ) {
-    const ctx = resolveScopeContext(req.user);
-    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx, subsidiaryIdFilter);
+
+  findAll(@Request() req, @Query() paginationQuery: PaginationQueryDto) {
+    const subsidiaryId = req.user.subsidiaryId;
     return this.absenceRecordService.findAll(subsidiaryId);
   }
 

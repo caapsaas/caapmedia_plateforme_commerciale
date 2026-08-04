@@ -1,5 +1,6 @@
 import { api } from '../api';
 import { CustomerPaymentMethod, Sale } from '../../types';
+import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
 /**
  * DTO pour la création d'une vente directe, correspondant à CreateDirectSaleDto du backend.
@@ -41,9 +42,21 @@ export const createDirectSale = async (saleData: CreateDirectSaleDto): Promise<{
 
 /**
  * Récupère toutes les ventes directes avec des options de filtrage.
+ * Limit élevée : Sales.tsx trie/filtre côté client sur le jeu complet.
  * @param query - Les paramètres de filtrage des ventes.
  */
 export const getSales = async (query?: FindAllSalesDto): Promise<Sale[]> => {
-    const { data } = await api.get<Sale[]>('/ecommerce/sales', { params: query });
+    const { data } = await api.get<PaginatedResponse<Sale>>('/ecommerce/sales', { params: { ...query, limit: 500 } });
+    return data.data;
+};
+
+/**
+ * Version paginée/recherchable (page/limit/search) pour un futur usage en
+ * pagination cliquable réelle.
+ */
+export const getSalesPaginated = async (
+    query: FindAllSalesDto & PaginationParams,
+): Promise<PaginatedResponse<Sale>> => {
+    const { data } = await api.get<PaginatedResponse<Sale>>('/ecommerce/sales', { params: query });
     return data;
 };

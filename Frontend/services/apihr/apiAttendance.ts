@@ -1,5 +1,6 @@
 import { api } from '../api';
 import { AttendanceRecord } from '../../types';
+import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
 /**
  * Données pour la création manuelle d'un enregistrement de présence.
@@ -22,10 +23,28 @@ export type AttendanceRecordUpdateData = Partial<AttendanceRecordCreationData>;
 // ============================================================
 
 /**
- * Récupère tous les enregistrements de présence de la filiale.
+ * Récupère tous les enregistrements de présence de la filiale (compat —
+ * charge tout avec une limite haute, pour les appelants pas encore migrés
+ * vers la pagination).
  */
 export const getAttendanceRecords = async (): Promise<AttendanceRecord[]> => {
-  const { data } = await api.get<AttendanceRecord[]>('/hr/attendance-records');
+  const { data } = await api.get<PaginatedResponse<AttendanceRecord>>(
+    '/hr/attendance-records',
+    { params: { limit: 500 } },
+  );
+  return data.data;
+};
+
+/**
+ * Version paginée/recherchable (page/limit/search).
+ */
+export const getAttendanceRecordsPaginated = async (
+  params: PaginationParams,
+): Promise<PaginatedResponse<AttendanceRecord>> => {
+  const { data } = await api.get<PaginatedResponse<AttendanceRecord>>(
+    '/hr/attendance-records',
+    { params },
+  );
   return data;
 };
 
@@ -97,7 +116,7 @@ export const pointage = async (payload: {
   latitude?: number;
   longitude?: number;
   accuracy?: number;
+
 }) => {
   const { data } = await api.post('/pointage', payload);
-  return data;
-};
+}

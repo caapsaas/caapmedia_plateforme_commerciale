@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { StockItem, StockMovementType } from '../../types/models';
-import { getStockItemsBySubsidiary } from '../../services/apiPurchasing/apiStockItems';
+import { getStockItemsPaginated } from '../../services/apiPurchasing/apiStockItems';
 import { createStockMovement } from '../../services/apiPurchasing/apiStockMovements';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useI18n } from '../../i18n';
+import { AsyncSelect } from '../ui/AsyncSelect';
 
 interface ManualStockMovementModalProps {
     isOpen: boolean;
@@ -32,15 +33,10 @@ const ManualStockMovementModal: React.FC<ManualStockMovementModalProps> = ({ isO
     const toast = useToast();
 
     const [itemId, setItemId] = useState('');
+    const [selectedItem, setSelectedItem] = useState<StockItem | null>(null);
     const [type, setType] = useState<StockMovementType>(StockMovementType.LOSS);
     const [quantity, setQuantity] = useState('');
     const [reason, setReason] = useState('');
-
-    const { data: items = [] } = useQuery<StockItem[]>({
-        queryKey: ['stockItems', subsidiary?.id],
-        queryFn: () => getStockItemsBySubsidiary(),
-        enabled: isOpen && !!subsidiary,
-    });
 
     const createMutation = useMutation({
         mutationFn: createStockMovement,
@@ -49,6 +45,7 @@ const ManualStockMovementModal: React.FC<ManualStockMovementModalProps> = ({ isO
             queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
             toast.success(t('stockMovements.manual.successTitle'), t('stockMovements.manual.successMessage'));
             setItemId('');
+            setSelectedItem(null);
             setQuantity('');
             setReason('');
             onClose();
@@ -74,11 +71,17 @@ const ManualStockMovementModal: React.FC<ManualStockMovementModalProps> = ({ isO
 
                     <div className="p-6 space-y-4">
                         <div>
-                            <label htmlFor="itemId" className="block text-sm font-medium text-slate-700">{t('stockMovements.manual.product')}</label>
-                            <select id="itemId" value={itemId} onChange={e => setItemId(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
-                                <option value="">{t('stockMovements.manual.selectProduct')}</option>
-                                {items.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-                            </select>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">{t('stockMovements.manual.product')}</label>
+                            <AsyncSelect<StockItem>
+                                queryKey={`manual-movement-items-${subsidiary?.id}`}
+                                placeholder={t('stockMovements.manual.selectProduct')}
+                                value={itemId || undefined}
+                                onChange={(value, item) => { setItemId(value ?? ''); setSelectedItem(item ?? null); }}
+                                defaultOptions={selectedItem ? [selectedItem] : []}
+                                getOptionLabel={(item) => item.name}
+                                getOptionValue={(item) => item.id}
+                                fetcher={({ page, limit, search }) => getStockItemsPaginated({ page, limit, search, subsidiaryId: subsidiary?.id })}
+                            />
                         </div>
 
                         <div>

@@ -1,5 +1,6 @@
 import { IsString, IsDate, IsOptional, IsUUID, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 export class CreateMeetingDto {
   @IsString()
   // @ApiProperty({ description: 'Titre de la réunion' })
@@ -81,7 +82,7 @@ export class UpdateMeetingDto {
   participantIds?: string[];
 }
 
-export class SearchMeetingsDto {
+export class SearchMeetingsDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   // @ApiPropertyOptional({ description: 'Titre à rechercher' })

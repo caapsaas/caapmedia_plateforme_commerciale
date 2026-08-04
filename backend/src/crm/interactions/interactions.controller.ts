@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Param,
+  Query,
   Delete,
   UseGuards,
   ParseUUIDPipe,
@@ -18,6 +19,7 @@ import { UserRole } from '@prisma/client';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { CurrentUser } from 'src/common/auth/role/role.decorator';
 import type { User } from '@prisma/client';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @Controller('crm/interactions')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -35,8 +37,8 @@ export class InteractionsController {
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY)
-  findAll(@CurrentUser() user: User) {
-    return this.interactionsService.findAll(user);
+  findAll(@CurrentUser() user: User, @Query() paginationQuery: PaginationQueryDto) {
+    return this.interactionsService.findAll(user, paginationQuery);
   }
 
   @Patch(':id')

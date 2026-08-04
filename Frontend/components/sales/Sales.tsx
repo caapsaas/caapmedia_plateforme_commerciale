@@ -26,6 +26,7 @@ import IconChevronDown from "../icons/IconChevronDown";
 import IconCheckCircle from "../icons/IconCheckCircle";
 import IconExclamationTriangle from "../icons/IconExclamationTriangle";
 import NewOrder from "../../Pages/NewOrder";
+import EmptyState from "../ui/EmptyState";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getOrders,
@@ -41,6 +42,24 @@ import { getAllUsers } from "../../services/apiCommon/apiUserAuth";
 import { getSubsidiaries } from "../../services/apiCommon/apiSubsidiaries";
 import { useAuth } from "../../context/AuthContext";
 import { UserRole } from "../../types";
+
+// Payload envoyé à POST /ecommerce/orders/by-salesrep/json — mis en cache le
+// temps de la requête pour enrichir la réponse API (qui ne renvoie pas tous
+// les champs calculés côté client) sans risque de race condition (voir ref
+// lastOrderDataRef ci-dessous).
+type SalesRepOrderPayload = {
+  customerId: string;
+  customerName: string;
+  paymentDueDate: string;
+  paymentMethod: CustomerPaymentMethod;
+  source: 'MANUAL' | 'WEB_ORDER' | 'QUOTE_REQUEST';
+  items: Array<{ productId: string; quantity: number; unitPrice: number; options: Array<{ optionType: string; optionValue: string }> }>;
+  date?: string;
+  subtotal?: number;
+  taxAmount?: number;
+  totalAmount?: number;
+  applyTax?: boolean;
+};
 
 const initialFilterState: FindAllOrdersDto = { period: "all_time" };
 const parseDate = (dateStr: string | undefined): Date | null => {
@@ -132,6 +151,7 @@ const Sales: React.FC = () => {
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<"history" | "new">("history");
+  const lastOrderDataRef = useRef<SalesRepOrderPayload | null>(null);
 
   const effectiveRole = user?.activeRole ?? user?.userRole;
   const hasGlobalScope = effectiveRole === UserRole.SUPER_ADMIN;
@@ -312,19 +332,7 @@ const Sales: React.FC = () => {
     });
 
     // Créer l'objet de commande pour l'endpoint JSON
-    const orderData: {
-      customerId: string;
-      customerName: string;
-      paymentDueDate: string;
-      paymentMethod: CustomerPaymentMethod;
-      source: 'MANUAL' | 'WEB_ORDER' | 'QUOTE_REQUEST';
-      items: Array<{ productId: string; quantity: number; unitPrice: number; options: Array<{ optionType: string; optionValue: string }> }>;
-      date?: string;
-      subtotal?: number;
-      taxAmount?: number;
-      totalAmount?: number;
-      customTaxRate?: number;
-    } = {
+    const orderData: SalesRepOrderPayload = {
       customerId: newOrderData.customerId,
       customerName: newOrderData.customerName,
       paymentDueDate: newOrderData.paymentDueDate,
@@ -335,15 +343,8 @@ const Sales: React.FC = () => {
       subtotal: newOrderData.subtotal,
       taxAmount: newOrderData.taxAmount,
       totalAmount: newOrderData.totalAmount,
+      applyTax: newOrderData.applyTax,
     };
-
-    // Inclure customTaxRate si présent
-    if ('customTaxRate' in newOrderData && newOrderData.customTaxRate !== undefined) {
-      orderData.customTaxRate = (newOrderData as { customTaxRate?: number }).customTaxRate;
-    }
-
-    // Logs pour débogage
-    console.log("Order data being sent:", orderData);
 
     // Capturer les données pour enrichir la réponse de l'API (via ref pour éviter race condition)
     lastOrderDataRef.current = orderData;
@@ -847,7 +848,7 @@ const Sales: React.FC = () => {
                             </tbody>
                           </table>
                           {filteredOrders.length === 0 && (
-                            <p className="text-center py-8 text-slate-500">{t("filter.noResults")}</p>
+                            <EmptyState icon="order" title={t("filter.noResults")} />
                           )}
                         </>
                       )}
@@ -915,11 +916,19 @@ const Sales: React.FC = () => {
       )}
 
       {activeTab === "new" && (
-        <NewOrder
-          subsidiary={subsidiary}
-          products={products}
-          onOrderPlaced={handlePlaceOrder}
-        />
+        isLoadingProducts ? (
+          <div className="bg-white rounded-xl shadow-md p-6 space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-14 bg-slate-100 rounded animate-pulse" style={{ opacity: 1 - i * 0.15 }} />
+            ))}
+          </div>
+        ) : (
+          <NewOrder
+            subsidiary={subsidiary}
+            products={products}
+            onOrderPlaced={handlePlaceOrder}
+          />
+        )
       )}
 
       {/* Modals */}

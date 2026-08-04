@@ -10,7 +10,6 @@ import {
   rejectProforma,
   Proforma,
 } from '../../services/apiCrm/apiProformas';
-import { getLeads } from '../../services/apiCrm/apiCrm';
 import { ProformaStatus } from '../../types';
 import IconPlus from '../icons/IconPlus';
 import IconDelete from '../icons/IconDelete';
@@ -62,11 +61,6 @@ const ProformasManagement: React.FC = () => {
 
   const proformas = paginatedProformas?.data || [];
   const meta = paginatedProformas?.meta;
-
-  const { data: leads = [] } = useQuery({
-    queryKey: ['leads'],
-    queryFn: () => getLeads(''),
-  });
 
   const invalidateProformas = () => {
     queryClient.invalidateQueries({ queryKey: ['proformas'] });
@@ -291,7 +285,6 @@ const ProformasManagement: React.FC = () => {
         <CreateProformaModal
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
-          leads={leads}
         />
       )}
 

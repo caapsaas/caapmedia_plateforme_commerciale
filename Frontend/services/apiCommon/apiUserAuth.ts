@@ -1,5 +1,6 @@
 import { api } from '../api';
 import { User, Subsidiary, UserRole } from '../../types';
+import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
 /**
  * Interfaces pour les données d'authentification des utilisateurs (employés).
@@ -94,12 +95,24 @@ export const registerUser = async (userData: UserRegisterData): Promise<UserRegi
 };
 
 /**
- * Récupère tous les utilisateurs.
+ * Récupère tous les utilisateurs. Limit élevée : alimente les selects
+ * commerciaux (Sales.tsx, Crm.tsx) qui ont besoin du jeu complet.
  * Protégé par un rôle ADMIN côté backend.
  * @returns Une liste d'utilisateurs.
  */
 export const getAllUsers = async (): Promise<User[]> => {
-  const { data } = await api.get<User[]>('/auth/users');
+  const { data } = await api.get<PaginatedResponse<User>>('/auth/users', { params: { limit: 500 } });
+  return data.data;
+};
+
+/**
+ * Version paginée/recherchable (page/limit) pour la vue de gestion des
+ * utilisateurs (pagination cliquable réelle).
+ */
+export const getUsersPaginated = async (
+  params: PaginationParams = {},
+): Promise<PaginatedResponse<User>> => {
+  const { data } = await api.get<PaginatedResponse<User>>('/auth/users', { params });
   return data;
 };
 
@@ -131,8 +144,8 @@ export const deleteUser = async (id: string): Promise<void> => {
  * @returns Une liste d'utilisateurs correspondants.
  */
 export const searchUsers = async (query: UserSearchQuery): Promise<User[]> => {
-  const { data } = await api.get<User[]>('/auth/users/search', { params: query });
-  return data;
+  const { data } = await api.get<PaginatedResponse<User>>('/auth/users/search', { params: { ...query, limit: 500 } });
+  return data.data;
 };
 
 /**

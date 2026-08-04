@@ -153,7 +153,11 @@ const JournalCentralisateur: React.FC<JournalCentralisateurProps> = ({ fiscalPer
       {!fiscalYearId ? (
         <EmptyState icon="document" title="Aucun exercice fiscal" description="Créez un exercice fiscal pour consulter le journal centralisateur." />
       ) : isLoading ? (
-        <div className="py-12 text-center text-slate-500 text-sm">Chargement...</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-lg border border-slate-100 shadow-sm p-4 h-20 animate-pulse" style={{ opacity: 1 - i * 0.15 }} />
+          ))}
+        </div>
       ) : journals.length === 0 ? (
         <EmptyState icon="document" title="Aucune donnée pour cet exercice" />
       ) : (
