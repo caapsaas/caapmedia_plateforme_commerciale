@@ -321,7 +321,7 @@
       "employees": "Employés",
       "attendance": "Présences",
       "attendances": "Présences",
-      "attendance_cards": "Cartes de présence",
+      "attendance_cards": "Code QR de présence",
       "attendance_history": "Historique des présences",
       "payroll": "Paie",
       "absences": "Absences"
@@ -570,6 +570,8 @@
     },
     "payroll": {
       "signingTitle": "Signature",
+      "status_PAID": "Payé",
+      "status_PENDING": "En attente",
       "status": {
         "pending": "En attente"
       },

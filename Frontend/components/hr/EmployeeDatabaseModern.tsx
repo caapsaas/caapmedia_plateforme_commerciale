@@ -118,7 +118,7 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
     setIsFormModalOpen(true);
   };
 
-  const handleSaveEmployee = async (employeeData: Partial<Employee>) => {
+  const handleSaveEmployee = async (employeeData: EmployeeFormData) => {
     try {
       const processedData = { ...employeeData };
 
@@ -146,11 +146,14 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
       // Save the employee with cleaned documents
       const hasLeaves = processedData.leaveRecords && Array.isArray(processedData.leaveRecords) && processedData.leaveRecords.length > 0;
 
+      // Add ID if editing existing employee
+      const saveData = editingEmployee ? { ...processedData, id: editingEmployee.id } : processedData;
+
       if (hasLeaves) {
-        await saveEmployeeWithDocumentsAndLeaves(processedData);
+        await saveEmployeeWithDocumentsAndLeaves(saveData);
         toast.success(t('common.success'), t('hr.employee.savedWithDocs'));
       } else {
-        await onSave(processedData);
+        await onSave(saveData);
         toast.success(t('common.success'), t('hr.employee.saved'));
       }
       setIsFormModalOpen(false);
@@ -319,6 +322,7 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">{t('hr.table.name')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Matricule</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">{t('hr.table.email')}</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">{t('hr.table.department')}</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">{t('hr.table.position')}</th>
@@ -329,10 +333,10 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
                 </thead>
                 <tbody>
                   {isLoading ? (
-                    <TableSkeleton rows={EMPLOYEES_PAGE_SIZE} columns={7} />
+                    <TableSkeleton rows={EMPLOYEES_PAGE_SIZE} columns={8} />
                   ) : filteredAndSortedEmployees.length === 0 ? (
                     <tr>
-                      <td colSpan={7}>
+                      <td colSpan={8}>
                         <EmptyState icon="inbox" title={t('hr.employees.title')} description={t('hr.noEmployeesFound')} />
                       </td>
                     </tr>
@@ -348,6 +352,7 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
                           {employee.firstName} {employee.lastName}
                         </div>
                       </td>
+                      <td className="px-6 py-4 text-sm text-slate-600 font-mono">{employee.id}</td>
                       <td className="px-6 py-4 text-sm text-slate-600">{employee.email}</td>
                       <td className="px-6 py-4 text-sm text-slate-600">{employee.department}</td>
                       <td className="px-6 py-4 text-sm text-slate-600">{employee.positions}</td>

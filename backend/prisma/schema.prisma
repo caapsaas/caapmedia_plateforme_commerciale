@@ -31,6 +31,8 @@ model Subsidiary {
   accounts                      Account[]
   attendanceRecords             AttendanceRecord[]
   dailyQrCodes                  DailyQrCode[]
+  subsidiaryQrCodes             SubsidiaryQrCode[]
+  dynamicTokens                 DynamicToken[]
   companyDocuments              CompanyDocument[]
   contacts                      Contact[]
   contracts                     Contract[]
@@ -2272,4 +2274,34 @@ model DailyQrCode {
   @@index([employeeId, isActive])
   @@index([expiresAt])
   @@map("daily_qr_codes")
+}
+
+model SubsidiaryQrCode {
+  id           String   @id @default(uuid())
+  subsidiaryId String   @unique @map("subsidiary_id")
+  token        String   @unique
+  createdAt    DateTime @default(now()) @map("created_at")
+  isActive     Boolean  @default(true) @map("is_active")
+
+  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@index([subsidiaryId, isActive])
+  @@map("subsidiary_qr_codes")
+}
+
+// Token dynamique court (30s) pour le nouveau flux de pointage QR
+model DynamicToken {
+  id           String   @id @default(uuid())
+  subsidiaryId String   @map("subsidiary_id")
+  token        String   @unique
+  createdAt    DateTime @default(now()) @map("created_at")
+  expiresAt    DateTime @map("expires_at")
+  isUsed       Boolean  @default(false) @map("is_used")
+  usedAt       DateTime? @map("used_at")
+
+  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@index([subsidiaryId, isUsed])
+  @@index([expiresAt])
+  @@map("dynamic_tokens")
 }

@@ -321,7 +321,7 @@
     "tabs": {
       "employees": "Employees",
       "attendance": "Attendance",
-      "attendance_cards": "Attendance Cards",
+      "attendance_cards": "Attendance QR code",
       "attendance_history": "Attendance History",
       "payroll": "Payroll",
       "absences": "Absences"
@@ -570,6 +570,8 @@
     },
     "payroll": {
       "signingTitle": "Signing",
+      "status_PAID": "Paid",
+      "status_PENDING": "Pending",
       "status": {
         "pending": "Pending"
       },

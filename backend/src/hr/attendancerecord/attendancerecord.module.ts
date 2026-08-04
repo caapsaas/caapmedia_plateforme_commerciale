@@ -1,23 +1,13 @@
 import { Module } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
 import { AttendanceRecordService } from './attendancerecord.service';
 import { AttendanceRecordController } from './attendancerecord.controller';
-import { AttendanceCheckInController } from './controllers/attendance-checkin.controller';
-import { AttendanceQrDailyService } from './services/attendance-qr-daily.service';
-import { AttendanceGeolocationService } from './services/attendance-geolocation.service';
+import { DynamicTokenService } from './services/dynamic-token.service';
+import { PointageController } from './controllers/pointage.controller';
+import { DynamicTokenController } from './controllers/dynamic-token.controller';
 
 @Module({
-  imports: [ScheduleModule.forRoot()],
-  controllers: [AttendanceRecordController, AttendanceCheckInController],
-  providers: [
-    AttendanceRecordService,
-    AttendanceQrDailyService,
-    AttendanceGeolocationService,
-  ],
-  exports: [
-    AttendanceRecordService,
-    AttendanceQrDailyService,
-    AttendanceGeolocationService,
-  ],
+  controllers: [AttendanceRecordController, PointageController, DynamicTokenController],
+  providers: [AttendanceRecordService, DynamicTokenService],
+  exports: [AttendanceRecordService, DynamicTokenService],
 })
 export class AttendancerecordModule {}

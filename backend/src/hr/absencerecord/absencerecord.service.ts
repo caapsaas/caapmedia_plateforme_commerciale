@@ -51,9 +51,9 @@ export class AbsenceRecordService {
     });
   }
 
-  async findAll(subsidiaryId: string) {
+  async findAll(subsidiaryId?: string) {
     return this.prisma.absenceRecord.findMany({
-      where: { subsidiaryId },
+      where: subsidiaryId ? { subsidiaryId } : undefined,
       include: { employee: true },
       orderBy: { startDate: 'desc' },
     });
@@ -110,8 +110,8 @@ export class AbsenceRecordService {
    *  - exclut ceux qui ont déjà une absence couvrant aujourd'hui
    *  - crée une absence de type "ABSENCE_NON_JUSTIFIEE" (ou votre enum)
    */
- @Cron('0 18 * * *') // 18h00 tous les jours
-  async generateDailyAbsences() {
+  @Cron('0 18 * * *') // 18h00 tous les jours
+  async generateDailyAbsences(subsidiaryId?: string) {
     this.logger.log('🔄 Génération automatique des absences du jour...');
 
     try {
@@ -121,7 +121,9 @@ export class AbsenceRecordService {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      const subsidiaries = await this.prisma.subsidiary.findMany();
+      const subsidiaries = subsidiaryId
+        ? await this.prisma.subsidiary.findMany({ where: { id: subsidiaryId } })
+        : await this.prisma.subsidiary.findMany();
       let totalCreated = 0;
 
       for (const subsidiary of subsidiaries) {

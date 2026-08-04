@@ -20,12 +20,15 @@ import {
 } from './dto/payrollrecord.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { RoleGuard } from '../../common/auth/role/role.guard';
-import { SubsidiaryGuard } from '../../common/auth/subsidiary/subsidiary.guard';
 import { Roles } from '../../common/auth/role/role.decorator';
-import { UserRole } from '@prisma/client';
+import {
+  resolveScopeContext,
+  resolveEffectiveSubsidiaryId,
+  assertSubsidiaryAccess,
+} from '../../common/utils/subsidiary-scope';
 
 @Controller('hr/payroll-records')
-@UseGuards(JwtAuthGuard, RoleGuard, SubsidiaryGuard)
+@UseGuards(JwtAuthGuard, RoleGuard)
 export class PayrollRecordController {
   constructor(private readonly payrollRecordService: PayrollRecordService) {}
 
@@ -40,16 +43,8 @@ export class PayrollRecordController {
   @Post()
   @Roles('HR_MANAGER', 'ADMIN')
   create(@Body() dto: CreatePayrollRecordDto, @Request() req: any) {
-    const subsidiaryId = req.user.subsidiaryId;
-
-    const isSuperAdmin =
-      req.user.userRole === UserRole.SUPER_ADMIN ||
-      req.user.additionalRoles?.includes(UserRole.SUPER_ADMIN) ||
-      req.user.roles?.includes(UserRole.SUPER_ADMIN);
-
-    if (subsidiaryId !== req.user.subsidiaryId && !isSuperAdmin) {
-      throw new ForbiddenException("Vous n'avez pas accès à cette filiale");
-    }
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx);
 
     return this.payrollRecordService.create(
       dto,
@@ -70,18 +65,10 @@ export class PayrollRecordController {
   @Roles('HR_MANAGER', 'ADMIN')
   findAll(
     @Request() req: any,
-    @Query('subsidiaryId') subsidiaryId?: string,
+    @Query('subsidiaryId') subsidiaryIdFilter?: string,
   ) {
-    const targetSubsidiaryId = subsidiaryId || req.user.subsidiaryId;
-
-    const isSuperAdmin =
-      req.user.userRole === UserRole.SUPER_ADMIN ||
-      req.user.additionalRoles?.includes(UserRole.SUPER_ADMIN) ||
-      req.user.roles?.includes(UserRole.SUPER_ADMIN);
-
-    if (targetSubsidiaryId !== req.user.subsidiaryId && !isSuperAdmin) {
-      throw new ForbiddenException("Vous n'avez pas accès à cette filiale");
-    }
+    const ctx = resolveScopeContext(req.user);
+    const targetSubsidiaryId = resolveEffectiveSubsidiaryId(ctx, subsidiaryIdFilter);
 
     return this.payrollRecordService.findAll(targetSubsidiaryId);
   }
@@ -94,12 +81,8 @@ export class PayrollRecordController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles('SUPER_ADMIN')
   findAllGlobal(@Request() req: any) {
-    const isSuperAdmin =
-      req.user.userRole === UserRole.SUPER_ADMIN ||
-      req.user.additionalRoles?.includes(UserRole.SUPER_ADMIN) ||
-      req.user.roles?.includes(UserRole.SUPER_ADMIN);
-
-    if (!isSuperAdmin) {
+    const ctx = resolveScopeContext(req.user);
+    if (!ctx.hasGlobalScope) {
       throw new ForbiddenException("Accès réservé au SUPER_ADMIN");
     }
 
@@ -115,18 +98,10 @@ export class PayrollRecordController {
   findByPeriod(
     @Query('period') period: string,
     @Request() req: any,
-    @Query('subsidiaryId') subsidiaryId?: string,
+    @Query('subsidiaryId') subsidiaryIdFilter?: string,
   ) {
-    const targetSubsidiaryId = subsidiaryId || req.user.subsidiaryId;
-
-    const isSuperAdmin =
-      req.user.userRole === UserRole.SUPER_ADMIN ||
-      req.user.additionalRoles?.includes(UserRole.SUPER_ADMIN) ||
-      req.user.roles?.includes(UserRole.SUPER_ADMIN);
-
-    if (targetSubsidiaryId !== req.user.subsidiaryId && !isSuperAdmin) {
-      throw new ForbiddenException("Vous n'avez pas accès à cette filiale");
-    }
+    const ctx = resolveScopeContext(req.user);
+    const targetSubsidiaryId = resolveEffectiveSubsidiaryId(ctx, subsidiaryIdFilter);
 
     return this.payrollRecordService.findByPeriod(
       targetSubsidiaryId,
@@ -178,16 +153,8 @@ export class PayrollRecordController {
     },
     @Request() req: any,
   ) {
-    const targetSubsidiaryId = body.subsidiaryId || req.user.subsidiaryId;
-
-    const isSuperAdmin =
-      req.user.userRole === UserRole.SUPER_ADMIN ||
-      req.user.additionalRoles?.includes(UserRole.SUPER_ADMIN) ||
-      req.user.roles?.includes(UserRole.SUPER_ADMIN);
-
-    if (targetSubsidiaryId !== req.user.subsidiaryId && !isSuperAdmin) {
-      throw new ForbiddenException("Vous n'avez pas accès à cette filiale");
-    }
+    const ctx = resolveScopeContext(req.user);
+    const targetSubsidiaryId = resolveEffectiveSubsidiaryId(ctx, body.subsidiaryId);
 
     return this.payrollRecordService.processPayroll(
       targetSubsidiaryId,
@@ -235,10 +202,14 @@ export class PayrollRecordController {
    */
   @Patch(':id')
   @Roles('HR_MANAGER', 'ADMIN')
-  update(
-    @Param('id') id: string, // ✅ corrigé (avant: @Param() id)
+  async update(
+    @Param('id') id: string,
     @Body() dto: UpdatePayrollRecordDto,
+    @Request() req: any,
   ) {
+    const record = await this.payrollRecordService.findOne(id);
+    const ctx = resolveScopeContext(req.user);
+    assertSubsidiaryAccess(record.subsidiaryId, ctx);
     return this.payrollRecordService.update(id, dto);
   }
 
@@ -250,26 +221,13 @@ export class PayrollRecordController {
   @Roles('HR_MANAGER', 'ADMIN')
   @HttpCode(HttpStatus.OK)
   async signPayrollRecord(
-    @Param('id') id: string, // ✅ corrigé (avant: @Param() id)
+    @Param('id') id: string,
     @Body() body: { signature: string },
     @Request() req: any,
   ) {
-    const user = req.user;
-    const isHrOrAdmin =
-      user.roles?.includes('HR_MANAGER') ||
-      user.roles?.includes('ADMIN') ||
-      user.userRole === 'HR_MANAGER' ||
-      user.userRole === 'ADMIN';
-
-    if (!isHrOrAdmin) {
-      const record = await this.payrollRecordService.findOne(id);
-      if (record.employeeId !== user.id) {
-        throw new ForbiddenException(
-          'Vous ne pouvez signer que votre propre fiche de paie',
-        );
-      }
-    }
-
+    const record = await this.payrollRecordService.findOne(id);
+    const ctx = resolveScopeContext(req.user);
+    assertSubsidiaryAccess(record.subsidiaryId, ctx);
     return this.payrollRecordService.signPayrollRecord(id, body.signature);
   }
 
@@ -283,8 +241,10 @@ export class PayrollRecordController {
    */
   @Delete(':id')
   @Roles('HR_MANAGER', 'ADMIN')
-  remove(@Param('id') id: string) {
-    // Pas de ParseUUIDPipe
+  async remove(@Param('id') id: string, @Request() req: any) {
+    const record = await this.payrollRecordService.findOne(id);
+    const ctx = resolveScopeContext(req.user);
+    assertSubsidiaryAccess(record.subsidiaryId, ctx);
     return this.payrollRecordService.remove(id);
   }
 }

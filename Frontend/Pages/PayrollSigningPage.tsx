@@ -21,6 +21,9 @@ const PayrollSigningPage: React.FC = () => {
   const [payrolls, setPayrolls] = useState<PayrollRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPeriod, setSelectedPeriod] = useState(
+    new Date().toISOString().slice(0, 7), // YYYY-MM
+  );
   const [signingRecord, setSigningRecord] = useState<PayrollRecord | null>(null);
   const [showPayslip, setShowPayslip] = useState(false);
   const [payslipRecord, setPayslipRecord] = useState<PayrollRecord | null>(null);
@@ -44,17 +47,18 @@ const PayrollSigningPage: React.FC = () => {
     }
   };
 
-  // Filtrer par recherche
+  // Filtrer par recherche et période
   const filteredPayrolls = useMemo(() => {
     return payrolls.filter((record) => {
       const searchLower = searchTerm.toLowerCase();
       const period = record.payrollPeriod || record.period || '';
-      return (
+      const matchesSearch =
         record.employeeName?.toLowerCase().includes(searchLower) ||
-        period.toLowerCase().includes(searchLower)
-      );
+        period.toLowerCase().includes(searchLower);
+      const matchesPeriod = selectedPeriod ? period === selectedPeriod : true;
+      return matchesSearch && matchesPeriod;
     });
-  }, [payrolls, searchTerm]);
+  }, [payrolls, searchTerm, selectedPeriod]);
 
   const handleSign = (record: PayrollRecord) => {
     setSigningRecord(record);
@@ -117,9 +121,9 @@ const PayrollSigningPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Barre de recherche */}
-      <div className="mb-6">
-        <div className="relative">
+      {/* Barre de recherche et filtre de période */}
+      <div className="mb-6 flex gap-4">
+        <div className="relative flex-1">
           <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
           <input
             type="text"
@@ -129,6 +133,12 @@ const PayrollSigningPage: React.FC = () => {
             className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
+        <input
+          type="month"
+          value={selectedPeriod}
+          onChange={(e) => setSelectedPeriod(e.target.value)}
+          className="px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
       </div>
 
       {/* Liste des fiches de paie */}

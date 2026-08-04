@@ -17,30 +17,6 @@ export type AttendanceRecordCreationData = Omit<
  */
 export type AttendanceRecordUpdateData = Partial<AttendanceRecordCreationData>;
 
-/**
- * Payload pour le check-in / check-out via scan QR
- */
-export interface CheckInPayload {
-  qrToken: string;
-  latitude?: number;
-  longitude?: number;
-  accuracy?: number;
-  signature?: string;
-}
-
-/**
- * Réponse du endpoint check-in / check-out
- */
-export interface CheckInResponse {
-  success: boolean;
-  type: 'check-in' | 'check-out';
-  message: string;
-  employeeName?: string;
-  status: string;
-  duration?: string;
-  record: AttendanceRecord;
-}
-
 // ============================================================
 // CRUD manuel (HR / Admin)
 // ============================================================
@@ -92,92 +68,36 @@ export const deleteAttendanceRecord = async (
 };
 
 // ============================================================
-// Flux QR Code (check-in / check-out)
+// Nouveau flux QR Code dynamique (tokens courts)
 // ============================================================
 
 /**
- * Effectue un check-in ou check-out via scan du QR code.
- * - Pas de JWT requis (le token QR contient les infos)
- * - Si pas de présence aujourd'hui → crée l'arrivée
- * - Si arrivée existe sans départ → enregistre le départ
+ * Récupère le token dynamique actif pour la filiale.
  */
-export const checkInWithQr = async (
-  payload: CheckInPayload,
-): Promise<CheckInResponse> => {
-  const { data } = await api.post<CheckInResponse>(
-    '/hr/attendance-checkin/check-in',
-    payload,
-  );
+export const getCurrentDynamicToken = async () => {
+  const { data } = await api.get('/hr/dynamic-token/current');
   return data;
 };
 
 /**
- * Check-out manuel (utilisateur connecté).
+ * Génère un nouveau token dynamique.
  */
-export const checkOut = async (payload?: {
+export const generateDynamicToken = async () => {
+  const { data } = await api.get('/hr/dynamic-token/generate');
+  return data;
+};
+
+/**
+ * Effectue un pointage via le nouveau système (matricule + PIN + géoloc).
+ */
+export const pointage = async (payload: {
+  token: string;
+  matricule: string;
+  pinCode: string;
   latitude?: number;
   longitude?: number;
   accuracy?: number;
-}): Promise<CheckInResponse> => {
-  const { data } = await api.post<CheckInResponse>(
-    '/hr/attendance-checkin/check-out',
-    payload ?? {},
-  );
-  return data;
-};
-
-/**
- * Récupère le QR code du jour de l'employé connecté.
- */
-export const getDailyQr = async () => {
-  const { data } = await api.get('/hr/attendance-checkin/daily-qr');
-  return data;
-};
-
-/**
- * Récupère tous les QR codes de la filiale (HR / Admin).
- */
-export const getAllDailyQr = async () => {
-  const { data } = await api.get('/hr/attendance-checkin/daily-qr-all');
-  return data;
-};
-
-/**
- * Historique des présences de l'employé connecté.
- */
-export const getAttendanceHistory = async (
-  year?: number,
-  month?: number,
-): Promise<AttendanceRecord[]> => {
-  const { data } = await api.get<AttendanceRecord[]>(
-    '/hr/attendance-checkin/history',
-    {
-      params: { year, month },
-    },
-  );
-  return data;
-};
-
-/**
- * Historique de toute la filiale (uniquement les scans QR).
- */
-export const getAllAttendanceHistory = async (
-  year?: number,
-  month?: number,
-): Promise<AttendanceRecord[]> => {
-  const { data } = await api.get<AttendanceRecord[]>(
-    '/hr/attendance-checkin/history-all',
-    {
-      params: { year, month },
-    },
-  );
-  return data;
-};
-
-/**
- * Statistiques mensuelles de l'employé connecté.
- */
-export const getAttendanceSummary = async () => {
-  const { data } = await api.get('/hr/attendance-checkin/summary');
+}) => {
+  const { data } = await api.post('/pointage', payload);
   return data;
 };

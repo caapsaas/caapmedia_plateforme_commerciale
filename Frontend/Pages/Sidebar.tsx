@@ -47,7 +47,7 @@ interface NavGroup {
 const NavLink: React.FC<{
   to: string;
   icon: React.ReactNode;
-  label: string;
+  label: React.ReactNode;
   isActive: boolean;
   isCollapsed: boolean;
   onClick?: () => void;
@@ -60,6 +60,18 @@ const NavLink: React.FC<{
       const rect = wrapperRef.current.getBoundingClientRect();
       setTooltipPos({ top: rect.top + rect.height / 2, left: rect.right + 8 });
     }
+  };
+
+  // Extract text from ReactNode for tooltip
+  const getLabelText = (node: React.ReactNode): string => {
+    if (typeof node === 'string') return node;
+    if (typeof node === 'number') return node.toString();
+    if (Array.isArray(node)) return node.map(getLabelText).join('');
+    if (node && typeof node === 'object' && 'props' in node) {
+      const props = (node as any).props;
+      if (props.children) return getLabelText(props.children);
+    }
+    return '';
   };
 
   return (
@@ -86,7 +98,7 @@ const NavLink: React.FC<{
           style={{ top: tooltipPos.top, left: tooltipPos.left, transform: 'translateY(-50%)' }}
           className="fixed z-[9999] px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-lg shadow-xl whitespace-nowrap border border-white/10 pointer-events-none"
         >
-          {label}
+          {getLabelText(label)}
           <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
         </div>,
         document.body
@@ -206,6 +218,7 @@ const Sidebar: React.FC = () => {
               { to: '/dashboard/hr', label: t('sidebar.hrManagement'), icon: <IconBriefcase className="h-5 w-5" /> },
               { to: '/dashboard/secretariat', label: t('sidebar.secretariat'), icon: <IconClipboardList className="h-5 w-5" /> },
               { to: '/dashboard/configuration', label: t('sidebar.configuration'), icon: <IconSettings className="h-5 w-5" /> },
+             
             ],
           },
         ];
@@ -227,6 +240,7 @@ const Sidebar: React.FC = () => {
               { to: '/dashboard/sales', label: t('sidebar.orders'), icon: <IconSales className="h-5 w-5" /> },
             ],
           },
+          
         ];
 
       case UserRole.CAISSIER:
@@ -239,6 +253,7 @@ const Sidebar: React.FC = () => {
               { to: '/dashboard/sales', label: t('sidebar.transactions'), icon: <IconSales className="h-5 w-5" /> },
             ],
           },
+         
         ];
 
       case UserRole.PURCHASING_MANAGER:
@@ -251,6 +266,7 @@ const Sidebar: React.FC = () => {
               { to: '/dashboard/stock', label: t('sidebar.stockManagement'), icon: <IconStock className="h-5 w-5" /> },
             ],
           },
+          
         ];
 
       case UserRole.FINANCIAL_DIRECTOR:
@@ -279,6 +295,7 @@ const Sidebar: React.FC = () => {
               { to: '/dashboard/accountings', label: 'Comptabilité', icon: <IconAccounting className="h-5 w-5" /> },
             ],
           },
+         
         ];
 
       case UserRole.SECRETARY:
@@ -291,6 +308,7 @@ const Sidebar: React.FC = () => {
               { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-5 w-5" /> },
             ],
           },
+         
         ];
 
       case UserRole.HR_MANAGER:
@@ -300,6 +318,7 @@ const Sidebar: React.FC = () => {
             groupIcon: <IconBriefcase className="h-5 w-5" />,
             items: [
               { to: '/dashboard/hr', label: t('sidebar.hrManagement'), icon: <IconBriefcase className="h-5 w-5" /> },
+              
             ],
           },
         ];
@@ -322,6 +341,7 @@ const Sidebar: React.FC = () => {
               { to: '/dashboard/equipements', label: t('sidebar.equipements'), icon: <IconBuildingStorefront className="h-5 w-5" /> },
             ],
           },
+         
         ];
 
       default:

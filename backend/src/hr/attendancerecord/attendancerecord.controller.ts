@@ -10,6 +10,7 @@ import {
   Delete,
   ParseUUIDPipe,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { AttendanceRecordService } from './attendancerecord.service';
 import {
@@ -19,6 +20,11 @@ import {
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles } from '../../common/auth/role/role.decorator';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
+import {
+  resolveScopeContext,
+  resolveEffectiveSubsidiaryId,
+  assertSubsidiaryAccess,
+} from '../../common/utils/subsidiary-scope';
 
 @Controller('hr/attendance-records')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -42,7 +48,8 @@ export class AttendanceRecordController {
       throw new BadRequestException('employeeId is required');
     }
 
-    const subsidiaryId = req.user.subsidiaryId;
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx);
 
     return this.attendanceRecordService.create(
       createAttendanceRecordDto,
@@ -54,26 +61,33 @@ export class AttendanceRecordController {
   // ------------------------------------------------------------------
   // Liste de toutes les présences de la filiale
   // ------------------------------------------------------------------
-@Get()
-@Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
-async findAll(@Request() req) {
-  const subsidiaryId = req.user.subsidiaryId;
-  console.log('findAll subsidiaryId =', subsidiaryId);
-  console.log('user =', req.user);
+  @Get()
+  @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
+  async findAll(
+    @Request() req,
+    @Query('subsidiaryId') subsidiaryIdFilter?: string,
+  ) {
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx, subsidiaryIdFilter);
+    console.log('findAll subsidiaryId =', subsidiaryId);
+    console.log('user =', req.user);
 
-  const result = await this.attendanceRecordService.findAll(subsidiaryId);
-  console.log('findAll count =', result.length);
+    const result = await this.attendanceRecordService.findAll(subsidiaryId);
+    console.log('findAll count =', result.length);
 
-  return result;
-}
+    return result;
+  }
 
   // ------------------------------------------------------------------
   // Détail d'une présence
   // ------------------------------------------------------------------
   @Get(':id')
   @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
-  findOne(@Param('id') id: string) {
-    return this.attendanceRecordService.findOne(id);
+  async findOne(@Param('id') id: string, @Request() req) {
+    const ctx = resolveScopeContext(req.user);
+    const record = await this.attendanceRecordService.findOne(id);
+    assertSubsidiaryAccess(record.subsidiaryId, ctx);
+    return record;
   }
 
   // ------------------------------------------------------------------
@@ -81,10 +95,14 @@ async findAll(@Request() req) {
   // ------------------------------------------------------------------
   @Patch(':id')
   @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
-  update(
+  async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateAttendanceRecordDto: UpdateAttendanceRecordDto,
+    @Request() req,
   ) {
+    const ctx = resolveScopeContext(req.user);
+    const record = await this.attendanceRecordService.findOne(id);
+    assertSubsidiaryAccess(record.subsidiaryId, ctx);
     return this.attendanceRecordService.update(id, updateAttendanceRecordDto);
   }
 
@@ -93,7 +111,10 @@ async findAll(@Request() req) {
   // ------------------------------------------------------------------
   @Delete(':id')
   @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
-  remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string, @Request() req) {
+    const ctx = resolveScopeContext(req.user);
+    const record = await this.attendanceRecordService.findOne(id);
+    assertSubsidiaryAccess(record.subsidiaryId, ctx);
     return this.attendanceRecordService.remove(id);
   }
 }

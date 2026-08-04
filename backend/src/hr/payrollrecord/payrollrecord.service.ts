@@ -158,9 +158,9 @@ export class PayrollRecordService {
   /**
    * Récupère toutes les fiches de paie d'une filiale
    */
-  async findAll(subsidiaryId: string): Promise<PayrollRecordWithDetails[]> {
+  async findAll(subsidiaryId?: string): Promise<PayrollRecordWithDetails[]> {
     return this.prisma.payrollRecord.findMany({
-      where: { subsidiaryId },
+      where: subsidiaryId ? { subsidiaryId } : undefined,
       include: {
         employee: {
           select: {

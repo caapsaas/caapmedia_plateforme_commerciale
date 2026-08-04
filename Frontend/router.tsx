@@ -4,7 +4,7 @@ import App from './App'; // Nous allons refactorer App.tsx pour qu'il devienne n
 import { useAppContext } from './context/AppContext';
 import { useAuth } from './context/AuthContext'; // Importez le hook d'authentification
 import LoginPage from './Pages/LoginPage';
-import CheckInPage from './Pages/CheckInPage';
+import PointagePage from './Pages/PointagePage';
 import ECommercePage from './components/ecommerce/ECommercePage';
 import RealisationsPage from './components/ecommerce/RealisationsPage';
 import CustomerAccountPage from './components/customer/CustomerAccountPage';
@@ -29,7 +29,6 @@ import Equipements from './Pages/Equipements';
 import SecuritySettings from './Pages/SecuritySettings';
 import PayrollSigningPage from './Pages/PayrollSigningPage';
 import { getDefaultViewForRole, ANALYTICS_ALLOWED_ROLES } from './utils/roleViews';
-
 
 // Le token "user" vit dans un cookie httpOnly (illisible en JS) - au chargement
 // de l'app, AuthContext doit d'abord interroger le serveur pour savoir si une
@@ -92,10 +91,13 @@ const loginRoute = createRoute({
   }),
 });
 
-const checkInRoute = createRoute({
+const pointageRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/check-in',
-  component: CheckInPage,
+  path: '/pointage',
+  component: PointagePage,
+  validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
+    redirect: typeof search.redirect === 'string' ? search.redirect : undefined,
+  }),
 });
 
 // 3. Routes protégées pour le compte client
@@ -235,7 +237,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   realisationsRoute,
   loginRoute,
-  checkInRoute,
+  pointageRoute,
   customerAccountRoute,
   dashboardRoute.addChildren([
     dashboardIndexRoute,
@@ -254,6 +256,7 @@ const routeTree = rootRoute.addChildren([
       hrHistoryRoute,
       hrSigningRoute,
     ]),
+    
     secretariatRoute,
     productionRoute,
     maintenanceRoute,

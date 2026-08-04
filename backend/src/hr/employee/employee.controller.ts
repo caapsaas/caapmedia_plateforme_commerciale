@@ -28,6 +28,11 @@ import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles } from '../../common/auth/role/role.decorator';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { LoggerService } from '../../common/utils/logger/logger.service';
+import {
+  resolveScopeContext,
+  resolveEffectiveSubsidiaryId,
+  assertSubsidiaryAccess,
+} from '../../common/utils/subsidiary-scope';
 
 @ApiTags('Employees')
 @ApiBearerAuth()
@@ -44,7 +49,8 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Create a new employee' })
   @ApiResponse({ status: 201, description: 'Employee successfully created.' })
   async create(@Body() createEmployeeDto: CreateEmployeeDto, @Request() req) {
-    const subsidiaryId = req.user.subsidiaryId;
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx);
     this.logger.log(`Creating employee in subsidiary ${subsidiaryId}`);
 
     // Log pour déboguer
@@ -71,17 +77,17 @@ export class EmployeeController {
     @Request() req,
     @Query() paginationQuery: PaginationQueryDto,
     @Query('includeRelations') includeRelations?: string,
+    @Query('subsidiaryId') subsidiaryIdFilter?: string,
   ) {
-    const subsidiaryId = req.user.subsidiaryId;
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx, subsidiaryIdFilter);
     this.logger.log(
       `Fetching employees for subsidiary ${subsidiaryId} (role: ${req.user.roles})`,
     );
     const includeRel = includeRelations === 'true';
 
-    // SUPER_ADMIN : vue consolidée toutes filiales (subsidiaryId = null → pas de filtre)
-    const isSuperAdmin = req.user.roles?.includes('SUPER_ADMIN');
     return this.employeeService.findAll(
-      isSuperAdmin ? null : subsidiaryId,
+      subsidiaryId,
       includeRel,
       paginationQuery,
     );
@@ -92,11 +98,15 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Get a single employee by ID' })
   async findOne(
     @Param('id') id: string,
+    @Request() req,
     @Query('includeRelations') includeRelations?: string,
   ) {
     this.logger.log(`Fetching employee ${id}`);
     const includeRel = includeRelations === 'true';
-    return this.employeeService.findOne(id, includeRel);
+    const employee = await this.employeeService.findOne(id, includeRel);
+    const ctx = resolveScopeContext(req.user);
+    assertSubsidiaryAccess(employee.subsidiaryId, ctx);
+    return employee;
   }
 
   @Patch(':id')
@@ -105,16 +115,23 @@ export class EmployeeController {
   async update(
     @Param('id') id: string,
     @Body() updateEmployeeDto: UpdateEmployeeDto,
+    @Request() req,
   ) {
     this.logger.log(`Updating employee ${id}`);
+    const employee = await this.employeeService.findOne(id, false);
+    const ctx = resolveScopeContext(req.user);
+    assertSubsidiaryAccess(employee.subsidiaryId, ctx);
     return this.employeeService.update(id, updateEmployeeDto);
   }
 
   @Delete(':id')
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Delete employee by ID' })
-  async remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string, @Request() req) {
     this.logger.warn(`Deleting employee ${id}`);
+    const employee = await this.employeeService.findOne(id, false);
+    const ctx = resolveScopeContext(req.user);
+    assertSubsidiaryAccess(employee.subsidiaryId, ctx);
     return this.employeeService.remove(id);
   }
 

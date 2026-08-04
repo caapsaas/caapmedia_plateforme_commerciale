@@ -10,6 +10,7 @@ import {
   Request,
   ParseUUIDPipe,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { AbsenceRecordService } from './absencerecord.service';
 import {
@@ -19,6 +20,12 @@ import {
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles } from '../../common/auth/role/role.decorator';
+import {
+  resolveScopeContext,
+  withSubsidiaryScope,
+  resolveEffectiveSubsidiaryId,
+  assertSubsidiaryAccess,
+} from '../../common/utils/subsidiary-scope';
 
 @Controller('hr/absence-records')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -38,7 +45,8 @@ export class AbsencerecordController {
       throw new BadRequestException('employeeId is required');
     }
 
-    const subsidiaryId = req.user.subsidiaryId;
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx);
 
     return this.absenceRecordService.create(
       createAbsenceRecordDto,
@@ -53,12 +61,10 @@ export class AbsencerecordController {
   // ------------------------------------------------------------------
   @Post('generate-daily')
   @Roles('ADMIN', 'SUPER_ADMIN')
-  async generateDailyAbsences() {
-    await this.absenceRecordService.generateDailyAbsences();
-    return {
-      success: true,
-      message: 'Génération des absences du jour lancée avec succès',
-    };
+  async generateDailyAbsences(@Request() req) {
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx);
+    return this.absenceRecordService.generateDailyAbsences(subsidiaryId);
   }
 
   // ------------------------------------------------------------------
@@ -66,8 +72,12 @@ export class AbsencerecordController {
   // ------------------------------------------------------------------
   @Get()
   @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
-  findAll(@Request() req) {
-    const subsidiaryId = req.user.subsidiaryId;
+  findAll(
+    @Request() req,
+    @Query('subsidiaryId') subsidiaryIdFilter?: string,
+  ) {
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx, subsidiaryIdFilter);
     return this.absenceRecordService.findAll(subsidiaryId);
   }
 
@@ -76,8 +86,11 @@ export class AbsencerecordController {
   // ------------------------------------------------------------------
   @Get(':id')
   @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
-  findOne(@Param('id') id: string) {
-    return this.absenceRecordService.findOne(id);
+  async findOne(@Param('id') id: string, @Request() req) {
+    const ctx = resolveScopeContext(req.user);
+    const record = await this.absenceRecordService.findOne(id);
+    assertSubsidiaryAccess(record.subsidiaryId, ctx);
+    return record;
   }
 
   // ------------------------------------------------------------------
@@ -85,10 +98,14 @@ export class AbsencerecordController {
   // ------------------------------------------------------------------
   @Patch(':id')
   @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
-  update(
+  async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateAbsenceRecordDto: UpdateAbsenceRecordDto,
+    @Request() req,
   ) {
+    const ctx = resolveScopeContext(req.user);
+    const record = await this.absenceRecordService.findOne(id);
+    assertSubsidiaryAccess(record.subsidiaryId, ctx);
     return this.absenceRecordService.update(id, updateAbsenceRecordDto);
   }
 
@@ -97,7 +114,10 @@ export class AbsencerecordController {
   // ------------------------------------------------------------------
   @Delete(':id')
   @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
-  remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string, @Request() req) {
+    const ctx = resolveScopeContext(req.user);
+    const record = await this.absenceRecordService.findOne(id);
+    assertSubsidiaryAccess(record.subsidiaryId, ctx);
     return this.absenceRecordService.remove(id);
   }
 }

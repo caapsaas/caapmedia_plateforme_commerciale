@@ -374,7 +374,7 @@ export class EmployeeService {
    * FIND ALL employees
    */
   async findAll(
-    subsidiaryId: string | null,
+    subsidiaryId: string | null | undefined,
     includeRelations = false,
     paginationQuery: PaginationQueryDto = {},
   ): Promise<PaginatedResult<Employee>> {
@@ -392,7 +392,7 @@ export class EmployeeService {
         }
       : {};
 
-    // SUPER_ADMIN (subsidiaryId === null) voit tous les employés toutes filiales
+    // SUPER_ADMIN (subsidiaryId === null or undefined) voit tous les employés toutes filiales
     const where: Prisma.EmployeeWhereInput = subsidiaryId
       ? { subsidiaryId }
       : {};

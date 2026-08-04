@@ -1545,7 +1545,7 @@ const frTranslations = {
     "tabs": {
       "employees": "Employés",
       "attendance": "Présences",
-      "attendance_cards": "Cartes de présence",
+      "attendance_cards": "Code QR de présence",
       "attendance_history": "Historique des présences",
       "payroll": "Paie",
       "absences": "Absences"
@@ -3310,7 +3310,7 @@ const enTranslations: Translations = {
         "tabs": {
             "employees": "Employees",
             "attendance": "Attendance",
-            "attendance_cards": "Attendance Cards",
+            "attendance_cards": "Attendance QR code",
             "attendance_history": "Attendance History",
             "payroll": "Payroll",
             "absences": "Absences"
