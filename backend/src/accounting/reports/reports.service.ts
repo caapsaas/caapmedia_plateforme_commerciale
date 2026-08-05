@@ -52,14 +52,17 @@ export class ReportsService {
     startDate?: string,
     endDate?: string,
   ): { startDate: Date; endDate: Date } {
-    const requestedStart = startDate ? new Date(startDate) : fiscalYear.startDate;
+    const requestedStart = startDate
+      ? new Date(startDate)
+      : fiscalYear.startDate;
     const requestedEnd = endDate ? new Date(endDate) : fiscalYear.endDate;
     return {
       startDate:
         requestedStart < fiscalYear.startDate
           ? fiscalYear.startDate
           : requestedStart,
-      endDate: requestedEnd > fiscalYear.endDate ? fiscalYear.endDate : requestedEnd,
+      endDate:
+        requestedEnd > fiscalYear.endDate ? fiscalYear.endDate : requestedEnd,
     };
   }
 

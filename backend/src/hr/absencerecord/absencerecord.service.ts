@@ -71,12 +71,6 @@ export class AbsenceRecordService {
           },
         },
         {
-          typeAbsence: {
-            contains: paginationQuery.search,
-            mode: 'insensitive',
-          },
-        },
-        {
           reason: { contains: paginationQuery.search, mode: 'insensitive' },
         },
       ];
@@ -196,11 +190,13 @@ export class AbsenceRecordService {
           where: {
             subsidiaryId: subsidiary.id,
             startDate: { lte: tomorrow }, // startDate <= fin de journée
-            endDate: { gte: today },      // endDate >= début de journée
+            endDate: { gte: today }, // endDate >= début de journée
           },
           select: { employeeId: true },
         });
-        const alreadyAbsentIds = new Set(absencesToday.map((a) => a.employeeId));
+        const alreadyAbsentIds = new Set(
+          absencesToday.map((a) => a.employeeId),
+        );
 
         // 4. Employés sans présence et sans absence
         const missing = employees.filter(

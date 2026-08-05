@@ -44,7 +44,10 @@ export class OpportunitiesController {
     UserRole.SECRETARY,
     UserRole.FINANCIAL_DIRECTOR,
   )
-  findAll(@CurrentUser() user: User, @Query() paginationQuery: PaginationQueryDto) {
+  findAll(
+    @CurrentUser() user: User,
+    @Query() paginationQuery: PaginationQueryDto,
+  ) {
     return this.opportunitiesService.findAll(user, paginationQuery);
   }
 

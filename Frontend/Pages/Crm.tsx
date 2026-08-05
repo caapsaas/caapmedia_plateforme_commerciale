@@ -22,14 +22,15 @@ import ActivitiesView from '../components/crm/ActivitiesView';
 import LeadsManagement from '../components/crm/LeadsManagement';
 import AccountManagement from '../components/crm/AccountManagement';
 import ContractManagement from '../components/crm/ContractManagement';
-import ProformasManagement from '../components/crm/ProformasManagement';
 import CrmDashboardSkeleton from '../components/ui/CrmDashboardSkeleton';
 import PipelineSkeleton from '../components/ui/PipelineSkeleton';
 import CrmListSkeleton from '../components/ui/CrmListSkeleton';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
-type CrmView = 'dashboard' | 'leads' | 'accounts' | 'contacts' | 'pipeline' | 'activities' | 'contracts' | 'proformas';
+// Les Proformas ne sont plus un onglet CRM — page autonome dans le sidebar
+// (Pages/ProformaPage.tsx), même découpage que gmo.
+type CrmView = 'dashboard' | 'leads' | 'accounts' | 'contacts' | 'pipeline' | 'activities' | 'contracts';
 
 const Crm: React.FC = () => {
     const { t } = useI18n();
@@ -195,8 +196,6 @@ const Crm: React.FC = () => {
                 case 'contacts':
                     return <CrmListSkeleton columns={7} />;
                 case 'contracts':
-                    return <CrmListSkeleton columns={7} />;
-                case 'proformas':
                     return <CrmListSkeleton columns={7} />;
                 case 'activities':
                     return <CrmListSkeleton columns={5} />;

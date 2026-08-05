@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { TreasuryAccount, Subsidiary, AccountType } from '../../types/models';
 import { useI18n } from '../../i18n';
-import { CreateTreasuryAccountData, UpdateTreasuryAccountData } from '../../services/apiFinance/apiTreasuryAccounts';
+import { getEligibleCashiers, CashierOption } from '../../services/apiFinance/apiTreasury';
+import { getAccounts } from '../../services/apiAccounting/apiAccounts';
 
 interface TreasuryAccountFormModalProps {
   account: TreasuryAccount | null;
@@ -10,6 +12,9 @@ interface TreasuryAccountFormModalProps {
   onSave: (account: TreasuryAccount) => void;
 }
 
+// Comptes assignables à un caissier responsable (un seul compte de ce type par caissier).
+const CASHIER_OWNED_TYPES = [AccountType.CAISSE, AccountType.CASH_REGISTER, AccountType.EXPENSE_BOX];
+
 const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
   account,
   subsidiary,
@@ -17,12 +22,15 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
   onSave,
 }) => {
   const { t } = useI18n();
-  
+
   const [formData, setFormData] = useState({
     accountName: '',
     balance: '',
     currency: 'XOF',
     accountType: AccountType.BANQUE,
+    cashierId: '',
+    accountCode: '',
+    accountNumber: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -35,6 +43,9 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
         balance: account.balance.toString(),
         currency: account.currency,
         accountType: account.accountType,
+        cashierId: account.cashierId || '',
+        accountCode: account.accountCode || '',
+        accountNumber: account.accountNumber || '',
       });
     } else {
       setFormData({
@@ -42,9 +53,28 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
         balance: '0',
         currency: 'XOF',
         accountType: AccountType.BANQUE,
+        cashierId: '',
+        accountCode: '',
+        accountNumber: '',
       });
     }
   }, [account]);
+
+  // Caissiers éligibles (Configuration Trésorerie — assignation compte↔caissier).
+  const { data: cashiers = [] } = useQuery<CashierOption[]>({
+    queryKey: ['eligibleCashiers', subsidiary.id],
+    queryFn: getEligibleCashiers,
+  });
+
+  // Mapping comptable : comptes de trésorerie du plan comptable (classe 5 SYSCOHADA).
+  const { data: chartAccounts = [] } = useQuery({
+    queryKey: ['chartOfAccounts-treasury'],
+    queryFn: () => getAccounts(),
+  });
+  const treasuryChartAccounts = chartAccounts.filter((a) => a.class === 5);
+
+  const isCashierOwned = CASHIER_OWNED_TYPES.includes(formData.accountType);
+  const isBank = formData.accountType === AccountType.BANQUE;
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -63,7 +93,7 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -78,6 +108,9 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
         currency: formData.currency,
         accountType: formData.accountType,
         subsidiaryId: subsidiary.id,
+        cashierId: isCashierOwned ? formData.cashierId || undefined : undefined,
+        accountCode: formData.accountCode || undefined,
+        accountNumber: isBank ? formData.accountNumber || undefined : undefined,
       };
 
       onSave(accountData);
@@ -94,7 +127,7 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
       ...prev,
       [name]: value,
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -106,14 +139,14 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-      <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden">
+      <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="bg-gradient-to-r from-[#c6e911] to-[#a8d814] px-6 py-4 border-b border-gray-200">
           <h3 className="text-xl font-bold text-white">
             {account ? t('treasuryAccounts.edit.title') : t('treasuryAccounts.create.title')}
           </h3>
         </div>
-        
+
         {/* Body */}
         <div className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -154,7 +187,8 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
                   name="balance"
                   value={formData.balance}
                   onChange={handleChange}
-                  className={`w-full pl-16 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#c6e911] focus:border-[#c6e911] transition-colors ${
+                  disabled={!!account}
+                  className={`w-full pl-16 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#c6e911] focus:border-[#c6e911] transition-colors disabled:bg-slate-100 disabled:text-slate-500 ${
                     errors.balance ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="0"
@@ -162,6 +196,11 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
                   required
                 />
               </div>
+              {account && (
+                <p className="mt-1 text-xs text-slate-500">
+                  Le solde n'évolue que via les transactions, il n'est modifiable qu'à la création.
+                </p>
+              )}
               {errors.balance && (
                 <p className="mt-1 text-sm text-red-600">{errors.balance}</p>
               )}
@@ -177,14 +216,66 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
                 name="accountType"
                 value={formData.accountType}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c6e911] focus:border-[#c6e911] transition-colors"
+                disabled={!!account}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c6e911] focus:border-[#c6e911] transition-colors disabled:bg-slate-100 disabled:text-slate-500"
                 required
               >
                 <option value={AccountType.BANQUE}>{t('treasuryAccounts.accountTypes.bank')}</option>
                 <option value={AccountType.CAISSE}>{t('treasuryAccounts.accountTypes.cash')}</option>
+                <option value={AccountType.CASH_REGISTER}>Caisse de vente</option>
+                <option value={AccountType.SAFE}>Coffre-fort</option>
+                <option value={AccountType.EXPENSE_BOX}>Caisse dépense</option>
                 <option value={AccountType.COMPTE_PREFINANCEMENT}>{t('treasuryAccounts.accountTypes.prefinancement')}</option>
               </select>
-              {formData.accountType === AccountType.COMPTE_PREFINANCEMENT }
+            </div>
+
+            {isCashierOwned && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Caissier assigné</label>
+                <select
+                  name="cashierId"
+                  value={formData.cashierId}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c6e911] focus:border-[#c6e911] transition-colors"
+                >
+                  <option value="">-- Aucun --</option>
+                  {cashiers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.userName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {isBank && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Numéro de compte</label>
+                <input
+                  type="text"
+                  name="accountNumber"
+                  value={formData.accountNumber}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c6e911] focus:border-[#c6e911] transition-colors"
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Mapping comptable (optionnel)</label>
+              <select
+                name="accountCode"
+                value={formData.accountCode}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c6e911] focus:border-[#c6e911] transition-colors"
+              >
+                <option value="">-- Aucun --</option>
+                {treasuryChartAccounts.map((a) => (
+                  <option key={a.id} value={a.accountNumber}>
+                    {a.accountNumber} - {a.accountName}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Currency */}
@@ -214,7 +305,7 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
             </div>
           </form>
         </div>
-        
+
         {/* Footer */}
         <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
           <button
@@ -242,7 +333,7 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
             )}
           </button>
         </div>
-        
+
         {/* Close Button */}
         <button
           onClick={onClose}

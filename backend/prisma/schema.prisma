@@ -40,6 +40,7 @@ model Subsidiary {
   employees                     Employee[]
   equipments                    Equipment[]
   expenseRecords                ExpenseRecord[]
+  recurringExpenses             RecurringExpense[]
   financialTransactions         FinancialTransaction[]
   fixedAssets                   FixedAsset[]
   leads                         Lead[]
@@ -65,6 +66,7 @@ model Subsidiary {
   accountingJournalSequences    AccountingJournalSequence[]
   proformas                     Proforma[]
   payrollConfiguration          PayrollConfiguration?
+  counterparties                Counterparty[]
 
   @@index([subsidiaryName]) // Ajout de cet index
   @@index([latitude, longitude])
@@ -110,6 +112,7 @@ model User {
   proformas                     Proforma[]
   accountingAccessRequests      AccountingAccessRequest[]      @relation("AccountingAccessRequester")
   accountingAccessReviews       AccountingAccessRequest[]      @relation("AccountingAccessReviewer")
+  cashierTreasuryAccounts       TreasuryAccount[]
 
   @@map("users")
 }
@@ -178,6 +181,10 @@ model Notification {
   recipientType RecipientType    @map("recipient_type")
   data          Json?            @map("data")
   userId        String?          @map("user_id")
+  // Ciblage par rôle actif (null = visible quel que soit le rôle actif du
+  // destinataire) — utile pour une notification adressée à "tous les CAISSIER
+  // de la filiale" par ex., visible seulement quand ce rôle est actif.
+  targetRole    UserRole?        @map("target_role")
   user          User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([recipientId, recipientType, read])
@@ -910,36 +917,82 @@ model CreditAccount {
 }
 
 model TreasuryAccount {
-  id                    String                 @id @default(uuid()) @map("id")
-  accountName           String                 @map("account_name") @db.VarChar(255)
-  balance               Decimal                @map("balance") @db.Decimal(15, 2)
-  currency              String                 @map("currency") @db.VarChar(10)
-  accountType           AccountType            @map("account_type")
-  subsidiaryId          String                 @map("subsidiary_id")
-  financialTransactions FinancialTransaction[]
-  subsidiary            Subsidiary             @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  id                      String                 @id @default(uuid()) @map("id")
+  accountName             String                 @map("account_name") @db.VarChar(255)
+  balance                 Decimal                @map("balance") @db.Decimal(15, 2)
+  currency                String                 @map("currency") @db.VarChar(10)
+  accountType             AccountType            @map("account_type")
+  subsidiaryId            String                 @map("subsidiary_id")
+  // Caissier assigné (comptes CAISSE/CASH_REGISTER/EXPENSE_BOX) — un caissier
+  // ne peut décaisser que depuis son propre compte assigné (voir Phase B).
+  cashierId               String?                @map("cashier_id")
+  cashier                 User?                  @relation(fields: [cashierId], references: [id])
+  // Mapping comptable (compte du plan SYSCOHADA de type TRESORERIE) — utilisé
+  // à terme pour affiner journalization.service.ts au-delà du mapping global actuel.
+  accountCode             String?                @map("account_code")
+  accountNumber           String?                @map("account_number") @db.VarChar(50)
+  // Solde de constitution, distinct de `balance` (qui évolue avec les
+  // transactions) — conservé pour traçabilité, jamais réécrit après création.
+  initialBalance          Decimal?               @map("initial_balance") @db.Decimal(15, 2)
+  financialTransactions   FinancialTransaction[]
+  sourceTransactions      FinancialTransaction[] @relation("SourceAccount")
+  destinationTransactions FinancialTransaction[] @relation("DestinationAccount")
+  subsidiary              Subsidiary             @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
   @@index([subsidiaryId, accountName])
+  @@index([cashierId])
   @@map("treasury_accounts")
 }
 
+model Counterparty {
+  id           String                 @id @default(uuid()) @map("id")
+  name         String                 @map("name") @db.VarChar(255)
+  type         CounterpartyType       @map("type")
+  taxNumber    String?                @map("tax_number") @db.VarChar(100)
+  subsidiaryId String                 @map("subsidiary_id")
+  subsidiary   Subsidiary             @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  transactions FinancialTransaction[]
+
+  @@index([subsidiaryId, type])
+  @@map("counterparties")
+}
+
 model FinancialTransaction {
-  id                       String          @id @default(uuid()) @map("id")
-  transactionDate          DateTime        @map("transaction_date")
-  description              String?         @map("description")
-  amount                   Decimal         @map("amount") @db.Decimal(15, 2)
-  relatedDocumentId        String?         @map("related_document_id") @db.VarChar(50)
-  subsidiaryId             String          @map("subsidiary_id")
-  financialTransactionType TransactionType @map("financial_transaction_type")
-  treasuryAccountId        String          @map("treasury_account_id")
-  providerName             String?         @map("provider_name") @db.VarChar(255)
-  providerPhone            String?         @map("provider_phone") @db.VarChar(20)
-  subsidiary               Subsidiary      @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-  treasuryAccount          TreasuryAccount @relation(fields: [treasuryAccountId], references: [id], onDelete: Cascade)
+  id                       String                   @id @default(uuid()) @map("id")
+  transactionDate          DateTime                 @map("transaction_date")
+  description              String?                  @map("description")
+  amount                   Decimal                  @map("amount") @db.Decimal(15, 2)
+  relatedDocumentId        String?                  @map("related_document_id") @db.VarChar(50)
+  subsidiaryId             String                   @map("subsidiary_id")
+  financialTransactionType TransactionType          @map("financial_transaction_type")
+  treasuryAccountId        String                   @map("treasury_account_id")
+  providerName             String?                  @map("provider_name") @db.VarChar(255)
+  providerPhone            String?                  @map("provider_phone") @db.VarChar(20)
+  // Workflow de validation (décaissement complet, Phase A/B) — VALIDE par
+  // défaut pour ne pas casser les flux existants qui n'exploitent pas ce statut.
+  status                   TransactionStatus        @default(VALIDE) @map("status")
+  // Décaissement typé / virement inter-comptes (Phase B) — sourceAccountId
+  // est renseigné en plus de treasuryAccountId (même valeur) pour les
+  // décaissements typés, destinationAccountId seulement pour un virement.
+  sourceAccountId          String?                  @map("source_account_id")
+  destinationAccountId     String?                  @map("destination_account_id")
+  treasuryType             TreasuryTransactionType? @map("treasury_type")
+  reference                String?                  @map("reference") @db.VarChar(100)
+  counterpartyId           String?                  @map("counterparty_id")
+  balanceAfterSource       Decimal?                 @map("balance_after_source") @db.Decimal(15, 2)
+  balanceAfterDest         Decimal?                 @map("balance_after_dest") @db.Decimal(15, 2)
+  subsidiary               Subsidiary               @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  treasuryAccount          TreasuryAccount          @relation(fields: [treasuryAccountId], references: [id], onDelete: Cascade)
+  sourceAccount            TreasuryAccount?         @relation("SourceAccount", fields: [sourceAccountId], references: [id])
+  destinationAccount       TreasuryAccount?         @relation("DestinationAccount", fields: [destinationAccountId], references: [id])
+  counterparty             Counterparty?            @relation(fields: [counterpartyId], references: [id])
 
   @@index([subsidiaryId, transactionDate])
   @@index([financialTransactionType])
   @@index([treasuryAccountId])
+  @@index([sourceAccountId])
+  @@index([destinationAccountId])
+  @@index([status])
   @@map("financial_transactions")
 }
 
@@ -1294,17 +1347,17 @@ model AttendanceRecord {
   signature      String?
 
   // Geolocation fields
-  arrivalLatitude       Float?           @map("arrival_latitude")
-  arrivalLongitude      Float?           @map("arrival_longitude")
-  departureLatitude     Float?           @map("departure_latitude")
-  departureLongitude    Float?           @map("departure_longitude")
-  isGeolocationValid    Boolean          @default(false) @map("is_geolocation_valid")
-  accuracyMeters        Float?           @map("accuracy_meters")
-  qrCodeToken           String?          @map("qr_code_token")
+  arrivalLatitude    Float?  @map("arrival_latitude")
+  arrivalLongitude   Float?  @map("arrival_longitude")
+  departureLatitude  Float?  @map("departure_latitude")
+  departureLongitude Float?  @map("departure_longitude")
+  isGeolocationValid Boolean @default(false) @map("is_geolocation_valid")
+  accuracyMeters     Float?  @map("accuracy_meters")
+  qrCodeToken        String? @map("qr_code_token")
 
-  employeeId            String           @map("employee_id")
-  subsidiaryId          String           @map("subsidiary_id")
-  status                AttendanceStatus @map("status")
+  employeeId   String           @map("employee_id")
+  subsidiaryId String           @map("subsidiary_id")
+  status       AttendanceStatus @map("status")
 
   employee   Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   subsidiary Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
@@ -1318,53 +1371,53 @@ model AttendanceRecord {
 }
 
 model PayrollRecord {
-  id              String        @id @default(uuid()) @map("id")
-  
+  id String @id @default(uuid()) @map("id")
+
   // Période & Identification
-  payrollPeriod   String        @map("payroll_period") @db.VarChar(7) // YYYY-MM
-  employeeName    String        @map("employee_name") @db.VarChar(255) // snapshot (utile même si employé modifié)
-  
+  payrollPeriod String @map("payroll_period") @db.VarChar(7) // YYYY-MM
+  employeeName  String @map("employee_name") @db.VarChar(255) // snapshot (utile même si employé modifié)
+
   // === RÉMUNÉRATION (détail du brut) ===
-  baseSalary      Decimal       @map("base_salary") @db.Decimal(12, 2)
-  bonus           Decimal       @default(0) @map("bonus") @db.Decimal(12, 2)
-  allowances      Decimal       @default(0) @map("allowances") @db.Decimal(12, 2) // transport, logement, etc.
-  overtime        Decimal       @default(0) @map("overtime") @db.Decimal(12, 2)
-  otherEarnings   Decimal       @default(0) @map("other_earnings") @db.Decimal(12, 2)
-  grossSalary     Decimal       @map("gross_salary") @db.Decimal(12, 2)
+  baseSalary    Decimal @map("base_salary") @db.Decimal(12, 2)
+  bonus         Decimal @default(0) @map("bonus") @db.Decimal(12, 2)
+  allowances    Decimal @default(0) @map("allowances") @db.Decimal(12, 2) // transport, logement, etc.
+  overtime      Decimal @default(0) @map("overtime") @db.Decimal(12, 2)
+  otherEarnings Decimal @default(0) @map("other_earnings") @db.Decimal(12, 2)
+  grossSalary   Decimal @map("gross_salary") @db.Decimal(12, 2)
 
   // === RETENUES SALARIALES (détail) ===
-  cnpsEmployee    Decimal       @default(0) @map("cnps_employee") @db.Decimal(12, 2) // 4.2% plafonné
-  cfcEmployee     Decimal       @default(0) @map("cfc_employee") @db.Decimal(12, 2)  // 1%
-  irpp            Decimal       @default(0) @map("irpp") @db.Decimal(12, 2)
-  cac             Decimal       @default(0) @map("cac") @db.Decimal(12, 2)           // 10% de l'IRPP
-  otherDeductions Decimal       @default(0) @map("other_deductions") @db.Decimal(12, 2) // avances, prêts, absences...
-  deductions      Decimal       @map("deductions") @db.Decimal(12, 2)                  // total retenues
-  netSalary       Decimal       @map("net_salary") @db.Decimal(12, 2)
+  cnpsEmployee    Decimal @default(0) @map("cnps_employee") @db.Decimal(12, 2) // 4.2% plafonné
+  cfcEmployee     Decimal @default(0) @map("cfc_employee") @db.Decimal(12, 2) // 1%
+  irpp            Decimal @default(0) @map("irpp") @db.Decimal(12, 2)
+  cac             Decimal @default(0) @map("cac") @db.Decimal(12, 2) // 10% de l'IRPP
+  otherDeductions Decimal @default(0) @map("other_deductions") @db.Decimal(12, 2) // avances, prêts, absences...
+  deductions      Decimal @map("deductions") @db.Decimal(12, 2) // total retenues
+  netSalary       Decimal @map("net_salary") @db.Decimal(12, 2)
 
   // === CHARGES PATRONALES (coût employeur) ===
-  cnpsEmployer    Decimal       @default(0) @map("cnps_employer") @db.Decimal(12, 2) // pension + familial + AT
-  cfcEmployer     Decimal       @default(0) @map("cfc_employer") @db.Decimal(12, 2)  // 1.5%
-  fne             Decimal       @default(0) @map("fne") @db.Decimal(12, 2)           // 1%
-  totalEmployerCost Decimal     @default(0) @map("total_employer_cost") @db.Decimal(12, 2)
+  cnpsEmployer      Decimal @default(0) @map("cnps_employer") @db.Decimal(12, 2) // pension + familial + AT
+  cfcEmployer       Decimal @default(0) @map("cfc_employer") @db.Decimal(12, 2) // 1.5%
+  fne               Decimal @default(0) @map("fne") @db.Decimal(12, 2) // 1%
+  totalEmployerCost Decimal @default(0) @map("total_employer_cost") @db.Decimal(12, 2)
 
   // === DÉTAIL JSON (optionnel mais très utile) ===
-  deductionsDetail Json?        @map("deductions_detail") // tableau détaillé des retenues
-  calculationMeta  Json?        @map("calculation_meta")  // taux appliqués, plafond CNPS, groupe de risque, etc.
+  deductionsDetail Json? @map("deductions_detail") // tableau détaillé des retenues
+  calculationMeta  Json? @map("calculation_meta") // taux appliqués, plafond CNPS, groupe de risque, etc.
 
   // === MÉTADONNÉES ===
-  paymentDate     DateTime?     @map("payment_date")
-  signature       String?
-  status          PayrollStatus @map("status")
-  notes           String?       @db.Text
+  paymentDate DateTime?     @map("payment_date")
+  signature   String?
+  status      PayrollStatus @map("status")
+  notes       String?       @db.Text
 
   // Relations
-  employeeId      String        @map("employee_id")
-  subsidiaryId    String        @map("subsidiary_id")
-  employee        Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  subsidiary      Subsidiary    @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  employeeId   String     @map("employee_id")
+  subsidiaryId String     @map("subsidiary_id")
+  employee     Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([employeeId, payrollPeriod]) // empêche les doublons pour un même mois
   @@index([subsidiaryId, payrollPeriod])
@@ -1407,6 +1460,27 @@ model ExpenseRecord {
   @@index([category])
   @@index([expenseRecordType])
   @@map("expense_records")
+}
+
+model RecurringExpense {
+  id                String                    @id @default(uuid()) @map("id")
+  description       String
+  amount            Decimal                   @db.Decimal(12, 2)
+  category          ExpenseCategory           @map("category")
+  expenseRecordType ExpenseType               @map("expense_record_type")
+  frequency         RecurringExpenseFrequency @map("frequency")
+  startDate         DateTime                  @map("start_date")
+  nextExecutionDate DateTime                  @map("next_execution_date")
+  endDate           DateTime?                 @map("end_date")
+  isActive          Boolean                   @default(true) @map("is_active")
+  subsidiaryId      String                    @map("subsidiary_id")
+  subsidiary        Subsidiary                @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  createdAt         DateTime                  @default(now()) @map("created_at")
+  updatedAt         DateTime                  @updatedAt @map("updated_at")
+
+  @@index([subsidiaryId])
+  @@index([nextExecutionDate, isActive])
+  @@map("recurring_expenses")
 }
 
 // Plan comptable
@@ -1737,6 +1811,12 @@ enum ExpenseType {
   VARIABLE
 }
 
+enum RecurringExpenseFrequency {
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
 enum Gender {
   MALE
   FEMALE
@@ -1783,7 +1863,6 @@ enum PayrollStatus {
 enum AbsenceType {
   JUSTIFIED
   UNJUSTIFIED
-  
 }
 
 enum DocumentCategory {
@@ -1919,6 +1998,35 @@ enum AccountType {
   BANQUE
   CAISSE
   COMPTE_PREFINANCEMENT
+  SAFE
+  EXPENSE_BOX
+  CASH_REGISTER
+}
+
+// Nature du décaissement/mouvement typé (Phase B) — sous-ensemble volontairement
+// réduit par rapport à gmo pour démarrer ; étendu en Phase F (TVA/CNPS/IUTS).
+enum TreasuryTransactionType {
+  INFLOW
+  OUTFLOW
+  BANK_WITHDRAWAL
+  CASH_REFILL
+  SUPPLIER_PAYMENT
+  SALARY_PAYMENT
+  BONUS_PAYMENT
+  TAX_PAYMENT
+  RENT
+  UTILITIES
+  MARKETING
+  SUPPLIES
+  PURCHASE_COST
+  OTHER_EXPENSE
+}
+
+enum CounterpartyType {
+  SUPPLIER
+  TAX_AUTHORITY
+  INDIVIDUAL
+  OTHER
 }
 
 enum DebtStatus {
@@ -2162,9 +2270,9 @@ model PayrollConfiguration {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  salaryComponents SalaryComponent[]
-  taxBrackets      TaxBracket[]
-  allowanceRules   AllowanceRule[]
+  salaryComponents  SalaryComponent[]
+  taxBrackets       TaxBracket[]
+  allowanceRules    AllowanceRule[]
   leaveEntitlements LeaveEntitlement[]
 
   @@map("payroll_configurations")
@@ -2259,17 +2367,17 @@ model LeaveEntitlement {
 }
 
 model DailyQrCode {
-  id            String     @id @default(uuid())
-  subsidiaryId  String     @map("subsidiary_id")
-  employeeId    String    @map("employee_id")
-  token         String     @unique
-  issuedAt      DateTime   @default(now()) @map("issued_at")
-  expiresAt     DateTime?    @map("expires_at")
-  isActive      Boolean    @default(true) @map("is_active")
-  qrUrl         String?    @map("qr_url")
+  id           String    @id @default(uuid())
+  subsidiaryId String    @map("subsidiary_id")
+  employeeId   String    @map("employee_id")
+  token        String    @unique
+  issuedAt     DateTime  @default(now()) @map("issued_at")
+  expiresAt    DateTime? @map("expires_at")
+  isActive     Boolean   @default(true) @map("is_active")
+  qrUrl        String?   @map("qr_url")
 
-  subsidiary    Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-  employee      Employee?  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  subsidiary Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  employee   Employee?  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@index([subsidiaryId, isActive])
   @@index([employeeId, isActive])

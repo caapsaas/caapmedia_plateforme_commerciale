@@ -43,12 +43,11 @@ export enum View {
 }
 
 export enum FinanceView {
-    CREDIT = 'credit',
-    TREASURY = 'treasury',
     SUPPLIERS = 'suppliers',
+    LONG_TERM_DEBTS = 'long_term_debts',
     EXPENSES = 'expenses',
-    PNL = 'pnl',
-    BILAN = 'bilan',
+    RECURRING_EXPENSES = 'recurring_expenses',
+    TAX_TRANSPARENCY = 'tax_transparency',
     EXTERNAL_TRANSACTIONS = 'external_transactions',
     PREFINANCEMENT = 'prefinancement',
     INVESTMENT = 'investment',
@@ -595,6 +594,9 @@ export enum AccountType {
   BANQUE = 'BANQUE',
   CAISSE = 'CAISSE',
   COMPTE_PREFINANCEMENT = 'COMPTE_PREFINANCEMENT',
+  SAFE = 'SAFE',
+  EXPENSE_BOX = 'EXPENSE_BOX',
+  CASH_REGISTER = 'CASH_REGISTER',
 }
 
 export interface TreasuryAccount {
@@ -604,6 +606,10 @@ export interface TreasuryAccount {
   currency: string;
   accountType: AccountType;
   subsidiaryId: string;
+  cashierId?: string;
+  accountCode?: string;
+  accountNumber?: string;
+  initialBalance?: number;
 }
 
 export enum TransactionStatus {
@@ -612,6 +618,39 @@ export enum TransactionStatus {
 }
 
 export type TransactionType = 'RECETTE' | 'DEPENSE';
+
+// Nature du décaissement/mouvement typé (décaissement complet).
+export enum TreasuryTransactionType {
+  INFLOW = 'INFLOW',
+  OUTFLOW = 'OUTFLOW',
+  BANK_WITHDRAWAL = 'BANK_WITHDRAWAL',
+  CASH_REFILL = 'CASH_REFILL',
+  SUPPLIER_PAYMENT = 'SUPPLIER_PAYMENT',
+  SALARY_PAYMENT = 'SALARY_PAYMENT',
+  BONUS_PAYMENT = 'BONUS_PAYMENT',
+  TAX_PAYMENT = 'TAX_PAYMENT',
+  RENT = 'RENT',
+  UTILITIES = 'UTILITIES',
+  MARKETING = 'MARKETING',
+  SUPPLIES = 'SUPPLIES',
+  PURCHASE_COST = 'PURCHASE_COST',
+  OTHER_EXPENSE = 'OTHER_EXPENSE',
+}
+
+export enum CounterpartyType {
+  SUPPLIER = 'SUPPLIER',
+  TAX_AUTHORITY = 'TAX_AUTHORITY',
+  INDIVIDUAL = 'INDIVIDUAL',
+  OTHER = 'OTHER',
+}
+
+export interface Counterparty {
+  id: string;
+  name: string;
+  type: CounterpartyType;
+  taxNumber?: string;
+  subsidiaryId: string;
+}
 
 export interface FinancialTransaction {
   id: string;
@@ -624,6 +663,25 @@ export interface FinancialTransaction {
   financialTransactionType: TransactionType;
   providerName?: string; // Nom du prestataire
   providerPhone?: string; // Téléphone du prestataire
+  // Décaissement typé / virement inter-comptes / workflow de validation.
+  status?: TransactionStatus;
+  sourceAccountId?: string;
+  destinationAccountId?: string;
+  treasuryType?: TreasuryTransactionType;
+  reference?: string;
+  counterpartyId?: string;
+  balanceAfterSource?: number;
+  balanceAfterDest?: number;
+  // Présents uniquement sur les réponses enrichies (historique par compte).
+  treasuryAccount?: { accountName: string };
+  destinationAccount?: { accountName: string };
+  counterparty?: { name: string };
+}
+
+export enum DebtStatus {
+  A_PAYER = 'A_PAYER',
+  PAYER = 'PAYER',
+  EN_ATTENTE = 'EN_ATTENTE',
 }
 
 export interface SupplierDebt {
@@ -632,7 +690,7 @@ export interface SupplierDebt {
   invoiceId: string;
   dueDate: string;
   amount: number;
-  status: 'À payer' | 'Payé' | 'En retard';
+  status: DebtStatus;
   subsidiaryId: string;
   invoiceUrl?: string;
   purchaseOrderId: string; // Link back to the purchase order
@@ -681,6 +739,26 @@ export interface ExpenseRecord {
   category: ExpenseCategory;
   type: ExpenseType;
   amount: number;
+  subsidiaryId: string;
+}
+
+export enum RecurringExpenseFrequency {
+  WEEKLY = 'WEEKLY',
+  MONTHLY = 'MONTHLY',
+  YEARLY = 'YEARLY',
+}
+
+export interface RecurringExpense {
+  id: string;
+  description: string;
+  amount: number;
+  category: ExpenseCategory;
+  expenseRecordType: ExpenseType;
+  frequency: RecurringExpenseFrequency;
+  startDate: string;
+  nextExecutionDate: string;
+  endDate?: string | null;
+  isActive: boolean;
   subsidiaryId: string;
 }
 
@@ -1126,7 +1204,7 @@ export interface FixedAsset {
 
 export interface LongTermDebt {
     id: string;
-    name: string;
+    debtsName: string;
     initialAmount: number;
     currentBalance: number;
     interestRate: number;
@@ -1165,4 +1243,31 @@ export interface TaxRate {
   rate: number; // e.g., 0.1925 for 19.25%
   isDefault: boolean;
   description?: string;
+}
+
+export enum NotificationType {
+  NEW_ORDER = 'NEW_ORDER',
+  ORDER_STATUS = 'ORDER_STATUS',
+  PAYMENT_RECEIVED = 'PAYMENT_RECEIVED',
+  LOW_STOCK = 'LOW_STOCK',
+  SYSTEM_ALERT = 'SYSTEM_ALERT',
+  EXTERNAL_TRANSACTION_VALIDATED = 'EXTERNAL_TRANSACTION_VALIDATED',
+  EXTERNAL_TRANSACTION_CREATED = 'EXTERNAL_TRANSACTION_CREATED',
+  EXTERNAL_TRANSACTION_CANCELLED = 'EXTERNAL_TRANSACTION_CANCELLED',
+  ACCOUNTING_ACCESS_REQUESTED = 'ACCOUNTING_ACCESS_REQUESTED',
+  ACCOUNTING_ACCESS_APPROVED = 'ACCOUNTING_ACCESS_APPROVED',
+  ACCOUNTING_ACCESS_REJECTED = 'ACCOUNTING_ACCESS_REJECTED',
+}
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  message: string;
+  read: boolean;
+  orderId?: string | null;
+  type: NotificationType;
+  data?: Record<string, unknown> | null;
+  targetRole?: UserRole | null;
+  createdAt: string;
+  updatedAt: string;
 }

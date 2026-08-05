@@ -277,9 +277,7 @@ export class PayrollRecordService {
     const { employeeId, ...updateData } = dto as any;
 
     const gross = updateData.grossSalary ?? Number(current.grossSalary);
-    const deductions =
-      updateData.deductions ??
-      Number(current.deductions);
+    const deductions = updateData.deductions ?? Number(current.deductions);
 
     return this.prisma.payrollRecord.update({
       where: { id },
@@ -322,7 +320,9 @@ export class PayrollRecordService {
     const record = await this.findOne(id);
 
     if (record.status === PayrollStatus.PAID) {
-      throw new BadRequestException('Cette fiche de paie est déjà signée/payée');
+      throw new BadRequestException(
+        'Cette fiche de paie est déjà signée/payée',
+      );
     }
 
     const updated = await this.prisma.payrollRecord.update({

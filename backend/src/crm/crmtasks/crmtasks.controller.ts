@@ -43,7 +43,10 @@ export class CrmtasksController {
     UserRole.SECRETARY,
     UserRole.FINANCIAL_DIRECTOR,
   )
-  findAll(@CurrentUser() user: User, @Query() paginationQuery: PaginationQueryDto) {
+  findAll(
+    @CurrentUser() user: User,
+    @Query() paginationQuery: PaginationQueryDto,
+  ) {
     return this.crmtasksService.findAll(user, paginationQuery);
   }
 

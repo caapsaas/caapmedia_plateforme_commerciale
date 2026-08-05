@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   getFixedAssets, createFixedAsset, FixedAssetCreationData,
 } from '../../services/apiFinance/apiAssets';
-import { getTreasuryAccounts } from '../../services/apiFinance/apiTreasuryAccounts';
+import { getTreasuryAccounts } from '../../services/apiFinance/apiTreasury';
 import { generateAnnualDepreciation, disposeFixedAsset } from '../../services/apiAccounting/apiImmobilisations';
 import { FixedAsset } from '../../types';
 import TableSkeleton from '../ui/TableSkeleton';

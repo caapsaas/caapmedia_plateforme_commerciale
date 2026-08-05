@@ -47,6 +47,7 @@ export class AccountingOutboxProcessor {
           sourceType: entry.eventType as OperationSource,
           sourceId: payload.sourceId,
           accountType: payload.accountType,
+          destinationAccountType: payload.destinationAccountType,
           expenseCategory: payload.expenseCategory,
           withTva: payload.withTva,
         });

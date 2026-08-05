@@ -8,6 +8,7 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 export type OperationSource =
   | 'TREASURY_INCOME'
   | 'TREASURY_EXPENSE'
+  | 'TREASURY_TRANSFER'
   | 'SALE_PAID'
   | 'EXPENSE_RECORD'
   | 'SUPPLIER_DEBT_PAYMENT'
@@ -23,7 +24,8 @@ export interface JournalizationContext {
   sourceType: OperationSource;
   sourceId: string;
   // Données spécifiques selon l'opération
-  accountType?: AccountType; // pour trésorerie : BANQUE ou CAISSE
+  accountType?: AccountType; // pour trésorerie : BANQUE ou CAISSE (source, pour un virement)
+  destinationAccountType?: AccountType; // virement inter-comptes (TREASURY_TRANSFER)
   expenseCategory?: ExpenseCategory; // pour dépenses : catégorie SYSCOHADA
   withTva?: boolean; // inclure TVA dans l'écriture
 }
@@ -34,6 +36,15 @@ interface BuiltLine {
   debitAmount: number;
   creditAmount: number;
 }
+
+// Types de compte trésorerie assimilés à de la "caisse" comptable (571000) —
+// tout le reste (BANQUE, COMPTE_PREFINANCEMENT) est assimilé banque (521000).
+const CASH_FAMILY_ACCOUNT_TYPES: AccountType[] = [
+  AccountType.CAISSE,
+  AccountType.CASH_REGISTER,
+  AccountType.SAFE,
+  AccountType.EXPENSE_BOX,
+];
 
 // Mapping des catégories de dépenses → numéros de comptes SYSCOHADA
 const EXPENSE_CATEGORY_ACCOUNT: Record<string, string> = {
@@ -125,18 +136,55 @@ export class JournalizationService {
     mappings: Record<string, string>,
     tvaRate: number,
   ): { journalCode: string; lines: BuiltLine[] } {
-    const { amount, sourceType, accountType, expenseCategory, withTva } = ctx;
+    const {
+      amount,
+      sourceType,
+      accountType,
+      destinationAccountType,
+      expenseCategory,
+      withTva,
+    } = ctx;
 
-    const treasuryAccount =
-      accountType === AccountType.CAISSE
-        ? mappings['CASH_ACCOUNT'] || '571000'
-        : mappings['BANK_ACCOUNT'] || '521000';
+    const isCashFamily =
+      !!accountType && CASH_FAMILY_ACCOUNT_TYPES.includes(accountType);
+    const treasuryAccount = isCashFamily
+      ? mappings['CASH_ACCOUNT'] || '571000'
+      : mappings['BANK_ACCOUNT'] || '521000';
 
     switch (sourceType) {
+      // ── VIREMENT INTER-COMPTES TRÉSORERIE (décaissement typé) ────────
+      // Écriture de bilan pure (aucune charge/produit) — ex. retrait
+      // coffre→banque, alimentation coffre→caisse dépense.
+      case 'TREASURY_TRANSFER': {
+        const isDestCashFamily =
+          !!destinationAccountType &&
+          CASH_FAMILY_ACCOUNT_TYPES.includes(destinationAccountType);
+        const destinationAccount = isDestCashFamily
+          ? mappings['CASH_ACCOUNT'] || '571000'
+          : mappings['BANK_ACCOUNT'] || '521000';
+        return {
+          journalCode: 'JOD',
+          lines: [
+            {
+              accountNumber: destinationAccount,
+              description: 'Virement interne — destination',
+              debitAmount: amount,
+              creditAmount: 0,
+            },
+            {
+              accountNumber: treasuryAccount,
+              description: 'Virement interne — source',
+              debitAmount: 0,
+              creditAmount: amount,
+            },
+          ],
+        };
+      }
+
       // ── RECETTE TRÉSORERIE ──────────────────────────────────────────
       case 'TREASURY_INCOME': {
         return {
-          journalCode: accountType === AccountType.CAISSE ? 'JC' : 'JB',
+          journalCode: isCashFamily ? 'JC' : 'JB',
           lines: [
             {
               accountNumber: treasuryAccount,
@@ -184,7 +232,7 @@ export class JournalizationService {
           });
         }
         return {
-          journalCode: accountType === AccountType.CAISSE ? 'JC' : 'JB',
+          journalCode: isCashFamily ? 'JC' : 'JB',
           lines,
         };
       }

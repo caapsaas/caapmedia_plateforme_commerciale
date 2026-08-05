@@ -25,6 +25,14 @@ import IconAccounting from '../components/icons/IconAccounting';
 import { useAuth } from '../context/AuthContext';
 import IconGmoLogo from '../components/icons/IconGmoLogo';
 import SidebarDropdown from '../components/common/SidebarDropdown';
+import IconDocumentChartBar from '../components/icons/IconDocumentChartBar';
+import IconDocumentText from '../components/icons/IconDocumentText';
+import IconWallet from '../components/icons/IconWallet';
+import IconTruckCoins from '../components/icons/IconTruckCoins';
+import IconTrendingUp from '../components/icons/IconTrendingUp';
+import IconCurrency from '../components/icons/IconCurrency';
+import IconClipboardCheck from '../components/icons/IconClipboardCheck';
+import { Bell } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -164,10 +172,12 @@ const Sidebar: React.FC = () => {
       case UserRole.ADMIN:
         return [
           {
-            groupLabel: 'Dashboard',
+            groupLabel: 'Tableau de bord',
             groupIcon: <IconAnalytics className="h-5 w-5" />,
             items: [
               { to: '/dashboard/', label: t('sidebar.analytics'), icon: <IconAnalytics className="h-5 w-5" /> },
+              { to: '/dashboard/sales-analytics', label: t('sidebar.salesAnalytics'), icon: <IconCurrency className="h-5 w-5" /> },
+              { to: '/dashboard/purchase-analytics', label: t('sidebar.purchaseAnalytics'), icon: <IconDocumentChartBar className="h-5 w-5" /> },
             ],
           },
           {
@@ -175,6 +185,7 @@ const Sidebar: React.FC = () => {
             groupIcon: <IconCrm className="h-5 w-5" />,
             items: [
               { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-5 w-5" /> },
+              { to: '/dashboard/proforma', label: t('sidebar.proforma'), icon: <IconDocumentText className="h-5 w-5" /> },
               { to: '/dashboard/sales', label: t('sidebar.orders'), icon: <IconSales className="h-5 w-5" /> },
               { to: '/dashboard/production', label: t('sidebar.production'), icon: <IconFactory className="h-5 w-5" /> },
             ],
@@ -194,21 +205,10 @@ const Sidebar: React.FC = () => {
             groupIcon: <IconFinance className="h-5 w-5" />,
             items: [
               { to: '/dashboard/finance', label: t('sidebar.finance'), icon: <IconFinance className="h-5 w-5" /> },
+              { to: '/dashboard/disbursement', label: t('sidebar.disbursement'), icon: <IconWallet className="h-5 w-5" /> },
+              { to: '/dashboard/credit-history', label: t('sidebar.creditHistory'), icon: <IconTruckCoins className="h-5 w-5" /> },
+              { to: '/dashboard/financial-history', label: t('sidebar.financialHistory'), icon: <IconTrendingUp className="h-5 w-5" /> },
               { to: '/dashboard/accountings', label: 'Comptabilité', icon: <IconAccounting className="h-5 w-5" /> },
-              ...(isHeadquarterAdminUser ? [{
-                to: '/dashboard/accounting-access-requests',
-                label: (
-                  <span className="flex items-center gap-2">
-                    Demandes comptabilité
-                    {pendingAccessCount > 0 && (
-                      <span className="px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">
-                        {pendingAccessCount}
-                      </span>
-                    )}
-                  </span>
-                ),
-                icon: <IconAccounting className="h-5 w-5" />,
-              }] : []),
             ],
           },
           {
@@ -221,15 +221,48 @@ const Sidebar: React.FC = () => {
              
             ],
           },
+          {
+            groupLabel: 'Outils',
+            groupIcon: <Bell className="h-5 w-5" />,
+            items: [
+              { to: '/dashboard/notifications', label: t('sidebar.notifications'), icon: <Bell className="h-5 w-5" /> },
+            ],
+          },
+          // Lien autonome hors dropdown, meme emplacement/logique que
+          // Frontend_GMO/components/Sidebar.tsx (rendu en NavLink direct, pas
+          // imbrique dans un groupe) - reserve au siege, badge de compteur.
+          ...(isHeadquarterAdminUser ? [{
+            groupLabel: 'Demandes comptabilité',
+            groupIcon: <IconClipboardCheck className="h-5 w-5" />,
+            items: [{
+              to: '/dashboard/accounting-access-requests',
+              label: (
+                <span className="flex items-center gap-2">
+                  Demandes comptabilité
+                  {pendingAccessCount > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">
+                      {pendingAccessCount}
+                    </span>
+                  )}
+                </span>
+              ),
+              icon: <IconClipboardCheck className="h-5 w-5" />,
+            }],
+          }] : []),
         ];
 
       case UserRole.COMMERCIAL:
         return [
+          // COMMERCIAL n'a pas acces au tableau de bord complet (onglets
+          // tresorerie banque/coffre/caisse) - seulement a l'analyse des
+          // ventes, meme restriction que Frontend_GMO/components/Sidebar.tsx
+          // (getNavItems::COMMERCIAL) et GET /analytics/dashboard cote
+          // backend (voir analytics.controller.ts).
           {
-            groupLabel: 'Principal',
-            groupIcon: <IconAnalytics className="h-5 w-5" />,
+            groupLabel: 'Tableau de bord',
+            groupIcon: <IconCurrency className="h-5 w-5" />,
             items: [
-              { to: '/dashboard/', label: t('sidebar.analytics'), icon: <IconAnalytics className="h-5 w-5" /> },
+              { to: '/dashboard/sales-analytics', label: t('sidebar.salesAnalytics'), icon: <IconCurrency className="h-5 w-5" /> },
             ],
           },
           {
@@ -237,10 +270,17 @@ const Sidebar: React.FC = () => {
             groupIcon: <IconCrm className="h-5 w-5" />,
             items: [
               { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-5 w-5" /> },
+              { to: '/dashboard/proforma', label: t('sidebar.proforma'), icon: <IconDocumentText className="h-5 w-5" /> },
               { to: '/dashboard/sales', label: t('sidebar.orders'), icon: <IconSales className="h-5 w-5" /> },
             ],
           },
-          
+          {
+            groupLabel: 'Outils',
+            groupIcon: <Bell className="h-5 w-5" />,
+            items: [
+              { to: '/dashboard/notifications', label: t('sidebar.notifications'), icon: <Bell className="h-5 w-5" /> },
+            ],
+          },
         ];
 
       case UserRole.CAISSIER:
@@ -253,7 +293,13 @@ const Sidebar: React.FC = () => {
               { to: '/dashboard/sales', label: t('sidebar.transactions'), icon: <IconSales className="h-5 w-5" /> },
             ],
           },
-         
+          {
+            groupLabel: 'Outils',
+            groupIcon: <Bell className="h-5 w-5" />,
+            items: [
+              { to: '/dashboard/notifications', label: t('sidebar.notifications'), icon: <Bell className="h-5 w-5" /> },
+            ],
+          },
         ];
 
       case UserRole.PURCHASING_MANAGER:
@@ -266,16 +312,24 @@ const Sidebar: React.FC = () => {
               { to: '/dashboard/stock', label: t('sidebar.stockManagement'), icon: <IconStock className="h-5 w-5" /> },
             ],
           },
-          
+          {
+            groupLabel: 'Outils',
+            groupIcon: <Bell className="h-5 w-5" />,
+            items: [
+              { to: '/dashboard/notifications', label: t('sidebar.notifications'), icon: <Bell className="h-5 w-5" /> },
+            ],
+          },
         ];
 
       case UserRole.FINANCIAL_DIRECTOR:
         return [
           {
-            groupLabel: 'Principal',
+            groupLabel: 'Tableau de bord',
             groupIcon: <IconAnalytics className="h-5 w-5" />,
             items: [
               { to: '/dashboard/', label: t('sidebar.analytics'), icon: <IconAnalytics className="h-5 w-5" /> },
+              { to: '/dashboard/sales-analytics', label: t('sidebar.salesAnalytics'), icon: <IconCurrency className="h-5 w-5" /> },
+              { to: '/dashboard/purchase-analytics', label: t('sidebar.purchaseAnalytics'), icon: <IconDocumentChartBar className="h-5 w-5" /> },
             ],
           },
           {
@@ -283,8 +337,20 @@ const Sidebar: React.FC = () => {
             groupIcon: <IconCrm className="h-5 w-5" />,
             items: [
               { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-5 w-5" /> },
+              { to: '/dashboard/proforma', label: t('sidebar.proforma'), icon: <IconDocumentText className="h-5 w-5" /> },
               { to: '/dashboard/sales', label: t('sidebar.orders'), icon: <IconSales className="h-5 w-5" /> },
+            ],
+          },
+          {
+            // Aligné sur gmo (Logistique & Stock) : achats + stock séparés
+            // de "Commerce", un directeur financier a besoin de voir le
+            // stock (valorisation, immobilisation en marchandise), pas
+            // seulement les achats.
+            groupLabel: 'Opérations',
+            groupIcon: <IconTruck className="h-5 w-5" />,
+            items: [
               { to: '/dashboard/purchasing', label: t('sidebar.purchasing'), icon: <IconTruck className="h-5 w-5" /> },
+              { to: '/dashboard/stock', label: t('sidebar.stockManagement'), icon: <IconStock className="h-5 w-5" /> },
             ],
           },
           {
@@ -292,10 +358,19 @@ const Sidebar: React.FC = () => {
             groupIcon: <IconFinance className="h-5 w-5" />,
             items: [
               { to: '/dashboard/finance', label: t('sidebar.finance'), icon: <IconFinance className="h-5 w-5" /> },
+              { to: '/dashboard/disbursement', label: t('sidebar.disbursement'), icon: <IconWallet className="h-5 w-5" /> },
+              { to: '/dashboard/credit-history', label: t('sidebar.creditHistory'), icon: <IconTruckCoins className="h-5 w-5" /> },
+              { to: '/dashboard/financial-history', label: t('sidebar.financialHistory'), icon: <IconTrendingUp className="h-5 w-5" /> },
               { to: '/dashboard/accountings', label: 'Comptabilité', icon: <IconAccounting className="h-5 w-5" /> },
             ],
           },
-         
+          {
+            groupLabel: 'Outils',
+            groupIcon: <Bell className="h-5 w-5" />,
+            items: [
+              { to: '/dashboard/notifications', label: t('sidebar.notifications'), icon: <Bell className="h-5 w-5" /> },
+            ],
+          },
         ];
 
       case UserRole.SECRETARY:
@@ -308,7 +383,13 @@ const Sidebar: React.FC = () => {
               { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-5 w-5" /> },
             ],
           },
-         
+          {
+            groupLabel: 'Outils',
+            groupIcon: <Bell className="h-5 w-5" />,
+            items: [
+              { to: '/dashboard/notifications', label: t('sidebar.notifications'), icon: <Bell className="h-5 w-5" /> },
+            ],
+          },
         ];
 
       case UserRole.HR_MANAGER:
@@ -319,6 +400,13 @@ const Sidebar: React.FC = () => {
             items: [
               { to: '/dashboard/hr', label: t('sidebar.hrManagement'), icon: <IconBriefcase className="h-5 w-5" /> },
               
+            ],
+          },
+          {
+            groupLabel: 'Outils',
+            groupIcon: <Bell className="h-5 w-5" />,
+            items: [
+              { to: '/dashboard/notifications', label: t('sidebar.notifications'), icon: <Bell className="h-5 w-5" /> },
             ],
           },
         ];
@@ -341,7 +429,13 @@ const Sidebar: React.FC = () => {
               { to: '/dashboard/equipements', label: t('sidebar.equipements'), icon: <IconBuildingStorefront className="h-5 w-5" /> },
             ],
           },
-         
+          {
+            groupLabel: 'Outils',
+            groupIcon: <Bell className="h-5 w-5" />,
+            items: [
+              { to: '/dashboard/notifications', label: t('sidebar.notifications'), icon: <Bell className="h-5 w-5" /> },
+            ],
+          },
         ];
 
       default:

@@ -1,13 +1,17 @@
-import React from 'react';
-import { Subsidiary, SupplierDebt } from '../../types';
+import React, { useState } from 'react';
+import { DebtStatus, Subsidiary, SupplierDebt } from '../../types';
 import { useI18n } from '../../i18n';
 import { exportToCsv } from '../../utils/csvExporter';
 import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
+import IconPlus from '../icons/IconPlus';
+import IconCoins from '../icons/IconCoins';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
+import PaySupplierDebtModal from './PaySupplierDebtModal';
+import CreateSupplierDebtModal from './CreateSupplierDebtModal';
 
 interface SupplierDebtsProps {
     subsidiary: Subsidiary;
@@ -18,22 +22,25 @@ interface SupplierDebtsProps {
 const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts: allSupplierDebts, isLoading = false }) => {
     const { t, formatCurrency } = useI18n();
     const supplierDebts = allSupplierDebts.filter(d => d.subsidiaryId === subsidiary.id);
-    const totalDebts = supplierDebts.filter(d => d.status !== 'Payé').reduce((acc, debt) => acc + Number(debt.amount), 0);
-    
+    const totalDebts = supplierDebts.filter(d => d.status !== DebtStatus.PAYER).reduce((acc, debt) => acc + Number(debt.amount), 0);
+
+    const [debtToPay, setDebtToPay] = useState<SupplierDebt | null>(null);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
     const getStatusClass = (status: SupplierDebt['status']) => {
         switch (status) {
-            case 'Payé': return 'bg-green-100 text-green-800';
-            case 'À payer': return 'bg-blue-100 text-blue-800';
-            case 'En retard': return 'bg-red-100 text-red-800';
+            case DebtStatus.PAYER: return 'bg-green-100 text-green-800';
+            case DebtStatus.A_PAYER: return 'bg-blue-100 text-blue-800';
+            case DebtStatus.EN_ATTENTE: return 'bg-amber-100 text-amber-800';
             default: return 'bg-slate-100 text-slate-800';
         }
     }
 
     const getTranslatedStatus = (status: SupplierDebt['status']) => {
         switch (status) {
-            case 'Payé': return t('supplierDebts.statusPaid');
-            case 'À payer': return t('supplierDebts.statusToPay');
-            case 'En retard': return t('supplierDebts.statusOverdue');
+            case DebtStatus.PAYER: return t('supplierDebts.statusPaid');
+            case DebtStatus.A_PAYER: return t('supplierDebts.statusToPay');
+            case DebtStatus.EN_ATTENTE: return t('supplierDebts.statusPending');
             default: return status;
         }
     }
@@ -97,6 +104,10 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
                             <IconPdf className="h-4 w-4" />
                             <span>{t('common.exportPdf')}</span>
                         </button>
+                        <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center space-x-2 px-3 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
+                            <IconPlus className="h-4 w-4" />
+                            <span>{t('supplierDebts.addDebt')}</span>
+                        </button>
                     </div>
                 </div>
                 <div className="overflow-x-auto">
@@ -108,14 +119,15 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
                                 <th scope="col" className="px-6 py-3">{t('supplierDebts.dueDate')}</th>
                                 <th scope="col" className="px-6 py-3 text-right">{t('supplierDebts.amount')}</th>
                                 <th scope="col" className="px-6 py-3 text-center">{t('supplierDebts.status')}</th>
+                                <th scope="col" className="px-6 py-3 text-center no-print">{t('common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {isLoading ? (
-                                <TableSkeleton rows={8} columns={5} />
+                                <TableSkeleton rows={8} columns={6} />
                             ) : supplierDebts.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5}>
+                                    <td colSpan={6}>
                                         <EmptyState icon="truck" title={t('supplierDebts.trackingTitle')} description={t('common.notAvailable')} />
                                     </td>
                                 </tr>
@@ -138,12 +150,35 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
                                             {getTranslatedStatus(debt.status)}
                                         </span>
                                     </td>
+                                    <td className="px-6 py-4 text-center no-print">
+                                        {debt.status !== DebtStatus.PAYER && (
+                                            <button
+                                                onClick={() => setDebtToPay(debt)}
+                                                className="p-2 text-slate-500 hover:text-orange-600 hover:bg-orange-100 rounded-full transition-colors"
+                                                title={t('supplierDebts.pay')}
+                                            >
+                                                <IconCoins className="h-5 w-5" />
+                                            </button>
+                                        )}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
             </div>
+
+            <PaySupplierDebtModal
+                isOpen={!!debtToPay}
+                onClose={() => setDebtToPay(null)}
+                subsidiaryId={subsidiary.id}
+                debt={debtToPay}
+            />
+            <CreateSupplierDebtModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                subsidiaryId={subsidiary.id}
+            />
         </div>
     );
 };

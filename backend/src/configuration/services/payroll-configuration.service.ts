@@ -59,7 +59,7 @@ export class PayrollConfigurationService {
         cfcEmployerRate: 0.015,
         fneRate: 0.01,
         cnpsCap: 750000,
-        professionalExpenseRate: 0.30,
+        professionalExpenseRate: 0.3,
         fixedAbatementAnnual: 500000,
         riskGroupARate: 0.0175,
         riskGroupBRate: 0.025,
@@ -194,8 +194,10 @@ export class PayrollConfigurationService {
       cfcEmployerRate: dto.cfcEmployerRate ?? config.cfcEmployerRate,
       fneRate: dto.fneRate ?? config.fneRate,
       cnpsCap: dto.cnpsCap ?? config.cnpsCap,
-      professionalExpenseRate: dto.professionalExpenseRate ?? config.professionalExpenseRate,
-      fixedAbatementAnnual: dto.fixedAbatementAnnual ?? config.fixedAbatementAnnual,
+      professionalExpenseRate:
+        dto.professionalExpenseRate ?? config.professionalExpenseRate,
+      fixedAbatementAnnual:
+        dto.fixedAbatementAnnual ?? config.fixedAbatementAnnual,
       riskGroupARate: dto.riskGroupARate ?? config.riskGroupARate,
       riskGroupBRate: dto.riskGroupBRate ?? config.riskGroupBRate,
       riskGroupCRate: dto.riskGroupCRate ?? config.riskGroupCRate,

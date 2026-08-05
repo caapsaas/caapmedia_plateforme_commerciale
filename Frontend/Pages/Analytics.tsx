@@ -2,20 +2,21 @@ import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '../i18n';
 import { useAuth } from '../context/AuthContext';
-import { UserRole } from '../types';
+import { UserRole, AccountType } from '../types';
 import PeriodFilter from '../components/filters/PeriodFilter';
 import DashboardView from '../components/analytics/DashboardView';
-import SalesAnalysisView from '../components/analytics/SalesAnalysisView';
-import PurchaseAnalysisView from '../components/analytics/PurchaseAnalysisView';
-import BankView from '../components/analytics/BankView';
-import SafeView from '../components/analytics/SafeView';
+import TreasuryAccountsAndTransactions from '../components/analytics/TreasuryAccountsAndTransactions';
 import DashboardViewSkeleton from '../components/analytics/DashboardViewSkeleton';
-import SalesAnalysisViewSkeleton from '../components/analytics/SalesAnalysisViewSkeleton';
-import PurchaseAnalysisViewSkeleton from '../components/analytics/PurchaseAnalysisViewSkeleton';
-import { getDashboardStats, getSalesAnalysis, getPurchaseAnalysis, PeriodFilter as PeriodFilterType } from '../services/apiStatistic/apiAnalytics';
+import { getDashboardStats, PeriodFilter as PeriodFilterType } from '../services/apiStatistic/apiAnalytics';
 import { getSubsidiaries } from '../services/apiCommon/apiSubsidiaries';
 
-type AnalyticsView = 'dashboard' | 'sales' | 'purchases' | 'banks' | 'safe';
+// "Analyse" — Tableau de bord + suivi des comptes de trésorerie (Banque,
+// Coffre-fort, Caisse, Caisse dépense). L'analyse des ventes/achats vit
+// désormais dans ses propres pages (SalesAnalysisPage/PurchaseAnalysisPage),
+// et le décaissement dans sa propre page (Pages/Disbursement.tsx) — même
+// découpage que le sidebar gmo (dropdown "Tableau de bord" à 3 entrées,
+// "Décaissement" à part).
+type AnalyticsView = 'dashboard' | 'banks' | 'safe' | 'cash' | 'expenseBox';
 
 const Analytics: React.FC = () => {
     const { t } = useI18n();
@@ -72,49 +73,36 @@ const Analytics: React.FC = () => {
         enabled: activeTab === 'dashboard' && isCustomPeriodValid,
     });
 
-    const { data: salesAnalysisData, isLoading: isLoadingSales } = useQuery({
-        queryKey: ['salesAnalysis', queryParams, effectiveSubsidiaryId],
-        queryFn: () => getSalesAnalysis(queryParams, effectiveSubsidiaryId),
-        enabled: activeTab === 'sales' && isCustomPeriodValid,
-    });
-
-    const { data: purchaseAnalysisData, isLoading: isLoadingPurchases } = useQuery({
-        queryKey: ['purchaseAnalysis', queryParams, effectiveSubsidiaryId],
-        queryFn: () => getPurchaseAnalysis(queryParams, effectiveSubsidiaryId),
-        enabled: activeTab === 'purchases' && isCustomPeriodValid,
-    });
-
     const renderActiveView = () => {
         if (selectedPeriod === 'custom' && (!startDate || !endDate || startDate > endDate)) {
             return <div className="p-6 text-center text-slate-500">{t('analytics.periods.selectDates')}</div>;
         }
-        // Only show loading if the current active tab's data is loading
         if (activeTab === 'dashboard' && isLoadingDashboard) return <DashboardViewSkeleton />;
-        if (activeTab === 'sales' && isLoadingSales) return <SalesAnalysisViewSkeleton />;
-        if (activeTab === 'purchases' && isLoadingPurchases) return <PurchaseAnalysisViewSkeleton />;
+
+        if (!subsidiary) return null;
 
         switch (activeTab) {
             case 'dashboard':
                 return dashboardData ? <DashboardView data={dashboardData} /> : null;
-            case 'sales':
-                return salesAnalysisData ? <SalesAnalysisView data={salesAnalysisData} /> : null;
-            case 'purchases':
-                return purchaseAnalysisData ? <PurchaseAnalysisView data={purchaseAnalysisData} /> : null;
             case 'banks':
-                 // Ces vues n'ont pas encore d'API, on garde l'ancienne structure pour l'instant
-                return subsidiary ? <BankView subsidiary={subsidiary} period={selectedPeriod} startDate={startDate || undefined} endDate={endDate || undefined} /> : null;
+                return <TreasuryAccountsAndTransactions subsidiary={subsidiary} accountType={AccountType.BANQUE} title={t('analytics.tabs.banks')} period={selectedPeriod} startDate={startDate || undefined} endDate={endDate || undefined} />;
             case 'safe':
-                return subsidiary ? <SafeView subsidiary={subsidiary} period={selectedPeriod} startDate={startDate || undefined} endDate={endDate || undefined} /> : null;
+                return <TreasuryAccountsAndTransactions subsidiary={subsidiary} accountType={AccountType.SAFE} title={t('analytics.tabs.safe')} period={selectedPeriod} startDate={startDate || undefined} endDate={endDate || undefined} />;
+            case 'cash':
+                return <TreasuryAccountsAndTransactions subsidiary={subsidiary} accountType={AccountType.CAISSE} title={t('analytics.tabs.cash')} period={selectedPeriod} startDate={startDate || undefined} endDate={endDate || undefined} />;
+            case 'expenseBox':
+                return <TreasuryAccountsAndTransactions subsidiary={subsidiary} accountType={AccountType.EXPENSE_BOX} title={t('analytics.tabs.expenseBox')} period={selectedPeriod} startDate={startDate || undefined} endDate={endDate || undefined} />;
             default:
-                return dashboardData ? <DashboardView data={dashboardData} /> : null;        }
+                return dashboardData ? <DashboardView data={dashboardData} /> : null;
+        }
     };
 
     const TABS: { view: AnalyticsView; label: string }[] = [
         { view: 'dashboard', label: t('analytics.tabs.dashboard') },
-        { view: 'sales', label: t('analytics.tabs.salesAnalysis') },
-        { view: 'purchases', label: t('analytics.tabs.purchaseAnalysis') },
         { view: 'banks', label: t('analytics.tabs.banks') },
         { view: 'safe', label: t('analytics.tabs.safe') },
+        { view: 'cash', label: t('analytics.tabs.cash') },
+        { view: 'expenseBox', label: t('analytics.tabs.expenseBox') },
     ];
 
     const TabButton: React.FC<{ view: AnalyticsView; label: string }> = ({ view, label }) => (
@@ -165,7 +153,7 @@ const Analytics: React.FC = () => {
                     ))}
                 </nav>
             </div>
-            
+
             <div className="mt-6">
                 {renderActiveView()}
             </div>

@@ -51,7 +51,8 @@ export class AttendanceRecordService {
         arrivalLatitude: createAttendanceRecordDto.arrivalLatitude ?? null,
         arrivalLongitude: createAttendanceRecordDto.arrivalLongitude ?? null,
         departureLatitude: createAttendanceRecordDto.departureLatitude ?? null,
-        departureLongitude: createAttendanceRecordDto.departureLongitude ?? null,
+        departureLongitude:
+          createAttendanceRecordDto.departureLongitude ?? null,
         isGeolocationValid:
           createAttendanceRecordDto.isGeolocationValid ?? false,
         accuracyMeters: createAttendanceRecordDto.accuracyMeters ?? null,
@@ -63,13 +64,24 @@ export class AttendanceRecordService {
     });
   }
 
+  // ------------------------------------------------------------------
+  // Vérifier s'il existe déjà une présence aujourd'hui
+  // ------------------------------------------------------------------
   async findTodayRecord(
     employeeId: string,
     subsidiaryId: string,
   ): Promise<AttendanceRecord | null> {
     const now = new Date();
     const startOfDay = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0),
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        0,
+        0,
+        0,
+        0,
+      ),
     );
     const endOfDay = new Date(
       Date.UTC(

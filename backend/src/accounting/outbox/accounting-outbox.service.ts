@@ -13,6 +13,7 @@ export interface AccountingOutboxPayload {
   description: string;
   sourceId: string;
   accountType?: AccountType;
+  destinationAccountType?: AccountType;
   expenseCategory?: ExpenseCategory;
   withTva?: boolean;
 }

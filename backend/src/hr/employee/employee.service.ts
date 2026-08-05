@@ -49,7 +49,9 @@ export class EmployeeService {
 
     // Convert leaveBalances from array format to object format if includeRelations was used
     if (employee.leaveBalances && Array.isArray(employee.leaveBalances)) {
-      dto.leaveBalance = this.convertLeaveBalancesToFrontendFormat(employee.leaveBalances);
+      dto.leaveBalance = this.convertLeaveBalancesToFrontendFormat(
+        employee.leaveBalances,
+      );
     }
 
     return dto;
@@ -793,7 +795,7 @@ export class EmployeeService {
 
             // Check if document already exists
             const existingDoc = existingDocs.find(
-              (d) => d.docType === docType && d.documentName === docName
+              (d) => d.docType === docType && d.documentName === docName,
             );
 
             if (existingDoc) {
