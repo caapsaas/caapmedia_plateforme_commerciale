@@ -18,7 +18,7 @@ const MeetingFormModal: React.FC<MeetingFormModalProps> = ({ isOpen, onClose, on
     const initialFormState = {
         title: '',
         date: new Date().toISOString().split('T')[0],
-        time: '',
+        time: '09:00', // Default to 9 AM
         location: '',
         participants: [] as string[],
         agenda: '',
@@ -57,19 +57,15 @@ const MeetingFormModal: React.FC<MeetingFormModalProps> = ({ isOpen, onClose, on
    const handleSubmit = (e: React.FormEvent) => {
   e.preventDefault();
 
-  // Fusionne la date et l'heure pour former des objets Date valides
-  const meetingDate = new Date(formData.date); // date seule
-  const meetingTime = new Date(`${formData.date}T${formData.time}:00`); // date + heure exacte
+  // Fusionne la date et l’heure pour former un objet Date valide
+  const meetingDateTime = new Date(`${formData.date}T${formData.time}:00`);
 
-  // ✅ correspond parfaitement au CreateMeetingDto
+  // ✅ correspond au CreateMeetingDto
   const payload = {
     title: formData.title,
-    meetingDate, // objet Date
-    meetingTime, // objet Date
+    meetingDateTime, // objet Date combinant date + heure
     meetingLocation: formData.location,
-    agenda: formData.agenda || '',
-    minutes: formData.minutes || '',
-    subsidiaryId: subsidiary?.id, // 👈 UUID obligatoire
+    agenda: formData.agenda || ‘’,
     participantIds: formData.participants, // tableau d’UUID
   };
 

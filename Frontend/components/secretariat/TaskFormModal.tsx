@@ -45,7 +45,18 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({ isOpen, onClose, onSave, 
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave({ id: task?.id, subsidiaryId: subsidiary.id, ...formData });
+        const payload: any = {
+            id: task?.id,
+            title: formData.title,
+            description: formData.description,
+            dueDate: formData.dueDate,
+            status: formData.status,
+        };
+        // Only include assignedToId if it's not empty
+        if (formData.assignedToId) {
+            payload.assignedToId = formData.assignedToId;
+        }
+        onSave(payload);
     };
 
     if (!isOpen) return null;
@@ -70,8 +81,8 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({ isOpen, onClose, onSave, 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="assignedToId" className="block text-sm font-medium text-slate-700">{t('secretariat.tasks.table.assignedTo')}</label>
-                                    <select name="assignedToId" id="assignedToId" value={formData.assignedToId} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
-                                        <option value="" disabled>Select an employee</option>
+                                    <select name="assignedToId" id="assignedToId" value={formData.assignedToId} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
+                                        <option value="">-- Not assigned --</option>
                                         {employees.map(emp => <option key={emp.id} value={emp.id}>{`${emp.firstName} ${emp.lastName}`}</option>)}
                                     </select>
                                 </div>
