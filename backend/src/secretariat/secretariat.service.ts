@@ -4,7 +4,6 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { Logger } from '@nestjs/common';
 import { PrismaService } from '../../src/common/utils/prisma/prisma.service';
 import { LoggerService } from '../../src/common/utils/logger/logger.service';
 import {
@@ -23,6 +22,11 @@ import {
 } from './dto/task.dto';
 import { PaginationQueryDto } from '../common/pagination/dto/pagination-query.dto';
 import { paginate } from '../common/pagination/pagination';
+import {
+  withSubsidiaryScope,
+  assertSubsidiaryAccess,
+  SubsidiaryScopeContext,
+} from '../common/utils/subsidiary-scope';
 
 @Injectable()
 export class SecretariatService {
@@ -153,18 +157,8 @@ export class SecretariatService {
         'Not authorized to update this company document',
       );
     }
-    if (
-      currentUser.role !== UserRole.ADMIN &&
-      currentUser.subsidiaryId !== document.subsidiaryId
-    ) {
-      this.logger.error(
-        `User ${currentUser.id} cannot update document from subsidiary ${document.subsidiaryId}`,
-        'SecretariatService',
-      );
-      throw new ForbiddenException(
-        'Cannot update a document from another subsidiary',
-      );
-    }
+    const ctx = { subsidiaryId: currentUser.subsidiaryId, hasGlobalScope: currentUser.role === UserRole.ADMIN };
+    assertSubsidiaryAccess(document.subsidiaryId, ctx);
 
     // Construire les données de mise à jour
     const updateData: Prisma.CompanyDocumentUpdateInput = { ...dto };
@@ -216,18 +210,8 @@ export class SecretariatService {
         'Not authorized to delete this company document',
       );
     }
-    if (
-      currentUser.role !== UserRole.ADMIN &&
-      currentUser.subsidiaryId !== document.subsidiaryId
-    ) {
-      this.logger.error(
-        `User ${currentUser.id} cannot delete document from subsidiary ${document.subsidiaryId}`,
-        'SecretariatService',
-      );
-      throw new ForbiddenException(
-        'Cannot delete a document from another subsidiary',
-      );
-    }
+    const ctx = { subsidiaryId: currentUser.subsidiaryId, hasGlobalScope: currentUser.role === UserRole.ADMIN };
+    assertSubsidiaryAccess(document.subsidiaryId, ctx);
 
     // Supprimer le document
     await this.prisma.companyDocument.delete({ where: { id } });
@@ -240,18 +224,10 @@ export class SecretariatService {
   }
 
   async getAllCompanyDocuments(
-    currentUser: {
-      id: string;
-      role: UserRole;
-      subsidiaryId: string;
-    },
+    ctx: SubsidiaryScopeContext,
     paginationQuery: PaginationQueryDto = {},
   ) {
-    // Les admins peuvent voir tous les documents, les autres sont limités à leur filiale
-    const where: Prisma.CompanyDocumentWhereInput =
-      currentUser.role === UserRole.ADMIN
-        ? {}
-        : { subsidiaryId: currentUser.subsidiaryId };
+    let where: Prisma.CompanyDocumentWhereInput = {};
 
     if (paginationQuery.search) {
       where.documentName = {
@@ -259,6 +235,8 @@ export class SecretariatService {
         mode: 'insensitive',
       };
     }
+
+    where = withSubsidiaryScope(where, ctx);
 
     const result = await paginate(
       this.prisma.companyDocument,
@@ -300,18 +278,8 @@ export class SecretariatService {
         'Not authorized to archive this company document',
       );
     }
-    if (
-      currentUser.role !== UserRole.ADMIN &&
-      currentUser.subsidiaryId !== document.subsidiaryId
-    ) {
-      this.logger.error(
-        `User ${currentUser.id} cannot archive document from subsidiary ${document.subsidiaryId}`,
-        'SecretariatService',
-      );
-      throw new ForbiddenException(
-        'Cannot archive a document from another subsidiary',
-      );
-    }
+    const ctx = { subsidiaryId: currentUser.subsidiaryId, hasGlobalScope: currentUser.role === UserRole.ADMIN };
+    assertSubsidiaryAccess(document.subsidiaryId, ctx);
 
     // Archiver le document
     const archivedDocument = await this.prisma.companyDocument.update({
@@ -333,13 +301,9 @@ export class SecretariatService {
       status?: DocumentStatus;
       includeArchived?: boolean;
     } & PaginationQueryDto,
-    currentUser: { id: string; role: UserRole; subsidiaryId: string },
+    ctx: SubsidiaryScopeContext,
   ) {
-    // Construire les conditions de recherche
-    const where: any =
-      currentUser.role === UserRole.ADMIN
-        ? {}
-        : { subsidiaryId: currentUser.subsidiaryId };
+    let where: any = {};
 
     // Par défaut, exclure les documents archivés
     if (!query.includeArchived) {
@@ -358,6 +322,8 @@ export class SecretariatService {
     if (query.status) {
       where.status = query.status;
     }
+
+    where = withSubsidiaryScope(where, ctx);
 
     const result = await paginate(
       this.prisma.companyDocument,
@@ -517,18 +483,8 @@ export class SecretariatService {
         'Not authorized to update this meeting',
       );
     }
-    if (
-      currentUser.role !== UserRole.ADMIN &&
-      currentUser.subsidiaryId !== meeting.subsidiaryId
-    ) {
-      this.logger.error(
-        `User ${currentUser.id} cannot update meeting from subsidiary ${meeting.subsidiaryId}`,
-        'SecretariatService',
-      );
-      throw new ForbiddenException(
-        'Cannot update a meeting from another subsidiary',
-      );
-    }
+    const ctx = { subsidiaryId: currentUser.subsidiaryId, hasGlobalScope: currentUser.role === UserRole.ADMIN };
+    assertSubsidiaryAccess(meeting.subsidiaryId, ctx);
 
     // Vérifier si des données de mise à jour sont fournies
     if (!data || Object.keys(data).length === 0) {
@@ -627,18 +583,8 @@ export class SecretariatService {
         'Not authorized to delete this meeting',
       );
     }
-    if (
-      currentUser.role !== UserRole.ADMIN &&
-      currentUser.subsidiaryId !== meeting.subsidiaryId
-    ) {
-      this.logger.error(
-        `User ${currentUser.id} cannot delete meeting from subsidiary ${meeting.subsidiaryId}`,
-        'SecretariatService',
-      );
-      throw new ForbiddenException(
-        'Cannot delete a meeting from another subsidiary',
-      );
-    }
+    const ctx = { subsidiaryId: currentUser.subsidiaryId, hasGlobalScope: currentUser.role === UserRole.ADMIN };
+    assertSubsidiaryAccess(meeting.subsidiaryId, ctx);
 
     // Supprimer la réunion (cascade supprime les participants)
     await this.prisma.meeting.delete({ where: { id } });
@@ -648,22 +594,16 @@ export class SecretariatService {
   }
 
   async getAllMeetings(
-    currentUser: {
-      id: string;
-      role: UserRole;
-      subsidiaryId: string;
-    },
+    ctx: SubsidiaryScopeContext,
     paginationQuery: PaginationQueryDto = {},
   ) {
-    // Les admins peuvent voir toutes les réunions, les autres sont limités à leur filiale
-    const where: Prisma.MeetingWhereInput =
-      currentUser.role === UserRole.ADMIN
-        ? {}
-        : { subsidiaryId: currentUser.subsidiaryId };
+    let where: Prisma.MeetingWhereInput = {};
 
     if (paginationQuery.search) {
       where.title = { contains: paginationQuery.search, mode: 'insensitive' };
     }
+
+    where = withSubsidiaryScope(where, ctx);
 
     const result = await paginate(
       this.prisma.meeting,
@@ -690,19 +630,18 @@ export class SecretariatService {
 
   async searchMeetings(
     query: { title?: string; meetingDateTime?: Date } & PaginationQueryDto,
-    currentUser: { id: string; role: UserRole; subsidiaryId: string },
+    ctx: SubsidiaryScopeContext,
   ) {
-    // Construire les conditions de recherche
-    const where: any =
-      currentUser.role === UserRole.ADMIN
-        ? {}
-        : { subsidiaryId: currentUser.subsidiaryId };
+    let where: any = {};
+
     if (query.title) {
       where.title = { contains: query.title, mode: 'insensitive' };
     }
     if (query.meetingDateTime) {
       where.meetingDateTime = query.meetingDateTime;
     }
+
+    where = withSubsidiaryScope(where, ctx);
 
     const result = await paginate(
       this.prisma.meeting,
@@ -955,18 +894,8 @@ export class SecretariatService {
         'Not authorized to update this secretariat task',
       );
     }
-    if (
-      currentUser.role !== UserRole.ADMIN &&
-      currentUser.subsidiaryId !== task.subsidiaryId
-    ) {
-      this.logger.error(
-        `User ${currentUser.id} cannot update task from subsidiary ${task.subsidiaryId}`,
-        'SecretariatService',
-      );
-      throw new ForbiddenException(
-        'Cannot update a task from another subsidiary',
-      );
-    }
+    const ctx = { subsidiaryId: currentUser.subsidiaryId, hasGlobalScope: currentUser.role === UserRole.ADMIN };
+    assertSubsidiaryAccess(task.subsidiaryId, ctx);
 
     // Vérifier si des données de mise à jour sont fournies
     if (!dto || Object.keys(dto).length === 0) {
@@ -1031,18 +960,8 @@ export class SecretariatService {
         'Not authorized to delete this secretariat task',
       );
     }
-    if (
-      currentUser.role !== UserRole.ADMIN &&
-      currentUser.subsidiaryId !== task.subsidiaryId
-    ) {
-      this.logger.error(
-        `User ${currentUser.id} cannot delete task from subsidiary ${task.subsidiaryId}`,
-        'SecretariatService',
-      );
-      throw new ForbiddenException(
-        'Cannot delete a task from another subsidiary',
-      );
-    }
+    const ctx = { subsidiaryId: currentUser.subsidiaryId, hasGlobalScope: currentUser.role === UserRole.ADMIN };
+    assertSubsidiaryAccess(task.subsidiaryId, ctx);
 
     // Supprimer la tâche
     await this.prisma.secretariatTask.delete({ where: { id } });
@@ -1055,22 +974,16 @@ export class SecretariatService {
   }
 
   async getAllSecretariatTasks(
-    currentUser: {
-      id: string;
-      role: UserRole;
-      subsidiaryId: string;
-    },
+    ctx: SubsidiaryScopeContext,
     paginationQuery: PaginationQueryDto = {},
   ) {
-    // Les admins peuvent voir toutes les tâches, les autres sont limités à leur filiale
-    const where: Prisma.SecretariatTaskWhereInput =
-      currentUser.role === UserRole.ADMIN
-        ? {}
-        : { subsidiaryId: currentUser.subsidiaryId };
+    let where: Prisma.SecretariatTaskWhereInput = {};
 
     if (paginationQuery.search) {
       where.title = { contains: paginationQuery.search, mode: 'insensitive' };
     }
+
+    where = withSubsidiaryScope(where, ctx);
 
     const result = await paginate(
       this.prisma.secretariatTask,
@@ -1095,13 +1008,10 @@ export class SecretariatService {
       status?: SecretariatTaskStatus;
       dueDate?: Date;
     } & PaginationQueryDto,
-    currentUser: { id: string; role: UserRole; subsidiaryId: string },
+    ctx: SubsidiaryScopeContext,
   ) {
-    // Construire les conditions de recherche
-    const where: any =
-      currentUser.role === UserRole.ADMIN
-        ? {}
-        : { subsidiaryId: currentUser.subsidiaryId };
+    let where: any = {};
+
     if (query.title) {
       where.title = { contains: query.title, mode: 'insensitive' };
     }
@@ -1111,6 +1021,8 @@ export class SecretariatService {
     if (query.dueDate) {
       where.dueDate = query.dueDate;
     }
+
+    where = withSubsidiaryScope(where, ctx);
 
     const result = await paginate(
       this.prisma.secretariatTask,

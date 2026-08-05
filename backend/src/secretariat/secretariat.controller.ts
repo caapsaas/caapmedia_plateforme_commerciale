@@ -43,6 +43,10 @@ import {
   UpdateSecretariatTaskDto,
   SearchSecretariatTasksDto,
 } from './dto/task.dto';
+import {
+  resolveScopeContext,
+  assertSubsidiaryAccess,
+} from '../common/utils/subsidiary-scope';
 
 @Controller('secretariat')
 @UseGuards(JwtAuthGuard, RoleGuard, SubsidiaryGuard)
@@ -162,8 +166,9 @@ export class SecretariatController {
     @Req() req,
     @Query() paginationQuery: PaginationQueryDto,
   ) {
+    const ctx = resolveScopeContext(req.user);
     return this.secretariatService.getAllCompanyDocuments(
-      req.user,
+      ctx,
       paginationQuery,
     );
   }
@@ -174,7 +179,8 @@ export class SecretariatController {
     @Query() query: SearchCompanyDocumentsDto,
     @Req() req,
   ) {
-    return this.secretariatService.searchCompanyDocuments(query, req.user);
+    const ctx = resolveScopeContext(req.user);
+    return this.secretariatService.searchCompanyDocuments(query, ctx);
   }
 
   // Endpoints for Meeting
@@ -208,14 +214,16 @@ export class SecretariatController {
     @Req() req,
     @Query() paginationQuery: PaginationQueryDto,
   ) {
-    return this.secretariatService.getAllMeetings(req.user, paginationQuery);
+    const ctx = resolveScopeContext(req.user);
+    return this.secretariatService.getAllMeetings(ctx, paginationQuery);
   }
 
   @Roles(UserRole.SECRETARY, UserRole.ADMIN)
   @Get('meetings/search')
   @UsePipes(new ValidationPipe({ transform: true })) // Validation auto du DTO (title, meetingDate optionnels)
   async searchMeetings(@Query() query: SearchMeetingsDto, @Req() req) {
-    return this.secretariatService.searchMeetings(query, req.user);
+    const ctx = resolveScopeContext(req.user);
+    return this.secretariatService.searchMeetings(query, ctx);
   }
 
   // Nouveaux endpoints pour gérer les participants individuellement
@@ -281,8 +289,9 @@ export class SecretariatController {
     @Req() req,
     @Query() paginationQuery: PaginationQueryDto,
   ) {
+    const ctx = resolveScopeContext(req.user);
     return this.secretariatService.getAllSecretariatTasks(
-      req.user,
+      ctx,
       paginationQuery,
     );
   }
@@ -294,6 +303,7 @@ export class SecretariatController {
     @Query() query: SearchSecretariatTasksDto,
     @Req() req,
   ) {
-    return this.secretariatService.searchSecretariatTasks(query, req.user);
+    const ctx = resolveScopeContext(req.user);
+    return this.secretariatService.searchSecretariatTasks(query, ctx);
   }
 }
