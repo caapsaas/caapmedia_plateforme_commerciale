@@ -11,7 +11,7 @@ import CameroonPayrollWidget from './CameroonPayrollWidget';
 import LeaveBalanceWidget from './LeaveBalanceWidget';
 import DocumentUploadSection from './DocumentUploadSection';
 import LeaveManagementSection from './LeaveManagementSection';
-import { getTreasuryAccounts } from '../../services/apiFinance/apiTreasuryAccounts';
+import { getTreasuryAccounts } from '../../services/apiFinance/apiTreasury';
 import { Plus, Edit, User, Briefcase, DollarSign, FileText, Umbrella } from '../ui/Icons';
 
 interface EmployeeFormModalModernProps {

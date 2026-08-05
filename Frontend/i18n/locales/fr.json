@@ -34,6 +34,12 @@
     "openMenu": "Ouvrir le menu",
     "changeRole": "Changer de rôle"
   },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "Aucune notification",
+    "markAllAsRead": "Tout marquer comme lu",
+    "viewAll": "Voir tout"
+  },
   "common": {
     "cancel": "Annuler",
     "save": "Enregistrer",

@@ -24,9 +24,13 @@ export interface SupplierDebtPaymentData {
 export type LongTermDebtCreationData = Omit<LongTermDebt, 'id' | 'subsidiaryId' | 'currentBalance'>;
 
 /**
- * Données pour la mise à jour d'une dette à long terme.
+ * Données pour la mise à jour d'une dette à long terme — le backend
+ * (UpdateLongTermDebtDto) n'autorise que l'ajustement du solde restant, pas
+ * la modification du nom/taux/échéance figés à la création.
  */
-export type LongTermDebtUpdateData = Partial<LongTermDebtCreationData>;
+export interface LongTermDebtUpdateData {
+  currentBalance?: number;
+}
 
 
 // ================================================================= //

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '../../i18n';
 import { Lead, Product, TaxRate } from '../../types';
-import { createProforma, CreateProformaData, ProformaItem } from '../../services/apiCrm/apiProformas';
+import { createProforma, updateProforma, CreateProformaData, ProformaItem, Proforma } from '../../services/apiCrm/apiProformas';
 import { getLeadsPaginated } from '../../services/apiCrm/apiCrm';
 import { getProductsPaginated } from '../../services/apiE-commerce/apiProducts';
 import { getTaxes } from '../../services/apiE-commerce/apitaxes';
@@ -14,11 +14,13 @@ import { AsyncSelect } from '../ui/AsyncSelect';
 interface CreateProformaModalProps {
   isOpen: boolean;
   onClose: () => void;
+  proformaToEdit?: Proforma | null;
 }
 
-const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClose }) => {
+const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClose, proformaToEdit = null }) => {
   const { t } = useI18n();
   const queryClient = useQueryClient();
+  const isEditMode = !!proformaToEdit;
   const [selectedLeadId, setSelectedLeadId] = useState<string>('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [clientName, setClientName] = useState('');
@@ -46,13 +48,45 @@ const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClo
   // Pré-remplit le taux de TVA avec le taux par défaut configuré côté backend
   // dès qu'il est chargé — tant que le commercial n'a pas modifié le champ.
   useEffect(() => {
-    if (taxRateTouched) return;
+    if (taxRateTouched || isEditMode) return;
     const defaultRate = taxRates.find((t) => t.isDefault);
     if (defaultRate) setTaxRate(defaultRate.rate * 100);
-  }, [taxRates, taxRateTouched]);
+  }, [taxRates, taxRateTouched, isEditMode]);
+
+  // Pré-remplissage en mode édition — le lead n'est volontairement pas
+  // modifiable (le backend n'accepte pas leadId sur update-proforma.dto.ts).
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!proformaToEdit) return;
+
+    setSelectedLeadId(proformaToEdit.leadId);
+    setClientName(proformaToEdit.clientName);
+    setClientEmail(proformaToEdit.clientEmail);
+    setClientPhone(proformaToEdit.clientPhone);
+    setClientCompany(proformaToEdit.clientCompany || '');
+    setTaxRate(Number(proformaToEdit.taxRate));
+    setTaxRateTouched(true);
+    setNotes(proformaToEdit.notes || '');
+    setItems(
+      (proformaToEdit.items || []).map((item: any) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        description: item.description || '',
+      })),
+    );
+    setProductLabels((prev) => {
+      const next = { ...prev };
+      for (const item of proformaToEdit.items || []) {
+        if (item.product) next[item.productId] = `${item.product.name} (${item.product.category})`;
+      }
+      return next;
+    });
+  }, [isOpen, proformaToEdit]);
 
   const mutation = useMutation({
-    mutationFn: (data: CreateProformaData) => createProforma(data),
+    mutationFn: (data: CreateProformaData) =>
+      isEditMode ? updateProforma(proformaToEdit!.id, data) : createProforma(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proformas'] });
       setIsSuccess(true);
@@ -154,11 +188,11 @@ const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClo
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white">
           <h2 className="text-xl font-bold text-slate-800">
-            {isSuccess ? '✅ Proforma Créée' : 'Créer une Proforma'}
+            {isSuccess ? (isEditMode ? 'Proforma Modifiée' : 'Proforma Créée') : (isEditMode ? 'Modifier la Proforma' : 'Créer une Proforma')}
           </h2>
           {!isSuccess && (
             <button
@@ -173,24 +207,28 @@ const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClo
         {isSuccess ? (
           <div className="p-8 text-center">
             <IconCheckCircle className="h-16 w-16 mx-auto text-green-500 mb-4" />
-            <p className="text-slate-600">La proforma a été créée avec succès!</p>
+            <p className="text-slate-600">{isEditMode ? 'La proforma a été modifiée avec succès!' : 'La proforma a été créée avec succès!'}</p>
           </div>
         ) : (
           <div className="p-6 space-y-6">
-            {/* Sélection du Lead */}
+            {/* Sélection du Lead — verrouillée en édition (non modifiable côté backend) */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Sélectionner un Lead *
+                Lead *
               </label>
-              <AsyncSelect<Lead>
-                queryKey="proforma-leads"
-                placeholder="-- Choisir un lead --"
-                value={selectedLeadId || undefined}
-                onChange={handleSelectLead}
-                getOptionLabel={(l) => `${l.leadName} (${l.company})`}
-                getOptionValue={(l) => l.id}
-                fetcher={({ page, limit, search }) => getLeadsPaginated({ page, limit, search })}
-              />
+              {isEditMode ? (
+                <p className="px-4 py-2 bg-slate-100 rounded-md text-slate-700">{clientName} ({clientCompany || '—'})</p>
+              ) : (
+                <AsyncSelect<Lead>
+                  queryKey="proforma-leads"
+                  placeholder="-- Choisir un lead --"
+                  value={selectedLeadId || undefined}
+                  onChange={handleSelectLead}
+                  getOptionLabel={(l) => `${l.leadName} (${l.company})`}
+                  getOptionValue={(l) => l.id}
+                  fetcher={({ page, limit, search }) => getLeadsPaginated({ page, limit, search })}
+                />
+              )}
             </div>
 
             {/* Informations Client */}
@@ -409,7 +447,7 @@ const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClo
         )}
 
         {!isSuccess && (
-          <div className="px-6 py-4 bg-slate-50 flex justify-end gap-3 border-t">
+          <div className="px-6 py-4 bg-slate-50 flex justify-end gap-3 border-t rounded-b-lg">
             <button
               onClick={onClose}
               className="px-6 py-2 border border-slate-300 text-slate-800 rounded-lg hover:bg-slate-100"
@@ -421,7 +459,7 @@ const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClo
               disabled={mutation.isPending}
               className="px-6 py-2 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f] disabled:bg-slate-400"
             >
-              {mutation.isPending ? 'Création...' : 'Créer Proforma'}
+              {mutation.isPending ? (isEditMode ? 'Modification...' : 'Création...') : (isEditMode ? 'Enregistrer les modifications' : 'Créer Proforma')}
             </button>
           </div>
         )}

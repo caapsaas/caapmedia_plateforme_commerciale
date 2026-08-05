@@ -11,6 +11,13 @@ import CustomerAccountPage from './components/customer/CustomerAccountPage';
 import AttendanceCards from './components/hr/AttendanceCards';
 import AttendanceHistory from './components/hr/AttendanceHistory';
 import Analytics from './Pages/Analytics';
+import SalesAnalysisPage from './Pages/SalesAnalysisPage';
+import PurchaseAnalysisPage from './Pages/PurchaseAnalysisPage';
+import Disbursement from './Pages/Disbursement';
+import ProformaPage from './Pages/ProformaPage';
+import CreditHistoryPage from './Pages/CreditHistoryPage';
+import FinancialHistoryPage from './Pages/FinancialHistoryPage';
+import NotificationsPage from './Pages/NotificationsPage';
 import Sales from './components/sales/Sales';
 import Crm from './Pages/Crm';
 import Stock from './Pages/Stock';
@@ -229,6 +236,18 @@ const financeRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '
 const accountingRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/accountings', component: Accounting });
 const accountingAccessRequestsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/accounting-access-requests', component: AccountingAccessAdmin });
 
+// Routes ajoutées pour aligner la structure du sidebar sur gmo : dropdown
+// "Tableau de bord" (Analyse / Analyse des ventes / Analyse des achats),
+// Décaissement à part, Proforma/Créances clients/Historique financier en
+// entrées de premier niveau (voir Sidebar.tsx).
+const salesAnalyticsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/sales-analytics', component: SalesAnalysisPage });
+const purchaseAnalyticsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/purchase-analytics', component: PurchaseAnalysisPage });
+const disbursementRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/disbursement', component: Disbursement });
+const proformaRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/proforma', component: ProformaPage });
+const creditHistoryRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/credit-history', component: CreditHistoryPage });
+const financialHistoryRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/financial-history', component: FinancialHistoryPage });
+const notificationsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/notifications', component: NotificationsPage });
+
 
 // 6. Création de l'arbre des routes
 const routeTree = rootRoute.addChildren([
@@ -248,6 +267,13 @@ const routeTree = rootRoute.addChildren([
     financeRoute,
     accountingRoute,
     accountingAccessRequestsRoute,
+    salesAnalyticsRoute,
+    purchaseAnalyticsRoute,
+    disbursementRoute,
+    proformaRoute,
+    creditHistoryRoute,
+    financialHistoryRoute,
+    notificationsRoute,
     configurationRoute,
     hrRoute.addChildren([
       hrCardsRoute,

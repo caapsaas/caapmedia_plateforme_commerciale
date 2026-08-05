@@ -11,7 +11,11 @@ export function getDefaultViewForRole(role?: UserRole): string {
     case UserRole.CAISSIER:
       return '/dashboard/caisse';
     case UserRole.COMMERCIAL:
-      return '/dashboard/crm';
+      // Aligné sur gmo (getDefaultViewForRole::COMMERCIAL -> View.SALES) —
+      // COMMERCIAL n'a plus accès au tableau de bord complet (voir
+      // ANALYTICS_ALLOWED_ROLES ci-dessous), Commandes est sa page
+      // d'atterrissage naturelle.
+      return '/dashboard/sales';
     case UserRole.PURCHASING_MANAGER:
       return '/dashboard/purchasing';
     case UserRole.SECRETARY:
@@ -32,15 +36,19 @@ export function getDefaultViewForRole(role?: UserRole): string {
 
 /**
  * Roles autorises a voir la page Analyses (/dashboard/) - doit rester en
- * synchro avec @Roles(...) sur GET /analytics/dashboard|sales|purchases cote
- * backend (statistics/analytics/analytics.controller.ts). Un role absent
- * d'ici qui atterrit quand meme sur /dashboard/ (ex: lien direct, retour
- * navigateur) voit une page blanche - toutes ses requetes analytics sont
- * rejetees en 403 sans que la page ne le signale.
+ * synchro avec @Roles(...) sur GET /analytics/dashboard cote backend
+ * (statistics/analytics/analytics.controller.ts). Un role absent d'ici qui
+ * atterrit quand meme sur /dashboard/ (ex: lien direct, retour navigateur)
+ * voit une page blanche - toutes ses requetes analytics sont rejetees en 403
+ * sans que la page ne le signale.
+ *
+ * COMMERCIAL n'y figure plus (retire, comme sur gmo) : ce role garde l'acces
+ * a /dashboard/sales-analytics (GET /analytics/sales reste ouvert a
+ * COMMERCIAL cote backend) mais pas au tableau de bord complet, qui inclut
+ * les onglets tresorerie (banque/coffre/caisse).
  */
 export const ANALYTICS_ALLOWED_ROLES: UserRole[] = [
   UserRole.ADMIN,
   UserRole.SUPER_ADMIN,
   UserRole.FINANCIAL_DIRECTOR,
-  UserRole.COMMERCIAL,
 ];

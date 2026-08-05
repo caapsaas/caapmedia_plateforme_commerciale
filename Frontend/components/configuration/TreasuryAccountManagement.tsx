@@ -8,7 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import TreasuryAccountFormModal from './TreasuryAccountFormModal';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
-import { getTreasuryAccounts, createTreasuryAccount, updateTreasuryAccount, deleteTreasuryAccount, CreateTreasuryAccountData, UpdateTreasuryAccountData } from '../../services/apiFinance/apiTreasuryAccounts';
+import { getTreasuryAccounts, createTreasuryAccount, updateTreasuryAccount, deleteTreasuryAccount, TreasuryAccountCreationData, TreasuryAccountUpdateData } from '../../services/apiFinance/apiTreasury';
 
 interface TreasuryAccountManagementProps {
   subsidiary: Subsidiary;
@@ -118,9 +118,12 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
   const handleAccountSaved = async (accountData: TreasuryAccount) => {
     try {
       if (editingAccount) {
-        // Mise à jour
-        const updateData: UpdateTreasuryAccountData = {
-          accountName: accountData.accountName
+        // Mise à jour (le solde et le type ne sont jamais modifiables après création)
+        const updateData: TreasuryAccountUpdateData = {
+          accountName: accountData.accountName,
+          cashierId: accountData.cashierId,
+          accountCode: accountData.accountCode,
+          accountNumber: accountData.accountNumber,
         };
         const updatedAccount = await updateTreasuryAccount(editingAccount.id, updateData);
         setAccounts(accounts.map(acc => acc.id === updatedAccount.id ? updatedAccount : acc));
@@ -135,11 +138,14 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
         toast('success', t('treasuryAccounts.success.updated'));
       } else {
         // Création
-        const createData: CreateTreasuryAccountData = {
+        const createData: TreasuryAccountCreationData = {
           accountName: accountData.accountName,
           initialBalance: accountData.balance,
           currency: accountData.currency,
-          accountType: accountData.accountType
+          accountType: accountData.accountType,
+          cashierId: accountData.cashierId,
+          accountCode: accountData.accountCode,
+          accountNumber: accountData.accountNumber,
         };
         const newAccount = await createTreasuryAccount(createData);
         setAccounts([...accounts, newAccount]);

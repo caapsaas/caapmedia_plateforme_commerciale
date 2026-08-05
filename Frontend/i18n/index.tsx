@@ -29,7 +29,8 @@ const frTranslations = {
     "create": "Créer",
     "update": "Mettre à jour",
     "saving": "Enregistrement...",
-    "accessDenied": "Accès refusé"
+    "accessDenied": "Accès refusé",
+    "total": "Total"
   },
   "contactModal": {
     "title": "Contactez-nous",
@@ -133,7 +134,18 @@ const frTranslations = {
     "secretariat": "Secrétariat",
     "production": "Production",
     "maintenance": "Maintenance",
-    "equipements": "Équipements"
+    "equipements": "Équipements",
+    "disbursement": "Décaissement",
+    "creditHistory": "Créances Clients",
+    "financialHistory": "Historique Financier",
+    "proforma": "Facture Proforma",
+    "salesAnalytics": "Analyse des Ventes",
+    "purchaseAnalytics": "Analyse des Achats",
+    "notifications": "Notifications"
+  },
+  "financialHistory": {
+    "incomeTab": "Recettes",
+    "expensesTab": "Paiements"
   },
   "header": {
     "profileUser": "Utilisateur {{role}}",
@@ -271,7 +283,9 @@ const frTranslations = {
       "salesAnalysis": "Analyse des Ventes",
       "purchaseAnalysis": "Analyse des Achats",
       "banks": "Banques",
-      "safe": "Coffre-fort"
+      "safe": "Coffre-fort",
+      "cash": "Caisse",
+      "expenseBox": "Caisse dépense"
     },
     "periods": {
       "seven_days": "7 derniers jours",
@@ -1115,6 +1129,40 @@ const frTranslations = {
     "modal": {
       "addIncome": "Ajouter une nouvelle recette",
       "addExpense": "Ajouter une nouvelle dépense"
+    },
+    "history": {
+      "title": "Historique du compte",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "date": "Date",
+      "description": "Description",
+      "account": "Compte / Tiers",
+      "reference": "Référence",
+      "amount": "Montant",
+      "balanceAfter": "Solde après",
+      "status": "Statut",
+      "statusUpdated": "Transaction validée",
+      "statusUpdatedMessage": "La transaction a été validée et le solde mis à jour.",
+      "statusUpdateError": "Erreur de validation",
+      "statusUpdateErrorMessage": "La validation de la transaction a échoué.",
+      "cancelled": "Transaction annulée",
+      "cancelledMessage": "La transaction en attente a été annulée.",
+      "cancelError": "Erreur d'annulation",
+      "cancelErrorMessage": "L'annulation de la transaction a échoué.",
+      "confirmCancel": "Annuler cette transaction en attente ? Cette action est irréversible."
+    },
+    "statement": {
+      "title": "Relevé de compte",
+      "selectPeriod": "Sélectionnez la période du relevé à générer.",
+      "generate": "Générer le relevé",
+      "changePeriod": "Changer la période",
+      "period": "Période",
+      "lines": "mouvement(s)",
+      "debit": "Débit",
+      "credit": "Crédit",
+      "balance": "Solde",
+      "currentBalance": "Solde actuel",
+      "footerMessage": "Ce relevé est généré à titre indicatif et ne remplace pas un document bancaire officiel."
     }
   },
   "treasuryAccounts": {
@@ -1180,6 +1228,11 @@ const frTranslations = {
       "deleteWithTransactions": "Impossible de supprimer ce compte car il contient des transactions financières.",
       "cannotDeleteNonZero": "Suppression impossible : solde de {{balance}}",
       "forceDeleteFailed": "La suppression forcée a échoué. Le serveur refuse toujours de supprimer ce compte."
+    },
+    "view": {
+      "disbursement": "Faire un décaissement",
+      "accountsSection": "Comptes",
+      "movementsSection": "Historique des mouvements"
     }
   },
   "supplierDebts": {
@@ -1193,7 +1246,53 @@ const frTranslations = {
     "status": "Statut",
     "statusToPay": "À payer",
     "statusPaid": "Payé",
-    "statusOverdue": "En retard"
+    "statusOverdue": "En retard",
+    "statusPending": "En attente",
+    "addDebt": "Nouvelle dette",
+    "pay": "Payer",
+    "paymentSuccess": "Paiement enregistré",
+    "paymentSuccessMessage": "La dette fournisseur a été marquée comme payée.",
+    "paymentError": "Erreur de paiement",
+    "paymentErrorMessage": "Le paiement de la dette a échoué.",
+    "createSuccess": "Dette créée",
+    "createSuccessMessage": "La dette fournisseur a été créée avec succès.",
+    "createError": "Erreur de création",
+    "createErrorMessage": "La création de la dette a échoué.",
+    "payModal": {
+      "title": "Payer la dette fournisseur",
+      "account": "Compte de trésorerie",
+      "date": "Date de paiement",
+      "submit": "Confirmer le paiement"
+    },
+    "createModal": {
+      "title": "Nouvelle dette fournisseur",
+      "purchaseOrder": "Bon de commande",
+      "invoiceUrl": "URL de la facture"
+    },
+    "longTerm": {
+      "tabTitle": "Dettes long terme",
+      "title": "Dettes à long terme",
+      "addDebt": "Nouvelle dette long terme",
+      "name": "Nom",
+      "initialAmount": "Montant initial",
+      "currentBalance": "Solde restant à modifier",
+      "interestRate": "Taux d'intérêt",
+      "maturityDate": "Date d'échéance",
+      "createSuccess": "Dette créée",
+      "createSuccessMessage": "La dette à long terme a été créée avec succès.",
+      "createError": "Erreur de création",
+      "createErrorMessage": "La création de la dette a échoué.",
+      "updateSuccess": "Dette mise à jour",
+      "updateSuccessMessage": "La dette à long terme a été mise à jour.",
+      "updateError": "Erreur de mise à jour",
+      "updateErrorMessage": "La mise à jour de la dette a échoué.",
+      "createModal": {
+        "title": "Nouvelle dette à long terme"
+      },
+      "editModal": {
+        "title": "Modifier la dette à long terme"
+      }
+    }
   },
   "expenses": {
     "title": "Gestion des Charges",
@@ -1234,6 +1333,167 @@ const frTranslations = {
       "allCategories": "Toutes les catégories",
       "type": "Type",
       "allTypes": "Tous les types"
+    }
+  },
+  "recurringExpenses": {
+    "title": "Dépenses récurrentes",
+    "addExpense": "Nouvelle dépense récurrente",
+    "table": {
+      "description": "Description",
+      "category": "Catégorie",
+      "amount": "Montant",
+      "frequency": "Fréquence",
+      "nextExecutionDate": "Prochaine échéance",
+      "endDate": "Fin",
+      "status": "Statut"
+    },
+    "frequency": {
+      "WEEKLY": "Hebdomadaire",
+      "MONTHLY": "Mensuelle",
+      "YEARLY": "Annuelle"
+    },
+    "statusActive": "Active",
+    "statusPaused": "En pause",
+    "pause": "Mettre en pause",
+    "resume": "Réactiver",
+    "deleteConfirmTitle": "Supprimer la dépense récurrente",
+    "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer cette dépense récurrente ? Les charges déjà générées ne seront pas affectées.",
+    "createSuccess": "Dépense récurrente créée",
+    "createSuccessMessage": "La dépense récurrente a été créée avec succès.",
+    "createError": "Erreur de création",
+    "createErrorMessage": "La création de la dépense récurrente a échoué.",
+    "updateSuccess": "Dépense récurrente mise à jour",
+    "updateSuccessMessage": "La dépense récurrente a été mise à jour.",
+    "updateError": "Erreur de mise à jour",
+    "updateErrorMessage": "La mise à jour a échoué.",
+    "deleteSuccess": "Dépense récurrente supprimée",
+    "deleteSuccessMessage": "La dépense récurrente a été supprimée.",
+    "deleteError": "Erreur de suppression",
+    "deleteErrorMessage": "La suppression a échoué.",
+    "modal": {
+      "addTitle": "Nouvelle dépense récurrente",
+      "editTitle": "Modifier la dépense récurrente",
+      "description": "Description",
+      "amount": "Montant",
+      "category": "Catégorie",
+      "type": "Type",
+      "frequency": "Fréquence",
+      "startDate": "Date de début",
+      "endDate": "Date de fin (optionnel)"
+    }
+  },
+  "taxTransparency": {
+    "title": "Fiscalité et paie",
+    "subtitle": "Consultation des charges sociales et fiscales et des relevés récapitulatifs",
+    "month": "Mois",
+    "year": "Année",
+    "payrollSection": "Charges sociales et fiscales sur la paie",
+    "vatSection": "TVA collectée sur les ventes",
+    "vatDisclaimer": "Ce suivi couvre uniquement la TVA collectée sur les ventes — la TVA déductible sur achats n'est pas encore trackée (aucune donnée de taxe sur les bons de commande fournisseurs).",
+    "cnpsTotal": "CNPS (total)",
+    "cfcTotal": "CFC (total)",
+    "irppTotal": "IRPP + CAC",
+    "fne": "FNE",
+    "grossSalary": "Masse salariale brute",
+    "netSalary": "Masse salariale nette",
+    "totalEmployerCost": "Coût employeur total",
+    "employeeCount": "Employés payés",
+    "employeeShare": "Part salariale",
+    "employerAndEmployee": "Employé + Employeur",
+    "allChargesCombined": "Toutes charges confondues",
+    "vatCollected": "TVA collectée",
+    "taxableSubtotal": "Base taxable (HT)",
+    "totalWithTax": "Total TTC",
+    "orderCount": "Commandes taxées",
+    "tabs": {
+      "resume": "Résumé",
+      "irpp": "Détail IRPP",
+      "cnps": "CNPS Détail",
+      "cfcFne": "CFC & FNE",
+      "tva": "Détail TVA"
+    },
+    "table": {
+      "employee": "Employé",
+      "matricule": "Matricule CNPS",
+      "base": "Base",
+      "employerShare": "Part patronale",
+      "client": "Client"
+    },
+    "declaration": {
+      "view": "Voir le relevé",
+      "irppTitle": "Relevé IRPP",
+      "footerMessage": "Ce relevé est un document de synthèse interne et ne remplace pas une déclaration fiscale officielle."
+    }
+  },
+  "proforma": {
+    "title": "Proformas (Devis)",
+    "create": "Créer Proforma",
+    "empty": "Aucune proforma trouvée",
+    "tabs": {
+      "all": "Toutes",
+      "draft": "Brouillons",
+      "sent": "Envoyées",
+      "accepted": "Acceptées",
+      "rejected": "Refusées"
+    },
+    "table": {
+      "number": "Numéro",
+      "client": "Client",
+      "email": "Email",
+      "totalAmount": "Montant Total",
+      "status": "Statut",
+      "createdAt": "Créée le"
+    },
+    "actions": {
+      "view": "Voir",
+      "edit": "Éditer",
+      "send": "Envoyer",
+      "resend": "Renvoyer",
+      "accept": "Accepter (convertit en commande)",
+      "reject": "Refuser",
+      "delete": "Supprimer"
+    },
+    "statuses": {
+      "DRAFT": "Brouillon",
+      "SENT": "Envoyée",
+      "VIEWED": "Vue",
+      "ACCEPTED": "Acceptée",
+      "CONVERTED": "Convertie",
+      "REJECTED": "Refusée",
+      "EXPIRED": "Expirée"
+    },
+    "deleteConfirmTitle": "Supprimer la proforma",
+    "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer la proforma {{number}} ?",
+    "acceptSuccess": "Proforma acceptée",
+    "acceptSuccessMessage": "La proforma a été convertie en commande.",
+    "acceptError": "Erreur",
+    "acceptErrorMessage": "L'acceptation de la proforma a échoué.",
+    "rejectSuccess": "Proforma refusée",
+    "rejectSuccessMessage": "La proforma a été marquée comme refusée.",
+    "rejectError": "Erreur",
+    "rejectErrorMessage": "Le refus de la proforma a échoué.",
+    "template": {
+      "billedTo": "Facturé à",
+      "documentTitle": "Facture Proforma",
+      "number": "N°",
+      "date": "Date",
+      "validity": "Validité",
+      "item": "Article",
+      "qty": "Qté",
+      "unitPrice": "Prix Unitaire",
+      "total": "Total",
+      "subtotal": "Sous-total",
+      "tax": "TVA",
+      "amountInWords": "Arrêté la présente facture proforma à la somme de : {{amount}} francs CFA.",
+      "notes": "Notes / Conditions",
+      "footerMessage": "Ce document est une facture proforma et ne constitue pas une facture définitive.",
+      "markSent": "Marquer comme envoyée",
+      "sending": "Envoi...",
+      "sentSuccess": "Proforma envoyée",
+      "sentSuccessMessage": "Le statut a été mis à jour. Pensez à transmettre le PDF exporté au client par email.",
+      "sentError": "Erreur",
+      "sentErrorMessage": "L'envoi de la proforma a échoué.",
+      "generating": "Génération..."
     }
   },
   "externalTransactions": {
@@ -1998,7 +2258,8 @@ const frTranslations = {
       "deals": "Transactions",
       "tasks": "Tâches",
       "pipeline": "Pipeline",
-      "contracts": "Contrats signés"
+      "contracts": "Contrats signés",
+      "proformas": "Proformas"
     },
     "tasks": {
       "title": "Gestion des Tâches",
@@ -2294,20 +2555,41 @@ const frTranslations = {
   },
   "notifications": {
     "title": "Notifications",
+    "subtitle": "Toutes vos notifications, au même endroit.",
     "markAllAsRead": "Tout marquer comme lu",
     "markAsRead": "Marquer comme lu",
     "noNotifications": "Aucune notification",
+    "emptyUnreadTitle": "Aucune notification non lue",
+    "viewAll": "Voir toutes les notifications",
+    "filters": {
+      "all": "Toutes",
+      "unread": "Non lues"
+    },
+    "timeAgo": {
+      "now": "À l'instant",
+      "minutes": "Il y a {{count}} min",
+      "hours": "Il y a {{count}} h",
+      "days": "Il y a {{count}} j"
+    },
     "error": {
       "loading": "Erreur lors du chargement des notifications",
       "markAsRead": "Erreur lors du marquage comme lu",
       "markAllAsRead": "Erreur lors du marquage de toutes comme lues"
     },
     "types": {
+      "NEW_ORDER": "Nouvelle commande",
+      "ORDER_STATUS": "Statut de commande",
+      "PAYMENT_RECEIVED": "Paiement reçu",
+      "LOW_STOCK": "Stock bas",
+      "SYSTEM_ALERT": "Alerte système",
       "EXTERNAL_TRANSACTION_CREATED": "Transaction Externe Créée",
       "EXTERNAL_TRANSACTION_UPDATED": "Transaction Externe Modifiée",
       "EXTERNAL_TRANSACTION_VALIDATED": "Transaction Externe Validée",
       "EXTERNAL_TRANSACTION_CANCELLED": "Transaction Externe Annulée",
-      "EXTERNAL_TRANSACTION_DELETED": "Transaction Externe Supprimée"
+      "EXTERNAL_TRANSACTION_DELETED": "Transaction Externe Supprimée",
+      "ACCOUNTING_ACCESS_REQUESTED": "Demande d'accès comptabilité",
+      "ACCOUNTING_ACCESS_APPROVED": "Accès comptabilité approuvé",
+      "ACCOUNTING_ACCESS_REJECTED": "Accès comptabilité refusé"
     }
   },
   "bonDeCommande": {
@@ -2361,7 +2643,8 @@ const enTranslations: Translations = {
     "create": "Create",
     "update": "Update",
     "saving": "Saving...",
-    "accessDenied": "Access denied"
+    "accessDenied": "Access denied",
+    "total": "Total"
   },
   "contactModal": {
     "title": "Contact Us",
@@ -2465,7 +2748,18 @@ const enTranslations: Translations = {
     "secretariat": "Secretariat",
     "production": "Production",
     "maintenance": "Maintenance",
-    "equipements": "Equipment"
+    "equipements": "Equipment",
+    "disbursement": "Disbursement",
+    "creditHistory": "Customer Receivables",
+    "financialHistory": "Financial History",
+    "proforma": "Proforma Invoice",
+    "salesAnalytics": "Sales Analysis",
+    "purchaseAnalytics": "Purchase Analysis",
+    "notifications": "Notifications"
+  },
+  "financialHistory": {
+    "incomeTab": "Income",
+    "expensesTab": "Payments"
   },
   "header": {
     "profileUser": "{{role}} User",
@@ -2603,7 +2897,9 @@ const enTranslations: Translations = {
       "salesAnalysis": "Sales Analysis",
       "purchaseAnalysis": "Purchase Analysis",
       "banks": "Banks",
-      "safe": "Safe"
+      "safe": "Safe",
+      "cash": "Cash",
+      "expenseBox": "Expense Box"
     },
     "periods": {
       "seven_days": "Last 7 days",
@@ -3810,6 +4106,40 @@ const enTranslations: Translations = {
     "modal": {
       "addIncome": "Add New Income",
       "addExpense": "Add New Expense"
+    },
+    "history": {
+      "title": "Account history",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "date": "Date",
+      "description": "Description",
+      "account": "Account / Counterparty",
+      "reference": "Reference",
+      "amount": "Amount",
+      "balanceAfter": "Balance after",
+      "status": "Status",
+      "statusUpdated": "Transaction validated",
+      "statusUpdatedMessage": "The transaction was validated and the balance updated.",
+      "statusUpdateError": "Validation error",
+      "statusUpdateErrorMessage": "Failed to validate the transaction.",
+      "cancelled": "Transaction cancelled",
+      "cancelledMessage": "The pending transaction was cancelled.",
+      "cancelError": "Cancellation error",
+      "cancelErrorMessage": "Failed to cancel the transaction.",
+      "confirmCancel": "Cancel this pending transaction? This action is irreversible."
+    },
+    "statement": {
+      "title": "Account statement",
+      "selectPeriod": "Select the period for the statement to generate.",
+      "generate": "Generate statement",
+      "changePeriod": "Change period",
+      "period": "Period",
+      "lines": "entries",
+      "debit": "Debit",
+      "credit": "Credit",
+      "balance": "Balance",
+      "currentBalance": "Current balance",
+      "footerMessage": "This statement is provided for reference only and does not replace an official bank document."
     }
   },
   "treasuryAccounts": {
@@ -3875,6 +4205,11 @@ const enTranslations: Translations = {
       "deleteWithTransactions": "Cannot delete this account as it contains financial transactions.",
       "cannotDeleteNonZero": "Cannot delete: balance {{balance}}",
       "forceDeleteFailed": "Force delete failed. Server still refuses to delete this account."
+    },
+    "view": {
+      "disbursement": "Make a disbursement",
+      "accountsSection": "Accounts",
+      "movementsSection": "Transaction history"
     }
   },
   "supplierDebts": {
@@ -3888,7 +4223,53 @@ const enTranslations: Translations = {
     "status": "Status",
     "statusToPay": "To Pay",
     "statusPaid": "Paid",
-    "statusOverdue": "Overdue"
+    "statusOverdue": "Overdue",
+    "statusPending": "Pending",
+    "addDebt": "New Debt",
+    "pay": "Pay",
+    "paymentSuccess": "Payment recorded",
+    "paymentSuccessMessage": "The supplier debt has been marked as paid.",
+    "paymentError": "Payment error",
+    "paymentErrorMessage": "Failed to pay the debt.",
+    "createSuccess": "Debt created",
+    "createSuccessMessage": "The supplier debt was created successfully.",
+    "createError": "Creation error",
+    "createErrorMessage": "Failed to create the debt.",
+    "payModal": {
+      "title": "Pay supplier debt",
+      "account": "Treasury account",
+      "date": "Payment date",
+      "submit": "Confirm payment"
+    },
+    "createModal": {
+      "title": "New supplier debt",
+      "purchaseOrder": "Purchase order",
+      "invoiceUrl": "Invoice URL"
+    },
+    "longTerm": {
+      "tabTitle": "Long-term debts",
+      "title": "Long-term debts",
+      "addDebt": "New long-term debt",
+      "name": "Name",
+      "initialAmount": "Initial amount",
+      "currentBalance": "Remaining balance",
+      "interestRate": "Interest rate",
+      "maturityDate": "Maturity date",
+      "createSuccess": "Debt created",
+      "createSuccessMessage": "The long-term debt was created successfully.",
+      "createError": "Creation error",
+      "createErrorMessage": "Failed to create the debt.",
+      "updateSuccess": "Debt updated",
+      "updateSuccessMessage": "The long-term debt was updated.",
+      "updateError": "Update error",
+      "updateErrorMessage": "Failed to update the debt.",
+      "createModal": {
+        "title": "New long-term debt"
+      },
+      "editModal": {
+        "title": "Edit long-term debt"
+      }
+    }
   },
   "expenses": {
     "title": "Expense Management",
@@ -3929,6 +4310,167 @@ const enTranslations: Translations = {
       "allCategories": "All categories",
       "type": "Type",
       "allTypes": "All types"
+    }
+  },
+  "recurringExpenses": {
+    "title": "Recurring Expenses",
+    "addExpense": "New Recurring Expense",
+    "table": {
+      "description": "Description",
+      "category": "Category",
+      "amount": "Amount",
+      "frequency": "Frequency",
+      "nextExecutionDate": "Next Due Date",
+      "endDate": "End",
+      "status": "Status"
+    },
+    "frequency": {
+      "WEEKLY": "Weekly",
+      "MONTHLY": "Monthly",
+      "YEARLY": "Yearly"
+    },
+    "statusActive": "Active",
+    "statusPaused": "Paused",
+    "pause": "Pause",
+    "resume": "Resume",
+    "deleteConfirmTitle": "Delete recurring expense",
+    "deleteConfirmMessage": "Are you sure you want to delete this recurring expense? Already generated expense records will not be affected.",
+    "createSuccess": "Recurring expense created",
+    "createSuccessMessage": "The recurring expense was created successfully.",
+    "createError": "Creation error",
+    "createErrorMessage": "Failed to create the recurring expense.",
+    "updateSuccess": "Recurring expense updated",
+    "updateSuccessMessage": "The recurring expense was updated.",
+    "updateError": "Update error",
+    "updateErrorMessage": "Failed to update.",
+    "deleteSuccess": "Recurring expense deleted",
+    "deleteSuccessMessage": "The recurring expense was deleted.",
+    "deleteError": "Deletion error",
+    "deleteErrorMessage": "Failed to delete.",
+    "modal": {
+      "addTitle": "New Recurring Expense",
+      "editTitle": "Edit Recurring Expense",
+      "description": "Description",
+      "amount": "Amount",
+      "category": "Category",
+      "type": "Type",
+      "frequency": "Frequency",
+      "startDate": "Start Date",
+      "endDate": "End Date (optional)"
+    }
+  },
+  "taxTransparency": {
+    "title": "Tax & Payroll Transparency",
+    "subtitle": "Social/tax charges overview and summary statements",
+    "month": "Month",
+    "year": "Year",
+    "payrollSection": "Payroll social & tax charges",
+    "vatSection": "VAT collected on sales",
+    "vatDisclaimer": "This tracking covers only VAT collected on sales — deductible VAT on purchases is not tracked yet (no tax data on supplier purchase orders).",
+    "cnpsTotal": "CNPS (total)",
+    "cfcTotal": "CFC (total)",
+    "irppTotal": "IRPP + CAC",
+    "fne": "FNE",
+    "grossSalary": "Gross payroll",
+    "netSalary": "Net payroll",
+    "totalEmployerCost": "Total employer cost",
+    "employeeCount": "Employees paid",
+    "employeeShare": "Employee share",
+    "employerAndEmployee": "Employee + Employer",
+    "allChargesCombined": "All charges combined",
+    "vatCollected": "VAT collected",
+    "taxableSubtotal": "Taxable base (excl. tax)",
+    "totalWithTax": "Total incl. tax",
+    "orderCount": "Taxed orders",
+    "tabs": {
+      "resume": "Summary",
+      "irpp": "IRPP Detail",
+      "cnps": "CNPS Detail",
+      "cfcFne": "CFC & FNE",
+      "tva": "VAT Detail"
+    },
+    "table": {
+      "employee": "Employee",
+      "matricule": "CNPS Number",
+      "base": "Base",
+      "employerShare": "Employer share",
+      "client": "Client"
+    },
+    "declaration": {
+      "view": "View statement",
+      "irppTitle": "IRPP Statement",
+      "footerMessage": "This statement is an internal summary document and does not replace an official tax filing."
+    }
+  },
+  "proforma": {
+    "title": "Proformas (Quotes)",
+    "create": "Create Proforma",
+    "empty": "No proforma found",
+    "tabs": {
+      "all": "All",
+      "draft": "Drafts",
+      "sent": "Sent",
+      "accepted": "Accepted",
+      "rejected": "Rejected"
+    },
+    "table": {
+      "number": "Number",
+      "client": "Client",
+      "email": "Email",
+      "totalAmount": "Total Amount",
+      "status": "Status",
+      "createdAt": "Created on"
+    },
+    "actions": {
+      "view": "View",
+      "edit": "Edit",
+      "send": "Send",
+      "resend": "Resend",
+      "accept": "Accept (converts to order)",
+      "reject": "Reject",
+      "delete": "Delete"
+    },
+    "statuses": {
+      "DRAFT": "Draft",
+      "SENT": "Sent",
+      "VIEWED": "Viewed",
+      "ACCEPTED": "Accepted",
+      "CONVERTED": "Converted",
+      "REJECTED": "Rejected",
+      "EXPIRED": "Expired"
+    },
+    "deleteConfirmTitle": "Delete proforma",
+    "deleteConfirmMessage": "Are you sure you want to delete proforma {{number}}?",
+    "acceptSuccess": "Proforma accepted",
+    "acceptSuccessMessage": "The proforma has been converted to an order.",
+    "acceptError": "Error",
+    "acceptErrorMessage": "Failed to accept the proforma.",
+    "rejectSuccess": "Proforma rejected",
+    "rejectSuccessMessage": "The proforma has been marked as rejected.",
+    "rejectError": "Error",
+    "rejectErrorMessage": "Failed to reject the proforma.",
+    "template": {
+      "billedTo": "Billed to",
+      "documentTitle": "Proforma Invoice",
+      "number": "No.",
+      "date": "Date",
+      "validity": "Valid until",
+      "item": "Item",
+      "qty": "Qty",
+      "unitPrice": "Unit Price",
+      "total": "Total",
+      "subtotal": "Subtotal",
+      "tax": "Tax",
+      "amountInWords": "This proforma invoice is set at the sum of: {{amount}} CFA francs.",
+      "notes": "Notes / Terms",
+      "footerMessage": "This document is a proforma invoice and does not constitute a final invoice.",
+      "markSent": "Mark as sent",
+      "sending": "Sending...",
+      "sentSuccess": "Proforma sent",
+      "sentSuccessMessage": "The status has been updated. Remember to send the exported PDF to the client by email.",
+      "sentError": "Error",
+      "sentErrorMessage": "Failed to send the proforma.",
+      "generating": "Generating..."
     }
   },
   "externalTransactions": {
@@ -4330,7 +4872,8 @@ const enTranslations: Translations = {
       "deals": "Deals",
       "tasks": "Tasks",
       "pipeline": "Pipeline",
-      "contracts": "Signed Contracts"
+      "contracts": "Signed Contracts",
+      "proformas": "Proformas"
     },
     "tasks": {
       "title": "Task Management",
@@ -4626,20 +5169,41 @@ const enTranslations: Translations = {
   },
   "notifications": {
     "title": "Notifications",
+    "subtitle": "All your notifications, in one place.",
     "markAllAsRead": "Mark all as read",
     "markAsRead": "Mark as read",
     "noNotifications": "No notifications",
+    "emptyUnreadTitle": "No unread notifications",
+    "viewAll": "View all notifications",
+    "filters": {
+      "all": "All",
+      "unread": "Unread"
+    },
+    "timeAgo": {
+      "now": "Just now",
+      "minutes": "{{count}} min ago",
+      "hours": "{{count}} h ago",
+      "days": "{{count}} d ago"
+    },
     "error": {
       "loading": "Error loading notifications",
       "markAsRead": "Error marking notification as read",
       "markAllAsRead": "Error marking all notifications as read"
     },
     "types": {
+      "NEW_ORDER": "New order",
+      "ORDER_STATUS": "Order status",
+      "PAYMENT_RECEIVED": "Payment received",
+      "LOW_STOCK": "Low stock",
+      "SYSTEM_ALERT": "System alert",
       "EXTERNAL_TRANSACTION_CREATED": "External Transaction Created",
       "EXTERNAL_TRANSACTION_UPDATED": "External Transaction Updated",
       "EXTERNAL_TRANSACTION_VALIDATED": "External Transaction Validated",
       "EXTERNAL_TRANSACTION_CANCELLED": "External Transaction Cancelled",
-      "EXTERNAL_TRANSACTION_DELETED": "External Transaction Deleted"
+      "EXTERNAL_TRANSACTION_DELETED": "External Transaction Deleted",
+      "ACCOUNTING_ACCESS_REQUESTED": "Accounting access requested",
+      "ACCOUNTING_ACCESS_APPROVED": "Accounting access approved",
+      "ACCOUNTING_ACCESS_REJECTED": "Accounting access rejected"
     }
   },
   "bonDeCommande": {
