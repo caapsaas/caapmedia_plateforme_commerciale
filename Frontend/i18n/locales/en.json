@@ -34,6 +34,12 @@
     "openMenu": "Open menu",
     "changeRole": "Change role"
   },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications",
+    "markAllAsRead": "Mark all as read",
+    "viewAll": "View all"
+  },
   "common": {
     "cancel": "Cancel",
     "save": "Save",

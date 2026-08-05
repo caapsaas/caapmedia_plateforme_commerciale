@@ -6,6 +6,7 @@ import IconLock from "../components/icons/IconLock";
 import { useI18n } from "../i18n";
 import IconGlobe from "../components/icons/IconGlobe";
 import IconMenu from "../components/icons/IconMenu";
+import NotificationDropdown from "../components/common/NotificationDropdown";
 import { useAppContext } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
 import { getDefaultViewForRole } from "../utils/roleViews";
@@ -82,6 +83,8 @@ const Header: React.FC = () => {
           >
             <IconMenu className="h-6 w-6 text-slate-600" />
           </button>
+
+          <NotificationDropdown />
 
           {/* Menu langue */}
           <div className="relative" ref={langRef}>

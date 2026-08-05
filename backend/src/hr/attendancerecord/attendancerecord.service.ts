@@ -9,7 +9,7 @@ import {
   CreateAttendanceRecordDto,
   UpdateAttendanceRecordDto,
 } from './dto/atendancerecord.dto';
-import { AttendanceRecord } from '@prisma/client';
+import { AttendanceRecord, AttendanceStatus, Prisma } from '@prisma/client';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 import { paginate } from 'src/common/pagination/pagination';
@@ -51,7 +51,8 @@ export class AttendanceRecordService {
         arrivalLatitude: createAttendanceRecordDto.arrivalLatitude ?? null,
         arrivalLongitude: createAttendanceRecordDto.arrivalLongitude ?? null,
         departureLatitude: createAttendanceRecordDto.departureLatitude ?? null,
-        departureLongitude: createAttendanceRecordDto.departureLongitude ?? null,
+        departureLongitude:
+          createAttendanceRecordDto.departureLongitude ?? null,
         isGeolocationValid:
           createAttendanceRecordDto.isGeolocationValid ?? false,
         accuracyMeters: createAttendanceRecordDto.accuracyMeters ?? null,
@@ -63,13 +64,24 @@ export class AttendanceRecordService {
     });
   }
 
+  // ------------------------------------------------------------------
+  // Vérifier s'il existe déjà une présence aujourd'hui
+  // ------------------------------------------------------------------
   async findTodayRecord(
     employeeId: string,
     subsidiaryId: string,
   ): Promise<AttendanceRecord | null> {
     const now = new Date();
     const startOfDay = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0),
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        0,
+        0,
+        0,
+        0,
+      ),
     );
     const endOfDay = new Date(
       Date.UTC(
@@ -124,16 +136,73 @@ export class AttendanceRecordService {
     });
   }
 
-  async findAll(subsidiaryId?: string): Promise<AttendanceRecord[]> {
-    return this.prisma.attendanceRecord.findMany({
-      where: subsidiaryId ? { subsidiaryId } : undefined,
-      include: {
-        employee: {
-          select: { id: true, firstName: true, lastName: true },
+  async findAll(
+    subsidiaryId?: string,
+    paginationQuery: PaginationQueryDto = {},
+  ) {
+    const where: Prisma.AttendanceRecordWhereInput = subsidiaryId
+      ? { subsidiaryId }
+      : {};
+
+    if (paginationQuery.search) {
+      where.employeeName = {
+        contains: paginationQuery.search,
+        mode: 'insensitive',
+      };
+    }
+
+    return paginate(
+      this.prisma.attendanceRecord,
+      {
+        where,
+        include: {
+          employee: {
+            select: { id: true, firstName: true, lastName: true },
+          },
         },
+        orderBy: { attendanceDate: 'desc' },
       },
-      orderBy: { attendanceDate: 'desc' },
-    });
+      paginationQuery,
+    );
+  }
+
+  // ------------------------------------------------------------------
+  // Statistiques mensuelles
+  // ------------------------------------------------------------------
+  async getMonthlyStats(
+    employeeId: string,
+    subsidiaryId: string,
+    year: number,
+    month: number,
+  ) {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 1);
+
+    const records = await this.findByDateRange(
+      employeeId,
+      subsidiaryId,
+      startDate,
+      endDate,
+    );
+
+    const present = records.filter(
+      (r) => r.status === AttendanceStatus.PRESENT,
+    ).length;
+    const absent = records.filter(
+      (r) => r.status === AttendanceStatus.ABSENT,
+    ).length;
+    const late = records.filter(
+      (r) => r.status === AttendanceStatus.LATE,
+    ).length;
+
+    return {
+      year,
+      month,
+      present,
+      absent,
+      late,
+      total: records.length,
+    };
   }
 
   async findOne(id: string): Promise<AttendanceRecord> {

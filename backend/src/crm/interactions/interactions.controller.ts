@@ -37,7 +37,10 @@ export class InteractionsController {
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.SECRETARY)
-  findAll(@CurrentUser() user: User, @Query() paginationQuery: PaginationQueryDto) {
+  findAll(
+    @CurrentUser() user: User,
+    @Query() paginationQuery: PaginationQueryDto,
+  ) {
     return this.interactionsService.findAll(user, paginationQuery);
   }
 

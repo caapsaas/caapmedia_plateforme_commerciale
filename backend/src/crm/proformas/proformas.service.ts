@@ -6,7 +6,15 @@ import {
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateProformaDto, ProformaItemDto } from './dto/create-proforma.dto';
 import { UpdateProformaDto } from './dto/update-proforma.dto';
-import { User, ProformaStatus } from '@prisma/client';
+import {
+  User,
+  ProformaStatus,
+  ContactStatus,
+  OrderStatus,
+  ProductionStatus,
+  PaymentStatus,
+  OrderSource,
+} from '@prisma/client';
 import { addDays } from 'date-fns';
 
 import { generateId } from 'src/common/utils/generate-id.util';
@@ -279,6 +287,18 @@ export class ProformasService {
     return proforma;
   }
 
+  /**
+   * Acceptation = conversion directe en commande (pas d'état ACCEPTED
+   * intermédiaire distinct) — voir Doc plan d'implémentation §Phase G.4.
+   * Conversion "simple" : pas de contrôle/réservation de stock, la commande
+   * est créée telle quelle depuis les lignes de la proforma.
+   *
+   * Le client de la proforma (Lead) n'a pas d'équivalent Contact CRM tant
+   * qu'aucune commande n'a été passée — on résout donc un Contact par email
+   * (le seul champ unique partagé), ou on en crée un nouveau ("non vérifié",
+   * sans mot de passe : pas d'accès portail tant que le client ne s'inscrit
+   * pas lui-même).
+   */
   async accept(id: string) {
     const proforma = await this.findOne(id);
 
@@ -291,19 +311,72 @@ export class ProformasService {
       );
     }
 
-    return this.prisma.proforma.update({
-      where: { id },
-      data: {
-        status: ProformaStatus.ACCEPTED,
-        acceptedAt: new Date(),
-      },
-      include: {
-        items: {
-          include: {
-            product: true,
+    return this.prisma.$transaction(async (tx) => {
+      let contact = await tx.contact.findUnique({
+        where: { email: proforma.clientEmail },
+      });
+      if (!contact) {
+        contact = await tx.contact.create({
+          data: {
+            id: generateId(ID_PREFIXES.CONTACT),
+            contactName: proforma.clientName,
+            company: proforma.clientCompany || proforma.clientName,
+            email: proforma.clientEmail,
+            phone: proforma.clientPhone,
+            since: new Date(),
+            address: '',
+            subsidiaryId: proforma.subsidiaryId,
+            status: ContactStatus.ACTIVE,
+          },
+        });
+      }
+
+      const defaultTaxRate = await tx.taxRate.findFirstOrThrow({
+        where: { isDefault: true },
+      });
+
+      const order = await tx.order.create({
+        data: {
+          id: generateId(ID_PREFIXES.ORDER),
+          customerName: proforma.clientName,
+          customerId: contact.id,
+          subsidiaryId: proforma.subsidiaryId,
+          opportunityId: proforma.opportunityId,
+          subtotal: proforma.subtotal,
+          taxAmount: proforma.taxAmount,
+          totalAmount: proforma.totalAmount,
+          taxRateValue: proforma.taxRate,
+          taxRateId: defaultTaxRate.id,
+          applyTax: proforma.taxAmount.greaterThan(0),
+          paymentDueDate: proforma.validityDate,
+          status: OrderStatus.NEW,
+          productionStatus: ProductionStatus.PREPRESS,
+          paymentStatus: PaymentStatus.UNPAID,
+          source: OrderSource.QUOTE_REQUEST,
+          orderItems: {
+            create: proforma.items.map((item) => ({
+              id: generateId(ID_PREFIXES.ORDERITEM),
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              total: item.unitPrice.mul(item.quantity),
+            })),
           },
         },
-      },
+      });
+
+      const updatedProforma = await tx.proforma.update({
+        where: { id },
+        data: {
+          status: ProformaStatus.CONVERTED,
+          acceptedAt: new Date(),
+        },
+        include: {
+          items: { include: { product: true } },
+        },
+      });
+
+      return { ...updatedProforma, orderId: order.id };
     });
   }
 

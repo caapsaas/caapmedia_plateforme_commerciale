@@ -73,10 +73,9 @@ export class AbsencerecordController {
   // ------------------------------------------------------------------
   @Get()
   @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
-
   findAll(@Request() req, @Query() paginationQuery: PaginationQueryDto) {
     const subsidiaryId = req.user.subsidiaryId;
-    return this.absenceRecordService.findAll(subsidiaryId);
+    return this.absenceRecordService.findAll(subsidiaryId, paginationQuery);
   }
 
   // ------------------------------------------------------------------

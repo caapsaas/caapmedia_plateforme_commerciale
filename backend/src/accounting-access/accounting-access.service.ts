@@ -6,10 +6,10 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { EmailService } from 'src/common/utils/email/email.service';
+import { NotificationsService } from 'src/notifications/notifications.service';
 import {
   AccountingAccessStatus,
   NotificationType,
-  RecipientType,
   UserRole,
 } from '@prisma/client';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
@@ -33,6 +33,7 @@ export class AccountingAccessService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -131,16 +132,11 @@ export class AccountingAccessService {
       },
     });
 
-    await this.prisma.notification.create({
-      data: {
-        title: 'Accès comptabilité approuvé',
-        message: `Votre accès temporaire à la comptabilité est approuvé jusqu'au ${expiresAt.toLocaleString('fr-FR')}.`,
-        type: NotificationType.ACCOUNTING_ACCESS_APPROVED,
-        recipientId: request.userId,
-        recipientType: RecipientType.USER,
-        userId: request.userId,
-        data: { requestId: request.id, expiresAt: expiresAt.toISOString() },
-      },
+    await this.notificationsService.notifyUser(request.userId, {
+      title: 'Accès comptabilité approuvé',
+      message: `Votre accès temporaire à la comptabilité est approuvé jusqu'au ${expiresAt.toLocaleString('fr-FR')}.`,
+      type: NotificationType.ACCOUNTING_ACCESS_APPROVED,
+      data: { requestId: request.id, expiresAt: expiresAt.toISOString() },
     });
     this.emailService.sendAccountingAccessNotificationEmail(
       request.user.email,
@@ -178,18 +174,13 @@ export class AccountingAccessService {
       },
     });
 
-    await this.prisma.notification.create({
-      data: {
-        title: 'Accès comptabilité refusé',
-        message: dto.rejectionNote
-          ? `Votre demande d'accès à la comptabilité a été refusée : ${dto.rejectionNote}`
-          : "Votre demande d'accès à la comptabilité a été refusée.",
-        type: NotificationType.ACCOUNTING_ACCESS_REJECTED,
-        recipientId: request.userId,
-        recipientType: RecipientType.USER,
-        userId: request.userId,
-        data: { requestId: request.id },
-      },
+    await this.notificationsService.notifyUser(request.userId, {
+      title: 'Accès comptabilité refusé',
+      message: dto.rejectionNote
+        ? `Votre demande d'accès à la comptabilité a été refusée : ${dto.rejectionNote}`
+        : "Votre demande d'accès à la comptabilité a été refusée.",
+      type: NotificationType.ACCOUNTING_ACCESS_REJECTED,
+      data: { requestId: request.id },
     });
     this.emailService.sendAccountingAccessNotificationEmail(
       request.user.email,
@@ -274,16 +265,11 @@ export class AccountingAccessService {
     });
 
     for (const admin of admins) {
-      await this.prisma.notification.create({
-        data: {
-          title: "Nouvelle demande d'accès comptabilité",
-          message: `${request.user.userName} demande un accès temporaire à la comptabilité : "${request.justification}"`,
-          type: NotificationType.ACCOUNTING_ACCESS_REQUESTED,
-          recipientId: admin.id,
-          recipientType: RecipientType.USER,
-          userId: admin.id,
-          data: { requestId: request.id },
-        },
+      await this.notificationsService.notifyUser(admin.id, {
+        title: "Nouvelle demande d'accès comptabilité",
+        message: `${request.user.userName} demande un accès temporaire à la comptabilité : "${request.justification}"`,
+        type: NotificationType.ACCOUNTING_ACCESS_REQUESTED,
+        data: { requestId: request.id },
       });
       this.emailService.sendAccountingAccessNotificationEmail(
         admin.email,

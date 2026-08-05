@@ -49,7 +49,9 @@ export class EmployeeService {
 
     // Convert leaveBalances from array format to object format if includeRelations was used
     if (employee.leaveBalances && Array.isArray(employee.leaveBalances)) {
-      dto.leaveBalance = this.convertLeaveBalancesToFrontendFormat(employee.leaveBalances);
+      dto.leaveBalance = this.convertLeaveBalancesToFrontendFormat(
+        employee.leaveBalances,
+      );
     }
 
     return dto;
@@ -757,17 +759,29 @@ export class EmployeeService {
           } else {
             // Handle frontend format: { contract: { name, url }, idCard: { name, url }, workPermit: { name, url }, diplomas: [...] }
             if (docsData.contract) {
-              expectedDocs.set('CONTRACT_contract', { name: docsData.contract.name, url: docsData.contract.url });
+              expectedDocs.set('CONTRACT_contract', {
+                name: docsData.contract.name,
+                url: docsData.contract.url,
+              });
             }
             if (docsData.idCard) {
-              expectedDocs.set('ID_CARD_idCard', { name: docsData.idCard.name, url: docsData.idCard.url });
+              expectedDocs.set('ID_CARD_idCard', {
+                name: docsData.idCard.name,
+                url: docsData.idCard.url,
+              });
             }
             if (docsData.workPermit) {
-              expectedDocs.set('WORK_PERMIT_workPermit', { name: docsData.workPermit.name, url: docsData.workPermit.url });
+              expectedDocs.set('WORK_PERMIT_workPermit', {
+                name: docsData.workPermit.name,
+                url: docsData.workPermit.url,
+              });
             }
             if (docsData.diplomas && Array.isArray(docsData.diplomas)) {
               docsData.diplomas.forEach((diploma: any, index: number) => {
-                expectedDocs.set(`DIPLOMA_diploma_${index}`, { name: diploma.name, url: diploma.url });
+                expectedDocs.set(`DIPLOMA_diploma_${index}`, {
+                  name: diploma.name,
+                  url: diploma.url,
+                });
               });
             }
           }
@@ -794,7 +808,7 @@ export class EmployeeService {
 
             // Check if document already exists
             const existingDoc = existingDocs.find(
-              (d) => d.docType === docType && d.documentName === docName
+              (d) => d.docType === docType && d.documentName === docName,
             );
 
             if (existingDoc) {

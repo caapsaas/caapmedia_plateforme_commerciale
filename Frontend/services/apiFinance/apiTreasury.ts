@@ -1,6 +1,29 @@
 import { api } from '../api';
-import { TreasuryAccount, FinancialTransaction } from '../../types';
+import {
+  TreasuryAccount,
+  FinancialTransaction,
+  TreasuryTransactionType,
+  TransactionStatus,
+  CounterpartyType,
+  Counterparty,
+} from '../../types';
 import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
+
+// --- Décaissement typé (Coffre-fort / Banque / Caisse dépense) + virement ---
+
+export interface CreateDisbursementData {
+  transactionDate: string;
+  description: string;
+  amount: number;
+  sourceAccountId: string;
+  destinationAccountId?: string;
+  treasuryType: TreasuryTransactionType;
+  reference?: string;
+  counterpartyId?: string;
+  newCounterpartyName?: string;
+  newCounterpartyType?: CounterpartyType;
+  status?: TransactionStatus;
+}
 
 // --- Types pour les Comptes de Trésorerie ---
 
@@ -132,6 +155,62 @@ export const createExpenseTransaction = async (expenseData: TransactionCreationD
 };
 
 /**
+ * Décaissement typé (coffre-fort/banque/caisse dépense) ou virement inter-
+ * comptes (retrait coffre→banque, alimentation coffre→caisse dépense).
+ * Protégé par rôle (ADMIN, FINANCIAL_DIRECTOR, CAISSIER).
+ */
+export const createDisbursement = async (
+  disbursementData: CreateDisbursementData,
+): Promise<FinancialTransaction> => {
+  const { data } = await api.post<FinancialTransaction>(
+    '/finance/treasury/disbursement',
+    disbursementData,
+  );
+  return data;
+};
+
+/**
+ * Valide (VALIDE) une transaction créée EN_ATTENTE — applique le débit/
+ * crédit et pose l'écriture comptable. Protégé par rôle (ADMIN, FINANCIAL_DIRECTOR).
+ */
+export const updateTransactionStatus = async (
+  id: string,
+  status: TransactionStatus,
+): Promise<FinancialTransaction> => {
+  const { data } = await api.patch<FinancialTransaction>(
+    `/finance/treasury/transaction/${id}/status`,
+    { status },
+  );
+  return data;
+};
+
+export interface CashierOption {
+  id: string;
+  userName: string;
+  email: string;
+}
+
+/**
+ * Utilisateurs éligibles comme caissier assigné (Configuration Trésorerie —
+ * comptes CAISSE/CASH_REGISTER/EXPENSE_BOX).
+ */
+export const getEligibleCashiers = async (): Promise<CashierOption[]> => {
+  const { data } = await api.get<CashierOption[]>('/finance/treasury/cashiers');
+  return data;
+};
+
+/**
+ * Récupère les tiers (contreparties) de la filiale — fournisseurs, autorités
+ * fiscales, etc. — utilisés par le décaissement typé.
+ */
+export const getCounterparties = async (type?: CounterpartyType): Promise<Counterparty[]> => {
+  const { data } = await api.get<Counterparty[]>('/finance/treasury/counterparties', {
+    params: type ? { type } : {},
+  });
+  return data;
+};
+
+/**
  * Récupère toutes les transactions financières de la filiale.
  */
 /**
@@ -170,6 +249,22 @@ export const getFinancialTransactionsPaginated = async (
  */
 export const deleteTransaction = async (id: string): Promise<FinancialTransaction> => {
   const { data } = await api.delete<FinancialTransaction>(`/finance/treasury/transactions/${id}`);
+  return data;
+};
+
+/**
+ * Historique paginé d'UN compte (source ou destination), enrichi des noms de
+ * compte/contrepartie et du solde après chaque mouvement — utilisé par
+ * AccountHistoryModal.
+ */
+export const getAccountTransactions = async (
+  accountId: string,
+  params: PaginationParams & { startDate?: string; endDate?: string } = {},
+): Promise<PaginatedResponse<FinancialTransaction>> => {
+  const { data } = await api.get<PaginatedResponse<FinancialTransaction>>(
+    `/finance/treasury/accounts/${accountId}/transactions`,
+    { params },
+  );
   return data;
 };
 

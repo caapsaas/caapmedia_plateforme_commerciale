@@ -19,6 +19,8 @@ import {
 import { Decimal } from '@prisma/client/runtime/library';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { paginate } from 'src/common/pagination/pagination';
+import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 import { CameroonPayrollCalculatorService } from './cameroonpayrollcalculator.service';
 
@@ -159,22 +161,38 @@ export class PayrollRecordService {
   /**
    * Récupère toutes les fiches de paie d'une filiale
    */
-  async findAll(subsidiaryId?: string): Promise<PayrollRecordWithDetails[]> {
-    return this.prisma.payrollRecord.findMany({
-      where: subsidiaryId ? { subsidiaryId } : undefined,
-      include: {
-        employee: {
-          select: {
-            firstName: true,
-            lastName: true,
-            baseSalary: true,
-            bonus: true,
+  async findAll(
+    subsidiaryId?: string,
+    paginationQuery: PaginationQueryDto = {},
+  ) {
+    const where: Prisma.PayrollRecordWhereInput = subsidiaryId
+      ? { subsidiaryId }
+      : {};
+
+    if (paginationQuery.search) {
+      where.employeeName = {
+        contains: paginationQuery.search,
+        mode: 'insensitive',
+      };
+    }
+
+    return paginate(
+      this.prisma.payrollRecord,
+      {
+        where,
+        include: {
+          employee: {
+            select: {
+              firstName: true,
+              lastName: true,
+              baseSalary: true,
+              bonus: true,
+            },
           },
         },
-      
       },
-     
-    });
+      paginationQuery,
+    );
   }
 
   /**
@@ -249,9 +267,7 @@ export class PayrollRecordService {
     const { employeeId, ...updateData } = dto as any;
 
     const gross = updateData.grossSalary ?? Number(current.grossSalary);
-    const deductions =
-      updateData.deductions ??
-      Number(current.deductions);
+    const deductions = updateData.deductions ?? Number(current.deductions);
 
     return this.prisma.payrollRecord.update({
       where: { id },
@@ -294,7 +310,9 @@ export class PayrollRecordService {
     const record = await this.findOne(id);
 
     if (record.status === PayrollStatus.PAID) {
-      throw new BadRequestException('Cette fiche de paie est déjà signée/payée');
+      throw new BadRequestException(
+        'Cette fiche de paie est déjà signée/payée',
+      );
     }
 
     const updated = await this.prisma.payrollRecord.update({

@@ -26,6 +26,7 @@ import { StatisticsModule } from './statistics/statistics.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
 import { AccountingModule } from './accounting/accounting.module';
 import { AccountingAccessModule } from './accounting-access/accounting-access.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { validate } from './config/env.validation';
 import { ConfigurationModule } from './configuration/configuration.module';
 
@@ -71,6 +72,7 @@ import { ConfigurationModule } from './configuration/configuration.module';
     NewsletterModule,
     AccountingModule,
     AccountingAccessModule,
+    NotificationsModule,
     ConfigurationModule,
   ],
   controllers: [AppController],

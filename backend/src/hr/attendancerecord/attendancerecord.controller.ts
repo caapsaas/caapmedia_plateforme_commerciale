@@ -11,7 +11,6 @@ import {
   Delete,
   ParseUUIDPipe,
   BadRequestException,
-  
 } from '@nestjs/common';
 import { AttendanceRecordService } from './attendancerecord.service';
 import {
@@ -26,6 +25,7 @@ import {
   resolveEffectiveSubsidiaryId,
   assertSubsidiaryAccess,
 } from '../../common/utils/subsidiary-scope';
+import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
 
 @Controller('hr/attendance-records')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -66,17 +66,12 @@ export class AttendanceRecordController {
   @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
   async findAll(
     @Request() req,
+    @Query() paginationQuery: PaginationQueryDto,
     @Query('subsidiaryId') subsidiaryIdFilter?: string,
   ) {
     const ctx = resolveScopeContext(req.user);
     const subsidiaryId = resolveEffectiveSubsidiaryId(ctx, subsidiaryIdFilter);
-    console.log('findAll subsidiaryId =', subsidiaryId);
-    console.log('user =', req.user);
-
-    const result = await this.attendanceRecordService.findAll(subsidiaryId);
-    console.log('findAll count =', result.length);
-
-    return result;
+    return this.attendanceRecordService.findAll(subsidiaryId, paginationQuery);
   }
 
   // ------------------------------------------------------------------

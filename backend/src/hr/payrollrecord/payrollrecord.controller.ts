@@ -26,6 +26,7 @@ import {
   resolveEffectiveSubsidiaryId,
   assertSubsidiaryAccess,
 } from '../../common/utils/subsidiary-scope';
+import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
 
 @Controller('hr/payroll-records')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -46,11 +47,7 @@ export class PayrollRecordController {
     const ctx = resolveScopeContext(req.user);
     const subsidiaryId = resolveEffectiveSubsidiaryId(ctx);
 
-    return this.payrollRecordService.create(
-      dto,
-      dto.employeeId,
-      subsidiaryId,
-    );
+    return this.payrollRecordService.create(dto, dto.employeeId, subsidiaryId);
   }
 
   // ============================================================
@@ -65,12 +62,19 @@ export class PayrollRecordController {
   @Roles('HR_MANAGER', 'ADMIN')
   findAll(
     @Request() req: any,
+    @Query() paginationQuery: PaginationQueryDto,
     @Query('subsidiaryId') subsidiaryIdFilter?: string,
   ) {
     const ctx = resolveScopeContext(req.user);
-    const targetSubsidiaryId = resolveEffectiveSubsidiaryId(ctx, subsidiaryIdFilter);
+    const targetSubsidiaryId = resolveEffectiveSubsidiaryId(
+      ctx,
+      subsidiaryIdFilter,
+    );
 
-    return this.payrollRecordService.findAll(targetSubsidiaryId);
+    return this.payrollRecordService.findAll(
+      targetSubsidiaryId,
+      paginationQuery,
+    );
   }
 
   /**
@@ -83,7 +87,7 @@ export class PayrollRecordController {
   findAllGlobal(@Request() req: any) {
     const ctx = resolveScopeContext(req.user);
     if (!ctx.hasGlobalScope) {
-      throw new ForbiddenException("Accès réservé au SUPER_ADMIN");
+      throw new ForbiddenException('Accès réservé au SUPER_ADMIN');
     }
 
     return this.payrollRecordService.findAllGlobal();
@@ -101,12 +105,12 @@ export class PayrollRecordController {
     @Query('subsidiaryId') subsidiaryIdFilter?: string,
   ) {
     const ctx = resolveScopeContext(req.user);
-    const targetSubsidiaryId = resolveEffectiveSubsidiaryId(ctx, subsidiaryIdFilter);
-
-    return this.payrollRecordService.findByPeriod(
-      targetSubsidiaryId,
-      period,
+    const targetSubsidiaryId = resolveEffectiveSubsidiaryId(
+      ctx,
+      subsidiaryIdFilter,
     );
+
+    return this.payrollRecordService.findByPeriod(targetSubsidiaryId, period);
   }
 
   /**
@@ -154,7 +158,10 @@ export class PayrollRecordController {
     @Request() req: any,
   ) {
     const ctx = resolveScopeContext(req.user);
-    const targetSubsidiaryId = resolveEffectiveSubsidiaryId(ctx, body.subsidiaryId);
+    const targetSubsidiaryId = resolveEffectiveSubsidiaryId(
+      ctx,
+      body.subsidiaryId,
+    );
 
     return this.payrollRecordService.processPayroll(
       targetSubsidiaryId,

@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
+import { NotificationsService } from '../../notifications/notifications.service';
 import { CreateExternalTransactionDto } from './dto/create-external-transaction.dto';
 import { UpdateExternalTransactionDto } from './dto/update-external-transaction.dto';
 import { FindExternalTransactionsDto } from './dto/find-external-transactions.dto';
@@ -13,12 +14,39 @@ import {
   ExternalTransactionType,
   ExternalTransactionCategory,
   PaymentMethod,
+  NotificationType,
   UserRole,
 } from '@prisma/client';
 
 @Injectable()
 export class ExternalTransactionService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
+
+  private async notifyAdminsAndFinancialDirectors(
+    subsidiaryId: string,
+    payload: {
+      title: string;
+      message: string;
+      type: NotificationType;
+      data?: Record<string, unknown>;
+    },
+  ): Promise<void> {
+    await Promise.all([
+      this.notificationsService.notifyUsersByRole(
+        subsidiaryId,
+        UserRole.ADMIN,
+        payload,
+      ),
+      this.notificationsService.notifyUsersByRole(
+        subsidiaryId,
+        UserRole.FINANCIAL_DIRECTOR,
+        payload,
+      ),
+    ]);
+  }
 
   // Utilitaire pour formater les montants
   private formatAmount(amount: number): string {
@@ -74,19 +102,18 @@ export class ExternalTransactionService {
         },
       );
 
-      // Envoyer une notification aux admins et directeurs financiers
-      // await this.notificationsService.sendAdminNotification({
-      //   type: NotificationType.EXTERNAL_TRANSACTION_CREATED,
-      //   title: 'Nouvelle Transaction Externe Créée',
-      //   message: `${transaction.creator.userName || transaction.creator.email} a créé une nouvelle transaction externe : ${transaction.description} pour ${this.formatAmount(transaction.amount.toNumber())}`,
-      //   data: {
-      //     transactionId: transaction.id,
-      //     subsidiaryId: transaction.subsidiaryId,
-      //     createdBy: transaction.createdBy,
-      //     userName: transaction.creator.userName || transaction.creator.email,
-      //     action: 'created'
-      //   }
-      // });
+      await this.notifyAdminsAndFinancialDirectors(transaction.subsidiaryId, {
+        title: 'Nouvelle Transaction Externe Créée',
+        message: `${transaction.creator.userName || transaction.creator.email} a créé une nouvelle transaction externe : ${transaction.description} pour ${this.formatAmount(transaction.amount.toNumber())}`,
+        type: NotificationType.EXTERNAL_TRANSACTION_CREATED,
+        data: {
+          transactionId: transaction.id,
+          subsidiaryId: transaction.subsidiaryId,
+          createdBy: transaction.createdBy,
+          userName: transaction.creator.userName || transaction.creator.email,
+          action: 'created',
+        },
+      });
 
       return transaction;
     } catch (error) {
@@ -275,19 +302,23 @@ export class ExternalTransactionService {
         },
       });
 
-    // Envoyer une notification aux admins et directeurs financiers
-    // await this.notificationsService.sendAdminNotification({
-    //   type: NotificationType.EXTERNAL_TRANSACTION_VALIDATED,
-    //   title: 'Transaction Externe Modifiée',
-    //   message: `${updatedTransaction.creator.userName || updatedTransaction.creator.email} a modifié la transaction externe : ${updatedTransaction.description} pour ${this.formatAmount(updatedTransaction.amount.toNumber())}`,
-    //   data: {
-    //     transactionId: updatedTransaction.id,
-    //     subsidiaryId: updatedTransaction.subsidiaryId,
-    //     createdBy: updatedTransaction.createdBy,
-    //     userName: updatedTransaction.creator.userName || updatedTransaction.creator.email,
-    //     action: 'updated'
-    //   }
-    // });
+    await this.notifyAdminsAndFinancialDirectors(
+      updatedTransaction.subsidiaryId,
+      {
+        title: 'Transaction Externe Modifiée',
+        message: `${updatedTransaction.creator.userName || updatedTransaction.creator.email} a modifié la transaction externe : ${updatedTransaction.description} pour ${this.formatAmount(updatedTransaction.amount.toNumber())}`,
+        type: NotificationType.EXTERNAL_TRANSACTION_VALIDATED,
+        data: {
+          transactionId: updatedTransaction.id,
+          subsidiaryId: updatedTransaction.subsidiaryId,
+          createdBy: updatedTransaction.createdBy,
+          userName:
+            updatedTransaction.creator.userName ||
+            updatedTransaction.creator.email,
+          action: 'updated',
+        },
+      },
+    );
 
     return updatedTransaction;
   }
@@ -347,36 +378,44 @@ export class ExternalTransactionService {
         },
       });
 
-    // Si un directeur financier a validé la transaction, notifier uniquement les administrateurs
-    // if (validatorUser && validatorUser.userRole === 'FINANCIAL_DIRECTOR') {
-    //   await this.notificationsService.sendAdminNotification({
-    //     type: NotificationType.EXTERNAL_TRANSACTION_VALIDATED,
-    //     title: 'Transaction Externe Validée par un Directeur Financier',
-    //     message: `Le directeur financier ${validatorUser.userName || validatorUser.email} a validé la transaction externe : ${validatedTransaction.description} pour ${this.formatAmount(validatedTransaction.amount.toNumber())}`,
-    //     data: {
-    //       transactionId: validatedTransaction.id,
-    //       subsidiaryId: validatedTransaction.subsidiaryId,
-    //       createdBy: validatedTransaction.createdBy,
-    //       validatedBy: validatorUser.id,
-    //       validatorName: validatorUser.userName || validatorUser.email,
-    //       action: 'validated_by_financial_director'
-    //     }
-    //   });
-    // } else {
-    //   // Pour les autres cas, notifier tous les admins et directeurs financiers
-    //   await this.notificationsService.sendAdminNotification({
-    //     type: NotificationType.EXTERNAL_TRANSACTION_VALIDATED,
-    //     title: 'Transaction Externe Validée',
-    //     message: `${validatedTransaction.creator.userName || validatedTransaction.creator.email} a validé la transaction externe : ${validatedTransaction.description} pour ${this.formatAmount(validatedTransaction.amount.toNumber())}`,
-    //     data: {
-    //       transactionId: validatedTransaction.id,
-    //       subsidiaryId: validatedTransaction.subsidiaryId,
-    //       createdBy: validatedTransaction.createdBy,
-    //       userName: validatedTransaction.creator.userName || validatedTransaction.creator.email,
-    //       action: 'validated'
-    //     }
-    //   });
-    // }
+    if (validatorUser && validatorUser.userRole === 'FINANCIAL_DIRECTOR') {
+      // Un directeur financier a validé : notifier uniquement les administrateurs
+      await this.notificationsService.notifyUsersByRole(
+        validatedTransaction.subsidiaryId,
+        UserRole.ADMIN,
+        {
+          title: 'Transaction Externe Validée par un Directeur Financier',
+          message: `Le directeur financier ${validatorUser.userName || validatorUser.email} a validé la transaction externe : ${validatedTransaction.description} pour ${this.formatAmount(validatedTransaction.amount.toNumber())}`,
+          type: NotificationType.EXTERNAL_TRANSACTION_VALIDATED,
+          data: {
+            transactionId: validatedTransaction.id,
+            subsidiaryId: validatedTransaction.subsidiaryId,
+            createdBy: validatedTransaction.createdBy,
+            validatedBy: validatorUser.id,
+            validatorName: validatorUser.userName || validatorUser.email,
+            action: 'validated_by_financial_director',
+          },
+        },
+      );
+    } else {
+      await this.notifyAdminsAndFinancialDirectors(
+        validatedTransaction.subsidiaryId,
+        {
+          title: 'Transaction Externe Validée',
+          message: `${validatedTransaction.creator.userName || validatedTransaction.creator.email} a validé la transaction externe : ${validatedTransaction.description} pour ${this.formatAmount(validatedTransaction.amount.toNumber())}`,
+          type: NotificationType.EXTERNAL_TRANSACTION_VALIDATED,
+          data: {
+            transactionId: validatedTransaction.id,
+            subsidiaryId: validatedTransaction.subsidiaryId,
+            createdBy: validatedTransaction.createdBy,
+            userName:
+              validatedTransaction.creator.userName ||
+              validatedTransaction.creator.email,
+            action: 'validated',
+          },
+        },
+      );
+    }
 
     return validatedTransaction;
   }
@@ -411,19 +450,23 @@ export class ExternalTransactionService {
         },
       });
 
-    // Envoyer une notification aux admins et directeurs financiers
-    // await this.notificationsService.sendAdminNotification({
-    //   type: NotificationType.EXTERNAL_TRANSACTION_CANCELLED,
-    //   title: 'Transaction Externe Annulée',
-    //   message: `${cancelledTransaction.creator.userName || cancelledTransaction.creator.email} a annulé la transaction externe : ${cancelledTransaction.description} pour ${this.formatAmount(cancelledTransaction.amount.toNumber())}`,
-    //   data: {
-    //     transactionId: cancelledTransaction.id,
-    //     subsidiaryId: cancelledTransaction.subsidiaryId,
-    //     createdBy: cancelledTransaction.createdBy,
-    //     userName: cancelledTransaction.creator.userName || cancelledTransaction.creator.email,
-    //     action: 'cancelled'
-    //   }
-    // });
+    await this.notifyAdminsAndFinancialDirectors(
+      cancelledTransaction.subsidiaryId,
+      {
+        title: 'Transaction Externe Annulée',
+        message: `${cancelledTransaction.creator.userName || cancelledTransaction.creator.email} a annulé la transaction externe : ${cancelledTransaction.description} pour ${this.formatAmount(cancelledTransaction.amount.toNumber())}`,
+        type: NotificationType.EXTERNAL_TRANSACTION_CANCELLED,
+        data: {
+          transactionId: cancelledTransaction.id,
+          subsidiaryId: cancelledTransaction.subsidiaryId,
+          createdBy: cancelledTransaction.createdBy,
+          userName:
+            cancelledTransaction.creator.userName ||
+            cancelledTransaction.creator.email,
+          action: 'cancelled',
+        },
+      },
+    );
 
     return cancelledTransaction;
   }

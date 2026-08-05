@@ -23,12 +23,11 @@ export class AnalyticsController {
    * Exemple d'url: /analytics/dashboard?period=THIS_MONTH&subsidiaryId=xxx (drill-down super-admin)
    */
   @Get('dashboard')
-  @Roles(
-    UserRole.ADMIN,
-    UserRole.FINANCIAL_DIRECTOR,
-    UserRole.COMMERCIAL,
-    UserRole.SUPER_ADMIN,
-  )
+  // COMMERCIAL n'a accès qu'à l'analyse des ventes (voir endpoint 'sales'
+  // ci-dessous) — le tableau de bord complet inclut les onglets trésorerie
+  // (banque/coffre/caisse), hors périmètre de ce rôle. Même restriction que
+  // gmo (getNavItems::COMMERCIAL n'expose que sales-analytics).
+  @Roles(UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.SUPER_ADMIN)
   getDashboardStats(
     @Req() req: any,
     @Query() periodFilterDto: PeriodFilterDto,

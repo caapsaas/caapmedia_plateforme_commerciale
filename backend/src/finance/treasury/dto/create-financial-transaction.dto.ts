@@ -9,7 +9,7 @@ import {
   IsPositive,
   MaxLength,
 } from 'class-validator';
-import { TransactionType, Prisma } from '@prisma/client';
+import { TransactionType, TransactionStatus, Prisma } from '@prisma/client';
 
 export class CreateFinancialTransactionDto {
   @IsDateString()
@@ -46,4 +46,11 @@ export class CreateFinancialTransactionDto {
   @IsOptional()
   @MaxLength(20)
   providerPhone?: string;
+
+  // Décaissement complet (Phase A/B) : créer en EN_ATTENTE pour valider plus
+  // tard via PATCH .../status (le solde n'est débité/crédité qu'à la validation).
+  // Par défaut VALIDE (comportement historique inchangé).
+  @IsEnum(TransactionStatus)
+  @IsOptional()
+  status?: TransactionStatus;
 }

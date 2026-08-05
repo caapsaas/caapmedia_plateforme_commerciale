@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ExpenseModule } from './expense/expense.module';
+import { RecurringExpenseModule } from './recurring-expense/recurring-expense.module';
+import { TaxTransparencyModule } from './tax-transparency/tax-transparency.module';
 import { TreasuryModule } from './treasury/treasury.module';
 import { DebtsModule } from './debts/debts.module';
 import { AssetsModule } from './assets/assets.module';
@@ -12,6 +14,8 @@ import { JournalizationModule } from '../accounting/journalization/journalizatio
 @Module({
   imports: [
     ExpenseModule,
+    RecurringExpenseModule,
+    TaxTransparencyModule,
     TreasuryModule,
     DebtsModule,
     AssetsModule,
