@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsUUID,
   IsDateString,
+  IsNotEmpty,
 } from 'class-validator';
 import { SecretariatTaskStatus } from '@prisma/client';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
@@ -22,11 +23,11 @@ export class CreateSecretariatTaskDto {
   status: SecretariatTaskStatus;
 
   @IsOptional()
-  @IsString()
+  @IsUUID('all')
   assignedToId?: string;
 
-  // ✅ Requis à la création
-  @IsString()
+  @IsNotEmpty()
+  @IsUUID('all')
   subsidiaryId: string;
 }
 
@@ -48,13 +49,8 @@ export class UpdateSecretariatTaskDto {
   status?: SecretariatTaskStatus;
 
   @IsOptional()
-  @IsString()
+  @IsUUID('all')
   assignedToId?: string;
-
-  // ✅ Optionnel ici, car on ne change généralement pas de filiale
-  @IsOptional()
-  @IsString()
-  subsidiaryId?: string;
 }
 
 export class SearchSecretariatTasksDto extends PaginationQueryDto {

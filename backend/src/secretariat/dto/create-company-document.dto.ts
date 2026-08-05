@@ -13,6 +13,6 @@ export class CreateCompanyDocumentDto {
   status: DocumentStatus;
 
   @IsNotEmpty()
-  @IsString()
+  @IsUUID('all')
   subsidiaryId: string;
 }

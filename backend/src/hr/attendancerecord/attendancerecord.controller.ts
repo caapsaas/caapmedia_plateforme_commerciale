@@ -16,6 +16,7 @@ import { AttendanceRecordService } from './attendancerecord.service';
 import {
   CreateAttendanceRecordDto,
   UpdateAttendanceRecordDto,
+  AttendanceRecordQueryDto,
 } from './dto/atendancerecord.dto';
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles } from '../../common/auth/role/role.decorator';
@@ -66,12 +67,7 @@ export class AttendanceRecordController {
   @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
   async findAll(
     @Request() req,
-<<<<<<< HEAD
-    @Query() query: any,
-=======
-    @Query() paginationQuery: PaginationQueryDto,
-    @Query('subsidiaryId') subsidiaryIdFilter?: string,
->>>>>>> 85050e56ad223c6548fdc1f4f6d9597056638843
+    @Query() query: AttendanceRecordQueryDto,
   ) {
     const paginationQuery = new PaginationQueryDto();
     paginationQuery.page = query.page ? Number(query.page) : 1;
@@ -79,11 +75,7 @@ export class AttendanceRecordController {
     paginationQuery.search = query.search;
 
     const ctx = resolveScopeContext(req.user);
-<<<<<<< HEAD
     const subsidiaryId = resolveEffectiveSubsidiaryId(ctx, query.subsidiaryId);
-=======
-    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx, subsidiaryIdFilter);
->>>>>>> 85050e56ad223c6548fdc1f4f6d9597056638843
     return this.attendanceRecordService.findAll(subsidiaryId, paginationQuery);
   }
 

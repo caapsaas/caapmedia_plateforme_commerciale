@@ -113,6 +113,9 @@ model User {
   accountingAccessRequests      AccountingAccessRequest[]      @relation("AccountingAccessRequester")
   accountingAccessReviews       AccountingAccessRequest[]      @relation("AccountingAccessReviewer")
   cashierTreasuryAccounts       TreasuryAccount[]
+  companyDocuments              CompanyDocument[]
+  meetings                      Meeting[]
+  secretariatTasks              SecretariatTask[]
 
   @@map("users")
 }
@@ -1024,14 +1027,17 @@ model ExternalFinancialTransaction {
 model CompanyDocument {
   id           String           @id @default(uuid()) @map("id")
   documentName String           @map("document_name") @db.VarChar(255)
-  uploadDate   DateTime         @default(now()) @map("upload_date")
   fileUrl      String           @map("file_url")
-  subsidiaryId String           @map("subsidiary_id")
   category     DocumentCategory @map("category")
   status       DocumentStatus   @map("status")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  createdBy    String?          @map("created_by")
+  updatedAt    DateTime?        @updatedAt @map("updated_at")
+  subsidiaryId String           @map("subsidiary_id")
   subsidiary   Subsidiary       @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  creator      User?            @relation(fields: [createdBy], references: [id])
 
-  @@index([subsidiaryId, uploadDate])
+  @@index([subsidiaryId, createdAt])
   @@index([category])
   @@index([status])
   @@map("company_documents")
@@ -1040,27 +1046,31 @@ model CompanyDocument {
 model Meeting {
   id              String               @id @default(uuid()) @map("id")
   title           String               @db.VarChar(255)
-  meetingDate     DateTime             @map("meeting_date")
-  meetingTime     DateTime             @map("meeting_time")
+  meetingDateTime DateTime             @map("meeting_date_time")
   meetingLocation String?              @map("meeting_location") @db.VarChar(255)
   agenda          String?
   minutes         String?
+  minutesUpdatedBy String?             @map("minutes_updated_by")
+  minutesUpdatedAt DateTime?           @map("minutes_updated_at")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  createdBy       String?              @map("created_by")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
   subsidiaryId    String               @map("subsidiary_id")
   participants    MeetingParticipant[]
   subsidiary      Subsidiary           @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  creator         User?                @relation(fields: [createdBy], references: [id])
 
-  @@index([subsidiaryId, meetingDate])
+  @@index([subsidiaryId, meetingDateTime])
   @@map("meetings")
 }
 
 model MeetingParticipant {
-  id         String   @id @default(uuid()) @map("id") @db.Text
   meetingId  String   @map("meeting_id")
   employeeId String   @map("employee_id")
   employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   meeting    Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
-  @@unique([meetingId, employeeId])
+  @@id([meetingId, employeeId])
   @@map("meeting_participants")
 }
 
@@ -1069,11 +1079,15 @@ model SecretariatTask {
   title        String                @db.VarChar(255)
   description  String
   dueDate      DateTime              @map("due_date")
+  status       SecretariatTaskStatus @map("status")
   assignedToId String?               @map("assigned_to_id")
   subsidiaryId String                @map("subsidiary_id")
-  status       SecretariatTaskStatus @map("status")
-  assignedTo   Employee?             @relation(fields: [assignedToId], references: [id])
+  createdAt    DateTime              @default(now()) @map("created_at")
+  createdBy    String?               @map("created_by")
+  updatedAt    DateTime              @updatedAt @map("updated_at")
+  assignedTo   Employee?             @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
   subsidiary   Subsidiary            @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  creator      User?                 @relation(fields: [createdBy], references: [id])
 
   @@index([subsidiaryId, dueDate])
   @@index([status])

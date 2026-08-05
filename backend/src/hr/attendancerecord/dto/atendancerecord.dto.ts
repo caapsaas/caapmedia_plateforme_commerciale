@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsNumber,
   IsBoolean,
+  IsUUID,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
@@ -83,3 +84,21 @@ export class CreateAttendanceRecordDto {
 export class UpdateAttendanceRecordDto extends PartialType(
   CreateAttendanceRecordDto,
 ) {}
+
+export class AttendanceRecordQueryDto {
+  @IsOptional()
+  @IsUUID()
+  subsidiaryId?: string;
+
+  @IsOptional()
+  @IsNumber()
+  page?: number;
+
+  @IsOptional()
+  @IsNumber()
+  limit?: number;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
+}

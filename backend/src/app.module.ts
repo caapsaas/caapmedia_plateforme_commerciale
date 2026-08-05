@@ -48,15 +48,11 @@ import { ConfigurationModule } from './configuration/configuration.module';
     ConfigModule.forRoot({ isGlobal: true, validate }), // Charge .env globalement, échoue au démarrage si invalide
     PrismaModule,
     CommonModule,
-    SecretariatModule,
     AuthModule,
     SubsidiariesModule,
     EcommerceModule,
-
-    HrModule,
-    AuthModule,
-    SubsidiariesModule,
     SecretariatModule,
+    HrModule,
     MaintenanceModule,
     EquipementModule,
     MaintenanceRecordModule,

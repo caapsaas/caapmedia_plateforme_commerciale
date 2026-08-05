@@ -41,28 +41,28 @@ export class SecretariatService {
   ) {
     this.logger.log(
       `Attempting to create document "${dto.documentName}" for subsidiary ${dto.subsidiaryId}`,
-      'createCompanyDocument',
+      'SecretariatService',
     );
 
     // Guard : Vérifier que data est valide
     if (!dto || !dto.subsidiaryId) {
       // file is now a separate parameter
       this.logger.error(
-        'Invalid or missing data provided (subsidiaryId are required)',
-        'createCompanyDocument',
+        'Invalid or missing data provided (subsidiaryId required)',
+        'SecretariatService',
       );
       throw new BadRequestException(
-        'Données invalides ou manquantes (subsidiaryId requis)',
+        'Invalid or missing data (subsidiaryId required)',
       );
     }
     if (!file) {
       // File is mandatory for creation
       this.logger.error(
         'File is missing for document creation',
-        'createCompanyDocument',
+        'SecretariatService',
       );
       throw new BadRequestException(
-        'Un fichier est requis pour créer le document',
+        'A file is required to create the document',
       );
     }
 
@@ -73,9 +73,9 @@ export class SecretariatService {
     if (!subsidiary) {
       this.logger.error(
         `Subsidiary with ID ${dto.subsidiaryId} not found`,
-        'createCompanyDocument',
+        'SecretariatService',
       );
-      throw new NotFoundException('Filiale non trouvée');
+      throw new NotFoundException('Subsidiary not found');
     }
 
     // Un ADMIN peut créer pour n'importe quelle filiale, un SECRETARY uniquement pour la sienne.
@@ -85,10 +85,10 @@ export class SecretariatService {
     ) {
       this.logger.warn(
         `User ${currentUser.id} (role: ${currentUser.role}) tried to create document for foreign subsidiary ${dto.subsidiaryId}`,
-        'createCompanyDocument',
+        'SecretariatService',
       );
       throw new ForbiddenException(
-        'Accès non autorisé : cette filiale ne vous appartient pas',
+        'Not authorized: this subsidiary does not belong to you',
       );
     }
 
@@ -98,11 +98,13 @@ export class SecretariatService {
     // Créer le document (Prisma gérera subsidiaryId via data)
     const document = await this.prisma.companyDocument.create({
       data: {
+        id: generateId(ID_PREFIXES.COMPANYDOCUMENT),
         documentName: dto.documentName,
         category: dto.category,
         status: dto.status,
-        fileUrl: fileUrl, // fileUrl est maintenant construit dans le service
+        fileUrl: fileUrl,
         subsidiaryId: dto.subsidiaryId,
+        createdBy: currentUser.id,
       },
     });
 
@@ -145,7 +147,7 @@ export class SecretariatService {
         'SecretariatService',
       );
       throw new ForbiddenException(
-        'You are not authorized to update this company document',
+        'Not authorized to update this company document',
       );
     }
     if (
@@ -157,7 +159,7 @@ export class SecretariatService {
         'SecretariatService',
       );
       throw new ForbiddenException(
-        'You cannot update a document from another subsidiary',
+        'Cannot update a document from another subsidiary',
       );
     }
 
@@ -208,7 +210,7 @@ export class SecretariatService {
         'SecretariatService',
       );
       throw new ForbiddenException(
-        'You are not authorized to delete this company document',
+        'Not authorized to delete this company document',
       );
     }
     if (
@@ -220,7 +222,7 @@ export class SecretariatService {
         'SecretariatService',
       );
       throw new ForbiddenException(
-        'You cannot delete a document from another subsidiary',
+        'Cannot delete a document from another subsidiary',
       );
     }
 
@@ -257,7 +259,7 @@ export class SecretariatService {
 
     const result = await paginate(
       this.prisma.companyDocument,
-      { where, include: { subsidiary: true }, orderBy: { uploadDate: 'desc' } },
+      { where, include: { subsidiary: true, creator: { select: { id: true, userName: true } } }, orderBy: { createdAt: 'desc' } },
       paginationQuery,
     );
 
@@ -268,11 +270,65 @@ export class SecretariatService {
     return result;
   }
 
+  async archiveCompanyDocument(
+    id: string,
+    currentUser: { id: string; role: UserRole; subsidiaryId: string },
+  ) {
+    // Vérifier si le document existe
+    const document = await this.prisma.companyDocument.findUnique({
+      where: { id },
+    });
+    if (!document) {
+      this.logger.error(
+        `Company document with ID ${id} not found`,
+        'SecretariatService',
+      );
+      throw new NotFoundException('Company document not found');
+    }
+
+    // Vérifier les autorisations
+    const allowedRoles: UserRole[] = [UserRole.SECRETARY, UserRole.ADMIN];
+    if (!allowedRoles.includes(currentUser.role)) {
+      this.logger.error(
+        `User ${currentUser.id} is not authorized to archive company document ${id}`,
+        'SecretariatService',
+      );
+      throw new ForbiddenException(
+        'Not authorized to archive this company document',
+      );
+    }
+    if (
+      currentUser.role !== UserRole.ADMIN &&
+      currentUser.subsidiaryId !== document.subsidiaryId
+    ) {
+      this.logger.error(
+        `User ${currentUser.id} cannot archive document from subsidiary ${document.subsidiaryId}`,
+        'SecretariatService',
+      );
+      throw new ForbiddenException(
+        'Cannot archive a document from another subsidiary',
+      );
+    }
+
+    // Archiver le document
+    const archivedDocument = await this.prisma.companyDocument.update({
+      where: { id },
+      data: { status: DocumentStatus.ARCHIVED },
+    });
+
+    this.logger.log(
+      `Company document ${id} archived successfully`,
+      'SecretariatService',
+    );
+    return archivedDocument;
+  }
+
   async searchCompanyDocuments(
     query: {
       documentName?: string;
       category?: DocumentCategory;
       status?: DocumentStatus;
+      includeArchived?: boolean;
     } & PaginationQueryDto,
     currentUser: { id: string; role: UserRole; subsidiaryId: string },
   ) {
@@ -281,6 +337,12 @@ export class SecretariatService {
       currentUser.role === UserRole.ADMIN
         ? {}
         : { subsidiaryId: currentUser.subsidiaryId };
+
+    // Par défaut, exclure les documents archivés
+    if (!query.includeArchived) {
+      where.status = { not: DocumentStatus.ARCHIVED };
+    }
+
     if (query.documentName) {
       where.documentName = {
         contains: query.documentName,
@@ -296,7 +358,7 @@ export class SecretariatService {
 
     const result = await paginate(
       this.prisma.companyDocument,
-      { where, include: { subsidiary: true }, orderBy: { uploadDate: 'desc' } },
+      { where, include: { subsidiary: true, creator: { select: { id: true, userName: true } } }, orderBy: { createdAt: 'desc' } },
       query,
     );
 
@@ -312,13 +374,11 @@ export class SecretariatService {
   async createMeeting(
     data: {
       title: string;
-      meetingDate: Date;
-      meetingTime: Date;
+      meetingDateTime: Date;
       meetingLocation?: string;
       agenda?: string;
-      minutes?: string;
       subsidiaryId: string;
-      participantIds?: string[]; // Ajout : Liste optionnelle d'IDs employés (UUIDs)
+      participantIds?: string[];
     },
     currentUser: { id: string; role: UserRole; subsidiaryId: string },
   ) {
@@ -330,7 +390,7 @@ export class SecretariatService {
         'SecretariatService',
       );
       throw new ForbiddenException(
-        'You are not authorized to create a meeting',
+        'Not authorized to create a meeting',
       );
     }
 
@@ -354,7 +414,7 @@ export class SecretariatService {
         'SecretariatService',
       );
       throw new ForbiddenException(
-        'You cannot create a meeting for another subsidiary',
+        'Cannot create a meeting for another subsidiary',
       );
     }
 
@@ -363,13 +423,13 @@ export class SecretariatService {
       // Créer la réunion de base
       const createdMeeting = await tx.meeting.create({
         data: {
+          id: generateId(ID_PREFIXES.MEETING),
           title: data.title,
-          meetingDate: data.meetingDate,
-          meetingTime: data.meetingTime,
+          meetingDateTime: data.meetingDateTime,
           meetingLocation: data.meetingLocation,
           agenda: data.agenda,
-          minutes: data.minutes,
           subsidiaryId: data.subsidiaryId,
+          createdBy: currentUser.id,
         },
       });
 
@@ -389,7 +449,7 @@ export class SecretariatService {
             'SecretariatService',
           );
           throw new BadRequestException(
-            'Some employees not found or do not belong to the specified subsidiary',
+            'Some employees not found or do not belong to the meeting subsidiary',
           );
         }
 
@@ -419,12 +479,11 @@ export class SecretariatService {
     id: string,
     data: {
       title?: string;
-      meetingDate?: Date;
-      meetingTime?: Date;
+      meetingDateTime?: Date;
       meetingLocation?: string;
       agenda?: string;
       minutes?: string;
-      participantIds?: string[]; // Ajout : Liste optionnelle pour mettre à jour les participants
+      participantIds?: string[];
     },
     currentUser: { id: string; role: UserRole; subsidiaryId: string },
   ) {
@@ -449,7 +508,7 @@ export class SecretariatService {
         'SecretariatService',
       );
       throw new ForbiddenException(
-        'You are not authorized to update this meeting',
+        'Not authorized to update this meeting',
       );
     }
     if (
@@ -461,7 +520,7 @@ export class SecretariatService {
         'SecretariatService',
       );
       throw new ForbiddenException(
-        'You cannot update a meeting from another subsidiary',
+        'Cannot update a meeting from another subsidiary',
       );
     }
 
@@ -475,12 +534,15 @@ export class SecretariatService {
       // Mettre à jour les champs de base si fournis
       const updateData: any = {};
       if (data.title) updateData.title = data.title;
-      if (data.meetingDate) updateData.meetingDate = data.meetingDate;
-      if (data.meetingTime) updateData.meetingTime = data.meetingTime;
+      if (data.meetingDateTime) updateData.meetingDateTime = data.meetingDateTime;
       if (data.meetingLocation !== undefined)
         updateData.meetingLocation = data.meetingLocation;
       if (data.agenda !== undefined) updateData.agenda = data.agenda;
-      if (data.minutes !== undefined) updateData.minutes = data.minutes;
+      if (data.minutes !== undefined) {
+        updateData.minutes = data.minutes;
+        updateData.minutesUpdatedBy = currentUser.id;
+        updateData.minutesUpdatedAt = new Date();
+      }
 
       const updated = await tx.meeting.update({
         where: { id },
@@ -556,7 +618,7 @@ export class SecretariatService {
         'SecretariatService',
       );
       throw new ForbiddenException(
-        'You are not authorized to delete this meeting',
+        'Not authorized to delete this meeting',
       );
     }
     if (
@@ -568,7 +630,7 @@ export class SecretariatService {
         'SecretariatService',
       );
       throw new ForbiddenException(
-        'You cannot delete a meeting from another subsidiary',
+        'Cannot delete a meeting from another subsidiary',
       );
     }
 
@@ -603,11 +665,12 @@ export class SecretariatService {
         where,
         include: {
           subsidiary: true,
+          creator: { select: { id: true, userName: true } },
           participants: {
-            include: { employee: true }, // Ajout : Inclure les détails des employés dans les participants
+            include: { employee: true },
           },
         },
-        orderBy: { meetingDate: 'desc' },
+        orderBy: { meetingDateTime: 'desc' },
       },
       paginationQuery,
     );
@@ -620,7 +683,7 @@ export class SecretariatService {
   }
 
   async searchMeetings(
-    query: { title?: string; meetingDate?: Date } & PaginationQueryDto,
+    query: { title?: string; meetingDateTime?: Date } & PaginationQueryDto,
     currentUser: { id: string; role: UserRole; subsidiaryId: string },
   ) {
     // Construire les conditions de recherche
@@ -631,8 +694,8 @@ export class SecretariatService {
     if (query.title) {
       where.title = { contains: query.title, mode: 'insensitive' };
     }
-    if (query.meetingDate) {
-      where.meetingDate = query.meetingDate;
+    if (query.meetingDateTime) {
+      where.meetingDateTime = query.meetingDateTime;
     }
 
     const result = await paginate(
@@ -641,11 +704,12 @@ export class SecretariatService {
         where,
         include: {
           subsidiary: true,
+          creator: { select: { id: true, userName: true } },
           participants: {
-            include: { employee: true }, // Ajout : Inclure les détails des employés dans les participants
+            include: { employee: true },
           },
         },
-        orderBy: { meetingDate: 'desc' },
+        orderBy: { meetingDateTime: 'desc' },
       },
       query,
     );
@@ -680,7 +744,7 @@ export class SecretariatService {
     const allowedRoles: UserRole[] = [UserRole.SECRETARY, UserRole.ADMIN];
     if (!allowedRoles.includes(currentUser.role)) {
       throw new ForbiddenException(
-        'You are not authorized to add participants to this meeting',
+        'Not authorized to add participants to this meeting',
       );
     }
     if (
@@ -688,7 +752,7 @@ export class SecretariatService {
       currentUser.subsidiaryId !== meeting.subsidiaryId
     ) {
       throw new ForbiddenException(
-        'You cannot add participants to a meeting from another subsidiary',
+        'Cannot add participants to a meeting from another subsidiary',
       );
     }
 
@@ -753,7 +817,7 @@ export class SecretariatService {
     const allowedRoles: UserRole[] = [UserRole.SECRETARY, UserRole.ADMIN];
     if (!allowedRoles.includes(currentUser.role)) {
       throw new ForbiddenException(
-        'You are not authorized to remove participants from this meeting',
+        'Not authorized to remove participants from this meeting',
       );
     }
     if (
@@ -761,7 +825,7 @@ export class SecretariatService {
       currentUser.subsidiaryId !== meeting.subsidiaryId
     ) {
       throw new ForbiddenException(
-        'You cannot remove participants from a meeting from another subsidiary',
+        'Cannot remove participants from a meeting from another subsidiary',
       );
     }
 
@@ -793,7 +857,7 @@ export class SecretariatService {
         'SecretariatService',
       );
       throw new ForbiddenException(
-        'You are not authorized to create a secretariat task',
+        'Not authorized to create a secretariat task',
       );
     }
 
@@ -817,7 +881,7 @@ export class SecretariatService {
         'SecretariatService',
       );
       throw new ForbiddenException(
-        'You cannot create a task for another subsidiary',
+        'Cannot create a task for another subsidiary',
       );
     }
 
@@ -840,9 +904,10 @@ export class SecretariatService {
       data: {
         id: generateId(ID_PREFIXES.SECRETARIATASK),
         ...dto,
-        dueDate: new Date(dto.dueDate), // S'assurer que c'est un objet Date
+        dueDate: new Date(dto.dueDate),
+        createdBy: currentUser.id,
       },
-      include: { subsidiary: true, assignedTo: true },
+      include: { subsidiary: true, assignedTo: true, creator: { select: { id: true, userName: true } } },
     });
 
     this.logger.log(
@@ -877,7 +942,7 @@ export class SecretariatService {
         'SecretariatService',
       );
       throw new ForbiddenException(
-        'You are not authorized to update this secretariat task',
+        'Not authorized to update this secretariat task',
       );
     }
     if (
@@ -889,7 +954,7 @@ export class SecretariatService {
         'SecretariatService',
       );
       throw new ForbiddenException(
-        'You cannot update a task from another subsidiary',
+        'Cannot update a task from another subsidiary',
       );
     }
 
@@ -953,7 +1018,7 @@ export class SecretariatService {
         'SecretariatService',
       );
       throw new ForbiddenException(
-        'You are not authorized to delete this secretariat task',
+        'Not authorized to delete this secretariat task',
       );
     }
     if (
@@ -965,7 +1030,7 @@ export class SecretariatService {
         'SecretariatService',
       );
       throw new ForbiddenException(
-        'You cannot delete a task from another subsidiary',
+        'Cannot delete a task from another subsidiary',
       );
     }
 
@@ -1001,7 +1066,7 @@ export class SecretariatService {
       this.prisma.secretariatTask,
       {
         where,
-        include: { subsidiary: true, assignedTo: true },
+        include: { subsidiary: true, assignedTo: true, creator: { select: { id: true, userName: true } } },
         orderBy: { dueDate: 'asc' },
       },
       paginationQuery,
@@ -1041,7 +1106,7 @@ export class SecretariatService {
       this.prisma.secretariatTask,
       {
         where,
-        include: { subsidiary: true, assignedTo: true },
+        include: { subsidiary: true, assignedTo: true, creator: { select: { id: true, userName: true } } },
         orderBy: { dueDate: 'asc' },
       },
       query,

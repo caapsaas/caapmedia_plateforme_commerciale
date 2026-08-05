@@ -77,7 +77,7 @@ export class EmployeeController {
   }
 
   @Get()
-  @Roles('HR_MANAGER', 'ADMIN')
+  @Roles('HR_MANAGER', 'ADMIN', 'SECRETARY')
   @ApiOperation({ summary: 'Get all employees of a subsidiary' })
   async findAll(
     @Request() req,
@@ -100,7 +100,7 @@ export class EmployeeController {
   }
 
   @Get(':id')
-  @Roles('HR_MANAGER', 'ADMIN')
+  @Roles('HR_MANAGER', 'ADMIN', 'SECRETARY')
   @ApiOperation({ summary: 'Get a single employee by ID' })
   async findOne(
     @Param('id') id: string,

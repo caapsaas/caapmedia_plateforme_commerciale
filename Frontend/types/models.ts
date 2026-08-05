@@ -1271,3 +1271,87 @@ export interface AppNotification {
   createdAt: string;
   updatedAt: string;
 }
+
+// ---------------------------------------------------------------------------
+// Secretariat Module Types
+// ---------------------------------------------------------------------------
+
+export enum DocumentCategory {
+  LEGAL = 'LEGAL',
+  FINANCIAL = 'FINANCIAL',
+  HR = 'HR',
+  CONTRACT = 'CONTRACT',
+  OTHER = 'OTHER',
+}
+
+export enum DocumentStatus {
+  DRAFT = 'DRAFT',
+  FINAL = 'FINAL',
+  ARCHIVED = 'ARCHIVED',
+}
+
+export interface CompanyDocument {
+  id: string;
+  documentName: string;
+  uploadDate: string;
+  fileUrl: string;
+  subsidiaryId: string;
+  category: DocumentCategory;
+  status: DocumentStatus;
+  subsidiary?: Subsidiary;
+}
+
+export enum SecretariatTaskStatus {
+  TODO = 'TODO',
+  IN_PROGRESS = 'IN_PROGRESS',
+  DONE = 'DONE',
+}
+
+export interface SecretariatTask {
+  id: string;
+  title: string;
+  description: string;
+  dueDate: string;
+  status: SecretariatTaskStatus;
+  subsidiaryId: string;
+  assignedToId?: string;
+  assignedTo?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  subsidiary?: Subsidiary;
+}
+
+export interface Meeting {
+  id: string;
+  title: string;
+  meetingDate: string;
+  meetingTime: string;
+  meetingLocation?: string;
+  agenda?: string;
+  minutes?: string;
+  subsidiaryId: string;
+  participants?: MeetingParticipant[];
+  subsidiary?: Subsidiary;
+}
+
+export interface MeetingParticipant {
+  meetingId: string;
+  employeeId: string;
+  employee?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  meeting?: Meeting;
+}
+
+// Pagination response type for API calls
+export interface PaginationResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages?: number;
+}

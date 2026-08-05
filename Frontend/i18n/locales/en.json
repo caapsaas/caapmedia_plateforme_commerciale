@@ -1044,5 +1044,72 @@
     "error": {
       "update": "Error updating payroll configuration"
     }
+  },
+  "secretariat": {
+    "title": "Secretariat",
+    "documents": "Documents",
+    "meetings": "Meetings",
+    "tasks": "Tasks",
+    "addDocument": "Add Document",
+    "addMeeting": "Add Meeting",
+    "addTask": "Add Task",
+    "editDocument": "Edit Document",
+    "editMeeting": "Edit Meeting",
+    "editTask": "Edit Task",
+    "deleteDocument": "Delete Document",
+    "deleteMeeting": "Delete Meeting",
+    "deleteTask": "Delete Task",
+    "documentName": "Document Name",
+    "category": "Category",
+    "status": "Status",
+    "uploadDate": "Upload Date",
+    "fileUrl": "File",
+    "title": "Title",
+    "meetingDate": "Meeting Date",
+    "meetingTime": "Meeting Time",
+    "meetingLocation": "Location",
+    "agenda": "Agenda",
+    "minutes": "Minutes",
+    "participants": "Participants",
+    "description": "Description",
+    "dueDate": "Due Date",
+    "assignedTo": "Assigned To",
+    "documentCategory": {
+      "LEGAL": "Legal",
+      "FINANCIAL": "Financial",
+      "HR": "Human Resources",
+      "CONTRACT": "Contract",
+      "OTHER": "Other"
+    },
+    "documentStatus": {
+      "DRAFT": "Draft",
+      "FINAL": "Final",
+      "ARCHIVED": "Archived"
+    },
+    "taskStatus": {
+      "TODO": "To Do",
+      "IN_PROGRESS": "In Progress",
+      "DONE": "Done"
+    },
+    "form": {
+      "selectCategory": "Select a category",
+      "selectStatus": "Select a status",
+      "selectEmployee": "Select an employee",
+      "uploadFile": "Upload a file",
+      "addParticipant": "Add participant",
+      "removeParticipant": "Remove participant"
+    },
+    "errors": {
+      "loadFailed": "Error loading data",
+      "createFailed": "Error creating",
+      "updateFailed": "Error updating",
+      "deleteFailed": "Error deleting",
+      "uploadFailed": "Error uploading file"
+    },
+    "success": {
+      "created": "Created successfully",
+      "updated": "Updated successfully",
+      "deleted": "Deleted successfully"
+    }
   }
 }

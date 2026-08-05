@@ -1044,5 +1044,72 @@
     "error": {
       "update": "Erreur lors de la mise à jour de la configuration de paie"
     }
+  },
+  "secretariat": {
+    "title": "Secrétariat",
+    "documents": "Documents",
+    "meetings": "Réunions",
+    "tasks": "Tâches",
+    "addDocument": "Ajouter un document",
+    "addMeeting": "Ajouter une réunion",
+    "addTask": "Ajouter une tâche",
+    "editDocument": "Modifier le document",
+    "editMeeting": "Modifier la réunion",
+    "editTask": "Modifier la tâche",
+    "deleteDocument": "Supprimer le document",
+    "deleteMeeting": "Supprimer la réunion",
+    "deleteTask": "Supprimer la tâche",
+    "documentName": "Nom du document",
+    "category": "Catégorie",
+    "status": "Statut",
+    "uploadDate": "Date de création",
+    "fileUrl": "Fichier",
+    "title": "Titre",
+    "meetingDate": "Date de réunion",
+    "meetingTime": "Heure de réunion",
+    "meetingLocation": "Lieu",
+    "agenda": "Ordre du jour",
+    "minutes": "Compte-rendu",
+    "participants": "Participants",
+    "description": "Description",
+    "dueDate": "Date limite",
+    "assignedTo": "Assigné à",
+    "documentCategory": {
+      "LEGAL": "Juridique",
+      "FINANCIAL": "Financier",
+      "HR": "Ressources Humaines",
+      "CONTRACT": "Contrat",
+      "OTHER": "Autre"
+    },
+    "documentStatus": {
+      "DRAFT": "Brouillon",
+      "FINAL": "Final",
+      "ARCHIVED": "Archivé"
+    },
+    "taskStatus": {
+      "TODO": "À faire",
+      "IN_PROGRESS": "En cours",
+      "DONE": "Terminé"
+    },
+    "form": {
+      "selectCategory": "Sélectionner une catégorie",
+      "selectStatus": "Sélectionner un statut",
+      "selectEmployee": "Sélectionner un employé",
+      "uploadFile": "Télécharger un fichier",
+      "addParticipant": "Ajouter un participant",
+      "removeParticipant": "Retirer le participant"
+    },
+    "errors": {
+      "loadFailed": "Erreur lors du chargement des données",
+      "createFailed": "Erreur lors de la création",
+      "updateFailed": "Erreur lors de la mise à jour",
+      "deleteFailed": "Erreur lors de la suppression",
+      "uploadFailed": "Erreur lors du téléchargement du fichier"
+    },
+    "success": {
+      "created": "Créé avec succès",
+      "updated": "Mis à jour avec succès",
+      "deleted": "Supprimé avec succès"
+    }
   }
 }

@@ -1,96 +1,67 @@
-import { IsString, IsDate, IsOptional, IsUUID, IsArray } from 'class-validator';
+import { IsString, IsDate, IsOptional, IsUUID, IsArray, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 export class CreateMeetingDto {
   @IsString()
-  // @ApiProperty({ description: 'Titre de la réunion' })
   title: string;
 
-  @Type(() => Date) // Convertit string ISO en Date
-  @IsDate({ message: 'meetingDate must be a valid date' })
-  // @ApiProperty({ description: 'Date de la réunion' })
-  meetingDate: Date;
-
-  @Type(() => Date) // Convertit string ISO en Date
-  @IsDate({ message: 'meetingTime must be a valid date' })
-  // @ApiProperty({ description: 'Heure de la réunion' })
-  meetingTime: Date;
+  @Type(() => Date)
+  @IsDate({ message: 'meetingDateTime must be a valid datetime' })
+  meetingDateTime: Date;
 
   @IsOptional()
   @IsString()
-  // @ApiPropertyOptional({ description: 'Lieu de la réunion' })
   meetingLocation?: string;
 
   @IsOptional()
   @IsString()
-  // @ApiPropertyOptional({ description: 'Ordre du jour' })
   agenda?: string;
 
-  @IsOptional()
-  @IsString()
-  // @ApiPropertyOptional({ description: 'Compte-rendu' })
-  minutes?: string;
-
-  @IsUUID('all') // Plus précis : valide tous les types UUID
-  // @ApiProperty({ description: 'ID de la filiale' })
+  @IsNotEmpty()
+  @IsUUID('all')
   subsidiaryId: string;
 
-  @IsOptional() // Rendu optionnel : tableau vide OK
+  @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  // @ApiPropertyOptional({ description: 'IDs des participants (employés)', type: [String] })
+  @IsUUID('all', { each: true })
   participantIds?: string[];
 }
 
 export class UpdateMeetingDto {
   @IsOptional()
   @IsString()
-  // @ApiPropertyOptional({ description: 'Nouveau titre' })
   title?: string;
 
   @IsOptional()
   @Type(() => Date)
   @IsDate()
-  // @ApiPropertyOptional({ description: 'Nouvelle date' })
-  meetingDate?: Date;
-
-  @IsOptional()
-  @Type(() => Date)
-  @IsDate()
-  // @ApiPropertyOptional({ description: 'Nouvelle heure' })
-  meetingTime?: Date;
+  meetingDateTime?: Date;
 
   @IsOptional()
   @IsString()
-  // @ApiPropertyOptional({ description: 'Nouveau lieu' })
   meetingLocation?: string;
 
   @IsOptional()
   @IsString()
-  // @ApiPropertyOptional({ description: 'Nouveau ordre du jour' })
   agenda?: string;
 
   @IsOptional()
   @IsString()
-  // @ApiPropertyOptional({ description: 'Nouveau compte-rendu' })
   minutes?: string;
 
-  @IsOptional() // Rendu optionnel : ne force pas l'update des participants
+  @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  // @ApiPropertyOptional({ description: 'Nouveaux IDs des participants', type: [String] })
+  @IsUUID('all', { each: true })
   participantIds?: string[];
 }
 
 export class SearchMeetingsDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
-  // @ApiPropertyOptional({ description: 'Titre à rechercher' })
   title?: string;
 
   @IsOptional()
   @Type(() => Date)
   @IsDate()
-  // @ApiPropertyOptional({ description: 'Date à rechercher' })
-  meetingDate?: Date;
+  meetingDateTime?: Date;
 }
