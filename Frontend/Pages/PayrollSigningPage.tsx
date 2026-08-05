@@ -11,6 +11,7 @@ import IconArrowLeft from '../components/icons/IconArrowLeft';
 import IconSearch from '../components/icons/IconSearch';
 import IconBriefcase from '../components/icons/IconBriefcase';
 import IconDocumentText from '../components/icons/IconDocumentText';
+import IconEye from '../components/icons/IconEye';
 
 const PayrollSigningPage: React.FC = () => {
   const { t } = useI18n();
@@ -206,24 +207,38 @@ const PayrollSigningPage: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    {record.status === PayrollStatus.PENDING ? (
-                      <button
-                        onClick={() => handleSign(record)}
-                        className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors font-medium"
-                      >
-                        {t('hr.payroll.sign')}
-                      </button>
-                    ) : (
+                    <div className="flex gap-2 justify-end">
+                      {/* Bouton Voir/Exporter - toujours visible */}
                       <button
                         onClick={() => {
                           setPayslipRecord(record);
                           setShowPayslip(true);
                         }}
-                        className="px-4 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 transition-colors font-medium"
+                        className="px-3 py-2 bg-slate-600 text-white text-xs rounded-md hover:bg-slate-700 transition-colors inline-flex items-center gap-1"
+                        title="Afficher le bulletin et options d'export"
                       >
+                        <IconEye className="h-4 w-4" />
                         {t('common.view')}
                       </button>
-                    )}
+
+                      {/* Bouton Signer - uniquement si PENDING */}
+                      {record.status === PayrollStatus.PENDING && (
+                        <button
+                          onClick={() => handleSign(record)}
+                          className="px-3 py-2 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors font-medium"
+                          title="Signer la fiche de paie"
+                        >
+                          ✍️ {t('hr.payroll.sign')}
+                        </button>
+                      )}
+
+                      {/* Badge Signé - si PAID */}
+                      {record.status === PayrollStatus.PAID && (
+                        <span className="px-3 py-2 bg-green-100 text-green-800 text-xs font-medium rounded-md">
+                          ✓ {t('hr.payroll.status_PAID')}
+                        </span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

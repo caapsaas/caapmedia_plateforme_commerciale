@@ -443,6 +443,7 @@
       "workPermit": "Permis de travail",
       "workPermitDesc": "Permis de travail ou visa",
       "diplomas": "Diplômes et certifications",
+      "filesNotUploaded": "Les fichiers suivants n'ont pas pu être uploadés : {{items}}",
       "uploaded": "Importé",
       "download": "Télécharger",
       "remove": "Supprimer",
@@ -570,11 +571,9 @@
     },
     "payroll": {
       "signingTitle": "Signature",
+      "status": "Statut",
       "status_PAID": "Payé",
       "status_PENDING": "En attente",
-      "status": {
-        "pending": "En attente"
-      },
       "title": "Barèmes de paie",
       "taxBracketsDesc": "Configurez les paramètres fiscaux et sociaux pour le calcul de la paie",
       "form": {
@@ -625,6 +624,7 @@
         "text": "Ces paramètres sont utilisés pour le calcul automatique de la paie. Modifiez-les uniquement si la législation change."
       }
     },
+    "employee": "Employé",
     "employeeLabel": "Employé"
   },
   "pnl": {

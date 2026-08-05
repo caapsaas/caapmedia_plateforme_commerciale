@@ -3,6 +3,7 @@ import Sidebar from './Pages/Sidebar';
 import Header from './Pages/Header';
 import useIdleTimer from './hooks/useIdleTimer';
 import IdleTimeoutModal from './components/common/IdleTimeoutModal';
+import './styles/print.css';
 import { useAppContext } from './context/AppContext';
 import { useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';

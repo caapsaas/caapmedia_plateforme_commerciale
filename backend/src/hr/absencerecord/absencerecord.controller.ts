@@ -61,7 +61,7 @@ export class AbsencerecordController {
   //    (le cron s'exécute aussi automatiquement à 18h)
   // ------------------------------------------------------------------
   @Post('generate-daily')
-  @Roles('ADMIN', 'SUPER_ADMIN')
+  @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
   async generateDailyAbsences(@Request() req) {
     const ctx = resolveScopeContext(req.user);
     const subsidiaryId = resolveEffectiveSubsidiaryId(ctx);
@@ -73,10 +73,9 @@ export class AbsencerecordController {
   // ------------------------------------------------------------------
   @Get()
   @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
-
   findAll(@Request() req, @Query() paginationQuery: PaginationQueryDto) {
     const subsidiaryId = req.user.subsidiaryId;
-    return this.absenceRecordService.findAll(subsidiaryId);
+    return this.absenceRecordService.findAll(subsidiaryId, paginationQuery);
   }
 
   // ------------------------------------------------------------------

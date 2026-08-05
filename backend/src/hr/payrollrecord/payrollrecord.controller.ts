@@ -26,6 +26,7 @@ import {
   resolveEffectiveSubsidiaryId,
   assertSubsidiaryAccess,
 } from '../../common/utils/subsidiary-scope';
+import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
 
 @Controller('hr/payroll-records')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -65,12 +66,17 @@ export class PayrollRecordController {
   @Roles('HR_MANAGER', 'ADMIN')
   findAll(
     @Request() req: any,
-    @Query('subsidiaryId') subsidiaryIdFilter?: string,
+    @Query() query: any,
   ) {
-    const ctx = resolveScopeContext(req.user);
-    const targetSubsidiaryId = resolveEffectiveSubsidiaryId(ctx, subsidiaryIdFilter);
+    const paginationQuery = new PaginationQueryDto();
+    paginationQuery.page = query.page ? Number(query.page) : 1;
+    paginationQuery.limit = query.limit ? Number(query.limit) : 10;
+    paginationQuery.search = query.search;
 
-    return this.payrollRecordService.findAll(targetSubsidiaryId);
+    const ctx = resolveScopeContext(req.user);
+    const targetSubsidiaryId = resolveEffectiveSubsidiaryId(ctx, query.subsidiaryId);
+
+    return this.payrollRecordService.findAll(targetSubsidiaryId, paginationQuery);
   }
 
   /**

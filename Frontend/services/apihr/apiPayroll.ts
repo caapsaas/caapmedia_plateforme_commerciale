@@ -218,10 +218,8 @@ export const updatePayrollConfiguration = async (
  * GET /hr/payroll-records
  */
 export const getPayrollRecords = async (): Promise<PayrollRecord[]> => {
-  const { data } = await api.get<PaginatedResponse<PayrollRecord>>('/hr/payroll-records', {
-    params: { limit: 500 },
-  });
-  return data.data;
+  const { data } = await api.get<PayrollRecord[]>('/hr/payroll-records');
+  return data;
 };
 
 /**

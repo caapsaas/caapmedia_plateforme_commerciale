@@ -15,11 +15,10 @@ import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
 import { UseMutateFunction, useMutation, useQueryClient } from '@tanstack/react-query';
-import SearchBar from './SearchBar';
 import IconUsers from '../icons/IconUsers';
 import { generateDailyAbsences } from '../../services/apihr/apiAbsences';
 import { api } from '../../services/api';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Search, Filter, X } from 'lucide-react';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
 
@@ -31,6 +30,12 @@ interface AbsenceManagementProps {
   onSave: UseMutateFunction<AbsenceRecord, Error, Partial<AbsenceRecord>, unknown>;
   onDelete: UseMutateFunction<AbsenceRecord, Error, string, unknown>;
 }
+
+const TYPE_OPTIONS = [
+  { value: 'ALL', label: 'Tous les types' },
+  { value: 'JUSTIFIED', label: 'Justifiées' },
+  { value: 'UNJUSTIFIED', label: 'Non justifiées' },
+] as const;
 
 const AbsenceManagement: React.FC<AbsenceManagementProps> = ({
   subsidiary,
@@ -47,9 +52,11 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingAbsence, setEditingAbsence] = useState<AbsenceRecord | null>(null);
   const [deletingAbsence, setDeletingAbsence] = useState<AbsenceRecord | null>(null);
+  const [generatingAbsences, setGeneratingAbsences] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'ALL' | AbsenceType>('ALL');
-  const [monthFilter, setMonthFilter] = useState(''); // '' = tous les mois
+  const [typeFilter, setTypeFilter] = useState<'ALL' | AbsenceType>(AbsenceType.UNJUSTIFIED);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   // Mutation génération auto des absences
   const generateMutation = useMutation({
@@ -57,6 +64,7 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({
     onSuccess: (result) => {
       toast.success('Génération terminée', result.message);
       queryClient.invalidateQueries({ queryKey: ['absence-records'] });
+      handleCloseModals();
     },
     onError: (error: any) => {
       toast.error(
@@ -64,31 +72,59 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({
         error?.response?.data?.message ||
           'Impossible de générer les absences automatiquement.',
       );
+      handleCloseModals();
     },
   });
 
   const filteredAbsences = useMemo(() => {
     return absences.filter((record) => {
+      // Filtre recherche
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch =
         !searchLower ||
-        record.employeeName.toLowerCase().includes(searchLower) ||
-        record.reason.toLowerCase().includes(searchLower) ||
-        record.startDate.includes(searchTerm) ||
-        record.endDate.includes(searchTerm);
+        record.employeeName?.toLowerCase().includes(searchLower) ||
+        record.reason?.toLowerCase().includes(searchLower) ||
+        record.startDate?.includes(searchTerm) ||
+        record.endDate?.includes(searchTerm);
 
+      // Filtre type
       const matchesType =
         typeFilter === 'ALL' || record.typeAbsence === typeFilter;
 
-      // Filtre par mois (format YYYY-MM)
-      const matchesMonth =
-        !monthFilter ||
-        record.startDate.startsWith(monthFilter) ||
-        record.endDate.startsWith(monthFilter);
+      // Helper pour extraire la date au format YYYY-MM-DD
+      const getDatePart = (dateStr: string | undefined | null): string => {
+        if (!dateStr) return '';
+        // Si la date contient un T, on prend la partie avant
+        if (dateStr.includes('T')) return dateStr.split('T')[0];
+        // Sinon on retourne la date telle quelle (déjà au format YYYY-MM-DD)
+        return dateStr;
+      };
 
-      return matchesSearch && matchesType && matchesMonth;
+      const startDate = getDatePart(record.startDate);
+      const endDate = getDatePart(record.endDate);
+
+      // Filtre date début
+      const matchesDateFrom = !dateFrom || endDate >= dateFrom;
+
+      // Filtre date fin
+      const matchesDateTo = !dateTo || startDate <= dateTo;
+
+      return matchesSearch && matchesType && matchesDateFrom && matchesDateTo;
     });
-  }, [absences, searchTerm, typeFilter, monthFilter]);
+  }, [absences, searchTerm, typeFilter, dateFrom, dateTo]);
+
+  const hasActiveFilters =
+    searchTerm !== '' ||
+    typeFilter !== 'ALL' ||
+    dateFrom !== '' ||
+    dateTo !== '';
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setTypeFilter('ALL');
+    setDateFrom('');
+    setDateTo('');
+  };
 
   const absenceStats = useMemo(() => {
     const justified = filteredAbsences.filter(
@@ -120,6 +156,7 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({
     setIsFormModalOpen(false);
     setDeletingAbsence(null);
     setEditingAbsence(null);
+    setGeneratingAbsences(false);
   };
 
   const handleSaveAbsence = (absenceData: Partial<AbsenceRecord>) => {
@@ -158,13 +195,11 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({
   };
 
   const handleGenerateDaily = () => {
-    if (
-      window.confirm(
-        "Générer automatiquement les absences pour tous les employés sans présence aujourd'hui ?",
-      )
-    ) {
-      generateMutation.mutate();
-    }
+    setGeneratingAbsences(true);
+  };
+
+  const handleConfirmGenerateDaily = () => {
+    generateMutation.mutate();
   };
 
   const getTypeClass = (type: AbsenceType) => {
@@ -298,46 +333,76 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({
         </div>
 
         {/* Filtres */}
-        <div className="no-print flex flex-col sm:flex-row gap-3 flex-wrap">
-          <SearchBar
-            value={searchTerm}
-            onChange={setSearchTerm}
-            placeholder={t('common.search') || 'Rechercher les absences...'}
-            className="max-w-md"
-          />
+        <div className="no-print p-4 bg-slate-50 border-b border-slate-200 space-y-3">
+          <div className="flex flex-col md:flex-row gap-3">
+            {/* Recherche */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="search"
+                placeholder={t('common.search') || 'Rechercher les absences...'}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
+              />
+            </div>
 
-          {/* Filtre par type */}
-          <select
-            value={typeFilter}
-            onChange={(e) =>
-              setTypeFilter(e.target.value as 'ALL' | AbsenceType)
-            }
-            className="border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
-          >
-            <option value="ALL">Tous les types</option>
-            <option value={AbsenceType.JUSTIFIED}>Justifiées</option>
-            <option value={AbsenceType.UNJUSTIFIED}>Non justifiées</option>
-          </select>
+            {/* Filtre type */}
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <select
+                value={typeFilter}
+                onChange={(e) =>
+                  setTypeFilter(e.target.value as 'ALL' | AbsenceType)
+                }
+                className="border border-slate-200 rounded-lg pl-10 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c6e911] appearance-none bg-white min-w-[180px]"
+              >
+                {TYPE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          {/* Filtre par mois */}
-          <input
-            type="month"
-            value={monthFilter}
-            onChange={(e) => setMonthFilter(e.target.value)}
-            className="border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
-            title="Filtrer par mois"
-          />
+            {/* Date de */}
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
+              title="Date de début"
+            />
 
-          {/* Bouton reset mois */}
-          {monthFilter && (
-            <button
-              onClick={() => setMonthFilter('')}
-              className="px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors"
-              title="Effacer le filtre mois"
-            >
-              ✕ Mois
-            </button>
-          )}
+            {/* Date à */}
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
+              title="Date de fin"
+            />
+
+            {/* Reset */}
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="inline-flex items-center gap-1 px-3 py-2 text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition-colors"
+              >
+                <X className="w-4 h-4" />
+                Réinitialiser
+              </button>
+            )}
+          </div>
+
+          {/* Compteur de résultats */}
+          <p className="text-xs text-slate-500">
+            {filteredAbsences.length} résultat
+            {filteredAbsences.length !== 1 ? 's' : ''}
+            {hasActiveFilters && absences
+              ? ` sur ${absences.length}`
+              : ''}
+          </p>
         </div>
       </div>
 
@@ -394,11 +459,6 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({
           </h2>
           <p className="text-sm text-slate-500">
             Liste des absences enregistrées
-            {filteredAbsences.length !== absences.length && (
-              <span className="ml-1">
-                ({filteredAbsences.length} sur {absences.length})
-              </span>
-            )}
           </p>
         </div>
         <div className="overflow-x-auto">
@@ -525,6 +585,18 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({
           message={t('configuration.modal.deleteConfirmMessage', {
             itemName: `${t('hr.absences.title')} for ${deletingAbsence.employeeName}`,
           })}
+        />
+      )}
+
+      {generatingAbsences && (
+        <ConfirmationModal
+          isOpen={generatingAbsences}
+          onClose={handleCloseModals}
+          onConfirm={handleConfirmGenerateDaily}
+          title="Générer les absences"
+          message="Générer automatiquement les absences pour tous les employés sans présence aujourd'hui ?"
+          confirmButtonText="Oui, générer"
+          isLoading={generateMutation.isPending}
         />
       )}
     </div>

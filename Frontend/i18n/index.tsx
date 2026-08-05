@@ -1606,11 +1606,9 @@ const frTranslations = {
       "paymentDate": "Date de paiement",
       "signature": "Signature",
       "signingTitle": "Signature",
+      "status": "Statut",
       "status_PENDING": "En attente",
       "status_PAID": "Payé",
-      "status": {
-        "pending": "En attente"
-      },
       "sign": "Signer",
       "payAction": "Enregistrer le paiement",
       "detailsTitle": "Détails de la Paie - {{period}}",
@@ -1670,6 +1668,7 @@ const frTranslations = {
       },
       "infoBoxText": "Ce sont les taux standards au Cameroun pour 2024. Toutes les valeurs sont utilisées automatiquement lors du calcul de la paie des employés. Les modifications s'appliqueront aux futures paies."
     },
+    "employee": "Employé",
     "employeeLabel": "Employé",
     "modals": {
       "sign": {
@@ -1787,7 +1786,9 @@ const frTranslations = {
       "mainDocuments": "Documents principaux",
       "acceptedFormats": "Formats acceptés",
       "formatInfo": "PDF, DOC, DOCX, JPG, PNG (Max 10MB par fichier). Les documents seront uploadés lors de la sauvegarde de l'employé.",
-      "requirements": "Documents requis : Contrat de travail, Carte d'identité/CNI et Permis de travail. Les diplômes sont optionnels mais recommandés."
+      "requirements": "Documents requis : Contrat de travail, Carte d'identité/CNI et Permis de travail. Les diplômes sont optionnels mais recommandés.",
+      "toUpload": "À uploader",
+      "filesNotUploaded": "Les fichiers suivants n'ont pas pu être uploadés : {{items}}"
     },
     "documentType": {
       "idCard": "Carte d'identité",
@@ -3374,11 +3375,9 @@ const enTranslations: Translations = {
             "paymentDate": "Payment Date",
             "signature": "Signature",
             "signingTitle": "Signing",
+            "status": "Status",
             "status_PENDING": "Pending",
             "status_PAID": "Paid",
-            "status": {
-                "pending": "Pending"
-            },
             "sign": "Sign",
             "payAction": "Record Payment",
             "detailsTitle": "Payroll Details - {{period}}",
@@ -3438,6 +3437,7 @@ const enTranslations: Translations = {
             },
             "infoBoxText": "These are the standard rates for Cameroon 2024. All values are used automatically when calculating employee payroll. Changes will apply to future payroll calculations."
         },
+        "employee": "Employee",
         "employeeLabel": "Employee",
         "modals": {
             "sign": {
@@ -3555,7 +3555,9 @@ const enTranslations: Translations = {
             "mainDocuments": "Main Documents",
             "acceptedFormats": "Accepted Formats",
             "formatInfo": "PDF, DOC, DOCX, JPG, PNG (Max 10MB per file). Documents will be uploaded when saving the employee.",
-            "requirements": "Required documents: Employment Contract, ID Card/National ID, and Work Permit. Diplomas are optional but recommended."
+            "requirements": "Required documents: Employment Contract, ID Card/National ID, and Work Permit. Diplomas are optional but recommended.",
+            "toUpload": "To upload",
+            "filesNotUploaded": "The following files could not be uploaded: {{items}}"
         },
         "documentType": {
             "idCard": "ID Card",

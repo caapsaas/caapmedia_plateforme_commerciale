@@ -9,10 +9,10 @@ import {
   CreateAttendanceRecordDto,
   UpdateAttendanceRecordDto,
 } from './dto/atendancerecord.dto';
-import { AttendanceRecord } from '@prisma/client';
+import { AttendanceRecord, Prisma } from '@prisma/client';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
-import { paginate } from 'src/common/pagination/pagination';
+import { paginate, PaginatedResult } from 'src/common/pagination/pagination';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @Injectable()
@@ -124,16 +124,54 @@ export class AttendanceRecordService {
     });
   }
 
-  async findAll(subsidiaryId?: string): Promise<AttendanceRecord[]> {
-    return this.prisma.attendanceRecord.findMany({
-      where: subsidiaryId ? { subsidiaryId } : undefined,
-      include: {
-        employee: {
-          select: { id: true, firstName: true, lastName: true },
+  async findAll(
+    subsidiaryId?: string,
+    paginationQuery: PaginationQueryDto = {},
+  ): Promise<PaginatedResult<AttendanceRecord>> {
+    const where: Prisma.AttendanceRecordWhereInput = subsidiaryId
+      ? { subsidiaryId }
+      : {};
+
+    if (paginationQuery.search) {
+      where.OR = [
+        {
+          employeeName: {
+            contains: paginationQuery.search,
+            mode: 'insensitive',
+          },
         },
+        {
+          employee: {
+            firstName: {
+              contains: paginationQuery.search,
+              mode: 'insensitive',
+            },
+          },
+        },
+        {
+          employee: {
+            lastName: {
+              contains: paginationQuery.search,
+              mode: 'insensitive',
+            },
+          },
+        },
+      ];
+    }
+
+    return paginate<AttendanceRecord>(
+      this.prisma.attendanceRecord,
+      {
+        where,
+        include: {
+          employee: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+        },
+        orderBy: { attendanceDate: 'desc' },
       },
-      orderBy: { attendanceDate: 'desc' },
-    });
+      paginationQuery,
+    );
   }
 
   async findOne(id: string): Promise<AttendanceRecord> {

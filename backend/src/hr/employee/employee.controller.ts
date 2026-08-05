@@ -9,7 +9,11 @@ import {
   UseGuards,
   Request,
   Query,
+  UseInterceptors,
+  UploadedFiles,
+  BadRequestException,
 } from '@nestjs/common';
+import { FilesInterceptor, AnyFilesInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -28,6 +32,7 @@ import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles } from '../../common/auth/role/role.decorator';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { LoggerService } from '../../common/utils/logger/logger.service';
+import { FileUploadService } from '../../common/utils/file-upload.service';
 import {
   resolveScopeContext,
   resolveEffectiveSubsidiaryId,
@@ -42,6 +47,7 @@ export class EmployeeController {
   constructor(
     private readonly employeeService: EmployeeService,
     private readonly logger: LoggerService,
+    private readonly fileUploadService: FileUploadService,
   ) {}
 
   @Post()
@@ -136,8 +142,90 @@ export class EmployeeController {
   }
 
   // ---------------------------
+  // Document Upload
+  // ---------------------------
+
+  @Post('upload-documents')
+  @Roles('ADMIN', 'HR_MANAGER')
+  @UseInterceptors(AnyFilesInterceptor())
+  @ApiOperation({ summary: 'Upload documents (without employee link)' })
+  async uploadDocumentsGeneric(
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('No files provided');
+    }
+
+    const uploadedFiles: { fieldname: string; url: string; originalname: string }[] = [];
+
+    for (const file of files) {
+      const { url } = await this.fileUploadService.uploadFile(
+        file.buffer,
+        file.originalname,
+        { subfolder: 'employee-documents' },
+      );
+      uploadedFiles.push({
+        fieldname: file.fieldname,
+        url,
+        originalname: file.originalname,
+      });
+    }
+
+    return { uploadedFiles };
+  }
+
+  @Post('delete-document')
+  @Roles('ADMIN', 'HR_MANAGER')
+  @ApiOperation({ summary: 'Delete a document file' })
+  async deleteDocument(
+    @Body() body: { url: string },
+  ) {
+    if (!body.url) {
+      throw new BadRequestException('Document URL is required');
+    }
+
+    await this.fileUploadService.deleteFile(body.url);
+    return { success: true };
+  }
+
+  // ---------------------------
   // Sub-entities
   // ---------------------------
+
+  @Post(':id/upload-documents')
+  @Roles('ADMIN', 'HR_MANAGER')
+  @UseInterceptors(AnyFilesInterceptor())
+  @ApiOperation({ summary: 'Upload documents for an employee' })
+  async uploadDocuments(
+    @Param('id') id: string,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Request() req,
+  ) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('No files provided');
+    }
+
+    const employee = await this.employeeService.findOne(id, false);
+    const ctx = resolveScopeContext(req.user);
+    assertSubsidiaryAccess(employee.subsidiaryId, ctx);
+
+    const uploadedFiles: { fieldname: string; url: string; originalname: string }[] = [];
+
+    for (const file of files) {
+      const { url } = await this.fileUploadService.uploadFile(
+        file.buffer,
+        file.originalname,
+        { subfolder: 'employee-documents' },
+      );
+      uploadedFiles.push({
+        fieldname: file.fieldname,
+        url,
+        originalname: file.originalname,
+      });
+    }
+
+    return { uploadedFiles };
+  }
 
   @Post(':id/documents')
   @Roles('ADMIN', 'HR_MANAGER')

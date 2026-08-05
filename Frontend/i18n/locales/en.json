@@ -443,6 +443,7 @@
       "workPermit": "Work Permit",
       "workPermitDesc": "Work permit or visa",
       "diplomas": "Diplomas & Certifications",
+      "filesNotUploaded": "The following files could not be uploaded: {{items}}",
       "uploaded": "Uploaded",
       "download": "Download",
       "remove": "Remove",
@@ -570,11 +571,9 @@
     },
     "payroll": {
       "signingTitle": "Signing",
+      "status": "Status",
       "status_PAID": "Paid",
       "status_PENDING": "Pending",
-      "status": {
-        "pending": "Pending"
-      },
       "title": "Payroll Scales",
       "taxBracketsDesc": "Configure tax and social parameters for payroll calculation",
       "form": {
@@ -625,6 +624,7 @@
         "text": "These parameters are used for automatic payroll calculation. Modify only if legislation changes."
       }
     },
+    "employee": "Employee",
     "employeeLabel": "Employee"
   },
   "pnl": {

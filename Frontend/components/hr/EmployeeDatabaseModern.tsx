@@ -9,6 +9,7 @@ import { exportToCsv } from '../../utils/csvExporter';
 import { exportToPdf } from '../../utils/pdfExporter';
 import SearchBar from './SearchBar';
 import { getEmployees, getEmployeesPaginated, uploadDocumentFile, addDocumentToEmployee, addLeaveRecordToEmployee, saveEmployeeWithDocumentsAndLeaves } from '../../services/apihr/apiEmployees';
+import { uploadEmployeeDocuments, deleteEmployeeDocument } from '../../services/apihr/apiEmployeeDocuments';
 
 // New UI Components
 import Card, { CardBody } from '../ui/Card';
@@ -122,14 +123,70 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
     try {
       const processedData = { ...employeeData };
 
-      // Filter out File objects from documents (they cannot be sent as JSON)
-      // Files stay local until backend file upload endpoint is implemented
+      // Upload files if any documents contain File objects
       if (processedData.documents) {
-        const documents = processedData.documents;
+        const documents = processedData.documents as any;
+        const filesToUpload: { fieldname: string; file: File }[] = [];
 
-        // Keep documents with URL, discard those with File objects
+        // Collect File objects to upload and delete old files
         if (hasFileObject(documents.contract)) {
-          toast.info(t('common.info'), t('hr.documents.fileNotYetUploaded'));
+          filesToUpload.push({ fieldname: 'contract', file: documents.contract.file });
+          // Delete old file if editing
+          if (editingEmployee?.documents?.contract?.url) {
+            deleteEmployeeDocument(editingEmployee.documents.contract.url);
+          }
+        }
+        if (hasFileObject(documents.idCard)) {
+          filesToUpload.push({ fieldname: 'idCard', file: documents.idCard.file });
+          if (editingEmployee?.documents?.idCard?.url) {
+            deleteEmployeeDocument(editingEmployee.documents.idCard.url);
+          }
+        }
+        if (hasFileObject(documents.workPermit)) {
+          filesToUpload.push({ fieldname: 'workPermit', file: documents.workPermit.file });
+          if (editingEmployee?.documents?.workPermit?.url) {
+            deleteEmployeeDocument(editingEmployee.documents.workPermit.url);
+          }
+        }
+        if (Array.isArray(documents.diplomas)) {
+          documents.diplomas.forEach((diploma: any, index: number) => {
+            if (hasFileObject(diploma)) {
+              filesToUpload.push({ fieldname: `diplomas_${index}`, file: diploma.file });
+            }
+          });
+        }
+
+        // Upload files and replace File objects with URLs
+        if (filesToUpload.length > 0) {
+          try {
+            const uploadResponse = await uploadEmployeeDocuments(filesToUpload);
+
+            // Map uploaded URLs back to documents
+            for (const uploaded of uploadResponse.uploadedFiles) {
+              if (uploaded.fieldname === 'contract' && hasFileObject(documents.contract)) {
+                documents.contract = { name: documents.contract.name, url: uploaded.url };
+              } else if (uploaded.fieldname === 'idCard' && hasFileObject(documents.idCard)) {
+                documents.idCard = { name: documents.idCard.name, url: uploaded.url };
+              } else if (uploaded.fieldname === 'workPermit' && hasFileObject(documents.workPermit)) {
+                documents.workPermit = { name: documents.workPermit.name, url: uploaded.url };
+              } else if (uploaded.fieldname.startsWith('diplomas_')) {
+                const index = parseInt(uploaded.fieldname.split('_')[1]);
+                if (hasFileObject(documents.diplomas[index])) {
+                  documents.diplomas[index] = { name: documents.diplomas[index].name, url: uploaded.url };
+                }
+              }
+            }
+
+            toast.success(t('common.success'), `${filesToUpload.length} fichier(s) uploadé(s) avec succès`);
+          } catch (uploadError) {
+            console.error('Error uploading files:', uploadError);
+            toast.error(t('common.error'), 'Erreur lors de l\'upload des fichiers');
+            throw uploadError;
+          }
+        }
+
+        // Clean up any remaining File objects (shouldn't happen after upload)
+        if (hasFileObject(documents.contract)) {
           documents.contract = null;
         }
         if (hasFileObject(documents.idCard)) {
@@ -139,11 +196,11 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
           documents.workPermit = null;
         }
         if (Array.isArray(documents.diplomas)) {
-          documents.diplomas = documents.diplomas.filter((d) => !hasFileObject(d));
+          documents.diplomas = documents.diplomas.filter((d: any) => !hasFileObject(d));
         }
       }
 
-      // Save the employee with cleaned documents
+      // Save the employee with documents
       const hasLeaves = processedData.leaveRecords && Array.isArray(processedData.leaveRecords) && processedData.leaveRecords.length > 0;
 
       // Add ID if editing existing employee

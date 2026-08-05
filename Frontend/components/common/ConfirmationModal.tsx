@@ -11,6 +11,7 @@ interface ConfirmationModalProps {
     confirmButtonText?: string;
     confirmButtonClass?: string;
     isDangerous?: boolean;
+    isLoading?: boolean;
 }
 
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -21,7 +22,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     message,
     confirmButtonText,
     confirmButtonClass,
-    isDangerous = false
+    isDangerous = false,
+    isLoading = false
 }) => {
     const { t } = useI18n();
 
@@ -73,12 +75,13 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                     <button
                         type="button"
                         onClick={onConfirm}
+                        disabled={isLoading}
                         className={confirmButtonClass || (isDangerous
-                            ? "px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm shadow-sm hover:shadow-md"
-                            : "px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm shadow-sm hover:shadow-md"
+                            ? `px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed`
+                            : `px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed`
                         )}
                     >
-                        {confirmButtonText || t('common.confirmDelete')}
+                        {isLoading ? '...' : (confirmButtonText || t('common.confirmDelete'))}
                     </button>
                 </div>
             </div>

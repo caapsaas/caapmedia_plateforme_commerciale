@@ -1,0 +1,395 @@
+/**
+ * Styles d'impression centralisés pour CaapMedia
+ * À importer dans App.tsx ou main.tsx
+ */
+
+/* ============================================================
+   Configuration de page
+   ============================================================ */
+@page {
+  size: A4;
+  margin: 10mm;
+}
+
+@media print {
+  /* Force les couleurs exactes (évite le mode économique) */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+
+  /* ============================================================
+     Réinitialisation de la page
+     ============================================================ */
+  html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    font-family: 'Arial', 'Helvetica', sans-serif;
+    font-size: 11px;
+    line-height: 1.4;
+    color: #000;
+    background: white;
+  }
+
+  /* ============================================================
+     Masquer les éléments non-imprimables
+     ============================================================ */
+  .no-print,
+  .print-hidden,
+  button,
+  [role='button'],
+  .btn,
+  .button,
+  nav,
+  .navbar,
+  .sidebar,
+  .modal-overlay,
+  .modal-actions,
+  .tooltip,
+  .popover,
+  .dropdown {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* ============================================================
+     Conteneur d'impression
+     ============================================================ */
+  .print-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    background: white;
+    page-break-after: avoid;
+  }
+
+  /* ============================================================
+     Headers et Footers
+     ============================================================ */
+  .print-header,
+  .print-footer {
+    page-break-inside: avoid;
+    orphans: 3;
+    widows: 3;
+  }
+
+  .print-header {
+    margin-bottom: 15px;
+  }
+
+  .print-footer {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #ccc;
+  }
+
+  /* ============================================================
+     Tableaux
+     ============================================================ */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    page-break-inside: auto;
+    margin: 10px 0;
+  }
+
+  thead {
+    display: table-header-group;
+    page-break-inside: avoid;
+  }
+
+  tbody {
+    display: table-row-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+    orphans: 2;
+    widows: 2;
+  }
+
+  th,
+  td {
+    border: 1px solid #ccc;
+    padding: 6px;
+    text-align: left;
+  }
+
+  th {
+    background-color: #166534 !important;
+    color: white !important;
+    font-weight: bold;
+  }
+
+  tr:nth-child(even) {
+    background-color: #f9f9f9 !important;
+  }
+
+  /* ============================================================
+     Texte et blocs
+     ============================================================ */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    page-break-after: avoid;
+    page-break-inside: avoid;
+    orphans: 3;
+    widows: 3;
+    margin-top: 10px;
+    margin-bottom: 5px;
+  }
+
+  p {
+    orphans: 3;
+    widows: 3;
+    page-break-inside: avoid;
+    margin: 5px 0;
+  }
+
+  hr,
+  .page-break {
+    page-break-after: always;
+    border: none;
+    height: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* ============================================================
+     Listes
+     ============================================================ */
+  ul,
+  ol {
+    page-break-inside: avoid;
+    margin: 5px 0;
+    padding-left: 20px;
+  }
+
+  li {
+    page-break-inside: avoid;
+    margin: 3px 0;
+  }
+
+  /* ============================================================
+     Images
+     ============================================================ */
+  img {
+    max-width: 100%;
+    page-break-inside: avoid;
+  }
+
+  /* ============================================================
+     Liens
+     ============================================================ */
+  a {
+    text-decoration: none;
+    color: #000;
+  }
+
+  a[href]:after {
+    content: none !important;
+  }
+
+  /* ============================================================
+     Sections spécifiques CaapMedia
+     ============================================================ */
+
+  /* En-têtes verts CaapMedia */
+  .header-bg,
+  .bg-caapmedia-dark {
+    background-color: #166534 !important;
+    color: white !important;
+  }
+
+  /* Texte important */
+  .font-bold,
+  .font-semibold {
+    font-weight: bold;
+  }
+
+  /* Signatures */
+  .signature-box {
+    border-top: 1px solid #000;
+    padding-top: 5px;
+    margin-top: 20px;
+    page-break-inside: avoid;
+    min-height: 60px;
+  }
+
+  /* Zones de signature avec ligne */
+  .signature-line {
+    border-bottom: 1px solid #000;
+    min-height: 50px;
+    margin-bottom: 5px;
+  }
+
+  /* QR Codes */
+  .qr-code-box {
+    page-break-inside: avoid;
+    text-align: center;
+    margin: 10px 0;
+  }
+
+  .qr-code-box img {
+    max-width: 150px;
+  }
+
+  /* ============================================================
+     Espacements et marges adaptées à l'impression
+     ============================================================ */
+
+  /* Réduire les marges pour économiser l'espace */
+  .print-container {
+    margin: 0;
+    padding: 0;
+  }
+
+  .print-container > div {
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Espacement vertical */
+  .print-section {
+    margin-bottom: 15px;
+    page-break-inside: avoid;
+  }
+
+  /* ============================================================
+     Utilitaires Tailwind print-safe
+     ============================================================ */
+
+  /* Largeurs */
+  .w-full {
+    width: 100% !important;
+  }
+
+  .w-1\/2 {
+    width: 50% !important;
+  }
+
+  .w-1\/3 {
+    width: 33.333% !important;
+  }
+
+  /* Flexbox en print */
+  .flex {
+    display: flex !important;
+  }
+
+  .flex-col {
+    flex-direction: column !important;
+  }
+
+  .flex-row {
+    flex-direction: row !important;
+  }
+
+  .justify-between {
+    justify-content: space-between !important;
+  }
+
+  .gap-4 {
+    gap: 10px !important;
+  }
+
+  /* Border utilities */
+  .border {
+    border: 1px solid #ccc !important;
+  }
+
+  .border-b {
+    border-bottom: 1px solid #ccc !important;
+  }
+
+  .border-t {
+    border-top: 1px solid #ccc !important;
+  }
+
+  /* ============================================================
+     Media queries additionnelles
+     ============================================================ */
+
+  /* Pour imprimantes en mode paysage */
+  @page landscape {
+    size: A4 landscape;
+  }
+
+  /* Éviter les coupures malencontreuses */
+  .avoid-break {
+    page-break-inside: avoid !important;
+  }
+
+  .force-break {
+    page-break-after: always !important;
+  }
+
+  /* ============================================================
+     Dépannage courant
+     ============================================================ */
+
+  /* Overflow masqué en print */
+  .overflow-hidden {
+    overflow: visible !important;
+  }
+
+  /* Max-width adapté */
+  .max-w-lg,
+  .max-w-xl,
+  .max-w-2xl {
+    max-width: 100% !important;
+  }
+
+  /* Visibilité */
+  .invisible {
+    visibility: visible !important;
+  }
+
+  .opacity-0 {
+    opacity: 1 !important;
+  }
+
+  /* Z-index inutile en print */
+  [style*='z-index'] {
+    z-index: auto !important;
+  }
+
+  /* Position fixe → static */
+  .fixed,
+  [style*='position: fixed'] {
+    position: static !important;
+  }
+}
+
+/* ============================================================
+   Mode écran : afficher les boutons d'impression
+   ============================================================ */
+@media screen {
+  .print-only {
+    display: none !important;
+  }
+
+  .print-preview {
+    border: 2px dashed #ccc;
+    background: #f9f9f9;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+  }
+}

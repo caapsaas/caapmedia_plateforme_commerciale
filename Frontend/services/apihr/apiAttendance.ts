@@ -23,16 +23,11 @@ export type AttendanceRecordUpdateData = Partial<AttendanceRecordCreationData>;
 // ============================================================
 
 /**
- * Récupère tous les enregistrements de présence de la filiale (compat —
- * charge tout avec une limite haute, pour les appelants pas encore migrés
- * vers la pagination).
+ * Récupère tous les enregistrements de présence de la filiale.
  */
 export const getAttendanceRecords = async (): Promise<AttendanceRecord[]> => {
-  const { data } = await api.get<PaginatedResponse<AttendanceRecord>>(
-    '/hr/attendance-records',
-    { params: { limit: 500 } },
-  );
-  return data.data;
+  const { data } = await api.get<AttendanceRecord[]>('/hr/attendance-records');
+  return data;
 };
 
 /**

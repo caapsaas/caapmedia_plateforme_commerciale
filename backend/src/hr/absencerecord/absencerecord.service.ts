@@ -13,6 +13,8 @@ import {
 import { AbsenceRecord, Prisma } from '@prisma/client';
 import { generateId } from '../../common/utils/generate-id.util';
 import { ID_PREFIXES } from '../../common/constants/id-prefixes.const';
+import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
+import { paginate, PaginatedResult } from '../../common/pagination/pagination';
 
 
 @Injectable()
@@ -52,12 +54,43 @@ export class AbsenceRecordService {
     });
   }
 
-  async findAll(subsidiaryId?: string) {
-    return this.prisma.absenceRecord.findMany({
-      where: subsidiaryId ? { subsidiaryId } : undefined,
-      include: { employee: true },
-      orderBy: { startDate: 'desc' },
-    });
+  async findAll(
+    subsidiaryId?: string,
+    paginationQuery: PaginationQueryDto = {},
+  ): Promise<PaginatedResult<AbsenceRecord>> {
+    const where: Prisma.AbsenceRecordWhereInput = subsidiaryId
+      ? { subsidiaryId }
+      : {};
+
+    if (paginationQuery.search) {
+      where.OR = [
+        {
+          employeeName: {
+            contains: paginationQuery.search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          typeAbsence: {
+            contains: paginationQuery.search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          reason: { contains: paginationQuery.search, mode: 'insensitive' },
+        },
+      ];
+    }
+
+    return paginate<AbsenceRecord>(
+      this.prisma.absenceRecord,
+      {
+        where,
+        include: { employee: true },
+        orderBy: { startDate: 'desc' },
+      },
+      paginationQuery,
+    );
   }
 
   async findOne(id: string): Promise<AbsenceRecord> {
@@ -112,7 +145,7 @@ export class AbsenceRecordService {
    *  - crée une absence de type "ABSENCE_NON_JUSTIFIEE" (ou votre enum)
    */
   @Cron('0 18 * * *') // 18h00 tous les jours
-  async generateDailyAbsences(subsidiaryId?: string) {
+  async generateDailyAbsences(subsidiaryId?: string): Promise<{ success: boolean; message: string }> {
     this.logger.log('🔄 Génération automatique des absences du jour...');
 
     try {
@@ -126,6 +159,7 @@ export class AbsenceRecordService {
         ? await this.prisma.subsidiary.findMany({ where: { id: subsidiaryId } })
         : await this.prisma.subsidiary.findMany();
       let totalCreated = 0;
+      const details: string[] = [];
 
       for (const subsidiary of subsidiaries) {
         // 1. Employés actifs
@@ -181,7 +215,7 @@ export class AbsenceRecordService {
               employeeId: employee.id,
               subsidiaryId: employee.subsidiaryId,
               employeeName: `${employee.firstName} ${employee.lastName}`,
-              typeAbsence: 'JUSTIFIED' as any,
+              typeAbsence: 'UNJUSTIFIED' as any,
               startDate: today,
               endDate: today,
               reason:
@@ -196,19 +230,24 @@ export class AbsenceRecordService {
           );
         }
 
-        this.logger.log(
-          `Filiale ${subsidiary.id}: ${missing.length} absence(s) créée(s)`,
-        );
+        const detail = `Filiale ${subsidiary.subsidiaryName || subsidiary.id}: ${missing.length} absence(s) créée(s) sur ${employees.length} employé(s) actif(s)`;
+        details.push(detail);
+        this.logger.log(detail);
       }
 
-      this.logger.log(
-        `✓ Génération terminée — ${totalCreated} absence(s) au total`,
-      );
+      const message = totalCreated > 0
+        ? `${totalCreated} absence(s) non justifiée(s) générée(s) pour les employés sans présence du jour. ` + details.join('. ')
+        : 'Tous les employés actifs ont pointé leur présence aujourd\'hui.';
+
+      this.logger.log(`✓ Génération terminée — ${totalCreated} absence(s) au total`);
+
+      return { success: true, message };
     } catch (error) {
       this.logger.error(
         `Erreur génération absences: ${error.message}`,
         error.stack,
       );
+      return { success: false, message: `Erreur lors de la génération: ${error.message}` };
     }
   }
 

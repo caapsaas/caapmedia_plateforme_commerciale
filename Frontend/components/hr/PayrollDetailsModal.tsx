@@ -1,6 +1,9 @@
 import React from 'react';
 import { PayrollRecord } from '../../types';
 import { useI18n } from '../../i18n';
+import { PrintHeader } from '../common/PrintHeader';
+import { PrintFooter } from '../common/PrintFooter';
+import { exportElementToPdf, printElementAsPdf } from '../../utils/pdfUtils';
 
 interface PayrollDetailsModalProps {
   isOpen: boolean;
@@ -66,7 +69,18 @@ const PayrollDetailsModal: React.FC<PayrollDetailsModalProps> = ({
   const companyEmail = company?.email || '';
   const companyLogo = '/CaapMedia.png';
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    printElementAsPdf(`payroll-${record.id}`, {
+      title: `Bulletin_Paie_${record.employeeName}_${record.payrollPeriod || record.period}`
+    });
+  };
+
+  const handleExportPdf = async () => {
+    await exportElementToPdf(`payroll-${record.id}`, {
+      filename: `Bulletin_Paie_${record.employeeName}_${record.payrollPeriod || record.period}.pdf`,
+      orientation: 'portrait'
+    });
+  };
 
   // Assiette CNPS plafonnée
   const cnpsBase = Math.min(grossSalary, 750_000);
@@ -81,125 +95,97 @@ const PayrollDetailsModal: React.FC<PayrollDetailsModalProps> = ({
     <>
       <style>{`
         @media print {
-          @page { margin: 8mm; size: A4 portrait; }
-          body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .print-modal-overlay { display: none !important; }
-          .print-actions-bar { display: none !important; }
-          .print-content {
+          body > * { display: none !important; }
+          .print-modal-overlay {
+            display: block !important;
+            position: static !important;
+            background: none !important;
+            z-index: auto !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          .print-modal-overlay > div {
+            display: block !important;
             box-shadow: none !important;
             max-width: 100% !important;
             margin: 0 !important;
-            border: none !important;
+            padding: 0 !important;
           }
-          .print-area { border: none !important; }
+          .print-content {
+            display: block !important;
+            box-shadow: none !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            background: white !important;
+          }
+          .print-actions-bar { display: none !important; }
+          .print-area {
+            display: block !important;
+            background: white !important;
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            overflow: visible !important;
+          }
         }
       `}</style>
 
       <div
-        className="print-modal-overlay fixed inset-0 bg-black/60 z-50 flex justify-center items-start p-4 overflow-y-auto"
+        className="print-modal-overlay fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4"
         onClick={onClose}
         role="dialog"
         aria-modal="true"
       >
         <div
-          className="print-content bg-white w-full max-w-[210mm] shadow-2xl my-4"
+          className="print-content bg-white w-full max-w-[210mm] shadow-2xl flex flex-col max-h-[90vh]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* ============================================================
-              ZONE IMPRIMABLE – Style identique à l’image de référence
+              ZONE IMPRIMABLE – Utilise PrintHeader réutilisable
              ============================================================ */}
-          <div className="print-area bg-white text-[11px] leading-tight text-black font-sans">
+          <div className="print-area bg-white text-[11px] leading-tight text-black font-sans overflow-y-auto flex-1" id={`payroll-${record.id}`}>
 
-            {/* ---------- EN-TÊTE ---------- */}
-            <div className="px-5 pt-5 pb-3">
-              <div className="flex justify-between items-start gap-6">
-                {/* Colonne gauche : Société + infos légales + salarié admin */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start gap-3 mb-3">
-                    {companyLogo && (
-                      <img
-                        src={companyLogo}
-                        alt="Logo"
-                        className="h-12 w-auto object-contain shrink-0"
-                      />
-                    )}
-                    <div>
-                      <p className="font-bold uppercase text-sm tracking-wide">
-                        {companyName}
-                      </p>
-                      <p className="text-[11px] mt-0.5">
-                        {companyAddress}
-                        {companyAddress && companyCity ? ', ' : ''}
-                        {companyCity}
-                      </p>
-                    </div>
-                  </div>
+            {/* EN-TÊTE STANDARDISÉ */}
+            <div className="px-5 pt-5">
+              <PrintHeader
+                documentType="BULLETIN DE SALAIRE"
+                documentNumber={record.id ? record.id.slice(-6) : "N/A"}
+                period={period}
+                subsidiary={{
+                  name: "CaapMedia",
+                  address: companyAddress,
+                  phone: companyPhone,
+                  email: companyEmail
+                }}
+                companyLogo={companyLogo}
+              />
+            </div>
 
-                  <div className="text-[10px] space-y-0.5 text-gray-800">
-                    <p>
-                      <span className="font-semibold">NIU :</span> {companyNiu}
-                      &nbsp;&nbsp;
-                      <span className="font-semibold">N° CNPS :</span> {companyCnps}
-                    </p>
-                    {(companyPhone || companyEmail) && (
-                      <p>
-                        {companyPhone && <>Tél. : {companyPhone}</>}
-                        {companyPhone && companyEmail && ' · '}
-                        {companyEmail && <>Email : {companyEmail}</>}
-                      </p>
-                    )}
-                    <p className="mt-1.5">
-                      <span className="font-semibold">Matricule :</span>{' '}
-                      {record.employeeId || '—'}
-                    </p>
-                    <p>
-                      <span className="font-semibold">Emploi :</span>{' '}
-                      {(record as any).jobTitle || (record as any).position || '—'}
-                    </p>
-                    <p>
-                      <span className="font-semibold">Statut :</span>{' '}
-                      {(record as any).status || 'Employé'}
-                    </p>
-                    {(record as any).entryDate && (
-                      <p>
-                        <span className="font-semibold">Entrée :</span>{' '}
-                        {new Date((record as any).entryDate).toLocaleDateString('fr-FR')}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Colonne droite : Titre + période + carte salarié */}
-                <div className="w-[240px] shrink-0 text-right">
-                  <h1 className="text-xl font-bold uppercase tracking-wider text-black">
-                    BULLETIN DE SALAIRE
-                  </h1>
-                  <p className="text-sm mt-1 text-gray-700">
-                    Période : <span className="font-semibold">{period}</span>
+            {/* INFORMATIONS SALARIÉ */}
+            <div className="px-5 pb-3">
+              <div className="bg-[#dcfce7] rounded-lg px-4 py-3">
+                <p className="font-bold text-sm text-black">
+                  {record.employeeName || "N/A"}
+                </p>
+                {record.employeeId && (
+                  <p className="text-[10px] text-gray-800 mt-1">
+                    <span className="font-semibold">Matricule :</span> {record.employeeId}
                   </p>
-                  {paymentDate !== '—' && (
-                    <p className="text-[10px] text-gray-500 mt-0.5">
-                      Date de paiement : {paymentDate}
-                    </p>
-                  )}
-
-                  {/* Carte salarié (style pastille bleue claire) */}
-                  <div className="mt-4 bg-[#dcfce7] rounded-xl px-4 py-3 text-left">
-                    <p className="font-bold text-[13px] text-black">
-                      {record.employeeName || '—'}
-                    </p>
-                    {(record as any).employeeAddress && (
-                      <p className="text-[11px] mt-1 text-gray-800 leading-snug">
-                        {(record as any).employeeAddress}
-                      </p>
-                    )}
-                    {(record as any).employeeCity && (
-                      <p className="text-[11px] text-gray-800">
-                        {(record as any).employeeCity}
-                      </p>
-                    )}
-                  </div>
-                </div>
+                )}
+                {(record as any).position && (
+                  <p className="text-[10px] text-gray-800">
+                    <span className="font-semibold">Poste :</span> {(record as any).position}
+                  </p>
+                )}
+                {paymentDate !== "—" && (
+                  <p className="text-[10px] text-gray-800 mt-1">
+                    <span className="font-semibold">Date de paiement :</span> {paymentDate}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -546,32 +532,44 @@ const PayrollDetailsModal: React.FC<PayrollDetailsModalProps> = ({
               </div>
             </div>
 
-            {/* ---------- PIED DE PAGE ---------- */}
-            <div className="px-5 pb-4 text-[9px] text-gray-500 border-t border-gray-200 pt-2">
-              <p>
-                Document établi conformément à la législation camerounaise en vigueur.
-                Conservez ce bulletin sans limitation de durée.
-              </p>
+            {/* PIED DE PAGE STANDARDISÉ */}
+            <div className="px-5 pb-4">
+              <PrintFooter
+                documentType="Bulletin de paie"
+                generatedDate={paymentDate !== '—' ? paymentDate : new Date()}
+                showLegalText={true}
+                customText="Conservez ce bulletin sans limitation de durée."
+              />
             </div>
           </div>
 
           {/* ========== BARRE D’ACTIONS (non imprimée) ========== */}
-          <div className="print-actions-bar px-5 py-3 bg-gray-100 border-t border-gray-200 flex justify-between items-center">
-            <p className="text-xs text-gray-500">Aperçu bulletin de paie</p>
+          <div className="print-actions-bar px-5 py-3 bg-gray-100 border-t border-gray-200 flex justify-between items-center shrink-0">
+            <p className="text-xs text-gray-500">Bulletin de paie - {record.employeeName}</p>
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={handlePrint}
-                className="px-4 py-2 bg-[#166534] text-white text-sm font-semibold rounded hover:bg-green-900 transition-colors"
+                onClick={handleExportPdf}
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded hover:bg-blue-700 transition-colors flex items-center gap-2"
+                title="Télécharger le bulletin en PDF"
               >
-                Imprimer
+                📥 Télécharger PDF
+              </button>
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="px-4 py-2 bg-[#166534] text-white text-sm font-semibold rounded hover:bg-green-900 transition-colors flex items-center gap-2"
+                title="Ouvrir l’aperçu d’impression"
+              >
+                🖨️ Imprimer
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-semibold rounded hover:bg-gray-300 transition-colors"
+                className="px-4 py-2 bg-gray-300 text-gray-800 text-sm font-semibold rounded hover:bg-gray-400 transition-colors"
+                title="Fermer"
               >
-                Fermer
+                ✕ Fermer
               </button>
             </div>
           </div>

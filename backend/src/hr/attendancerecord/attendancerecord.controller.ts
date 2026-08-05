@@ -26,6 +26,7 @@ import {
   resolveEffectiveSubsidiaryId,
   assertSubsidiaryAccess,
 } from '../../common/utils/subsidiary-scope';
+import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
 
 @Controller('hr/attendance-records')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -66,17 +67,16 @@ export class AttendanceRecordController {
   @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
   async findAll(
     @Request() req,
-    @Query('subsidiaryId') subsidiaryIdFilter?: string,
+    @Query() query: any,
   ) {
+    const paginationQuery = new PaginationQueryDto();
+    paginationQuery.page = query.page ? Number(query.page) : 1;
+    paginationQuery.limit = query.limit ? Number(query.limit) : 10;
+    paginationQuery.search = query.search;
+
     const ctx = resolveScopeContext(req.user);
-    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx, subsidiaryIdFilter);
-    console.log('findAll subsidiaryId =', subsidiaryId);
-    console.log('user =', req.user);
-
-    const result = await this.attendanceRecordService.findAll(subsidiaryId);
-    console.log('findAll count =', result.length);
-
-    return result;
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx, query.subsidiaryId);
+    return this.attendanceRecordService.findAll(subsidiaryId, paginationQuery);
   }
 
   // ------------------------------------------------------------------

@@ -757,17 +757,17 @@ export class EmployeeService {
           } else {
             // Handle frontend format: { contract: { name, url }, idCard: { name, url }, workPermit: { name, url }, diplomas: [...] }
             if (docsData.contract) {
-              expectedDocs.set('CONTRACT_contract', { name: docsData.contract.name, url: docsData.contract.url });
+              expectedDocs.set('CONTRACT||contract', { name: docsData.contract.name, url: docsData.contract.url });
             }
             if (docsData.idCard) {
-              expectedDocs.set('ID_CARD_idCard', { name: docsData.idCard.name, url: docsData.idCard.url });
+              expectedDocs.set('ID_CARD||idCard', { name: docsData.idCard.name, url: docsData.idCard.url });
             }
             if (docsData.workPermit) {
-              expectedDocs.set('WORK_PERMIT_workPermit', { name: docsData.workPermit.name, url: docsData.workPermit.url });
+              expectedDocs.set('WORK_PERMIT||workPermit', { name: docsData.workPermit.name, url: docsData.workPermit.url });
             }
             if (docsData.diplomas && Array.isArray(docsData.diplomas)) {
               docsData.diplomas.forEach((diploma: any, index: number) => {
-                expectedDocs.set(`DIPLOMA_diploma_${index}`, { name: diploma.name, url: diploma.url });
+                expectedDocs.set(`DIPLOMA||diploma_${index}`, { name: diploma.name, url: diploma.url });
               });
             }
           }
@@ -779,7 +779,7 @@ export class EmployeeService {
 
           // Delete documents that are not in the expected list
           for (const existingDoc of existingDocs) {
-            const key = `${existingDoc.docType}_${existingDoc.documentName}`;
+            const key = `${existingDoc.docType}||${existingDoc.documentName}`;
             if (!expectedDocs.has(key)) {
               await prisma.employeeDocument.delete({
                 where: { id: existingDoc.id },
@@ -789,8 +789,7 @@ export class EmployeeService {
 
           // Create or update documents
           for (const [key, docData] of expectedDocs.entries()) {
-            const [docType, ...nameParts] = key.split('_');
-            const docName = nameParts.join('_');
+            const [docType, docName] = key.split('||');
 
             // Check if document already exists
             const existingDoc = existingDocs.find(

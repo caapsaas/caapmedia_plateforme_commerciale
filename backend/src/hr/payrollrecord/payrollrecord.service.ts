@@ -19,7 +19,8 @@ import {
 import { Decimal } from '@prisma/client/runtime/library';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
-
+import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
+import { paginate, PaginatedResult } from '../../common/pagination/pagination';
 import { CameroonPayrollCalculatorService } from './cameroonpayrollcalculator.service';
 
 // Type enrichi retourné par le service (avec infos employé)
@@ -159,22 +160,49 @@ export class PayrollRecordService {
   /**
    * Récupère toutes les fiches de paie d'une filiale
    */
-  async findAll(subsidiaryId?: string): Promise<PayrollRecordWithDetails[]> {
-    return this.prisma.payrollRecord.findMany({
-      where: subsidiaryId ? { subsidiaryId } : undefined,
-      include: {
-        employee: {
-          select: {
-            firstName: true,
-            lastName: true,
-            baseSalary: true,
-            bonus: true,
+  async findAll(
+    subsidiaryId?: string,
+    paginationQuery: PaginationQueryDto = {},
+  ): Promise<PaginatedResult<PayrollRecordWithDetails>> {
+    const where: Prisma.PayrollRecordWhereInput = subsidiaryId
+      ? { subsidiaryId }
+      : {};
+
+    if (paginationQuery.search) {
+      where.OR = [
+        {
+          employeeName: {
+            contains: paginationQuery.search,
+            mode: 'insensitive',
           },
         },
-      
+        {
+          payrollPeriod: {
+            contains: paginationQuery.search,
+            mode: 'insensitive',
+          },
+        },
+      ];
+    }
+
+    return paginate<PayrollRecordWithDetails>(
+      this.prisma.payrollRecord as any,
+      {
+        where,
+        include: {
+          employee: {
+            select: {
+              firstName: true,
+              lastName: true,
+              baseSalary: true,
+              bonus: true,
+            },
+          },
+        },
+        orderBy: [{ payrollPeriod: 'desc' }, { employeeName: 'asc' }],
       },
-     
-    });
+      paginationQuery,
+    );
   }
 
   /**
