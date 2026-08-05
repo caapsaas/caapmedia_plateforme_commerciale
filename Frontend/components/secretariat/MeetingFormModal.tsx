@@ -54,23 +54,23 @@ const MeetingFormModal: React.FC<MeetingFormModalProps> = ({ isOpen, onClose, on
     };
     const { subsidiary } = useAuth();
 
-   const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
 
-  // Fusionne la date et l’heure pour former un objet Date valide
-  const meetingDateTime = new Date(`${formData.date}T${formData.time}:00`);
+    // Fusionne la date et l’heure pour former un objet Date valide
+    const meetingDateTime = new Date(`${formData.date}T${formData.time}:00`);
 
-  // ✅ correspond au CreateMeetingDto
-  const payload = {
-    title: formData.title,
-    meetingDateTime, // objet Date combinant date + heure
-    meetingLocation: formData.location,
-    agenda: formData.agenda || ‘’,
-    participantIds: formData.participants, // tableau d’UUID
+    // Correspond au CreateMeetingDto
+    const payload = {
+      title: formData.title,
+      meetingDateTime, // objet Date combinant date + heure
+      meetingLocation: formData.location,
+      agenda: formData.agenda || "",
+      participantIds: formData.participants, // tableau d’UUID
+    };
+
+    onSave(payload);
   };
-
-  onSave(payload);
-};
 
 
 
