@@ -335,5 +335,4 @@ export class AttendanceQrDailyService {
 
     return results;
   }
-  
 }

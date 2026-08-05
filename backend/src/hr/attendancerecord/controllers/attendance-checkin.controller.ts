@@ -72,103 +72,105 @@ export class AttendanceCheckInController {
     const isSuperAdmin = req.user.roles?.includes('SUPER_ADMIN');
     const subsidiaryId = isSuperAdmin ? null : req.user.subsidiaryId;
 
-    const result = await this.qrService.getAllQrCodesForSubsidiary(subsidiaryId);
+    const result =
+      await this.qrService.getAllQrCodesForSubsidiary(subsidiaryId);
     return result;
   }
 
   // ------------------------------------------------------------------
   // ★ Check-in / Check-out via scan QR (pas besoin de JWT)
   // ------------------------------------------------------------------
-@Post('check-in')
-async checkIn(@Body() dto: CheckInDto) {
-  const { employeeId, subsidiaryId } = await this.qrService.validateQrToken(
-    dto.qrToken,
-  );
-
-  this.logger.log(`Check-in/check-out attempt for employee ${employeeId}`);
-
-  // 1) Chercher d'abord par token (plus fiable que la date seule)
-  let todayRecord = await this.attendanceService.findByQrToken(dto.qrToken);
-
-  // 2) Fallback : présence du jour pour cet employé
-  if (!todayRecord) {
-    todayRecord = await this.attendanceService.findTodayRecord(
-      employeeId,
-      subsidiaryId,
+  @Post('check-in')
+  async checkIn(@Body() dto: CheckInDto) {
+    const { employeeId, subsidiaryId } = await this.qrService.validateQrToken(
+      dto.qrToken,
     );
-  }
 
-  // ========== CAS 1 : aucun enregistrement → CHECK-IN ==========
-  if (!todayRecord) {
-    const isLate = await this.geoService.isArrivalLate(new Date());
-    const employee = await this.attendanceService.findEmployeeById(employeeId);
+    this.logger.log(`Check-in/check-out attempt for employee ${employeeId}`);
 
-    if (!employee) {
-      throw new BadRequestException('Employé non trouvé');
+    // 1) Chercher d'abord par token (plus fiable que la date seule)
+    let todayRecord = await this.attendanceService.findByQrToken(dto.qrToken);
+
+    // 2) Fallback : présence du jour pour cet employé
+    if (!todayRecord) {
+      todayRecord = await this.attendanceService.findTodayRecord(
+        employeeId,
+        subsidiaryId,
+      );
     }
 
-    const result = await this.attendanceService.createFromScan({
-      employeeId,
-      subsidiaryId,
-      employeeName: `${employee.firstName} ${employee.lastName}`,
-      attendanceDate: new Date(),
-      arrivalTime: new Date(),
-      status: isLate ? AttendanceStatus.LATE : AttendanceStatus.PRESENT,
-      qrCodeToken: dto.qrToken,
-      signature: dto.signature,
-      arrivalLatitude: dto.latitude,
-      arrivalLongitude: dto.longitude,
-      accuracyMeters: dto.accuracy,
-      isGeolocationValid:
-        dto.latitude !== undefined && dto.longitude !== undefined,
-    });
+    // ========== CAS 1 : aucun enregistrement → CHECK-IN ==========
+    if (!todayRecord) {
+      const isLate = await this.geoService.isArrivalLate(new Date());
+      const employee =
+        await this.attendanceService.findEmployeeById(employeeId);
 
-    return {
-      success: true,
-      type: 'check-in',
-      message: `Arrivée enregistrée à ${new Date().toLocaleTimeString('fr-FR')}`,
-      employeeName: `${employee.firstName} ${employee.lastName}`,
-      status: isLate ? 'EN RETARD' : 'PRÉSENT',
-      record: result,
-    };
-  }
+      if (!employee) {
+        throw new BadRequestException('Employé non trouvé');
+      }
 
-  // ========== CAS 2 : arrivée OK, pas de départ → CHECK-OUT ==========
-  if (todayRecord.arrivalTime && !todayRecord.departureTime) {
-    const updated = await this.attendanceService.completeFromScan({
-      recordId: todayRecord.id,
-      departureTime: new Date(),
-      status: AttendanceStatus.LEFT, // adapte si ton enum est différent
-      departureLatitude: dto.latitude,
-      departureLongitude: dto.longitude,
-      accuracyMeters: dto.accuracy,
-      isGeolocationValid:
-        dto.latitude !== undefined && dto.longitude !== undefined,
-    });
+      const result = await this.attendanceService.createFromScan({
+        employeeId,
+        subsidiaryId,
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        attendanceDate: new Date(),
+        arrivalTime: new Date(),
+        status: isLate ? AttendanceStatus.LATE : AttendanceStatus.PRESENT,
+        qrCodeToken: dto.qrToken,
+        signature: dto.signature,
+        arrivalLatitude: dto.latitude,
+        arrivalLongitude: dto.longitude,
+        accuracyMeters: dto.accuracy,
+        isGeolocationValid:
+          dto.latitude !== undefined && dto.longitude !== undefined,
+      });
 
-    const arrivalTime = new Date(updated.arrivalTime!);
-    const departureTime = new Date(updated.departureTime!);
-    const durationMs = departureTime.getTime() - arrivalTime.getTime();
-    const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
-    const durationMins = Math.floor(
-      (durationMs % (1000 * 60 * 60)) / (1000 * 60),
+      return {
+        success: true,
+        type: 'check-in',
+        message: `Arrivée enregistrée à ${new Date().toLocaleTimeString('fr-FR')}`,
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        status: isLate ? 'EN RETARD' : 'PRÉSENT',
+        record: result,
+      };
+    }
+
+    // ========== CAS 2 : arrivée OK, pas de départ → CHECK-OUT ==========
+    if (todayRecord.arrivalTime && !todayRecord.departureTime) {
+      const updated = await this.attendanceService.completeFromScan({
+        recordId: todayRecord.id,
+        departureTime: new Date(),
+        status: AttendanceStatus.LEFT, // adapte si ton enum est différent
+        departureLatitude: dto.latitude,
+        departureLongitude: dto.longitude,
+        accuracyMeters: dto.accuracy,
+        isGeolocationValid:
+          dto.latitude !== undefined && dto.longitude !== undefined,
+      });
+
+      const arrivalTime = new Date(updated.arrivalTime);
+      const departureTime = new Date(updated.departureTime);
+      const durationMs = departureTime.getTime() - arrivalTime.getTime();
+      const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
+      const durationMins = Math.floor(
+        (durationMs % (1000 * 60 * 60)) / (1000 * 60),
+      );
+
+      return {
+        success: true,
+        type: 'check-out',
+        message: `Départ enregistré à ${departureTime.toLocaleTimeString('fr-FR')}`,
+        status: 'PARTI',
+        duration: `${durationHours}h ${durationMins}min`,
+        record: updated,
+      };
+    }
+
+    // ========== CAS 3 : déjà complet ==========
+    throw new BadRequestException(
+      "Un enregistrement complet (arrivée + départ) existe déjà pour aujourd'hui",
     );
-
-    return {
-      success: true,
-      type: 'check-out',
-      message: `Départ enregistré à ${departureTime.toLocaleTimeString('fr-FR')}`,
-      status: 'PARTI',
-      duration: `${durationHours}h ${durationMins}min`,
-      record: updated,
-    };
   }
-
-  // ========== CAS 3 : déjà complet ==========
-  throw new BadRequestException(
-    "Un enregistrement complet (arrivée + départ) existe déjà pour aujourd'hui",
-  );
-}
   // ------------------------------------------------------------------
   // Check-out manuel (authentifié)
   // ------------------------------------------------------------------
@@ -205,8 +207,8 @@ async checkIn(@Body() dto: CheckInDto) {
       isGeolocationValid: false,
     });
 
-    const arrivalTime = new Date(result.arrivalTime!);
-    const departureTime = new Date(result.departureTime!);
+    const arrivalTime = new Date(result.arrivalTime);
+    const departureTime = new Date(result.departureTime);
     const durationMs = departureTime.getTime() - arrivalTime.getTime();
     const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
     const durationMins = Math.floor(
@@ -250,36 +252,36 @@ async checkIn(@Body() dto: CheckInDto) {
   // ------------------------------------------------------------------
   // Historique de toute la filiale (uniquement les scans QR)
   // ------------------------------------------------------------------
-    @Get('history-all')
-    @UseGuards(JwtAuthGuard, RoleGuard)
-    @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
-    async getAllAttendanceHistory(
-      @Request() req,
-      @Query() paginationQuery: PaginationQueryDto,
-      @Query('year') year?: number,
-      @Query('month') month?: number,
-    ) {
-      const now = new Date();
-      const queryYear = year ? Number(year) : now.getFullYear();
-      const queryMonth = month ? Number(month) : now.getMonth() + 1;
+  @Get('history-all')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
+  async getAllAttendanceHistory(
+    @Request() req,
+    @Query() paginationQuery: PaginationQueryDto,
+    @Query('year') year?: number,
+    @Query('month') month?: number,
+  ) {
+    const now = new Date();
+    const queryYear = year ? Number(year) : now.getFullYear();
+    const queryMonth = month ? Number(month) : now.getMonth() + 1;
 
-      const startDate = new Date(queryYear, queryMonth - 1, 1);
-      const endDate = new Date(queryYear, queryMonth, 1);
+    const startDate = new Date(queryYear, queryMonth - 1, 1);
+    const endDate = new Date(queryYear, queryMonth, 1);
 
-      this.logger.log(
-        `history-all → subsidiaryId=${req.user.subsidiaryId}, ` +
+    this.logger.log(
+      `history-all → subsidiaryId=${req.user.subsidiaryId}, ` +
         `from=${startDate.toISOString()}, to=${endDate.toISOString()}`,
-      );
+    );
 
-      // false = toutes les présences (sans filtre qrCodeToken)
-      return this.attendanceService.findByDateRangePaginated(
-        req.user.subsidiaryId,
-        startDate,
-        endDate,
-        false,
-        paginationQuery,
-      );
-    }
+    // false = toutes les présences (sans filtre qrCodeToken)
+    return this.attendanceService.findByDateRangePaginated(
+      req.user.subsidiaryId,
+      startDate,
+      endDate,
+      false,
+      paginationQuery,
+    );
+  }
 
   // ------------------------------------------------------------------
   // Statistiques du mois

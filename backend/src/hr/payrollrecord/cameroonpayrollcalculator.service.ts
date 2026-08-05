@@ -9,7 +9,7 @@ export interface CameroonPayrollInput {
   otherTaxable?: number;
   // Paramètres entreprise
   riskGroup?: 'A' | 'B' | 'C'; // Accidents du travail
-  applyCfc?: boolean;         // Crédit Foncier (souvent oui)
+  applyCfc?: boolean; // Crédit Foncier (souvent oui)
   applyFne?: boolean;
 }
 
@@ -18,10 +18,10 @@ export interface CameroonPayrollResult {
   grossSalary: number;
 
   // Retenues salariales
-  cnpsEmployee: number;       // 4.2% plafonné
-  cfcEmployee: number;        // 1%
+  cnpsEmployee: number; // 4.2% plafonné
+  cfcEmployee: number; // 1%
   irpp: number;
-  cac: number;                // 10% de l'IRPP
+  cac: number; // 10% de l'IRPP
   otherDeductions: number;
   totalDeductions: number;
   netSalary: number;
@@ -49,7 +49,7 @@ export class CameroonPayrollCalculatorService {
   private readonly CFC_EMPLOYEE = 0.01;
   private readonly CFC_EMPLOYER = 0.015;
   private readonly FNE_RATE = 0.01;
-  private readonly PROFESSIONAL_EXPENSE_RATE = 0.30; // 30%
+  private readonly PROFESSIONAL_EXPENSE_RATE = 0.3; // 30%
   private readonly FIXED_ABATEMENT_ANNUAL = 500_000;
 
   private readonly RISK_RATES = {
@@ -71,14 +71,20 @@ export class CameroonPayrollCalculatorService {
 
     // === Retenues salariales ===
     const cnpsEmployee = this.round(cnpsBase * this.CNPS_EMPLOYEE_RATE);
-    const cfcEmployee = input.applyCfc !== false ? this.round(gross * this.CFC_EMPLOYEE) : 0;
+    const cfcEmployee =
+      input.applyCfc !== false ? this.round(gross * this.CFC_EMPLOYEE) : 0;
 
     // Base imposable IRPP (simplification courante)
     // Brut - CNPS - abattement 30% - abattement fixe annuel / 12
     const afterCnps = gross - cnpsEmployee;
-    const professionalExpense = this.round(afterCnps * this.PROFESSIONAL_EXPENSE_RATE);
+    const professionalExpense = this.round(
+      afterCnps * this.PROFESSIONAL_EXPENSE_RATE,
+    );
     const monthlyFixedAbatement = this.FIXED_ABATEMENT_ANNUAL / 12;
-    const taxableMonthly = Math.max(0, afterCnps - professionalExpense - monthlyFixedAbatement);
+    const taxableMonthly = Math.max(
+      0,
+      afterCnps - professionalExpense - monthlyFixedAbatement,
+    );
     const taxableAnnual = taxableMonthly * 12;
 
     const { irppAnnual, cacAnnual } = this.calculateIrppAndCac(taxableAnnual);
@@ -89,15 +95,23 @@ export class CameroonPayrollCalculatorService {
     const netSalary = this.round(gross - totalDeductions);
 
     // === Charges patronales ===
-    const cnpsEmployerPension = this.round(cnpsBase * this.CNPS_EMPLOYER_PENSION);
+    const cnpsEmployerPension = this.round(
+      cnpsBase * this.CNPS_EMPLOYER_PENSION,
+    );
     const cnpsFamilyBenefits = this.round(cnpsBase * this.CNPS_FAMILY);
     const riskRate = this.RISK_RATES[input.riskGroup || 'A'];
     const cnpsAccidentRisk = this.round(cnpsBase * riskRate);
-    const cfcEmployer = input.applyCfc !== false ? this.round(gross * this.CFC_EMPLOYER) : 0;
-    const fne = input.applyFne !== false ? this.round(gross * this.FNE_RATE) : 0;
+    const cfcEmployer =
+      input.applyCfc !== false ? this.round(gross * this.CFC_EMPLOYER) : 0;
+    const fne =
+      input.applyFne !== false ? this.round(gross * this.FNE_RATE) : 0;
 
     const totalEmployerCharges =
-      cnpsEmployerPension + cnpsFamilyBenefits + cnpsAccidentRisk + cfcEmployer + fne;
+      cnpsEmployerPension +
+      cnpsFamilyBenefits +
+      cnpsAccidentRisk +
+      cfcEmployer +
+      fne;
     const totalEmployerCost = this.round(gross + totalEmployerCharges);
 
     const deductionsDetail = [
@@ -127,12 +141,15 @@ export class CameroonPayrollCalculatorService {
     };
   }
 
-  private calculateIrppAndCac(taxableAnnual: number): { irppAnnual: number; cacAnnual: number } {
+  private calculateIrppAndCac(taxableAnnual: number): {
+    irppAnnual: number;
+    cacAnnual: number;
+  } {
     let tax = 0;
     let remaining = taxableAnnual;
 
     const brackets = [
-      { limit: 2_000_000, rate: 0.10 },
+      { limit: 2_000_000, rate: 0.1 },
       { limit: 1_000_000, rate: 0.15 }, // 2M → 3M
       { limit: 2_000_000, rate: 0.25 }, // 3M → 5M
       { limit: Infinity, rate: 0.35 },
@@ -146,7 +163,7 @@ export class CameroonPayrollCalculatorService {
     }
 
     const irppAnnual = this.round(tax);
-    const cacAnnual = this.round(irppAnnual * 0.10);
+    const cacAnnual = this.round(irppAnnual * 0.1);
     return { irppAnnual, cacAnnual };
   }
 

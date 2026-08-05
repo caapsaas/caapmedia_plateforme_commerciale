@@ -147,7 +147,11 @@ export class MappingsService {
       await this.prisma.accountMapping.upsert({
         where: { key },
         update: { accountCode },
-        create: { id: generateId(ID_PREFIXES.ACCOUNTMAPPING), key, accountCode },
+        create: {
+          id: generateId(ID_PREFIXES.ACCOUNTMAPPING),
+          key,
+          accountCode,
+        },
       });
     }
     if (skipped.length > 0) {
@@ -155,6 +159,9 @@ export class MappingsService {
         `[MappingsService] Mappings ignorés (compte introuvable — initialisez le plan comptable d'abord) : ${skipped.join(', ')}`,
       );
     }
-    return { imported: Object.keys(DEFAULT_MAPPINGS).length - skipped.length, skipped: skipped.length };
+    return {
+      imported: Object.keys(DEFAULT_MAPPINGS).length - skipped.length,
+      skipped: skipped.length,
+    };
   }
 }

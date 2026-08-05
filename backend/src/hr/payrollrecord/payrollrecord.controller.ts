@@ -52,11 +52,7 @@ export class PayrollRecordController {
       throw new ForbiddenException("Vous n'avez pas accès à cette filiale");
     }
 
-    return this.payrollRecordService.create(
-      dto,
-      dto.employeeId,
-      subsidiaryId,
-    );
+    return this.payrollRecordService.create(dto, dto.employeeId, subsidiaryId);
   }
 
   // ============================================================
@@ -85,7 +81,10 @@ export class PayrollRecordController {
       throw new ForbiddenException("Vous n'avez pas accès à cette filiale");
     }
 
-    return this.payrollRecordService.findAll(targetSubsidiaryId, paginationQuery);
+    return this.payrollRecordService.findAll(
+      targetSubsidiaryId,
+      paginationQuery,
+    );
   }
 
   /**
@@ -102,7 +101,7 @@ export class PayrollRecordController {
       req.user.roles?.includes(UserRole.SUPER_ADMIN);
 
     if (!isSuperAdmin) {
-      throw new ForbiddenException("Accès réservé au SUPER_ADMIN");
+      throw new ForbiddenException('Accès réservé au SUPER_ADMIN');
     }
 
     return this.payrollRecordService.findAllGlobal();
@@ -130,10 +129,7 @@ export class PayrollRecordController {
       throw new ForbiddenException("Vous n'avez pas accès à cette filiale");
     }
 
-    return this.payrollRecordService.findByPeriod(
-      targetSubsidiaryId,
-      period,
-    );
+    return this.payrollRecordService.findByPeriod(targetSubsidiaryId, period);
   }
 
   /**

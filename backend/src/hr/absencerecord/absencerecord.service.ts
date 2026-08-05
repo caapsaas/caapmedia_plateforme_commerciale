@@ -53,7 +53,10 @@ export class AbsenceRecordService {
     });
   }
 
-  async findAll(subsidiaryId: string, paginationQuery: PaginationQueryDto = {}) {
+  async findAll(
+    subsidiaryId: string,
+    paginationQuery: PaginationQueryDto = {},
+  ) {
     const where: Prisma.AbsenceRecordWhereInput = { subsidiaryId };
 
     if (paginationQuery.search) {
@@ -125,7 +128,7 @@ export class AbsenceRecordService {
    *  - exclut ceux qui ont déjà une absence couvrant aujourd'hui
    *  - crée une absence de type "ABSENCE_NON_JUSTIFIEE" (ou votre enum)
    */
- @Cron('0 18 * * *') // 18h00 tous les jours
+  @Cron('0 18 * * *') // 18h00 tous les jours
   async generateDailyAbsences() {
     this.logger.log('🔄 Génération automatique des absences du jour...');
 
@@ -174,11 +177,13 @@ export class AbsenceRecordService {
           where: {
             subsidiaryId: subsidiary.id,
             startDate: { lte: tomorrow }, // startDate <= fin de journée
-            endDate: { gte: today },      // endDate >= début de journée
+            endDate: { gte: today }, // endDate >= début de journée
           },
           select: { employeeId: true },
         });
-        const alreadyAbsentIds = new Set(absencesToday.map((a) => a.employeeId));
+        const alreadyAbsentIds = new Set(
+          absencesToday.map((a) => a.employeeId),
+        );
 
         // 4. Employés sans présence et sans absence
         const missing = employees.filter(

@@ -138,14 +138,21 @@ export class UpdatePayrollConfigDto {
   @IsOptional()
   cnpsCap?: number;
 
-  @IsNumber({}, { message: 'Le taux d\'abattement professionnel doit être un nombre' })
-  @Min(0, { message: 'Le taux d\'abattement professionnel ne peut pas être négatif' })
-  @Max(1, { message: 'Le taux d\'abattement professionnel ne peut pas dépasser 100%' })
+  @IsNumber(
+    {},
+    { message: "Le taux d'abattement professionnel doit être un nombre" },
+  )
+  @Min(0, {
+    message: "Le taux d'abattement professionnel ne peut pas être négatif",
+  })
+  @Max(1, {
+    message: "Le taux d'abattement professionnel ne peut pas dépasser 100%",
+  })
   @IsOptional()
   professionalExpenseRate?: number;
 
-  @IsNumber({}, { message: 'L\'abattement fixe annuel doit être un nombre' })
-  @Min(0, { message: 'L\'abattement fixe annuel ne peut pas être négatif' })
+  @IsNumber({}, { message: "L'abattement fixe annuel doit être un nombre" })
+  @Min(0, { message: "L'abattement fixe annuel ne peut pas être négatif" })
   @IsOptional()
   fixedAbatementAnnual?: number;
 

@@ -92,7 +92,8 @@ export class AttendanceRecordService {
         arrivalLatitude: createAttendanceRecordDto.arrivalLatitude ?? null,
         arrivalLongitude: createAttendanceRecordDto.arrivalLongitude ?? null,
         departureLatitude: createAttendanceRecordDto.departureLatitude ?? null,
-        departureLongitude: createAttendanceRecordDto.departureLongitude ?? null,
+        departureLongitude:
+          createAttendanceRecordDto.departureLongitude ?? null,
         isGeolocationValid:
           createAttendanceRecordDto.isGeolocationValid ?? false,
         accuracyMeters: createAttendanceRecordDto.accuracyMeters ?? null,
@@ -180,13 +181,13 @@ export class AttendanceRecordService {
 
     if (!record.arrivalTime) {
       throw new BadRequestException(
-        "Impossible de faire un départ : aucune arrivée enregistrée",
+        'Impossible de faire un départ : aucune arrivée enregistrée',
       );
     }
 
     if (record.departureTime) {
       throw new BadRequestException(
-        "Un départ a déjà été enregistré pour cet enregistrement",
+        'Un départ a déjà été enregistré pour cet enregistrement',
       );
     }
 
@@ -229,7 +230,15 @@ export class AttendanceRecordService {
 
     // Plage "aujourd'hui" en UTC (adapte si tu es en timezone fixe Afrique/…)
     const startOfDay = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0),
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        0,
+        0,
+        0,
+        0,
+      ),
     );
     const endOfDay = new Date(
       Date.UTC(
@@ -385,7 +394,10 @@ export class AttendanceRecordService {
   // ------------------------------------------------------------------
   // Autres méthodes
   // ------------------------------------------------------------------
-  async findAll(subsidiaryId: string, paginationQuery: PaginationQueryDto = {}) {
+  async findAll(
+    subsidiaryId: string,
+    paginationQuery: PaginationQueryDto = {},
+  ) {
     const where: Prisma.AttendanceRecordWhereInput = { subsidiaryId };
 
     if (paginationQuery.search) {
