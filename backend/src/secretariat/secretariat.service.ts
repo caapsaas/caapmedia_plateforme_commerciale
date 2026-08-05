@@ -39,13 +39,16 @@ export class SecretariatService {
     currentUser: { id: string; role: UserRole; subsidiaryId: string },
     file: Express.Multer.File, // Le fichier est passé directement
   ) {
+    // Déterminer le subsidiaryId: utiliser celui du DTO si fourni, sinon celui de l'utilisateur
+    const subsidiaryId = dto.subsidiaryId || currentUser.subsidiaryId;
+
     this.logger.log(
-      `Attempting to create document "${dto.documentName}" for subsidiary ${dto.subsidiaryId}`,
+      `Attempting to create document "${dto.documentName}" for subsidiary ${subsidiaryId}`,
       'SecretariatService',
     );
 
     // Guard : Vérifier que data est valide
-    if (!dto || !dto.subsidiaryId) {
+    if (!dto || !subsidiaryId) {
       // file is now a separate parameter
       this.logger.error(
         'Invalid or missing data provided (subsidiaryId required)',
@@ -68,11 +71,11 @@ export class SecretariatService {
 
     // Vérifier si la filiale existe ET appartient au user (complète le commentaire)
     const subsidiary = await this.prisma.subsidiary.findUnique({
-      where: { id: dto.subsidiaryId },
+      where: { id: subsidiaryId },
     });
     if (!subsidiary) {
       this.logger.error(
-        `Subsidiary with ID ${dto.subsidiaryId} not found`,
+        `Subsidiary with ID ${subsidiaryId} not found`,
         'SecretariatService',
       );
       throw new NotFoundException('Subsidiary not found');
@@ -84,7 +87,7 @@ export class SecretariatService {
       subsidiary.id !== currentUser.subsidiaryId
     ) {
       this.logger.warn(
-        `User ${currentUser.id} (role: ${currentUser.role}) tried to create document for foreign subsidiary ${dto.subsidiaryId}`,
+        `User ${currentUser.id} (role: ${currentUser.role}) tried to create document for foreign subsidiary ${subsidiaryId}`,
         'SecretariatService',
       );
       throw new ForbiddenException(
@@ -103,13 +106,13 @@ export class SecretariatService {
         category: dto.category,
         status: dto.status,
         fileUrl: fileUrl,
-        subsidiaryId: dto.subsidiaryId,
+        subsidiaryId: subsidiaryId,
         createdBy: currentUser.id,
       },
     });
 
     this.logger.log(
-      `Company document ${document.documentName} created successfully for subsidiary ${dto.subsidiaryId}`,
+      `Company document ${document.documentName} created successfully for subsidiary ${subsidiaryId}`,
       'createCompanyDocument',
     );
     return document;
@@ -377,11 +380,14 @@ export class SecretariatService {
       meetingDateTime: Date;
       meetingLocation?: string;
       agenda?: string;
-      subsidiaryId: string;
+      subsidiaryId?: string;
       participantIds?: string[];
     },
     currentUser: { id: string; role: UserRole; subsidiaryId: string },
   ) {
+    // Déterminer le subsidiaryId: utiliser celui des données si fourni, sinon celui de l'utilisateur
+    const subsidiaryId = data.subsidiaryId || currentUser.subsidiaryId;
+
     // Vérifier les autorisations (SECRETARY ou ADMIN)
     const allowedRoles: UserRole[] = [UserRole.SECRETARY, UserRole.ADMIN];
     if (!allowedRoles.includes(currentUser.role)) {
@@ -396,21 +402,21 @@ export class SecretariatService {
 
     // Vérifier si la filiale existe et appartient au user
     const subsidiary = await this.prisma.subsidiary.findUnique({
-      where: { id: data.subsidiaryId },
+      where: { id: subsidiaryId },
     });
     if (!subsidiary) {
       this.logger.error(
-        `Subsidiary with ID ${data.subsidiaryId} not found`,
+        `Subsidiary with ID ${subsidiaryId} not found`,
         'SecretariatService',
       );
       throw new NotFoundException('Subsidiary not found');
     }
     if (
       currentUser.role !== UserRole.ADMIN &&
-      currentUser.subsidiaryId !== data.subsidiaryId
+      currentUser.subsidiaryId !== subsidiaryId
     ) {
       this.logger.error(
-        `User ${currentUser.id} cannot create meeting for subsidiary ${data.subsidiaryId}`,
+        `User ${currentUser.id} cannot create meeting for subsidiary ${subsidiaryId}`,
         'SecretariatService',
       );
       throw new ForbiddenException(
@@ -428,7 +434,7 @@ export class SecretariatService {
           meetingDateTime: data.meetingDateTime,
           meetingLocation: data.meetingLocation,
           agenda: data.agenda,
-          subsidiaryId: data.subsidiaryId,
+          subsidiaryId: subsidiaryId,
           createdBy: currentUser.id,
         },
       });
@@ -439,13 +445,13 @@ export class SecretariatService {
         const employees = await tx.employee.findMany({
           where: {
             id: { in: data.participantIds },
-            subsidiaryId: data.subsidiaryId, // Restriction à la filiale du meeting
+            subsidiaryId: subsidiaryId, // Restriction à la filiale du meeting
           },
         });
 
         if (employees.length !== data.participantIds.length) {
           this.logger.error(
-            `Some employees not found or not from subsidiary ${data.subsidiaryId}`,
+            `Some employees not found or not from subsidiary ${subsidiaryId}`,
             'SecretariatService',
           );
           throw new BadRequestException(
@@ -849,6 +855,9 @@ export class SecretariatService {
     dto: CreateSecretariatTaskDto,
     currentUser: { id: string; role: UserRole; subsidiaryId: string },
   ) {
+    // Déterminer le subsidiaryId: utiliser celui du DTO si fourni, sinon celui de l'utilisateur
+    const subsidiaryId = dto.subsidiaryId || currentUser.subsidiaryId;
+
     // Vérifier les autorisations (SECRETARY ou ADMIN)
     const allowedRoles: UserRole[] = [UserRole.SECRETARY, UserRole.ADMIN];
     if (!allowedRoles.includes(currentUser.role)) {
@@ -863,21 +872,21 @@ export class SecretariatService {
 
     // Vérifier si la filiale existe et appartient à l'utilisateur
     const subsidiary = await this.prisma.subsidiary.findUnique({
-      where: { id: dto.subsidiaryId },
+      where: { id: subsidiaryId },
     });
     if (!subsidiary) {
       this.logger.error(
-        `Subsidiary with ID ${dto.subsidiaryId} not found`,
+        `Subsidiary with ID ${subsidiaryId} not found`,
         'SecretariatService',
       );
       throw new NotFoundException('Subsidiary not found');
     }
     if (
       currentUser.role !== UserRole.ADMIN &&
-      currentUser.subsidiaryId !== dto.subsidiaryId
+      currentUser.subsidiaryId !== subsidiaryId
     ) {
       this.logger.error(
-        `User ${currentUser.id} cannot create task for subsidiary ${dto.subsidiaryId}`,
+        `User ${currentUser.id} cannot create task for subsidiary ${subsidiaryId}`,
         'SecretariatService',
       );
       throw new ForbiddenException(
@@ -904,6 +913,7 @@ export class SecretariatService {
       data: {
         id: generateId(ID_PREFIXES.SECRETARIATASK),
         ...dto,
+        subsidiaryId: subsidiaryId,
         dueDate: new Date(dto.dueDate),
         createdBy: currentUser.id,
       },

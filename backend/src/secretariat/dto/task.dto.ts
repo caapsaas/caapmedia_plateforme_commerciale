@@ -26,9 +26,9 @@ export class CreateSecretariatTaskDto {
   @IsUUID('all')
   assignedToId?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsUUID('all')
-  subsidiaryId: string;
+  subsidiaryId?: string;
 }
 
 export class UpdateSecretariatTaskDto {

@@ -17,9 +17,9 @@ export class CreateMeetingDto {
   @IsString()
   agenda?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsUUID('all')
-  subsidiaryId: string;
+  subsidiaryId?: string;
 
   @IsOptional()
   @IsArray()

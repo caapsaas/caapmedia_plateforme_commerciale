@@ -1,4 +1,4 @@
-import { IsString, IsEnum, IsNotEmpty, IsUUID } from 'class-validator';
+import { IsString, IsEnum, IsNotEmpty, IsUUID, IsOptional } from 'class-validator';
 import { DocumentCategory, DocumentStatus } from '@prisma/client';
 
 export class CreateCompanyDocumentDto {
@@ -12,7 +12,7 @@ export class CreateCompanyDocumentDto {
   @IsEnum(DocumentStatus)
   status: DocumentStatus;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsUUID('all')
-  subsidiaryId: string;
+  subsidiaryId?: string;
 }
