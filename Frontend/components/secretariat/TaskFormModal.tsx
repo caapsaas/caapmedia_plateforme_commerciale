@@ -26,11 +26,15 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({ isOpen, onClose, onSave, 
 
     useEffect(() => {
         if (task) {
+            // Convert ISO date to YYYY-MM-DD format for the input
+            const dueDateObj = new Date(task.dueDate);
+            const dueDate = dueDateObj.toISOString().split('T')[0];
+
             setFormData({
                 title: task.title,
                 description: task.description,
-                assignedToId: task.assignedToId,
-                dueDate: task.dueDate,
+                assignedToId: task.assignedToId || '',
+                dueDate: dueDate,
                 status: task.status,
             });
         } else {
@@ -45,11 +49,14 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({ isOpen, onClose, onSave, 
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        // Send date in ISO 8601 format (YYYY-MM-DD)
+        const dueDate = formData.dueDate;
+
         const payload: any = {
             id: task?.id,
             title: formData.title,
             description: formData.description,
-            dueDate: formData.dueDate,
+            dueDate: dueDate,
             status: formData.status,
         };
         // Only include assignedToId if it's not empty

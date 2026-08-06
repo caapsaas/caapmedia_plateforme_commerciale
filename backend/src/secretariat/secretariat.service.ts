@@ -35,6 +35,23 @@ export class SecretariatService {
     private readonly logger: LoggerService,
   ) {}
 
+  private formatTaskDate(task: any) {
+    if (task?.dueDate && task.dueDate instanceof Date) {
+      return {
+        ...task,
+        dueDate: task.dueDate.toISOString().split('T')[0],
+      };
+    }
+    return task;
+  }
+
+  private formatTasksInResult(result: any) {
+    if (Array.isArray(result.data)) {
+      result.data = result.data.map(task => this.formatTaskDate(task));
+    }
+    return result;
+  }
+
   // CRUD for CompanyDocument
 
   //1-Creation de document pour la company
@@ -999,14 +1016,14 @@ export class SecretariatService {
       `Retrieved ${result.data.length} secretariat tasks`,
       'SecretariatService',
     );
-    return result;
+    return this.formatTasksInResult(result);
   }
 
   async searchSecretariatTasks(
     query: {
       title?: string;
       status?: SecretariatTaskStatus;
-      dueDate?: Date;
+      dueDate?: string;
     } & PaginationQueryDto,
     ctx: SubsidiaryScopeContext,
   ) {
@@ -1038,6 +1055,6 @@ export class SecretariatService {
       `Found ${result.data.length} secretariat tasks matching query`,
       'SecretariatService',
     );
-    return result;
+    return this.formatTasksInResult(result);
   }
 }

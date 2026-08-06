@@ -103,11 +103,12 @@ const formatTime = (isoString?: string | Date) => {
         }
     };
     
-    const getParticipantNames = (participantIds: string[]) => {
-        if (!participantIds || participantIds.length === 0) return 'Aucun participant';
-        return participantIds
-            .map(id => {
-                const employee = employees.find(e => e.id === id);
+    const getParticipantNames = (participants: any[] | undefined) => {
+        if (!participants || participants.length === 0) return 'Aucun participant';
+        return participants
+            .map(p => {
+                const employeeId = typeof p === 'string' ? p : p.employeeId;
+                const employee = employees.find(e => e.id === employeeId);
                 return employee ? `${employee.firstName} ${employee.lastName}` : 'Employé inconnu';
             })
             .join(', ');
@@ -127,14 +128,14 @@ const formatTime = (isoString?: string | Date) => {
         try {
             const headers = [
                 { key: 'title', label: t('secretariat.meetings.table.title') },
-                { key: 'date', label: t('secretariat.meetings.table.date') },
-                { key: 'location', label: t('secretariat.meetings.table.location') },
+                { key: 'meetingDateTime', label: t('secretariat.meetings.table.date') },
+                { key: 'meetingLocation', label: t('secretariat.meetings.table.location') },
                 { key: 'participants', label: t('secretariat.meetings.table.participants') },
             ];
             const all = await fetchAllForExport();
             const data = all.map(m => ({
                 ...m,
-                date: `${m.date} - ${m.time}`,
+                meetingDateTime: `${formatDate(m.meetingDateTime)} - ${formatTime(m.meetingDateTime)}`,
                 participants: getParticipantNames(m.participants),
             }));
             exportToCsv('liste_reunions', headers, data);
@@ -148,13 +149,13 @@ const formatTime = (isoString?: string | Date) => {
         try {
             const headers = [
                 { key: 'title', label: t('secretariat.meetings.table.title') },
-                { key: 'date', label: t('secretariat.meetings.table.date') },
-                { key: 'location', label: t('secretariat.meetings.table.location') },
+                { key: 'meetingDateTime', label: t('secretariat.meetings.table.date') },
+                { key: 'meetingLocation', label: t('secretariat.meetings.table.location') },
             ];
             const all = await fetchAllForExport();
             const data = all.map(m => ({
                 ...m,
-                date: `${m.date} - ${m.time}`,
+                meetingDateTime: `${formatDate(m.meetingDateTime)} - ${formatTime(m.meetingDateTime)}`,
             }));
             exportToPdf(t('secretariat.meetings.title'), headers, data, 'reunions');
         } finally {
@@ -217,9 +218,9 @@ const formatTime = (isoString?: string | Date) => {
                         ) : meetings.map((meeting) => (
                             <tr key={meeting.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{meeting.title}</td>
-                                <td className="px-6 py-4">{`${formatDate(meeting.date)} - ${formatTime(meeting.time)}`}</td>
+                                <td className="px-6 py-4">{`${formatDate(meeting.meetingDateTime)} - ${formatTime(meeting.meetingDateTime)}`}</td>
 
-                                <td className="px-6 py-4">{meeting.location}</td>
+                                <td className="px-6 py-4">{meeting.meetingLocation || '-'}</td>
                                 <td className="px-6 py-4 max-w-sm truncate">{getParticipantNames(meeting.participants)}</td>
                                 <td className="px-6 py-4 text-center space-x-1 no-print">
                                     <button onClick={() => handleOpenViewModal(meeting)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-100 rounded-full transition-colors" aria-label={t('common.view')}>

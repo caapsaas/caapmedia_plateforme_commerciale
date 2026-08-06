@@ -1021,58 +1021,6 @@ export interface AbsenceRecord {
     subsidiaryId: string;
 }
 
-// Secretariat Module Types
-export enum DocumentCategory {
-    LEGAL = 'LEGAL',
-    FINANCIAL = 'FINANCIAL',
-    HR = 'HR',
-    CONTRACT = 'CONTRACT',
-    OTHER = 'OTHER',
-}
-
-export enum DocumentStatus {
-    DRAFT = 'DRAFT',
-    FINAL = 'FINAL',
-    ARCHIVED = 'ARCHIVED',
-}
-
-export interface CompanyDocument {
-    id: string;
-    name: string;
-    category: DocumentCategory;
-    uploadDate: string;
-    status: DocumentStatus;
-    fileUrl: string;
-    subsidiaryId: string;
-}
-
-export interface Meeting {
-    id: string;
-    title: string;
-    date: string;
-    time: string;
-    location: string;
-    participants: string[]; // array of employee IDs
-    agenda: string;
-    minutes: string;
-    subsidiaryId: string;
-}
-
-export enum SecretariatTaskStatus {
-    TODO = 'TODO',
-    IN_PROGRESS = 'IN_PROGRESS',
-    DONE = 'DONE',
-}
-
-export interface SecretariatTask {
-    id: string;
-    title: string;
-    description: string;
-    assignedToId: string; // employee ID
-    dueDate: string;
-    status: SecretariatTaskStatus;
-    subsidiaryId: string;
-}
 
 // CRM Types
 
@@ -1293,7 +1241,7 @@ export enum DocumentStatus {
 export interface CompanyDocument {
   id: string;
   documentName: string;
-  uploadDate: string;
+  createdAt: string;
   fileUrl: string;
   subsidiaryId: string;
   category: DocumentCategory;
@@ -1326,8 +1274,7 @@ export interface SecretariatTask {
 export interface Meeting {
   id: string;
   title: string;
-  meetingDate: string;
-  meetingTime: string;
+  meetingDateTime: string | Date;
   meetingLocation?: string;
   agenda?: string;
   minutes?: string;

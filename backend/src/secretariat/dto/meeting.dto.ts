@@ -1,4 +1,4 @@
-import { IsString, IsDate, IsOptional, IsUUID, IsArray, IsNotEmpty } from 'class-validator';
+import { IsString, IsDate, IsOptional, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 export class CreateMeetingDto {
@@ -18,12 +18,12 @@ export class CreateMeetingDto {
   agenda?: string;
 
   @IsOptional()
-  @IsUUID('all')
+  @IsString()
   subsidiaryId?: string;
 
   @IsOptional()
   @IsArray()
-  @IsUUID('all', { each: true })
+  @IsString({ each: true })
   participantIds?: string[];
 }
 
@@ -51,7 +51,7 @@ export class UpdateMeetingDto {
 
   @IsOptional()
   @IsArray()
-  @IsUUID('all', { each: true })
+  @IsString({ each: true })
   participantIds?: string[];
 }
 

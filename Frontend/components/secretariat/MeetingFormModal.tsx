@@ -29,14 +29,19 @@ const MeetingFormModal: React.FC<MeetingFormModalProps> = ({ isOpen, onClose, on
 
     useEffect(() => {
         if (meeting) {
+            const dateTime = new Date(meeting.meetingDateTime || new Date());
+            const date = dateTime.toISOString().split('T')[0];
+            const time = dateTime.toTimeString().slice(0, 5);
+            const participantIds = meeting.participants?.map(p => p.employeeId) || [];
+
             setFormData({
                 title: meeting.title,
-                date: meeting.date,
-                time: meeting.time,
-                location: meeting.location,
-                participants: meeting.participants, // deja un tableau d'IDs employe
-                agenda: meeting.agenda,
-                minutes: meeting.minutes,
+                date,
+                time,
+                location: meeting.meetingLocation || '',
+                participants: participantIds,
+                agenda: meeting.agenda || '',
+                minutes: meeting.minutes || '',
             });
         } else {
             setFormData(initialFormState);

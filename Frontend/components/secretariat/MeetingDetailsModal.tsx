@@ -18,12 +18,12 @@ const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClo
     const formatDate = (dateStr: string | Date) => new Date(dateStr).toLocaleDateString();
     const formatTime = (timeStr: string | Date) => new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // Convertit les participantIds en noms complets
-    const getParticipantNames = (participantIds: string[]) => {
-        if (!participantIds || participantIds.length === 0) return '';
-        return participantIds
-            .map(id => {
-                const employee = employees.find(e => e.id === id);
+    const getParticipantNames = (participants: any[] | undefined) => {
+        if (!participants || participants.length === 0) return '';
+        return participants
+            .map(p => {
+                const employeeId = typeof p === 'string' ? p : p.employeeId;
+                const employee = employees.find(e => e.id === employeeId);
                 return employee ? `${employee.firstName} ${employee.lastName}` : 'Employé inconnu';
             })
             .join(', ');
@@ -47,16 +47,15 @@ const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClo
                 <div className="p-6 space-y-4 overflow-y-auto">
                     <div>
                         <h4 className="font-semibold text-slate-700">{t('secretariat.meetings.table.date')}</h4>
-                        <p className="text-slate-600">{`${formatDate(meeting.date)} at ${formatTime(meeting.time)}`}</p>
+                        <p className="text-slate-600">{`${formatDate(meeting.meetingDateTime)} at ${formatTime(meeting.meetingDateTime)}`}</p>
                     </div>
                     <div>
                         <h4 className="font-semibold text-slate-700">{t('secretariat.meetings.table.location')}</h4>
-                        <p className="text-slate-600">{meeting.location}</p>
+                        <p className="text-slate-600">{meeting.meetingLocation || '-'}</p>
                     </div>
                     <div>
                         <h4 className="font-semibold text-slate-700">{t('secretariat.meetings.table.participants')}</h4>
-                    <p className="text-slate-600">{getParticipantNames(meeting.participants || [])}</p>
-
+                        <p className="text-slate-600">{getParticipantNames(meeting.participants)}</p>
                     </div>
                     <div>
                         <h4 className="font-semibold text-slate-700">{t('secretariat.meetings.details.agenda')}</h4>

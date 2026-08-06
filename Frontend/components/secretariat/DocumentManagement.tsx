@@ -106,10 +106,16 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, onS
         toast.info('Impression lancée', 'La page est en cours d\'impression.');
     };
 
+    const formatDate = (dateStr?: string | Date) => {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString();
+    };
+
     const buildExportHeaders = () => [
-        { key: 'name', label: t('secretariat.documents.table.name') },
+        { key: 'documentName', label: t('secretariat.documents.table.name') },
         { key: 'category', label: t('secretariat.documents.table.category') },
-        { key: 'uploadDate', label: t('secretariat.documents.table.uploadDate') },
+        { key: 'createdAt', label: t('secretariat.documents.table.uploadDate') },
         { key: 'status', label: t('secretariat.documents.table.status') },
     ];
 
@@ -174,9 +180,9 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, onS
             
             // Utiliser le nom du document avec l'extension correcte pour le téléchargement
             const fileExtension = doc.fileUrl.split('.').pop();
-            const downloadName = doc.name.includes(`.${fileExtension}`) 
-                ? doc.name 
-                : `${doc.name}.${fileExtension}`;
+            const downloadName = doc.documentName.includes(`.${fileExtension}`) 
+                ? doc.documentName 
+                : `${doc.documentName}.${fileExtension}`;
             
             link.download = downloadName;
             link.rel = 'noopener noreferrer';
@@ -186,7 +192,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, onS
             link.click();
             document.body.removeChild(link);
             
-            toast.success('Téléchargement démarré', `Le document "${doc.name}" est en cours de téléchargement.`);
+            toast.success('Téléchargement démarré', `Le document "${doc.documentName}" est en cours de téléchargement.`);
         } catch (error) {
             console.error('Erreur de téléchargement:', error);
             toast.error('Erreur de téléchargement', 'Une erreur est survenue lors du téléchargement du document.');
@@ -247,9 +253,9 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, onS
                             </tr>
                         ) : documents.map((doc) => (
                             <tr key={doc.id} className="bg-white border-b hover:bg-slate-50">
-                                <td className="px-6 py-4 font-semibold">{doc.name}</td>
+                                <td className="px-6 py-4 font-semibold">{doc.documentName}</td>
                                 <td className="px-6 py-4">{t(`secretariat.documents.categories.${doc.category}`)}</td>
-                                <td className="px-6 py-4">{doc.uploadDate}</td>
+                                <td className="px-6 py-4">{formatDate(doc.createdAt)}</td>
                                 <td className="px-6 py-4">
                                     <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(doc.status)}`}>
                                         {t(`secretariat.documents.statuses.${doc.status}`)}
@@ -288,7 +294,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, onS
                     onClose={handleCloseModals}
                     onConfirm={handleDeleteDocument}
                     title={t('secretariat.documents.modal.deleteTitle')}
-                    message={t('configuration.modal.deleteConfirmMessage', { itemName: deletingDocument.name })}
+                    message={t('configuration.modal.deleteConfirmMessage', { itemName: deletingDocument.documentName })}
                 />
             )}
         </div>

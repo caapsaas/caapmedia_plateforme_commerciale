@@ -16,7 +16,6 @@ const DocumentFormModal: React.FC<DocumentFormModalProps> = ({ isOpen, onClose, 
         documentName: '',
         category: DocumentCategory.OTHER,
         status: DocumentStatus.DRAFT,
-        uploadDate: new Date().toISOString().split('T')[0],
     };
     
     const [formData, setFormData] = useState(initialFormState);
@@ -25,15 +24,14 @@ const DocumentFormModal: React.FC<DocumentFormModalProps> = ({ isOpen, onClose, 
     useEffect(() => {
         if (document) {
             setFormData({
-                documentName: document.name,
+                documentName: document.documentName,
                 category: document.category,
                 status: document.status,
-                uploadDate: document.uploadDate
             });
         } else {
             setFormData(initialFormState);
         }
-        setFile(null); // Réinitialiser le fichier à chaque ouverture
+        setFile(null);
     }, [document, isOpen]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -58,9 +56,8 @@ const DocumentFormModal: React.FC<DocumentFormModalProps> = ({ isOpen, onClose, 
         data.append('documentName', formData.documentName);
         data.append('category', formData.category);
         data.append('status', formData.status);
-        data.append('uploadDate', formData.uploadDate);
         if (file) data.append('file', file);
-         if (subsidiary?.id) {
+        if (subsidiary?.id) {
             data.append('subsidiaryId', subsidiary.id);
         } else {
             console.warn("⚠️ Aucun subsidiary trouvé dans le contexte Auth !");

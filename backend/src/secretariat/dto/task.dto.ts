@@ -2,7 +2,6 @@ import {
   IsString,
   IsEnum,
   IsOptional,
-  IsUUID,
   IsDateString,
   IsNotEmpty,
 } from 'class-validator';
@@ -17,17 +16,17 @@ export class CreateSecretariatTaskDto {
   description: string;
 
   @IsDateString()
-  dueDate: Date;
+  dueDate: string;
 
   @IsEnum(SecretariatTaskStatus)
   status: SecretariatTaskStatus;
 
   @IsOptional()
-  @IsUUID('all')
+  @IsString()
   assignedToId?: string;
 
   @IsOptional()
-  @IsUUID('all')
+  @IsString()
   subsidiaryId?: string;
 }
 
@@ -42,14 +41,14 @@ export class UpdateSecretariatTaskDto {
 
   @IsOptional()
   @IsDateString()
-  dueDate?: Date;
+  dueDate?: string;
 
   @IsOptional()
   @IsEnum(SecretariatTaskStatus)
   status?: SecretariatTaskStatus;
 
   @IsOptional()
-  @IsUUID('all')
+  @IsString()
   assignedToId?: string;
 }
 
@@ -64,5 +63,5 @@ export class SearchSecretariatTasksDto extends PaginationQueryDto {
 
   @IsOptional()
   @IsDateString()
-  dueDate?: Date;
+  dueDate?: string;
 }
