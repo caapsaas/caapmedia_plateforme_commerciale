@@ -79,7 +79,8 @@
     }
   },
   "login": {
-    "errorSelectSubsidiary": "Veuillez sélectionner une filiale."
+    "errorSelectSubsidiary": "Veuillez sélectionner une filiale.",
+    "selectSubsidiary": "Sélectionner un employé"
   },
   "configuration": {
     "title": "Configuration",
@@ -134,6 +135,9 @@
       "addClientTitle": "Ajouter un client",
       "editClientTitle": "Modifier le client",
       "deleteClientTitle": "Supprimer le client",
+      "addAbsenceTitle": "Ajouter une absence",
+      "editAbsenceTitle": "Modifier l'absence",
+      "deleteAbsenceTitle": "Supprimer l'absence",
       "deleteConfirmMessage": "Cette action est irréversible. Êtes-vous sûr ?"
     },
     "serviceForm": {
@@ -197,7 +201,13 @@
       "baseSalary": "Salaire de base",
       "bonus": "Prime",
       "benefits": "Avantages",
-      "paymentMethod": "Méthode de paiement"
+      "paymentMethod": "Méthode de paiement",
+      "absenceType": "Type d'absence",
+      "reason": "Motif",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "document": "Document",
+      "uploadFile": "Télécharger un fichier"
     },
     "unitsManagement": {
       "title": "Unités de mesure",
@@ -416,6 +426,9 @@
         "subtitle": "Informations financières",
         "baseSalary": "Salaire de base",
         "baseSalaryHelper": "Salaire minimum (FCFA)",
+        "targetNetSalary": "Salaire net souhaité",
+        "targetNetSalaryHelper": "Salaire net souhaité mensuel (FCFA)",
+        "computedBaseSalary": "Salaire de base calculé",
         "bonus": "Prime",
         "bonusHelper": "Rémunération supplémentaire (FCFA)",
         "paymentMethod": "Mode de paiement"
@@ -629,6 +642,24 @@
         "title": "Information",
         "text": "Ces paramètres sont utilisés pour le calcul automatique de la paie. Modifiez-les uniquement si la législation change."
       }
+    },
+    "absences": {
+      "title": "Absences",
+      "add": "Ajouter une absence",
+      "table": {
+        "employee": "Employé",
+        "type": "Type",
+        "startDate": "Date de début",
+        "endDate": "Date de fin",
+        "reason": "Motif",
+        "document": "Document",
+        "download": "Télécharger",
+        "noDocument": "Aucun document"
+      }
+    },
+    "absenceType": {
+      "JUSTIFIED": "Justifiée",
+      "UNJUSTIFIED": "Non justifiée"
     },
     "employee": "Employé",
     "employeeLabel": "Employé"

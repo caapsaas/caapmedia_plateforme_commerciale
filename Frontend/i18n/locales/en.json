@@ -79,7 +79,8 @@
     }
   },
   "login": {
-    "errorSelectSubsidiary": "Please select a subsidiary."
+    "errorSelectSubsidiary": "Please select a subsidiary.",
+    "selectSubsidiary": "Select an employee"
   },
   "configuration": {
     "title": "Configuration",
@@ -135,6 +136,9 @@
       "editClientTitle": "Edit client",
       "deleteClientTitle": "Delete client",
       "deleteEmployeeTitle": "Delete Employee",
+      "addAbsenceTitle": "Add Absence",
+      "editAbsenceTitle": "Edit Absence",
+      "deleteAbsenceTitle": "Delete Absence",
       "deleteConfirmMessage": "This action is irreversible. Are you sure?"
     },
     "serviceForm": {
@@ -198,7 +202,13 @@
       "baseSalary": "Base Salary",
       "bonus": "Bonus",
       "benefits": "Benefits",
-      "paymentMethod": "Payment Method"
+      "paymentMethod": "Payment Method",
+      "absenceType": "Absence Type",
+      "reason": "Reason",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "document": "Document",
+      "uploadFile": "Upload File"
     },
     "unitsManagement": {
       "title": "Units of measure",
@@ -416,6 +426,9 @@
         "subtitle": "Financial information",
         "baseSalary": "Base Salary",
         "baseSalaryHelper": "Minimum salary (FCFA)",
+        "targetNetSalary": "Desired Net Salary",
+        "targetNetSalaryHelper": "Desired monthly net salary (FCFA)",
+        "computedBaseSalary": "Calculated Base Salary",
         "bonus": "Bonus",
         "bonusHelper": "Additional compensation (FCFA)",
         "paymentMethod": "Payment Method"
@@ -629,6 +642,24 @@
         "title": "Information",
         "text": "These parameters are used for automatic payroll calculation. Modify only if legislation changes."
       }
+    },
+    "absences": {
+      "title": "Absences",
+      "add": "Add Absence",
+      "table": {
+        "employee": "Employee",
+        "type": "Type",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "reason": "Reason",
+        "document": "Document",
+        "download": "Download",
+        "noDocument": "No document"
+      }
+    },
+    "absenceType": {
+      "JUSTIFIED": "Justified",
+      "UNJUSTIFIED": "Unjustified"
     },
     "employee": "Employee",
     "employeeLabel": "Employee"
