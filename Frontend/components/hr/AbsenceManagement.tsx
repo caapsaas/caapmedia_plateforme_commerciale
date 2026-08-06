@@ -40,7 +40,7 @@ const TYPE_OPTIONS = [
 const AbsenceManagement: React.FC<AbsenceManagementProps> = ({
   subsidiary,
   employees,
-  absences,
+  absences = [],
   isLoading = false,
   onSave,
   onDelete,
