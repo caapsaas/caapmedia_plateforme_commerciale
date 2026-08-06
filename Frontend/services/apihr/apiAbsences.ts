@@ -23,8 +23,8 @@ export type AbsenceRecordUpdateData = Partial<AbsenceRecordCreationData>;
  * Protégé par rôle (HR_MANAGER, ADMIN, SUPER_ADMIN).
  */
 export const getAbsenceRecords = async (): Promise<AbsenceRecord[]> => {
-  const { data } = await api.get<AbsenceRecord[]>('/hr/absence-records');
-  return data;
+  const { data } = await api.get<PaginatedResponse<AbsenceRecord>>('/hr/absence-records');
+  return data.data;
 };
 
 /**
