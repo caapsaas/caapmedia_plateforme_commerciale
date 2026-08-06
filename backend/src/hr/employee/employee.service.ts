@@ -17,17 +17,71 @@ import {
   PaymentMethod,
   DocumentType,
   LeaveType,
+  SalaryInputMode,
 } from '@prisma/client';
 import { generateId } from '../../common/utils/generate-id.util';
 import { ID_PREFIXES } from '../../common/constants/id-prefixes.const';
 import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
 import { paginate, PaginatedResult } from '../../common/pagination/pagination';
+import { CameroonPayrollCalculatorService } from '../payrollrecord/cameroonpayrollcalculator.service';
 
 @Injectable()
 export class EmployeeService {
   private readonly logger = new Logger(EmployeeService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly payrollCalculator: CameroonPayrollCalculatorService,
+  ) {}
+
+  /**
+   * Helper method: Calculate total indemnities from array of indemnities
+   */
+  private calculateTotalIndemnities(indemnities?: any[]): number {
+    if (!Array.isArray(indemnities) || indemnities.length === 0) {
+      return 0;
+    }
+    return indemnities.reduce((sum, ind) => sum + (Number(ind.amount) || 0), 0);
+  }
+
+  /**
+   * Helper method: if salaryInputMode is NET, calculate baseSalary from targetNetSalary
+   */
+  private resolveSalaryIfNetMode(dto: CreateEmployeeDto | UpdateEmployeeDto): {
+    baseSalary: number;
+    salaryInputMode?: SalaryInputMode;
+    targetNetSalary?: number;
+  } {
+    // Si le mode est NET et qu'on a un net cible, on recalcule le salaire de base
+    if (
+      dto.salaryInputMode === SalaryInputMode.NET &&
+      dto.targetNetSalary != null
+    ) {
+      this.logger.log(
+        `Calcul du salaire de base pour net cible: ${dto.targetNetSalary} FCFA`,
+      );
+      const result = this.payrollCalculator.calculateFromNetSalary({
+        targetNetSalary: dto.targetNetSalary,
+        bonus: dto.bonus ?? 0,
+        riskGroup: 'A',
+        applyCfc: true,
+        applyFne: true,
+      });
+
+      return {
+        baseSalary: result.baseSalary,
+        salaryInputMode: SalaryInputMode.NET,
+        targetNetSalary: dto.targetNetSalary,
+      };
+    }
+
+    // Sinon, on utilise le salaire de base fourni (par défaut BASE mode)
+    return {
+      baseSalary: dto.baseSalary ?? 0,
+      salaryInputMode: dto.salaryInputMode ?? SalaryInputMode.BASE,
+      targetNetSalary: undefined,
+    };
+  }
 
   /**
    * Helper method to convert Prisma Decimal to number for API response
@@ -215,6 +269,9 @@ export class EmployeeService {
     }
 
     try {
+      // Resolve salary if in NET mode
+      const salaryResolution = this.resolveSalaryIfNetMode(createEmployeeDto);
+
       const employee = await this.prisma.$transaction(async (prisma) => {
         // Create employee
         const newEmployee = await prisma.employee.create({
@@ -236,7 +293,7 @@ export class EmployeeService {
             status: createEmployeeDto.status,
             managerId: createEmployeeDto.managerId,
             workLocation: createEmployeeDto.workLocation,
-            baseSalary: createEmployeeDto.baseSalary,
+            baseSalary: salaryResolution.baseSalary,
             bonus: createEmployeeDto.bonus,
             benefits: createEmployeeDto.benefits,
             paymentMethod: createEmployeeDto.paymentMethod,
@@ -248,6 +305,13 @@ export class EmployeeService {
             situationMatrimony:
               createEmployeeDto.situationMatrimony || 'SINGLE',
             bankAccountNumber: createEmployeeDto.bankAccountNumber,
+            // Salary Input Mode
+            salaryInputMode: salaryResolution.salaryInputMode,
+            targetNetSalary: salaryResolution.targetNetSalary,
+            // Indemnities (convert to JSON)
+            indemnities: createEmployeeDto.indemnities
+              ? JSON.parse(JSON.stringify(createEmployeeDto.indemnities))
+              : null,
           },
           include: {
             manager: true,
@@ -643,12 +707,24 @@ export class EmployeeService {
         'taxIdNTif',
         'numberDependents',
         'situationMatrimony',
+        'salaryInputMode',
+        'targetNetSalary',
+        'indemnities',
       ];
+
+      // Resolve salary if in NET mode BEFORE copying fields
+      const salaryResolution = this.resolveSalaryIfNetMode(updateEmployeeDto);
 
       // Copier uniquement les champs valides
       Object.keys(updateEmployeeDto).forEach((key) => {
         if (validFields.includes(key) && updateEmployeeDto[key] !== undefined) {
-          if (key === 'baseSalary' || key === 'bonus') {
+          if (key === 'baseSalary') {
+            // Si en mode NET, utiliser la valeur résolue, sinon la valeur DTO
+            dataToUpdate[key] =
+              updateEmployeeDto.salaryInputMode === SalaryInputMode.NET
+                ? salaryResolution.baseSalary
+                : Number(updateEmployeeDto[key]);
+          } else if (key === 'bonus') {
             // Convertir les nombres en type number si nécessaire
             dataToUpdate[key] = Number(updateEmployeeDto[key]);
           } else if (
@@ -660,6 +736,18 @@ export class EmployeeService {
             if (updateEmployeeDto[key]) {
               dataToUpdate[key] = new Date(updateEmployeeDto[key]);
             }
+          } else if (key === 'targetNetSalary') {
+            // Convertir targetNetSalary en nombre si fourni en mode NET
+            dataToUpdate[key] =
+              updateEmployeeDto.salaryInputMode === SalaryInputMode.NET &&
+              updateEmployeeDto[key]
+                ? Number(updateEmployeeDto[key])
+                : null;
+          } else if (key === 'indemnities' && Array.isArray(updateEmployeeDto[key])) {
+            // Convertir indemnities en JSON
+            dataToUpdate[key] = JSON.parse(
+              JSON.stringify(updateEmployeeDto[key]),
+            );
           } else {
             dataToUpdate[key] = updateEmployeeDto[key];
           }
@@ -759,17 +847,29 @@ export class EmployeeService {
           } else {
             // Handle frontend format: { contract: { name, url }, idCard: { name, url }, workPermit: { name, url }, diplomas: [...] }
             if (docsData.contract) {
-              expectedDocs.set('CONTRACT||contract', { name: docsData.contract.name, url: docsData.contract.url });
+              expectedDocs.set('CONTRACT||contract', {
+                name: docsData.contract.name,
+                url: docsData.contract.url,
+              });
             }
             if (docsData.idCard) {
-              expectedDocs.set('ID_CARD||idCard', { name: docsData.idCard.name, url: docsData.idCard.url });
+              expectedDocs.set('ID_CARD||idCard', {
+                name: docsData.idCard.name,
+                url: docsData.idCard.url,
+              });
             }
             if (docsData.workPermit) {
-              expectedDocs.set('WORK_PERMIT||workPermit', { name: docsData.workPermit.name, url: docsData.workPermit.url });
+              expectedDocs.set('WORK_PERMIT||workPermit', {
+                name: docsData.workPermit.name,
+                url: docsData.workPermit.url,
+              });
             }
             if (docsData.diplomas && Array.isArray(docsData.diplomas)) {
               docsData.diplomas.forEach((diploma: any, index: number) => {
-                expectedDocs.set(`DIPLOMA||diploma_${index}`, { name: diploma.name, url: diploma.url });
+                expectedDocs.set(`DIPLOMA||diploma_${index}`, {
+                  name: diploma.name,
+                  url: diploma.url,
+                });
               });
             }
           }

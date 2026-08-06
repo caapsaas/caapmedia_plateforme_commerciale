@@ -244,10 +244,24 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
           <CollapsibleSection title={t('hr.details.salary')} icon={DollarSign} defaultOpen={true}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-3">
-                <DetailRow
-                  label={t('hr.details.baseSalary')}
-                  value={typeof employeeData.baseSalary === 'number' ? formatCurrency(employeeData.baseSalary) : formatCurrency(Number(employeeData.baseSalary) || 0)}
-                />
+                {/* Display net or base depending on input mode */}
+                {(employeeData as any).salaryInputMode === 'NET' && (employeeData as any).targetNetSalary ? (
+                  <>
+                    <DetailRow
+                      label="Salaire net souhaité"
+                      value={formatCurrency(Number((employeeData as any).targetNetSalary) || 0)}
+                    />
+                    <DetailRow
+                      label={t('hr.details.baseSalary')}
+                      value={typeof employeeData.baseSalary === 'number' ? formatCurrency(employeeData.baseSalary) : formatCurrency(Number(employeeData.baseSalary) || 0)}
+                    />
+                  </>
+                ) : (
+                  <DetailRow
+                    label={t('hr.details.baseSalary')}
+                    value={typeof employeeData.baseSalary === 'number' ? formatCurrency(employeeData.baseSalary) : formatCurrency(Number(employeeData.baseSalary) || 0)}
+                  />
+                )}
                 <DetailRow
                   label={t('hr.details.bonus')}
                   value={typeof employeeData.bonus === 'number' ? formatCurrency(employeeData.bonus) : formatCurrency(Number(employeeData.bonus) || 0)}
@@ -271,6 +285,23 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
                 )}
               </div>
             </div>
+
+            {/* Salary Input Mode Info */}
+            {(employeeData as any).salaryInputMode === 'NET' && (employeeData as any).targetNetSalary && (
+              <div className="mt-4 p-4 bg-gradient-to-br from-green-50 to-green-100/50 rounded-lg border border-green-200 shadow-sm">
+                <p className="text-xs font-bold text-green-700 uppercase tracking-wide mb-3">Salaire Saisi en Mode Net</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-green-600 font-semibold">Salaire net souhaité</p>
+                    <p className="text-sm font-bold text-green-900 mt-1">{formatCurrency(Number((employeeData as any).targetNetSalary) || 0)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-green-600 font-semibold">Base calculée à partir du net</p>
+                    <p className="text-xs text-green-700 mt-1">✓ Le salaire de base a été calculé pour atteindre ce net</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Banking Details */}
             {(employeeData.bankName || employeeData.bankAccountNumber) && (
@@ -299,7 +330,7 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
             {/* Cameroon Payroll Widget */}
             <div className="mt-6">
               <CameroonPayrollWidget
-                baseSalary={employeeData.baseSalary || 0}
+                netSalary={(employeeData as any).targetNetSalary || employeeData.baseSalary || 0}
                 bonus={employeeData.bonus || 0}
                 numberDependents={employeeData.numberDependents || 0}
               />

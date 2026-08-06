@@ -836,12 +836,16 @@ export interface Employee {
     // Salary Info
     baseSalary: number;
     bonus: number;
+    salaryInputMode?: 'BASE' | 'NET';
+    targetNetSalary?: number;
     benefits: string[];
     lastSalaryAdjustmentDate: string | null;
     paymentMethod: PaymentMethod;
     // Banking Info
     bankName?: string;
     bankAccountNumber?: string;
+    // Indemnities
+    indemnities?: { type: string; amount: number }[];
     // Documents
     documents: {
         contract: EmployeeDocument | null;

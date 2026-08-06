@@ -65,10 +65,7 @@ export class AttendanceRecordController {
   // ------------------------------------------------------------------
   @Get()
   @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
-  async findAll(
-    @Request() req,
-    @Query() query: AttendanceRecordQueryDto,
-  ) {
+  async findAll(@Request() req, @Query() query: AttendanceRecordQueryDto) {
     const paginationQuery = new PaginationQueryDto();
     paginationQuery.page = query.page ? Number(query.page) : 1;
     paginationQuery.limit = query.limit ? Number(query.limit) : 10;

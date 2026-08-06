@@ -218,8 +218,8 @@ export const updatePayrollConfiguration = async (
  * GET /hr/payroll-records
  */
 export const getPayrollRecords = async (): Promise<PayrollRecord[]> => {
-  const { data } = await api.get<PayrollRecord[]>('/hr/payroll-records');
-  return data;
+  const { data } = await api.get<PaginatedResponse<PayrollRecord>>('/hr/payroll-records');
+  return Array.isArray(data) ? data : (data?.data || []);
 };
 
 /**
@@ -355,6 +355,22 @@ export const simulatePayroll = async (
 };
 
 /**
+ * Simule le calcul inverse : net → base (pour formulaire employé)
+ * POST /hr/payroll-records/simulate-net-to-gross
+ */
+export const simulateNetToGross = async (dto: {
+  targetNetSalary: number;
+  bonus?: number;
+  riskGroup?: 'A' | 'B' | 'C';
+}): Promise<{ baseSalary: number; grossSalary: number; netSalary: number; cnpsEmployee: number; cfcEmployee: number; irpp: number; cac: number; totalDeductions: number; cnpsEmployerPension: number; cnpsFamilyBenefits: number; cnpsAccidentRisk: number; cfcEmployer: number; fne: number; totalEmployerCharges: number; totalEmployerCost: number; deductionsDetail: { label: string; amount: number; type: string }[] }> => {
+  const { data } = await api.post(
+    '/hr/payroll-records/simulate-net-to-gross',
+    dto,
+  );
+  return data;
+};
+
+/**
  * Signe une fiche de paie (passe en statut PAID)
  * PATCH /hr/payroll-records/:id/sign
  */
@@ -365,6 +381,276 @@ export const signPayrollRecord = async (
   const { data } = await api.patch<PayrollRecord>(
     `/hr/payroll-records/${payrollId}/sign`,
     { signature },
+  );
+  return data;
+};
+
+// ============================================================
+// BONUS (Phase 1-2)
+// ============================================================
+
+export interface PayrollBonus {
+  id: string;
+  employeeId: string;
+  bonusTypeId: string;
+  grossAmount: number;
+  netAmount: number;
+  period: string;
+  status: 'PENDING' | 'APPROVED' | 'PAID' | 'CANCELLED';
+  paymentDate?: string;
+  bankTransferId?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+}
+
+/**
+ * Attribuer un bonus à un employé
+ * POST /hr/payroll-records/bonus/assign
+ */
+export const assignBonus = async (data: {
+  employeeId: string;
+  bonusTypeId: string;
+  grossAmount: number;
+  period: string;
+  paymentMethod?: string;
+}): Promise<PayrollBonus> => {
+  const { data: response } = await api.post<PayrollBonus>(
+    '/hr/payroll-records/bonus/assign',
+    data,
+  );
+  return response;
+};
+
+/**
+ * Générer le 13e mois pour un employé
+ * POST /hr/payroll-records/bonus/thirteenth-month
+ */
+export const generateThirteenthMonth = async (data: {
+  employeeId: string;
+  month: string;
+  year: string;
+}): Promise<PayrollBonus> => {
+  const { data: response } = await api.post<PayrollBonus>(
+    '/hr/payroll-records/bonus/thirteenth-month',
+    data,
+  );
+  return response;
+};
+
+/**
+ * Lister les bonus en attente d'approbation
+ * GET /hr/payroll-records/bonus/pending
+ */
+export const getPendingBonuses = async (): Promise<PayrollBonus[]> => {
+  const { data } = await api.get<PayrollBonus[]>(
+    '/hr/payroll-records/bonus/pending',
+  );
+  return data;
+};
+
+/**
+ * Lister les bonus en attente de paiement
+ * GET /hr/payroll-records/bonus/approved
+ */
+export const getApprovedBonuses = async (): Promise<PayrollBonus[]> => {
+  const { data } = await api.get<PayrollBonus[]>(
+    '/hr/payroll-records/bonus/approved',
+  );
+  return data;
+};
+
+/**
+ * Approuver un bonus
+ * POST /hr/payroll-records/bonus/:bonusId/approve
+ */
+export const approveBonus = async (bonusId: string): Promise<PayrollBonus> => {
+  const { data } = await api.post<PayrollBonus>(
+    `/hr/payroll-records/bonus/${bonusId}/approve`,
+  );
+  return data;
+};
+
+/**
+ * Enregistrer le paiement d'un bonus
+ * POST /hr/payroll-records/bonus/:bonusId/pay
+ */
+export const recordBonusPayment = async (
+  bonusId: string,
+  dto: {
+    bankTransferId: string;
+    paymentDate?: string;
+  },
+): Promise<PayrollBonus> => {
+  const { data } = await api.post<PayrollBonus>(
+    `/hr/payroll-records/bonus/${bonusId}/pay`,
+    dto,
+  );
+  return data;
+};
+
+/**
+ * Annuler un bonus
+ * POST /hr/payroll-records/bonus/:bonusId/cancel
+ */
+export const cancelBonus = async (
+  bonusId: string,
+  reason: string,
+): Promise<PayrollBonus> => {
+  const { data } = await api.post<PayrollBonus>(
+    `/hr/payroll-records/bonus/${bonusId}/cancel`,
+    { reason },
+  );
+  return data;
+};
+
+/**
+ * Extraire les bonus des fiches de paie et créer des PayrollBonus
+ * POST /hr/payroll-records/bonus/extract-from-payroll
+ */
+export const extractBonusesFromPayroll = async (month: string): Promise<{ created: number; skipped: number; total: number }> => {
+  const { data } = await api.post(
+    '/hr/payroll-records/bonus/extract-from-payroll',
+    { month },
+  );
+  return data;
+};
+
+// ============================================================
+// CHARGES PATRONALES (Phase 1-2)
+// ============================================================
+
+export interface PayrollCharge {
+  id: string;
+  chargeType: string;
+  month: string;
+  grossAmount: number;
+  netAmount: number;
+  paidAmount: number;
+  status: 'ACCRUED' | 'DUE' | 'PAID' | 'PARTIAL' | 'OVERDUE';
+  dueDate: string;
+  paymentDate?: string;
+  declarationNumber?: string;
+  bankTransferId?: string;
+}
+
+/**
+ * Accumuler les charges patronales pour un mois
+ * POST /hr/payroll-records/charges/accumulate
+ */
+export const accumulateCharges = async (month: string): Promise<any> => {
+  const { data } = await api.post('/hr/payroll-records/charges/accumulate', {
+    month,
+  });
+  return data;
+};
+
+/**
+ * Lister les charges en retard
+ * GET /hr/payroll-records/charges/overdue
+ */
+export const getOverdueCharges = async (): Promise<PayrollCharge[]> => {
+  const { data } = await api.get<PayrollCharge[]>(
+    '/hr/payroll-records/charges/overdue',
+  );
+  return data;
+};
+
+/**
+ * Lister les charges dues ce mois-ci
+ * GET /hr/payroll-records/charges/due-this-month
+ */
+export const getChargesDueThisMonth = async (): Promise<PayrollCharge[]> => {
+  const { data } = await api.get<PayrollCharge[]>(
+    '/hr/payroll-records/charges/due-this-month',
+  );
+  return data;
+};
+
+/**
+ * Résumé des charges pour une période
+ * GET /hr/payroll-records/charges/summary
+ */
+export const getChargesSummary = async (
+  startMonth: string,
+  endMonth: string,
+): Promise<any> => {
+  const { data } = await api.get('/hr/payroll-records/charges/summary', {
+    params: { startMonth, endMonth },
+  });
+  return data;
+};
+
+/**
+ * Enregistrer le paiement d'une charge
+ * POST /hr/payroll-records/charges/:chargePaymentId/pay
+ */
+export const recordChargePayment = async (
+  chargePaymentId: string,
+  dto: {
+    bankTransferId: string;
+    paidAmount: number;
+    declarationNumber?: string;
+  },
+): Promise<PayrollCharge> => {
+  const { data } = await api.post<PayrollCharge>(
+    `/hr/payroll-records/charges/${chargePaymentId}/pay`,
+    dto,
+  );
+  return data;
+};
+
+// ============================================================
+// CUMULS & DÉTAILS DÉDUCTIONS (Phase 3-4)
+// ============================================================
+
+export interface PayrollCumulative {
+  id: string;
+  employeeId: string;
+  year: string;
+  grossCumululative: number;
+  deductionsCumululative: number;
+  netCumululative: number;
+  cnpsCumulative: number;
+  cfcCumulative: number;
+  irppCumulative: number;
+  cacCumulative: number;
+}
+
+export interface DeductionDetail {
+  id: string;
+  deductionType: string;
+  description: string;
+  baseAmount: number;
+  rateApplied: number;
+  amount: number;
+  notes?: string;
+}
+
+/**
+ * Obtenir le cumul annuel d'un employé
+ * GET /hr/payroll-records/cumulative/:employeeId?year=2026
+ */
+export const getAnnualCumulative = async (
+  employeeId: string,
+  year?: string,
+): Promise<PayrollCumulative | null> => {
+  const params = year ? { year } : {};
+  const { data } = await api.get<PayrollCumulative | null>(
+    `/hr/payroll-records/cumulative/${employeeId}`,
+    { params },
+  );
+  return data;
+};
+
+/**
+ * Obtenir les détails de déductions d'une fiche de paie
+ * GET /hr/payroll-records/:payrollRecordId/deduction-details
+ */
+export const getDeductionDetails = async (
+  payrollRecordId: string,
+): Promise<DeductionDetail[]> => {
+  const { data } = await api.get<DeductionDetail[]>(
+    `/hr/payroll-records/${payrollRecordId}/deduction-details`,
   );
   return data;
 };

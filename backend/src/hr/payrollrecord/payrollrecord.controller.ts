@@ -14,10 +14,21 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PayrollRecordService } from './payrollrecord.service';
+import { PayrollBonusAndChargeService } from './payroll-bonus-and-charge.service';
+import { PayrollCumulativeService } from './payroll-cumulative.service';
+import { CameroonPayrollCalculatorService } from './cameroonpayrollcalculator.service';
 import {
   CreatePayrollRecordDto,
   UpdatePayrollRecordDto,
 } from './dto/payrollrecord.dto';
+import {
+  GenerateThirteenthMonthDto,
+  ApproveBonusDto,
+  RecordBonusPaymentDto,
+  CancelBonusDto,
+  AccumulateChargesDto,
+  RecordChargePaymentDto,
+} from './dto/payroll-bonus-and-charge.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles } from '../../common/auth/role/role.decorator';
@@ -31,7 +42,12 @@ import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query
 @Controller('hr/payroll-records')
 @UseGuards(JwtAuthGuard, RoleGuard)
 export class PayrollRecordController {
-  constructor(private readonly payrollRecordService: PayrollRecordService) {}
+  constructor(
+    private readonly payrollRecordService: PayrollRecordService,
+    private readonly bonusAndChargeService: PayrollBonusAndChargeService,
+    private readonly cumulativeService: PayrollCumulativeService,
+    private readonly calculator: CameroonPayrollCalculatorService,
+  ) {}
 
   // ============================================================
   // CRÉATION
@@ -60,19 +76,22 @@ export class PayrollRecordController {
    */
   @Get()
   @Roles('HR_MANAGER', 'ADMIN')
-  findAll(
-    @Request() req: any,
-    @Query() query: any,
-  ) {
+  findAll(@Request() req: any, @Query() query: any) {
     const paginationQuery = new PaginationQueryDto();
     paginationQuery.page = query.page ? Number(query.page) : 1;
     paginationQuery.limit = query.limit ? Number(query.limit) : 10;
     paginationQuery.search = query.search;
 
     const ctx = resolveScopeContext(req.user);
-    const targetSubsidiaryId = resolveEffectiveSubsidiaryId(ctx, query.subsidiaryId);
+    const targetSubsidiaryId = resolveEffectiveSubsidiaryId(
+      ctx,
+      query.subsidiaryId,
+    );
 
-    return this.payrollRecordService.findAll(targetSubsidiaryId, paginationQuery);
+    return this.payrollRecordService.findAll(
+      targetSubsidiaryId,
+      paginationQuery,
+    );
   }
 
   /**
@@ -197,6 +216,31 @@ export class PayrollRecordController {
     });
   }
 
+  /**
+   * Simuler le calcul inverse : net → base (pour formulaire employé)
+   * POST /hr/payroll-records/simulate-net-to-gross
+   */
+  @Post('simulate-net-to-gross')
+  @Roles('HR_MANAGER', 'ADMIN')
+  @HttpCode(HttpStatus.OK)
+  simulateNetToGross(
+    @Body()
+    body: {
+      targetNetSalary: number;
+      bonus?: number;
+      riskGroup?: 'A' | 'B' | 'C';
+    },
+  ) {
+    const result = this.calculator.calculateFromNetSalary({
+      targetNetSalary: body.targetNetSalary,
+      bonus: body.bonus ?? 0,
+      riskGroup: body.riskGroup ?? 'A',
+      applyCfc: true,
+      applyFne: true,
+    });
+    return result;
+  }
+
   // ============================================================
   // MISE À JOUR
   // ============================================================
@@ -234,6 +278,230 @@ export class PayrollRecordController {
     const ctx = resolveScopeContext(req.user);
     assertSubsidiaryAccess(record.subsidiaryId, ctx);
     return this.payrollRecordService.signPayrollRecord(id, body.signature);
+  }
+
+  // ============================================================
+  // BONUS & CHARGES (GESTION UNIFIÉE)
+  // ============================================================
+
+  /**
+   * Générer le 13e mois pour un employé
+   * POST /hr/payroll-records/bonus/thirteenth-month
+   */
+  @Post('bonus/thirteenth-month')
+  @Roles('HR_MANAGER', 'ADMIN')
+  async generateThirteenthMonth(
+    @Body() dto: GenerateThirteenthMonthDto,
+    @Request() req: any,
+  ) {
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx);
+    return this.bonusAndChargeService.generateThirteenthMonth(
+      dto.employeeId,
+      dto.month,
+      dto.year,
+    );
+  }
+
+  /**
+   * Lister les bonus en attente d'approbation
+   * GET /hr/payroll-records/bonus/pending
+   */
+  @Get('bonus/pending')
+  @Roles('HR_MANAGER', 'ADMIN')
+  async getPendingBonuses(@Request() req: any) {
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx);
+    return this.bonusAndChargeService.getPendingBonuses(subsidiaryId);
+  }
+
+  /**
+   * Lister les bonus en attente de paiement
+   * GET /hr/payroll-records/bonus/approved
+   */
+  @Get('bonus/approved')
+  @Roles('HR_MANAGER', 'ADMIN')
+  async getApprovedBonuses(@Request() req: any) {
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx);
+    return this.bonusAndChargeService.getApprovedBonuses(subsidiaryId);
+  }
+
+  /**
+   * Approuver un bonus (PENDING → APPROVED)
+   * POST /hr/payroll-records/bonus/:bonusId/approve
+   */
+  @Post('bonus/:bonusId/approve')
+  @Roles('HR_MANAGER', 'ADMIN')
+  async approveBonus(
+    @Param('bonusId') bonusId: string,
+    @Request() req: any,
+  ) {
+    return this.bonusAndChargeService.approveBonus(bonusId, req.user.id);
+  }
+
+  /**
+   * Enregistrer le paiement d'un bonus (APPROVED → PAID)
+   * POST /hr/payroll-records/bonus/:bonusId/pay
+   */
+  @Post('bonus/:bonusId/pay')
+  @Roles('HR_MANAGER', 'ADMIN')
+  async recordBonusPayment(
+    @Param('bonusId') bonusId: string,
+    @Body() dto: RecordBonusPaymentDto,
+  ) {
+    return this.bonusAndChargeService.recordBonusPayment(
+      bonusId,
+      dto.bankTransferId,
+      dto.paymentDate ? new Date(dto.paymentDate) : new Date(),
+    );
+  }
+
+  /**
+   * Annuler un bonus
+   * POST /hr/payroll-records/bonus/:bonusId/cancel
+   */
+  @Post('bonus/:bonusId/cancel')
+  @Roles('HR_MANAGER', 'ADMIN')
+  async cancelBonus(
+    @Param('bonusId') bonusId: string,
+    @Body() dto: CancelBonusDto,
+  ) {
+    return this.bonusAndChargeService.cancelBonus(bonusId, dto.reason);
+  }
+
+  /**
+   * Extraire les bonus des fiches de paie et créer des PayrollBonus
+   * POST /hr/payroll-records/bonus/extract-from-payroll
+   */
+  @Post('bonus/extract-from-payroll')
+  @Roles('HR_MANAGER', 'ADMIN')
+  async extractBonusesFromPayroll(
+    @Body() dto: { month: string },
+    @Request() req: any,
+  ) {
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx);
+    return this.bonusAndChargeService.extractBonusesFromPayroll(
+      subsidiaryId,
+      dto.month,
+    );
+  }
+
+  /**
+   * Accumuler les charges patronales pour un mois
+   * POST /hr/payroll-records/charges/accumulate
+   */
+  @Post('charges/accumulate')
+  @Roles('HR_MANAGER', 'ADMIN')
+  async accumulateCharges(
+    @Body() dto: AccumulateChargesDto,
+    @Request() req: any,
+  ) {
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx, dto.subsidiaryId);
+    return this.bonusAndChargeService.accumulateEmployerCharges(
+      subsidiaryId,
+      dto.month,
+    );
+  }
+
+  /**
+   * Lister les charges en retard
+   * GET /hr/payroll-records/charges/overdue
+   */
+  @Get('charges/overdue')
+  @Roles('HR_MANAGER', 'ADMIN')
+  async getOverdueCharges(@Request() req: any) {
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx);
+    return this.bonusAndChargeService.getOverdueCharges(subsidiaryId);
+  }
+
+  /**
+   * Lister les charges dues ce mois-ci
+   * GET /hr/payroll-records/charges/due-this-month
+   */
+  @Get('charges/due-this-month')
+  @Roles('HR_MANAGER', 'ADMIN')
+  async getChargesDueThisMonth(@Request() req: any) {
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx);
+    return this.bonusAndChargeService.getChargesDueThisMonth(subsidiaryId);
+  }
+
+  /**
+   * Résumé des charges pour une période
+   * GET /hr/payroll-records/charges/summary?startMonth=2024-01&endMonth=2024-12
+   */
+  @Get('charges/summary')
+  @Roles('HR_MANAGER', 'ADMIN')
+  async getChargesSummary(
+    @Query('startMonth') startMonth: string,
+    @Query('endMonth') endMonth: string,
+    @Request() req: any,
+  ) {
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx);
+    return this.bonusAndChargeService.getChargesSummary(
+      subsidiaryId,
+      startMonth,
+      endMonth,
+    );
+  }
+
+  /**
+   * Enregistrer le paiement d'une charge
+   * POST /hr/payroll-records/charges/:chargePaymentId/pay
+   */
+  @Post('charges/:chargePaymentId/pay')
+  @Roles('HR_MANAGER', 'ADMIN')
+  async recordChargePayment(
+    @Param('chargePaymentId') chargePaymentId: string,
+    @Body() dto: RecordChargePaymentDto,
+  ) {
+    return this.bonusAndChargeService.recordChargePayment(
+      chargePaymentId,
+      dto.bankTransferId,
+      dto.paidAmount,
+      dto.declarationNumber,
+    );
+  }
+
+  // ============================================================
+  // CUMULS & DÉTAILS DÉDUCTIONS (Phase 3-4)
+  // ============================================================
+
+  /**
+   * Obtenir le cumul annuel d'un employé
+   * GET /hr/payroll-records/cumulative/:employeeId?year=2026
+   */
+  @Get('cumulative/:employeeId')
+  @Roles('HR_MANAGER', 'ADMIN')
+  async getAnnualCumulative(
+    @Param('employeeId') employeeId: string,
+    @Query('year') year?: string,
+  ) {
+    const queryYear = year || new Date().getFullYear().toString();
+    return this.cumulativeService.getAnnualCumulative(employeeId, queryYear);
+  }
+
+  /**
+   * Obtenir les détails de déductions d'une fiche de paie
+   * GET /hr/payroll-records/:payrollRecordId/deduction-details
+   */
+  @Get(':payrollRecordId/deduction-details')
+  @Roles('HR_MANAGER', 'ADMIN')
+  async getDeductionDetails(
+    @Param('payrollRecordId') payrollRecordId: string,
+    @Request() req: any,
+  ) {
+    // Vérifier l'accès subsidiaire
+    const payroll = await this.payrollRecordService.findOne(payrollRecordId);
+    const ctx = resolveScopeContext(req.user);
+    assertSubsidiaryAccess(payroll.subsidiaryId, ctx);
+
+    return this.cumulativeService.getDeductionDetails(payrollRecordId);
   }
 
   // ============================================================

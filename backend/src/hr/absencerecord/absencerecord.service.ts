@@ -16,7 +16,6 @@ import { ID_PREFIXES } from '../../common/constants/id-prefixes.const';
 import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
 import { paginate, PaginatedResult } from '../../common/pagination/pagination';
 
-
 @Injectable()
 export class AbsenceRecordService {
   private readonly logger = new Logger(AbsenceRecordService.name);
@@ -139,7 +138,9 @@ export class AbsenceRecordService {
    *  - crée une absence de type "ABSENCE_NON_JUSTIFIEE" (ou votre enum)
    */
   @Cron('0 18 * * *') // 18h00 tous les jours
-  async generateDailyAbsences(subsidiaryId?: string): Promise<{ success: boolean; message: string }> {
+  async generateDailyAbsences(
+    subsidiaryId?: string,
+  ): Promise<{ success: boolean; message: string }> {
     this.logger.log('🔄 Génération automatique des absences du jour...');
 
     try {
@@ -231,11 +232,15 @@ export class AbsenceRecordService {
         this.logger.log(detail);
       }
 
-      const message = totalCreated > 0
-        ? `${totalCreated} absence(s) non justifiée(s) générée(s) pour les employés sans présence du jour. ` + details.join('. ')
-        : 'Tous les employés actifs ont pointé leur présence aujourd\'hui.';
+      const message =
+        totalCreated > 0
+          ? `${totalCreated} absence(s) non justifiée(s) générée(s) pour les employés sans présence du jour. ` +
+            details.join('. ')
+          : "Tous les employés actifs ont pointé leur présence aujourd'hui.";
 
-      this.logger.log(`✓ Génération terminée — ${totalCreated} absence(s) au total`);
+      this.logger.log(
+        `✓ Génération terminée — ${totalCreated} absence(s) au total`,
+      );
 
       return { success: true, message };
     } catch (error) {
@@ -243,7 +248,10 @@ export class AbsenceRecordService {
         `Erreur génération absences: ${error.message}`,
         error.stack,
       );
-      return { success: false, message: `Erreur lors de la génération: ${error.message}` };
+      return {
+        success: false,
+        message: `Erreur lors de la génération: ${error.message}`,
+      };
     }
   }
 

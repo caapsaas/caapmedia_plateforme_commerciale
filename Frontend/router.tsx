@@ -35,6 +35,7 @@ import Maintenance from './components/maintenance/Maintenance';
 import Equipements from './Pages/Equipements';
 import SecuritySettings from './Pages/SecuritySettings';
 import PayrollSigningPage from './Pages/PayrollSigningPage';
+import BonusManagement from './components/hr/BonusManagement';
 import { getDefaultViewForRole, ANALYTICS_ALLOWED_ROLES } from './utils/roleViews';
 
 // Le token "user" vit dans un cookie httpOnly (illisible en JS) - au chargement
@@ -234,6 +235,17 @@ const hrSigningRoute = createRoute({
   component: PayrollSigningPage,
 });
 
+const BonusManagementRoute: React.FC = () => {
+  const { subsidiary } = useAuth();
+  return <BonusManagement subsidiary={subsidiary} />;
+};
+
+const hrBonusRoute = createRoute({
+  getParentRoute: () => hrRoute,
+  path: '/bonus',
+  component: BonusManagementRoute,
+});
+
 const financeRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/finance', component: Finance });
 const accountingRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/accountings', component: Accounting });
 const accountingAccessRequestsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/accounting-access-requests', component: AccountingAccessAdmin });
@@ -281,6 +293,7 @@ const routeTree = rootRoute.addChildren([
       hrCardsRoute,
       hrHistoryRoute,
       hrSigningRoute,
+      hrBonusRoute,
     ]),
     
     secretariatRoute,

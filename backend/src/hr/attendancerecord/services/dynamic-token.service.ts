@@ -1,4 +1,9 @@
-import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -61,15 +66,26 @@ export class DynamicTokenService {
       this.logger.warn(`Token not found in database: ${token}`);
       // Log tous les tokens existants pour debug
       const allTokens = await this.prisma.dynamicToken.findMany({
-        select: { id: true, token: true, subsidiaryId: true, isUsed: true, createdAt: true },
+        select: {
+          id: true,
+          token: true,
+          subsidiaryId: true,
+          isUsed: true,
+          createdAt: true,
+        },
         orderBy: { createdAt: 'desc' },
         take: 5,
       });
-      this.logger.log(`Existing tokens in database:`, JSON.stringify(allTokens, null, 2));
+      this.logger.log(
+        `Existing tokens in database:`,
+        JSON.stringify(allTokens, null, 2),
+      );
       throw new BadRequestException('Token invalide');
     }
 
-    this.logger.log(`Token found: ${dynamicToken.id}, isUsed: ${dynamicToken.isUsed}, subsidiaryId: ${dynamicToken.subsidiaryId}`);
+    this.logger.log(
+      `Token found: ${dynamicToken.id}, isUsed: ${dynamicToken.isUsed}, subsidiaryId: ${dynamicToken.subsidiaryId}`,
+    );
 
     if (dynamicToken.isUsed) {
       this.logger.warn(`Token already used: ${token}`);

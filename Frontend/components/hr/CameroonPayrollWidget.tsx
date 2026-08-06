@@ -5,7 +5,7 @@ import { useI18n } from '../../i18n';
 import { AlertTriangle } from '../ui/Icons';
 
 interface CameroonPayrollWidgetProps {
-  baseSalary: number | string;
+  netSalary: number | string;
   bonus?: number | string;
   numberDependents?: number;
 }
@@ -15,17 +15,17 @@ const CNPS_EMPLOYEE_RATE = 0.11;
 const CNPS_EMPLOYER_RATE = 0.176;
 
 const CameroonPayrollWidget: React.FC<CameroonPayrollWidgetProps> = ({
-  baseSalary,
+  netSalary,
   bonus = 0,
   numberDependents = 0,
 }) => {
   const { t } = useI18n();
-  const baseSalaryNum = typeof baseSalary === 'number' ? baseSalary : Number(baseSalary) || 0;
+  const netSalaryNum = typeof netSalary === 'number' ? netSalary : Number(netSalary) || 0;
   const bonusNum = typeof bonus === 'number' ? bonus : Number(bonus) || 0;
-  const grossSalary = baseSalaryNum + bonusNum;
-  const cnpsDeduction = Math.round(grossSalary * CNPS_EMPLOYEE_RATE);
-  const employerContribution = Math.round(grossSalary * CNPS_EMPLOYER_RATE);
-  const isBelowSMIG = grossSalary < SMIG_2024;
+  const totalNetSalary = netSalaryNum + bonusNum;
+  const cnpsDeduction = Math.round(totalNetSalary * CNPS_EMPLOYEE_RATE);
+  const employerContribution = Math.round(totalNetSalary * CNPS_EMPLOYER_RATE);
+  const isBelowSMIG = totalNetSalary < SMIG_2024;
 
   return (
     <Card>
@@ -42,16 +42,16 @@ const CameroonPayrollWidget: React.FC<CameroonPayrollWidgetProps> = ({
                 {t('hr.payrollInfo.belowSmig')}
               </p>
               <p className="text-xs text-red-600">
-                Current: {grossSalary.toLocaleString()} {t('hr.payrollInfo.fcfa')} | {t('hr.payrollInfo.smig')}: {SMIG_2024.toLocaleString()} {t('hr.payrollInfo.fcfa')}
+                Current: {totalNetSalary.toLocaleString()} {t('hr.payrollInfo.fcfa')} | {t('hr.payrollInfo.smig')}: {SMIG_2024.toLocaleString()} {t('hr.payrollInfo.fcfa')}
               </p>
             </div>
           )}
 
-          {/* Gross Salary */}
+          {/* Net Salary */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs font-semibold text-slate-600 uppercase">{t('hr.payrollInfo.grossSalary')}</p>
-              <p className="text-lg font-bold text-slate-900">{grossSalary.toLocaleString()}</p>
+              <p className="text-xs font-semibold text-slate-600 uppercase">{t('hr.payrollInfo.netSalary') || 'Salaire net'}</p>
+              <p className="text-lg font-bold text-slate-900">{totalNetSalary.toLocaleString()}</p>
               <p className="text-xs text-slate-500">{t('hr.payrollInfo.fcfa')}/month</p>
             </div>
             <div>

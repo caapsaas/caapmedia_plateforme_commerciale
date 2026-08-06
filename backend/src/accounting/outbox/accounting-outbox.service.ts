@@ -2,7 +2,28 @@ import { Injectable } from '@nestjs/common';
 import { AccountType, ExpenseCategory, Prisma } from '@prisma/client';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
-import { OperationSource } from '../journalization/journalization.service';
+
+// Types d'événements qu'on peut enqueuer dans l'Outbox
+export type OutboxEventType =
+  // Paie
+  | 'PAYROLL_ENTRY'
+  | 'BONUS_ENTRY'
+  | 'CHARGE_PAYMENT_ENTRY'
+  // Trésorerie
+  | 'TREASURY_INCOME'
+  | 'TREASURY_EXPENSE'
+  | 'TREASURY_TRANSFER'
+  // Ventes
+  | 'SALE_PAID'
+  // Dépenses
+  | 'EXPENSE_RECORD'
+  // Tiers
+  | 'SUPPLIER_DEBT_PAYMENT'
+  // Financement
+  | 'LONG_TERM_DEBT_RECEIPT'
+  // Immobilisations
+  | 'FIXED_ASSET_ACQUISITION'
+  | 'PAYROLL_CHARGE_PAYMENT';
 
 /** Payload sérialisable d'un `JournalizationContext` — `operationDate` en ISO
  * string car `Json` Prisma ne préserve pas le type `Date`. */
@@ -19,7 +40,7 @@ export interface AccountingOutboxPayload {
 }
 
 export interface EnqueueAccountingEventDto {
-  eventType: OperationSource;
+  eventType: OutboxEventType;
   payload: AccountingOutboxPayload;
   subsidiaryId: string;
 }

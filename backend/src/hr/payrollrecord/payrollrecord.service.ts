@@ -6,6 +6,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
+import { JournalizationService } from '../../accounting/journalization/journalization.service';
+import { AccountingOutboxService } from '../../accounting/outbox/accounting-outbox.service';
 import {
   CreatePayrollRecordDto,
   UpdatePayrollRecordDto,
@@ -22,6 +24,7 @@ import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
 import { paginate, PaginatedResult } from '../../common/pagination/pagination';
 import { CameroonPayrollCalculatorService } from './cameroonpayrollcalculator.service';
+import { PayrollCumulativeService } from './payroll-cumulative.service';
 
 // Type enrichi retourné par le service (avec infos employé)
 type PayrollRecordWithDetails = PayrollRecord & {
@@ -44,6 +47,9 @@ export class PayrollRecordService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly calculator: CameroonPayrollCalculatorService,
+    private readonly journalization: JournalizationService,
+    private readonly outbox: AccountingOutboxService,
+    private readonly cumulative: PayrollCumulativeService,
   ) {}
 
   /**
@@ -309,11 +315,13 @@ export class PayrollRecordService {
   }
 
   /**
-   * Signe une fiche de paie et la passe en statut PAID
+   * Signe une fiche de paie et la passe en statut PAID.
+   * Enqueue l'intention comptable via Outbox Pattern (traitement asynchrone par le Processor).
    */
   async signPayrollRecord(
     id: string,
     signature: string,
+    userId: string = 'system',
   ): Promise<PayrollRecordWithDetails> {
     this.logger.log(`Signature de la fiche de paie ${id}`);
 
@@ -325,23 +333,47 @@ export class PayrollRecordService {
       );
     }
 
-    const updated = await this.prisma.payrollRecord.update({
-      where: { id },
-      data: {
-        signature,
-        status: PayrollStatus.PAID,
-        paymentDate: new Date(),
-      },
-      include: {
-        employee: {
-          select: {
-            firstName: true,
-            lastName: true,
-            baseSalary: true,
-            bonus: true,
-          },
+    // Transaction atomique : signature + enqueue outbox
+    const updated = await this.prisma.$transaction(async (tx) => {
+      // 1. Signer la fiche
+      const payroll = await tx.payrollRecord.update({
+        where: { id },
+        data: {
+          signature,
+          status: PayrollStatus.PAID,
+          paymentDate: new Date(),
         },
-      },
+        include: {
+          employee: {
+            select: {
+              firstName: true,
+              lastName: true,
+              baseSalary: true,
+              bonus: true,
+            },
+          },
+          subsidiary: { select: { id: true, subsidiaryName: true } },
+        },
+      });
+
+      // 2. Enqueue l'intention comptable (atomique avec la signature)
+      await this.outbox.enqueue(tx, {
+        eventType: 'PAYROLL_ENTRY',
+        subsidiaryId: payroll.subsidiaryId,
+        payload: {
+          userId,
+          operationDate: payroll.paymentDate?.toISOString() || new Date().toISOString(),
+          amount: Number(payroll.grossSalary),
+          description: `Paie ${payroll.payrollPeriod} - ${payroll.employeeName}`,
+          sourceId: payroll.id,
+        },
+      });
+
+      this.logger.log(
+        `✅ Fiche signée + intention comptable enqueuée pour ${payroll.id}`,
+      );
+
+      return payroll;
     });
 
     return updated;
@@ -458,13 +490,52 @@ export class PayrollRecordService {
     const applyCfc = options?.applyCfc ?? true;
     const applyFne = options?.applyFne ?? true;
 
+    // Phase 4: Récupérer les cumuls annuels (pour calculs progressifs)
+    const year = period.substring(0, 4);
+    const cumulativesMap = new Map();
+
+    const cumulatives = await this.prisma.payrollCumulative.findMany({
+      where: {
+        subsidiaryId,
+        year,
+        month: null, // cumul annuel
+        employeeId: { in: employeesToProcess.map((e) => e.id) },
+      },
+    });
+
+    cumulatives.forEach((cum) => {
+      cumulativesMap.set(cum.employeeId, cum);
+    });
+
     const newPayrollsData = employeesToProcess.map((employee) => {
+      // Récupérer les cumuls pour cet employé
+      const employeeCumulative = cumulativesMap.get(employee.id);
+      const previousCnpsCumulative = employeeCumulative
+        ? Number(employeeCumulative.cnpsCumulative)
+        : 0;
+      const previousIrppCumulative = employeeCumulative
+        ? Number(employeeCumulative.irppCumulative)
+        : 0;
+      const previousGrossCumulative = employeeCumulative
+        ? Number(employeeCumulative.grossCumululative)
+        : 0;
+
+      // Convertir les indemnities en allowances (sum)
+      const totalIndemnities = Array.isArray(employee.indemnities)
+        ? (employee.indemnities as any[]).reduce((sum, ind) => sum + (Number(ind.amount) || 0), 0)
+        : 0;
+
       const calc = this.calculator.calculate({
         baseSalary: Number(employee.baseSalary),
         bonus: Number(employee.bonus || 0),
+        allowances: totalIndemnities,
         riskGroup,
         applyCfc,
         applyFne,
+        // Phase 4: Passer les cumuls pour calculs progressifs
+        previousCnpsCumulative,
+        previousIrppCumulative,
+        previousGrossCumulative,
       });
 
       return {
@@ -475,7 +546,7 @@ export class PayrollRecordService {
 
         baseSalary: employee.baseSalary,
         bonus: employee.bonus || 0,
-        allowances: 0,
+        allowances: totalIndemnities,
         overtime: 0,
         otherEarnings: 0,
         grossSalary: calc.grossSalary,
@@ -496,12 +567,23 @@ export class PayrollRecordService {
         fne: calc.fne,
         totalEmployerCost: calc.totalEmployerCost,
 
-        deductionsDetail: calc.deductionsDetail,
+        deductionsDetail: [
+          ...calc.deductionsDetail,
+          // Ajouter les indemnités au détail
+          ...(Array.isArray(employee.indemnities) && employee.indemnities.length > 0
+            ? employee.indemnities.map((ind: any) => ({
+                label: `Indemnité - ${ind.type}`,
+                amount: Number(ind.amount),
+                type: 'INDEMNITIES',
+              }))
+            : []),
+        ],
         calculationMeta: {
           riskGroup,
           cnpsCap: 750000,
           cnpsEmployeeRate: 0.042,
           cfcEmployeeRate: applyCfc ? 0.01 : 0,
+          totalIndemnities,
           calculatedAt: new Date().toISOString(),
         },
 
@@ -520,10 +602,71 @@ export class PayrollRecordService {
       `✅ ${result.count} fiche(s) de paie créée(s) pour la période ${period}`,
     );
 
+    // --- 6. Mettre à jour les cumuls et détails de déductions (en arrière-plan) ---
+    try {
+      await this.updateCumulativesForPeriod(subsidiaryId, period);
+    } catch (error) {
+      this.logger.warn(
+        `⚠️ Erreur lors de la mise à jour des cumuls: ${error.message}`,
+      );
+      // Ne pas lever l'erreur - la paie est déjà créée
+    }
+
     return {
       count: result.count,
       message: `${result.count} fiche(s) de paie générée(s) avec succès pour ${period}`,
     };
+  }
+
+  /**
+   * Mettre à jour les cumuls et détails de déductions pour une période
+   * (appelé après la création en masse des fiches)
+   */
+  private async updateCumulativesForPeriod(
+    subsidiaryId: string,
+    period: string,
+  ): Promise<void> {
+    const newPayrolls = await this.prisma.payrollRecord.findMany({
+      where: {
+        subsidiaryId,
+        payrollPeriod: period,
+        status: PayrollStatus.PENDING,
+      },
+    });
+
+    this.logger.log(
+      `📊 Mise à jour des cumuls pour ${newPayrolls.length} fiche(s)`,
+    );
+
+    for (const payroll of newPayrolls) {
+      try {
+        // Mettre à jour les cumuls
+        await this.cumulative.updateCumulatives(
+          this.prisma as unknown as Prisma.TransactionClient,
+          payroll,
+        );
+
+        // Créer les détails de déductions
+        await this.cumulative.createDeductionDetails(
+          this.prisma as unknown as Prisma.TransactionClient,
+          payroll.id,
+          {
+            cnpsEmployee: Number(payroll.cnpsEmployee),
+            cfcEmployee: Number(payroll.cfcEmployee),
+            irpp: Number(payroll.irpp),
+            cac: Number(payroll.cac),
+            otherDeductions: Number(payroll.otherDeductions),
+          },
+          Number(payroll.grossSalary),
+        );
+      } catch (error) {
+        this.logger.warn(
+          `⚠️ Erreur cumul pour ${payroll.id}: ${error.message}`,
+        );
+      }
+    }
+
+    this.logger.log(`✅ Cumuls et détails mis à jour`);
   }
 
   /**

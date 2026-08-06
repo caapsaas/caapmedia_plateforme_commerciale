@@ -1837,6 +1837,7 @@ const frTranslations = {
       "position": "Poste",
       "status": "Statut",
       "salary": "Salaire",
+      "contract": "Contrat",
       "actions": "Actions"
     },
     "attendance": {
@@ -1984,6 +1985,9 @@ const frTranslations = {
         "subtitle": "Informations financières",
         "baseSalary": "Salaire de base",
         "baseSalaryHelper": "Salaire minimum (FCFA)",
+        "targetNetSalary": "Salaire net souhaité",
+        "targetNetSalaryHelper": "Salaire net souhaité mensuel (FCFA)",
+        "computedBaseSalary": "Salaire de base calculé",
         "bonus": "Prime",
         "bonusHelper": "Rémunération supplémentaire (FCFA)",
         "paymentMethod": "Mode de paiement"
@@ -2156,9 +2160,11 @@ const frTranslations = {
     "payrollInfo": {
       "cameroonPayroll": "Paie Cameroun",
       "belowSmig": "Salaire en dessous du SMIG",
+      "netSalary": "Salaire net",
       "grossSalary": "Salaire brut",
+      "bonus": "Prime",
       "smig": "SMIG 2024",
-      "deductions": "Déductions",
+      "deductions": "Retenues",
       "cnpsEmployee": "CNPS Employé (11%)",
       "cnpsEmployer": "Contribution employeur (17.6%)",
       "fcfa": "FCFA",
@@ -3789,6 +3795,9 @@ const enTranslations: Translations = {
                 "subtitle": "Financial information",
                 "baseSalary": "Base Salary",
                 "baseSalaryHelper": "Minimum salary (FCFA)",
+                "targetNetSalary": "Desired Net Salary",
+                "targetNetSalaryHelper": "Desired monthly net salary (FCFA)",
+                "computedBaseSalary": "Calculated Base Salary",
                 "bonus": "Bonus",
                 "bonusHelper": "Additional compensation (FCFA)",
                 "paymentMethod": "Payment Method"
@@ -3961,7 +3970,9 @@ const enTranslations: Translations = {
         "payrollInfo": {
             "cameroonPayroll": "Cameroon Payroll",
             "belowSmig": "Salary below SMIG",
+            "netSalary": "Net Salary",
             "grossSalary": "Gross Salary",
+            "bonus": "Bonus",
             "smig": "SMIG 2024",
             "deductions": "Deductions",
             "cnpsEmployee": "CNPS Employee (11%)",

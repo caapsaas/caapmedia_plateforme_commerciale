@@ -7,7 +7,12 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import { UserRole, DocumentCategory, DocumentStatus, SecretariatTaskStatus } from '@prisma/client';
+import {
+  UserRole,
+  DocumentCategory,
+  DocumentStatus,
+  SecretariatTaskStatus,
+} from '@prisma/client';
 
 describe('SecretariatService', () => {
   let service: SecretariatService;
@@ -86,7 +91,12 @@ describe('SecretariatService', () => {
     });
 
     it('should throw BadRequestException if subsidiaryId missing', async () => {
-      const dto = { documentName: '', category: DocumentCategory.LEGAL, status: DocumentStatus.DRAFT, subsidiaryId: '' };
+      const dto = {
+        documentName: '',
+        category: DocumentCategory.LEGAL,
+        status: DocumentStatus.DRAFT,
+        subsidiaryId: '',
+      };
       const file = { filename: 'test.pdf' } as Express.Multer.File;
 
       await expect(
@@ -116,7 +126,9 @@ describe('SecretariatService', () => {
       };
       const file = { filename: 'test.pdf' } as Express.Multer.File;
 
-      jest.spyOn(prismaService.subsidiary, 'findUnique').mockResolvedValue(null);
+      jest
+        .spyOn(prismaService.subsidiary, 'findUnique')
+        .mockResolvedValue(null);
 
       await expect(
         service.createCompanyDocument(dto, mockUser, file),
@@ -159,7 +171,9 @@ describe('SecretariatService', () => {
       jest.spyOn(prismaService.subsidiary, 'findUnique').mockResolvedValue({
         id: 'sub-1',
       } as any);
-      jest.spyOn(prismaService.companyDocument, 'create').mockResolvedValue(mockDocument as any);
+      jest
+        .spyOn(prismaService.companyDocument, 'create')
+        .mockResolvedValue(mockDocument as any);
 
       const result = await service.createCompanyDocument(dto, mockAdmin, file);
 
@@ -177,9 +191,9 @@ describe('SecretariatService', () => {
 
       const invalidUser = { ...mockUser, role: UserRole.CAISSIER };
 
-      await expect(
-        service.createMeeting(data, invalidUser),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.createMeeting(data, invalidUser)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('should create meeting successfully', async () => {
@@ -196,7 +210,9 @@ describe('SecretariatService', () => {
       jest.spyOn(prismaService.subsidiary, 'findUnique').mockResolvedValue({
         id: 'sub-1',
       } as any);
-      jest.spyOn(prismaService.meeting, 'create').mockResolvedValue(mockMeeting as any);
+      jest
+        .spyOn(prismaService.meeting, 'create')
+        .mockResolvedValue(mockMeeting as any);
 
       const result = await service.createMeeting(data, mockUser);
 
@@ -221,7 +237,9 @@ describe('SecretariatService', () => {
       jest.spyOn(prismaService.subsidiary, 'findUnique').mockResolvedValue({
         id: 'sub-1',
       } as any);
-      jest.spyOn(prismaService.secretariatTask, 'create').mockResolvedValue(mockTask as any);
+      jest
+        .spyOn(prismaService.secretariatTask, 'create')
+        .mockResolvedValue(mockTask as any);
 
       const result = await service.createSecretariatTask(dto, mockUser);
 

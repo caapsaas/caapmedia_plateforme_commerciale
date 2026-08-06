@@ -24,6 +24,7 @@ import {
   EmployeeStatus,
   PaymentMethod,
   LeaveType,
+  SalaryInputMode,
 } from '@prisma/client'; // Assumons que ces enums sont générés par Prisma
 
 export class LeaveBalanceDto {
@@ -76,6 +77,17 @@ export class LeaveRecordDto {
   @IsNumber()
   @Min(0)
   days: number;
+}
+
+export class IndemnitiesDto {
+  @IsNotEmpty()
+  @IsString()
+  type: string; // housing, transport, meals, family, representation, etc.
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Min(0)
+  amount: number; // Montant en FCFA
 }
 
 export class SingleDocumentDto {
@@ -173,6 +185,15 @@ export class CreateEmployeeDto {
   @Length(1, 100)
   workLocation: string;
 
+  @IsOptional()
+  @IsEnum(SalaryInputMode)
+  salaryInputMode?: SalaryInputMode;
+
+  @ValidateIf((o) => o.salaryInputMode === SalaryInputMode.NET)
+  @IsNumber()
+  @Min(0)
+  targetNetSalary?: number;
+
   @IsNotEmpty()
   @IsNumber()
   @Min(0)
@@ -237,6 +258,12 @@ export class CreateEmployeeDto {
   @ValidateNested()
   @Type(() => EmployeeDocumentsDto)
   documents?: EmployeeDocumentsDto;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => IndemnitiesDto)
+  indemnities?: IndemnitiesDto[]; // Array of indemnities
 
   // Personal information fields
   @IsOptional()

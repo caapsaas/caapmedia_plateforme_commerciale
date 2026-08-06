@@ -47,7 +47,7 @@ export class SecretariatService {
 
   private formatTasksInResult(result: any) {
     if (Array.isArray(result.data)) {
-      result.data = result.data.map(task => this.formatTaskDate(task));
+      result.data = result.data.map((task) => this.formatTaskDate(task));
     }
     return result;
   }
@@ -174,7 +174,10 @@ export class SecretariatService {
         'Not authorized to update this company document',
       );
     }
-    const ctx = { subsidiaryId: currentUser.subsidiaryId, hasGlobalScope: currentUser.role === UserRole.ADMIN };
+    const ctx = {
+      subsidiaryId: currentUser.subsidiaryId,
+      hasGlobalScope: currentUser.role === UserRole.ADMIN,
+    };
     assertSubsidiaryAccess(document.subsidiaryId, ctx);
 
     // Construire les données de mise à jour
@@ -227,7 +230,10 @@ export class SecretariatService {
         'Not authorized to delete this company document',
       );
     }
-    const ctx = { subsidiaryId: currentUser.subsidiaryId, hasGlobalScope: currentUser.role === UserRole.ADMIN };
+    const ctx = {
+      subsidiaryId: currentUser.subsidiaryId,
+      hasGlobalScope: currentUser.role === UserRole.ADMIN,
+    };
     assertSubsidiaryAccess(document.subsidiaryId, ctx);
 
     // Supprimer le document
@@ -257,7 +263,14 @@ export class SecretariatService {
 
     const result = await paginate(
       this.prisma.companyDocument,
-      { where, include: { subsidiary: true, creator: { select: { id: true, userName: true } } }, orderBy: { createdAt: 'desc' } },
+      {
+        where,
+        include: {
+          subsidiary: true,
+          creator: { select: { id: true, userName: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      },
       paginationQuery,
     );
 
@@ -295,7 +308,10 @@ export class SecretariatService {
         'Not authorized to archive this company document',
       );
     }
-    const ctx = { subsidiaryId: currentUser.subsidiaryId, hasGlobalScope: currentUser.role === UserRole.ADMIN };
+    const ctx = {
+      subsidiaryId: currentUser.subsidiaryId,
+      hasGlobalScope: currentUser.role === UserRole.ADMIN,
+    };
     assertSubsidiaryAccess(document.subsidiaryId, ctx);
 
     // Archiver le document
@@ -344,7 +360,14 @@ export class SecretariatService {
 
     const result = await paginate(
       this.prisma.companyDocument,
-      { where, include: { subsidiary: true, creator: { select: { id: true, userName: true } } }, orderBy: { createdAt: 'desc' } },
+      {
+        where,
+        include: {
+          subsidiary: true,
+          creator: { select: { id: true, userName: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      },
       query,
     );
 
@@ -378,9 +401,7 @@ export class SecretariatService {
         `User ${currentUser.id} is not authorized to create a meeting`,
         'SecretariatService',
       );
-      throw new ForbiddenException(
-        'Not authorized to create a meeting',
-      );
+      throw new ForbiddenException('Not authorized to create a meeting');
     }
 
     // Vérifier si la filiale existe et appartient au user
@@ -496,11 +517,12 @@ export class SecretariatService {
         `User ${currentUser.id} is not authorized to update meeting ${id}`,
         'SecretariatService',
       );
-      throw new ForbiddenException(
-        'Not authorized to update this meeting',
-      );
+      throw new ForbiddenException('Not authorized to update this meeting');
     }
-    const ctx = { subsidiaryId: currentUser.subsidiaryId, hasGlobalScope: currentUser.role === UserRole.ADMIN };
+    const ctx = {
+      subsidiaryId: currentUser.subsidiaryId,
+      hasGlobalScope: currentUser.role === UserRole.ADMIN,
+    };
     assertSubsidiaryAccess(meeting.subsidiaryId, ctx);
 
     // Vérifier si des données de mise à jour sont fournies
@@ -513,7 +535,8 @@ export class SecretariatService {
       // Mettre à jour les champs de base si fournis
       const updateData: any = {};
       if (data.title) updateData.title = data.title;
-      if (data.meetingDateTime) updateData.meetingDateTime = data.meetingDateTime;
+      if (data.meetingDateTime)
+        updateData.meetingDateTime = data.meetingDateTime;
       if (data.meetingLocation !== undefined)
         updateData.meetingLocation = data.meetingLocation;
       if (data.agenda !== undefined) updateData.agenda = data.agenda;
@@ -596,11 +619,12 @@ export class SecretariatService {
         `User ${currentUser.id} is not authorized to delete meeting ${id}`,
         'SecretariatService',
       );
-      throw new ForbiddenException(
-        'Not authorized to delete this meeting',
-      );
+      throw new ForbiddenException('Not authorized to delete this meeting');
     }
-    const ctx = { subsidiaryId: currentUser.subsidiaryId, hasGlobalScope: currentUser.role === UserRole.ADMIN };
+    const ctx = {
+      subsidiaryId: currentUser.subsidiaryId,
+      hasGlobalScope: currentUser.role === UserRole.ADMIN,
+    };
     assertSubsidiaryAccess(meeting.subsidiaryId, ctx);
 
     // Supprimer la réunion (cascade supprime les participants)
@@ -873,7 +897,11 @@ export class SecretariatService {
         dueDate: new Date(dto.dueDate),
         createdBy: currentUser.id,
       },
-      include: { subsidiary: true, assignedTo: true, creator: { select: { id: true, userName: true } } },
+      include: {
+        subsidiary: true,
+        assignedTo: true,
+        creator: { select: { id: true, userName: true } },
+      },
     });
 
     this.logger.log(
@@ -911,7 +939,10 @@ export class SecretariatService {
         'Not authorized to update this secretariat task',
       );
     }
-    const ctx = { subsidiaryId: currentUser.subsidiaryId, hasGlobalScope: currentUser.role === UserRole.ADMIN };
+    const ctx = {
+      subsidiaryId: currentUser.subsidiaryId,
+      hasGlobalScope: currentUser.role === UserRole.ADMIN,
+    };
     assertSubsidiaryAccess(task.subsidiaryId, ctx);
 
     // Vérifier si des données de mise à jour sont fournies
@@ -977,7 +1008,10 @@ export class SecretariatService {
         'Not authorized to delete this secretariat task',
       );
     }
-    const ctx = { subsidiaryId: currentUser.subsidiaryId, hasGlobalScope: currentUser.role === UserRole.ADMIN };
+    const ctx = {
+      subsidiaryId: currentUser.subsidiaryId,
+      hasGlobalScope: currentUser.role === UserRole.ADMIN,
+    };
     assertSubsidiaryAccess(task.subsidiaryId, ctx);
 
     // Supprimer la tâche
@@ -1006,7 +1040,11 @@ export class SecretariatService {
       this.prisma.secretariatTask,
       {
         where,
-        include: { subsidiary: true, assignedTo: true, creator: { select: { id: true, userName: true } } },
+        include: {
+          subsidiary: true,
+          assignedTo: true,
+          creator: { select: { id: true, userName: true } },
+        },
         orderBy: { dueDate: 'asc' },
       },
       paginationQuery,
@@ -1045,7 +1083,11 @@ export class SecretariatService {
       this.prisma.secretariatTask,
       {
         where,
-        include: { subsidiary: true, assignedTo: true, creator: { select: { id: true, userName: true } } },
+        include: {
+          subsidiary: true,
+          assignedTo: true,
+          creator: { select: { id: true, userName: true } },
+        },
         orderBy: { dueDate: 'asc' },
       },
       query,

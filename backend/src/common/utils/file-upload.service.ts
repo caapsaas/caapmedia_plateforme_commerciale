@@ -11,7 +11,14 @@ interface FileUploadOptions {
 
 @Injectable()
 export class FileUploadService {
-  private readonly publicPath = path.join(__dirname, '..', '..', '..', '..', 'public');
+  private readonly publicPath = path.join(
+    __dirname,
+    '..',
+    '..',
+    '..',
+    '..',
+    'public',
+  );
 
   async uploadFile(
     buffer: Buffer,
@@ -33,9 +40,7 @@ export class FileUploadService {
 
     // Validate file size
     if (buffer.length > maxSizeMb * 1024 * 1024) {
-      throw new BadRequestException(
-        `File size exceeds ${maxSizeMb}MB limit`,
-      );
+      throw new BadRequestException(`File size exceeds ${maxSizeMb}MB limit`);
     }
 
     // Extract MIME type from buffer if not provided
@@ -96,17 +101,31 @@ export class FileUploadService {
       const magicBytes = buffer.slice(0, 4);
 
       // PDF: %PDF
-      if (magicBytes[0] === 0x25 && magicBytes[1] === 0x50 && magicBytes[2] === 0x44 && magicBytes[3] === 0x46) {
+      if (
+        magicBytes[0] === 0x25 &&
+        magicBytes[1] === 0x50 &&
+        magicBytes[2] === 0x44 &&
+        magicBytes[3] === 0x46
+      ) {
         return 'application/pdf';
       }
 
       // JPEG: FF D8 FF
-      if (magicBytes[0] === 0xff && magicBytes[1] === 0xd8 && magicBytes[2] === 0xff) {
+      if (
+        magicBytes[0] === 0xff &&
+        magicBytes[1] === 0xd8 &&
+        magicBytes[2] === 0xff
+      ) {
         return 'image/jpeg';
       }
 
       // PNG: 89 50 4E 47
-      if (magicBytes[0] === 0x89 && magicBytes[1] === 0x50 && magicBytes[2] === 0x4e && magicBytes[3] === 0x47) {
+      if (
+        magicBytes[0] === 0x89 &&
+        magicBytes[1] === 0x50 &&
+        magicBytes[2] === 0x4e &&
+        magicBytes[3] === 0x47
+      ) {
         return 'image/png';
       }
     }
@@ -115,7 +134,8 @@ export class FileUploadService {
     const extMimeMap: { [key: string]: string } = {
       '.pdf': 'application/pdf',
       '.doc': 'application/msword',
-      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.docx':
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       '.jpg': 'image/jpeg',
       '.jpeg': 'image/jpeg',
       '.png': 'image/png',

@@ -68,6 +68,12 @@ model Subsidiary {
   payrollConfiguration          PayrollConfiguration?
   counterparties                Counterparty[]
 
+  // NEW: Relations vers bonus et charges paie
+  payrollBonusTypes             PayrollBonusType[]
+  payrollBonuses                PayrollBonus[]
+  payrollChargePayments         PayrollChargePayment[]
+  payrollCumulatives            PayrollCumulative[] @relation("PayrollCumulatives")
+
   @@index([subsidiaryName]) // Ajout de cet index
   @@index([latitude, longitude])
   @@map("subsidiaries")
@@ -478,9 +484,16 @@ model Employee {
   lastSalaryAdjustmentDate DateTime? @map("last_salary_adjustment_date")
   leaveBalance             Decimal?  @default(0) @map("leave_balance") @db.Decimal(5, 2)
 
+  // Salary Input Mode (BASE ou NET souhaité)
+  salaryInputMode          SalaryInputMode @default(BASE) @map("salary_input_mode")
+  targetNetSalary          Decimal?        @map("target_net_salary") @db.Decimal(15, 2)
+
   // Banking Information
   bankName          String? @map("bank_name") @db.VarChar(100)
   bankAccountNumber String? @map("bank_account_number") @db.VarChar(50)
+
+  // Indemnities and Allowances
+  indemnities       Json? @map("indemnities") // Array of {type: string, amount: number}
 
   // Personal Information
   numberDependents   Int    @default(0) @map("number_dependents")
@@ -512,6 +525,8 @@ model Employee {
   leads               Lead[]
   meetingParticipants MeetingParticipant[]
   payrollRecords      PayrollRecord[]
+  payrollBonuses      PayrollBonus[]
+  payrollCumulatives  PayrollCumulative[] @relation("PayrollCumulatives")
   secretariatTasks    SecretariatTask[]
   dailyQrCodes        DailyQrCode[]
 
@@ -1430,6 +1445,10 @@ model PayrollRecord {
   employee     Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
+  // NEW: Relations vers comptabilité
+  journalEntries PayrollJournalEntry[]
+  deductionDetails PayrollDeductionDetail[] @relation("DeductionDetails")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -1623,6 +1642,12 @@ model JournalEntry {
   reversalOfEntry   JournalEntry?      @relation("EntryReversal", fields: [reversalOfEntryId], references: [id])
   reversedByEntries JournalEntry[]     @relation("EntryReversal")
 
+  // NEW: Relations vers paie
+  payrollJournalEntries PayrollJournalEntry[] @relation("PayrollAccrual")
+  payrollBonuses PayrollBonus[] @relation("PayrollBonusEntry")
+  chargeAccruals PayrollChargePayment[] @relation("PayrollChargeAccrual")
+  chargePayments PayrollChargePayment[] @relation("PayrollChargePayment")
+
   @@unique([subsidiaryId, sequentialNumber])
   @@index([subsidiaryId, entryDate])
   @@index([subsidiaryId, status])
@@ -1737,6 +1762,244 @@ model Newsletter {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("newsletters")
+}
+
+// ============================================================
+// PAIE - BONUS ET CHARGES
+// ============================================================
+
+model PayrollBonusType {
+  id String @id @map("id")
+  code String @unique @map("code") @db.VarChar(50) // '13e_mois', 'performance_bonus', 'severance'
+  label String @map("label") @db.VarChar(255) // "13e Mois", "Prime Performance"
+  description String? @map("description")
+
+  // Configuration fiscale/sociale
+  isTaxable Boolean @default(true) @map("is_taxable")
+  isSubjectToCnps Boolean @default(true) @map("is_subject_to_cnps")
+  isSubjectToCfc Boolean @default(true) @map("is_subject_to_cfc")
+
+  // Règles de calcul
+  calculationMethod String? @map("calculation_method") @db.VarChar(50) // 'MONTHLY_EQUIVALENT', 'PERCENTAGE_OF_SALARY', 'FIXED_AMOUNT'
+  paymentTiming String? @map("payment_timing") @db.VarChar(50) // 'DECEMBER', 'ON_TERMINATION', 'QUARTERLY'
+
+  subsidiaryId String @map("subsidiary_id")
+  subsidiary Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  bonuses PayrollBonus[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([subsidiaryId])
+  @@index([code])
+  @@map("payroll_bonus_types")
+}
+
+model PayrollBonus {
+  id String @id @default(uuid()) @map("id")
+
+  // Employé & Bonus Type
+  employeeId String @map("employee_id")
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  bonusTypeId String @map("bonus_type_id")
+  bonusType PayrollBonusType @relation(fields: [bonusTypeId], references: [id])
+
+  // Montants brut et net
+  grossAmount Decimal @map("gross_amount") @db.Decimal(12, 2)
+  netAmount Decimal @map("net_amount") @db.Decimal(12, 2)
+
+  // Retenues appliquées (snapshot pour audit)
+  cnpsDeduction Decimal @default(0) @map("cnps_deduction") @db.Decimal(12, 2)
+  cfcDeduction Decimal @default(0) @map("cfc_deduction") @db.Decimal(12, 2)
+  irppDeduction Decimal @default(0) @map("irpp_deduction") @db.Decimal(12, 2)
+  cacDeduction Decimal @default(0) @map("cac_deduction") @db.Decimal(12, 2)
+  otherDeductions Decimal @default(0) @map("other_deductions") @db.Decimal(12, 2)
+
+  // Métadonnées
+  period String @map("period") @db.VarChar(7) // YYYY-MM
+  status PayrollBonusStatus @default(PENDING) @map("status")
+
+  // Paiement
+  paymentDate DateTime? @map("payment_date")
+  bankTransferId String? @map("bank_transfer_id")
+  journalEntryId String? @map("journal_entry_id")
+
+  // Audit
+  approvedBy String? @map("approved_by")
+  approvedAt DateTime? @map("approved_at")
+  notes String? @map("notes") @db.Text
+
+  // Relations
+  subsidiaryId String @map("subsidiary_id")
+  subsidiary Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  journalEntry JournalEntry? @relation("PayrollBonusEntry", fields: [journalEntryId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([employeeId, bonusTypeId, period])
+  @@index([subsidiaryId, status])
+  @@index([period, status])
+  @@index([employeeId])
+  @@map("payroll_bonuses")
+}
+
+model PayrollChargePayment {
+  id String @id @default(uuid()) @map("id")
+
+  // Type de charge
+  chargeType String @map("charge_type") @db.VarChar(50) // 'CNPS', 'IRPP', 'CAC', 'CFC', 'FNE'
+  month String @map("month") @db.VarChar(7) // YYYY-MM
+
+  // Montants
+  grossAmount Decimal @map("gross_amount") @db.Decimal(12, 2)
+  netAmount Decimal @map("net_amount") @db.Decimal(12, 2)
+  paidAmount Decimal @default(0) @map("paid_amount") @db.Decimal(12, 2)
+
+  // Statut & Paiement
+  status PayrollChargePaymentStatus @default(ACCRUED) @map("status")
+  dueDate DateTime @map("due_date")
+  paymentDate DateTime? @map("payment_date")
+
+  // Déclaration administrative
+  declarationNumber String? @map("declaration_number") @db.VarChar(100)
+  declarationDate DateTime? @map("declaration_date")
+
+  // Paiement bancaire
+  bankTransferId String? @map("bank_transfer_id") @db.VarChar(100)
+  bankReference String? @map("bank_reference") @db.Text
+
+  // Écritures comptables liées
+  accrualJournalEntryId String? @map("accrual_journal_entry_id")
+  paymentJournalEntryId String? @map("payment_journal_entry_id")
+
+  // Audit
+  notes String? @map("notes") @db.Text
+
+  // Relations
+  subsidiaryId String @map("subsidiary_id")
+  subsidiary Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  accrualJournalEntry JournalEntry? @relation("PayrollChargeAccrual", fields: [accrualJournalEntryId], references: [id])
+  paymentJournalEntry JournalEntry? @relation("PayrollChargePayment", fields: [paymentJournalEntryId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([subsidiaryId, chargeType, month])
+  @@index([subsidiaryId, status, dueDate])
+  @@index([month])
+  @@map("payroll_charge_payments")
+}
+
+model PayrollJournalEntry {
+  id String @id @default(uuid()) @map("id")
+
+  // Fiche de paie source
+  payrollRecordId String @map("payroll_record_id")
+  payrollRecord PayrollRecord @relation(fields: [payrollRecordId], references: [id], onDelete: Cascade)
+
+  // Écriture comptable générée
+  journalEntryId String @map("journal_entry_id")
+  journalEntry JournalEntry @relation("PayrollAccrual", fields: [journalEntryId], references: [id], onDelete: Cascade)
+
+  // Métadonnées
+  status PayrollEntryStatus @default(DRAFT) @map("status")
+  entryType String @map("entry_type") @db.VarChar(50) // 'ACCRUAL', 'PAYMENT', 'REVERSAL'
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([payrollRecordId, journalEntryId])
+  @@index([payrollRecordId])
+  @@index([journalEntryId])
+  @@map("payroll_journal_entries")
+}
+
+model PayrollCumulative {
+  id String @id @default(uuid()) @map("id")
+
+  // Identification
+  employeeId String @map("employee_id")
+  employee Employee @relation("PayrollCumulatives", fields: [employeeId], references: [id], onDelete: Cascade)
+
+  subsidiaryId String @map("subsidiary_id")
+  subsidiary Subsidiary @relation("PayrollCumulatives", fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  // Période de cumul
+  year String @map("year") @db.VarChar(4) // '2024', '2025'
+  month String? @map("month") @db.VarChar(7) // 'YYYY-MM' optionnel pour cumul mensuel
+
+  // Cumuls annuels ou de période (pour tracking progressif)
+  grossCumululative Decimal @default(0) @map("gross_cumulative") @db.Decimal(15, 2)
+  deductionsCumululative Decimal @default(0) @map("deductions_cumulative") @db.Decimal(15, 2)
+  netCumululative Decimal @default(0) @map("net_cumulative") @db.Decimal(15, 2)
+
+  // Cumuls spécifiques (importants pour calculs progressifs/plafonds)
+  cnpsCumulative Decimal @default(0) @map("cnps_cumulative") @db.Decimal(15, 2)
+  cfcCumulative Decimal @default(0) @map("cfc_cumulative") @db.Decimal(15, 2)
+  irppCumulative Decimal @default(0) @map("irpp_cumulative") @db.Decimal(15, 2)
+  cacCumulative Decimal @default(0) @map("cac_cumulative") @db.Decimal(15, 2)
+
+  // Métadonnées
+  lastPayrollId String? @map("last_payroll_id") // ID de la dernière fiche paie qui a mis à jour ce cumul
+  notes String? @map("notes") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([employeeId, year, month])
+  @@index([employeeId, year])
+  @@index([subsidiaryId, year])
+  @@map("payroll_cumulatives")
+}
+
+model PayrollDeductionDetail {
+  id String @id @default(uuid()) @map("id")
+
+  // Source : fiche de paie
+  payrollRecordId String @map("payroll_record_id")
+  payrollRecord PayrollRecord @relation("DeductionDetails", fields: [payrollRecordId], references: [id], onDelete: Cascade)
+
+  // Type de déduction
+  deductionType String @map("deduction_type") @db.VarChar(50) // 'CNPS', 'CFC', 'IRPP', 'CAC', 'OTHER'
+  description String @map("description") @db.VarChar(255) // ex. "CNPS salarié 4.2% (plafonné)"
+
+  // Montants & taux
+  baseAmount Decimal @map("base_amount") @db.Decimal(12, 2) // montant sur lequel s'applique la retenue
+  rateApplied Decimal @map("rate_applied") @db.Decimal(5, 4) // taux appliqué (ex. 0.042 pour 4.2%)
+  amount Decimal @map("amount") @db.Decimal(12, 2) // montant exact de la retenue
+
+  // Notes pour audit
+  notes String? @map("notes") @db.Text // ex. "Plafonné à 750000 FCFA"
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([payrollRecordId])
+  @@index([deductionType])
+  @@map("payroll_deduction_details")
+}
+
+enum PayrollBonusStatus {
+  PENDING
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum PayrollChargePaymentStatus {
+  ACCRUED
+  DUE
+  PAID
+  OVERDUE
+  PARTIAL
+  CANCELLED
+}
+
+enum PayrollEntryStatus {
+  DRAFT
+  POSTED
+  REVERSED
 }
 
 enum CustomerPaymentMethod {
@@ -1872,6 +2135,11 @@ enum PayrollStatus {
   PENDING
   SIGNED
   PAID
+}
+
+enum SalaryInputMode {
+  BASE
+  NET
 }
 
 enum AbsenceType {

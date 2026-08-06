@@ -13,7 +13,10 @@ export type OperationSource =
   | 'EXPENSE_RECORD'
   | 'SUPPLIER_DEBT_PAYMENT'
   | 'LONG_TERM_DEBT_RECEIPT'
-  | 'FIXED_ASSET_ACQUISITION';
+  | 'FIXED_ASSET_ACQUISITION'
+  | 'PAYROLL_ACCRUAL'
+  | 'PAYROLL_CHARGE_PAYMENT'
+  | 'BONUS_PAYMENT';
 
 export interface JournalizationContext {
   subsidiaryId: string;

@@ -167,10 +167,7 @@ export class SecretariatController {
     @Query() paginationQuery: PaginationQueryDto,
   ) {
     const ctx = resolveScopeContext(req.user);
-    return this.secretariatService.getAllCompanyDocuments(
-      ctx,
-      paginationQuery,
-    );
+    return this.secretariatService.getAllCompanyDocuments(ctx, paginationQuery);
   }
 
   @Roles(UserRole.SECRETARY, UserRole.ADMIN)
@@ -290,10 +287,7 @@ export class SecretariatController {
     @Query() paginationQuery: PaginationQueryDto,
   ) {
     const ctx = resolveScopeContext(req.user);
-    return this.secretariatService.getAllSecretariatTasks(
-      ctx,
-      paginationQuery,
-    );
+    return this.secretariatService.getAllSecretariatTasks(ctx, paginationQuery);
   }
 
   @Roles(UserRole.SECRETARY, UserRole.ADMIN)

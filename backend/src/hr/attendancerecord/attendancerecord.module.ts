@@ -6,7 +6,11 @@ import { PointageController } from './controllers/pointage.controller';
 import { DynamicTokenController } from './controllers/dynamic-token.controller';
 
 @Module({
-  controllers: [AttendanceRecordController, PointageController, DynamicTokenController],
+  controllers: [
+    AttendanceRecordController,
+    PointageController,
+    DynamicTokenController,
+  ],
   providers: [AttendanceRecordService, DynamicTokenService],
   exports: [AttendanceRecordService, DynamicTokenService],
 })

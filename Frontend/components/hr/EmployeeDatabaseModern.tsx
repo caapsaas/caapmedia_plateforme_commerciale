@@ -384,7 +384,7 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
                     <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">{t('hr.table.department')}</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">{t('hr.table.position')}</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">{t('hr.table.status')}</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">{t('hr.table.salary')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">{t('hr.table.contract')}</th>
                     <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase">{t('hr.table.actions')}</th>
                   </tr>
                 </thead>
@@ -427,8 +427,19 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
                           {employee.status}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-900">
-                        {formatCurrency(Number(employee.baseSalary) || 0)}
+                      <td className="px-6 py-4">
+                        <Badge
+                          variant={
+                            employee.contractType === ContractType.CDI
+                              ? 'success'
+                              : employee.contractType === ContractType.CDD
+                                ? 'warning'
+                                : 'info'
+                          }
+                          size="sm"
+                        >
+                          {employee.contractType}
+                        </Badge>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">

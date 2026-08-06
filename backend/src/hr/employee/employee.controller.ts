@@ -13,7 +13,10 @@ import {
   UploadedFiles,
   BadRequestException,
 } from '@nestjs/common';
-import { FilesInterceptor, AnyFilesInterceptor } from '@nestjs/platform-express';
+import {
+  FilesInterceptor,
+  AnyFilesInterceptor,
+} from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -149,14 +152,16 @@ export class EmployeeController {
   @Roles('ADMIN', 'HR_MANAGER')
   @UseInterceptors(AnyFilesInterceptor())
   @ApiOperation({ summary: 'Upload documents (without employee link)' })
-  async uploadDocumentsGeneric(
-    @UploadedFiles() files: Express.Multer.File[],
-  ) {
+  async uploadDocumentsGeneric(@UploadedFiles() files: Express.Multer.File[]) {
     if (!files || files.length === 0) {
       throw new BadRequestException('No files provided');
     }
 
-    const uploadedFiles: { fieldname: string; url: string; originalname: string }[] = [];
+    const uploadedFiles: {
+      fieldname: string;
+      url: string;
+      originalname: string;
+    }[] = [];
 
     for (const file of files) {
       const { url } = await this.fileUploadService.uploadFile(
@@ -177,9 +182,7 @@ export class EmployeeController {
   @Post('delete-document')
   @Roles('ADMIN', 'HR_MANAGER')
   @ApiOperation({ summary: 'Delete a document file' })
-  async deleteDocument(
-    @Body() body: { url: string },
-  ) {
+  async deleteDocument(@Body() body: { url: string }) {
     if (!body.url) {
       throw new BadRequestException('Document URL is required');
     }
@@ -209,7 +212,11 @@ export class EmployeeController {
     const ctx = resolveScopeContext(req.user);
     assertSubsidiaryAccess(employee.subsidiaryId, ctx);
 
-    const uploadedFiles: { fieldname: string; url: string; originalname: string }[] = [];
+    const uploadedFiles: {
+      fieldname: string;
+      url: string;
+      originalname: string;
+    }[] = [];
 
     for (const file of files) {
       const { url } = await this.fileUploadService.uploadFile(

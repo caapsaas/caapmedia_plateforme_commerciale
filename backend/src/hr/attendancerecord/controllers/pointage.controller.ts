@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Body, BadRequestException, Logger, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  BadRequestException,
+  Logger,
+  Query,
+} from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { DynamicTokenService } from '../services/dynamic-token.service';
 import { AttendanceRecordService } from '../attendancerecord.service';
@@ -57,10 +65,7 @@ export class PointageController {
         positions: true,
         subsidiaryId: true,
       },
-      orderBy: [
-        { lastName: 'asc' },
-        { firstName: 'asc' },
-      ],
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
     });
 
     this.logger.log(`Found ${employees.length} active employees globally`);
@@ -73,7 +78,9 @@ export class PointageController {
 
   @Post()
   async pointage(@Body() dto: PointageDto) {
-    this.logger.log(`Pointage attempt for id ${dto.matricule} with token ${dto.token}`);
+    this.logger.log(
+      `Pointage attempt for id ${dto.matricule} with token ${dto.token}`,
+    );
 
     // Temporairement : pas de validation de token pour faciliter les tests
     // TODO: Réactiver la validation une fois le système stable
@@ -86,7 +93,9 @@ export class PointageController {
     // }
 
     // 2. Trouver l'employé par matricule (global, toutes filiales)
-    this.logger.log(`Searching for employee with id: ${dto.matricule} globally`);
+    this.logger.log(
+      `Searching for employee with id: ${dto.matricule} globally`,
+    );
 
     const employee = await this.prisma.employee.findFirst({
       where: {
@@ -99,19 +108,32 @@ export class PointageController {
       // Log tous les employés actifs pour debug
       const allEmployees = await this.prisma.employee.findMany({
         where: { status: 'ACTIVE' },
-        select: { id: true, firstName: true, lastName: true, status: true, subsidiaryId: true },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          status: true,
+          subsidiaryId: true,
+        },
         take: 10,
       });
-      this.logger.log(`Sample of active employees in database:`, JSON.stringify(allEmployees, null, 2));
+      this.logger.log(
+        `Sample of active employees in database:`,
+        JSON.stringify(allEmployees, null, 2),
+      );
       throw new BadRequestException('Employé non trouvé ou inactif');
     }
 
     if (employee.status !== 'ACTIVE') {
-      this.logger.warn(`Employee ${employee.id} is not active, status: ${employee.status}`);
+      this.logger.warn(
+        `Employee ${employee.id} is not active, status: ${employee.status}`,
+      );
       throw new BadRequestException('Employé non trouvé ou inactif');
     }
 
-    this.logger.log(`Employee found: ${employee.firstName} ${employee.lastName} in subsidiary ${employee.subsidiaryId}`);
+    this.logger.log(
+      `Employee found: ${employee.firstName} ${employee.lastName} in subsidiary ${employee.subsidiaryId}`,
+    );
 
     // 3. Vérifier les pointages du jour
     const todayRecord = await this.attendanceService.findTodayRecord(
@@ -139,14 +161,17 @@ export class PointageController {
           arrivalLatitude: dto.latitude,
           arrivalLongitude: dto.longitude,
           accuracyMeters: dto.accuracy,
-          isGeolocationValid: dto.latitude !== undefined && dto.longitude !== undefined,
+          isGeolocationValid:
+            dto.latitude !== undefined && dto.longitude !== undefined,
         },
         include: {
           employee: true,
         },
       });
 
-      this.logger.log(`Arrivée enregistrée pour ${employee.firstName} ${employee.lastName}`);
+      this.logger.log(
+        `Arrivée enregistrée pour ${employee.firstName} ${employee.lastName}`,
+      );
 
       return {
         success: true,
@@ -168,20 +193,25 @@ export class PointageController {
           departureLatitude: dto.latitude,
           departureLongitude: dto.longitude,
           accuracyMeters: dto.accuracy,
-          isGeolocationValid: dto.latitude !== undefined && dto.longitude !== undefined,
+          isGeolocationValid:
+            dto.latitude !== undefined && dto.longitude !== undefined,
         },
         include: {
           employee: true,
         },
       });
 
-      const arrivalTime = new Date(todayRecord.arrivalTime!);
-      const departureTime = new Date(updated.departureTime!);
+      const arrivalTime = new Date(todayRecord.arrivalTime);
+      const departureTime = new Date(updated.departureTime);
       const durationMs = departureTime.getTime() - arrivalTime.getTime();
       const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
-      const durationMins = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+      const durationMins = Math.floor(
+        (durationMs % (1000 * 60 * 60)) / (1000 * 60),
+      );
 
-      this.logger.log(`Départ enregistré pour ${employee.firstName} ${employee.lastName}`);
+      this.logger.log(
+        `Départ enregistré pour ${employee.firstName} ${employee.lastName}`,
+      );
 
       return {
         success: true,

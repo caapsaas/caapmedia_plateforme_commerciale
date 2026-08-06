@@ -643,6 +643,20 @@
         "text": "These parameters are used for automatic payroll calculation. Modify only if legislation changes."
       }
     },
+    "payrollInfo": {
+      "netSalary": "Net Salary",
+      "grossSalary": "Gross Salary",
+      "bonus": "Bonus",
+      "deductions": "Deductions",
+      "cnpsEmployee": "CNPS Employee",
+      "cnpsEmployer": "CNPS Employer",
+      "fcfa": "FCFA",
+      "smig": "SMIG",
+      "belowSmig": "Warning: Salary is below SMIG",
+      "taxInfo": "Tax Information",
+      "dependents": "Dependents",
+      "taxReduction": "Tax Reduction"
+    },
     "absences": {
       "title": "Absences",
       "add": "Add Absence",

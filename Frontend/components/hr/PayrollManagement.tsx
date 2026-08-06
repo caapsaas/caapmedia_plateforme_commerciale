@@ -16,7 +16,7 @@ import IconPdf from '../icons/IconPdf';
 import IconEye from '../icons/IconEye';
 import { UseMutateFunction } from '@tanstack/react-query';
 import SearchBar from './SearchBar';
-import { getPayrollRecordsGlobal } from '../../services/apihr/apiPayroll';
+import { getPayrollRecordsGlobal, accumulateCharges } from '../../services/apihr/apiPayroll';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
 
@@ -82,6 +82,9 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
   const [globalPayrolls, setGlobalPayrolls] = useState<PayrollRecord[]>([]);
   const [isLoadingGlobal, setIsLoadingGlobal] = useState(false);
 
+  // États pour les charges
+  const [isGeneratingCharges, setIsGeneratingCharges] = useState(false);
+
   // Vérifier si l'utilisateur est SUPER_ADMIN
   const isSuperAdmin = user?.userRole === UserRole.SUPER_ADMIN || user?.additionalRoles?.includes(UserRole.SUPER_ADMIN);
 
@@ -99,7 +102,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
       setIsLoadingGlobal(true);
       try {
         const data = await getPayrollRecordsGlobal();
-        setGlobalPayrolls(data);
+        setGlobalPayrolls(Array.isArray(data) ? data : data?.data || []);
         setGlobalView(true);
         toast.success('Vue globale', 'Affichage de toutes les filiales');
       } catch (error) {
@@ -110,12 +113,124 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
     }
   };
 
+  // Handler pour aller à la page de gestion des bonus
+  const handleGoToBonus = () => {
+    navigate({ to: '/dashboard/hr/bonus' });
+  };
+
+  // Handler pour accumuler les charges patronales
+  const handleAccumulateCharges = async () => {
+    const month = selectedPeriod;
+
+    if (!month) {
+      toast.error('Période invalide', 'Sélectionnez une période valide');
+      return;
+    }
+
+    setIsGeneratingCharges(true);
+    try {
+      const result: any = await accumulateCharges(month);
+
+      if (result.totalPayrolls === 0) {
+        toast.info('Aucune donnée', `Aucune fiche de paie trouvée pour ${month}`);
+      } else {
+        // Construction du message détaillé
+        let message = `📊 Résumé du mois ${month}\n`;
+        message += `Fiches de paie: ${result.totalPayrolls}\n\n`;
+
+        // Charges patronales
+        if (Object.keys(result.employerCharges).length > 0) {
+          message += '💼 CHARGES PATRONALES:\n';
+          let employerTotal = 0;
+          for (const [type, data]: [string, any] of Object.entries(
+            result.employerCharges,
+          )) {
+            message += `  ${type}: ${formatCurrency(data.amount)} (Éch: ${data.dueDate})\n`;
+            employerTotal += data.amount;
+          }
+          message += `  Sous-total: ${formatCurrency(employerTotal)}\n\n`;
+        }
+
+        // Charges salariales par mode de paiement
+        if (result.salaryDeductions.grandTotal > 0) {
+          message += '💰 CHARGES SALARIALES (retenues):\n';
+          for (const [method, deductions]: [string, any] of Object.entries(
+            result.salaryDeductions.byPaymentMethod,
+          )) {
+            const methodLabel = {
+              BANK_TRANSFER: 'Virement',
+              CHECK: 'Chèque',
+              CASH: 'Espèce',
+              UNKNOWN: 'Autre',
+            }[method] || method;
+
+            message += `  ${methodLabel}:\n`;
+            if (deductions.cnps > 0) message += `    CNPS: ${formatCurrency(deductions.cnps)}\n`;
+            if (deductions.cfc > 0) message += `    CFC: ${formatCurrency(deductions.cfc)}\n`;
+            if (deductions.irpp > 0) message += `    IRPP: ${formatCurrency(deductions.irpp)}\n`;
+            if (deductions.cac > 0) message += `    CAC: ${formatCurrency(deductions.cac)}\n`;
+            if (deductions.other > 0) message += `    Autres: ${formatCurrency(deductions.other)}\n`;
+            message += `    Total ${methodLabel}: ${formatCurrency(deductions.total)}\n`;
+          }
+          message += `  Sous-total retenues: ${formatCurrency(result.salaryDeductions.grandTotal)}\n\n`;
+        }
+
+        // Primes mensuelles (PayrollRecord)
+        if (result.monthlyPrimes.totalPrimes > 0) {
+          message += '🏆 PRIMES MENSUELLES:\n';
+          message += `  Total des primes: ${formatCurrency(result.monthlyPrimes.totalPrimes)}\n`;
+          message += `  Employés ayant des primes: ${result.monthlyPrimes.employeesWithPrimes}\n`;
+          message += `  Moyenne par employé: ${formatCurrency(result.monthlyPrimes.averagePrimePerEmployee)}\n\n`;
+        }
+
+        // Charges liées aux bonus
+        if (result.bonusCharges.totalBonuses > 0) {
+          message += '🎁 CHARGES LIÉES AUX BONUS:\n';
+          message += `  Nombre de bonus: ${result.bonusCharges.totalBonuses}\n`;
+          const bonusDeductions = result.bonusCharges.deductionsTotal;
+          if (bonusDeductions.cnps > 0)
+            message += `  CNPS: ${formatCurrency(bonusDeductions.cnps)}\n`;
+          if (bonusDeductions.cfc > 0)
+            message += `  CFC: ${formatCurrency(bonusDeductions.cfc)}\n`;
+          if (bonusDeductions.irpp > 0)
+            message += `  IRPP: ${formatCurrency(bonusDeductions.irpp)}\n`;
+          if (bonusDeductions.cac > 0)
+            message += `  CAC: ${formatCurrency(bonusDeductions.cac)}\n`;
+          if (bonusDeductions.other > 0)
+            message += `  Autres: ${formatCurrency(bonusDeductions.other)}\n`;
+          const totalBonusDeductions =
+            bonusDeductions.cnps +
+            bonusDeductions.cfc +
+            bonusDeductions.irpp +
+            bonusDeductions.cac +
+            bonusDeductions.other;
+          message += `  Total déductions bonus: ${formatCurrency(totalBonusDeductions)}\n`;
+          message += `  Total net bonus payés: ${formatCurrency(result.bonusCharges.netBonusesTotal)}\n\n`;
+        }
+
+        message += `═══════════════════════════════════════\n`;
+        message += `💵 TOTAL GÉNÉRAL: ${formatCurrency(result.grandTotalAllCharges)}\n`;
+
+        toast.success('Charges complètes générées', message);
+      }
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Impossible d\'accumuler les charges.';
+      toast.error('Erreur', msg);
+    } finally {
+      setIsGeneratingCharges(false);
+    }
+  };
+
   // Utiliser les données globales ou filiales selon la vue
   const currentPayrolls = globalView ? globalPayrolls : payrolls;
 
   // Filtrage des fiches de paie
   const filteredPayrolls = useMemo(() => {
-    return currentPayrolls.filter((record) => {
+    const payrollsArray = Array.isArray(currentPayrolls) ? currentPayrolls : [];
+    return payrollsArray.filter((record) => {
       const searchLower = searchTerm.toLowerCase();
       const period = record.payrollPeriod || record.period || '';
       const matchesSearch =
@@ -343,6 +458,25 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
           </button>
 
           <button
+            onClick={handleGoToBonus}
+            className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-md hover:bg-indigo-700 transition-colors"
+            title="Gérer les paiements de bonus"
+          >
+            <span>Paiement des bonus</span>
+          </button>
+
+          <button
+            onClick={handleAccumulateCharges}
+            disabled={isGeneratingCharges || globalView}
+            className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white text-sm font-semibold rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Générer les charges de paies"
+          >
+            <span>
+              {isGeneratingCharges ? 'Génération...' : 'Génération des charges de paies'}
+            </span>
+          </button>
+
+          <button
             onClick={() => navigate({ to: '/dashboard/hr/signing' })}
             className="flex items-center space-x-2 px-4 py-2 text-sm font-semibold rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-colors"
           >
@@ -551,14 +685,15 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
     company={{
       name: subsidiary?.name,
       address: subsidiary?.address,
-      city: '', 
-      niu: subsidiary?.ifu, 
-      cnpsNumber: '', 
+      city: '',
+      niu: subsidiary?.ifu,
+      cnpsNumber: '',
       phone: subsidiary?.phone,
       email: subsidiary?.email,
     }}
   />
 )}
+
     </div>
   );
 };

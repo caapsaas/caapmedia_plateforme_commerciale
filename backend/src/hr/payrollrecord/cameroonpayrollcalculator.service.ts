@@ -11,10 +11,16 @@ export interface CameroonPayrollInput {
   riskGroup?: 'A' | 'B' | 'C'; // Accidents du travail
   applyCfc?: boolean; // Crédit Foncier (souvent oui)
   applyFne?: boolean;
+  // === Phase 4: Cumuls annuels pour calculs progressifs ===
+  // Cumuls précédents (si fournis, calculs respectent plafonds/progressivité)
+  previousCnpsCumulative?: number; // CNPS cumulatif annuel avant cette paie
+  previousIrppCumulative?: number; // IRPP cumulatif annuel avant cette paie
+  previousGrossCumulative?: number; // Brut cumulatif annuel avant cette paie
 }
 
 export interface CameroonPayrollResult {
-  // Brut
+  // Rémunération
+  baseSalary: number;
   grossSalary: number;
 
   // Retenues salariales
@@ -66,16 +72,20 @@ export class CameroonPayrollCalculatorService {
       (input.overtime || 0) +
       (input.otherTaxable || 0);
 
-    // Base plafonnée CNPS
+    // Base plafonnée CNPS (pour charges patronales, toujours plafonné à 750k)
     const cnpsBase = Math.min(gross, this.CNPS_CAP);
 
-    // === Retenues salariales ===
-    const cnpsEmployee = this.round(cnpsBase * this.CNPS_EMPLOYEE_RATE);
+    // === Phase 4: Calcul CNPS avec respect du plafond annuel ===
+    const cnpsEmployee = this.calculateCnpsEmployee(
+      gross,
+      input.previousCnpsCumulative || 0,
+    );
+
+    // === Calcul IRPP progressif avec cumul annuel ===
     const cfcEmployee =
       input.applyCfc !== false ? this.round(gross * this.CFC_EMPLOYEE) : 0;
 
-    // Base imposable IRPP (simplification courante)
-    // Brut - CNPS - abattement 30% - abattement fixe annuel / 12
+    // Base imposable IRPP
     const afterCnps = gross - cnpsEmployee;
     const professionalExpense = this.round(
       afterCnps * this.PROFESSIONAL_EXPENSE_RATE,
@@ -87,9 +97,14 @@ export class CameroonPayrollCalculatorService {
     );
     const taxableAnnual = taxableMonthly * 12;
 
-    const { irppAnnual, cacAnnual } = this.calculateIrppAndCac(taxableAnnual);
-    const irpp = this.round(irppAnnual / 12);
-    const cac = this.round(cacAnnual / 12);
+    // Cumul brut annuel pour base taxable progressive
+    const grossCumulativeAnnual = (input.previousGrossCumulative || 0) + gross;
+
+    const { irpp, cac } = this.calculateIrppWithCumulative(
+      taxableMonthly,
+      grossCumulativeAnnual,
+      input.previousIrppCumulative || 0,
+    );
 
     const totalDeductions = cnpsEmployee + cfcEmployee + irpp + cac;
     const netSalary = this.round(gross - totalDeductions);
@@ -122,6 +137,7 @@ export class CameroonPayrollCalculatorService {
     ].filter((d) => d.amount > 0);
 
     return {
+      baseSalary: input.baseSalary || 0,
       grossSalary: this.round(gross),
       cnpsEmployee,
       cfcEmployee,
@@ -139,6 +155,53 @@ export class CameroonPayrollCalculatorService {
       totalEmployerCost,
       deductionsDetail,
     };
+  }
+
+  /**
+   * Phase 4: Calculer CNPS avec respect du plafond annuel (750k FCFA).
+   * Si le cumul + cette paie dépasse le cap, seul le montant jusqu'au cap est retenu.
+   */
+  private calculateCnpsEmployee(
+    gross: number,
+    previousCnpsCumulative: number,
+  ): number {
+    const cnpsBase = Math.min(gross, this.CNPS_CAP);
+    const maxAllowedCnps = this.CNPS_CAP - previousCnpsCumulative;
+
+    if (maxAllowedCnps <= 0) {
+      // Plafond atteint, pas de CNPS cette paie
+      return 0;
+    }
+
+    const cnpsThisPeriod = this.round(cnpsBase * this.CNPS_EMPLOYEE_RATE);
+    const actualCnps = Math.min(cnpsThisPeriod, maxAllowedCnps);
+
+    return actualCnps;
+  }
+
+  /**
+   * Phase 4: Calculer IRPP avec cumul annuel (progressivité).
+   * Calcule l'IRPP basé sur le cumul annuel, puis retourne seulement la part de ce mois.
+   */
+  private calculateIrppWithCumulative(
+    taxableMonthly: number,
+    grossCumulativeAnnual: number,
+    previousIrppCumulative: number,
+  ): { irpp: number; cac: number } {
+    // Calculer l'impôt total sur le cumul annuel
+    const { irppAnnual: totalIrppOnCumulative } = this.calculateIrppAndCac(
+      grossCumulativeAnnual * this.PROFESSIONAL_EXPENSE_RATE -
+        this.FIXED_ABATEMENT_ANNUAL,
+    );
+
+    // La part d'IRPP à retenir ce mois = IRPP total - IRPP précédent
+    const irppThisMonth = this.round(
+      Math.max(0, totalIrppOnCumulative - previousIrppCumulative),
+    );
+
+    const cac = this.round(irppThisMonth * 0.1);
+
+    return { irpp: irppThisMonth, cac };
   }
 
   private calculateIrppAndCac(taxableAnnual: number): {
@@ -165,6 +228,67 @@ export class CameroonPayrollCalculatorService {
     const irppAnnual = this.round(tax);
     const cacAnnual = this.round(irppAnnual * 0.1);
     return { irppAnnual, cacAnnual };
+  }
+
+  /**
+   * Résout le salaire de base pour atteindre un salaire net cible, par dichotomie.
+   * La fonction netSalary = f(baseSalary) est strictement croissante,
+   * donc on peut résoudre par recherche binaire.
+   *
+   * @param input - Configuration sans baseSalary, avec targetNetSalary au lieu
+   * @returns Résultat complet du calcul forward pour le baseSalary trouvé
+   */
+  calculateFromNetSalary(
+    input: Omit<CameroonPayrollInput, 'baseSalary'> & {
+      targetNetSalary: number;
+    },
+  ): CameroonPayrollResult {
+    const targetNet = input.targetNetSalary;
+    const tolerance = 1; // Tolérance à 1 FCFA
+    const maxIterations = 50;
+
+    let low = 0;
+    let high = targetNet; // Borne haute initiale : le net cible lui-même
+
+    // Étendre la borne haute jusqu'à trouver une base-salary qui dépasse le net cible
+    // (il faut toujours baseSalary > netSalary du fait des déductions)
+    let iterations = 0;
+    while (
+      this.calculate({
+        ...input,
+        baseSalary: high,
+      }).netSalary < targetNet &&
+      iterations < 10
+    ) {
+      high *= 2;
+      iterations++;
+    }
+
+    // Dichotomie
+    iterations = 0;
+    let result = this.calculate({ ...input, baseSalary: low });
+    while (iterations < maxIterations) {
+      const mid = (low + high) / 2;
+      result = this.calculate({ ...input, baseSalary: mid });
+      const currentNet = result.netSalary;
+
+      if (Math.abs(currentNet - targetNet) <= tolerance) {
+        // Convergence atteinte
+        break;
+      }
+
+      if (currentNet < targetNet) {
+        low = mid;
+      } else {
+        high = mid;
+      }
+
+      iterations++;
+    }
+
+    // Un dernier calcul avec la valeur finale
+    result = this.calculate({ ...input, baseSalary: Math.round(result.baseSalary) });
+    return result;
   }
 
   private round(value: number): number {

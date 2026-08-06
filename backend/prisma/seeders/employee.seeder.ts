@@ -1,4 +1,4 @@
-import { PrismaClient, Gender, ContractType, EmployeeStatus, PaymentMethod, LeaveType } from '@prisma/client';
+import { PrismaClient, Gender, ContractType, EmployeeStatus, PaymentMethod, LeaveType, SalaryInputMode } from '@prisma/client';
 import { generateId } from './generate-id.util';
 import { ID_PREFIXES } from './id-prefixes.const';
 
@@ -15,6 +15,7 @@ export async function seedEmployees() {
   }
 
   // Fixed seed employees with deterministic data
+  // Using NET salary input mode to demonstrate the new gross-up feature
   const seedEmployeesData = [
     {
       firstName: 'Jean',
@@ -23,6 +24,7 @@ export async function seedEmployees() {
       department: 'Production',
       positions: 'Manager',
       gender: Gender.MALE,
+      targetNetSalary: 130000, // Net salary target
     },
     {
       firstName: 'Marie',
@@ -31,6 +33,7 @@ export async function seedEmployees() {
       department: 'Finance',
       positions: 'Directeur',
       gender: Gender.FEMALE,
+      targetNetSalary: 150000, // Net salary target
     },
     {
       firstName: 'Pierre',
@@ -39,6 +42,7 @@ export async function seedEmployees() {
       department: 'Commercial',
       positions: 'Employé',
       gender: Gender.MALE,
+      targetNetSalary: 110000, // Net salary target
     },
   ];
 
@@ -63,7 +67,7 @@ export async function seedEmployees() {
         department: data.department,
         hireDate: new Date('2020-01-15'),
         workLocation: 'Douala',
-        baseSalary: 150000,
+        baseSalary: 150000, // Default base salary (can be recalculated via API)
         bonus: 0,
         benefits: ['Assurance santé'],
         subsidiaryId: subsidiary.id,
@@ -71,6 +75,9 @@ export async function seedEmployees() {
         contractType: ContractType.CDI,
         status: EmployeeStatus.ACTIVE,
         paymentMethod: PaymentMethod.BANK_TRANSFER,
+        // New salary input mode fields
+        salaryInputMode: SalaryInputMode.NET,
+        targetNetSalary: data.targetNetSalary,
       },
     });
     console.log(`Employee ${data.email} seeded`);

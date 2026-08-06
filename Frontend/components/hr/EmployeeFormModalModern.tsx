@@ -59,11 +59,15 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
     workLocation: '',
     baseSalary: 0,
     bonus: 0,
+    targetNetSalary: 0,
+    salaryInputMode: 'NET' as const,
     benefits: [],
     lastSalaryAdjustmentDate: null,
     paymentMethod: PaymentMethod.BANK_TRANSFER,
     bankName: '',
     bankAccountNumber: '',
+    allowances: 0,
+    indemnities: [],
     documents: { contract: null, idCard: null, workPermit: null, diplomas: [] },
     leaveBalance: { annual: 0, sick: 0, personal: 0, maternity: 0, paternity: 0, other: 0, unpaid: 0 },
     leaveRecords: [],
@@ -72,6 +76,20 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
   };
 
   const [formData, setFormData] = useState<any>(initialFormState);
+  const [newIndemnitiesForm, setNewIndemnitiesForm] = useState({ type: '', amount: 0 });
+
+  const indemnitiesOptions = [
+    { value: 'housing', label: 'Indemnité de logement' },
+    { value: 'transport', label: 'Indemnité de transport' },
+    { value: 'meals', label: 'Indemnité de repas' },
+    { value: 'family', label: 'Indemnité familiale' },
+    { value: 'representation', label: 'Indemnité de représentation' },
+    { value: 'health_insurance', label: 'Assurance maladie' },
+    { value: 'life_insurance', label: 'Assurance vie' },
+    { value: 'mobile_allowance', label: 'Allocation téléphone' },
+    { value: 'internet_allowance', label: 'Allocation internet' },
+    { value: 'other', label: 'Autre indemnité' },
+  ];
 
   useEffect(() => {
     if (employee) {
@@ -82,6 +100,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
         hireDate: employee.hireDate ? new Date(employee.hireDate).toISOString().split('T')[0] : '',
         bankName: employee.bankName || '',
         bankAccountNumber: employee.bankAccountNumber || '',
+        indemnities: Array.isArray(employee.indemnities) ? employee.indemnities : [],
         documents: {
           contract: employee.documents?.contract || null,
           idCard: employee.documents?.idCard || null,
@@ -129,8 +148,8 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? null : 'Invalid email format';
       case 'phone':
         return /^[+]?[0-9\s\-()]{7,20}$/.test(value) ? null : 'Invalid phone format';
-      case 'baseSalary':
-        return value >= 0 ? null : 'Salary must be >= 0';
+      case 'targetNetSalary':
+        return value > 0 ? null : 'Net salary must be > 0';
       case 'birthDate': {
         const age = new Date().getFullYear() - new Date(value).getFullYear();
         return age >= 16 ? null : 'Employee must be at least 16 years old';
@@ -144,7 +163,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    const numericFields = ['baseSalary', 'bonus', 'numberDependents'];
+    const numericFields = ['bonus', 'numberDependents', 'targetNetSalary'];
     const actualValue = numericFields.includes(name) ? parseFloat(value) || 0 : value;
 
     setFormData((prev: any) => ({ ...prev, [name]: actualValue }));
@@ -179,7 +198,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
 
     // Validate all fields
     const newErrors: FormErrors = {};
-    const fieldsToValidate = ['email', 'phone', 'baseSalary', 'birthDate', 'hireDate'];
+    const fieldsToValidate = ['email', 'phone', 'targetNetSalary', 'birthDate', 'hireDate'];
 
     fieldsToValidate.forEach((field) => {
       const error = validateField(field, formData[field]);
@@ -196,6 +215,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
       // Ensure data persistence by explicitly including all nested objects
       const dataToSave = {
         ...formData,
+        salaryInputMode: 'NET' as const,
         bankName: formData.bankName || '',
         bankAccountNumber: formData.bankAccountNumber || '',
         documents: {
@@ -470,13 +490,13 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
               <FormSection title={t('hr.form.salarySection.title')} subtitle={t('hr.form.salarySection.subtitle')}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormInput
-                    label={t('hr.form.salarySection.baseSalary')}
-                    name="baseSalary"
+                    label={t('hr.form.salarySection.targetNetSalary') || 'Salaire net souhaité'}
+                    name="targetNetSalary"
                     type="number"
-                    value={formData.baseSalary}
+                    value={formData.targetNetSalary}
                     onChange={handleChange}
-                    error={errors.baseSalary}
-                    helperText={t('hr.form.salarySection.baseSalaryHelper')}
+                    error={errors.targetNetSalary}
+                    helperText={t('hr.form.salarySection.targetNetSalaryHelper') || 'Salaire net souhaité mensuel (FCFA)'}
                     required
                   />
                   <FormInput
@@ -487,6 +507,98 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                     onChange={handleChange}
                     helperText={t('hr.form.salarySection.bonusHelper')}
                   />
+                </div>
+
+                {/* Indemnités Section */}
+                <div className="mt-6 p-5 border border-slate-200 rounded-lg bg-white">
+                  <div className="mb-4">
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Indemnités</h3>
+                    <p className="text-xs text-slate-600">Indemnités et primes (logement, transport...).</p>
+                  </div>
+
+                  {/* Liste des indemnités existantes */}
+                  <div className="space-y-2 mb-4">
+                    {(formData.indemnities || []).map((indemnity: any, index: number) => {
+                      const indemLabel = indemnitiesOptions.find(opt => opt.value === indemnity.type)?.label || indemnity.type;
+                      return (
+                        <div key={index} className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="font-medium text-slate-900">
+                              {indemLabel} <span className="text-red-500">({(indemnity.amount || 0).toLocaleString('fr-FR')} FCFA)</span>
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setFormData({
+                                ...formData,
+                                indemnities: (formData.indemnities || []).filter((_: any, i: number) => i !== index)
+                              });
+                            }}
+                            className="p-2 text-red-500 hover:bg-red-50 rounded transition-colors"
+                            title="Supprimer"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Formulaire d'ajout */}
+                  <div className="pt-4 border-t border-slate-200">
+                    <div className="flex gap-2">
+                      <select
+                        value={newIndemnitiesForm.type}
+                        onChange={(e) => setNewIndemnitiesForm({ ...newIndemnitiesForm, type: e.target.value })}
+                        className="flex-1 px-3 py-2 border border-slate-300 rounded-md text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
+                      >
+                        <option value="">Type d'indemnité / avantage</option>
+                        {indemnitiesOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+
+                      <input
+                        type="number"
+                        value={newIndemnitiesForm.amount}
+                        onChange={(e) => setNewIndemnitiesForm({ ...newIndemnitiesForm, amount: Number(e.target.value) })}
+                        placeholder="Montant"
+                        step="0.01"
+                        min="0"
+                        className="w-32 px-3 py-2 border border-slate-300 rounded-md text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+
+                      <button
+                        onClick={() => {
+                          if (newIndemnitiesForm.type && newIndemnitiesForm.amount > 0) {
+                            setFormData({
+                              ...formData,
+                              indemnities: [
+                                ...(formData.indemnities || []),
+                                { type: newIndemnitiesForm.type, amount: newIndemnitiesForm.amount }
+                              ]
+                            });
+                            setNewIndemnitiesForm({ type: '', amount: 0 });
+                          }
+                        }}
+                        className="px-4 py-2 bg-orange-500 text-white font-semibold rounded-md hover:bg-green-500 transition-colors"
+                      >
+                        Ajouter
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Résumé Total */}
+                  {(formData.indemnities || []).length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between">
+                      <span className="font-semibold text-slate-700">Total indemnités</span>
+                      <span className="text-lg font-bold text-orange-600">
+                        {((formData.indemnities || []) as any[]).reduce((sum, ind) => sum + (Number(ind.amount) || 0), 0).toLocaleString('fr-FR')} FCFA
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <FormSelect
@@ -551,7 +663,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                 {/* Cameroon Payroll Preview */}
                 <div className="mt-6">
                   <CameroonPayrollWidget
-                    baseSalary={formData.baseSalary}
+                    netSalary={formData.targetNetSalary}
                     bonus={formData.bonus}
                     numberDependents={formData.numberDependents}
                   />

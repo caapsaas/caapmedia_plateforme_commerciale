@@ -85,6 +85,7 @@ export class ProductsController {
     UserRole.PURCHASING_MANAGER,
     UserRole.PRODUCTION_DIRECTOR,
     UserRole.FINANCIAL_DIRECTOR,
+    UserRole.SECRETARY,
   )
   create(
     @Body() createProductDto: CreateProductDto,
@@ -106,6 +107,7 @@ export class ProductsController {
     UserRole.PURCHASING_MANAGER,
     UserRole.PRODUCTION_DIRECTOR,
     UserRole.FINANCIAL_DIRECTOR,
+    UserRole.SECRETARY,
   )
   findAll(@Query() paginationQuery: PaginationQueryDto) {
     return this.productsService.findAll(paginationQuery);
@@ -147,6 +149,7 @@ export class ProductsController {
     UserRole.PURCHASING_MANAGER,
     UserRole.PRODUCTION_DIRECTOR,
     UserRole.FINANCIAL_DIRECTOR,
+    UserRole.SECRETARY,
   )
   findOne(@Param('id') id: string) {
     return this.productsService.findOne(id);
@@ -204,6 +207,7 @@ export class ProductsController {
     UserRole.PURCHASING_MANAGER,
     UserRole.PRODUCTION_DIRECTOR,
     UserRole.FINANCIAL_DIRECTOR,
+    UserRole.SECRETARY,
   )
   update(
     @Param('id') id: string,
@@ -226,6 +230,7 @@ export class ProductsController {
     UserRole.PURCHASING_MANAGER,
     UserRole.PRODUCTION_DIRECTOR,
     UserRole.FINANCIAL_DIRECTOR,
+    UserRole.SECRETARY,
   )
   remove(@Param('id') id: string) {
     return this.productsService.remove(id);

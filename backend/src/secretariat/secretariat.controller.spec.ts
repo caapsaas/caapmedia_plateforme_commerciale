@@ -59,9 +59,18 @@ describe('SecretariatController', () => {
     it('should call getAllCompanyDocuments', async () => {
       const mockResult = {
         data: [],
-        meta: { total: 0, page: 1, limit: 10, totalPages: 0, hasNextPage: false, hasPreviousPage: false },
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
       };
-      jest.spyOn(service, 'getAllCompanyDocuments').mockResolvedValue(mockResult);
+      jest
+        .spyOn(service, 'getAllCompanyDocuments')
+        .mockResolvedValue(mockResult);
 
       const result = await controller.getAllCompanyDocuments(
         mockUser,
@@ -78,14 +87,26 @@ describe('SecretariatController', () => {
     it('should call searchCompanyDocuments', async () => {
       const mockResult = {
         data: [],
-        meta: { total: 0, page: 1, limit: 10, totalPages: 0, hasNextPage: false, hasPreviousPage: false },
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
       };
-      jest.spyOn(service, 'searchCompanyDocuments').mockResolvedValue(mockResult);
+      jest
+        .spyOn(service, 'searchCompanyDocuments')
+        .mockResolvedValue(mockResult);
 
       const query = { documentName: 'test', page: 1, limit: 10 };
       const result = await controller.searchCompanyDocuments(query, mockUser);
 
-      expect(service.searchCompanyDocuments).toHaveBeenCalledWith(query, mockUser);
+      expect(service.searchCompanyDocuments).toHaveBeenCalledWith(
+        query,
+        mockUser,
+      );
       expect(result).toEqual(mockResult);
     });
   });
@@ -94,7 +115,14 @@ describe('SecretariatController', () => {
     it('should call getAllMeetings', async () => {
       const mockResult = {
         data: [],
-        meta: { total: 0, page: 1, limit: 10, totalPages: 0, hasNextPage: false, hasPreviousPage: false },
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
       };
       jest.spyOn(service, 'getAllMeetings').mockResolvedValue(mockResult);
 
@@ -113,7 +141,14 @@ describe('SecretariatController', () => {
     it('should call searchMeetings', async () => {
       const mockResult = {
         data: [],
-        meta: { total: 0, page: 1, limit: 10, totalPages: 0, hasNextPage: false, hasPreviousPage: false },
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
       };
       jest.spyOn(service, 'searchMeetings').mockResolvedValue(mockResult);
 
@@ -220,7 +255,14 @@ describe('SecretariatController', () => {
     it('should call getAllSecretariatTasks', async () => {
       const mockResult = {
         data: [],
-        meta: { total: 0, page: 1, limit: 10, totalPages: 0, hasNextPage: false, hasPreviousPage: false },
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
       };
       jest
         .spyOn(service, 'getAllSecretariatTasks')
@@ -241,7 +283,14 @@ describe('SecretariatController', () => {
     it('should call searchSecretariatTasks', async () => {
       const mockResult = {
         data: [],
-        meta: { total: 0, page: 1, limit: 10, totalPages: 0, hasNextPage: false, hasPreviousPage: false },
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
       };
       jest
         .spyOn(service, 'searchSecretariatTasks')

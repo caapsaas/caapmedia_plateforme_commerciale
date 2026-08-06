@@ -643,6 +643,20 @@
         "text": "Ces paramètres sont utilisés pour le calcul automatique de la paie. Modifiez-les uniquement si la législation change."
       }
     },
+    "payrollInfo": {
+      "netSalary": "Salaire net",
+      "grossSalary": "Salaire brut",
+      "bonus": "Prime",
+      "deductions": "Retenues",
+      "cnpsEmployee": "CNPS Employé",
+      "cnpsEmployer": "CNPS Employeur",
+      "fcfa": "FCFA",
+      "smig": "SMIG",
+      "belowSmig": "Attention : Le salaire est en dessous du SMIG",
+      "taxInfo": "Informations fiscales",
+      "dependents": "Dépendants",
+      "taxReduction": "Réduction d'impôt"
+    },
     "absences": {
       "title": "Absences",
       "add": "Ajouter une absence",
