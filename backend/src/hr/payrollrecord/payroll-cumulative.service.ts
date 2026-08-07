@@ -51,14 +51,18 @@ export class PayrollCumulativeService {
     const newGross = Number(previousGross) + Number(payrollRecord.grossSalary);
     const newCNPS = Number(previousCNPS) + Number(payrollRecord.cnpsEmployee);
     const newIRPP = Number(previousIRPP) + Number(payrollRecord.irpp);
-    const newCFC = Number(currentCumulative?.cfcCumulative || 0) + Number(payrollRecord.cfcEmployee);
-    const newCAC = Number(currentCumulative?.cacCumulative || 0) + Number(payrollRecord.cac);
+    const newCFC =
+      Number(currentCumulative?.cfcCumulative || 0) +
+      Number(payrollRecord.cfcEmployee);
+    const newCAC =
+      Number(currentCumulative?.cacCumulative || 0) + Number(payrollRecord.cac);
 
     const newDeductions =
       Number(currentCumulative?.deductionsCumululative || 0) +
       Number(payrollRecord.deductions);
     const newNet =
-      Number(currentCumulative?.netCumululative || 0) + Number(payrollRecord.netSalary);
+      Number(currentCumulative?.netCumululative || 0) +
+      Number(payrollRecord.netSalary);
 
     this.logger.log(
       `💰 Cumuls annuels: Brut=${newGross}, CNPS=${newCNPS}, IRPP=${newIRPP}`,
@@ -170,7 +174,7 @@ export class PayrollCumulativeService {
         id: generateId(ID_PREFIXES.PAYROLL_DEDUCTION_DETAIL),
         payrollRecordId,
         deductionType: 'CAC',
-        description: 'CAC 10% de l\'IRPP',
+        description: "CAC 10% de l'IRPP",
         baseAmount: new Prisma.Decimal(deductions.irpp),
         rateApplied: new Prisma.Decimal(rate),
         amount: new Prisma.Decimal(deductions.cac),

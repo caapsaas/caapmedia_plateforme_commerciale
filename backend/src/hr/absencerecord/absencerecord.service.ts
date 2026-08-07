@@ -133,9 +133,11 @@ export class AbsenceRecordService {
    * Tous les jours à 18h00 (heure serveur).
    * Pour chaque filiale :
    *  - récupère les employés ACTIVE
-   *  - exclut ceux qui ont déjà une présence aujourd'hui
+   *  - exclut ceux qui ont déjà une présence complète aujourd'hui (arrivée + départ)
    *  - exclut ceux qui ont déjà une absence couvrant aujourd'hui
-   *  - crée une absence de type "ABSENCE_NON_JUSTIFIEE" (ou votre enum)
+   *  - crée une absence pour :
+   *    * employés sans présence du tout
+   *    * employés avec arrivée mais sans départ
    */
   @Cron('0 18 * * *') // 18h00 tous les jours
   async generateDailyAbsences(
@@ -173,7 +175,7 @@ export class AbsenceRecordService {
 
         if (employees.length === 0) continue;
 
-        // 2. Présences du jour
+        // 2. Présences du jour (arrivée + départ valides)
         const attendancesToday = await this.prisma.attendanceRecord.findMany({
           where: {
             subsidiaryId: subsidiary.id,
@@ -182,9 +184,22 @@ export class AbsenceRecordService {
               lt: tomorrow,
             },
           },
-          select: { employeeId: true },
+          select: { employeeId: true, arrivalTime: true, departureTime: true },
         });
-        const presentIds = new Set(attendancesToday.map((a) => a.employeeId));
+
+        // Un employé est considéré comme "présent" s'il a à la fois arrivée ET départ
+        const presentIds = new Set(
+          attendancesToday
+            .filter((a) => a.arrivalTime && a.departureTime)
+            .map((a) => a.employeeId),
+        );
+
+        // Employés avec arrivée mais pas de départ
+        const incompleteAttendanceIds = new Set(
+          attendancesToday
+            .filter((a) => a.arrivalTime && !a.departureTime)
+            .map((a) => a.employeeId),
+        );
 
         // 3. Absences déjà enregistrées qui couvrent aujourd'hui
         const absencesToday = await this.prisma.absenceRecord.findMany({
@@ -199,13 +214,24 @@ export class AbsenceRecordService {
           absencesToday.map((a) => a.employeeId),
         );
 
-        // 4. Employés sans présence et sans absence
-        const missing = employees.filter(
-          (e) => !presentIds.has(e.id) && !alreadyAbsentIds.has(e.id),
+        // 4. Employés à marquer comme absent :
+        //    - sans présence ET sans absence
+        //    - OU avec arrivée mais pas départ (et pas d'absence existante)
+        const toMarkAbsent = employees.filter(
+          (e) =>
+            !alreadyAbsentIds.has(e.id) &&
+            (!presentIds.has(e.id) || incompleteAttendanceIds.has(e.id)),
         );
 
         // 5. Création des absences
-        for (const employee of missing) {
+        for (const employee of toMarkAbsent) {
+          const isIncompleteAttendance = incompleteAttendanceIds.has(
+            employee.id,
+          );
+          const reason = isIncompleteAttendance
+            ? 'Absence générée automatiquement — arrivée signalée mais pas de départ'
+            : 'Absence générée automatiquement — aucune présence signalée';
+
           await this.prisma.absenceRecord.create({
             data: {
               id: generateId(ID_PREFIXES.ABSENCE),
@@ -215,19 +241,19 @@ export class AbsenceRecordService {
               typeAbsence: 'UNJUSTIFIED' as any,
               startDate: today,
               endDate: today,
-              reason:
-                'Absence générée automatiquement — aucune présence signalée',
+              reason,
               documentUrl: null,
             },
           });
 
           totalCreated++;
           this.logger.debug(
-            `✓ Absence auto : ${employee.firstName} ${employee.lastName}`,
+            `✓ Absence auto : ${employee.firstName} ${employee.lastName}` +
+              (isIncompleteAttendance ? ' (arrivée sans départ)' : ''),
           );
         }
 
-        const detail = `Filiale ${subsidiary.subsidiaryName || subsidiary.id}: ${missing.length} absence(s) créée(s) sur ${employees.length} employé(s) actif(s)`;
+        const detail = `Filiale ${subsidiary.subsidiaryName || subsidiary.id}: ${toMarkAbsent.length} absence(s) créée(s) sur ${employees.length} employé(s) actif(s)`;
         details.push(detail);
         this.logger.log(detail);
       }
@@ -236,7 +262,7 @@ export class AbsenceRecordService {
         totalCreated > 0
           ? `${totalCreated} absence(s) non justifiée(s) générée(s) pour les employés sans présence du jour. ` +
             details.join('. ')
-          : "Tous les employés actifs ont pointé leur présence aujourd'hui.";
+          : "Tous les employés actifs ont complété leur présence aujourd'hui.";
 
       this.logger.log(
         `✓ Génération terminée — ${totalCreated} absence(s) au total`,

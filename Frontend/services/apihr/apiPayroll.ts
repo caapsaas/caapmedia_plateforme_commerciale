@@ -81,11 +81,13 @@ export interface ProcessPayrollDto {
   riskGroup?: 'A' | 'B' | 'C';
   applyCfc?: boolean;
   applyFne?: boolean;
+  forceRegenerate?: boolean; // Regénérer les fiches existantes
 }
 
 export interface ProcessPayrollResponse {
   count: number;
   message: string;
+  regenerated?: number;
 }
 
 export interface SimulatePayrollDto {
@@ -323,6 +325,7 @@ export const deletePayrollRecord = async (id: string): Promise<PayrollRecord> =>
  * POST /hr/payroll-records/process
  *
  * @param dto - Objet contenant period, subsidiaryId (optionnel), et options de calcul
+ * @param forceRegenerate - Si true, regénère les fiches existantes avec les données actuelles
  */
 export const processPayroll = async (
   dto: ProcessPayrollDto,
@@ -335,6 +338,7 @@ export const processPayroll = async (
       riskGroup: dto.riskGroup,
       applyCfc: dto.applyCfc,
       applyFne: dto.applyFne,
+      forceRegenerate: dto.forceRegenerate,
     },
   );
   return data;

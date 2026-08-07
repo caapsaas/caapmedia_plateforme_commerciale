@@ -287,7 +287,10 @@ export class CameroonPayrollCalculatorService {
     }
 
     // Un dernier calcul avec la valeur finale
-    result = this.calculate({ ...input, baseSalary: Math.round(result.baseSalary) });
+    result = this.calculate({
+      ...input,
+      baseSalary: Math.round(result.baseSalary),
+    });
     return result;
   }
 

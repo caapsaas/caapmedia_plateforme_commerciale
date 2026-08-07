@@ -171,6 +171,7 @@ export class PayrollRecordController {
       riskGroup?: 'A' | 'B' | 'C';
       applyCfc?: boolean;
       applyFne?: boolean;
+      forceRegenerate?: boolean; // Regénérer même si une fiche existe déjà
     },
     @Request() req: any,
   ) {
@@ -187,6 +188,7 @@ export class PayrollRecordController {
         riskGroup: body.riskGroup,
         applyCfc: body.applyCfc,
         applyFne: body.applyFne,
+        forceRegenerate: body.forceRegenerate,
       },
     );
   }
@@ -333,10 +335,7 @@ export class PayrollRecordController {
    */
   @Post('bonus/:bonusId/approve')
   @Roles('HR_MANAGER', 'ADMIN')
-  async approveBonus(
-    @Param('bonusId') bonusId: string,
-    @Request() req: any,
-  ) {
+  async approveBonus(@Param('bonusId') bonusId: string, @Request() req: any) {
     return this.bonusAndChargeService.approveBonus(bonusId, req.user.id);
   }
 

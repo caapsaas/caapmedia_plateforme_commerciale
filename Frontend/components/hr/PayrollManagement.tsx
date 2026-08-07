@@ -84,6 +84,9 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
 
   // États pour les charges
   const [isGeneratingCharges, setIsGeneratingCharges] = useState(false);
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
+  const [chargesData, setChargesData] = useState<any>(null);
+  const [showChargesConfirmation, setShowChargesConfirmation] = useState(false);
 
   // Vérifier si l'utilisateur est SUPER_ADMIN
   const isSuperAdmin = user?.userRole === UserRole.SUPER_ADMIN || user?.additionalRoles?.includes(UserRole.SUPER_ADMIN);
@@ -118,7 +121,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
     navigate({ to: '/dashboard/hr/bonus' });
   };
 
-  // Handler pour accumuler les charges patronales
+  // Handler pour accumuler les charges patronales (affiche modale)
   const handleAccumulateCharges = async () => {
     const month = selectedPeriod;
 
@@ -132,95 +135,32 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
       const result: any = await accumulateCharges(month);
 
       if (result.totalPayrolls === 0) {
+        setIsGeneratingCharges(false);
         toast.info('Aucune donnée', `Aucune fiche de paie trouvée pour ${month}`);
       } else {
-        // Construction du message détaillé
-        let message = `📊 Résumé du mois ${month}\n`;
-        message += `Fiches de paie: ${result.totalPayrolls}\n\n`;
-
-        // Charges patronales
-        if (Object.keys(result.employerCharges).length > 0) {
-          message += '💼 CHARGES PATRONALES:\n';
-          let employerTotal = 0;
-          for (const [type, data]: [string, any] of Object.entries(
-            result.employerCharges,
-          )) {
-            message += `  ${type}: ${formatCurrency(data.amount)} (Éch: ${data.dueDate})\n`;
-            employerTotal += data.amount;
-          }
-          message += `  Sous-total: ${formatCurrency(employerTotal)}\n\n`;
-        }
-
-        // Charges salariales par mode de paiement
-        if (result.salaryDeductions.grandTotal > 0) {
-          message += '💰 CHARGES SALARIALES (retenues):\n';
-          for (const [method, deductions]: [string, any] of Object.entries(
-            result.salaryDeductions.byPaymentMethod,
-          )) {
-            const methodLabel = {
-              BANK_TRANSFER: 'Virement',
-              CHECK: 'Chèque',
-              CASH: 'Espèce',
-              UNKNOWN: 'Autre',
-            }[method] || method;
-
-            message += `  ${methodLabel}:\n`;
-            if (deductions.cnps > 0) message += `    CNPS: ${formatCurrency(deductions.cnps)}\n`;
-            if (deductions.cfc > 0) message += `    CFC: ${formatCurrency(deductions.cfc)}\n`;
-            if (deductions.irpp > 0) message += `    IRPP: ${formatCurrency(deductions.irpp)}\n`;
-            if (deductions.cac > 0) message += `    CAC: ${formatCurrency(deductions.cac)}\n`;
-            if (deductions.other > 0) message += `    Autres: ${formatCurrency(deductions.other)}\n`;
-            message += `    Total ${methodLabel}: ${formatCurrency(deductions.total)}\n`;
-          }
-          message += `  Sous-total retenues: ${formatCurrency(result.salaryDeductions.grandTotal)}\n\n`;
-        }
-
-        // Primes mensuelles (PayrollRecord)
-        if (result.monthlyPrimes.totalPrimes > 0) {
-          message += '🏆 PRIMES MENSUELLES:\n';
-          message += `  Total des primes: ${formatCurrency(result.monthlyPrimes.totalPrimes)}\n`;
-          message += `  Employés ayant des primes: ${result.monthlyPrimes.employeesWithPrimes}\n`;
-          message += `  Moyenne par employé: ${formatCurrency(result.monthlyPrimes.averagePrimePerEmployee)}\n\n`;
-        }
-
-        // Charges liées aux bonus
-        if (result.bonusCharges.totalBonuses > 0) {
-          message += '🎁 CHARGES LIÉES AUX BONUS:\n';
-          message += `  Nombre de bonus: ${result.bonusCharges.totalBonuses}\n`;
-          const bonusDeductions = result.bonusCharges.deductionsTotal;
-          if (bonusDeductions.cnps > 0)
-            message += `  CNPS: ${formatCurrency(bonusDeductions.cnps)}\n`;
-          if (bonusDeductions.cfc > 0)
-            message += `  CFC: ${formatCurrency(bonusDeductions.cfc)}\n`;
-          if (bonusDeductions.irpp > 0)
-            message += `  IRPP: ${formatCurrency(bonusDeductions.irpp)}\n`;
-          if (bonusDeductions.cac > 0)
-            message += `  CAC: ${formatCurrency(bonusDeductions.cac)}\n`;
-          if (bonusDeductions.other > 0)
-            message += `  Autres: ${formatCurrency(bonusDeductions.other)}\n`;
-          const totalBonusDeductions =
-            bonusDeductions.cnps +
-            bonusDeductions.cfc +
-            bonusDeductions.irpp +
-            bonusDeductions.cac +
-            bonusDeductions.other;
-          message += `  Total déductions bonus: ${formatCurrency(totalBonusDeductions)}\n`;
-          message += `  Total net bonus payés: ${formatCurrency(result.bonusCharges.netBonusesTotal)}\n\n`;
-        }
-
-        message += `═══════════════════════════════════════\n`;
-        message += `💵 TOTAL GÉNÉRAL: ${formatCurrency(result.grandTotalAllCharges)}\n`;
-
-        toast.success('Charges complètes générées', message);
+        setChargesData(result);
+        setShowChargesConfirmation(true);
+        setIsGeneratingCharges(false);
       }
     } catch (error: any) {
+      setIsGeneratingCharges(false);
       const msg =
         error?.response?.data?.message ||
         error?.message ||
-        'Impossible d\'accumuler les charges.';
+        'Impossible de récupérer les charges.';
       toast.error('Erreur', msg);
-    } finally {
-      setIsGeneratingCharges(false);
+    }
+  };
+
+  const handleConfirmCharges = () => {
+    if (chargesData) {
+      const month = selectedPeriod;
+      toast.success(
+        'Charges générées',
+        `${chargesData.totalPayrolls} fiche(s) de paie - Total: ${formatCurrency(chargesData.grandTotalAllCharges)}`
+      );
+      setShowChargesConfirmation(false);
+      setChargesData(null);
     }
   };
 
@@ -294,7 +234,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
     );
   };
 
-  const handleProcessPayroll = () => {
+  const handleProcessPayroll = (forceRegenerate: boolean = false) => {
     // Nettoyage + validation stricte YYYY-MM
     const period = (selectedPeriod || '').trim();
 
@@ -306,7 +246,11 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
     setIsProcessing(true);
 
     // Préparer le payload avec subsidiaryId si SUPER_ADMIN
-    const payload: any = { period, riskGroup: 'A' };
+    const payload: any = {
+      period,
+      riskGroup: 'A',
+      forceRegenerate
+    };
     if (isSuperAdmin && selectedSubsidiaryId) {
       payload.subsidiaryId = selectedSubsidiaryId;
     }
@@ -314,17 +258,28 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
     onProcessPayroll(
       payload,
       {
-        onSuccess: (data) => {
+        onSuccess: (data: any) => {
           setIsProcessing(false);
-          if (data.count === 0) {
+          setShowRegenerateModal(false);
+
+          // Si aucune fiche créée et aucune régénérée, proposer la régénération
+          if (data.count === 0 && data.regenerated === 0 && !forceRegenerate) {
+            setShowRegenerateModal(true);
+            return;
+          }
+
+          if (data.count === 0 && data.regenerated === 0) {
             toast.info(
               'Aucune nouvelle fiche',
               data.message || 'Tous les employés ont déjà une fiche pour cette période.',
             );
           } else {
+            const message = data.regenerated
+              ? `${data.regenerated} fiche(s) régénérée(s) + ${data.count} fiche(s) créée(s)`
+              : `${data.count} fiche(s) de paie créée(s)`;
             toast.success(
               'Paie générée',
-              data.message || `${data.count} fiche(s) de paie créée(s).`,
+              data.message || message,
             );
           }
         },
@@ -338,6 +293,10 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
         },
       },
     );
+  };
+
+  const handleRegenerateConfirm = () => {
+    handleProcessPayroll(true);
   };
 
   const getStatusClass = (status: PayrollStatus | string) => {
@@ -448,9 +407,10 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
           )}
 
           <button
-            onClick={handleProcessPayroll}
+            onClick={() => handleProcessPayroll()}
             disabled={isProcessing || globalView}
             className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Générer les fiches de paie (crée ou regénère selon les fiches existantes)"
           >
             <span>
               {isProcessing ? 'Traitement...' : t('hr.payroll.process')}
@@ -657,6 +617,221 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
           </tbody>
         </table>
       </div>
+
+      {/* Modale de confirmation régénération */}
+      {showRegenerateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4 text-white">
+              <h2 className="text-lg font-bold">⚠️ Régénérer les fiches de paie</h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-slate-700">
+                Cette action va <strong>supprimer et regénérer</strong> toutes les fiches de paie existantes pour la période <strong>{selectedPeriod}</strong> avec les données actuelles des employés.
+              </p>
+              <p className="text-sm text-slate-600">
+                ✅ Utilisez cette option après avoir modifié les informations d'un employé (salaire, bonus, etc.)
+              </p>
+            </div>
+            <div className="bg-slate-50 px-6 py-4 flex justify-end gap-2">
+              <button
+                onClick={() => setShowRegenerateModal(false)}
+                className="px-4 py-2 bg-slate-300 text-slate-800 font-semibold rounded-md hover:bg-slate-400 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleRegenerateConfirm}
+                disabled={isProcessing}
+                className="px-4 py-2 bg-orange-600 text-white font-semibold rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50"
+              >
+                {isProcessing ? 'Régénération...' : 'Regénérer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale de confirmation des charges - Design moderne */}
+      {showChargesConfirmation && chargesData && (() => {
+        // Calculer le total de toutes les charges affichées
+        let totalAllCharges = 0;
+
+        // Salaires nets
+        Object.values(chargesData.salaryDeductions.byPaymentMethod).forEach((deductions: any) => {
+          totalAllCharges += deductions.netSalary;
+        });
+
+        // Charges patronales
+        Object.values(chargesData.employerCharges).forEach((charge: any) => {
+          totalAllCharges += charge.amount;
+        });
+
+        // Primes mensuelles
+        totalAllCharges += chargesData.monthlyPrimes?.totalPrimes || 0;
+
+        // Bonus nets
+        totalAllCharges += chargesData.bonusCharges?.netBonusesTotal || 0;
+
+        return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden">
+            {/* En-tête avec gradient vert */}
+            <div className="bg-gradient-to-br from-[#c6e911] to-[#a8c90d] px-8 py-8 text-slate-900">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-3xl font-bold mb-2">📊 Résumé des charges</h2>
+                  <p className="text-sm font-semibold text-slate-700 opacity-90">Période: {selectedPeriod} • {chargesData.totalPayrolls} fiche(s)</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Contenu scrollable */}
+            <div className="p-8 space-y-5 max-h-96 overflow-y-auto">
+              {/* Salaires par mode de paiement - SECTION PRINCIPALE */}
+              {chargesData.salaryDeductions?.grandTotal > 0 && (
+                <div className="bg-gradient-to-br from-[#f0fde4] to-white rounded-xl p-5 border-2 border-[#c6e911]/30">
+                  <p className="text-sm font-bold text-[#5a7c0f] mb-4 uppercase tracking-wide">💰 Salaires par mode de paiement</p>
+                  <div className="space-y-3">
+                    {Object.entries(chargesData.salaryDeductions.byPaymentMethod).map(([method, deductions]: [string, any]) => {
+                      const methodLabel: Record<string, string> = {
+                        BANK_TRANSFER: 'Virement bancaire',
+                        CHECK: 'Chèque',
+                        CASH: 'Espèce',
+                        UNKNOWN: 'Autre',
+                      };
+                      return (
+                        <div key={method} className="bg-white rounded-lg p-4 border border-[#e0f0a0] hover:border-[#c6e911] transition-colors">
+                          <p className="font-bold text-slate-800 mb-3">{methodLabel[method] || method}</p>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between items-center">
+                              <span className="text-slate-600">Salaire brut</span>
+                              <span className="font-semibold text-slate-900">{formatCurrency(deductions.grossSalary)}</span>
+                            </div>
+                            <div className="border-t border-[#e0f0a0] pt-2"></div>
+                            <div className="flex justify-between items-center text-slate-600 text-xs">
+                              <span>CNPS</span>
+                              <span>{deductions.cnps > 0 ? `- ${formatCurrency(deductions.cnps)}` : '-'}</span>
+                            </div>
+                            {deductions.cfc > 0 && (
+                              <div className="flex justify-between items-center text-slate-600 text-xs">
+                                <span>CFC</span>
+                                <span>- {formatCurrency(deductions.cfc)}</span>
+                              </div>
+                            )}
+                            {deductions.irpp > 0 && (
+                              <div className="flex justify-between items-center text-slate-600 text-xs">
+                                <span>IRPP</span>
+                                <span>- {formatCurrency(deductions.irpp)}</span>
+                              </div>
+                            )}
+                            {deductions.cac > 0 && (
+                              <div className="flex justify-between items-center text-slate-600 text-xs">
+                                <span>CAC</span>
+                                <span>- {formatCurrency(deductions.cac)}</span>
+                              </div>
+                            )}
+                            {deductions.other > 0 && (
+                              <div className="flex justify-between items-center text-slate-600 text-xs">
+                                <span>Autres retenues</span>
+                                <span>- {formatCurrency(deductions.other)}</span>
+                              </div>
+                            )}
+                            <div className="border-t border-[#e0f0a0] pt-2"></div>
+                            <div className="flex justify-between items-center bg-gradient-to-r from-[#c6e911]/10 to-transparent p-3 rounded-lg">
+                              <span className="font-bold text-[#5a7c0f]">Salaire net</span>
+                              <span className="font-bold text-lg text-[#5a7c0f]">{formatCurrency(deductions.netSalary)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Charges patronales */}
+              {Object.keys(chargesData.employerCharges || {}).length > 0 && (
+                <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl p-5 border-2 border-blue-200">
+                  <p className="text-sm font-bold text-blue-900 mb-3 uppercase tracking-wide">💼 Charges patronales</p>
+                  <div className="space-y-2">
+                    {Object.entries(chargesData.employerCharges).map(([type, data]: [string, any]) => (
+                      <div key={type} className="flex justify-between text-sm px-3 py-2 bg-white rounded border border-blue-100">
+                        <span className="font-medium text-slate-700">{type}</span>
+                        <span className="font-bold text-blue-700">{formatCurrency(data.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Primes mensuelles */}
+              {chargesData.monthlyPrimes?.totalPrimes > 0 && (
+                <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl p-5 border-2 border-purple-200">
+                  <p className="text-sm font-bold text-purple-900 mb-3 uppercase tracking-wide">🏆 Primes mensuelles</p>
+                  <div className="text-sm space-y-2">
+                    <div className="flex justify-between px-3 py-2 bg-white rounded border border-purple-100">
+                      <span className="text-slate-600">Total</span>
+                      <span className="font-bold text-purple-700">{formatCurrency(chargesData.monthlyPrimes.totalPrimes)}</span>
+                    </div>
+                    <div className="flex justify-between px-3 py-2 bg-white rounded border border-purple-100 text-xs">
+                      <span className="text-slate-600">{chargesData.monthlyPrimes.employeesWithPrimes} employé(s) • Moy. {formatCurrency(chargesData.monthlyPrimes.averagePrimePerEmployee)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Charges liées aux bonus */}
+              {chargesData.bonusCharges?.totalBonuses > 0 && (
+                <div className="bg-gradient-to-br from-amber-50 to-white rounded-xl p-5 border-2 border-amber-200">
+                  <p className="text-sm font-bold text-amber-900 mb-3 uppercase tracking-wide">🎁 Charges liées aux bonus</p>
+                  <div className="text-sm space-y-2">
+                    <div className="flex justify-between px-3 py-2 bg-white rounded border border-amber-100">
+                      <span className="text-slate-600">{chargesData.bonusCharges.totalBonuses} bonus à payer</span>
+                      <span className="font-bold text-amber-700">{formatCurrency(chargesData.bonusCharges.netBonusesTotal)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Total général - En évidence */}
+              <div className="bg-gradient-to-br from-[#c6e911] to-[#a8c90d] rounded-xl p-6 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-slate-700 uppercase tracking-widest">Montant total des charges</p>
+                    <p className="text-xs text-slate-600 mt-1">Tous les éléments ci-dessus</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-4xl font-black text-slate-900">
+                      {formatCurrency(totalAllCharges)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Boutons d'action */}
+            <div className="bg-slate-50 px-8 py-5 flex justify-end gap-3 border-t border-slate-200">
+              <button
+                onClick={() => {
+                  setShowChargesConfirmation(false);
+                  setChargesData(null);
+                }}
+                className="px-6 py-2.5 bg-white text-slate-700 font-semibold rounded-lg border-2 border-slate-200 hover:bg-slate-100 hover:border-slate-300 transition-all"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleConfirmCharges}
+                className="px-6 py-2.5 bg-gradient-to-r from-[#c6e911] to-[#a8c90d] text-slate-900 font-bold rounded-lg hover:shadow-lg hover:scale-105 transition-all"
+              >
+                ✓ Confirmer les charges
+              </button>
+            </div>
+          </div>
+        </div>
+        );
+      })()}
 
       {/* Modales */}
       {viewingSignature && (

@@ -362,7 +362,8 @@ export class PayrollRecordService {
         subsidiaryId: payroll.subsidiaryId,
         payload: {
           userId,
-          operationDate: payroll.paymentDate?.toISOString() || new Date().toISOString(),
+          operationDate:
+            payroll.paymentDate?.toISOString() || new Date().toISOString(),
           amount: Number(payroll.grossSalary),
           description: `Paie ${payroll.payrollPeriod} - ${payroll.employeeName}`,
           sourceId: payroll.id,
@@ -383,6 +384,7 @@ export class PayrollRecordService {
    * Traite la paie d'une filiale pour une période donnée.
    * Crée automatiquement les fiches de paie pour tous les employés actifs
    * qui n'en ont pas encore pour cette période.
+   * Si forceRegenerate=true, regénère les fiches existantes avec les données actuelles de l'employé.
    */
   async processPayroll(
     subsidiaryId: string,
@@ -391,8 +393,9 @@ export class PayrollRecordService {
       riskGroup?: 'A' | 'B' | 'C';
       applyCfc?: boolean;
       applyFne?: boolean;
+      forceRegenerate?: boolean;
     },
-  ): Promise<{ count: number; message: string }> {
+  ): Promise<{ count: number; message: string; regenerated?: number }> {
     this.logger.log(
       `Traitement de la paie - Filiale: ${subsidiaryId} | Période: ${period}`,
     );
@@ -463,17 +466,35 @@ export class PayrollRecordService {
         payrollPeriod: period,
         employeeId: { in: activeEmployees.map((e) => e.id) },
       },
-      select: { employeeId: true },
+      select: { id: true, employeeId: true, status: true },
     });
 
     const existingEmployeeIds = new Set(
       existingPayrolls.map((p) => p.employeeId),
     );
 
-    // --- 3. Employés sans fiche pour cette période ---
-    const employeesToProcess = activeEmployees.filter(
+    // --- 3. Déterminer les employés à traiter ---
+    let employeesToProcess = activeEmployees.filter(
       (e) => !existingEmployeeIds.has(e.id),
     );
+
+    let regenerated = 0;
+
+    // Si forceRegenerate, supprimer les fiches existantes et traiter tous les employés
+    if (options?.forceRegenerate && existingPayrolls.length > 0) {
+      this.logger.log(
+        `🔄 Mode régénération: suppression de ${existingPayrolls.length} fiche(s) existante(s)`,
+      );
+
+      await this.prisma.payrollRecord.deleteMany({
+        where: {
+          id: { in: existingPayrolls.map((p) => p.id) },
+        },
+      });
+
+      regenerated = existingPayrolls.length;
+      employeesToProcess = activeEmployees; // Traiter TOUS les employés
+    }
 
     if (employeesToProcess.length === 0) {
       this.logger.log(
@@ -481,7 +502,8 @@ export class PayrollRecordService {
       );
       return {
         count: 0,
-        message: `Tous les employés actifs ont déjà une fiche pour ${period}`,
+        message: `Tous les employés actifs ont déjà une fiche pour ${period}. Utilisez forceRegenerate=true pour regénérer.`,
+        regenerated: 0,
       };
     }
 
@@ -522,7 +544,10 @@ export class PayrollRecordService {
 
       // Convertir les indemnities en allowances (sum)
       const totalIndemnities = Array.isArray(employee.indemnities)
-        ? (employee.indemnities as any[]).reduce((sum, ind) => sum + (Number(ind.amount) || 0), 0)
+        ? (employee.indemnities as any[]).reduce(
+            (sum, ind) => sum + (Number(ind.amount) || 0),
+            0,
+          )
         : 0;
 
       const calc = this.calculator.calculate({
@@ -570,7 +595,8 @@ export class PayrollRecordService {
         deductionsDetail: [
           ...calc.deductionsDetail,
           // Ajouter les indemnités au détail
-          ...(Array.isArray(employee.indemnities) && employee.indemnities.length > 0
+          ...(Array.isArray(employee.indemnities) &&
+          employee.indemnities.length > 0
             ? employee.indemnities.map((ind: any) => ({
                 label: `Indemnité - ${ind.type}`,
                 amount: Number(ind.amount),
@@ -612,9 +638,15 @@ export class PayrollRecordService {
       // Ne pas lever l'erreur - la paie est déjà créée
     }
 
+    let message = `${result.count} fiche(s) de paie générée(s) avec succès pour ${period}`;
+    if (regenerated > 0) {
+      message = `🔄 ${regenerated} fiche(s) régénérée(s) + ${result.count} nouvelle(s) créée(s) pour ${period}`;
+    }
+
     return {
       count: result.count,
-      message: `${result.count} fiche(s) de paie générée(s) avec succès pour ${period}`,
+      message,
+      regenerated,
     };
   }
 

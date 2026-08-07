@@ -155,7 +155,9 @@ export class AccountingOutboxProcessor {
     const { userId, operationDate, amount, description, sourceId } = payload;
 
     if (!sourceId) {
-      throw new Error('sourceId (payrollRecordId) manquant dans payload PAYROLL_ENTRY');
+      throw new Error(
+        'sourceId (payrollRecordId) manquant dans payload PAYROLL_ENTRY',
+      );
     }
 
     if (!amount || amount <= 0) {
@@ -196,14 +198,18 @@ export class AccountingOutboxProcessor {
     const { userId, operationDate, amount, description, sourceId } = payload;
 
     if (!sourceId) {
-      throw new Error('sourceId (payrollBonusId) manquant dans payload BONUS_ENTRY');
+      throw new Error(
+        'sourceId (payrollBonusId) manquant dans payload BONUS_ENTRY',
+      );
     }
 
     if (!amount || amount <= 0) {
       throw new Error(`amount invalide dans payload BONUS_ENTRY: ${amount}`);
     }
 
-    this.logger.log(`📝 Générer écriture comptable pour paiement bonus ${sourceId}`);
+    this.logger.log(
+      `📝 Générer écriture comptable pour paiement bonus ${sourceId}`,
+    );
 
     // Journaliser le paiement du bonus
     await this.journalizationService.journalize({
@@ -216,7 +222,9 @@ export class AccountingOutboxProcessor {
       sourceId,
     });
 
-    this.logger.log(`✅ Écriture comptable créée pour paiement bonus ${sourceId}`);
+    this.logger.log(
+      `✅ Écriture comptable créée pour paiement bonus ${sourceId}`,
+    );
   }
 
   /**
@@ -237,11 +245,15 @@ export class AccountingOutboxProcessor {
     const { userId, operationDate, amount, description, sourceId } = payload;
 
     if (!sourceId) {
-      throw new Error('sourceId (chargePaymentId) manquant dans payload CHARGE_PAYMENT_ENTRY');
+      throw new Error(
+        'sourceId (chargePaymentId) manquant dans payload CHARGE_PAYMENT_ENTRY',
+      );
     }
 
     if (!amount || amount <= 0) {
-      throw new Error(`amount invalide dans payload CHARGE_PAYMENT_ENTRY: ${amount}`);
+      throw new Error(
+        `amount invalide dans payload CHARGE_PAYMENT_ENTRY: ${amount}`,
+      );
     }
 
     this.logger.log(

@@ -94,10 +94,15 @@ export class PayrollBonusAndChargeService {
       `📊 ${payrolls.length} fiches paie trouvées pour calcul 13e mois`,
     );
 
-    const totalGross = payrolls.reduce((sum, p) => sum + Number(p.grossSalary), 0);
+    const totalGross = payrolls.reduce(
+      (sum, p) => sum + Number(p.grossSalary),
+      0,
+    );
     const thirteenthGross = Math.round(totalGross / payrolls.length);
 
-    this.logger.log(`💰 13e mois brut = ${totalGross} / ${payrolls.length} = ${thirteenthGross} FCFA`);
+    this.logger.log(
+      `💰 13e mois brut = ${totalGross} / ${payrolls.length} = ${thirteenthGross} FCFA`,
+    );
 
     const result = this.calculator.calculate({
       baseSalary: thirteenthGross,
@@ -154,7 +159,10 @@ export class PayrollBonusAndChargeService {
   /**
    * Approuve un bonus pour le paiement (PENDING → APPROVED).
    */
-  async approveBonus(bonusId: string, approvedBy: string): Promise<PayrollBonus> {
+  async approveBonus(
+    bonusId: string,
+    approvedBy: string,
+  ): Promise<PayrollBonus> {
     this.logger.log(`✅ Approbation bonus: ${bonusId} par ${approvedBy}`);
 
     const bonus = await this.prisma.payrollBonus.findUnique({
@@ -453,6 +461,8 @@ export class PayrollBonusAndChargeService {
       byPaymentMethod: Record<
         string,
         {
+          grossSalary: number;
+          netSalary: number;
           cnps: number;
           cfc: number;
           irpp: number;
@@ -485,7 +495,7 @@ export class PayrollBonusAndChargeService {
 
     if (!subsidiaryId) {
       throw new BadRequestException(
-        'SubsidiaryId manquant - impossible d\'accumuler les charges',
+        "SubsidiaryId manquant - impossible d'accumuler les charges",
       );
     }
 
@@ -507,7 +517,11 @@ export class PayrollBonusAndChargeService {
         totalPayrolls: 0,
         employerCharges: {},
         salaryDeductions: { byPaymentMethod: {}, grandTotal: 0 },
-        monthlyPrimes: { totalPrimes: 0, averagePrimePerEmployee: 0, employeesWithPrimes: 0 },
+        monthlyPrimes: {
+          totalPrimes: 0,
+          averagePrimePerEmployee: 0,
+          employeesWithPrimes: 0,
+        },
         bonusCharges: {
           totalBonuses: 0,
           deductionsTotal: { cnps: 0, cfc: 0, irpp: 0, cac: 0, other: 0 },
@@ -528,11 +542,14 @@ export class PayrollBonusAndChargeService {
     const salaryDeductionsByMethod: Record<
       string,
       {
+        grossSalary: number;
+        netSalary: number;
         cnps: number;
         cfc: number;
         irpp: number;
         cac: number;
         other: number;
+        total: number;
       }
     > = {};
 
@@ -540,24 +557,43 @@ export class PayrollBonusAndChargeService {
       const method = payroll.employee?.paymentMethod || 'UNKNOWN';
       if (!salaryDeductionsByMethod[method]) {
         salaryDeductionsByMethod[method] = {
+          grossSalary: 0,
+          netSalary: 0,
           cnps: 0,
           cfc: 0,
           irpp: 0,
           cac: 0,
           other: 0,
+          total: 0,
         };
       }
 
-      salaryDeductionsByMethod[method].cnps += Number(payroll.cnpsEmployee || 0);
+      salaryDeductionsByMethod[method].grossSalary += Number(
+        payroll.grossSalary || 0,
+      );
+      salaryDeductionsByMethod[method].netSalary += Number(
+        payroll.netSalary || 0,
+      );
+      salaryDeductionsByMethod[method].cnps += Number(
+        payroll.cnpsEmployee || 0,
+      );
       salaryDeductionsByMethod[method].cfc += Number(payroll.cfcEmployee || 0);
       salaryDeductionsByMethod[method].irpp += Number(payroll.irpp || 0);
       salaryDeductionsByMethod[method].cac += Number(payroll.cac || 0);
       salaryDeductionsByMethod[method].other += Number(
         payroll.otherDeductions || 0,
       );
+      salaryDeductionsByMethod[method].total =
+        salaryDeductionsByMethod[method].cnps +
+        salaryDeductionsByMethod[method].cfc +
+        salaryDeductionsByMethod[method].irpp +
+        salaryDeductionsByMethod[method].cac +
+        salaryDeductionsByMethod[method].other;
     }
 
-    const totalSalaryDeductions = Object.values(salaryDeductionsByMethod).reduce(
+    const totalSalaryDeductions = Object.values(
+      salaryDeductionsByMethod,
+    ).reduce(
       (sum, deductions) =>
         sum +
         deductions.cnps +
@@ -573,10 +609,13 @@ export class PayrollBonusAndChargeService {
       (sum, p) => sum + Number(p.bonus || 0),
       0,
     );
-    const employeesWithPrimes = payrolls.filter((p) => Number(p.bonus || 0) > 0)
-      .length;
+    const employeesWithPrimes = payrolls.filter(
+      (p) => Number(p.bonus || 0) > 0,
+    ).length;
     const averagePrimePerEmployee =
-      employeesWithPrimes > 0 ? Math.round(totalMonthlyPrimes / employeesWithPrimes) : 0;
+      employeesWithPrimes > 0
+        ? Math.round(totalMonthlyPrimes / employeesWithPrimes)
+        : 0;
 
     const monthlyPrimesData = {
       totalPrimes: totalMonthlyPrimes,
@@ -636,6 +675,8 @@ export class PayrollBonusAndChargeService {
         byPaymentMethod: Record<
           string,
           {
+            grossSalary: number;
+            netSalary: number;
             cnps: number;
             cfc: number;
             irpp: number;
@@ -722,7 +763,10 @@ export class PayrollBonusAndChargeService {
         deductions.irpp +
         deductions.cac +
         deductions.other;
-      result.salaryDeductions.byPaymentMethod[method] = { ...deductions, total };
+      result.salaryDeductions.byPaymentMethod[method] = {
+        ...deductions,
+        total,
+      };
     }
 
     // Calculer le total général
@@ -734,9 +778,7 @@ export class PayrollBonusAndChargeService {
       bonusChargesData.deductionsTotal.other;
 
     result.grandTotalAllCharges =
-      employerChargesTotal +
-      totalSalaryDeductions +
-      bonusDeductionsTotal;
+      employerChargesTotal + totalSalaryDeductions + bonusDeductionsTotal;
 
     this.logger.log(
       `✅ Accumulation complète: Charges patronales=${employerChargesTotal}, Déductions salariales=${totalSalaryDeductions}, Déductions bonus=${bonusDeductionsTotal}`,
@@ -821,12 +863,20 @@ export class PayrollBonusAndChargeService {
   /**
    * Retourne les charges en retard.
    */
-  async getOverdueCharges(subsidiaryId: string): Promise<PayrollChargePayment[]> {
+  async getOverdueCharges(
+    subsidiaryId: string,
+  ): Promise<PayrollChargePayment[]> {
     return this.prisma.payrollChargePayment.findMany({
       where: {
         subsidiaryId,
         dueDate: { lte: new Date() },
-        status: { in: [PayrollChargePaymentStatus.ACCRUED, PayrollChargePaymentStatus.DUE, PayrollChargePaymentStatus.PARTIAL] },
+        status: {
+          in: [
+            PayrollChargePaymentStatus.ACCRUED,
+            PayrollChargePaymentStatus.DUE,
+            PayrollChargePaymentStatus.PARTIAL,
+          ],
+        },
       },
       orderBy: { dueDate: 'asc' },
     });
@@ -835,7 +885,9 @@ export class PayrollBonusAndChargeService {
   /**
    * Retourne les charges dues ce mois-ci.
    */
-  async getChargesDueThisMonth(subsidiaryId: string): Promise<PayrollChargePayment[]> {
+  async getChargesDueThisMonth(
+    subsidiaryId: string,
+  ): Promise<PayrollChargePayment[]> {
     const today = new Date();
     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
     const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -847,7 +899,13 @@ export class PayrollBonusAndChargeService {
           gte: firstDay,
           lte: lastDay,
         },
-        status: { in: [PayrollChargePaymentStatus.ACCRUED, PayrollChargePaymentStatus.DUE, PayrollChargePaymentStatus.PARTIAL] },
+        status: {
+          in: [
+            PayrollChargePaymentStatus.ACCRUED,
+            PayrollChargePaymentStatus.DUE,
+            PayrollChargePaymentStatus.PARTIAL,
+          ],
+        },
       },
       orderBy: { dueDate: 'asc' },
     });
@@ -868,16 +926,19 @@ export class PayrollBonusAndChargeService {
     });
 
     if (result.count > 0) {
-      this.logger.log(
-        `📌 ${result.count} charges ACCRUED → DUE`,
-      );
+      this.logger.log(`📌 ${result.count} charges ACCRUED → DUE`);
     }
 
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const overdueCharges = await this.prisma.payrollChargePayment.findMany({
       where: {
         dueDate: { lte: sevenDaysAgo },
-        status: { in: [PayrollChargePaymentStatus.DUE, PayrollChargePaymentStatus.PARTIAL] },
+        status: {
+          in: [
+            PayrollChargePaymentStatus.DUE,
+            PayrollChargePaymentStatus.PARTIAL,
+          ],
+        },
       },
     });
 
@@ -992,10 +1053,10 @@ export class PayrollBonusAndChargeService {
 
       const labelMap = {
         '13e_mois': '13e Mois',
-        'performance_bonus': 'Prime de Performance',
-        'severance': 'Indemnité de Fin de Contrat',
-        'retention_bonus': 'Prime de Rétention',
-        'payroll_bonus': 'Bonus de Paie',
+        performance_bonus: 'Prime de Performance',
+        severance: 'Indemnité de Fin de Contrat',
+        retention_bonus: 'Prime de Rétention',
+        payroll_bonus: 'Bonus de Paie',
       };
 
       bonusType = await this.prisma.payrollBonusType.create({

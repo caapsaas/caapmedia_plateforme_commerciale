@@ -152,7 +152,9 @@ describe('CameroonPayrollCalculatorService', () => {
       expect(resultC.cnpsAccidentRisk).toBeGreaterThan(
         resultB.cnpsAccidentRisk,
       );
-      expect(resultB.cnpsAccidentRisk).toBeGreaterThan(resultA.cnpsAccidentRisk);
+      expect(resultB.cnpsAccidentRisk).toBeGreaterThan(
+        resultA.cnpsAccidentRisk,
+      );
     });
 
     it('should calculate FNE when enabled', () => {
@@ -293,9 +295,9 @@ describe('CameroonPayrollCalculatorService', () => {
 
       // Risk C has higher employer charges, so base salary might be different
       // but net should be the same
-      expect(Math.abs(resultA.netSalary - resultC.netSalary)).toBeLessThanOrEqual(
-        1,
-      );
+      expect(
+        Math.abs(resultA.netSalary - resultC.netSalary),
+      ).toBeLessThanOrEqual(1);
     });
   });
 
@@ -316,7 +318,9 @@ describe('CameroonPayrollCalculatorService', () => {
 
       // All calculations should be present
       expect(result.netSalary).toBeGreaterThan(0);
-      expect(result.totalDeductions).toBeGreaterThanOrEqual(result.irpp + result.cac);
+      expect(result.totalDeductions).toBeGreaterThanOrEqual(
+        result.irpp + result.cac,
+      );
     });
 
     it('should include CAC (10% of IRPP)', () => {
@@ -505,8 +509,7 @@ describe('CameroonPayrollCalculatorService', () => {
         applyFne: true,
       });
 
-      const expectedCost =
-        result.grossSalary + result.totalEmployerCharges;
+      const expectedCost = result.grossSalary + result.totalEmployerCharges;
 
       expect(result.totalEmployerCost).toBe(Math.round(expectedCost));
     });

@@ -743,7 +743,10 @@ export class EmployeeService {
               updateEmployeeDto[key]
                 ? Number(updateEmployeeDto[key])
                 : null;
-          } else if (key === 'indemnities' && Array.isArray(updateEmployeeDto[key])) {
+          } else if (
+            key === 'indemnities' &&
+            Array.isArray(updateEmployeeDto[key])
+          ) {
             // Convertir indemnities en JSON
             dataToUpdate[key] = JSON.parse(
               JSON.stringify(updateEmployeeDto[key]),
