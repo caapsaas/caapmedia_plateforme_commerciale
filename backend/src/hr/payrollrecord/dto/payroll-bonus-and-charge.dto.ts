@@ -70,3 +70,15 @@ export class RecordChargePaymentDto {
   @IsString()
   declarationNumber?: string;
 }
+
+export class CreateSalaryChargeDto {
+  @IsString()
+  month: string; // ex. '2024-08'
+
+  @IsString()
+  paymentMethod: string; // 'BANK_TRANSFER', 'CHECK', ou 'CASH'
+
+  @IsOptional()
+  @IsString()
+  subsidiaryId?: string;
+}

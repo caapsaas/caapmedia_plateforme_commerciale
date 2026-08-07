@@ -912,6 +912,123 @@ export class PayrollBonusAndChargeService {
   }
 
   /**
+   * Crée une charge de salaire pour un type de paiement spécifique.
+   * Récupère le montant automatiquement via accumulateEmployerCharges.
+   * Types supportés: 'BANK_TRANSFER', 'CHECK', 'CASH'
+   */
+  async createSalaryCharge(
+    subsidiaryId: string,
+    month: string,
+    paymentMethod: string,
+  ): Promise<PayrollChargePayment> {
+    this.logger.log(
+      `💰 Création charge salaire ${paymentMethod} pour ${month}`,
+    );
+
+    if (!['BANK_TRANSFER', 'CHECK', 'CASH'].includes(paymentMethod)) {
+      throw new BadRequestException(
+        `Type de paiement invalide: ${paymentMethod}. Utilisez BANK_TRANSFER, CHECK, ou CASH.`,
+      );
+    }
+
+    const chargeTypeMap: Record<string, string> = {
+      BANK_TRANSFER: 'SALAIRE_VIREMENT_BANCAIRE',
+      CHECK: 'SALAIRE_CHEQUE',
+      CASH: 'SALAIRE_ESPECE',
+    };
+
+    const chargeType = chargeTypeMap[paymentMethod];
+
+    // 1. Accumuler les charges pour récupérer les montants par type de paiement
+    const accumulated = await this.accumulateEmployerCharges(
+      subsidiaryId,
+      month,
+    );
+
+    // 2. Récupérer le montant pour ce type de paiement
+    const salaryData =
+      accumulated.salaryDeductions.byPaymentMethod[paymentMethod];
+
+    if (!salaryData) {
+      throw new NotFoundException(
+        `Aucune donnée salariale trouvée pour le type de paiement ${paymentMethod} en ${month}`,
+      );
+    }
+
+    const salaryAmount = salaryData.grossSalary;
+
+    if (salaryAmount <= 0) {
+      throw new BadRequestException(
+        `Le montant du salaire pour ${paymentMethod} est 0 ou négatif en ${month}`,
+      );
+    }
+
+    this.logger.log(
+      `📊 Montant récupéré pour ${paymentMethod}: ${salaryAmount} FCFA`,
+    );
+
+    // 3. Vérifier si une charge existe déjà pour ce mois et type
+    const existing = await this.prisma.payrollChargePayment.findFirst({
+      where: {
+        subsidiaryId,
+        chargeType,
+        month,
+      },
+    });
+
+    if (existing) {
+      throw new ConflictException(
+        `Une charge ${chargeType} existe déjà pour ${month}`,
+      );
+    }
+
+    // 4. Créer la charge de salaire avec intention comptable atomique
+    const dueDate = new Date(month + '-15'); // Date limite fixe au 15 du mois suivant
+    if (dueDate.getMonth() === 11) {
+      dueDate.setFullYear(dueDate.getFullYear() + 1);
+      dueDate.setMonth(0);
+    } else {
+      dueDate.setMonth(dueDate.getMonth() + 1);
+    }
+
+    const charge = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.payrollChargePayment.create({
+        data: {
+          id: generateId(ID_PREFIXES.PAYROLL_CHARGE),
+          subsidiaryId,
+          chargeType,
+          month,
+          grossAmount: new Prisma.Decimal(salaryAmount),
+          netAmount: new Prisma.Decimal(salaryAmount),
+          status: PayrollChargePaymentStatus.ACCRUED,
+          dueDate,
+        },
+      });
+
+      // Enqueue l'intention comptable (atomique avec la création)
+      await this.outbox.enqueue(tx, {
+        eventType: 'CHARGE_PAYMENT_ENTRY',
+        subsidiaryId,
+        payload: {
+          userId: 'system',
+          operationDate: new Date().toISOString(),
+          amount: salaryAmount,
+          description: `Charge salaire ${paymentMethod} - ${month}`,
+          sourceId: created.id,
+        },
+      });
+
+      return created;
+    });
+
+    this.logger.log(
+      `✅ Charge ${chargeType} créée: ${charge.id} - ${salaryAmount} FCFA`,
+    );
+
+    return charge;
+  }
+
+  /**
    * Met à jour les statuts des charges (cron job).
    */
   async updateChargeStatusesCron(): Promise<number> {

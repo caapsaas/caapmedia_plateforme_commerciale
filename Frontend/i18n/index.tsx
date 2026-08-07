@@ -1313,6 +1313,9 @@ const frTranslations = {
     "categories": {
       "RENT": "Loyer",
       "SALARIES": "Salaires",
+      "SALARY_CASH": "Salaire en Espèce",
+      "SALARY_CHECK": "Salaire en Chèque",
+      "SALARY_BANK_TRANSFER": "Salaire par Virement Bancaire",
       "ADVERTISING": "Publicité",
       "TRANSPORT": "Transport/Logistique",
       "SERVICES": "Services (IT, Compta)",
@@ -1322,6 +1325,13 @@ const frTranslations = {
       "PACKAGING": "Emballages",
       "TRANSACTION_FEES": "Frais de transaction",
       "OTHER": "Autre"
+    },
+    "table": {
+      "date": "Date",
+      "description": "Description",
+      "category": "Catégorie",
+      "type": "Type",
+      "amount": "Montant"
     },
     "modal": {
       "addTitle": "Ajouter une nouvelle charge",

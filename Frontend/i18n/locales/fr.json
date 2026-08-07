@@ -1156,5 +1156,38 @@
       "updated": "Mis à jour avec succès",
       "deleted": "Supprimé avec succès"
     }
+  },
+  "expenses": {
+    "modal": {
+      "addTitle": "Ajouter une nouvelle charge",
+      "editTitle": "Modifier la charge"
+    },
+    "table": {
+      "description": "Description",
+      "category": "Catégorie",
+      "type": "Type",
+      "amount": "Montant",
+      "date": "Date"
+    },
+    "categories": {
+      "RENT": "Loyer",
+      "SALARIES": "Salaires",
+      "SALARY_CASH": "Salaire en Espèce",
+      "SALARY_CHECK": "Salaire en Chèque",
+      "SALARY_BANK_TRANSFER": "Salaire par Virement Bancaire",
+      "ADVERTISING": "Publicité",
+      "TRANSPORT": "Transport / Logistique",
+      "SERVICES": "Services informatiques, comptables et fiscaux",
+      "INSURANCE": "Assurances",
+      "PURCHASE_COST": "Coût d'achat",
+      "COMMISSIONS": "Commissions sur ventes",
+      "PACKAGING": "Emballages",
+      "TRANSACTION_FEES": "Frais de transaction",
+      "OTHER": "Autre"
+    },
+    "types": {
+      "FIXED": "Fixe",
+      "VARIABLE": "Variable"
+    }
   }
 }

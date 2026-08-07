@@ -50,6 +50,7 @@ export enum FinanceView {
     TAX_TRANSPARENCY = 'tax_transparency',
     EXTERNAL_TRANSACTIONS = 'external_transactions',
     PREFINANCEMENT = 'prefinancement',
+    SALARY_CHARGES = 'salary_charges',
     INVESTMENT = 'investment',
     INVESTMENT_RETURN = 'investment_return',
     LOAN = 'loan',
@@ -714,22 +715,25 @@ export interface StockChartData {
 
 // Expense Module Types
 export enum ExpenseType {
-  FIXED = 'FIXED',
-  VARIABLE = 'VARIABLE',
+  FIXED = "FIXED",
+  VARIABLE = "VARIABLE",
 }
 
 export enum ExpenseCategory {
-  RENT = 'RENT', // Loyer
-  SALARIES = 'SALARIES', // Salaires
-  ADVERTISING = 'ADVERTISING', // Publicité
-  TRANSPORT = 'TRANSPORT', // Transport / logistique
-  SERVICES = 'SERVICES', // Services informatiques, comptables et Fiscaux
-  INSURANCE = 'INSURANCE', // Assurances
-  PURCHASE_COST = 'PURCHASE_COST', // Coût d’achat
-  COMMISSIONS = 'COMMISSIONS', // Commissions sur ventes
-  PACKAGING = 'PACKAGING', // Emballages
-  TRANSACTION_FEES = 'TRANSACTION_FEES', // Frais de transaction
-  OTHER = 'OTHER',
+  RENT = "RENT",
+  SALARIES = "SALARIES",
+  SALARY_CASH = "SALARY_CASH",
+  SALARY_CHECK = "SALARY_CHECK",
+  SALARY_BANK_TRANSFER = "SALARY_BANK_TRANSFER",
+  ADVERTISING = "ADVERTISING",
+  TRANSPORT = "TRANSPORT",
+  SERVICES = "SERVICES",
+  INSURANCE = "INSURANCE",
+  PURCHASE_COST = "PURCHASE_COST",
+  COMMISSIONS = "COMMISSIONS",
+  PACKAGING = "PACKAGING",
+  TRANSACTION_FEES = "TRANSACTION_FEES",
+  OTHER = "OTHER",
 }
 
 export interface ExpenseRecord {

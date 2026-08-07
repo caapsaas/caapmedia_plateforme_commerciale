@@ -28,6 +28,7 @@ import {
   CancelBonusDto,
   AccumulateChargesDto,
   RecordChargePaymentDto,
+  CreateSalaryChargeDto,
 } from './dto/payroll-bonus-and-charge.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { RoleGuard } from '../../common/auth/role/role.guard';
@@ -392,7 +393,7 @@ export class PayrollRecordController {
    * POST /hr/payroll-records/charges/accumulate
    */
   @Post('charges/accumulate')
-  @Roles('HR_MANAGER', 'ADMIN')
+  @Roles('HR_MANAGER', 'ADMIN', 'FINANCIAL_DIRECTOR')
   async accumulateCharges(
     @Body() dto: AccumulateChargesDto,
     @Request() req: any,
@@ -402,6 +403,26 @@ export class PayrollRecordController {
     return this.bonusAndChargeService.accumulateEmployerCharges(
       subsidiaryId,
       dto.month,
+    );
+  }
+
+  /**
+   * Créer une charge de salaire pour un type de paiement spécifique
+   * POST /hr/payroll-records/charges/salary
+   * Le montant est automatiquement rempli à partir des données accumulées
+   */
+  @Post('charges/salary')
+  @Roles('HR_MANAGER', 'ADMIN', 'FINANCIAL_DIRECTOR')
+  async createSalaryCharge(
+    @Body() dto: CreateSalaryChargeDto,
+    @Request() req: any,
+  ) {
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx, dto.subsidiaryId);
+    return this.bonusAndChargeService.createSalaryCharge(
+      subsidiaryId,
+      dto.month,
+      dto.paymentMethod,
     );
   }
 
