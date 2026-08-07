@@ -1,56 +1,56 @@
 import React from 'react';
 import { Subsidiary } from '../../types';
-import { useI18n } from '../../i18n';
-import IconMapPin from '../icons/IconMapPin';
-import IconPhone from '../icons/IconPhone';
-import IconMail from '../icons/IconMail';
 
 interface DocumentHeaderProps {
     subsidiary: Subsidiary;
-    showContactIcons?: boolean;
+    // Affiche IFU/RCCM (identifiants fiscaux) — requis sur les factures,
+    // pas nécessaire sur un bon de livraison/d'entrée.
+    showFiscalInfo?: boolean;
 }
 
-const DocumentHeader: React.FC<DocumentHeaderProps> = ({ subsidiary, showContactIcons = true }) => {
-    const { t } = useI18n();
-    const LogoComponent = subsidiary.logo;
+// Logo réel de la plateforme, servi statiquement depuis Frontend/public —
+// PAS subsidiary.logo (champ jamais peuplé, un composant React ne traverse
+// pas le JSON de l'API) ni subsidiary.logoSvg (placeholder de seed
+// inexploitable, "<svg>...</svg>" littéral). Un seul logo partagé par
+// toutes les filiales (CaapMedia est la plateforme mère), pas un logo par
+// filiale.
+const LOGO_SRC = '/CaapMedia.png';
 
+/**
+ * En-tête de document imprimable — structure calquée sur gmo
+ * (Frontend_GMO/components/bons/HeaderGMO.tsx) : logo à gauche, encadré
+ * d'informations filiale à droite. Couleur volontairement atténuée (fond
+ * teinté très clair, bordure fine) plutôt que le bloc vert saturé de gmo —
+ * reste dans l'identité "light" de caapmedia.
+ *
+ * Le titre/référence propres à chaque document (Facture N°, Bon de commande
+ * N°...) ne sont pas placés à côté de ce composant mais EN DESSOUS, pleine
+ * largeur — même agencement que gmo (HeaderGMO puis InvoiceHeader séparément).
+ */
+const DocumentHeader: React.FC<DocumentHeaderProps> = ({ subsidiary, showFiscalInfo = false }) => {
     return (
-        <div className="flex justify-between items-start mb-8 pb-6 border-b-4 border-[#c6e911]">
-            {/* Logo & Company Info */}
-            <div>
-                {LogoComponent && <LogoComponent className="h-16 w-auto" />}
-                <p className="font-bold text-xl mt-4 text-slate-900">{subsidiary.name}</p>
-
-                {/* Contact Info */}
-                <div className="mt-4 space-y-1 text-sm text-slate-600">
-                    {subsidiary.address && (
-                        <div className="flex items-start gap-2">
-                            {showContactIcons && <IconMapPin className="h-4 w-4 mt-0.5 text-[#c6e911] flex-shrink-0" />}
-                            <p>{subsidiary.address}</p>
-                        </div>
-                    )}
-                    {subsidiary.phone && (
-                        <div className="flex items-center gap-2">
-                            {showContactIcons && <IconPhone className="h-4 w-4 text-[#c6e911] flex-shrink-0" />}
-                            <a href={`tel:${subsidiary.phone}`} className="hover:text-[#c6e911] transition-colors">
-                                {subsidiary.phone}
-                            </a>
-                        </div>
-                    )}
-                    {subsidiary.email && (
-                        <div className="flex items-center gap-2">
-                            {showContactIcons && <IconMail className="h-4 w-4 text-[#c6e911] flex-shrink-0" />}
-                            <a href={`mailto:${subsidiary.email}`} className="hover:text-[#c6e911] transition-colors">
-                                {subsidiary.email}
-                            </a>
-                        </div>
-                    )}
-                </div>
+        <div className="flex items-stretch gap-6 pb-6 mb-6 border-b border-slate-200 min-h-[7rem]">
+            <div className="w-1/3 flex items-center justify-center">
+                <img src={LOGO_SRC} alt="CaapMedia" className="max-h-24 max-w-full object-contain" />
             </div>
 
-            {/* Document Info (Right side) */}
-            <div className="text-right" id="document-header-right">
-                {/* Will be populated by document-specific content */}
+            <div className="w-2/3 rounded-lg border border-[#c6e911]/40 bg-[#c6e911]/5 p-4 flex flex-col justify-center text-sm text-slate-700 leading-snug">
+                <p className="font-bold text-base text-slate-900">{subsidiary.name}</p>
+                {subsidiary.address && <p>{subsidiary.address}</p>}
+                <div className="flex flex-wrap gap-x-4 mt-1">
+                    {subsidiary.phone && (
+                        <p><span className="font-semibold">Tél :</span> {subsidiary.phone}</p>
+                    )}
+                    {subsidiary.email && (
+                        <p><span className="font-semibold">Email :</span> {subsidiary.email}</p>
+                    )}
+                </div>
+                {showFiscalInfo && (subsidiary.ifu || subsidiary.rccm) && (
+                    <div className="flex flex-wrap gap-x-4 mt-1 text-xs text-slate-500">
+                        {subsidiary.ifu && <p>IFU : {subsidiary.ifu}</p>}
+                        {subsidiary.rccm && <p>RCCM : {subsidiary.rccm}</p>}
+                    </div>
+                )}
             </div>
         </div>
     );

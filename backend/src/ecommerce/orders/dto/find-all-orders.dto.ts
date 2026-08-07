@@ -1,4 +1,4 @@
-import { IsOptional, IsEnum, IsDateString, IsUUID } from 'class-validator';
+import { IsOptional, IsEnum, IsDateString, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
 
@@ -14,23 +14,27 @@ export enum OrderPeriod {
 }
 
 export class FindAllOrdersDto {
+  // @IsUUID() rejetait systématiquement nos ids préfixés custom (ex: CNT-xxx,
+  // generateId(ID_PREFIXES.X) — jamais des UUID) : toute requête filtrée par
+  // customerId échouait en 400 silencieusement (voir CreditDetailsModal.tsx,
+  // "aucune commande impayée trouvée" alors que la commande existe bien).
   @IsOptional()
-  @IsUUID()
+  @IsString()
   @Transform(({ value }) => value?.trim() || undefined)
   customerId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   @Transform(({ value }) => value?.trim() || undefined)
   productId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   @Transform(({ value }) => value?.trim() || undefined)
   subsidiaryId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   @Transform(({ value }) => value?.trim() || undefined)
   salesRepId?: string;
 

@@ -4,6 +4,7 @@ import { useI18n } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import { TreasuryAccount, FinancialTransaction } from '../types';
 import { getTreasuryAccounts, getFinancialTransactions } from '../services/apiFinance/apiTreasury';
+import { isIncomeLegForSet, isExpenseLegForSet, getTransactionLegForAccount } from '../utils/transactionDisplay';
 import TableSkeleton from '../components/ui/TableSkeleton';
 import EmptyState from '../components/ui/EmptyState';
 import Pagination from '../components/common/Pagination';
@@ -27,6 +28,7 @@ const FinancialHistoryPage: React.FC = () => {
         enabled: !!subsidiary,
     });
     const accountMap = useMemo(() => new Map(accounts.map(a => [a.id, a.accountName])), [accounts]);
+    const accountIds = useMemo(() => new Set(accounts.map(a => a.id)), [accounts]);
 
     const { data: allTransactions = [], isLoading } = useQuery<FinancialTransaction[]>({
         queryKey: ['financialTransactions', subsidiary?.id],
@@ -34,11 +36,17 @@ const FinancialHistoryPage: React.FC = () => {
         enabled: !!subsidiary,
     });
 
+    // Un virement interne (ex: coffre → caisse dépense) est à la fois le
+    // décaissement d'un compte de la filiale ET l'encaissement d'un autre —
+    // il apparaît donc légitimement dans les deux onglets, chacun de son
+    // point de vue (voir transactionDisplay.ts). Avant ce fix, l'onglet
+    // Recettes ne montrait quasi rien : financialTransactionType vaut
+    // toujours DEPENSE côté source, même pour la jambe reçue par la destination.
     const filtered = useMemo(
         () => allTransactions
-            .filter(tx => tx.financialTransactionType === (activeTab === 'income' ? 'RECETTE' : 'DEPENSE'))
+            .filter(tx => activeTab === 'income' ? isIncomeLegForSet(tx, accountIds) : isExpenseLegForSet(tx, accountIds))
             .sort((a, b) => b.transactionDate.localeCompare(a.transactionDate)),
-        [allTransactions, activeTab],
+        [allTransactions, accountIds, activeTab],
     );
 
     const paginated = useMemo(() => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filtered, page]);
@@ -85,44 +93,61 @@ const FinancialHistoryPage: React.FC = () => {
                 </div>
 
                 <div className="overflow-x-auto">
+                    <div className="min-w-max w-full">
                     <table className="w-full text-sm text-left text-slate-500">
                         <thead className="text-xs text-slate-700 uppercase bg-slate-50">
-                            <tr>
+                            <tr className="whitespace-nowrap">
                                 <th className="px-6 py-3">{t('treasury.date')}</th>
                                 <th className="px-6 py-3">{t('treasury.description')}</th>
                                 <th className="px-6 py-3">{t('treasury.account')}</th>
+                                <th className="px-6 py-3">{t('treasury.history.counterparty')}</th>
                                 <th className="px-6 py-3 text-right">{t('treasury.amount')}</th>
+                                <th className="px-6 py-3 text-right">{t('treasury.history.balanceBefore')}</th>
+                                <th className="px-6 py-3 text-right">{t('treasury.history.balanceAfter')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {isLoading ? (
-                                <TableSkeleton rows={8} columns={4} />
+                                <TableSkeleton rows={8} columns={7} />
                             ) : paginated.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4}>
+                                    <td colSpan={7}>
                                         <EmptyState icon="finance" title={t('sidebar.financialHistory')} description={t('common.notAvailable')} />
                                     </td>
                                 </tr>
-                            ) : paginated.map(tx => (
-                                <tr key={tx.id} className="bg-white border-b hover:bg-slate-50">
-                                    <td className="px-6 py-4">{new Date(tx.transactionDate).toLocaleDateString(language)}</td>
-                                    <td className="px-6 py-4 font-medium text-slate-800">{tx.description}</td>
-                                    <td className="px-6 py-4">{accountMap.get(tx.treasuryAccountId) || accountMap.get(tx.destinationAccountId || '')}</td>
-                                    <td className={`px-6 py-4 text-right font-bold ${activeTab === 'income' ? 'text-green-700' : 'text-red-700'}`}>
-                                        {activeTab === 'income' ? '+' : '-'}{formatCurrency(Number(tx.amount))}
-                                    </td>
-                                </tr>
-                            ))}
+                            ) : paginated.map(tx => {
+                                // Onglet Recettes -> le compte de la filiale concerné est le
+                                // destinataire (ou treasuryAccountId pour l'ancien chemin RECETTE
+                                // simple) ; onglet Dépenses -> toujours treasuryAccountId (source).
+                                const matchedId = activeTab === 'income'
+                                    ? (tx.destinationAccountId && accountIds.has(tx.destinationAccountId) ? tx.destinationAccountId : tx.treasuryAccountId)
+                                    : tx.treasuryAccountId;
+                                const { counterpartyName, balanceBefore, balanceAfter } = getTransactionLegForAccount(tx, matchedId);
+                                return (
+                                    <tr key={tx.id} className="bg-white border-b hover:bg-slate-50 whitespace-nowrap">
+                                        <td className="px-6 py-4">{new Date(tx.transactionDate).toLocaleDateString(language)}</td>
+                                        <td className="px-6 py-4 font-medium text-slate-800">{tx.description}</td>
+                                        <td className="px-6 py-4">{accountMap.get(matchedId) || '—'}</td>
+                                        <td className="px-6 py-4">{counterpartyName}</td>
+                                        <td className={`px-6 py-4 text-right font-bold ${activeTab === 'income' ? 'text-green-700' : 'text-red-700'}`}>
+                                            {activeTab === 'income' ? '+' : '-'}{formatCurrency(Number(tx.amount))}
+                                        </td>
+                                        <td className="px-6 py-4 text-right">{balanceBefore != null ? formatCurrency(balanceBefore) : '—'}</td>
+                                        <td className="px-6 py-4 text-right">{balanceAfter != null ? formatCurrency(balanceAfter) : '—'}</td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                         {filtered.length > 0 && (
                             <tfoot>
                                 <tr className="bg-slate-100 font-bold text-slate-800">
-                                    <td colSpan={3} className="px-6 py-4 text-right">{t('common.total')}</td>
+                                    <td colSpan={6} className="px-6 py-4 text-right">{t('common.total')}</td>
                                     <td className="px-6 py-4 text-right">{formatCurrency(total)}</td>
                                 </tr>
                             </tfoot>
                         )}
                     </table>
+                    </div>
                 </div>
                 <Pagination meta={paginationMeta} onPageChange={setPage} />
             </div>

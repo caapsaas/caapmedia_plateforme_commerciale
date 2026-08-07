@@ -10,6 +10,7 @@ import { runTaxRateSeeder } from './seeders/tax_rate.seeder';
 //import { runOrdersSeeder } from './seeders/order.seeder';
 import { seedTreasuryAccounts } from './seeders/treasury.seeder';
 import { runSupplierSeeder } from './seeders/supplier.seeder';
+import { runPurchaseOrderSeeder } from './seeders/purchase-order.seeder';
 import { runMovementsSeeder } from './seeders/movements.seeder';
 import { runOpportunitySeeder } from './seeders/opportunity.seeder';
 
@@ -67,6 +68,9 @@ async function main() {
   await runTaxRateSeeder(prisma);
   //await runOrdersSeeder(prisma);
   await runSupplierSeeder(prisma);
+  // Dettes fournisseurs = achats non payés : posées ici avec leurs bons de
+  // commande (voir purchase-order.seeder.ts), jamais créées à la main.
+  await runPurchaseOrderSeeder(prisma);
   await seedTreasuryAccounts();
   // Apres subsidiary/user/product/contact/tax_rate: cree les mouvements
   // (commandes) multi-filiales pour observer l'architecture SUPER_ADMIN

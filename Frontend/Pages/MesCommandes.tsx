@@ -15,8 +15,15 @@ import TableSkeleton from '../components/ui/TableSkeleton';
 import CrmListSkeleton from '../components/ui/CrmListSkeleton';
 import EmptyState from '../components/ui/EmptyState';
 
+// `order.date` était affiché brut (ISO) au lieu d'une date localisée.
+const fmtDate = (date?: string | null, language = 'fr') => {
+    if (!date) return '—';
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString(language);
+};
+
 const MesCommandes: React.FC = () => {
-    const { t, formatCurrency } = useI18n();
+    const { t, formatCurrency, language } = useI18n();
     const { user: currentUser, subsidiary } = useAuth();
     const queryClient = useQueryClient();
 
@@ -203,7 +210,7 @@ const MesCommandes: React.FC = () => {
                                     filteredClientOrders.map((order) => (
                                         <tr key={order.id} className="bg-white border-b hover:bg-slate-50">
                                             <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{order.id}</th>
-                                            <td className="px-6 py-4">{order.date}</td>
+                                            <td className="px-6 py-4">{fmtDate(order.date, language)}</td>
                                             <td className="px-6 py-4 font-semibold">{formatCurrency(order.totalAmount)}</td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(order.status)}`}>

@@ -267,7 +267,7 @@ const GrandLivre: React.FC<GrandLivreProps> = ({ fiscalPeriods }) => {
       {subsidiary && (
         <div style={{ display: 'none' }}>
           <div ref={printRef} className="p-8 bg-white" style={{ width: '1100px' }}>
-            <DocumentHeader subsidiary={subsidiary} showContactIcons={false} />
+            <DocumentHeader subsidiary={subsidiary} />
             <h2 className="text-xl font-bold text-slate-800 mb-4">Grand livre — {fiscalPeriods.find((p) => p.id === fiscalYearId)?.name}</h2>
             {accounts.map((entry) => (
               <div key={entry.account.accountNumber} className="mb-6">

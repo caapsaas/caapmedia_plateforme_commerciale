@@ -24,8 +24,15 @@ interface AttendanceManagementProps {
     onSave: UseMutateFunction<AttendanceRecord, Error, Partial<AttendanceRecord>, unknown>;
 }
 
+// `record.attendanceDate` était affiché brut (ISO) au lieu d'une date localisée.
+const fmtDate = (date?: string | null, language = 'fr') => {
+    if (!date) return '—';
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString(language);
+};
+
 const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary, employees, attendances, isLoading = false, onSave }) => {
-    const { t } = useI18n();
+    const { t, language } = useI18n();
     const toast = useToast();
     const [viewingSignature, setViewingSignature] = useState<{name: string, signature: string} | null>(null);
     const [isActionModalOpen, setIsActionModalOpen] = useState(false);
@@ -299,7 +306,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary,
                         ) : attendances.map((record) => (
                             <tr key={record.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{record.employeeName}</td>
-                                <td className="px-6 py-4">{record.attendanceDate}</td>
+                                <td className="px-6 py-4">{fmtDate(record.attendanceDate, language)}</td>
                                 <td className="px-6 py-4">
                                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(record.status)}`}>
                                         {t(`hr.attendance.status_${record.status}`)}

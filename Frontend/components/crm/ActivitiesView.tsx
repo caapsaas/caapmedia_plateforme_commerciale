@@ -27,8 +27,15 @@ const InteractionIcon: React.FC<{ type: InteractionType }> = ({ type }) => {
     }
 }
 
+// `task.dueDate` était affiché brut (ISO) au lieu d'une date localisée.
+const fmtDate = (date?: string | null, language = 'fr') => {
+    if (!date) return '—';
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString(language);
+};
+
 const ActivitiesView: React.FC<ActivitiesViewProps> = ({ contacts, interactions, crmTasks, onSaveTask, onUpdateTaskStatus }) => {
-    const { t } = useI18n();
+    const { t, language } = useI18n();
 
     const TASK_TITLE_KEYS = [
         "follow_up_call",
@@ -176,7 +183,7 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({ contacts, interactions,
                                         <p className={`font-semibold ${task.status === CrmTaskStatus.DONE ? 'line-through text-slate-500' : ''}`}>{task.title}</p>
                                     </td>
                                     <td className="px-6 py-4">{getContactName(task.contactId)}</td>
-                                    <td className="px-6 py-4">{task.dueDate}</td>
+                                    <td className="px-6 py-4">{fmtDate(task.dueDate, language)}</td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPriorityClass(task.priority)}`}>
                                             {t(`crm.tasks.priority_${task.priority}`)}

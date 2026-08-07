@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import {
@@ -43,6 +44,56 @@ export class TreasuryService {
   //                       TREASURY ACCOUNTS                           //
   // ================================================================= //
 
+  /** Types de compte auxquels un caissier peut être rattaché (un seul compte par caissier). */
+  private static readonly CASHIER_ASSIGNABLE_TYPES: AccountType[] = [
+    AccountType.CASH_REGISTER,
+    AccountType.EXPENSE_BOX,
+  ];
+
+  private async validateCashierAssignment(
+    cashierId: string,
+    accountType: AccountType,
+    excludeAccountId?: string,
+  ) {
+    if (!TreasuryService.CASHIER_ASSIGNABLE_TYPES.includes(accountType)) {
+      throw new BadRequestException(
+        "Un caissier ne peut être assigné qu'à un compte de type Caisse, Caisse de vente ou Caisse de dépense.",
+      );
+    }
+
+    const targetUser = await this.prisma.user.findUnique({
+      where: { id: cashierId },
+    });
+    if (!targetUser) {
+      throw new NotFoundException(
+        `Utilisateur caissier avec l'ID "${cashierId}" non trouvé.`,
+      );
+    }
+
+    const hasCashierRole =
+      targetUser.userRole === UserRole.CAISSIER ||
+      targetUser.roles?.includes(UserRole.CAISSIER) ||
+      targetUser.additionalRoles?.includes(UserRole.CAISSIER);
+
+    if (!hasCashierRole) {
+      throw new BadRequestException(
+        `L'utilisateur "${targetUser.userName}" n'a pas le rôle Caissier.`,
+      );
+    }
+
+    const existingAssignment = await this.prisma.treasuryAccount.findFirst({
+      where: {
+        cashierId,
+        ...(excludeAccountId ? { id: { not: excludeAccountId } } : {}),
+      },
+    });
+    if (existingAssignment) {
+      throw new ConflictException(
+        `Ce caissier est déjà assigné au compte "${existingAssignment.accountName}".`,
+      );
+    }
+  }
+
   async createAccount(dto: CreateTreasuryAccountDto, user: JwtUser) {
     checkRole(
       user,
@@ -50,10 +101,71 @@ export class TreasuryService {
       'Permission denied to create treasury accounts.',
     );
 
+    // Comptes Banque et Coffre-fort : trésorerie centralisée au siège, comme
+    // gmo — « le super admin gère le coffre et les banques » (seul lui peut
+    // ensuite y décaisser, voir createDisbursement). Un compte Banque
+    // référence en plus une banque physique (tiers global, Configuration).
+    let targetSubsidiaryId: string;
+    if (
+      dto.accountType === AccountType.BANQUE ||
+      dto.accountType === AccountType.SAFE
+    ) {
+      if (dto.accountType === AccountType.BANQUE && !dto.bankId) {
+        throw new BadRequestException(
+          'La banque est requise pour un compte de type Banque.',
+        );
+      }
+      if (dto.accountType === AccountType.BANQUE) {
+        const bank = await this.prisma.bank.findUnique({
+          where: { id: dto.bankId },
+        });
+        if (!bank) {
+          throw new NotFoundException(
+            `Banque avec l'ID "${dto.bankId}" introuvable.`,
+          );
+        }
+      }
+      const headquarter = await this.prisma.subsidiary.findFirst({
+        where: { isHeadquarter: true },
+      });
+      if (!headquarter) {
+        throw new NotFoundException(
+          'Impossible de trouver la filiale siège pour rattacher ce compte.',
+        );
+      }
+      targetSubsidiaryId = headquarter.id;
+    } else {
+      // ADMIN/SUPER_ADMIN peuvent créer un compte pour n'importe quelle
+      // filiale ; les autres rôles restent forcés sur la leur.
+      const isSuperAdmin = (user.roles ?? [user.role]).includes(
+        UserRole.SUPER_ADMIN,
+      );
+      const activeRole = user.activeRole ?? user.role;
+      if (isSuperAdmin || activeRole === UserRole.ADMIN) {
+        targetSubsidiaryId = dto.subsidiaryId || user.subsidiaryId;
+      } else {
+        if (dto.subsidiaryId && dto.subsidiaryId !== user.subsidiaryId) {
+          throw new ForbiddenException(
+            "Vous n'êtes pas autorisé à créer un compte pour une autre filiale.",
+          );
+        }
+        targetSubsidiaryId = user.subsidiaryId;
+      }
+    }
+
+    const existingAccount = await this.prisma.treasuryAccount.findFirst({
+      where: { accountName: dto.accountName, subsidiaryId: targetSubsidiaryId },
+    });
+    if (existingAccount) {
+      throw new ConflictException(
+        `Un compte de trésorerie avec le nom "${dto.accountName}" existe déjà dans cette filiale.`,
+      );
+    }
+
     if (dto.accountType === AccountType.COMPTE_PREFINANCEMENT) {
       const existing = await this.prisma.treasuryAccount.findFirst({
         where: {
-          subsidiaryId: user.subsidiaryId,
+          subsidiaryId: targetSubsidiaryId,
           accountType: AccountType.COMPTE_PREFINANCEMENT,
         },
       });
@@ -64,19 +176,86 @@ export class TreasuryService {
       }
     }
 
-    return this.prisma.treasuryAccount.create({
-      data: {
-        id: generateId(ID_PREFIXES.TREASURY),
-        accountName: dto.accountName,
-        balance: new Prisma.Decimal(dto.initialBalance),
-        initialBalance: new Prisma.Decimal(dto.initialBalance),
-        currency: dto.currency,
-        accountType: dto.accountType,
-        subsidiaryId: user.subsidiaryId,
-        cashierId: dto.cashierId,
-        accountCode: dto.accountCode,
-        accountNumber: dto.accountNumber,
-      },
+    // Une seule caisse de dépense par filiale — même règle que gmo.
+    if (dto.accountType === AccountType.EXPENSE_BOX) {
+      const existingExpenseBox = await this.prisma.treasuryAccount.findFirst({
+        where: {
+          accountType: AccountType.EXPENSE_BOX,
+          subsidiaryId: targetSubsidiaryId,
+        },
+      });
+      if (existingExpenseBox) {
+        throw new ConflictException(
+          `Une caisse de dépense ("${existingExpenseBox.accountName}") existe déjà pour cette filiale. Une filiale ne peut avoir qu'une seule caisse de dépense.`,
+        );
+      }
+    }
+
+    if (dto.cashierId) {
+      await this.validateCashierAssignment(dto.cashierId, dto.accountType);
+    }
+
+    const initialBalance = dto.initialBalance || 0;
+    const accountId = generateId(ID_PREFIXES.TREASURY);
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.treasuryAccount.create({
+        data: {
+          id: accountId,
+          accountName: dto.accountName,
+          // Le solde ne se constitue qu'à travers la transaction d'ouverture
+          // ci-dessous (traçabilité) — jamais posé directement en base.
+          balance: new Prisma.Decimal(0),
+          initialBalance: new Prisma.Decimal(initialBalance),
+          currency: dto.currency,
+          accountType: dto.accountType,
+          subsidiaryId: targetSubsidiaryId,
+          cashierId: dto.cashierId,
+          accountCode: dto.accountCode,
+          accountNumber: dto.accountNumber,
+          bankId:
+            dto.accountType === AccountType.BANQUE ? dto.bankId : undefined,
+        },
+      });
+
+      if (initialBalance > 0) {
+        // NB : pas d'écriture comptable (accounting outbox) générée ici —
+        // contrairement aux autres mouvements de trésorerie, une dotation de
+        // solde initial n'a pas de contrepartie évidente dans le plan
+        // SYSCOHADA actuel (ni client 411, ni fournisseur 401) : ce serait
+        // un compte de capital (101) ou de compte courant associé (455) à
+        // choisir explicitement avant de brancher journalization.service.ts
+        // dessus. La transaction de trésorerie ci-dessous reste la source de
+        // vérité du solde et apparaît dans l'historique/relevé du compte.
+        await tx.financialTransaction.create({
+          data: {
+            id: generateId(ID_PREFIXES.TREASURY),
+            transactionDate: new Date(),
+            description: 'Solde initial',
+            amount: new Prisma.Decimal(initialBalance),
+            financialTransactionType: TransactionType.RECETTE,
+            treasuryAccountId: accountId,
+            destinationAccountId: accountId,
+            sourceAccountId: null,
+            status: TransactionStatus.VALIDE,
+            treasuryType: TreasuryTransactionType.CASH_REFILL,
+            balanceAfterDest: new Prisma.Decimal(initialBalance),
+            subsidiaryId: targetSubsidiaryId,
+            reference: `INIT-${accountId}`,
+          },
+        });
+
+        await tx.treasuryAccount.update({
+          where: { id: accountId },
+          data: { balance: new Prisma.Decimal(initialBalance) },
+        });
+      }
+
+      const created = await tx.treasuryAccount.findUnique({
+        where: { id: accountId },
+        include: { bank: true },
+      });
+      return { ...created, balance: Number(created.balance) };
     });
   }
 
@@ -85,6 +264,10 @@ export class TreasuryService {
 
     const accounts = await this.prisma.treasuryAccount.findMany({
       where: withSubsidiaryScope({}, ctx, subsidiaryId),
+      include: {
+        bank: true,
+        subsidiary: { select: { id: true, subsidiaryName: true } },
+      },
       orderBy: { accountName: 'asc' },
     });
 
@@ -97,6 +280,7 @@ export class TreasuryService {
   async findOneAccount(id: string, user: JwtUser) {
     const account = await this.prisma.treasuryAccount.findFirst({
       where: { id },
+      include: { bank: true },
     });
 
     if (!account) {
@@ -119,7 +303,15 @@ export class TreasuryService {
       [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
       'Permission denied to update treasury accounts.',
     );
-    await this.findOneAccount(id, user);
+    const account = await this.findOneAccount(id, user);
+
+    if (dto.cashierId) {
+      await this.validateCashierAssignment(
+        dto.cashierId,
+        account.accountType,
+        id,
+      );
+    }
 
     return this.prisma.treasuryAccount.update({ where: { id }, data: dto });
   }
@@ -310,7 +502,7 @@ export class TreasuryService {
   ) {
     checkRole(
       user,
-      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
+      [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
       'Permission denied to validate transactions.',
     );
 
@@ -321,8 +513,13 @@ export class TreasuryService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      // SUPER_ADMIN peut valider les transactions de n'importe quelle filiale
+      const isSuperAdmin = user.role === UserRole.SUPER_ADMIN;
       const transaction = await tx.financialTransaction.findFirst({
-        where: { id, subsidiaryId: user.subsidiaryId },
+        where: {
+          id,
+          ...(isSuperAdmin ? {} : { subsidiaryId: user.subsidiaryId }),
+        },
         include: { treasuryAccount: true },
       });
 
@@ -388,24 +585,12 @@ export class TreasuryService {
   //         + VIREMENT INTER-COMPTES TRÉSORERIE                       //
   // ================================================================= //
 
-  private static readonly CASHIER_OWNED_ACCOUNT_TYPES: AccountType[] = [
-    AccountType.CAISSE,
-    AccountType.CASH_REGISTER,
-    AccountType.EXPENSE_BOX,
-  ];
-
   private static readonly TRANSFER_TREASURY_TYPES: TreasuryTransactionType[] = [
     TreasuryTransactionType.BANK_WITHDRAWAL,
     TreasuryTransactionType.CASH_REFILL,
   ];
 
   async createDisbursement(dto: CreateDisbursementDto, user: JwtUser) {
-    checkRole(
-      user,
-      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER],
-      'Permission denied to create a disbursement.',
-    );
-
     const isTransfer = !!dto.destinationAccountId;
     const isTransferType = TreasuryService.TRANSFER_TREASURY_TYPES.includes(
       dto.treasuryType,
@@ -425,8 +610,12 @@ export class TreasuryService {
     const isPending = dto.status === TransactionStatus.EN_ATTENTE;
 
     return this.prisma.$transaction(async (tx) => {
+      // Pas de filtre subsidiaryId ici : Coffre-fort et Banque sont
+      // centralisés au siège (voir createAccount), un SUPER_ADMIN doit
+      // pouvoir y accéder même si sa propre filiale n'est pas le siège.
+      // L'autorisation par type de compte ci-dessous fait le vrai contrôle.
       const sourceAccount = await tx.treasuryAccount.findFirst({
-        where: { id: dto.sourceAccountId, subsidiaryId: user.subsidiaryId },
+        where: { id: dto.sourceAccountId },
       });
       if (!sourceAccount) {
         throw new NotFoundException(
@@ -434,17 +623,46 @@ export class TreasuryService {
         );
       }
 
-      // Un CAISSIER ne décaisse que depuis son propre compte assigné.
-      const activeRole = user.activeRole ?? user.role;
+      // La caisse (vente) ne fait l'objet d'aucun décaissement direct : son
+      // seul mouvement sortant est une remise de caisse (voir CashRemittanceService).
+      if (sourceAccount.accountType === AccountType.CASH_REGISTER) {
+        throw new BadRequestException(
+          'Aucun décaissement direct depuis une caisse — utilisez une remise de caisse.',
+        );
+      }
+
+      // Autorisation par type de compte source : Coffre-fort et Banque sont
+      // gérés exclusivement par le SUPER_ADMIN (checkRole([]) = personne
+      // d'autre n'a le rôle requis, seul le bypass SUPER_ADMIN passe) ;
+      // Caisse dépense par le Directeur Financier de SA filiale.
       if (
-        activeRole === UserRole.CAISSIER &&
-        TreasuryService.CASHIER_OWNED_ACCOUNT_TYPES.includes(
-          sourceAccount.accountType,
-        ) &&
-        sourceAccount.cashierId !== user.id
+        sourceAccount.accountType === AccountType.SAFE ||
+        sourceAccount.accountType === AccountType.BANQUE
       ) {
-        throw new ForbiddenException(
-          'Vous ne pouvez décaisser que depuis votre propre compte assigné.',
+        checkRole(
+          user,
+          [],
+          'Seul le super-administrateur peut décaisser depuis le coffre-fort ou une banque.',
+        );
+      } else if (sourceAccount.accountType === AccountType.EXPENSE_BOX) {
+        checkRole(
+          user,
+          [UserRole.FINANCIAL_DIRECTOR],
+          'Seul le directeur financier peut décaisser depuis la caisse dépense.',
+        );
+        assertSubsidiaryAccess(
+          sourceAccount.subsidiaryId,
+          resolveScopeContext(user),
+        );
+      } else {
+        checkRole(
+          user,
+          [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
+          'Permission denied to create a disbursement.',
+        );
+        assertSubsidiaryAccess(
+          sourceAccount.subsidiaryId,
+          resolveScopeContext(user),
         );
       }
 
@@ -456,11 +674,10 @@ export class TreasuryService {
 
       let destinationAccount: typeof sourceAccount | null = null;
       if (isTransfer) {
+        // Idem : pas de filtre subsidiaryId (ex. coffre siège → caisse
+        // dépense d'une filiale précise, choisie par le SUPER_ADMIN).
         destinationAccount = await tx.treasuryAccount.findFirst({
-          where: {
-            id: dto.destinationAccountId,
-            subsidiaryId: user.subsidiaryId,
-          },
+          where: { id: dto.destinationAccountId },
         });
         if (!destinationAccount) {
           throw new NotFoundException(
@@ -469,9 +686,14 @@ export class TreasuryService {
         }
       }
 
+      // L'écriture appartient à la filiale du compte source (là où l'argent
+      // se trouve), pas forcément à celle de l'utilisateur qui agit (un
+      // SUPER_ADMIN peut décaisser depuis un compte d'une autre filiale).
+      const transactionSubsidiaryId = sourceAccount.subsidiaryId;
+
       const counterpartyId = await this.resolveCounterparty(
         tx,
-        user.subsidiaryId,
+        transactionSubsidiaryId,
         dto,
       );
 
@@ -505,7 +727,7 @@ export class TreasuryService {
           treasuryType: dto.treasuryType,
           reference: dto.reference,
           counterpartyId,
-          subsidiaryId: user.subsidiaryId,
+          subsidiaryId: transactionSubsidiaryId,
           transactionDate: new Date(dto.transactionDate),
           status: isPending
             ? TransactionStatus.EN_ATTENTE
@@ -518,7 +740,7 @@ export class TreasuryService {
       if (!isPending) {
         await this.accountingOutbox.enqueue(tx, {
           eventType: isTransfer ? 'TREASURY_TRANSFER' : 'TREASURY_EXPENSE',
-          subsidiaryId: user.subsidiaryId,
+          subsidiaryId: transactionSubsidiaryId,
           payload: {
             userId: user.id,
             operationDate: new Date(dto.transactionDate).toISOString(),
@@ -567,20 +789,60 @@ export class TreasuryService {
     return undefined;
   }
 
-  /** Utilisateurs éligibles comme caissier assigné (CAISSE/CASH_REGISTER/EXPENSE_BOX) — Configuration Trésorerie. */
-  async findEligibleCashiers(user: JwtUser) {
-    return this.prisma.user.findMany({
+  /**
+   * Utilisateurs éligibles comme caissier assigné (CASH_REGISTER/
+   * EXPENSE_BOX) — Configuration Trésorerie. Prends en compte le système multi-rôles
+   * (userRole, roles, additionalRoles). Exclut les caissiers déjà
+   * assignés à un autre compte (sauf si c'est le caissier du compte en cours d'édition).
+   * `subsidiaryId` permet à un ADMIN/SUPER_ADMIN de lister les caissiers d'une filiale.
+   */
+  async findEligibleCashiers(
+    user: JwtUser,
+    subsidiaryId?: string,
+    currentCashierId?: string,
+  ) {
+    const ctx = resolveScopeContext(user);
+    const targetSubsidiaryWhere = subsidiaryId
+      ? { subsidiaryId }
+      : ctx.hasGlobalScope
+        ? {}
+        : { subsidiaryId: user.subsidiaryId };
+
+    const cashierRoleCondition = {
+      OR: [
+        { userRole: UserRole.CAISSIER },
+        { roles: { has: UserRole.CAISSIER } },
+        { additionalRoles: { has: UserRole.CAISSIER } },
+      ],
+    };
+
+    const notAssignedCondition = {
+      OR: [
+        { cashierTreasuryAccounts: { none: {} } },
+        ...(currentCashierId ? [{ id: currentCashierId }] : []),
+      ],
+    };
+
+    const cashiers = await this.prisma.user.findMany({
       where: {
-        subsidiaryId: user.subsidiaryId,
-        OR: [
-          { userRole: UserRole.CAISSIER },
-          { roles: { has: UserRole.CAISSIER } },
-          { additionalRoles: { has: UserRole.CAISSIER } },
-        ],
+        ...targetSubsidiaryWhere,
+        AND: [cashierRoleCondition, notAssignedCondition],
       },
-      select: { id: true, userName: true, email: true },
+      select: {
+        id: true,
+        userName: true,
+        email: true,
+        subsidiary: { select: { id: true, subsidiaryName: true } },
+      },
       orderBy: { userName: 'asc' },
     });
+
+    return cashiers.map((c) => ({
+      id: c.id,
+      userName: c.userName,
+      email: c.email,
+      subsidiaryName: c.subsidiary?.subsidiaryName,
+    }));
   }
 
   async findAllCounterparties(user: JwtUser, type?: CounterpartyType) {
@@ -604,12 +866,22 @@ export class TreasuryService {
     const ctx = resolveScopeContext(user);
     const where = withSubsidiaryScope({}, ctx, subsidiaryId);
 
+    // Les 3 relations sont nécessaires côté frontend pour afficher le "tiers"
+    // (compte d'émission si encaissement, compte/tiers de réception si
+    // décaissement, voir Frontend/utils/transactionDisplay.ts) — un include
+    // partiel ici les laissait à `undefined` sur toute vue basée sur cet
+    // endpoint générique (Décaissement, Analytics, Caisse dépense,
+    // Historique financier), contrairement à findAccountTransactions.
     return paginate(
       this.prisma.financialTransaction,
       {
         where,
         orderBy: { transactionDate: 'desc' },
-        include: { treasuryAccount: { select: { accountName: true } } },
+        include: {
+          treasuryAccount: { select: { accountName: true } },
+          destinationAccount: { select: { accountName: true } },
+          counterparty: { select: { name: true } },
+        },
       },
       paginationQuery,
     );

@@ -8,6 +8,7 @@ import SupplierManagement from '../components/configuration/SupplierManagement';
 import ClientManagement from '../components/configuration/ClientManagement';
 import TaxManagement from '../components/configuration/TaxManagement';
 import TreasuryAccountManagement from '../components/configuration/TreasuryAccountManagement';
+import BankManagement from '../components/configuration/BankManagement';
 import EquipmentCostManagement from '../components/configuration/EquipmentCostManagement';
 import CommercialParamsManagement from '../components/configuration/CommercialParamsManagement';
 import ProductionWorkflowManagement from '../components/configuration/ProductionWorkflowManagement';
@@ -20,6 +21,7 @@ import CrmListSkeleton from '../components/ui/CrmListSkeleton';
 type ConfigGroup = 'catalogue' | 'users' | 'suppliers' | 'clients' | 'taxes' | 'treasury' | 'production' | 'payroll';
 type CatalogueSub = 'products' | 'units' | 'services' | 'referenceLists';
 type ProductionSub = 'equipmentCosts' | 'commercialParams' | 'productionWorkflows';
+type TreasurySub = 'accounts' | 'banks';
 
 const TabButton: React.FC<{ label: string; isActive: boolean; onClick: () => void }> = ({ label, isActive, onClick }) => (
     <button
@@ -49,6 +51,7 @@ const Configuration: React.FC = () => {
     const [activeGroup, setActiveGroup] = useState<ConfigGroup>('catalogue');
     const [catalogueSub, setCatalogueSub] = useState<CatalogueSub>('products');
     const [productionSub, setProductionSub] = useState<ProductionSub>('equipmentCosts');
+    const [treasurySub, setTreasurySub] = useState<TreasurySub>('accounts');
 
     const activeRole = user?.activeRole ?? user?.userRole;
     const isSuperAdmin = activeRole === UserRole.SUPER_ADMIN;
@@ -69,7 +72,12 @@ const Configuration: React.FC = () => {
             case 'suppliers': return <SupplierManagement />;
             case 'clients':   return <ClientManagement />;
             case 'taxes':     return <TaxManagement />;
-            case 'treasury':  return <TreasuryAccountManagement subsidiary={subsidiary} />;
+            case 'treasury':
+                switch (treasurySub) {
+                    case 'accounts': return <TreasuryAccountManagement subsidiary={subsidiary} />;
+                    case 'banks':    return <BankManagement />;
+                }
+                break;
             case 'payroll':   return <PayrollScaleManagement />;
             case 'production':
                 switch (productionSub) {
@@ -123,6 +131,16 @@ const Configuration: React.FC = () => {
                         <SubTabButton label={t('configuration.units')}         isActive={catalogueSub === 'units'}          onClick={() => setCatalogueSub('units')} />
                         <SubTabButton label={t('configuration.services')}      isActive={catalogueSub === 'services'}       onClick={() => setCatalogueSub('services')} />
                         <SubTabButton label={t('configuration.referenceLists')} isActive={catalogueSub === 'referenceLists'} onClick={() => setCatalogueSub('referenceLists')} />
+                    </div>
+                </div>
+            )}
+
+            {/* Barre de sous-onglets Trésorerie */}
+            {activeGroup === 'treasury' && (
+                <div className="overflow-x-auto scrollbar-thin p-1 bg-slate-50 rounded-lg border border-slate-200 no-print">
+                    <div className="flex gap-1 min-w-max">
+                        <SubTabButton label={t('treasuryAccounts.title')}   isActive={treasurySub === 'accounts'} onClick={() => setTreasurySub('accounts')} />
+                        <SubTabButton label={t('configuration.bank.management')} isActive={treasurySub === 'banks'}    onClick={() => setTreasurySub('banks')} />
                     </div>
                 </div>
             )}

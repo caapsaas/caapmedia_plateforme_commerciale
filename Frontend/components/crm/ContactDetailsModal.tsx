@@ -16,6 +16,13 @@ interface ContactDetailsModalProps {
 
 type DetailsView = 'info' | 'interactions' | 'opportunities' | 'tasks' | 'contracts';
 
+// `contract.startDate`/`endDate` étaient affichés bruts (ISO) au lieu de dates localisées.
+const fmtDate = (date?: string | null, language = 'fr') => {
+    if (!date) return '—';
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString(language);
+};
+
 const ContactDetailsModal: React.FC<ContactDetailsModalProps> = ({
     isOpen,
     onClose,
@@ -26,7 +33,7 @@ const ContactDetailsModal: React.FC<ContactDetailsModalProps> = ({
     contracts,
     onLogInteraction,
 }) => {
-    const { t, formatCurrency } = useI18n();
+    const { t, formatCurrency, language } = useI18n();
     const [activeTab, setActiveTab] = useState<DetailsView>('interactions');
 
     if (!isOpen) return null;
@@ -90,7 +97,7 @@ const ContactDetailsModal: React.FC<ContactDetailsModalProps> = ({
                                     </span>
                                 </div>
                                 <p className="text-sm text-slate-600">{formatCurrency(contract.amount)}</p>
-                                <p className="text-xs text-slate-500">{`Du ${contract.startDate} au ${contract.endDate}`}</p>
+                                <p className="text-xs text-slate-500">{`Du ${fmtDate(contract.startDate, language)} au ${fmtDate(contract.endDate, language)}`}</p>
                             </li>
                         ))}
                     </ul>

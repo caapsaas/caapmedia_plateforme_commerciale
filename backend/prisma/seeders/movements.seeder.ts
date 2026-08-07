@@ -443,8 +443,11 @@ export async function runMovementsSeeder(prisma: PrismaClient) {
       });
     }
 
-    // Commandes: idempotent par (client + filiale + date), pour ne pas
-    // dupliquer a chaque `npm run seed`.
+    // Commandes: idempotent par (client + filiale + produit) — PAS par date
+    // (orderDate = "aujourd'hui - daysAgo" se déplace à chaque exécution,
+    // donc une vérification par date ne matche jamais un run précédent fait
+    // un autre jour : ça dupliquait une commande entière à chaque `npm run
+    // seed` lancé un jour différent — bug corrigé, 14 doublons nettoyés en base).
     for (const o of config.orders) {
       const contact = await prisma.contact.findUnique({
         where: { email: o.customerEmail },
@@ -474,13 +477,7 @@ export async function runMovementsSeeder(prisma: PrismaClient) {
         where: {
           customerId: contact.id,
           subsidiaryId: subsidiary.id,
-          orderDate: {
-            gte: new Date(orderDate.toDateString()),
-            lt: new Date(
-              new Date(orderDate.toDateString()).getTime() +
-                24 * 60 * 60 * 1000,
-            ),
-          },
+          orderItems: { some: { productId: product.id } },
         },
       });
       if (existingOrder) continue;

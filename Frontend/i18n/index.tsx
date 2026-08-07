@@ -494,6 +494,11 @@ const frTranslations = {
   },
   "purchasing": {
     "title": "Gestion des Achats",
+    "historyTitle": "Historique des achats",
+    "tabs": {
+      "orders": "Commandes",
+      "receipts": "Bons d'entrée"
+    },
     "newOrder": "Nouveau Bon de Commande",
     "poNumber": "N° de commande",
     "supplier": "Fournisseur",
@@ -543,6 +548,22 @@ const frTranslations = {
     "history": {
       "title": "Historique de la commande"
     },
+    "viewGoodsReceipt": "Voir le bon d'entrée",
+    "goodsReceipt": {
+      "title": "Bon d'entrée",
+      "itemsTitle": "Articles réceptionnés",
+      "receiptDate": "Date d'édition",
+      "quantityReceived": "Quantité reçue",
+      "disclaimer": "Ce document reflète l'état cumulé de réception du bon de commande, pas un événement de réception isolé.",
+      "warehouseKeeper": "Magasinier",
+      "supplierOrCarrier": "Fournisseur / Transporteur",
+      "signature": "Signature",
+      "noneReceivedYet": "Aucun article n'a encore été réceptionné pour ce bon de commande."
+    },
+    "goodsReceiptsList": {
+      "receiptDate": "Date de réception",
+      "empty": "Aucun bon d'entrée pour le moment."
+    },
     "form": {
       "supplier": "Fournisseur",
       "selectSupplier": "Sélectionnez un fournisseur",
@@ -570,11 +591,10 @@ const frTranslations = {
     "warehouse": "Entrepôt",
     "currentStock": "Stock Actuel",
     "costPrice": "Prix de Revient",
+    "costPriceHint": "Dernier prix d'achat enregistré pour cet article",
     "sellingPrice": "Prix de Vente",
     "margin": "Marge",
     "range": "Gamme",
-    "confirmPriceSaveTitle": "Confirmer la sauvegarde",
-    "confirmPriceSaveMessage": "Voulez-vous enregistrer les nouveaux prix ?",
     "belowThreshold": "Sous le seuil minimum",
     "available": "Disponible",
     "categories": {
@@ -1018,6 +1038,7 @@ const frTranslations = {
     "item": "Article",
     "subtotal": "Sous-total",
     "discount": "Remise (FCFA)",
+    "assemblyPrice": "Assemblage (FCFA)",
     "searchClientOtherSubsidiary": "Chercher un client d'une autre filiale...",
     "paymentMethod": "Méthode de paiement",
     "paymentMethod_PAY_ON_DELIVERY": "Paiement à la livraison",
@@ -1034,12 +1055,15 @@ const frTranslations = {
     "date": "Date",
     "billedTo": "Facturé à",
     "item": "Article",
+    "items": "Détail de la livraison",
     "quantity": "Quantité",
     "unitPrice": "Prix Unitaire",
     "totalPrice": "Prix Total",
     "total": "Total Général",
     "print": "Imprimer le bon",
-    "exportPdf": "Exporter en PDF"
+    "exportPdf": "Exporter en PDF",
+    "footer": "Merci de votre confiance. Livraison à régler avant le",
+    "noData": "Aucun article à livrer"
   },
   "invoice": {
     "title": "Facture",
@@ -1061,6 +1085,7 @@ const frTranslations = {
     "subtotal": "Total HT",
     "tax": "TVA",
     "totalTTC": "Total TTC",
+    "amountInWords": "Arrêtée la présente facture à la somme de : {{amount}}.",
     "paymentInfo": "Informations de paiement"
   },
   "finance": {
@@ -1139,7 +1164,12 @@ const frTranslations = {
       "account": "Compte / Tiers",
       "reference": "Référence",
       "amount": "Montant",
+      "balanceBefore": "Solde avant",
       "balanceAfter": "Solde après",
+      "direction": "Sens",
+      "income": "Encaissement",
+      "expense": "Décaissement",
+      "counterparty": "Tiers",
       "status": "Statut",
       "statusUpdated": "Transaction validée",
       "statusUpdatedMessage": "La transaction a été validée et le solde mis à jour.",
@@ -1162,7 +1192,17 @@ const frTranslations = {
       "credit": "Crédit",
       "balance": "Solde",
       "currentBalance": "Solde actuel",
+      "initialBalance": "Solde initial",
+      "periodEndBalance": "Solde en fin de période",
       "footerMessage": "Ce relevé est généré à titre indicatif et ne remplace pas un document bancaire officiel."
+    },
+    "management": {
+      "title": "Trésorerie",
+      "accessDenied": "La vue Trésorerie consolidée est réservée au super-administrateur.",
+      "viewDetails": "Voir les détails",
+      "noBankAccounts": "Aucun compte bancaire trouvé.",
+      "noAccountsForCategory": "Aucun compte trouvé pour cette catégorie.",
+      "unlinkedBankAccounts": "Comptes bancaires sans banque associée"
     }
   },
   "treasuryAccounts": {
@@ -1177,8 +1217,10 @@ const frTranslations = {
     },
     "table": {
       "accountName": "Nom du compte",
+      "type": "Type",
       "balance": "Solde",
       "currency": "Devise",
+      "accountCode": "Compte comptable",
       "actions": "Actions"
     },
     "actions": {
@@ -1203,11 +1245,17 @@ const frTranslations = {
     "accountTypes": {
       "bank": "Banque",
       "cash": "Caisse",
-      "prefinancement": "Compte de préfinancement"
+      "prefinancement": "Compte de préfinancement",
+      "BANQUE": "Banque",
+      "CASH_REGISTER": "Caisse de vente",
+      "SAFE": "Coffre-fort",
+      "EXPENSE_BOX": "Caisse dépense",
+      "COMPTE_PREFINANCEMENT": "Compte de préfinancement"
     },
     "validation": {
       "accountNameRequired": "Le nom du compte est requis",
-      "validBalance": "Veuillez entrer un solde valide"
+      "validBalance": "Veuillez entrer un solde valide",
+      "bankRequired": "La banque est requise pour un compte de type Banque"
     },
     "confirm": {
       "delete": "Êtes-vous sûr de vouloir supprimer ce compte de trésorerie ?",
@@ -1216,6 +1264,7 @@ const frTranslations = {
     },
     "success": {
       "created": "Compte de trésorerie créé avec succès",
+      "createdElsewhere": "Compte bancaire créé avec succès pour la filiale siège",
       "updated": "Compte de trésorerie mis à jour avec succès",
       "deleted": "Compte de trésorerie supprimé avec succès"
     },
@@ -1232,8 +1281,131 @@ const frTranslations = {
     "view": {
       "disbursement": "Faire un décaissement",
       "accountsSection": "Comptes",
-      "movementsSection": "Historique des mouvements"
+      "movementsSection": "Historique des mouvements",
+      "type": "Type",
+      "statusColumn": "Statut"
     }
+  },
+  "disbursement": {
+    "accessDenied": "Le module Décaissement (Coffre-fort / Banques) est réservé au super-administrateur."
+  },
+  "safeDisbursement": {
+    "title": "Décaissement — Coffre-fort",
+    "subtitle": "Trésorerie centralisée : le coffre-fort du siège.",
+    "sourceSafe": "Coffre-fort source",
+    "selectSafe": "-- Sélectionner un coffre --",
+    "insufficientBalance": "Solde insuffisant ({{balance}} disponible).",
+    "operationType": "Type d'opération",
+    "types": {
+      "SUPPLIER_PAYMENT": "Paiement fournisseur",
+      "BANK_WITHDRAWAL": "Retrait vers une banque",
+      "CASH_REFILL": "Alimentation caisse dépense",
+      "SALARY_PAYMENT": "Paiement de salaires",
+      "BONUS_PAYMENT": "Paiement de primes",
+      "IRPP_PAYMENT": "Versement IRPP",
+      "CNPS_PAYMENT": "Versement CNPS",
+      "CFC_FNE_PAYMENT": "Versement CFC & FNE",
+      "TVA_PAYMENT": "Versement TVA",
+      "OTHER_EXPENSE": "Autre dépense"
+    },
+    "destinationBank": "Banque destination",
+    "selectBank": "-- Sélectionner une banque --",
+    "destinationExpenseBox": "Caisse dépense destination",
+    "selectExpenseBox": "-- Sélectionner une caisse dépense --",
+    "beneficiarySupplier": "Fournisseur bénéficiaire",
+    "selectSupplier": "-- Sélectionner un fournisseur --",
+    "month": "Mois",
+    "year": "Année",
+    "months": {
+      "1": "Janvier", "2": "Février", "3": "Mars", "4": "Avril",
+      "5": "Mai", "6": "Juin", "7": "Juillet", "8": "Août",
+      "9": "Septembre", "10": "Octobre", "11": "Novembre", "12": "Décembre"
+    },
+    "subsidiary": "Filiale",
+    "allSubsidiaries": "Toutes les filiales (consolidé)",
+    "taxHint": "Le montant est calculé automatiquement à partir du module Fiscalité & Paie pour la période choisie.",
+    "amount": "Montant",
+    "date": "Date",
+    "description": "Description",
+    "reference": "Référence (optionnel)",
+    "submitting": "Traitement...",
+    "submit": "Valider le décaissement",
+    "success": "Décaissement enregistré avec succès",
+    "descriptions": {
+      "irpp": "Versement IRPP {{month}}/{{year}}",
+      "cnps": "Versement CNPS {{month}}/{{year}}",
+      "cfcFne": "Versement CFC & FNE {{month}}/{{year}}",
+      "tva": "Versement TVA {{month}}/{{year}}"
+    }
+  },
+  "bankDisbursement": {
+    "title": "Décaissement — Banque",
+    "subtitle": "Trésorerie centralisée : les comptes bancaires du siège.",
+    "sourceAccount": "Compte bancaire source",
+    "selectBank": "-- Sélectionner une banque --",
+    "balance": "Solde :",
+    "operationType": "Type d'opération",
+    "salaryPayment": "Paiement de salaires",
+    "bonusPayment": "Paiement de primes",
+    "amount": "Montant",
+    "description": "Description",
+    "descriptionPlaceholder": "Ex : Virement salaires janvier",
+    "submitting": "Traitement...",
+    "submit": "Valider le décaissement",
+    "successMessage": "Décaissement bancaire enregistré avec succès"
+  },
+  "expenseBoxDisbursement": {
+    "title": "Caisse dépense",
+    "subtitle": "Petites dépenses courantes de la filiale — gérée par le Directeur Financier.",
+    "operationType": "Type d'opération",
+    "types": {
+      "RENT": "Loyer",
+      "UTILITIES": "Factures (eau, électricité, internet)",
+      "MARKETING": "Marketing & publicité",
+      "SUPPLIES": "Fournitures de bureau",
+      "PURCHASE_COST": "Achats divers",
+      "OTHER_EXPENSE": "Autre dépense"
+    },
+    "description": "Motif / Description",
+    "descriptionPlaceholder": "Ex : Achat fournitures",
+    "submitting": "Traitement...",
+    "submit": "Valider le décaissement",
+    "success": "Décaissement enregistré avec succès",
+    "noExpenseBox": "Aucune caisse dépense n'a été configurée pour cette filiale."
+  },
+  "cashRemittance": {
+    "title": "Remises de caisse",
+    "subtitle": "Remise du contenu de la caisse au coffre-fort du siège.",
+    "new": "Nouvelle remise",
+    "table": {
+      "reference": "Référence",
+      "date": "Date",
+      "cashier": "Caissier",
+      "declared": "Montant déclaré",
+      "received": "Montant reçu",
+      "status": "Statut"
+    },
+    "status": {
+      "SUBMITTED": "Remis (en attente)",
+      "RECEIVED": "Reçu (conforme)",
+      "RECEIVED_WITH_DISCREPANCY": "Reçu (écart)",
+      "REJECTED": "Rejeté"
+    },
+    "receive": "Réceptionner",
+    "receiveTitle": "Réception remise {{reference}}",
+    "form": {
+      "declaredAmount": "Montant déclaré (espèces)",
+      "notes": "Notes",
+      "declaredByAgent": "Montant déclaré par le caissier",
+      "receivedAmount": "Montant réellement reçu (comptage)",
+      "discrepancyWarning": "Écart détecté : {{amount}}",
+      "receptionNotes": "Notes de réception"
+    },
+    "submit": "Valider la remise",
+    "confirmReceive": "Confirmer la réception",
+    "createSuccess": "Remise de caisse créée avec succès",
+    "receiveSuccess": "Remise de caisse réceptionnée avec succès",
+    "noData": "Aucune remise de caisse trouvée."
   },
   "supplierDebts": {
     "totalDebts": "Total Dettes Fournisseurs",
@@ -1245,6 +1417,7 @@ const frTranslations = {
     "amount": "Montant",
     "status": "Statut",
     "statusToPay": "À payer",
+    "statusPartiallyPaid": "Partiellement payé",
     "statusPaid": "Payé",
     "statusOverdue": "En retard",
     "statusPending": "En attente",
@@ -1494,7 +1667,7 @@ const frTranslations = {
       "total": "Total",
       "subtotal": "Sous-total",
       "tax": "TVA",
-      "amountInWords": "Arrêté la présente facture proforma à la somme de : {{amount}} francs CFA.",
+      "amountInWords": "Arrêté la présente facture proforma à la somme de : {{amount}}.",
       "notes": "Notes / Conditions",
       "footerMessage": "Ce document est une facture proforma et ne constitue pas une facture définitive.",
       "markSent": "Marquer comme envoyée",
@@ -1642,6 +1815,8 @@ const frTranslations = {
   "filter": {
     "client": "Client",
     "allClients": "Tous les clients",
+    "supplier": "Fournisseur",
+    "allSuppliers": "Tous les fournisseurs",
     "product": "Produit",
     "allProducts": "Tous les produits",
     "status": "Statut",
@@ -1682,6 +1857,22 @@ const frTranslations = {
     "suppliers": "Fournisseurs",
     "taxes": "Taxes",
     "treasury": "Trésorerie",
+    "bank": {
+      "management": "Banques",
+      "managementDescription": "Institutions bancaires référencées par les comptes de trésorerie de type Banque.",
+      "add": "Ajouter une banque",
+      "addTitle": "Ajouter une banque",
+      "editTitle": "Modifier la banque",
+      "deleteTitle": "Supprimer la banque",
+      "name": "Banque",
+      "type": "Type",
+      "types": {
+        "COMMERCIAL_BANK": "Banque commerciale",
+        "PUBLIC_BANK": "Banque publique"
+      },
+      "select": "Sélectionner une banque",
+      "headquarterOnly": "Filiale siège (comptes bancaires centralisés)"
+    },
     "productManagement": "Gestion des Produits",
     "addProduct": "Ajouter un produit",
     "addTax": "Ajouter une taxe",
@@ -2626,6 +2817,7 @@ const frTranslations = {
     "print": "Imprimer",
     "exportPdf": "Exporter en PDF",
     "footer": "Merci de votre confiance. Cette commande est valide jusqu'au",
+    "amountInWords": "Arrêté le présent bon de commande à la somme de : {{amount}}.",
     "status": "Statut",
     "noData": "Aucune commande"
   }
@@ -3125,6 +3317,11 @@ const enTranslations: Translations = {
   },
   "purchasing": {
     "title": "Purchase Management",
+    "historyTitle": "Purchase History",
+    "tabs": {
+      "orders": "Orders",
+      "receipts": "Goods Receipts"
+    },
     "newOrder": "New Purchase Order",
     "poNumber": "PO Number",
     "supplier": "Supplier",
@@ -3174,6 +3371,22 @@ const enTranslations: Translations = {
     "history": {
       "title": "Order History"
     },
+    "viewGoodsReceipt": "View goods receipt note",
+    "goodsReceipt": {
+      "title": "Goods Receipt Note",
+      "itemsTitle": "Received Items",
+      "receiptDate": "Issue Date",
+      "quantityReceived": "Quantity Received",
+      "disclaimer": "This document reflects the cumulative reception status of the purchase order, not a single reception event.",
+      "warehouseKeeper": "Warehouse Keeper",
+      "supplierOrCarrier": "Supplier / Carrier",
+      "signature": "Signature",
+      "noneReceivedYet": "No items have been received yet for this purchase order."
+    },
+    "goodsReceiptsList": {
+      "receiptDate": "Receipt Date",
+      "empty": "No goods receipt notes yet."
+    },
     "form": {
       "supplier": "Supplier",
       "selectSupplier": "Select a supplier",
@@ -3201,11 +3414,10 @@ const enTranslations: Translations = {
     "warehouse": "Warehouse",
     "currentStock": "Current Stock",
     "costPrice": "Cost Price",
+    "costPriceHint": "Last recorded purchase price for this item",
     "sellingPrice": "Selling Price",
     "margin": "Margin",
     "range": "Range",
-    "confirmPriceSaveTitle": "Confirm Save",
-    "confirmPriceSaveMessage": "Do you want to save the new prices?",
     "belowThreshold": "Below minimum threshold",
     "available": "Available",
     "categories": {
@@ -4018,6 +4230,7 @@ const enTranslations: Translations = {
     "item": "Item",
     "subtotal": "Subtotal",
     "discount": "Discount (FCFA)",
+    "assemblyPrice": "Assembly (FCFA)",
     "searchClientOtherSubsidiary": "Search a client from another subsidiary...",
     "paymentMethod": "Payment method",
     "paymentMethod_PAY_ON_DELIVERY": "Pay on delivery",
@@ -4034,12 +4247,15 @@ const enTranslations: Translations = {
     "date": "Date",
     "billedTo": "Billed to",
     "item": "Item",
+    "items": "Delivery Details",
     "quantity": "Quantity",
     "unitPrice": "Unit Price",
     "totalPrice": "Total Price",
     "total": "Grand Total",
     "print": "Print Note",
-    "exportPdf": "Export to PDF"
+    "exportPdf": "Export to PDF",
+    "footer": "Thank you for your trust. Payment due before",
+    "noData": "No items to deliver"
   },
   "invoice": {
     "title": "Invoice",
@@ -4061,6 +4277,7 @@ const enTranslations: Translations = {
     "subtotal": "Subtotal",
     "tax": "Tax",
     "totalTTC": "Total (incl. tax)",
+    "amountInWords": "This invoice is set at the sum of: {{amount}}.",
     "paymentInfo": "Payment Information"
   },
   "finance": {
@@ -4139,7 +4356,12 @@ const enTranslations: Translations = {
       "account": "Account / Counterparty",
       "reference": "Reference",
       "amount": "Amount",
+      "balanceBefore": "Balance before",
       "balanceAfter": "Balance after",
+      "direction": "Direction",
+      "income": "Inflow",
+      "expense": "Outflow",
+      "counterparty": "Counterparty",
       "status": "Status",
       "statusUpdated": "Transaction validated",
       "statusUpdatedMessage": "The transaction was validated and the balance updated.",
@@ -4162,7 +4384,17 @@ const enTranslations: Translations = {
       "credit": "Credit",
       "balance": "Balance",
       "currentBalance": "Current balance",
+      "initialBalance": "Opening balance",
+      "periodEndBalance": "Closing balance",
       "footerMessage": "This statement is provided for reference only and does not replace an official bank document."
+    },
+    "management": {
+      "title": "Treasury",
+      "accessDenied": "The consolidated Treasury view is restricted to the super administrator.",
+      "viewDetails": "View details",
+      "noBankAccounts": "No bank accounts found.",
+      "noAccountsForCategory": "No accounts found for this category.",
+      "unlinkedBankAccounts": "Bank accounts with no linked bank"
     }
   },
   "treasuryAccounts": {
@@ -4177,8 +4409,10 @@ const enTranslations: Translations = {
     },
     "table": {
       "accountName": "Account Name",
+      "type": "Type",
       "balance": "Balance",
       "currency": "Currency",
+      "accountCode": "Accounting Account",
       "actions": "Actions"
     },
     "actions": {
@@ -4203,11 +4437,17 @@ const enTranslations: Translations = {
     "accountTypes": {
       "bank": "Bank",
       "cash": "Cash",
-      "prefinancement": "Prefinancement Account"
+      "prefinancement": "Prefinancement Account",
+      "BANQUE": "Bank",
+      "CASH_REGISTER": "Sales Register",
+      "SAFE": "Safe",
+      "EXPENSE_BOX": "Expense Box",
+      "COMPTE_PREFINANCEMENT": "Prefinancement Account"
     },
     "validation": {
       "accountNameRequired": "Account name is required",
-      "validBalance": "Please enter a valid balance"
+      "validBalance": "Please enter a valid balance",
+      "bankRequired": "The bank is required for a Bank-type account"
     },
     "confirm": {
       "delete": "Are you sure you want to delete this treasury account?",
@@ -4216,6 +4456,7 @@ const enTranslations: Translations = {
     },
     "success": {
       "created": "Treasury account created successfully",
+      "createdElsewhere": "Bank account created successfully for the headquarter subsidiary",
       "updated": "Treasury account updated successfully",
       "deleted": "Treasury account deleted successfully"
     },
@@ -4232,8 +4473,131 @@ const enTranslations: Translations = {
     "view": {
       "disbursement": "Make a disbursement",
       "accountsSection": "Accounts",
-      "movementsSection": "Transaction history"
+      "movementsSection": "Transaction history",
+      "type": "Type",
+      "statusColumn": "Status"
     }
+  },
+  "disbursement": {
+    "accessDenied": "The Disbursement module (Safe / Banks) is restricted to the super administrator."
+  },
+  "safeDisbursement": {
+    "title": "Disbursement — Safe",
+    "subtitle": "Centralized treasury: the headquarter safe.",
+    "sourceSafe": "Source safe",
+    "selectSafe": "-- Select a safe --",
+    "insufficientBalance": "Insufficient balance ({{balance}} available).",
+    "operationType": "Operation type",
+    "types": {
+      "SUPPLIER_PAYMENT": "Supplier payment",
+      "BANK_WITHDRAWAL": "Withdrawal to a bank",
+      "CASH_REFILL": "Expense box refill",
+      "SALARY_PAYMENT": "Salary payment",
+      "BONUS_PAYMENT": "Bonus payment",
+      "IRPP_PAYMENT": "IRPP payment",
+      "CNPS_PAYMENT": "CNPS payment",
+      "CFC_FNE_PAYMENT": "CFC & FNE payment",
+      "TVA_PAYMENT": "VAT payment",
+      "OTHER_EXPENSE": "Other expense"
+    },
+    "destinationBank": "Destination bank",
+    "selectBank": "-- Select a bank --",
+    "destinationExpenseBox": "Destination expense box",
+    "selectExpenseBox": "-- Select an expense box --",
+    "beneficiarySupplier": "Beneficiary supplier",
+    "selectSupplier": "-- Select a supplier --",
+    "month": "Month",
+    "year": "Year",
+    "months": {
+      "1": "January", "2": "February", "3": "March", "4": "April",
+      "5": "May", "6": "June", "7": "July", "8": "August",
+      "9": "September", "10": "October", "11": "November", "12": "December"
+    },
+    "subsidiary": "Subsidiary",
+    "allSubsidiaries": "All subsidiaries (consolidated)",
+    "taxHint": "The amount is automatically computed from the Tax & Payroll Transparency module for the chosen period.",
+    "amount": "Amount",
+    "date": "Date",
+    "description": "Description",
+    "reference": "Reference (optional)",
+    "submitting": "Processing...",
+    "submit": "Confirm disbursement",
+    "success": "Disbursement recorded successfully",
+    "descriptions": {
+      "irpp": "IRPP payment {{month}}/{{year}}",
+      "cnps": "CNPS payment {{month}}/{{year}}",
+      "cfcFne": "CFC & FNE payment {{month}}/{{year}}",
+      "tva": "VAT payment {{month}}/{{year}}"
+    }
+  },
+  "bankDisbursement": {
+    "title": "Disbursement — Bank",
+    "subtitle": "Centralized treasury: the headquarter bank accounts.",
+    "sourceAccount": "Source bank account",
+    "selectBank": "-- Select a bank --",
+    "balance": "Balance:",
+    "operationType": "Operation type",
+    "salaryPayment": "Salary payment",
+    "bonusPayment": "Bonus payment",
+    "amount": "Amount",
+    "description": "Description",
+    "descriptionPlaceholder": "Ex: January salaries transfer",
+    "submitting": "Processing...",
+    "submit": "Confirm disbursement",
+    "successMessage": "Bank disbursement recorded successfully"
+  },
+  "expenseBoxDisbursement": {
+    "title": "Expense box",
+    "subtitle": "Subsidiary's day-to-day expenses — managed by the Financial Director.",
+    "operationType": "Operation type",
+    "types": {
+      "RENT": "Rent",
+      "UTILITIES": "Utilities (water, electricity, internet)",
+      "MARKETING": "Marketing & advertising",
+      "SUPPLIES": "Office supplies",
+      "PURCHASE_COST": "Miscellaneous purchases",
+      "OTHER_EXPENSE": "Other expense"
+    },
+    "description": "Reason / Description",
+    "descriptionPlaceholder": "Ex: Supplies purchase",
+    "submitting": "Processing...",
+    "submit": "Confirm disbursement",
+    "success": "Disbursement recorded successfully",
+    "noExpenseBox": "No expense box has been configured for this subsidiary."
+  },
+  "cashRemittance": {
+    "title": "Cash remittances",
+    "subtitle": "Remittance of the cash register's contents to the headquarter safe.",
+    "new": "New remittance",
+    "table": {
+      "reference": "Reference",
+      "date": "Date",
+      "cashier": "Cashier",
+      "declared": "Declared amount",
+      "received": "Received amount",
+      "status": "Status"
+    },
+    "status": {
+      "SUBMITTED": "Submitted (pending)",
+      "RECEIVED": "Received (matched)",
+      "RECEIVED_WITH_DISCREPANCY": "Received (discrepancy)",
+      "REJECTED": "Rejected"
+    },
+    "receive": "Receive",
+    "receiveTitle": "Receive remittance {{reference}}",
+    "form": {
+      "declaredAmount": "Declared amount (cash)",
+      "notes": "Notes",
+      "declaredByAgent": "Amount declared by the cashier",
+      "receivedAmount": "Actually received amount (count)",
+      "discrepancyWarning": "Discrepancy detected: {{amount}}",
+      "receptionNotes": "Reception notes"
+    },
+    "submit": "Submit remittance",
+    "confirmReceive": "Confirm reception",
+    "createSuccess": "Cash remittance created successfully",
+    "receiveSuccess": "Cash remittance received successfully",
+    "noData": "No cash remittances found."
   },
   "supplierDebts": {
     "totalDebts": "Total Supplier Debts",
@@ -4245,6 +4609,7 @@ const enTranslations: Translations = {
     "amount": "Amount",
     "status": "Status",
     "statusToPay": "To Pay",
+    "statusPartiallyPaid": "Partially Paid",
     "statusPaid": "Paid",
     "statusOverdue": "Overdue",
     "statusPending": "Pending",
@@ -4484,7 +4849,7 @@ const enTranslations: Translations = {
       "total": "Total",
       "subtotal": "Subtotal",
       "tax": "Tax",
-      "amountInWords": "This proforma invoice is set at the sum of: {{amount}} CFA francs.",
+      "amountInWords": "This proforma invoice is set at the sum of: {{amount}}.",
       "notes": "Notes / Terms",
       "footerMessage": "This document is a proforma invoice and does not constitute a final invoice.",
       "markSent": "Mark as sent",
@@ -4632,6 +4997,8 @@ const enTranslations: Translations = {
   "filter": {
     "client": "Client",
     "allClients": "All clients",
+    "supplier": "Supplier",
+    "allSuppliers": "All suppliers",
     "product": "Product",
     "allProducts": "All products",
     "status": "Status",
@@ -4672,6 +5039,22 @@ const enTranslations: Translations = {
     "suppliers": "Suppliers",
     "taxes": "Taxes",
     "treasury": "Treasury",
+    "bank": {
+      "management": "Banks",
+      "managementDescription": "Bank institutions referenced by Bank-type treasury accounts.",
+      "add": "Add a bank",
+      "addTitle": "Add a bank",
+      "editTitle": "Edit bank",
+      "deleteTitle": "Delete bank",
+      "name": "Bank",
+      "type": "Type",
+      "types": {
+        "COMMERCIAL_BANK": "Commercial bank",
+        "PUBLIC_BANK": "Public bank"
+      },
+      "select": "Select a bank",
+      "headquarterOnly": "Headquarter subsidiary (centralized bank accounts)"
+    },
     "productManagement": "Product Management",
     "addProduct": "Add Product",
     "addTax": "Add Tax",
@@ -5246,6 +5629,7 @@ const enTranslations: Translations = {
     "print": "Print",
     "exportPdf": "Export to PDF",
     "footer": "Thank you for your trust. This order is valid until",
+    "amountInWords": "This order is set at the sum of: {{amount}}.",
     "status": "Status",
     "noData": "No orders"
   }

@@ -11,10 +11,15 @@ export interface CreateDirectSaleDto {
         productName: string;
         quantity: number;
         unitPrice: number; // Prix négocié au comptoir, jamais tiré du catalogue.
+        discount?: number;
+        assemblyPrice?: number;
         specValues?: Record<string, unknown>; // Spécifications techniques (Chantier 5)
     }[];
     paymentMethod: CustomerPaymentMethod;
     customerId: string;
+    applyTax?: boolean;
+    bankAccountId?: string;        // Compte bancaire (obligatoire si BANK_TRANSFER / CARD / CHECK)
+    transactionReference?: string; // Référence de transaction (n° chèque, ref virement, etc.)
 }
 
 /**

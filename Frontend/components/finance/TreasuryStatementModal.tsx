@@ -4,6 +4,7 @@ import { TreasuryAccount } from '../../types';
 import { useI18n } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
 import { getAccountTransactions } from '../../services/apiFinance/apiTreasury';
+import { getTransactionLegForAccount } from '../../utils/transactionDisplay';
 import { printElementAsPdf } from '../../utils/pdfExporter';
 import DocumentHeader from '../common/DocumentHeader';
 import DocumentFooter from '../common/DocumentFooter';
@@ -41,7 +42,12 @@ const TreasuryStatementModal: React.FC<TreasuryStatementModalProps> = ({ isOpen,
     enabled: false,
   });
 
-  const lines = data?.data ?? [];
+  // Ordre chronologique croissant (le backend renvoie du plus récent au plus
+  // ancien) : nécessaire pour un relevé classique solde initial → solde final.
+  const lines = [...(data?.data ?? [])].reverse();
+  const legs = lines.map((tx) => ({ tx, leg: getTransactionLegForAccount(tx, account?.id ?? '') }));
+  const initialBalance = legs.length > 0 ? legs[0].leg.balanceBefore : (account ? Number(account.balance) : null);
+  const periodEndBalance = legs.length > 0 ? legs[legs.length - 1].leg.balanceAfter : (account ? Number(account.balance) : null);
 
   const handleClose = () => {
     setIsGenerated(false);
@@ -143,8 +149,8 @@ const TreasuryStatementModal: React.FC<TreasuryStatementModalProps> = ({ isOpen,
               </div>
             </div>
 
-            <div className="p-6 overflow-y-auto bg-slate-50">
-              <div ref={printRef} className="bg-white p-8 mx-auto" style={{ width: '750px' }}>
+            <div className="p-6 overflow-auto bg-slate-50">
+              <div ref={printRef} className="bg-white p-8 mx-auto" style={{ width: '750px', minWidth: '750px' }}>
                 <DocumentHeader subsidiary={subsidiary} />
                 <div className="mb-6">
                   <h2 className="text-xl font-bold uppercase text-slate-800">{t('treasury.statement.title')}</h2>
@@ -155,37 +161,40 @@ const TreasuryStatementModal: React.FC<TreasuryStatementModalProps> = ({ isOpen,
                   </p>
                 </div>
 
+                <div className="mb-4 text-right">
+                  <span className="text-slate-600">{t('treasury.statement.initialBalance')} : </span>
+                  <span className="font-bold text-slate-800">{initialBalance != null ? formatCurrency(initialBalance) : '—'}</span>
+                </div>
+
                 <table className="w-full text-sm text-left text-slate-600 mb-6">
                   <thead className="text-xs text-slate-700 uppercase bg-slate-100">
-                    <tr>
+                    <tr className="whitespace-nowrap">
                       <th className="px-3 py-2">{t('treasury.date')}</th>
                       <th className="px-3 py-2">{t('treasury.description')}</th>
+                      <th className="px-3 py-2">{t('treasury.history.counterparty')}</th>
                       <th className="px-3 py-2 text-right">{t('treasury.statement.debit')}</th>
                       <th className="px-3 py-2 text-right">{t('treasury.statement.credit')}</th>
                       <th className="px-3 py-2 text-right">{t('treasury.statement.balance')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {lines.length === 0 ? (
-                      <tr><td colSpan={5} className="px-3 py-6 text-center text-slate-400">{t('common.notAvailable')}</td></tr>
-                    ) : lines.map((tx) => {
-                      const isSource = tx.sourceAccountId === account.id || tx.treasuryAccountId === account.id;
-                      const balanceAfter = isSource ? tx.balanceAfterSource : tx.balanceAfterDest;
-                      return (
-                        <tr key={tx.id} className="border-b">
+                    {legs.length === 0 ? (
+                      <tr><td colSpan={6} className="px-3 py-6 text-center text-slate-400">{t('common.notAvailable')}</td></tr>
+                    ) : legs.map(({ tx, leg }) => (
+                        <tr key={tx.id} className="border-b whitespace-nowrap">
                           <td className="px-3 py-2">{new Date(tx.transactionDate).toLocaleDateString(language)}</td>
                           <td className="px-3 py-2">{tx.description}</td>
-                          <td className="px-3 py-2 text-right">{isSource ? formatCurrency(tx.amount) : ''}</td>
-                          <td className="px-3 py-2 text-right">{!isSource ? formatCurrency(tx.amount) : ''}</td>
-                          <td className="px-3 py-2 text-right font-semibold">{balanceAfter != null ? formatCurrency(balanceAfter) : '—'}</td>
+                          <td className="px-3 py-2">{leg.counterpartyName}</td>
+                          <td className="px-3 py-2 text-right">{!leg.isIncome ? formatCurrency(Number(tx.amount)) : ''}</td>
+                          <td className="px-3 py-2 text-right">{leg.isIncome ? formatCurrency(Number(tx.amount)) : ''}</td>
+                          <td className="px-3 py-2 text-right font-semibold">{leg.balanceAfter != null ? formatCurrency(leg.balanceAfter) : '—'}</td>
                         </tr>
-                      );
-                    })}
+                    ))}
                   </tbody>
                   <tfoot>
                     <tr className="bg-slate-100 font-bold text-slate-800">
-                      <td colSpan={4} className="px-3 py-2 text-right">{t('treasury.statement.currentBalance')}</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(account.balance)}</td>
+                      <td colSpan={5} className="px-3 py-2 text-right">{t('treasury.statement.periodEndBalance')}</td>
+                      <td className="px-3 py-2 text-right">{periodEndBalance != null ? formatCurrency(periodEndBalance) : formatCurrency(account.balance)}</td>
                     </tr>
                   </tfoot>
                 </table>

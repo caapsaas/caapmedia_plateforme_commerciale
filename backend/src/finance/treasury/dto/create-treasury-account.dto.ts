@@ -2,7 +2,6 @@ import {
   IsString,
   IsNotEmpty,
   IsNumber,
-  IsPositive,
   IsEnum,
   IsOptional,
 } from 'class-validator';
@@ -25,7 +24,7 @@ export class CreateTreasuryAccountDto {
   @IsNotEmpty()
   accountType: AccountType;
 
-  // Comptes CAISSE/CASH_REGISTER/EXPENSE_BOX : caissier responsable (Phase B/C).
+  // Comptes CASH_REGISTER/EXPENSE_BOX : caissier responsable (Phase B/C).
   @IsString()
   @IsOptional()
   cashierId?: string;
@@ -39,4 +38,17 @@ export class CreateTreasuryAccountDto {
   @IsString()
   @IsOptional()
   accountNumber?: string;
+
+  // Banque physique référencée (requis pour un compte BANQUE — voir
+  // BankService). Un compte bancaire est toujours rattaché à la filiale
+  // siège quel que soit ce champ (résolu côté service).
+  @IsString()
+  @IsOptional()
+  bankId?: string;
+
+  // Filiale cible (comptes non-BANQUE uniquement) — ignoré si l'utilisateur
+  // n'est pas ADMIN/SUPER_ADMIN, qui restent forcés sur leur propre filiale.
+  @IsString()
+  @IsOptional()
+  subsidiaryId?: string;
 }

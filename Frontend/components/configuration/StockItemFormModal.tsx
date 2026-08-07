@@ -112,7 +112,6 @@ const StockItemFormModal: React.FC<StockItemFormModalProps> = ({ isOpen, onClose
             productRange: '',
             description: '',
             stock: 0,
-            price: 0,
             warehouse: '',
             sku: '',
             minThreshold: undefined,
@@ -217,23 +216,17 @@ const StockItemFormModal: React.FC<StockItemFormModalProps> = ({ isOpen, onClose
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="price" className="block text-sm font-medium text-slate-700">{t('configuration.form.costPrice')}</label>
-                                    <input type="number" step="0.01" name="price" id="price" value={formData.price} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
-                                </div>
-                                <div>
                                     <label htmlFor="stock" className="block text-sm font-medium text-slate-700">{t('configuration.form.stock')}</label>
                                     <input type="number" name="stock" id="stock" value={formData.stock} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="warehouse" className="block text-sm font-medium text-slate-700">{t('configuration.form.warehouse')}</label>
                                     <input type="text" name="warehouse" id="warehouse" value={formData.warehouse} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
-                                <div>
-                                    <label htmlFor="sku" className="block text-sm font-medium text-slate-700">SKU</label>
-                                    <input type="text" name="sku" id="sku" value={formData.sku || ''} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
-                                </div>
+                            </div>
+                            <div>
+                                <label htmlFor="sku" className="block text-sm font-medium text-slate-700">SKU</label>
+                                <input type="text" name="sku" id="sku" value={formData.sku || ''} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
                                 <label htmlFor="minThreshold" className="block text-sm font-medium text-slate-700">{t('configuration.form.minThreshold')}</label>

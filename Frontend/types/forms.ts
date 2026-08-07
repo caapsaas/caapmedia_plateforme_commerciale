@@ -9,10 +9,11 @@ export type ProductFormData = Omit<Product, 'id' | 'productImages'> & {
     existingImages?: string[];
 };
 
-// Formulaire de produit de stock (matière première) : garde prix/stock, scopé filiale.
+// Formulaire de produit de stock (matière première) : garde le stock, scopé filiale.
+// Pas de prix : le "prix de revient" est calculé côté serveur depuis le
+// dernier achat (voir StockItem.costPrice), plus un champ saisissable ici.
 // baseUnit/packagingUnits sont en lecture seule (renvoyés par l'API) — le
 // formulaire n'envoie que baseUnitId ; les unités d'emballage se gèrent à part.
-export type StockItemFormData = Omit<StockItem, 'id' | 'subsidiaryId' | 'stock' | 'price' | 'baseUnit' | 'packagingUnits'> & {
+export type StockItemFormData = Omit<StockItem, 'id' | 'subsidiaryId' | 'stock' | 'costPrice' | 'baseUnit' | 'packagingUnits'> & {
     stock: string | number;
-    price: string | number;
 };

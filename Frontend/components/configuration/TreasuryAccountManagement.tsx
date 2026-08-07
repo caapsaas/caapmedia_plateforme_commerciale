@@ -4,11 +4,12 @@ import { useAuth } from '../../context/AuthContext';
 import { useHasRole } from '../../hooks/useHasRole';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import TreasuryAccountFormModal from './TreasuryAccountFormModal';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
 import { getTreasuryAccounts, createTreasuryAccount, updateTreasuryAccount, deleteTreasuryAccount, TreasuryAccountCreationData, TreasuryAccountUpdateData } from '../../services/apiFinance/apiTreasury';
+import { getSubsidiaries } from '../../services/apiCommon/apiSubsidiaries';
 
 interface TreasuryAccountManagementProps {
   subsidiary: Subsidiary;
@@ -27,17 +28,30 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
   const [selectedAccount, setSelectedAccount] = useState<TreasuryAccount | null>(null);
   const [editingAccount, setEditingAccount] = useState<TreasuryAccount | null>(null);
 
+  const isSuperAdmin = (user?.activeRole ?? user?.userRole) === UserRole.SUPER_ADMIN;
+
+  const { data: subsidiaries = [] } = useQuery<Subsidiary[]>({
+    queryKey: ['subsidiaries-list'],
+    queryFn: getSubsidiaries,
+    enabled: isSuperAdmin,
+  });
+
+  const [subsidiaryFilter, setSubsidiaryFilter] = useState<string>('');
+
   // Vérifier les permissions
   const canManage = hasRole([UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR]);
 
   useEffect(() => {
     loadAccounts();
-  }, [subsidiary.id]);
+  }, [subsidiary.id, subsidiaryFilter]);
 
   const loadAccounts = async () => {
     try {
       setLoading(true);
-      const accountsData = await getTreasuryAccounts(subsidiary.id);
+      const targetSubsidiaryId = isSuperAdmin
+        ? (subsidiaryFilter || undefined)
+        : subsidiary.id;
+      const accountsData = await getTreasuryAccounts(targetSubsidiaryId);
       setAccounts(accountsData);
     } catch (error) {
       toast('error', t('treasuryAccounts.error.loading'));
@@ -146,18 +160,35 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
           cashierId: accountData.cashierId,
           accountCode: accountData.accountCode,
           accountNumber: accountData.accountNumber,
+          bankId: accountData.bankId,
+          subsidiaryId: accountData.subsidiaryId,
         };
         const newAccount = await createTreasuryAccount(createData);
-        setAccounts([...accounts, newAccount]);
-        
+        // Un compte Banque est toujours rattaché au siège côté backend : s'il
+        // a été créé depuis la vue d'une autre filiale, il n'appartient pas à
+        // la liste actuellement affichée — recharger plutôt que d'ajouter
+        // localement, pour ne pas afficher un compte qui n'est pas vraiment
+        // dans cette filiale. Idem si l'ADMIN/SUPER_ADMIN a choisi une autre
+        // filiale que celle affichée.
+        if (newAccount.subsidiaryId === subsidiary.id) {
+          setAccounts([...accounts, newAccount]);
+        } else {
+          await loadAccounts();
+        }
+
         // Si c'est un compte de préfinancement, invalider le cache de l'API préfinancement
         if (accountData.accountType === 'COMPTE_PREFINANCEMENT') {
           queryClient.invalidateQueries({ queryKey: ['prefinancementAccount', subsidiary.id] });
           queryClient.invalidateQueries({ queryKey: ['prefinancementTransactions', subsidiary.id] });
           queryClient.invalidateQueries({ queryKey: ['prefinancementStatistics', subsidiary.id] });
         }
-        
-        toast('success', t('treasuryAccounts.success.created'));
+
+        toast(
+          'success',
+          newAccount.subsidiaryId === subsidiary.id
+            ? t('treasuryAccounts.success.created')
+            : t('treasuryAccounts.success.createdElsewhere'),
+        );
       }
       handleModalClose();
     } catch (error) {
@@ -193,7 +224,7 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap justify-between items-center gap-4">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">
             {t('treasuryAccounts.title')}
@@ -202,15 +233,31 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
             {t('treasuryAccounts.description')}
           </p>
         </div>
-        <button
-          onClick={handleCreate}
-          className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors"
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span>{t('treasuryAccounts.actions.create')}</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          {isSuperAdmin && (
+            <select
+              value={subsidiaryFilter}
+              onChange={(e) => setSubsidiaryFilter(e.target.value)}
+              className="text-xs border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
+            >
+              <option value="">Toutes les filiales</option>
+              {subsidiaries.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.subsidiaryName}
+                </option>
+              ))}
+            </select>
+          )}
+          <button
+            onClick={handleCreate}
+            className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>{t('treasuryAccounts.actions.create')}</span>
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -248,11 +295,22 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('treasuryAccounts.table.accountName')}
                 </th>
+                {isSuperAdmin && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Filiale
+                  </th>
+                )}
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('treasuryAccounts.table.type')}
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('treasuryAccounts.table.balance')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('treasuryAccounts.table.currency')}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('treasuryAccounts.table.accountCode')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('treasuryAccounts.table.actions')}
@@ -261,11 +319,24 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
-                <TableSkeleton rows={5} columns={4} />
+                <TableSkeleton rows={5} columns={6} />
               ) : accounts.map((account) => (
                 <tr key={account.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {account.accountName}
+                    {account.accountType === 'BANQUE' && account.bank && (
+                      <span className="block text-xs font-normal text-slate-400">{account.bank.name}</span>
+                    )}
+                  </td>
+                  {isSuperAdmin && (
+                    <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-slate-600">
+                      <span className="bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
+                        {account.subsidiary?.subsidiaryName || 'Siège / Global'}
+                      </span>
+                    </td>
+                  )}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                    {t(`treasuryAccounts.accountTypes.${account.accountType}`)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <span className={`font-semibold ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -274,6 +345,11 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {account.currency}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-xs font-mono text-slate-500">
+                    {account.accountCode ? (
+                      <span className="bg-slate-100 px-2 py-1 rounded">{account.accountCode}</span>
+                    ) : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">

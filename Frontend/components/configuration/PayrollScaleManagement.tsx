@@ -15,8 +15,15 @@ import {
   LeaveEntitlement,
 } from '../../services/apihr/apiPayroll';
 
+// `config.minWageEffectiveDate` était affiché brut (ISO) au lieu d'une date localisée.
+const fmtDate = (date?: string | null, language = 'fr') => {
+  if (!date) return '—';
+  const d = new Date(date);
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString(language);
+};
+
 const PayrollScaleManagement: React.FC = () => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { subsidiary } = useAuth();
   const [config, setConfig] = useState<PayrollConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -221,7 +228,7 @@ const PayrollScaleManagement: React.FC = () => {
                     {config.minWage?.toLocaleString('fr-FR')} FCFA
                   </p>
                   <p className="text-xs text-slate-500">
-                    {config.minWageEffectiveDate}
+                    {fmtDate(config.minWageEffectiveDate, language)}
                   </p>
                 </div>
               </div>

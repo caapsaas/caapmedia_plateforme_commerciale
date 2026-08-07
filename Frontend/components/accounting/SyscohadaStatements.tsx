@@ -356,7 +356,7 @@ const SyscohadaStatements: React.FC<SyscohadaStatementsProps> = ({ fiscalPeriods
       {subsidiary && data && (
         <div style={{ display: 'none' }}>
           <div ref={printRef} className="p-8 bg-white" style={{ width: '900px' }}>
-            <DocumentHeader subsidiary={subsidiary} showContactIcons={false} />
+            <DocumentHeader subsidiary={subsidiary} />
             <h2 className="text-xl font-bold text-slate-800 mb-4">
               {activeStatement === 'bilan' ? 'Bilan' : 'Compte de résultat'} SYSCOHADA — {fiscalPeriods.find((p) => p.id === fiscalYearId)?.name}
             </h2>

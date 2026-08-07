@@ -61,6 +61,8 @@ export const ID_PREFIXES = {
 
   // Finance & Accounting
   TREASURY: 'TRS',
+  BANK: 'BNK',
+  CASHREMITTANCE: 'REM',
   EXPENSE: 'EXP',
   RECURRINGEXPENSE: 'REX',
   EXTERNALTRANSACTION: 'ETX',

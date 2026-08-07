@@ -36,7 +36,7 @@ export class DynamicTokenService {
     const dynamicToken = await this.prisma.dynamicToken.create({
       data: {
         id: uuidv4(),
-        subsidiaryId: 'GLOBAL', // Token global, non lié à une filiale
+        subsidiaryId: null, // Token global, non lié à une filiale (voir DynamicToken.subsidiaryId dans schema.prisma)
         token,
         createdAt: now,
         expiresAt: new Date('2099-12-31'), // Date lointaine pour ne pas expirer
@@ -118,7 +118,7 @@ export class DynamicTokenService {
     // Chercher un token global non utilisé
     const activeToken = await this.prisma.dynamicToken.findFirst({
       where: {
-        subsidiaryId: 'GLOBAL',
+        subsidiaryId: null,
         isUsed: false,
       },
       orderBy: {

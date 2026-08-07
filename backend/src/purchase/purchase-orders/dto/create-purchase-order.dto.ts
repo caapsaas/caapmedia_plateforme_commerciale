@@ -8,7 +8,6 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  IsUUID,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -30,7 +29,8 @@ class CreatePurchaseOrderItemDto {
   // Unité dans laquelle "quantity" est exprimée (Chantier 2) — absente =
   // unité de base du produit. La conversion se fait automatiquement à la
   // réception (voir PurchaseOrdersService.receiveItems), jamais ici.
-  @IsUUID()
+  // Unit.id est un id préfixé custom (UNT-xxx), jamais un UUID.
+  @IsString()
   @IsOptional()
   purchaseUnitId?: string;
 }
@@ -60,8 +60,6 @@ export class UpdatePurchaseOrderStatusDto {
   status: PurchaseOrderStatus;
 }
 
-export class RecordPurchasePaymentDto {
-  @IsNumber()
-  @Min(0.01)
-  amount: number;
-}
+// RecordPurchasePaymentDto retiré : le paiement d'un bon de commande passe
+// désormais exclusivement par DebtsService.paySupplierDebt (voir
+// purchase-orders.service.ts).

@@ -6,7 +6,6 @@ import {
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import {
   CreatePurchaseOrderDto,
-  RecordPurchasePaymentDto,
   UpdatePurchaseOrderStatusDto,
 } from './dto/create-purchase-order.dto';
 import {
@@ -16,7 +15,6 @@ import {
   Prisma,
   PurchaseOrderStatus,
   User,
-  PaymentTerms,
 } from '@prisma/client';
 import { paginate } from 'src/common/pagination/pagination';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -35,6 +33,28 @@ import {
 import { ReceiveItemsDto } from './dto/receive-items.dto';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+
+// Include partagé entre findAll/findOne — sert aussi à typer précisément
+// l'entrée de mapToResponse (voir plus bas) sans recourir à `any`.
+const purchaseOrderInclude = {
+  supplier: true,
+  // Nécessaire pour la colonne "Filiale" (vue consolidée SUPER_ADMIN).
+  subsidiary: true,
+  purchaseOrderItems: {
+    include: {
+      purchaseUnit: true,
+      product: { include: { baseUnit: true } },
+    },
+  },
+  purchaseOrderHistory: { orderBy: { eventDate: 'desc' as const } },
+  // Nécessaire côté frontend pour retrouver la dette liée (paiement via
+  // DebtsService.paySupplierDebt, voir Purchasing.tsx).
+  supplierDebts: true,
+} satisfies Prisma.PurchaseOrderInclude;
+
+type PurchaseOrderWithRelations = Prisma.PurchaseOrderGetPayload<{
+  include: typeof purchaseOrderInclude;
+}>;
 
 @Injectable()
 export class PurchaseOrdersService {
@@ -136,20 +156,22 @@ export class PurchaseOrdersService {
         },
       });
 
-      // 4. Si les termes de paiement sont à crédit, créer la dette fournisseur
-      if (paymentTerms === PaymentTerms.CREDIT) {
-        await tx.supplierDebt.create({
-          data: {
-            supplierName: supplier.supplierName,
-            invoiceId: `PO-${purchaseOrder.id.substring(0, 8)}`,
-            dueDate: new Date(expectedDeliveryDate),
-            amount: totalAmount,
-            status: DebtStatus.A_PAYER,
-            purchaseOrderId: purchaseOrder.id,
-            subsidiaryId: subsidiaryId,
-          },
-        });
-      }
+      // 4. Une dette fournisseur résulte de tout achat non payé : elle est
+      // TOUJOURS créée avec le bon de commande (amountPaid démarre à 0 quel
+      // que soit paymentTerms), jamais créée à la main (voir DebtsService —
+      // la route de création manuelle a été retirée). paymentTerms reste
+      // informatif pour le moment (échéance future, hors périmètre actuel).
+      await tx.supplierDebt.create({
+        data: {
+          supplierName: supplier.supplierName,
+          invoiceId: `PO-${purchaseOrder.id.substring(0, 8)}`,
+          dueDate: new Date(expectedDeliveryDate),
+          amount: totalAmount,
+          status: DebtStatus.A_PAYER,
+          purchaseOrderId: purchaseOrder.id,
+          subsidiaryId: subsidiaryId,
+        },
+      });
 
       return purchaseOrder;
     });
@@ -198,6 +220,8 @@ export class PurchaseOrdersService {
         dateFilter = { gte: sub(now, { days: 7 }) };
       else if (period === OrderPeriod.LAST_30_DAYS)
         dateFilter = { gte: sub(now, { days: 30 }) };
+      else if (period === OrderPeriod.LAST_90_DAYS)
+        dateFilter = { gte: sub(now, { days: 90 }) };
       else if (period === OrderPeriod.THIS_YEAR)
         dateFilter = { gte: startOfYear(now), lte: endOfYear(now) };
       else if (period === OrderPeriod.CUSTOM) {
@@ -210,24 +234,22 @@ export class PurchaseOrdersService {
       where.orderDate = dateFilter;
     }
 
-    return paginate(
+    const result = await paginate(
       this.prisma.purchaseOrder,
       {
         where,
-        include: {
-          supplier: true,
-          purchaseOrderItems: {
-            include: {
-              purchaseUnit: true,
-              product: { include: { baseUnit: true } },
-            },
-          },
-          purchaseOrderHistory: true,
-        },
+        include: purchaseOrderInclude,
         orderBy: { orderDate: 'desc' },
       },
       query,
     );
+
+    return {
+      ...result,
+      data: (result.data as PurchaseOrderWithRelations[]).map((po) =>
+        this.mapToResponse(po),
+      ),
+    };
   }
 
   /**
@@ -239,24 +261,52 @@ export class PurchaseOrdersService {
   async findOne(id: string, user: User) {
     const purchaseOrder = await this.prisma.purchaseOrder.findUnique({
       where: { id },
-      include: {
-        supplier: true,
-        purchaseOrderItems: {
-          include: {
-            purchaseUnit: true,
-            product: { include: { baseUnit: true } },
-          },
-        },
-        purchaseOrderHistory: { orderBy: { eventDate: 'desc' } },
-      },
+      include: purchaseOrderInclude,
     });
 
-    if (!purchaseOrder || purchaseOrder.subsidiaryId !== user.subsidiaryId) {
+    // Un SUPER_ADMIN (vue consolidée) doit pouvoir consulter un bon de
+    // commande de n'importe quelle filiale, pas seulement la sienne.
+    const isSuperAdmin = user.userRole === 'SUPER_ADMIN';
+    if (
+      !purchaseOrder ||
+      (!isSuperAdmin && purchaseOrder.subsidiaryId !== user.subsidiaryId)
+    ) {
       throw new NotFoundException(
         `Bon de commande avec l'ID "${id}" non trouvé.`,
       );
     }
-    return purchaseOrder;
+    return this.mapToResponse(purchaseOrder);
+  }
+
+  /**
+   * Convertit un PurchaseOrder Prisma (Decimal, purchaseOrderItems/History,
+   * relations) vers le format attendu par le frontend (nombres, items/history)
+   * — sans cette conversion, les champs Decimal arrivent en JSON sous forme
+   * de chaînes (formatCurrency les traite alors comme 0) et purchaseOrderItems/
+   * purchaseOrderHistory n'existent pas sous les noms items/history attendus
+   * (Purchasing.tsx, PurchaseOrderDetailsModal.tsx plantent sur .map/.length).
+   */
+  private mapToResponse(po: PurchaseOrderWithRelations) {
+    return {
+      ...po,
+      totalAmount: Number(po.totalAmount),
+      amountPaid: Number(po.amountPaid),
+      subsidiary: po.subsidiary
+        ? { id: po.subsidiary.id, subsidiaryName: po.subsidiary.subsidiaryName }
+        : undefined,
+      items: po.purchaseOrderItems.map((item) => ({
+        ...item,
+        purchasePrice: Number(item.purchasePrice),
+      })),
+      history: po.purchaseOrderHistory.map((h) => ({
+        date: h.eventDate,
+        event: h.eventName,
+      })),
+      supplierDebts: po.supplierDebts.map((d) => ({
+        ...d,
+        amount: Number(d.amount),
+      })),
+    };
   }
 
   /**
@@ -409,96 +459,13 @@ export class PurchaseOrdersService {
     });
   }
 
-  /**
-   * Mettre à jour le montant payé pour un bon de commande
-   * @param id ID du bon de commande
-   * @param recordPaymentDto Dto de paiement
-   * @param user Utilisateur connecté
-   * @returns Bon de commande mis à jour
-   */
-  async recordPayment(
-    id: string,
-    recordPaymentDto: RecordPurchasePaymentDto,
-    authenticatedUser: User,
-  ) {
-    const { amount } = recordPaymentDto;
-    const paymentAmount = new Decimal(amount);
-
-    return this.prisma.$transaction(async (tx) => {
-      const order = await this.findOne(id, authenticatedUser); // Utilise findOne pour la validation
-      const { subsidiaryId } = authenticatedUser;
-      const fullUser = await tx.user.findUnique({
-        where: { id: authenticatedUser.id },
-        select: { userName: true },
-      });
-      if (!fullUser) {
-        throw new NotFoundException('Utilisateur authentifié non trouvé.');
-      }
-      const userNameForHistory = fullUser.userName;
-
-      const newAmountPaid = order.amountPaid.add(paymentAmount);
-      if (newAmountPaid.greaterThan(order.totalAmount)) {
-        throw new BadRequestException(
-          'Le montant payé ne peut pas dépasser le total de la commande.',
-        );
-      }
-
-      const newPaymentStatus = newAmountPaid.gte(order.totalAmount)
-        ? PaymentStatus.PAID
-        : PaymentStatus.PARTIALLY_PAID;
-
-      // Mettre à jour le bon de commande
-      const updatedOrder = await tx.purchaseOrder.update({
-        where: { id },
-        data: {
-          amountPaid: newAmountPaid,
-          paymentStatus: newPaymentStatus,
-        },
-      });
-
-      // Créer ou mettre à jour la dette fournisseur
-      const debt = await tx.supplierDebt.findFirst({
-        where: { purchaseOrderId: id },
-      });
-
-      const debtStatus =
-        newPaymentStatus === PaymentStatus.PAID
-          ? DebtStatus.PAYER
-          : DebtStatus.A_PAYER;
-
-      if (debt) {
-        await tx.supplierDebt.update({
-          where: { id: debt.id },
-          data: {
-            amount: order.totalAmount.sub(newAmountPaid),
-            status: debtStatus,
-          },
-        });
-      } else {
-        await tx.supplierDebt.create({
-          data: {
-            supplierName: order.supplierName,
-            invoiceId: `PO-${order.id.substring(0, 8)}`, // ID de facture basé sur le PO
-            dueDate: order.expectedDeliveryDate,
-            amount: order.totalAmount.sub(newAmountPaid),
-            status: debtStatus,
-            purchaseOrderId: id,
-            subsidiaryId: subsidiaryId,
-          },
-        });
-      }
-
-      // Ajouter à l'historique
-      await tx.purchaseOrderHistory.create({
-        data: {
-          purchaseOrderId: id,
-          eventName: `Paiement de ${amount} enregistré par ${userNameForHistory}`,
-        },
-      });
-
-      return updatedOrder;
-    });
-  }
+  // Le paiement d'un bon de commande passe désormais exclusivement par
+  // DebtsService.paySupplierDebt (prélèvement Coffre-fort/Banque, réservé au
+  // SUPER_ADMIN — voir Purchasing.tsx) : l'ancienne méthode recordPayment ne
+  // touchait aucun compte de trésorerie (le paiement "apparaissait" sans
+  // jamais sortir d'un coffre/d'une banque) et désynchronisait le
+  // PurchaseOrder de sa SupplierDebt liée. Supprimée pour n'avoir plus qu'un
+  // seul chemin de paiement, cohérent avec le reste du module Trésorerie.
 
   /**
    * Mettre à jour le statut d'un bon de commande

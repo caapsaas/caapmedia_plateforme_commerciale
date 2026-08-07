@@ -1,14 +1,13 @@
 import React from 'react';
-import { Order, Subsidiary, OrderItem } from '../types';
+import { Order, Subsidiary } from '../types';
 import { useI18n } from '../i18n';
 import IconPrint from '../components/icons/IconPrint';
 import IconPdf from '../components/icons/IconPdf';
 import DocumentHeader from '../components/common/DocumentHeader';
 import DocumentTable from '../components/common/DocumentTable';
 import DocumentFooter from '../components/common/DocumentFooter';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
-import SpecValuesSummary from '../components/common/SpecValuesSummary';
+import DocumentWatermark from '../components/common/DocumentWatermark';
+import { printElementAsPdf, exportElementToPdf } from '../utils/pdfExporter';
 
 
 interface BonDeLivraisonProps {
@@ -20,24 +19,26 @@ interface BonDeLivraisonProps {
 const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onClose }) => {
     const { t, formatCurrency, language } = useI18n();
     const blContentRef = React.useRef<HTMLDivElement>(null);
+    const [isBusy, setIsBusy] = React.useState(false);
 
-    const handlePrint = () => {
-        window.print();
+    // Le backend renvoie toujours `orderItems` (jamais `items`, malgré le
+    // type frontend Order.items) avec un productName/unitPrice à plat sur
+    // chaque ligne — pas de order.product imbriqué. Sans ce fallback, le
+    // tableau restait vide (le vrai bug derrière "rien ne s'affiche").
+    const billableItems: any[] = (order as any).orderItems?.length
+        ? (order as any).orderItems
+        : (order.items ?? []);
+
+    const handlePrint = async () => {
+        if (!blContentRef.current || isBusy) return;
+        setIsBusy(true);
+        try { await printElementAsPdf(blContentRef.current); }
+        finally { setIsBusy(false); }
     };
 
-    const handleExportPdf = () => {
+    const handleExportPdf = async () => {
         if (!blContentRef.current) return;
-
-        html2canvas(blContentRef.current, { scale: 2 }).then((canvas) => {
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF({
-                orientation: 'p',
-                unit: 'px',
-                format: [canvas.width, canvas.height]
-            });
-            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-            pdf.save(`bon_de_livraison_${order.id}.pdf`);
-        });
+        await exportElementToPdf(blContentRef.current, `bon_de_livraison_${order.id}.pdf`);
     };
 
     const formatDate = (dateString: string | undefined) => {
@@ -57,13 +58,22 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
         }
     };
 
+    // Contenu du document réutilisable — rendu deux fois (capture PDF/impression
+    // cachée + aperçu visible dans la modale), jamais cloné via innerHTML :
+    // évite qu'un contenu caché diverge silencieusement de l'aperçu (bug corrigé
+    // ici — l'ancien bloc caché codé en dur référençait un LogoComponent
+    // jamais défini et plantait à l'impression/export PDF).
+    // Largeur/padding A4 fixes (w-[210mm] p-8), identiques sur les 6
+    // documents imprimables — voir BonDeCommande.tsx pour la même remarque.
     const DocumentContent = () => (
-        <div>
+        <div className="relative w-[210mm] p-8 bg-white mx-auto">
+            <DocumentWatermark />
+
             {/* Header */}
-            <div className="flex justify-between items-start mb-8 pb-6 border-b-4 border-[#c6e911]">
-                <DocumentHeader subsidiary={subsidiary} showContactIcons={false} />
+            <DocumentHeader subsidiary={subsidiary} />
+            <div className="flex justify-between items-start mb-8">
+                <h2 className="font-bold text-2xl text-slate-800 uppercase">{t('bonDeLivraison.title')}</h2>
                 <div className="text-right">
-                    <h2 className="font-bold text-3xl text-[#c6e911] mb-4">{t('bonDeLivraison.title')}</h2>
                     <div className="space-y-2 text-sm">
                         <p className="text-slate-700 font-semibold">{t('bonDeLivraison.orderNum')}: <span className="font-bold text-base text-[#c6e911]">{order.id}</span></p>
                         <p className="text-slate-600">{t('bonDeLivraison.date')}: <span className="font-semibold text-slate-800">{formatDate(order.date)}</span></p>
@@ -86,12 +96,12 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
                     { label: t('bonDeLivraison.unitPrice'), key: 'unitPrice', align: 'right', formatter: (v) => formatCurrency(v) },
                     { label: t('bonDeLivraison.totalPrice'), key: 'total', align: 'right', formatter: (v) => formatCurrency(v) }
                 ]}
-                data={order.items?.map((item: OrderItem) => ({
-                    productName: item.product?.productName || '—',
+                data={billableItems.map((item: any) => ({
+                    productName: item.productName || item.product?.name || '—',
                     quantity: item.quantity || 0,
-                    unitPrice: item.price || 0,
-                    total: (item.price || 0) * (item.quantity || 0)
-                })) || []}
+                    unitPrice: item.unitPrice ?? item.price ?? 0,
+                    total: (item.unitPrice ?? item.price ?? 0) * (item.quantity || 0)
+                }))}
                 totalRow={{
                     label: t('bonDeLivraison.total'),
                     value: formatCurrency(order.totalAmount),
@@ -100,10 +110,11 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
                 emptyMessage={t('bonDeLivraison.noData')}
             />
 
-            {/* Footer */}
+            
             <DocumentFooter
                 message={`${t('bonDeLivraison.footer')} ${order.paymentDueDate ? formatDate(order.paymentDueDate) : ''}.`}
                 showSignature={true}
+                subsidiary={subsidiary}
             />
         </div>
     );
@@ -115,61 +126,10 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
             aria-modal="true"
             aria-labelledby="bl-title"
         >
-            {/* Wrapper for printable content */}
-            <div className="printable-area absolute top-0 left-0 -z-10 w-full bg-white">
-                <div ref={blContentRef} className="p-8 bg-white">
-                    {/* Header */}
-                    <div className="flex justify-between items-start mb-8">
-                        <div>
-                            {LogoComponent && <LogoComponent className="h-20 w-auto" />}
-                            <p className="font-bold text-lg mt-2">{subsidiary.name}</p>
-                        </div>
-                        <div className="text-right">
-                            <h4 className="font-bold text-lg">{t('bonDeLivraison.title')}</h4>
-                            <p className="text-slate-700">{t('bonDeLivraison.orderNum')} <span className="font-semibold">{order.id}</span></p>
-                            <p className="text-slate-600">{t('bonDeLivraison.date')}: {new Date(order.date).toLocaleDateString(language)}</p>
-                        </div>
-                    </div>
-                    
-                    {/* Customer Info */}
-                    <div className="mb-8">
-                        <h5 className="font-semibold text-slate-500 uppercase text-sm mb-2">{t('bonDeLivraison.billedTo')}</h5>
-                        <p className="font-bold text-lg text-slate-800">{order.customerName}</p>
-                        {/* Add more customer details if available, e.g., address */}
-                    </div>
-
-                    {/* Items Table */}
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left text-slate-500">
-                            <thead className="text-xs text-slate-700 uppercase bg-slate-100">
-                                <tr>
-                                    <th scope="col" className="px-6 py-3">{t('bonDeLivraison.item')}</th>
-                                    <th scope="col" className="px-6 py-3 text-center">{t('bonDeLivraison.quantity')}</th>
-                                    <th scope="col" className="px-6 py-3 text-right">{t('bonDeLivraison.unitPrice')}</th>
-                                    <th scope="col" className="px-6 py-3 text-right">{t('bonDeLivraison.totalPrice')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {order.orderItems.map((item, index) => (
-                                    <tr key={index} className="bg-white border-b">
-                                        <td className="px-6 py-4 font-medium text-slate-900">
-                                            {item.product.name}
-                                            <SpecValuesSummary schema={item.specSnapshot} values={item.specValues} audience="client" />
-                                        </td>
-                                        <td className="px-6 py-4 text-center">{item.quantity}</td>
-                                        <td className="px-6 py-4 text-right">{formatCurrency(item.unitPrice)}</td>
-                                        <td className="px-6 py-4 text-right font-semibold">{formatCurrency(item.unitPrice * item.quantity)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                            <tfoot>
-                                <tr className="font-bold text-slate-800 bg-slate-50">
-                                    <td colSpan={3} className="px-6 py-4 text-right text-lg">{t('bonDeLivraison.total')}</td>
-                                    <td className="px-6 py-4 text-right text-lg">{formatCurrency(order.totalAmount)}</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
+            {/* Wrapper for printable content — hors-écran (voir BonDeCommande.tsx). */}
+            <div className="fixed top-0 left-[-9999px] bg-white">
+                <div ref={blContentRef}>
+                    <DocumentContent />
                 </div>
             </div>
 
@@ -184,7 +144,7 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6 text-slate-600"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                 </div>
-                <div className="p-8 overflow-y-auto flex-1 bg-white">
+                <div className="overflow-y-auto flex-1 bg-slate-50 p-6">
                     <DocumentContent />
                 </div>
 
@@ -198,10 +158,11 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
                     </button>
                     <button
                         onClick={handlePrint}
-                        className="flex items-center space-x-2 px-5 py-2.5 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-all shadow-md hover:shadow-lg"
+                        disabled={isBusy}
+                        className="flex items-center space-x-2 px-5 py-2.5 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-all shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                         <IconPrint className="h-5 w-5"/>
-                        <span>{t('bonDeLivraison.print')}</span>
+                        <span>{isBusy ? '...' : t('bonDeLivraison.print')}</span>
                     </button>
                     <button
                         onClick={onClose}

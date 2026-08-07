@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { BalanceSheetDto } from './dto/balance-sheet.dto';
-import { DebtStatus } from '@prisma/client';
+import { DebtStatus, OrderStatus, PaymentStatus } from '@prisma/client';
 import { AccountingBalanceService } from '../../accounting/shared/accounting-balance.service';
 
 @Injectable()
@@ -67,30 +67,26 @@ export class BalancesheetService {
     return accounts.reduce((sum, a) => sum + Number(a.balance), 0);
   }
 
+  /**
+   * Créances clients = solde restant dû (totalAmount - amountPaid) de toute
+   * commande non entièrement payée, hors commandes annulées — même logique
+   * que CreditManagement.tsx (aucune notion de "compte crédit" séparé à
+   * synchroniser, une seule source de vérité : Order.paymentStatus).
+   */
   async getCustomerReceivables(subsidiaryId?: string): Promise<number> {
-    const [creditAccounts, pendingSales] = await Promise.all([
-      this.prisma.creditAccount.findMany({
-        where: subsidiaryId ? { subsidiaryId } : {},
-        select: { balance: true },
-      }),
-      this.prisma.sale.findMany({
-        where: {
-          ...(subsidiaryId ? { subsidiaryId } : {}),
-          status: 'PENDING',
-        },
-        select: { totalPrice: true },
-      }),
-    ]);
+    const orders = await this.prisma.order.findMany({
+      where: {
+        ...(subsidiaryId ? { subsidiaryId } : {}),
+        paymentStatus: { not: PaymentStatus.PAID },
+        status: { not: OrderStatus.CANCELLED },
+      },
+      select: { totalAmount: true, amountPaid: true },
+    });
 
-    const creditTotal = creditAccounts.reduce(
-      (sum, a) => sum + Number(a.balance),
+    return orders.reduce(
+      (sum, o) => sum + (Number(o.totalAmount) - Number(o.amountPaid)),
       0,
     );
-    const pendingTotal = pendingSales.reduce(
-      (sum, s) => sum + Number(s.totalPrice),
-      0,
-    );
-    return creditTotal + pendingTotal;
   }
 
   /**
@@ -150,7 +146,11 @@ export class BalancesheetService {
     const debts = await this.prisma.supplierDebt.findMany({
       where: {
         ...(subsidiaryId ? { subsidiaryId } : {}),
-        status: DebtStatus.A_PAYER,
+        // "amount" est déjà le solde RESTANT (mis à jour à chaque paiement,
+        // voir DebtsService.paySupplierDebt) — exclure uniquement PAYER
+        // (soldé) couvre aussi bien A_PAYER que PARTIELLEMENT_PAYE, sans
+        // sous-évaluer le passif d'une dette partiellement réglée.
+        status: { not: DebtStatus.PAYER },
       },
       select: { amount: true },
     });

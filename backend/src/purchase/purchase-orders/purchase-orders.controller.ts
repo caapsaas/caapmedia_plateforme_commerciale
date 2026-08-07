@@ -14,7 +14,6 @@ import {
 import { PurchaseOrdersService } from './purchase-orders.service';
 import {
   CreatePurchaseOrderDto,
-  RecordPurchasePaymentDto,
   UpdatePurchaseOrderStatusDto,
 } from './dto/create-purchase-order.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
@@ -116,25 +115,8 @@ export class PurchaseOrdersController {
     );
   }
 
-  /**
-   * Endpoint pour enregistrer un paiement pour un bon de commande
-   * Accessible par les responsables achats et les admins.
-   */
-  @Post(':id/payment')
-  @Roles(
-    UserRole.PURCHASING_MANAGER,
-    UserRole.ADMIN,
-    UserRole.FINANCIAL_DIRECTOR,
-  )
-  recordPayment(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() recordPaymentDto: RecordPurchasePaymentDto,
-    @Req() req,
-  ) {
-    return this.purchaseOrdersService.recordPayment(
-      id,
-      recordPaymentDto,
-      req.user,
-    );
-  }
+  // Paiement d'un bon de commande : voir POST /finance/debts/supplier/:id/pay
+  // (DebtsController) — prélève le coffre-fort/la banque, réservé au
+  // SUPER_ADMIN. Route retirée d'ici pour n'avoir qu'un seul chemin de
+  // paiement (voir purchase-orders.service.ts).
 }

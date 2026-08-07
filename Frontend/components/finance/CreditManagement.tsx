@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { Subsidiary, CreditAccount } from '../../types';
+import { Subsidiary, CreditAccount, UserRole } from '../../types';
 import { getCustomerReceivables, CustomerReceivablesStats } from '../../services/apiStatistic/apiFinanceStats';
 import { useI18n } from '../../i18n';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { exportToCsv } from '../../utils/csvExporter';
 import { exportToPdf } from '../../utils/pdfExporter';
@@ -30,8 +31,13 @@ interface CreditManagementProps {
 
 const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
     const { t, formatCurrency } = useI18n();
+    const { user } = useAuth();
     const toast = useToast();
     const queryClient = useQueryClient();
+    // "Encaisser" est réservé au CAISSIER — le SUPER_ADMIN (vue consolidée
+    // toutes filiales) ne doit voir que le suivi, jamais l'action d'encaissement.
+    const activeRole = user?.activeRole ?? user?.userRole;
+    const canRecordPayment = activeRole === UserRole.CAISSIER;
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedAccount, setSelectedAccount] = useState<CreditAccount | null>(null);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -92,8 +98,12 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
 
     // 4. Filtrage pour la barre de recherche
     const filteredCredits = useMemo(() => {
-        // On ne montre que les crédits avec un solde > 0
-        const activeCredits = transformedCredits.filter(c => Math.round(c.balance) > 0);
+        // On ne montre que les crédits avec un solde > 0, hors commandes
+        // annulées (une commande annulée n'est jamais une créance — voir
+        // aussi balancesheet.service.ts::getCustomerReceivables, même règle).
+        const activeCredits = transformedCredits.filter(
+            c => Math.round(c.balance) > 0 && c.originalOrder.status !== 'CANCELLED',
+        );
         const lowercasedTerm = searchTerm.toLowerCase();
         if (!lowercasedTerm) return activeCredits;
         return activeCredits.filter(credit => 
@@ -156,7 +166,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
     const handleViewDetails = (account: any) => {
         // Créer un objet compatible avec CreditAccount pour le modal
         const creditAccount: CreditAccount = {
-            id: account.originalOrder.orderId,
+            id: account.originalOrder.id,
             clientName: account.clientName,
             companyName: account.companyName,
             balance: account.balance,
@@ -173,7 +183,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
     const handleRecordPayment = (account: any) => {
         // Créer un objet compatible avec CreditAccount pour le modal
         const creditAccount: CreditAccount = {
-            id: account.originalOrder.orderId,
+            id: account.originalOrder.id,
             clientName: account.clientName,
             companyName: account.companyName,
             balance: account.balance,
@@ -265,7 +275,9 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
                                         <td className="px-6 py-4 text-right font-bold text-red-600">{formatCurrency(account.balance)}</td>
                                         <td className="px-6 py-4 text-center no-print">
                                             <button onClick={() => handleViewDetails(account)} className="font-medium text-[#c6e911] hover:text-[#adc40f] mr-4"><IconEye className="h-4 w-4" /></button>
-                                            <button onClick={() => handleRecordPayment(account)} className="font-medium text-green-600 hover:text-green-800"><IconCash className="h-4 w-4" /></button>
+                                            {canRecordPayment && (
+                                                <button onClick={() => handleRecordPayment(account)} className="font-medium text-green-600 hover:text-green-800"><IconCash className="h-4 w-4" /></button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))

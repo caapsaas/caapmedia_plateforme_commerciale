@@ -26,19 +26,21 @@ export interface CreatePurchaseOrderDto {
  */
 // Valeurs (pas les cles) de l'enum OrderPeriod backend - IsEnum() les valide
 // telles quelles, en minuscules (pas de LAST_90_DAYS ici, absent cote backend).
-export type OrderPeriod = 'all_time' | 'this_month' | 'last_month' | 'last_7_days' | 'last_30_days' | 'this_year' | 'custom';
+export type OrderPeriod = 'all_time' | 'this_month' | 'last_month' | 'last_7_days' | 'last_30_days' | 'last_90_days' | 'this_year' | 'custom';
 
 /**
  * DTO pour le filtrage des bons de commande.
  * Correspond à FindAllPurchaseOrdersDto du backend.
  */
 export interface FindAllPurchaseOrdersDto {
+    // Filiale (SUPER_ADMIN uniquement — ignoré côté backend pour les autres rôles).
+    subsidiaryId?: string;
     supplierId?: string;
     status?: PurchaseOrderStatus;
     paymentStatus?: PaymentStatus;
     period?: OrderPeriod;
-    startDate?: string; 
-    endDate?: string; 
+    startDate?: string;
+    endDate?: string;
 }
 
 /**
@@ -58,12 +60,9 @@ export interface ReceiveItemsDto {
     }[];
 }
 
-/**
- * DTO pour l'enregistrement d'un paiement pour un bon de commande.
- */
-export interface RecordPurchasePaymentDto {
-    amount: number;
-}
+// Pas de DTO/fonction de paiement ici : le paiement d'un bon de commande
+// passe exclusivement par paySupplierDebt (apiFinance/apiDebts.ts) —
+// prélèvement Coffre-fort/Banque réservé au SUPER_ADMIN, voir Purchasing.tsx.
 
 /**
  * Crée un nouveau bon de commande.
@@ -123,15 +122,5 @@ export const updatePurchaseOrderStatus = async (id: string, data: UpdatePurchase
  */
 export const receivePurchaseOrderItems = async (id: string, data: ReceiveItemsDto) => {
     const response = await api.post(`/purchasing/purchase-orders/${id}/receive`, data);
-    return response.data;
-};
-
-/**
- * Enregistre un paiement pour un bon de commande.
- * @param id - L'ID du bon de commande.
- * @param data - Le montant du paiement.
- */
-export const recordPurchaseOrderPayment = async (id: string, data: RecordPurchasePaymentDto) => {
-    const response = await api.post(`/purchasing/purchase-orders/${id}/payment`, data);
     return response.data;
 };

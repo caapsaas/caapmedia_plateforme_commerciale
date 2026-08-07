@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { TreasuryAccount, Subsidiary, AccountType } from '../../types/models';
+import { TreasuryAccount, Subsidiary, AccountType, UserRole } from '../../types/models';
 import { useI18n } from '../../i18n';
+import { useAuth } from '../../context/AuthContext';
 import { getEligibleCashiers, CashierOption } from '../../services/apiFinance/apiTreasury';
 import { getAccounts } from '../../services/apiAccounting/apiAccounts';
+import { getBanks } from '../../services/apiFinance/apiBanks';
+import { getSubsidiaries } from '../../services/apiCommon/apiSubsidiaries';
 
 interface TreasuryAccountFormModalProps {
   account: TreasuryAccount | null;
@@ -13,7 +16,7 @@ interface TreasuryAccountFormModalProps {
 }
 
 // Comptes assignables à un caissier responsable (un seul compte de ce type par caissier).
-const CASHIER_OWNED_TYPES = [AccountType.CAISSE, AccountType.CASH_REGISTER, AccountType.EXPENSE_BOX];
+const CASHIER_OWNED_TYPES = [AccountType.CASH_REGISTER, AccountType.EXPENSE_BOX];
 
 const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
   account,
@@ -22,6 +25,11 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
   onSave,
 }) => {
   const { t } = useI18n();
+  const { user } = useAuth();
+  const activeRole = user?.activeRole ?? user?.userRole;
+  // ADMIN/SUPER_ADMIN peuvent créer un compte (hors Banque, toujours siège)
+  // pour n'importe quelle filiale — même règle que gmo.
+  const canChooseSubsidiary = activeRole === UserRole.ADMIN || activeRole === UserRole.SUPER_ADMIN;
 
   const [formData, setFormData] = useState({
     accountName: '',
@@ -31,6 +39,8 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
     cashierId: '',
     accountCode: '',
     accountNumber: '',
+    bankId: '',
+    subsidiaryId: subsidiary.id,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -46,6 +56,8 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
         cashierId: account.cashierId || '',
         accountCode: account.accountCode || '',
         accountNumber: account.accountNumber || '',
+        bankId: account.bankId || '',
+        subsidiaryId: account.subsidiaryId,
       });
     } else {
       setFormData({
@@ -56,14 +68,21 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
         cashierId: '',
         accountCode: '',
         accountNumber: '',
+        bankId: '',
+        subsidiaryId: subsidiary.id,
       });
     }
-  }, [account]);
+  }, [account, subsidiary.id]);
+
+  const isCashierOwned = CASHIER_OWNED_TYPES.includes(formData.accountType);
+  const isBank = formData.accountType === AccountType.BANQUE;
 
   // Caissiers éligibles (Configuration Trésorerie — assignation compte↔caissier).
+  // Scopés à la filiale cible du compte (choisie par un ADMIN/SUPER_ADMIN, sinon la sienne).
   const { data: cashiers = [] } = useQuery<CashierOption[]>({
-    queryKey: ['eligibleCashiers', subsidiary.id],
-    queryFn: getEligibleCashiers,
+    queryKey: ['eligibleCashiers', formData.subsidiaryId, account?.cashierId],
+    queryFn: () => getEligibleCashiers(formData.subsidiaryId, account?.cashierId),
+    enabled: isCashierOwned,
   });
 
   // Mapping comptable : comptes de trésorerie du plan comptable (classe 5 SYSCOHADA).
@@ -73,8 +92,19 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
   });
   const treasuryChartAccounts = chartAccounts.filter((a) => a.class === 5);
 
-  const isCashierOwned = CASHIER_OWNED_TYPES.includes(formData.accountType);
-  const isBank = formData.accountType === AccountType.BANQUE;
+  // Banques (institutions) — dropdown des comptes de type Banque.
+  const { data: banks = [] } = useQuery({
+    queryKey: ['banks'],
+    queryFn: getBanks,
+    enabled: isBank,
+  });
+
+  // Filiales — sélecteur ADMIN/SUPER_ADMIN pour les comptes non-Banque.
+  const { data: subsidiaries = [] } = useQuery<Subsidiary[]>({
+    queryKey: ['subsidiaries-list'],
+    queryFn: getSubsidiaries,
+    enabled: canChooseSubsidiary && !isBank && !account,
+  });
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -85,6 +115,10 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
 
     if (!formData.balance || isNaN(Number(formData.balance))) {
       newErrors.balance = t('treasuryAccounts.validation.validBalance');
+    }
+
+    if (isBank && !formData.bankId) {
+      newErrors.bankId = t('treasuryAccounts.validation.bankRequired');
     }
 
     setErrors(newErrors);
@@ -107,10 +141,14 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
         balance: parseFloat(formData.balance),
         currency: formData.currency,
         accountType: formData.accountType,
-        subsidiaryId: subsidiary.id,
+        // Un compte Banque est toujours rattaché au siège côté backend, quel
+        // que soit ce champ — envoyé quand même pour les autres types
+        // (ADMIN/SUPER_ADMIN uniquement, ignoré sinon).
+        subsidiaryId: formData.subsidiaryId,
         cashierId: isCashierOwned ? formData.cashierId || undefined : undefined,
         accountCode: formData.accountCode || undefined,
         accountNumber: isBank ? formData.accountNumber || undefined : undefined,
+        bankId: isBank ? formData.bankId || undefined : undefined,
       };
 
       onSave(accountData);
@@ -221,13 +259,29 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
                 required
               >
                 <option value={AccountType.BANQUE}>{t('treasuryAccounts.accountTypes.bank')}</option>
-                <option value={AccountType.CAISSE}>{t('treasuryAccounts.accountTypes.cash')}</option>
-                <option value={AccountType.CASH_REGISTER}>Caisse de vente</option>
-                <option value={AccountType.SAFE}>Coffre-fort</option>
-                <option value={AccountType.EXPENSE_BOX}>Caisse dépense</option>
+                <option value={AccountType.CASH_REGISTER}>{t('treasuryAccounts.accountTypes.CASH_REGISTER')}</option>
+                <option value={AccountType.SAFE}>{t('treasuryAccounts.accountTypes.SAFE')}</option>
+                <option value={AccountType.EXPENSE_BOX}>{t('treasuryAccounts.accountTypes.EXPENSE_BOX')}</option>
                 <option value={AccountType.COMPTE_PREFINANCEMENT}>{t('treasuryAccounts.accountTypes.prefinancement')}</option>
               </select>
             </div>
+
+            {/* Filiale — comptes non-Banque, ADMIN/SUPER_ADMIN uniquement, à la création */}
+            {!isBank && canChooseSubsidiary && !account && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">{t('treasuryAccounts.form.subsidiary')}</label>
+                <select
+                  name="subsidiaryId"
+                  value={formData.subsidiaryId}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c6e911] focus:border-[#c6e911] transition-colors bg-white"
+                >
+                  {subsidiaries.map((s) => (
+                    <option key={s.id} value={s.id}>{s.subsidiaryName}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {isCashierOwned && (
               <div>
@@ -241,7 +295,7 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
                   <option value="">-- Aucun --</option>
                   {cashiers.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.userName}
+                      {c.userName}{c.subsidiaryName ? ` (${c.subsidiaryName})` : ''}
                     </option>
                   ))}
                 </select>
@@ -249,16 +303,39 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
             )}
 
             {isBank && (
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Numéro de compte</label>
-                <input
-                  type="text"
-                  name="accountNumber"
-                  value={formData.accountNumber}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c6e911] focus:border-[#c6e911] transition-colors"
-                />
-              </div>
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    {t('configuration.bank.name')}
+                    <span className="text-red-500 ml-1">*</span>
+                  </label>
+                  <select
+                    name="bankId"
+                    value={formData.bankId}
+                    onChange={handleChange}
+                    disabled={!!account}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#c6e911] focus:border-[#c6e911] transition-colors disabled:bg-slate-100 disabled:text-slate-500 ${
+                      errors.bankId ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  >
+                    <option value="">{t('configuration.bank.select')}</option>
+                    {banks.map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                  {errors.bankId && <p className="mt-1 text-sm text-red-600">{errors.bankId}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Numéro de compte</label>
+                  <input
+                    type="text"
+                    name="accountNumber"
+                    value={formData.accountNumber}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c6e911] focus:border-[#c6e911] transition-colors"
+                  />
+                </div>
+              </>
             )}
 
             <div>
@@ -300,7 +377,12 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
             {/* Subsidiary Info */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">
-                <span className="font-medium">{t('treasuryAccounts.form.subsidiary')}:</span> {subsidiary.name}
+                <span className="font-medium">{t('treasuryAccounts.form.subsidiary')}:</span>{' '}
+                {isBank
+                  ? t('configuration.bank.headquarterOnly')
+                  : (!canChooseSubsidiary || account)
+                    ? subsidiary.name
+                    : (subsidiaries.find((s) => s.id === formData.subsidiaryId)?.subsidiaryName || subsidiary.name)}
               </p>
             </div>
           </form>

@@ -1,13 +1,14 @@
 import React from 'react';
-import { Order, Subsidiary, OrderItem } from '../types';
+import { Order, Subsidiary } from '../types';
 import { useI18n } from '../i18n';
 import IconPrint from '../components/icons/IconPrint';
 import IconPdf from '../components/icons/IconPdf';
 import DocumentHeader from '../components/common/DocumentHeader';
 import DocumentTable from '../components/common/DocumentTable';
 import DocumentFooter from '../components/common/DocumentFooter';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import DocumentWatermark from '../components/common/DocumentWatermark';
+import { printElementAsPdf, exportElementToPdf } from '../utils/pdfExporter';
+import { amountToWordsFcfa } from '../utils/amountToWords';
 
 
 interface BonDeCommandeProps {
@@ -18,26 +19,27 @@ interface BonDeCommandeProps {
 
 const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClose }) => {
     const { t, formatCurrency, language } = useI18n();
-    const LogoComponent = subsidiary.logo;
     const bcContentRef = React.useRef<HTMLDivElement>(null);
+    const [isBusy, setIsBusy] = React.useState(false);
 
-    const handlePrint = () => {
-        window.print();
+    // Le backend renvoie toujours `orderItems` (jamais `items`, malgré le
+    // type frontend Order.items) avec un productName/unitPrice à plat sur
+    // chaque ligne — pas de order.product imbriqué. Sans ce fallback, le
+    // tableau restait vide (le vrai bug derrière "rien ne s'affiche").
+    const billableItems: any[] = (order as any).orderItems?.length
+        ? (order as any).orderItems
+        : (order.items ?? []);
+
+    const handlePrint = async () => {
+        if (!bcContentRef.current || isBusy) return;
+        setIsBusy(true);
+        try { await printElementAsPdf(bcContentRef.current); }
+        finally { setIsBusy(false); }
     };
 
-    const handleExportPdf = () => {
+    const handleExportPdf = async () => {
         if (!bcContentRef.current) return;
-
-        html2canvas(bcContentRef.current, { scale: 2 }).then((canvas) => {
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF({
-                orientation: 'p',
-                unit: 'px',
-                format: [canvas.width, canvas.height]
-            });
-            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-            pdf.save(`bon_de_commande_${order.id}.pdf`);
-        });
+        await exportElementToPdf(bcContentRef.current, `bon_de_commande_${order.id}.pdf`);
     };
 
     const formatDate = (dateString: string | undefined) => {
@@ -57,14 +59,18 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
         }
     };
 
-    // Contenu du document réutilisable
+    // Contenu du document réutilisable — largeur/padding A4 fixes (w-[210mm]
+    // p-8), identiques sur les 6 documents imprimables, pour un rendu
+    // cohérent aperçu/PDF/impression (voir DocumentFooter.tsx qui compense
+    // ce p-8 précis pour la bande légale en bord à bord).
     const DocumentContent = () => (
-        <div>
+        <div className="relative w-[210mm] p-8 bg-white mx-auto">
+            <DocumentWatermark />
             {/* Header */}
-            <div className="flex justify-between items-start mb-8 pb-6 border-b-4 border-[#c6e911]">
-                <DocumentHeader subsidiary={subsidiary} showContactIcons={false} />
+            <DocumentHeader subsidiary={subsidiary} />
+            <div className="flex justify-between items-start mb-8">
+                <h2 className="font-bold text-2xl text-slate-800 uppercase">{t('bonDeCommande.title')}</h2>
                 <div className="text-right">
-                    <h2 className="font-bold text-3xl text-[#c6e911] mb-4">{t('bonDeCommande.title')}</h2>
                     <div className="space-y-2 text-sm">
                         <p className="text-slate-700 font-semibold">{t('bonDeCommande.orderNum')}: <span className="font-bold text-base text-[#c6e911]">{order.id}</span></p>
                         <p className="text-slate-600">{t('bonDeCommande.date')}: <span className="font-semibold text-slate-800">{formatDate(order.date)}</span></p>
@@ -105,12 +111,12 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
                     { label: t('bonDeCommande.unitPrice'), key: 'unitPrice', align: 'right', formatter: (v) => formatCurrency(v) },
                     { label: t('bonDeCommande.totalPrice'), key: 'total', align: 'right', formatter: (v) => formatCurrency(v) }
                 ]}
-                data={order.items?.map((item: OrderItem) => ({
-                    productName: item.product?.productName || '—',
+                data={billableItems.map((item: any) => ({
+                    productName: item.productName || item.product?.name || '—',
                     quantity: item.quantity || 0,
-                    unitPrice: item.price || 0,
-                    total: (item.price || 0) * (item.quantity || 0)
-                })) || []}
+                    unitPrice: item.unitPrice ?? item.price ?? 0,
+                    total: (item.unitPrice ?? item.price ?? 0) * (item.quantity || 0)
+                }))}
                 totalRow={{
                     label: t('bonDeCommande.total'),
                     value: formatCurrency(order.totalAmount),
@@ -119,10 +125,15 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
                 emptyMessage={t('bonDeCommande.noData')}
             />
 
+            <p className="text-sm text-slate-600 italic mb-8">
+                {t('bonDeCommande.amountInWords', { amount: amountToWordsFcfa(order.totalAmount) })}
+            </p>
+
             {/* Footer */}
             <DocumentFooter
                 message={`${t('bonDeCommande.footer')} ${order.paymentDueDate ? formatDate(order.paymentDueDate) : ''}.`}
                 showSignature={true}
+                subsidiary={subsidiary}
             />
         </div>
     );
@@ -134,9 +145,11 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
             aria-modal="true"
             aria-labelledby="bc-title"
         >
-            {/* Wrapper for printable content */}
-            <div className="printable-area absolute top-0 left-0 -z-10 w-full bg-white">
-                <div ref={bcContentRef} className="p-12 bg-white" style={{ minHeight: '100vh' }}>
+            {/* Wrapper for printable content — hors-écran (pas juste -z-10 : un enfant
+                positionné reste visible dans les zones non couvertes par la modale
+                centrée, d'où le rendu "en double" derrière). Même pattern que gmo. */}
+            <div className="fixed top-0 left-[-9999px] bg-white">
+                <div ref={bcContentRef}>
                     <DocumentContent />
                 </div>
             </div>
@@ -152,7 +165,7 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6 text-slate-600"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                 </div>
-                <div className="p-8 overflow-y-auto flex-1 bg-white">
+                <div className="overflow-y-auto flex-1 bg-slate-50 p-6">
                     <DocumentContent />
                 </div>
 
@@ -166,10 +179,11 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
                     </button>
                     <button
                         onClick={handlePrint}
-                        className="flex items-center space-x-2 px-5 py-2.5 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-all shadow-md hover:shadow-lg"
+                        disabled={isBusy}
+                        className="flex items-center space-x-2 px-5 py-2.5 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-all shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                         <IconPrint className="h-5 w-5"/>
-                        <span>{t('bonDeCommande.print')}</span>
+                        <span>{isBusy ? '...' : t('bonDeCommande.print')}</span>
                     </button>
                     <button
                         onClick={onClose}

@@ -136,7 +136,7 @@ const ProductManagement: React.FC = () => {
                                 <td className="px-6 py-4 font-semibold">{item.name}</td>
                                 <td className="px-6 py-4">{item.productRange ? t(rangeToKeyMap[item.productRange] || item.productRange) : 'Non specifie'}</td>
                                 <td className="px-6 py-4">{t(categoryToKeyMap[item.category] || item.category)}</td>
-                                <td className="px-6 py-4">{formatCurrency(item.price)}</td>
+                                <td className="px-6 py-4">{item.costPrice != null ? formatCurrency(item.costPrice) : '—'}</td>
                                 <td className={`px-6 py-4 font-bold ${item.stock < 100 ? 'text-red-500' : 'text-green-600'}`}>
                                     {item.stock}
                                 </td>

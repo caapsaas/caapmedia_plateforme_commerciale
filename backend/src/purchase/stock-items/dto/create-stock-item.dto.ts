@@ -5,7 +5,6 @@ import {
   IsOptional,
   IsPositive,
   IsString,
-  IsUUID,
 } from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 
@@ -32,10 +31,6 @@ export class CreateStockItemDto {
   @IsOptional()
   stock?: number;
 
-  @IsNumber()
-  @IsOptional()
-  price?: number;
-
   @IsString()
   @IsNotEmpty()
   warehouse: string;
@@ -52,7 +47,8 @@ export class CreateStockItemDto {
   @IsOptional()
   stockManaged?: boolean;
 
-  @IsUUID()
+  // Supplier.id est un id préfixé custom (SUP-xxx), jamais un UUID.
+  @IsString()
   @IsOptional()
   mainSupplierId?: string;
 
@@ -62,22 +58,18 @@ export class CreateStockItemDto {
 
   // Unité dans laquelle le stock de ce produit est réellement compté
   // (Chantier 2) — ex. Feuille. Les unités d'achat s'y convertissent.
-  @IsUUID()
+  // Unit.id est un id préfixé custom (UNT-xxx), jamais un UUID.
+  @IsString()
   @IsOptional()
   baseUnitId?: string;
 }
 
 export class UpdateStockItemDto extends PartialType(CreateStockItemDto) {}
 
-export class UpdateStockItemPriceDto {
-  @IsNumber()
-  @IsPositive()
-  price: number;
-}
-
 // Unité d'emballage/achat d'un produit de stock (ex. Rame = 500 Feuilles).
 export class CreatePackagingUnitDto {
-  @IsUUID()
+  // Unit.id est un id préfixé custom (UNT-xxx), jamais un UUID.
+  @IsString()
   @IsNotEmpty()
   unitId: string;
 

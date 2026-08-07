@@ -1,35 +1,57 @@
 import React, { useState } from 'react';
-import { DebtStatus, Subsidiary, SupplierDebt } from '../../types';
+import { DebtStatus, Subsidiary, SupplierDebt, UserRole } from '../../types';
 import { useI18n } from '../../i18n';
+import { useAuth } from '../../context/AuthContext';
 import { exportToCsv } from '../../utils/csvExporter';
 import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
 import IconExport from '../icons/IconExport';
 import IconPdf from '../icons/IconPdf';
-import IconPlus from '../icons/IconPlus';
 import IconCoins from '../icons/IconCoins';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
 import PaySupplierDebtModal from './PaySupplierDebtModal';
-import CreateSupplierDebtModal from './CreateSupplierDebtModal';
 
 interface SupplierDebtsProps {
-    subsidiary: Subsidiary;
+    // `null` = vue consolidée toutes filiales (SUPER_ADMIN, "Toutes les
+    // filiales" — voir Finance.tsx). Auparavant `effectiveSubsidiary`
+    // retombait toujours sur la première filiale de la liste, empêchant
+    // le SUPER_ADMIN de voir les dettes (payées ou non) des autres filiales.
+    subsidiary: Subsidiary | null;
     supplierDebts: SupplierDebt[];
     isLoading?: boolean;
 }
 
+// `debt.dueDate` était affiché brut (ISO, ex: "2026-08-15T00:00:00.000Z")
+// au lieu d'une date localisée.
+const fmtDate = (date?: string | null, language = 'fr') => {
+    if (!date) return '—';
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString(language);
+};
+
 const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts: allSupplierDebts, isLoading = false }) => {
-    const { t, formatCurrency } = useI18n();
-    const supplierDebts = allSupplierDebts.filter(d => d.subsidiaryId === subsidiary.id);
+    const { t, formatCurrency, language } = useI18n();
+    const { user } = useAuth();
+    // Le paiement d'une dette fournisseur prélève le Coffre-fort/la Banque
+    // (comptes centralisés au siège) : réservé au SUPER_ADMIN, comme tout
+    // décaissement SAFE/BANQUE (voir Pages/Disbursement.tsx). Les autres
+    // rôles voient la liste mais ne peuvent pas payer.
+    // activeRole prime sur userRole (apercu de role SUPER_ADMIN, voir Purchasing.tsx pour le meme correctif).
+    const isSuperAdmin = (user?.activeRole ?? user?.userRole) === UserRole.SUPER_ADMIN;
+    const isConsolidated = subsidiary === null;
+    const supplierDebts = isConsolidated
+        ? allSupplierDebts
+        : allSupplierDebts.filter(d => d.subsidiaryId === subsidiary.id);
     const totalDebts = supplierDebts.filter(d => d.status !== DebtStatus.PAYER).reduce((acc, debt) => acc + Number(debt.amount), 0);
+    const colSpan = isConsolidated ? 7 : 6;
 
     const [debtToPay, setDebtToPay] = useState<SupplierDebt | null>(null);
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     const getStatusClass = (status: SupplierDebt['status']) => {
         switch (status) {
             case DebtStatus.PAYER: return 'bg-green-100 text-green-800';
+            case DebtStatus.PARTIELLEMENT_PAYE: return 'bg-amber-100 text-amber-800';
             case DebtStatus.A_PAYER: return 'bg-blue-100 text-blue-800';
             case DebtStatus.EN_ATTENTE: return 'bg-amber-100 text-amber-800';
             default: return 'bg-slate-100 text-slate-800';
@@ -39,6 +61,7 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
     const getTranslatedStatus = (status: SupplierDebt['status']) => {
         switch (status) {
             case DebtStatus.PAYER: return t('supplierDebts.statusPaid');
+            case DebtStatus.PARTIELLEMENT_PAYE: return t('supplierDebts.statusPartiallyPaid');
             case DebtStatus.A_PAYER: return t('supplierDebts.statusToPay');
             case DebtStatus.EN_ATTENTE: return t('supplierDebts.statusPending');
             default: return status;
@@ -47,35 +70,33 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
 
     const handlePrint = () => window.print();
 
+    const exportHeaders = [
+        { key: 'supplierName', label: t('supplierDebts.supplier') },
+        ...(isConsolidated ? [{ key: 'subsidiaryName', label: 'Filiale' }] : []),
+        { key: 'invoiceId', label: t('supplierDebts.invoiceId') },
+        { key: 'dueDate', label: t('supplierDebts.dueDate') },
+        { key: 'amount', label: t('supplierDebts.amount') },
+        { key: 'status', label: t('supplierDebts.status') },
+    ];
+
     const handleExport = () => {
-        const headers = [
-            { key: 'supplierName', label: t('supplierDebts.supplier') },
-            { key: 'invoiceId', label: t('supplierDebts.invoiceId') },
-            { key: 'dueDate', label: t('supplierDebts.dueDate') },
-            { key: 'amount', label: t('supplierDebts.amount') },
-            { key: 'status', label: t('supplierDebts.status') },
-        ];
         const data = supplierDebts.map(d => ({
             ...d,
+            subsidiaryName: d.subsidiary?.subsidiaryName ?? '—',
             status: getTranslatedStatus(d.status),
         }));
-        exportToCsv('dettes_fournisseurs', headers, data);
+        exportToCsv('dettes_fournisseurs', exportHeaders, data);
     };
 
     const handleExportPdf = () => {
-        const headers = [
-            { key: 'supplierName', label: t('supplierDebts.supplier') },
-            { key: 'invoiceId', label: t('supplierDebts.invoiceId') },
-            { key: 'dueDate', label: t('supplierDebts.dueDate') },
-            { key: 'amount', label: t('supplierDebts.amount') },
-            { key: 'status', label: t('supplierDebts.status') },
-        ];
         const data = supplierDebts.map(d => ({
             ...d,
+            subsidiaryName: d.subsidiary?.subsidiaryName ?? '—',
             status: getTranslatedStatus(d.status),
             amount: formatCurrency(d.amount),
+            dueDate: fmtDate(d.dueDate, language),
         }));
-        exportToPdf(t('supplierDebts.trackingTitle'), headers, data, 'dettes_fournisseurs');
+        exportToPdf(t('supplierDebts.trackingTitle'), exportHeaders, data, 'dettes_fournisseurs');
     };
 
     return (
@@ -104,10 +125,6 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
                             <IconPdf className="h-4 w-4" />
                             <span>{t('common.exportPdf')}</span>
                         </button>
-                        <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center space-x-2 px-3 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
-                            <IconPlus className="h-4 w-4" />
-                            <span>{t('supplierDebts.addDebt')}</span>
-                        </button>
                     </div>
                 </div>
                 <div className="overflow-x-auto">
@@ -115,6 +132,7 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
                         <thead className="text-xs text-slate-700 uppercase bg-slate-50">
                             <tr>
                                 <th scope="col" className="px-6 py-3">{t('supplierDebts.supplier')}</th>
+                                {isConsolidated && <th scope="col" className="px-6 py-3">Filiale</th>}
                                 <th scope="col" className="px-6 py-3">{t('supplierDebts.invoiceId')}</th>
                                 <th scope="col" className="px-6 py-3">{t('supplierDebts.dueDate')}</th>
                                 <th scope="col" className="px-6 py-3 text-right">{t('supplierDebts.amount')}</th>
@@ -124,16 +142,19 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
                         </thead>
                         <tbody>
                             {isLoading ? (
-                                <TableSkeleton rows={8} columns={6} />
+                                <TableSkeleton rows={8} columns={colSpan} />
                             ) : supplierDebts.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6}>
+                                    <td colSpan={colSpan}>
                                         <EmptyState icon="truck" title={t('supplierDebts.trackingTitle')} description={t('common.notAvailable')} />
                                     </td>
                                 </tr>
                             ) : supplierDebts.map((debt) => (
                                 <tr key={debt.id} className="bg-white border-b hover:bg-slate-50">
                                     <td className="px-6 py-4 font-medium text-slate-900">{debt.supplierName}</td>
+                                    {isConsolidated && (
+                                        <td className="px-6 py-4 text-slate-500">{debt.subsidiary?.subsidiaryName ?? '—'}</td>
+                                    )}
                                     <td className="px-6 py-4">
                                         {debt.invoiceUrl ? (
                                             <a href={debt.invoiceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline">
@@ -143,7 +164,7 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
                                             debt.invoiceId
                                         )}
                                     </td>
-                                    <td className="px-6 py-4">{debt.dueDate}</td>
+                                    <td className="px-6 py-4">{fmtDate(debt.dueDate, language)}</td>
                                     <td className="px-6 py-4 text-right font-semibold">{formatCurrency(debt.amount)}</td>
                                     <td className="px-6 py-4 text-center">
                                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(debt.status)}`}>
@@ -151,7 +172,7 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-center no-print">
-                                        {debt.status !== DebtStatus.PAYER && (
+                                        {debt.status !== DebtStatus.PAYER && isSuperAdmin && (
                                             <button
                                                 onClick={() => setDebtToPay(debt)}
                                                 className="p-2 text-slate-500 hover:text-orange-600 hover:bg-orange-100 rounded-full transition-colors"
@@ -171,13 +192,12 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
             <PaySupplierDebtModal
                 isOpen={!!debtToPay}
                 onClose={() => setDebtToPay(null)}
-                subsidiaryId={subsidiary.id}
-                debt={debtToPay}
-            />
-            <CreateSupplierDebtModal
-                isOpen={isCreateModalOpen}
-                onClose={() => setIsCreateModalOpen(false)}
-                subsidiaryId={subsidiary.id}
+                debtId={debtToPay?.id ?? null}
+                supplierName={debtToPay?.supplierName ?? ''}
+                reference={debtToPay?.invoiceId ?? ''}
+                totalAmount={debtToPay?.purchaseOrder?.totalAmount ?? debtToPay?.amount ?? 0}
+                amountPaid={debtToPay?.purchaseOrder?.amountPaid ?? 0}
+                remainingAmount={debtToPay?.amount ?? 0}
             />
         </div>
     );

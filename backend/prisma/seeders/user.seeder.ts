@@ -33,6 +33,23 @@ export async function runUserSeeder(prisma: PrismaClient) {
       userRole: 'ADMIN',
       subsidiaryEmail: 'contact.siege@caap.cm',
     },
+    {
+      // Un FINANCIAL_DIRECTOR par filiale (y compris siège) — nécessaire pour
+      // tester le décaissement Caisse dépense et la réception des remises de
+      // caisse (voir treasury.seeder.ts), rôles réservés à ce poste.
+      userName: 'Emmanuel Directeur Financier Siège',
+      email: 'emmanuel.finance@caap.cm',
+      password: 'password',
+      userRole: 'FINANCIAL_DIRECTOR',
+      subsidiaryEmail: 'contact.siege@caap.cm',
+    },
+    {
+      userName: 'Christelle Caissière Siège',
+      email: 'christelle.caissiere@caap.cm',
+      password: 'password',
+      userRole: 'CAISSIER',
+      subsidiaryEmail: 'contact.siege@caap.cm',
+    },
     // --- Douala ---
     {
       userName: 'Paul Admin Douala',
@@ -67,6 +84,13 @@ export async function runUserSeeder(prisma: PrismaClient) {
       email: 'richard.finance@caap.cm',
       password: 'password',
       userRole: 'FINANCIAL_DIRECTOR',
+      subsidiaryEmail: 'contact.douala@caap.cm',
+    },
+    {
+      userName: 'Fatou Caissière Douala',
+      email: 'fatou.caissiere@caap.cm',
+      password: 'password',
+      userRole: 'CAISSIER',
       subsidiaryEmail: 'contact.douala@caap.cm',
     },
     {
@@ -107,6 +131,13 @@ export async function runUserSeeder(prisma: PrismaClient) {
       userRole: 'CAISSIER',
       subsidiaryEmail: 'contact.kribi@caap.cm',
     },
+    {
+      userName: 'Brice Directeur Financier Kribi',
+      email: 'brice.finance@caap.cm',
+      password: 'password',
+      userRole: 'FINANCIAL_DIRECTOR',
+      subsidiaryEmail: 'contact.kribi@caap.cm',
+    },
     // --- Edéa ---
     {
       userName: 'Carine Admin Edéa',
@@ -127,6 +158,13 @@ export async function runUserSeeder(prisma: PrismaClient) {
       email: 'caissier.edea@caap.cm',
       password: 'password',
       userRole: 'CAISSIER',
+      subsidiaryEmail: 'contact.edea@caap.cm',
+    },
+    {
+      userName: 'Carole Directeur Financier Edéa',
+      email: 'carole.finance@caap.cm',
+      password: 'password',
+      userRole: 'FINANCIAL_DIRECTOR',
       subsidiaryEmail: 'contact.edea@caap.cm',
     },
   ];

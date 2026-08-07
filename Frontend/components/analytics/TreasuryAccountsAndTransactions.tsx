@@ -5,6 +5,7 @@ import { useI18n } from '../../i18n';
 import { PeriodFilter } from '../../services/apiStatistic/apiAnalytics';
 import { resolvePeriodBounds } from '../../utils/periodBounds';
 import { getTreasuryAccounts, getFinancialTransactions } from '../../services/apiFinance/apiTreasury';
+import { findAccountIdInSet, getTransactionLegForAccount } from '../../utils/transactionDisplay';
 import TreasuryStatementModal from '../finance/TreasuryStatementModal';
 import IconPrint from '../icons/IconPrint';
 import TableSkeleton from '../ui/TableSkeleton';
@@ -52,7 +53,6 @@ const TreasuryAccountsAndTransactions: React.FC<TreasuryAccountsAndTransactionsP
     [allAccounts, accountType],
   );
   const accountIds = useMemo(() => new Set(accounts.map((a) => a.id)), [accounts]);
-  const accountMap = useMemo(() => new Map(accounts.map((a) => [a.id, a.accountName])), [accounts]);
 
   const { data: allTransactions = [], isLoading: isLoadingTx } = useQuery<FinancialTransaction[]>({
     queryKey: ['financialTransactions', subsidiary.id],
@@ -133,9 +133,10 @@ const TreasuryAccountsAndTransactions: React.FC<TreasuryAccountsAndTransactionsP
             <EmptyState icon="finance" title={title} description={t('common.notAvailable')} />
           ) : (
             <div className="overflow-x-auto">
+              <div className="min-w-max w-full">
               <table className="w-full text-sm text-left text-slate-500">
                 <thead className="text-xs text-slate-700 uppercase bg-slate-50">
-                  <tr>
+                  <tr className="whitespace-nowrap">
                     <th className="px-4 py-3">{t('treasuryAccounts.table.accountName')}</th>
                     <th className="px-4 py-3">{t('treasury.statement.period')}</th>
                     <th className="px-4 py-3 text-right">{t('treasuryAccounts.table.balance')}</th>
@@ -144,7 +145,7 @@ const TreasuryAccountsAndTransactions: React.FC<TreasuryAccountsAndTransactionsP
                 </thead>
                 <tbody>
                   {accounts.map((acc) => (
-                    <tr key={acc.id} className="bg-white border-b hover:bg-slate-50">
+                    <tr key={acc.id} className="bg-white border-b hover:bg-slate-50 whitespace-nowrap">
                       <td className="px-4 py-3 font-medium text-slate-800">{acc.accountName}</td>
                       <td className="px-4 py-3">{acc.accountNumber || '—'}</td>
                       <td className="px-4 py-3 text-right font-semibold">{formatCurrency(acc.balance)}</td>
@@ -161,50 +162,66 @@ const TreasuryAccountsAndTransactions: React.FC<TreasuryAccountsAndTransactionsP
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )
         ) : (
           <>
             <div className="overflow-x-auto">
+              <div className="min-w-max w-full">
               <table className="w-full text-sm text-left text-slate-500">
                 <thead className="text-xs text-slate-700 uppercase bg-slate-50">
-                  <tr>
+                  <tr className="whitespace-nowrap">
                     <th className="px-4 py-3">{t('treasury.date')}</th>
                     <th className="px-4 py-3">{t('treasury.description')}</th>
-                    <th className="px-4 py-3">{t('treasury.account')}</th>
+                    <th className="px-4 py-3">{t('treasury.history.direction')}</th>
+                    <th className="px-4 py-3">{t('treasury.history.counterparty')}</th>
                     <th className="px-4 py-3">{t('treasury.history.reference')}</th>
                     <th className="px-4 py-3 text-right">{t('treasury.amount')}</th>
+                    <th className="px-4 py-3 text-right">{t('treasury.history.balanceBefore')}</th>
+                    <th className="px-4 py-3 text-right">{t('treasury.history.balanceAfter')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isLoadingTx ? (
-                    <TableSkeleton rows={5} columns={5} />
+                    <TableSkeleton rows={5} columns={8} />
                   ) : paginatedTransactions.length === 0 ? (
                     <tr>
-                      <td colSpan={5}>
+                      <td colSpan={8}>
                         <EmptyState icon="finance" title={t('sidebar.transactions')} description={t('common.notAvailable')} />
                       </td>
                     </tr>
                   ) : (
-                    paginatedTransactions.map((tx) => (
-                      <tr key={tx.id} className="bg-white border-b hover:bg-slate-50">
-                        <td className="px-4 py-3">{new Date(tx.transactionDate).toLocaleDateString(language)}</td>
-                        <td className="px-4 py-3 font-medium text-slate-800">{tx.description}</td>
-                        <td className="px-4 py-3">{accountMap.get(tx.treasuryAccountId) || accountMap.get(tx.destinationAccountId || '')}</td>
-                        <td className="px-4 py-3">{tx.reference || '-'}</td>
-                        <td
-                          className={`px-4 py-3 text-right font-bold ${
-                            tx.financialTransactionType === 'RECETTE' ? 'text-green-700' : 'text-red-700'
-                          }`}
-                        >
-                          {tx.financialTransactionType === 'RECETTE' ? '+' : '-'}
-                          {formatCurrency(Number(tx.amount))}
-                        </td>
-                      </tr>
-                    ))
+                    paginatedTransactions.map((tx) => {
+                      // Un même virement peut être décaissement pour un compte
+                      // de l'ensemble et encaissement pour un autre : on résout
+                      // le compte de CET ensemble concerné par la ligne (le
+                      // côté destinataire est prioritaire s'il en fait partie).
+                      const matchedId = findAccountIdInSet(tx, accountIds) ?? tx.treasuryAccountId;
+                      const { isIncome, counterpartyName, balanceBefore, balanceAfter } = getTransactionLegForAccount(tx, matchedId);
+                      return (
+                        <tr key={tx.id} className="bg-white border-b hover:bg-slate-50 whitespace-nowrap">
+                          <td className="px-4 py-3">{new Date(tx.transactionDate).toLocaleDateString(language)}</td>
+                          <td className="px-4 py-3 font-medium text-slate-800">{tx.description}</td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${isIncome ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                              {isIncome ? t('treasury.history.income') : t('treasury.history.expense')}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">{counterpartyName}</td>
+                          <td className="px-4 py-3">{tx.reference || '-'}</td>
+                          <td className={`px-4 py-3 text-right font-bold ${isIncome ? 'text-green-700' : 'text-red-700'}`}>
+                            {isIncome ? '+' : '-'}{formatCurrency(Number(tx.amount))}
+                          </td>
+                          <td className="px-4 py-3 text-right">{balanceBefore != null ? formatCurrency(balanceBefore) : '—'}</td>
+                          <td className="px-4 py-3 text-right">{balanceAfter != null ? formatCurrency(balanceAfter) : '—'}</td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
             <Pagination meta={paginationMeta} onPageChange={setPage} />
           </>

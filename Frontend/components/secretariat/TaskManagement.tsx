@@ -19,6 +19,13 @@ import Pagination from '../common/Pagination';
 
 const TASKS_PAGE_SIZE = 10;
 
+// `task.dueDate` était affiché brut (ISO) au lieu d'une date localisée.
+const fmtDate = (date?: string | null, language = 'fr') => {
+    if (!date) return '—';
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString(language);
+};
+
 interface TaskManagementProps {
     subsidiary: Subsidiary;
     employees: Employee[];
@@ -27,7 +34,7 @@ interface TaskManagementProps {
 }
 
 const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary, employees, onSave, onDelete }) => {
-    const { t } = useI18n();
+    const { t, language } = useI18n();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<SecretariatTask | null>(null);
     const [deletingTask, setDeletingTask] = useState<SecretariatTask | null>(null);
@@ -196,7 +203,7 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary, employees, 
                                     <div className="text-xs text-slate-500">{task.description}</div>
                                 </td>
                                 <td className="px-6 py-4">{getAssigneeName(task.assignedToId)}</td>
-                                <td className="px-6 py-4">{task.dueDate}</td>
+                                <td className="px-6 py-4">{fmtDate(task.dueDate, language)}</td>
                                 <td className="px-6 py-4">
                                     <select 
                                         value={task.status} 

@@ -14,8 +14,11 @@ import { useToast } from "../../context/ToastContext";
 import SelectFilter from "../filters/SelectFilter";
 import PeriodFilter from "../filters/PeriodFilter";
 import IconDocumentText from "../icons/IconDocumentText";
+import IconEye from "../icons/IconEye";
+import IconClipboardList from "../icons/IconClipboardList";
 import BonDeLivraison from "../../Pages/BonDeLivraison";
 import BonDeCommande from "../../Pages/BonDeCommande";
+import OrderDetailsPanel from "../production/OrderDetailsPanel";
 import IconInvoice from "../icons/IconInvoice";
 import InvoiceModal from "../../Pages/InvoiceModal";
 import RecordPaymentModal from "./RecordPaymentModal";
@@ -245,6 +248,8 @@ const Sales: React.FC = () => {
       orderId: string;
       amount: number;
       paymentMethod: CustomerPaymentMethod;
+      bankAccountId?: string;
+      transactionReference?: string;
     }) => recordOrderPayment(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
@@ -322,10 +327,15 @@ const Sales: React.FC = () => {
         : [];
 
       return {
-        productId: item.product.id,
+        // item vient du panier local (NewOrder.tsx), pas d'une réponse API —
+        // product y est toujours renseigné, contrairement aux commandes
+        // existantes lues depuis le backend (voir OrderItem.product dans
+        // types/models.ts).
+        productId: item.product!.id,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         discount: item.discount,
+        assemblyPrice: item.assemblyPrice,
         options: optionsArray,
         specValues: item.specValues,
       };
@@ -359,6 +369,10 @@ const Sales: React.FC = () => {
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
   const [blOrder, setBlOrder] = useState<Order | null>(null);
   const [bonDeCommandeOrder, setBonDeCommandeOrder] = useState<Order | null>(null);
+  // Détail complet (infos générales, résumé financier, options/specs/fichier
+  // BAT/workflow production par ligne) — distinct du simple dépliage de ligne
+  // (expandedOrderId), qui ne montre que la liste d'articles.
+  const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
   // State for UI toggles
@@ -798,6 +812,20 @@ const Sales: React.FC = () => {
                                               </button>
                                             )}
                                             <button
+                                              onClick={() => setDetailsOrder(order)}
+                                              className="p-2 text-slate-500 hover:bg-slate-100 rounded-full"
+                                              title={t("common.view")}
+                                            >
+                                              <IconEye className="h-5 w-5" />
+                                            </button>
+                                            <button
+                                              onClick={() => setBonDeCommandeOrder(order)}
+                                              className="p-2 text-slate-500 hover:bg-slate-100 rounded-full"
+                                              title={t("bonDeCommande.title")}
+                                            >
+                                              <IconClipboardList className="h-5 w-5" />
+                                            </button>
+                                            <button
                                               onClick={() => setInvoiceOrder(order)}
                                               className="p-2 text-slate-500 hover:bg-slate-100 rounded-full"
                                               title={t("invoice.viewInvoice")}
@@ -937,8 +965,8 @@ const Sales: React.FC = () => {
           isOpen={!!payingOrder}
           onClose={() => setPayingOrder(null)}
           order={payingOrder}
-          onRecordPayment={(orderId, amount, paymentMethod) =>
-            recordPaymentMutate({ orderId, amount, paymentMethod })
+          onRecordPayment={(orderId, amount, paymentMethod, bankAccountId, transactionReference) =>
+            recordPaymentMutate({ orderId, amount, paymentMethod, bankAccountId, transactionReference })
           }
         />
       )}
@@ -973,6 +1001,12 @@ const Sales: React.FC = () => {
           order={bonDeCommandeOrder}
           subsidiary={subsidiary}
           onClose={() => setBonDeCommandeOrder(null)}
+        />
+      )}
+      {detailsOrder && (
+        <OrderDetailsPanel
+          order={detailsOrder}
+          onClose={() => setDetailsOrder(null)}
         />
       )}
     </div>

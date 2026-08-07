@@ -29,8 +29,10 @@ export class CreateWorkflowDto {
   @IsString()
   description?: string;
 
+  // Item.id est un id préfixé custom (PRD-xxx), jamais un UUID — @IsUUID()
+  // le rejetait systématiquement en 400.
   @IsOptional()
-  @IsUUID()
+  @IsString()
   itemId?: string;
 
   @IsOptional()
@@ -54,7 +56,7 @@ export class UpdateWorkflowDto {
   description?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   itemId?: string | null;
 
   @IsOptional()

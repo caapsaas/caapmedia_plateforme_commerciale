@@ -383,7 +383,7 @@ const ChartOfAccounts: React.FC = () => {
       {subsidiary && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '1000px', zIndex: -1, overflow: 'hidden', opacity: 0, pointerEvents: 'none' }}>
           <div ref={printRef} className="p-10 bg-white" style={{ width: '1000px' }}>
-            <DocumentHeader subsidiary={subsidiary} showContactIcons={false} />
+            <DocumentHeader subsidiary={subsidiary} />
             <h2 className="text-xl font-bold text-slate-800 mb-1">Plan comptable — SYSCOHADA révisé 2017</h2>
             <p className="text-xs text-slate-500 mb-4">Imprimé le {new Date().toLocaleDateString('fr-FR')} à {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
             <table className="w-full text-xs border-collapse border border-slate-300">

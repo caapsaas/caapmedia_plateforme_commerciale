@@ -4,9 +4,12 @@ import { useI18n } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Proforma, sendProforma } from '../../services/apiCrm/apiProformas';
-import { printElementAsPdf } from '../../utils/pdfExporter';
+import { printElementAsPdf, exportElementToPdf } from '../../utils/pdfExporter';
+import { amountToWordsFcfa } from '../../utils/amountToWords';
 import DocumentHeader from '../common/DocumentHeader';
+import DocumentTable from '../common/DocumentTable';
 import DocumentFooter from '../common/DocumentFooter';
+import DocumentWatermark from '../common/DocumentWatermark';
 import IconPrint from '../icons/IconPrint';
 import IconPdf from '../icons/IconPdf';
 import IconCancelX from '../icons/IconCancelX';
@@ -17,41 +20,6 @@ interface ProformaTemplateModalProps {
   proforma: Proforma | null;
 }
 
-// Nombre → toutes lettres (FR), montants en FCFA — implémentation minimale
-// suffisante pour un document commercial (pas de gestion des décimales : les
-// montants XOF n'en portent jamais).
-const numberToWordsFr = (n: number): string => {
-  const units = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
-  const teens = ['dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
-  const tens = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante-dix', 'quatre-vingt', 'quatre-vingt-dix'];
-
-  const chunk = (num: number): string => {
-    if (num === 0) return '';
-    if (num < 10) return units[num];
-    if (num < 20) return teens[num - 10];
-    if (num < 100) {
-      const t = Math.floor(num / 10);
-      const u = num % 10;
-      return tens[t] + (u ? (t === 7 || t === 9 ? '-' + teens[u] : '-' + units[u]) : '') + (u === 1 && (t === 8) ? 's' : '');
-    }
-    const h = Math.floor(num / 100);
-    const rest = num % 100;
-    return (h > 1 ? units[h] + ' cent' : 'cent') + (rest ? ' ' + chunk(rest) : h > 1 ? 's' : '');
-  };
-
-  if (n === 0) return 'zéro';
-  let result = '';
-  const millions = Math.floor(n / 1_000_000);
-  const thousands = Math.floor((n % 1_000_000) / 1000);
-  const rest = n % 1000;
-
-  if (millions) result += (millions > 1 ? chunk(millions) + ' millions' : 'un million') + ' ';
-  if (thousands) result += (thousands > 1 ? chunk(thousands) + ' mille' : 'mille') + ' ';
-  if (rest) result += chunk(rest);
-
-  return result.trim();
-};
-
 const ProformaTemplateModal: React.FC<ProformaTemplateModalProps> = ({ isOpen, onClose, proforma }) => {
   const { t, formatCurrency, language } = useI18n();
   const { subsidiary } = useAuth();
@@ -59,6 +27,7 @@ const ProformaTemplateModal: React.FC<ProformaTemplateModalProps> = ({ isOpen, o
   const queryClient = useQueryClient();
   const printRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const { mutate: send, isPending: isSending } = useMutation({
     mutationFn: (id: string) => sendProforma(id),
@@ -73,13 +42,28 @@ const ProformaTemplateModal: React.FC<ProformaTemplateModalProps> = ({ isOpen, o
 
   if (!isOpen || !proforma || !subsidiary) return null;
 
-  const handlePrint = async () => {
+  // Cohérent avec les 5 autres documents (BonDeCommande, Facture...) :
+  // "Exporter PDF" télécharge directement, "Imprimer" ouvre le PDF dans un
+  // nouvel onglet et déclenche l'impression — jusqu'ici les deux boutons de
+  // cette modale appelaient tous deux printElementAsPdf (dont un "Imprimer"
+  // qui faisait un window.print() brut, sans rapport avec le rendu réel).
+  const handleExportPdf = async () => {
     if (!printRef.current) return;
     setIsExporting(true);
     try {
-      await printElementAsPdf(printRef.current);
+      await exportElementToPdf(printRef.current, `proforma_${proforma.proformaNumber}.pdf`);
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handlePrint = async () => {
+    if (!printRef.current) return;
+    setIsPrinting(true);
+    try {
+      await printElementAsPdf(printRef.current);
+    } finally {
+      setIsPrinting(false);
     }
   };
 
@@ -93,8 +77,10 @@ const ProformaTemplateModal: React.FC<ProformaTemplateModalProps> = ({ isOpen, o
           </button>
         </div>
 
-        <div className="p-8 overflow-y-auto bg-slate-50">
-          <div ref={printRef} className="bg-white p-10 mx-auto" style={{ width: '800px' }}>
+        <div className="overflow-y-auto bg-slate-50 p-6">
+          {/* Largeur/padding A4 fixes (w-[210mm] p-8), identiques sur les 6 documents. */}
+          <div ref={printRef} className="relative w-[210mm] p-8 bg-white mx-auto">
+            <DocumentWatermark />
             <DocumentHeader subsidiary={subsidiary} />
 
             <div className="flex justify-between items-start mb-8">
@@ -113,29 +99,30 @@ const ProformaTemplateModal: React.FC<ProformaTemplateModalProps> = ({ isOpen, o
               </div>
             </div>
 
-            <table className="w-full text-sm text-left text-slate-600 mb-6">
-              <thead className="text-xs text-slate-700 uppercase bg-slate-100">
-                <tr>
-                  <th className="px-4 py-3">{t('proforma.template.item')}</th>
-                  <th className="px-4 py-3 text-center">{t('proforma.template.qty')}</th>
-                  <th className="px-4 py-3 text-right">{t('proforma.template.unitPrice')}</th>
-                  <th className="px-4 py-3 text-right">{t('proforma.template.total')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(proforma.items || []).map((item: any, idx: number) => (
-                  <tr key={idx} className="border-b">
-                    <td className="px-4 py-3 font-medium text-slate-800">
-                      {item.product?.name || item.productId}
-                      {item.description && <p className="text-xs text-slate-400">{item.description}</p>}
-                    </td>
-                    <td className="px-4 py-3 text-center">{item.quantity}</td>
-                    <td className="px-4 py-3 text-right">{formatCurrency(Number(item.unitPrice))}</td>
-                    <td className="px-4 py-3 text-right font-semibold">{formatCurrency(Number(item.unitPrice) * item.quantity)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DocumentTable
+              columns={[
+                {
+                  label: t('proforma.template.item'), key: 'name', align: 'left',
+                  render: (row) => (
+                    <>
+                      <span className="font-medium text-slate-800">{row.name}</span>
+                      {row.description && <p className="text-xs text-slate-400">{row.description}</p>}
+                    </>
+                  ),
+                },
+                { label: t('proforma.template.qty'), key: 'quantity', align: 'center' },
+                { label: t('proforma.template.unitPrice'), key: 'unitPrice', align: 'right', formatter: (v) => formatCurrency(v) },
+                { label: t('proforma.template.total'), key: 'total', align: 'right', formatter: (v) => formatCurrency(v) },
+              ]}
+              data={(proforma.items || []).map((item: any) => ({
+                name: item.product?.name || item.productId,
+                description: item.description,
+                quantity: item.quantity,
+                unitPrice: Number(item.unitPrice),
+                total: Number(item.unitPrice) * item.quantity,
+              }))}
+              emptyMessage={t('common.notAvailable')}
+            />
 
             <div className="flex justify-end mb-8">
               <div className="w-full max-w-xs space-y-1">
@@ -155,7 +142,7 @@ const ProformaTemplateModal: React.FC<ProformaTemplateModalProps> = ({ isOpen, o
             </div>
 
             <p className="text-sm text-slate-600 italic mb-8">
-              {t('proforma.template.amountInWords', { amount: numberToWordsFr(Math.round(proforma.totalAmount)) })}
+              {t('proforma.template.amountInWords', { amount: amountToWordsFcfa(proforma.totalAmount) })}
             </p>
 
             {proforma.notes && (
@@ -165,7 +152,7 @@ const ProformaTemplateModal: React.FC<ProformaTemplateModalProps> = ({ isOpen, o
               </div>
             )}
 
-            <DocumentFooter message={t('proforma.template.footerMessage')} />
+            <DocumentFooter message={t('proforma.template.footerMessage')} subsidiary={subsidiary} />
           </div>
         </div>
 
@@ -180,7 +167,7 @@ const ProformaTemplateModal: React.FC<ProformaTemplateModalProps> = ({ isOpen, o
             </button>
           )}
           <button
-            onClick={handlePrint}
+            onClick={handleExportPdf}
             disabled={isExporting}
             className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors disabled:opacity-50"
           >
@@ -188,11 +175,12 @@ const ProformaTemplateModal: React.FC<ProformaTemplateModalProps> = ({ isOpen, o
             {isExporting ? t('proforma.template.generating') : t('common.exportPdf')}
           </button>
           <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 transition-colors"
+            onClick={handlePrint}
+            disabled={isPrinting}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50"
           >
             <IconPrint className="h-5 w-5" />
-            {t('common.print')}
+            {isPrinting ? t('proforma.template.generating') : t('common.print')}
           </button>
           <button onClick={onClose} className="px-6 py-2 bg-slate-200 text-slate-700 font-semibold rounded-md hover:bg-slate-300 transition-colors">
             {t('common.close')}

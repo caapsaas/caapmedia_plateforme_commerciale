@@ -70,13 +70,34 @@ export const exportToPdf = (title: string, headers: PdfHeader[], data: any[], fi
 };
 
 /**
- * Capture un élément DOM (ex : un gabarit d'impression caché avec DocumentHeader)
- * en image, l'assemble en PDF paginé, puis ouvre le PDF dans un nouvel onglet et
- * déclenche l'impression via le viewer natif du navigateur.
+ * Convertit un canvas capturé (scale=2) en un jsPDF prêt à l'emploi.
+ *
+ * `autoPageSize: true` (par défaut) crée une page UNIQUE aux dimensions
+ * exactes du contenu : aucune coupure au milieu d'un tableau — le problème
+ * que le découpage A4 classique (ci-dessous) ne peut pas éviter pour des
+ * documents courts (bon de commande, bon de livraison, bon d'entrée...).
+ * Pattern repris de gmo (Frontend_GMO/utils/pdfUtils.ts::printElementAsPdf).
+ *
+ * `autoPageSize: false` reproduit l'ancien découpage multi-pages A4 —
+ * réservé aux documents volontairement longs (ex. facture multi-lignes) où
+ * une pagination physique standard est préférable à une page unique géante.
  */
-export const printElementAsPdf = async (element: HTMLElement): Promise<void> => {
-    const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+const canvasToPdf = (canvas: HTMLCanvasElement, autoPageSize: boolean): jsPDF => {
     const imgData = canvas.toDataURL('image/png');
+
+    if (autoPageSize) {
+        // px → mm à 96 DPI, corrigé du scale=2 utilisé lors de la capture.
+        const mmPerPx = 25.4 / 96;
+        const contentWidthMm = (canvas.width / 2) * mmPerPx;
+        const contentHeightMm = (canvas.height / 2) * mmPerPx;
+        const pdf = new jsPDF({
+            orientation: contentHeightMm > contentWidthMm ? 'p' : 'l',
+            unit: 'mm',
+            format: [contentWidthMm, contentHeightMm],
+        });
+        pdf.addImage(imgData, 'PNG', 0, 0, contentWidthMm, contentHeightMm);
+        return pdf;
+    }
 
     const pdf = new jsPDF('p', 'mm', 'a4');
     const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -93,6 +114,37 @@ export const printElementAsPdf = async (element: HTMLElement): Promise<void> => 
         pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
         heightLeft -= pdfHeight;
     }
+    return pdf;
+};
+
+/**
+ * Capture un élément DOM (ex : un gabarit d'impression caché avec DocumentHeader)
+ * en image et le télécharge directement en PDF — remplace le pattern ad hoc
+ * `jsPDF({unit:'px', format:[canvas.width, canvas.height]})` dupliqué (et
+ * incorrect : un PDF en pixels n'a pas des proportions A4 exploitables à
+ * l'impression) dans BonDeCommande/BonDeLivraison/InvoiceModal.
+ */
+export const exportElementToPdf = async (
+    element: HTMLElement,
+    filename: string,
+    options?: { autoPageSize?: boolean },
+): Promise<void> => {
+    const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+    const pdf = canvasToPdf(canvas, options?.autoPageSize ?? true);
+    pdf.save(filename.endsWith('.pdf') ? filename : `${filename}.pdf`);
+};
+
+/**
+ * Capture un élément DOM (ex : un gabarit d'impression caché avec DocumentHeader)
+ * en image, l'assemble en PDF, puis ouvre le PDF dans un nouvel onglet et
+ * déclenche l'impression via le viewer natif du navigateur.
+ */
+export const printElementAsPdf = async (
+    element: HTMLElement,
+    options?: { autoPageSize?: boolean },
+): Promise<void> => {
+    const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+    const pdf = canvasToPdf(canvas, options?.autoPageSize ?? true);
 
     const blob = pdf.output('blob');
     const url = URL.createObjectURL(blob);

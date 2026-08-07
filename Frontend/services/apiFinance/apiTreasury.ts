@@ -29,16 +29,19 @@ export interface CreateDisbursementData {
 
 /**
  * Données pour la création d'un compte de trésorerie.
- * Les champs gérés par le backend sont omis.
+ * Les champs gérés par le backend sont omis. `subsidiaryId` est un override
+ * réservé à ADMIN/SUPER_ADMIN (ignoré/refusé pour les autres rôles côté
+ * backend) — sans effet pour un compte BANQUE, toujours rattaché au siège.
  */
-export type TreasuryAccountCreationData = Omit<TreasuryAccount, 'id' | 'subsidiaryId' | 'balance'> & {
+export type TreasuryAccountCreationData = Omit<TreasuryAccount, 'id' | 'subsidiaryId' | 'balance' | 'bank'> & {
   initialBalance: number;
+  subsidiaryId?: string;
 };
 
 /**
  * Données pour la mise à jour d'un compte de trésorerie.
  */
-export type TreasuryAccountUpdateData = Partial<Omit<TreasuryAccount, 'id' | 'subsidiaryId' | 'balance'>>;
+export type TreasuryAccountUpdateData = Partial<Omit<TreasuryAccount, 'id' | 'subsidiaryId' | 'balance' | 'bank'>>;
 
 // --- Types pour les Transactions Financières ---
 
@@ -188,14 +191,26 @@ export interface CashierOption {
   id: string;
   userName: string;
   email: string;
+  subsidiaryName?: string;
 }
 
 /**
  * Utilisateurs éligibles comme caissier assigné (Configuration Trésorerie —
- * comptes CAISSE/CASH_REGISTER/EXPENSE_BOX).
+ * comptes CASH_REGISTER/EXPENSE_BOX), déjà exclus des caissiers assignés
+ * ailleurs. `subsidiaryId` permet à un ADMIN/SUPER_ADMIN de lister les
+ * caissiers d'une filiale.
  */
-export const getEligibleCashiers = async (): Promise<CashierOption[]> => {
-  const { data } = await api.get<CashierOption[]>('/finance/treasury/cashiers');
+export const getEligibleCashiers = async (
+  subsidiaryId?: string,
+  currentCashierId?: string,
+): Promise<CashierOption[]> => {
+  const params: Record<string, string> = {};
+  if (subsidiaryId) params.subsidiaryId = subsidiaryId;
+  if (currentCashierId) params.currentCashierId = currentCashierId;
+
+  const { data } = await api.get<CashierOption[]>('/finance/treasury/cashiers', {
+    params,
+  });
   return data;
 };
 
@@ -249,6 +264,20 @@ export const getFinancialTransactionsPaginated = async (
  */
 export const deleteTransaction = async (id: string): Promise<FinancialTransaction> => {
   const { data } = await api.delete<FinancialTransaction>(`/finance/treasury/transactions/${id}`);
+  return data;
+};
+
+/**
+ * Valide une transaction EN_ATTENTE (paiement bancaire en attente de validation).
+ * Réservé à SUPER_ADMIN, ADMIN et FINANCIAL_DIRECTOR.
+ * Déclenche l'application du débit/crédit sur le compte et la journalisation comptable.
+ * @param id - L'ID de la transaction à valider.
+ */
+export const validateTransaction = async (id: string): Promise<FinancialTransaction> => {
+  const { data } = await api.patch<FinancialTransaction>(
+    `/finance/treasury/transaction/${id}/status`,
+    { status: 'VALIDE' },
+  );
   return data;
 };
 

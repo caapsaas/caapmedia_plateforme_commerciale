@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsDateString, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsDateString,
+  IsString,
+  IsNumber,
+  IsPositive,
+  IsOptional,
+} from 'class-validator';
 
 export class PaySupplierDebtDto {
   @IsString()
@@ -8,4 +15,10 @@ export class PaySupplierDebtDto {
   @IsDateString()
   @IsNotEmpty()
   paymentDate: string;
+
+  // Paiement partiel : si omis, solde la dette intégralement.
+  @IsNumber()
+  @IsPositive()
+  @IsOptional()
+  amount?: number;
 }

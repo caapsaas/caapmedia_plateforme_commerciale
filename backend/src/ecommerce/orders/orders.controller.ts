@@ -99,27 +99,9 @@ export class OrdersController {
     return this.ordersService.findAll(req.user, query);
   }
 
-  /**
-   * Endpoint pour recuperer la liste des creances client
-   * Exemple d'url : /ecommerce/orders/credit
-   */
-  @Get('/credit')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR)
-  findAllCredit(@Req() req, @Query() paginationQuery: PaginationQueryDto) {
-    return this.ordersService.getAllCustomerCredit(req.user, paginationQuery);
-  }
-
-  /**
-   * Endpoint pour récupérer un crédit client par son ID
-   * Exemple d'URL : /ecommerce/orders/credit/:id
-   */
-  @Get('/credit/:id')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR)
-  findOneCredit(@Param('id') id: string, @Req() req) {
-    return this.ordersService.getOneCustomerCredit(id, req.user);
-  }
+  // Les créances clients se consultent via GET /ecommerce/orders filtré par
+  // paymentStatus (voir CreditManagement.tsx) — les anciennes routes
+  // /credit et /credit/:id (compte crédit jamais alimenté) ont été retirées.
 
   /**
    * Commandes en attente de validation par le directeur de production.

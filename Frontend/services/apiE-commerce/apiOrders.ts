@@ -110,12 +110,21 @@ export const getOrdersByCustomer = async (customerId: string) => {
     return data;
 };
 
+export interface RecordOrderPaymentPayload {
+  orderId: string;
+  amount: number;
+  paymentMethod: CustomerPaymentMethod;
+  bankAccountId?: string;
+  transactionReference?: string;
+}
+
 /**
  * Enregistre un paiement pour une commande spécifique.
- * @param payload - Contient l'ID de la commande, le montant et la méthode de paiement.
+ * @param payload - Contient l'ID de la commande, le montant, la méthode de paiement et optionnellement les infos bancaires.
  */
-export const recordOrderPayment = async (payload: { orderId: string; amount: number; paymentMethod: CustomerPaymentMethod }) => {
-    const { data } = await api.patch(`/ecommerce/orders/payment/${payload.orderId}`, payload);
+export const recordOrderPayment = async (payload: RecordOrderPaymentPayload) => {
+    const { orderId, ...body } = payload;
+    const { data } = await api.patch(`/ecommerce/orders/payment/${orderId}`, body);
     return data;
 };
 

@@ -89,7 +89,9 @@ const Analytics: React.FC = () => {
             case 'safe':
                 return <TreasuryAccountsAndTransactions subsidiary={subsidiary} accountType={AccountType.SAFE} title={t('analytics.tabs.safe')} period={selectedPeriod} startDate={startDate || undefined} endDate={endDate || undefined} />;
             case 'cash':
-                return <TreasuryAccountsAndTransactions subsidiary={subsidiary} accountType={AccountType.CAISSE} title={t('analytics.tabs.cash')} period={selectedPeriod} startDate={startDate || undefined} endDate={endDate || undefined} />;
+                // CAISSE a été fusionnée dans CASH_REGISTER (aucune différence
+                // fonctionnelle entre les deux types, voir AccountType).
+                return <TreasuryAccountsAndTransactions subsidiary={subsidiary} accountType={AccountType.CASH_REGISTER} title={t('analytics.tabs.cash')} period={selectedPeriod} startDate={startDate || undefined} endDate={endDate || undefined} />;
             case 'expenseBox':
                 return <TreasuryAccountsAndTransactions subsidiary={subsidiary} accountType={AccountType.EXPENSE_BOX} title={t('analytics.tabs.expenseBox')} period={selectedPeriod} startDate={startDate || undefined} endDate={endDate || undefined} />;
             default:

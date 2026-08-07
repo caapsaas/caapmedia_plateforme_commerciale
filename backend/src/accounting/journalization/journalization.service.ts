@@ -27,7 +27,7 @@ export interface JournalizationContext {
   sourceType: OperationSource;
   sourceId: string;
   // Données spécifiques selon l'opération
-  accountType?: AccountType; // pour trésorerie : BANQUE ou CAISSE (source, pour un virement)
+  accountType?: AccountType; // pour trésorerie : BANQUE ou CASH_REGISTER (source, pour un virement)
   destinationAccountType?: AccountType; // virement inter-comptes (TREASURY_TRANSFER)
   expenseCategory?: ExpenseCategory; // pour dépenses : catégorie SYSCOHADA
   withTva?: boolean; // inclure TVA dans l'écriture
@@ -43,7 +43,6 @@ interface BuiltLine {
 // Types de compte trésorerie assimilés à de la "caisse" comptable (571000) —
 // tout le reste (BANQUE, COMPTE_PREFINANCEMENT) est assimilé banque (521000).
 const CASH_FAMILY_ACCOUNT_TYPES: AccountType[] = [
-  AccountType.CAISSE,
   AccountType.CASH_REGISTER,
   AccountType.SAFE,
   AccountType.EXPENSE_BOX,

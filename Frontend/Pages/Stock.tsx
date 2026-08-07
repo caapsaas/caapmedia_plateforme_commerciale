@@ -9,14 +9,11 @@ import IconPrint from '../components/icons/IconPrint';
 import IconExport from '../components/icons/IconExport';
 import IconPdf from '../components/icons/IconPdf';
 import IconPlus from '../components/icons/IconPlus';
-import IconEdit from '../components/icons/IconEdit';
 import IconDelete from '../components/icons/IconDelete';
-import IconSaveCheck from '../components/icons/IconSaveCheck';
-import IconCancelX from '../components/icons/IconCancelX';
 import IconSearch from '../components/icons/IconSearch';
 import IconStock from '../components/icons/IconStock';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getStockItemsBySubsidiary, createStockItem, deleteStockItem, updateStockItemPrice } from '../services/apiPurchasing/apiStockItems';
+import { getStockItemsBySubsidiary, createStockItem, deleteStockItem } from '../services/apiPurchasing/apiStockItems';
 import { getSubsidiaries } from '../services/apiCommon/apiSubsidiaries';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import StockItemFormModal from '../components/configuration/StockItemFormModal';
@@ -45,13 +42,11 @@ const Stock: React.FC = () => {
     const queryClient = useQueryClient();
     const { subsidiary, user } = useAuth();
 
-    const isSuperAdmin = user?.userRole === UserRole.SUPER_ADMIN || user?.activeRole === UserRole.SUPER_ADMIN;
+    // activeRole prime sur userRole (apercu de role SUPER_ADMIN, voir Purchasing.tsx pour le meme correctif).
+    const isSuperAdmin = (user?.activeRole ?? user?.userRole) === UserRole.SUPER_ADMIN;
 
     const [activeTab, setActiveTab] = useState<StockView>('levels');
     const [subsidiaryFilter, setSubsidiaryFilter] = useState<string>('');
-    const [editingItemId, setEditingItemId] = useState<string | null>(null);
-    const [editedPrice, setEditedPrice] = useState<number>(0);
-    const [showSaveConfirm, setShowSaveConfirm] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<StockItem | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -69,14 +64,6 @@ const Stock: React.FC = () => {
         queryKey: ['stockItems', effectiveSid],
         queryFn: () => getStockItemsBySubsidiary(effectiveSid),
         enabled: isSuperAdmin || !!subsidiary,
-    });
-
-    const { mutate: updatePriceMutate } = useMutation({
-        mutationFn: ({ id, price }: { id: string; price: number }) => updateStockItemPrice(id, price),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['stockItems', effectiveSid] });
-            toast.success(t('common.saved'), '');
-        },
     });
 
     const { mutate: createItemMutate } = useMutation({
@@ -107,7 +94,7 @@ const Stock: React.FC = () => {
         );
     }, [items, searchTerm]);
 
-    const totalValue = useMemo(() => filteredItems.reduce((s, i) => s + i.stock * (i.price ?? 0), 0), [filteredItems]);
+    const totalValue = useMemo(() => filteredItems.reduce((s, i) => s + i.stock * (i.costPrice ?? 0), 0), [filteredItems]);
     const lowStockCount = useMemo(() => filteredItems.filter(isLowStock).length, [filteredItems]);
     const totalRefsInStock = useMemo(() => filteredItems.filter(i => i.stock > 0).length, [filteredItems]);
 
@@ -118,7 +105,7 @@ const Stock: React.FC = () => {
             { key: 'category', label: t('stock.category') },
             { key: 'warehouse', label: t('stock.warehouse') },
             { key: 'stock', label: t('stock.currentStock') },
-            { key: 'price', label: t('stock.costPrice') },
+            { key: 'costPrice', label: t('stock.costPrice') },
         ], filteredItems.map(p => ({ ...p, category: t(categoryToKeyMap[p.category] || p.category) })));
     };
     const handleExportPdf = () => {
@@ -126,8 +113,8 @@ const Stock: React.FC = () => {
             { key: 'name', label: t('stock.name') },
             { key: 'category', label: t('stock.category') },
             { key: 'stock', label: t('stock.currentStock') },
-            { key: 'price', label: t('stock.costPrice') },
-        ], filteredItems.map(p => ({ ...p, category: t(categoryToKeyMap[p.category] || p.category), price: p.price != null ? formatCurrency(Number(p.price)) : '—' })), 'stock');
+            { key: 'costPrice', label: t('stock.costPrice') },
+        ], filteredItems.map(p => ({ ...p, category: t(categoryToKeyMap[p.category] || p.category), costPrice: p.costPrice != null ? formatCurrency(Number(p.costPrice)) : '—' })), 'stock');
     };
 
     const TabButton: React.FC<{ view: StockView; label: string }> = ({ view, label }) => (
@@ -152,7 +139,7 @@ const Stock: React.FC = () => {
                     {isSuperAdmin && subsidiaries.length > 0 && (
                         <select
                             value={subsidiaryFilter}
-                            onChange={e => { setSubsidiaryFilter(e.target.value); setEditingItemId(null); }}
+                            onChange={e => setSubsidiaryFilter(e.target.value)}
                             className="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
                         >
                             <option value="">Toutes les filiales</option>
@@ -296,7 +283,6 @@ const Stock: React.FC = () => {
                                                     </td>
                                                 </tr>
                                             ) : filteredItems.map(item => {
-                                                const isEditing = editingItemId === item.id;
                                                 const low = isLowStock(item);
                                                 const unit = item.baseUnit;
                                                 return (
@@ -317,43 +303,20 @@ const Stock: React.FC = () => {
                                                             {item.minThreshold != null ? item.minThreshold : '—'}
                                                         </td>
                                                         <td className="px-5 py-3 text-right">
-                                                            {isEditing ? (
-                                                                <input
-                                                                    type="number"
-                                                                    value={editedPrice}
-                                                                    onChange={e => setEditedPrice(isNaN(parseFloat(e.target.value)) ? 0 : parseFloat(e.target.value))}
-                                                                    onKeyDown={e => { if (e.key === 'Enter') setShowSaveConfirm(true); if (e.key === 'Escape') setEditingItemId(null); }}
-                                                                    className="w-28 px-2 py-1 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#c6e911] text-right"
-                                                                    autoFocus
-                                                                />
-                                                            ) : (
-                                                                <span className={`font-semibold ${item.price != null ? 'text-slate-700' : 'text-slate-300'}`}>
-                                                                    {item.price != null ? formatCurrency(Number(item.price)) : '—'}
-                                                                </span>
-                                                            )}
+                                                            {/* Prix de revient = dernier prix d'achat réel (voir
+                                                                stock-items.service.ts::getLatestCostPrices) — plus
+                                                                éditable manuellement depuis que `price` a été retiré
+                                                                du schéma Item ; il vient désormais des Achats. */}
+                                                            <span className={`font-semibold ${item.costPrice != null ? 'text-slate-700' : 'text-slate-300'}`} title={t('stock.costPriceHint')}>
+                                                                {item.costPrice != null ? formatCurrency(Number(item.costPrice)) : '—'}
+                                                            </span>
                                                         </td>
                                                         {!isSuperAdmin && (
                                                             <td className="px-5 py-3 no-print">
                                                                 <div className="flex items-center justify-end gap-1">
-                                                                    {isEditing ? (
-                                                                        <>
-                                                                            <button onClick={() => setShowSaveConfirm(true)} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title={t('common.save')}>
-                                                                                <IconSaveCheck className="h-4 w-4" />
-                                                                            </button>
-                                                                            <button onClick={() => setEditingItemId(null)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title={t('common.cancel')}>
-                                                                                <IconCancelX className="h-4 w-4" />
-                                                                            </button>
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            <button onClick={() => { setEditingItemId(item.id); setEditedPrice(item.price); }} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors" title={t('common.edit')}>
-                                                                                <IconEdit className="h-4 w-4" />
-                                                                            </button>
-                                                                            <button onClick={() => setItemToDelete(item)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title={t('common.delete')}>
-                                                                                <IconDelete className="h-4 w-4" />
-                                                                            </button>
-                                                                        </>
-                                                                    )}
+                                                                    <button onClick={() => setItemToDelete(item)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title={t('common.delete')}>
+                                                                        <IconDelete className="h-4 w-4" />
+                                                                    </button>
                                                                 </div>
                                                             </td>
                                                         )}
@@ -387,19 +350,6 @@ const Stock: React.FC = () => {
                 />
             )}
 
-            {showSaveConfirm && editingItemId && (
-                <ConfirmationModal
-                    isOpen
-                    onClose={() => setShowSaveConfirm(false)}
-                    onConfirm={() => {
-                        updatePriceMutate({ id: editingItemId, price: editedPrice });
-                        setShowSaveConfirm(false);
-                        setEditingItemId(null);
-                    }}
-                    title={t('stock.confirmPriceSaveTitle')}
-                    message={t('stock.confirmPriceSaveMessage')}
-                />
-            )}
         </div>
     );
 };

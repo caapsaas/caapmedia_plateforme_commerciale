@@ -7,6 +7,9 @@ interface DocumentTableProps {
         key: string;
         align?: 'left' | 'center' | 'right';
         formatter?: (value: any) => string;
+        // Pour un contenu riche (ex. détails de personnalisation produit) qu'un
+        // simple formatter texte ne peut pas rendre — prioritaire sur formatter.
+        render?: (row: any) => React.ReactNode;
     }[];
     data: any[];
     title?: string;
@@ -46,7 +49,7 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                 </h3>
             )}
             <table className="w-full text-sm text-left text-slate-600">
-                <thead className="text-xs text-slate-700 uppercase bg-[#c6e911] bg-opacity-25 border-t-2 border-b-2 border-[#c6e911]">
+                <thead className="text-xs text-slate-700 uppercase bg-[#c6e911]/10 border-t border-b border-[#c6e911]/50">
                     <tr>
                         {columns.map((col) => (
                             <th
@@ -70,9 +73,11 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                                             index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
                                         } ${getAlignClass(col.align)}`}
                                     >
-                                        {col.formatter
-                                            ? col.formatter(row[col.key])
-                                            : row[col.key] || '—'}
+                                        {col.render
+                                            ? col.render(row)
+                                            : col.formatter
+                                                ? col.formatter(row[col.key])
+                                                : row[col.key] || '—'}
                                     </td>
                                 ))}
                             </tr>
@@ -93,8 +98,8 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                         <tr
                             className={`font-bold ${
                                 totalRow.isHighlighted
-                                    ? 'bg-[#c6e911] bg-opacity-15 border-t-2 border-[#c6e911] text-slate-900'
-                                    : 'bg-slate-50 border-t-2 border-slate-200 text-slate-800'
+                                    ? 'bg-[#c6e911]/10 border-t border-[#c6e911]/50 text-slate-900'
+                                    : 'bg-slate-50 border-t border-slate-200 text-slate-800'
                             }`}
                         >
                             <td

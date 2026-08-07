@@ -35,6 +35,10 @@ type CartItem = {
     quantity: number;
     unitPrice: number;      // = finalPrice / quantity (prix par unité)
     discount: number;
+    // Prix d'assemblage (montant) — pour certains services, coût de
+    // finition/assemblage facturé après la production, distinct du prix
+    // unitaire et non lié à une machine du workflow de production.
+    assemblyPrice?: number;
     specValues?: SpecValues;
     productionSteps?: ProductionStep[];
     productionSummary?: ProductionSummary;
@@ -196,8 +200,15 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
         ));
     };
 
+    const updateCartAssemblyPrice = (lineId: string, newAssemblyPrice: number) => {
+        const clamped = isNaN(newAssemblyPrice) ? 0 : Math.max(0, newAssemblyPrice);
+        setCart(currentCart => currentCart.map(item =>
+            item.lineId === lineId ? { ...item, assemblyPrice: clamped } : item
+        ));
+    };
+
     const subtotal = useMemo(() =>
-        cart.reduce((sum, item) => sum + (item.unitPrice * item.quantity - item.discount), 0),
+        cart.reduce((sum, item) => sum + (item.unitPrice * item.quantity - item.discount + (item.assemblyPrice || 0)), 0),
         [cart]
     );
 
@@ -221,6 +232,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             discount: item.discount,
+            assemblyPrice: item.assemblyPrice,
             specValues: item.specValues,
             productionSteps: item.productionSteps,
             productionSummary: item.productionSummary,
@@ -416,7 +428,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                                         <p className="font-semibold text-slate-800">{item.product.name}</p>
                                         <div className="flex items-center space-x-2 text-sm text-slate-500">
                                             <span>{item.quantity} x {formatCurrency(item.unitPrice)}</span>
-                                            <span className="font-bold text-slate-700">{formatCurrency(item.unitPrice * item.quantity - item.discount)}</span>
+                                            <span className="font-bold text-slate-700">{formatCurrency(item.unitPrice * item.quantity - item.discount + (item.assemblyPrice || 0))}</span>
                                         </div>
                                         {/* Badge coût de production */}
                                         {item.productionSummary && (
@@ -437,6 +449,20 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                                                 step="0.01"
                                                 value={item.discount || ''}
                                                 onChange={(e) => updateCartDiscount(item.lineId, parseFloat(e.target.value))}
+                                                className="w-20 p-0.5 text-xs text-center border rounded-md border-slate-300"
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                        {/* Prix d'assemblage — pour certains services, coût de finition facturé
+                                            après la production, distinct du prix unitaire (voir types/models.ts::OrderItem). */}
+                                        <div className="flex items-center space-x-2 mt-1">
+                                            <label className="text-xs text-slate-500">{t('newOrder.assemblyPrice')}</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                value={item.assemblyPrice || ''}
+                                                onChange={(e) => updateCartAssemblyPrice(item.lineId, parseFloat(e.target.value))}
                                                 className="w-20 p-0.5 text-xs text-center border rounded-md border-slate-300"
                                                 placeholder="0"
                                             />

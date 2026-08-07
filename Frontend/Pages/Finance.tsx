@@ -16,6 +16,10 @@ import RecurringExpenses from '../components/finance/RecurringExpenses';
 import TaxTransparencyView from '../components/finance/TaxTransparencyView';
 import ExternalTransactions from '../components/finance/ExternalTransactions';
 import PrefinancementManagement from '../components/finance/PrefinancementManagement';
+import ExpenseBoxView from '../components/finance/ExpenseBoxView';
+import CashRemittanceManagement from '../components/finance/CashRemittanceManagement';
+import TreasuryManagement from '../components/finance/TreasuryManagement';
+import PendingTransactionsPanel from '../components/finance/PendingTransactionsPanel';
 import TabBar, { TabItem } from '../components/ui/TabBar';
 import CrmListSkeleton from '../components/ui/CrmListSkeleton';
 
@@ -24,6 +28,9 @@ import IconTruckCoins from '../components/icons/IconTruckCoins';
 import IconDocumentText from '../components/icons/IconDocumentText';
 import IconCurrency from '../components/icons/IconCurrency';
 import IconScale from '../components/icons/IconScale';
+import IconWallet from '../components/icons/IconWallet';
+import IconCash from '../components/icons/IconCash';
+import IconFinance from '../components/icons/IconFinance';
 
 // Trésorerie/Décaissement, Créances Clients et rapports Bilan/Compte de
 // résultat sont désormais des pages autonomes du sidebar (Analyse,
@@ -33,10 +40,17 @@ import IconScale from '../components/icons/IconScale';
 const Finance: React.FC = () => {
     const { t } = useI18n();
     const { subsidiary, user } = useAuth();
-    const [activeTab, setActiveTab] = useState<FinanceView>(FinanceView.SUPPLIERS);
+    const activeRole = user?.activeRole ?? user?.userRole;
+    // Le CAISSIER n'a accès qu'aux remises de caisse (voir CashRemittanceManagement) —
+    // même logique de restriction par onglet que gmo (components/Finance.tsx::availableTabs).
+    const isCaissier = activeRole === UserRole.CAISSIER;
+    const [activeTab, setActiveTab] = useState<FinanceView>(
+        isCaissier ? FinanceView.CASH_REMITTANCES : FinanceView.SUPPLIERS,
+    );
     const [subsidiaryFilter, setSubsidiaryFilter] = useState('');
 
-    const isSuperAdmin = user?.userRole === UserRole.SUPER_ADMIN || user?.activeRole === UserRole.SUPER_ADMIN;
+    // activeRole prime sur userRole (apercu de role SUPER_ADMIN, voir Purchasing.tsx pour le meme correctif).
+    const isSuperAdmin = (user?.activeRole ?? user?.userRole) === UserRole.SUPER_ADMIN;
 
     const { data: subsidiaries = [] } = useQuery<Subsidiary[]>({
         queryKey: ['subsidiaries-list'],
@@ -48,50 +62,78 @@ const Finance: React.FC = () => {
         ? (subsidiaries.find(s => s.id === subsidiaryFilter) ?? subsidiaries[0] ?? null)
         : (subsidiary ?? null);
 
+    // Dettes fournisseur : contrairement aux autres onglets (qui exigent une
+    // filiale précise), le SUPER_ADMIN doit pouvoir voir une vue consolidée
+    // "Toutes les filiales" — sinon le sélecteur retombe silencieusement sur
+    // subsidiaries[0] et les dettes (payées ou non) des autres filiales
+    // semblent "ne jamais s'afficher". `null` = consolidé, voir SupplierDebts.tsx.
+    const supplierDebtsSubsidiary: Subsidiary | null =
+        isSuperAdmin && !subsidiaryFilter ? null : effectiveSubsidiary;
+
+    // Le CAISSIER n'a droit qu'aux remises de caisse — pas la peine de charger
+    // le reste (endpoints de toute façon inaccessibles à ce rôle).
     const { data: expenseRecords = [], isLoading: isLoadingExpenses } = useQuery<ExpenseRecord[]>({
         queryKey: ['expenseRecords', effectiveSubsidiary?.id],
         queryFn: () => getExpenses(),
-        enabled: !!effectiveSubsidiary,
+        enabled: !!effectiveSubsidiary && !isCaissier,
     });
 
     const { data: supplierDebts = [], isLoading: isLoadingSupplierDebts } = useQuery<SupplierDebt[]>({
         queryKey: ['supplierDebts', effectiveSubsidiary?.id],
         queryFn: () => getSupplierDebts(),
-        enabled: !!effectiveSubsidiary,
+        enabled: !!effectiveSubsidiary && !isCaissier,
     });
 
     const { data: longTermDebts = [], isLoading: isLoadingLongTermDebts } = useQuery<LongTermDebt[]>({
         queryKey: ['longTermDebts', effectiveSubsidiary?.id],
         queryFn: () => getLongTermDebts(),
-        enabled: !!effectiveSubsidiary,
+        enabled: !!effectiveSubsidiary && !isCaissier,
     });
 
     const { data: recurringExpenses = [], isLoading: isLoadingRecurringExpenses } = useQuery<RecurringExpense[]>({
         queryKey: ['recurringExpenses', effectiveSubsidiary?.id],
         queryFn: () => getRecurringExpenses(),
-        enabled: !!effectiveSubsidiary,
+        enabled: !!effectiveSubsidiary && !isCaissier,
     });
 
-    const tabs: TabItem<FinanceView>[] = [
+    const allTabs: TabItem<FinanceView>[] = [
         { value: FinanceView.SUPPLIERS,             label: t('finance.supplierDebts'),        icon: <IconTruckCoins className="h-4 w-4" /> },
         { value: FinanceView.LONG_TERM_DEBTS,       label: t('supplierDebts.longTerm.tabTitle'), icon: <IconTruckCoins className="h-4 w-4" /> },
         { value: FinanceView.PREFINANCEMENT,        label: t('finance.prefinancement'),       icon: <IconCoins className="h-4 w-4" /> },
+        // Trésorerie (comptes cliquables pour l'historique) : réservée au
+        // SUPER_ADMIN — vue consolidée multi-filiales, comme gmo
+        // (Finance.tsx::treasury, restreint au siège).
+        ...(isSuperAdmin ? [{ value: FinanceView.TREASURY, label: t('treasury.management.title'), icon: <IconFinance className="h-4 w-4" /> }] : []),
+        { value: FinanceView.EXPENSE_BOX,           label: t('expenseBoxDisbursement.title'), icon: <IconWallet className="h-4 w-4" /> },
+        { value: FinanceView.CASH_REMITTANCES,      label: t('cashRemittance.title'),         icon: <IconCash className="h-4 w-4" /> },
         { value: FinanceView.EXPENSES,              label: t('finance.expenses'),             icon: <IconDocumentText className="h-4 w-4" /> },
         { value: FinanceView.RECURRING_EXPENSES,    label: t('recurringExpenses.title'),      icon: <IconDocumentText className="h-4 w-4" /> },
         { value: FinanceView.TAX_TRANSPARENCY,      label: t('taxTransparency.title'),        icon: <IconScale className="h-4 w-4" /> },
         { value: FinanceView.EXTERNAL_TRANSACTIONS, label: t('finance.externalTransactions'), icon: <IconCurrency className="h-4 w-4" /> },
     ];
 
+    // Le CAISSIER ne voit que les remises de caisse, comme sur gmo.
+    const tabs = isCaissier
+        ? allTabs.filter(tab => tab.value === FinanceView.CASH_REMITTANCES)
+        : allTabs;
+
     const renderContent = () => {
+        // Trésorerie est une vue globale (comptes centralisés au siège pour
+        // Banque/Coffre) — ne dépend pas de la filiale sélectionnée.
+        if (activeTab === FinanceView.TREASURY) return <TreasuryManagement />;
         if (!effectiveSubsidiary) return null;
 
         switch (activeTab) {
             case FinanceView.SUPPLIERS:
-                return <SupplierDebts subsidiary={effectiveSubsidiary} supplierDebts={supplierDebts} isLoading={isLoadingSupplierDebts} />;
+                return <SupplierDebts subsidiary={supplierDebtsSubsidiary} supplierDebts={supplierDebts} isLoading={isLoadingSupplierDebts} />;
             case FinanceView.LONG_TERM_DEBTS:
                 return <LongTermDebts subsidiary={effectiveSubsidiary} longTermDebts={longTermDebts} isLoading={isLoadingLongTermDebts} />;
             case FinanceView.PREFINANCEMENT:
                 return <PrefinancementManagement subsidiary={effectiveSubsidiary} />;
+            case FinanceView.EXPENSE_BOX:
+                return <ExpenseBoxView subsidiary={effectiveSubsidiary} />;
+            case FinanceView.CASH_REMITTANCES:
+                return <CashRemittanceManagement />;
             case FinanceView.EXPENSES:
                 return <ExpenseManagement subsidiary={effectiveSubsidiary} expenseRecords={expenseRecords} isLoading={isLoadingExpenses} />;
             case FinanceView.RECURRING_EXPENSES:
@@ -101,7 +143,7 @@ const Finance: React.FC = () => {
             case FinanceView.EXTERNAL_TRANSACTIONS:
                 return <ExternalTransactions subsidiary={effectiveSubsidiary} />;
             default:
-                return <SupplierDebts subsidiary={effectiveSubsidiary} supplierDebts={supplierDebts} isLoading={isLoadingSupplierDebts} />;
+                return <SupplierDebts subsidiary={supplierDebtsSubsidiary} supplierDebts={supplierDebts} isLoading={isLoadingSupplierDebts} />;
         }
     };
 
@@ -129,8 +171,15 @@ const Finance: React.FC = () => {
 
             <TabBar tabs={tabs} active={activeTab} onChange={setActiveTab} />
 
+            {/* Panel de validation des paiements bancaires (SUPER_ADMIN uniquement) */}
+            {isSuperAdmin && (
+                <PendingTransactionsPanel subsidiaryId={subsidiaryFilter || undefined} />
+            )}
+
             {/* Contenu */}
-            {isSuperAdmin && !effectiveSubsidiary ? (
+            {activeTab === FinanceView.TREASURY ? (
+                renderContent()
+            ) : isSuperAdmin && !effectiveSubsidiary ? (
                 <div className="flex flex-col items-center justify-center py-20 bg-white border border-dashed border-slate-200 rounded-xl text-center">
                     <IconScale className="h-8 w-8 text-slate-300 mb-3" />
                     <p className="text-sm font-semibold text-slate-500">Sélectionnez une filiale</p>

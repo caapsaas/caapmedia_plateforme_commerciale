@@ -21,6 +21,9 @@ import {
   ProductionStatus,
   SaleStatus,
   ItemType,
+  CustomerPaymentMethod,
+  TransactionType,
+  TransactionStatus,
 } from '@prisma/client';
 import { FindAllOrdersDto, OrderPeriod } from './dto/find-all-orders.dto';
 import { paginate } from 'src/common/pagination/pagination';
@@ -72,6 +75,7 @@ export class OrdersService {
         quantity: item.quantity,
         unitPrice: item.unitPrice ? item.unitPrice.toNumber() : 0,
         discount: item.discount ? item.discount.toNumber() : 0,
+        assemblyPrice: item.assemblyPrice ? item.assemblyPrice.toNumber() : null,
         total: item.total ? item.total.toNumber() : 0,
         designFileName: item.designFileName,
         designFileUrl: item.designFileUrl,
@@ -87,44 +91,11 @@ export class OrdersService {
     };
   }
 
-  /**
-   * Met à jour le compte crédit d'un client.
-   * Crée le compte s'il n'existe pas.
-   */
-  private async updateCustomerCredit(
-    tx: Prisma.TransactionClient,
-    contactId: string,
-    subsidiaryId: string,
-    amount: Decimal,
-    clientName: string,
-    companyName: string,
-  ) {
-    const creditAccount = await tx.creditAccount.findUnique({
-      where: { contactId },
-    });
-
-    if (creditAccount) {
-      await tx.creditAccount.update({
-        where: { id: creditAccount.id },
-        data: {
-          balance: { increment: amount },
-          lastPaymentDate: new Date(),
-        },
-      });
-    } else {
-      await tx.creditAccount.create({
-        data: {
-          id: generateId(ID_PREFIXES.CREDITACCOUNT),
-          balance: amount,
-          lastPaymentDate: new Date(),
-          contact: { connect: { id: contactId } },
-          subsidiary: { connect: { id: subsidiaryId } },
-          clientName: clientName,
-          companyName: companyName,
-        },
-      });
-    }
-  }
+  // updateCustomerCredit (compte crédit dédié par contact) a été retirée :
+  // jamais appelée (dead code), et faisait doublon avec la véritable source
+  // de vérité des créances clients — Order.paymentStatus/amountPaid (voir
+  // CreditManagement.tsx côté frontend, getCustomerReceivables côté
+  // balancesheet.service.ts). Pas de solde à synchroniser séparément.
 
   /**
    * Crée une commande pour le compte d'un client, à l'initiative d'un commercial.
@@ -257,12 +228,17 @@ export class OrdersService {
       }
       const unitPrice = new Decimal(item.unitPrice);
       const discount = new Decimal(item.discount ?? 0);
-      const total = unitPrice.mul(item.quantity).sub(discount);
+      const assemblyPrice = item.assemblyPrice != null ? new Decimal(item.assemblyPrice) : null;
+      const total = unitPrice
+        .mul(item.quantity)
+        .sub(discount)
+        .add(assemblyPrice ?? 0);
       subtotal = subtotal.add(total);
       return {
         ...item,
         unitPrice,
         discount,
+        assemblyPrice,
         total,
         specSnapshot: formDefinitionByProductId.get(item.productId),
       };
@@ -305,6 +281,7 @@ export class OrdersService {
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
                 discount: item.discount,
+                assemblyPrice: item.assemblyPrice,
                 total: item.total,
                 specValues: item.specValues,
                 specSnapshot: item.specSnapshot,
@@ -730,7 +707,20 @@ export class OrdersService {
     recordPaymentDto: RecordPaymentDto,
     user: any,
   ) {
-    const { amount, paymentMethod } = recordPaymentDto;
+    const { amount, paymentMethod, bankAccountId, transactionReference } = recordPaymentDto;
+
+    const BANKING_METHODS: CustomerPaymentMethod[] = [
+      CustomerPaymentMethod.BANK_TRANSFER,
+      CustomerPaymentMethod.CARD,
+      CustomerPaymentMethod.CHECK,
+    ];
+    const isBankingPayment = BANKING_METHODS.includes(paymentMethod);
+
+    if (isBankingPayment && !bankAccountId) {
+      throw new BadRequestException(
+        'Un compte bancaire doit être sélectionné pour ce mode de paiement.',
+      );
+    }
     const paymentAmount = new Decimal(amount);
 
     return this.prisma.$transaction(async (tx) => {
@@ -764,6 +754,13 @@ export class OrdersService {
         ? PaymentStatus.PAID
         : PaymentStatus.PARTIALLY_PAID;
 
+      // Une fois encaissée, une commande en attente de validation ou nouvelle bascule en production
+      const newOrderStatus =
+        order.status === OrderStatus.PENDING_VALIDATION ||
+        order.status === OrderStatus.NEW
+          ? OrderStatus.IN_PRODUCTION
+          : order.status;
+
       // Utiliser updateMany avec verrou optimiste pour éviter les race conditions
       const updateCount = await tx.order.updateMany({
         where: {
@@ -775,6 +772,7 @@ export class OrdersService {
           amountPaid: newAmountPaid,
           paymentStatus: newPaymentStatus,
           paymentMethod: paymentMethod,
+          status: newOrderStatus,
         },
       });
 
@@ -783,6 +781,32 @@ export class OrdersService {
         throw new ConflictException(
           'Cette commande a été modifiée entre-temps. Veuillez réessayer.',
         );
+      }
+
+      // 3. Pour les paiements bancaires : créer une FinancialTransaction EN_ATTENTE de validation par le SUPER_ADMIN
+      if (isBankingPayment && bankAccountId) {
+        const bankAccount = await tx.treasuryAccount.findFirst({
+          where: { id: bankAccountId, subsidiaryId: order.subsidiaryId },
+        });
+        if (!bankAccount) {
+          throw new NotFoundException(
+            `Compte bancaire ${bankAccountId} introuvable pour cette filiale.`,
+          );
+        }
+
+        await tx.financialTransaction.create({
+          data: {
+            transactionDate: new Date(),
+            description: `Encaissement ${paymentMethod} — Commande ${order.id} — ${order.customer?.contactName || ''}`,
+            amount: paymentAmount,
+            relatedDocumentId: order.id,
+            subsidiaryId: order.subsidiaryId,
+            financialTransactionType: TransactionType.RECETTE,
+            treasuryAccountId: bankAccountId,
+            status: TransactionStatus.EN_ATTENTE,
+            reference: transactionReference || null,
+          },
+        });
       }
 
       // Re-récupérer la commande mise à jour
@@ -839,43 +863,11 @@ export class OrdersService {
     });
   }
 
-  /**
-   * @param user connecte
-   * @returns la liste des contacts/clients avec des credits
-   */
-  async getAllCustomerCredit(
-    user: any,
-    paginationQuery: PaginationQueryDto = {},
-  ) {
-    return paginate(
-      this.prisma.creditAccount,
-      { where: { subsidiaryId: user.subsidiaryId } },
-      paginationQuery,
-    );
-  }
-
-  /**
-   * Récupère un compte de crédit client par son ID.
-   * @param id ID du compte de crédit
-   * @param user Utilisateur connecté
-   * @returns Le compte de crédit trouvé
-   */
-  async getOneCustomerCredit(id: string, user: any) {
-    const creditAccount = await this.prisma.creditAccount.findFirst({
-      where: {
-        id: id,
-        subsidiaryId: user.subsidiaryId,
-      },
-    });
-
-    if (!creditAccount) {
-      throw new NotFoundException(
-        `Compte de crédit avec l'ID "${id}" non trouvé.`,
-      );
-    }
-
-    return creditAccount;
-  }
+  // getAllCustomerCredit / getOneCustomerCredit (endpoints /orders/credit)
+  // retirées : jamais appelées par le frontend (mort), et lisaient le même
+  // compte crédit jamais alimenté (voir updateCustomerCredit ci-dessus).
+  // Les créances clients se consultent via GET /ecommerce/orders avec les
+  // filtres paymentStatus (voir CreditManagement.tsx).
 
   private get orderFullInclude() {
     return {

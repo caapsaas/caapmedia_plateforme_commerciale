@@ -4,7 +4,6 @@ import {
   IsOptional,
   IsEnum,
   IsDateString,
-  IsUUID,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
@@ -53,8 +52,9 @@ export class CreateExternalTransactionDto {
   @IsString()
   referenceNumber?: string;
 
+  // User.id est un id préfixé custom (USR-xxx), jamais un UUID.
   @ApiProperty({ description: "ID de l'utilisateur qui crée la transaction" })
-  @IsUUID()
+  @IsString()
   createdBy: string;
 
   @ApiProperty({ description: 'ID de la filiale' })

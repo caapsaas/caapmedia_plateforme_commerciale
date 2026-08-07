@@ -17,8 +17,16 @@ interface RecurringExpensesProps {
     isLoading?: boolean;
 }
 
+// `expense.nextExecutionDate?.split('T')[0]` affichait l'ISO brut (ex:
+// "2026-08-15") au lieu d'une date localisée — voir SupplierDebts.tsx.
+const fmtDate = (date?: string | null, language = 'fr') => {
+    if (!date) return '—';
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString(language);
+};
+
 const RecurringExpenses: React.FC<RecurringExpensesProps> = ({ subsidiary, recurringExpenses: allExpenses, isLoading = false }) => {
-    const { t, formatCurrency } = useI18n();
+    const { t, formatCurrency, language } = useI18n();
     const toast = useToast();
     const queryClient = useQueryClient();
     const expenses = allExpenses.filter(e => e.subsidiaryId === subsidiary.id);
@@ -92,7 +100,7 @@ const RecurringExpenses: React.FC<RecurringExpensesProps> = ({ subsidiary, recur
                                     <td className="px-6 py-4">{t(`expenses.categories.${expense.category}`)}</td>
                                     <td className="px-6 py-4 text-right font-semibold">{formatCurrency(expense.amount)}</td>
                                     <td className="px-6 py-4">{t(`recurringExpenses.frequency.${expense.frequency}`)}</td>
-                                    <td className="px-6 py-4">{expense.nextExecutionDate?.split('T')[0]}</td>
+                                    <td className="px-6 py-4">{fmtDate(expense.nextExecutionDate, language)}</td>
                                     <td className="px-6 py-4 text-center">
                                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${expense.isActive ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'}`}>
                                             {expense.isActive ? t('recurringExpenses.statusActive') : t('recurringExpenses.statusPaused')}

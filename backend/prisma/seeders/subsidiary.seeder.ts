@@ -15,21 +15,6 @@ import { ID_PREFIXES } from './id-prefixes.const';
 export async function runSubsidiarySeeder(prisma: PrismaClient) {
     const subsidiaries = [
         {
-            id: 'GLOBAL',
-            subsidiaryName: 'GLOBAL',
-            logoSvg: '<svg>...</svg>',
-            address: 'Global',
-            phone: '+237 000 00 00 00',
-            email: 'global@caap.cm',
-            ifu: 'M000000000000',
-            rccm: 'RC/GLO/2023/A/0000',
-            bankName: 'Global Bank',
-            accountNumber: '00000 00000 00000000000 00',
-            swiftCode: 'GLOBAL',
-            shareCapital: 0.00,
-            isHeadquarter: false,
-        },
-        {
             id: generateId(ID_PREFIXES.SUBSIDIARY),
             subsidiaryName: 'CAAP Douala',
             logoSvg: '<svg>...</svg>',

@@ -13,8 +13,16 @@ interface LongTermDebtsProps {
     isLoading?: boolean;
 }
 
+// `debt.maturityDate?.split('T')[0]` affichait l'ISO brut (ex: "2026-08-15")
+// au lieu d'une date localisée — voir le même correctif sur SupplierDebts.tsx.
+const fmtDate = (date?: string | null, language = 'fr') => {
+    if (!date) return '—';
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString(language);
+};
+
 const LongTermDebts: React.FC<LongTermDebtsProps> = ({ subsidiary, longTermDebts: allDebts, isLoading = false }) => {
-    const { t, formatCurrency } = useI18n();
+    const { t, formatCurrency, language } = useI18n();
     const debts = allDebts.filter(d => d.subsidiaryId === subsidiary.id);
     const totalBalance = debts.reduce((acc, d) => acc + Number(d.currentBalance), 0);
 
@@ -68,7 +76,7 @@ const LongTermDebts: React.FC<LongTermDebtsProps> = ({ subsidiary, longTermDebts
                                     <td className="px-6 py-4 text-right">{formatCurrency(debt.initialAmount)}</td>
                                     <td className="px-6 py-4 text-right font-semibold">{formatCurrency(debt.currentBalance)}</td>
                                     <td className="px-6 py-4 text-right">{debt.interestRate}%</td>
-                                    <td className="px-6 py-4">{debt.maturityDate?.split('T')[0]}</td>
+                                    <td className="px-6 py-4">{fmtDate(debt.maturityDate, language)}</td>
                                     <td className="px-6 py-4 text-center no-print">
                                         <button
                                             onClick={() => setDebtToEdit(debt)}

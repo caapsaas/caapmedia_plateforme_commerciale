@@ -183,7 +183,7 @@ const BalanceGenerale: React.FC<BalanceGeneraleProps> = ({ fiscalPeriods }) => {
       {subsidiary && (
         <div style={{ display: 'none' }}>
           <div ref={printRef} className="p-8 bg-white" style={{ width: '1100px' }}>
-            <DocumentHeader subsidiary={subsidiary} showContactIcons={false} />
+            <DocumentHeader subsidiary={subsidiary} />
             <h2 className="text-xl font-bold text-slate-800 mb-4">Balance générale — {fiscalPeriods.find((p) => p.id === fiscalYearId)?.name}</h2>
             <table className="w-full text-xs border-collapse border border-slate-300">
               <thead>

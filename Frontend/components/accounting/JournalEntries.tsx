@@ -618,7 +618,7 @@ const JournalEntries: React.FC<JournalEntriesProps> = ({ fiscalPeriods }) => {
       {subsidiary && (
         <div style={{ display: 'none' }}>
           <div ref={printRef} className="p-8 bg-white" style={{ width: '1000px' }}>
-            <DocumentHeader subsidiary={subsidiary} showContactIcons={false} />
+            <DocumentHeader subsidiary={subsidiary} />
             <h2 className="text-xl font-bold text-slate-800 mb-4">Journal des écritures</h2>
             <table className="w-full text-sm border-collapse border border-slate-300">
               <thead>

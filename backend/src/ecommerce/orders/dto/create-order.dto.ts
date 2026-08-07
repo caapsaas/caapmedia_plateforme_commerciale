@@ -94,6 +94,14 @@ class CreateOrderItemDto {
   @Min(0)
   discount?: number;
 
+  // Prix d'assemblage (montant, pas %) — pour certains services, coût de
+  // finition/assemblage facturé après la production, saisi par le commercial
+  // à la commande, distinct du prix unitaire et du workflow de production.
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  assemblyPrice?: number;
+
   @IsOptional()
   @IsString()
   designFileName?: string;
@@ -174,6 +182,14 @@ export class RecordPaymentDto {
   @IsNotEmpty()
   @IsEnum(CustomerPaymentMethod)
   paymentMethod: CustomerPaymentMethod;
+
+  @IsOptional()
+  @IsString()
+  bankAccountId?: string;
+
+  @IsOptional()
+  @IsString()
+  transactionReference?: string;
 }
 
 export class UpdateOrderStatusDto {

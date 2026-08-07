@@ -5,7 +5,6 @@ import {
   CreateStockItemDto,
   UpdatePackagingUnitDto,
   UpdateStockItemDto,
-  UpdateStockItemPriceDto,
 } from './dto/create-stock-item.dto';
 import {
   Item,
@@ -39,15 +38,62 @@ const STOCK_ITEM_INCLUDE = {
 export class StockItemsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private toFlat(item: ItemWithRelations, subsidiaryId: string) {
+  // Aplatit un Item avec un seul niveau de stock (vue filtrée par filiale).
+  private toFlat(
+    item: ItemWithRelations,
+    subsidiaryId: string,
+    costPrice?: Prisma.Decimal | null,
+  ) {
     const { stockLevels, ...rest } = item;
     const level = stockLevels[0];
     return {
       ...rest,
-      stock: level ? level.stock : 0,
+      stock: level ? Number(level.stock) : 0,
       warehouse: level?.warehouse ?? '',
       subsidiaryId,
+      costPrice: costPrice != null ? costPrice.toNumber() : null,
     };
+  }
+
+  // Vue consolidée (SUPER_ADMIN sans filtre) : somme les stocks de toutes les
+  // filiales et retourne un seul enregistrement par article global.
+  private toFlatConsolidated(
+    item: ItemWithRelations,
+    costPrice?: Prisma.Decimal | null,
+  ) {
+    const { stockLevels, ...rest } = item;
+    const totalStock = stockLevels.reduce(
+      (sum, lvl) => sum + Number(lvl.stock),
+      0,
+    );
+    return {
+      ...rest,
+      stock: totalStock,
+      warehouse: 'Toutes filiales',
+      subsidiaryId: 'consolidated',
+      costPrice: costPrice != null ? costPrice.toNumber() : null,
+    };
+  }
+
+  // Dernier prix d'achat connu par produit — une seule requête groupée (pas
+  // de N+1), triée par date de commande décroissante : le premier
+  // PurchaseOrderItem rencontré pour un productId donné est le plus récent.
+  private async getLatestCostPrices(
+    itemIds: string[],
+  ): Promise<Map<string, Prisma.Decimal>> {
+    if (itemIds.length === 0) return new Map();
+    const recentPurchaseItems = await this.prisma.purchaseOrderItem.findMany({
+      where: { productId: { in: itemIds } },
+      orderBy: { purchaseOrder: { orderDate: 'desc' } },
+      select: { productId: true, purchasePrice: true },
+    });
+    const costPriceByItemId = new Map<string, Prisma.Decimal>();
+    for (const poi of recentPurchaseItems) {
+      if (!costPriceByItemId.has(poi.productId)) {
+        costPriceByItemId.set(poi.productId, poi.purchasePrice);
+      }
+    }
+    return costPriceByItemId;
   }
 
   async create(createStockItemDto: CreateStockItemDto, user: any) {
@@ -112,10 +158,11 @@ export class StockItemsService {
     subsidiaryId?: string,
   ) {
     const isSuperAdmin = user.userRole === 'SUPER_ADMIN';
+    // Vue consolidée : SUPER_ADMIN sans filtre de filiale.
+    const isConsolidated = isSuperAdmin && !subsidiaryId;
     const effectiveSid =
       isSuperAdmin && subsidiaryId ? subsidiaryId : user.subsidiaryId;
-    const stockLevelsWhere =
-      isSuperAdmin && !subsidiaryId ? {} : { subsidiaryId: effectiveSid };
+    const stockLevelsWhere = isConsolidated ? {} : { subsidiaryId: effectiveSid };
 
     const where: Prisma.ItemWhereInput = { type: ItemType.STOCK_PRODUCT };
     if (paginationQuery.search) {
@@ -135,15 +182,25 @@ export class StockItemsService {
         orderBy: { name: 'asc' },
         include: {
           ...STOCK_ITEM_INCLUDE,
+          // En vue consolidée on charge TOUS les niveaux pour les sommer ;
+          // en vue filtrée on ne charge que celui de la filiale concernée.
           stockLevels: { where: stockLevelsWhere },
         },
       },
       paginationQuery,
     );
 
+    const costPriceByItemId = await this.getLatestCostPrices(
+      result.data.map((item) => item.id),
+    );
+
     return {
       ...result,
-      data: result.data.map((item) => this.toFlat(item, effectiveSid)),
+      data: result.data.map((item) =>
+        isConsolidated
+          ? this.toFlatConsolidated(item, costPriceByItemId.get(item.id))
+          : this.toFlat(item, effectiveSid, costPriceByItemId.get(item.id)),
+      ),
     };
   }
 
@@ -161,27 +218,8 @@ export class StockItemsService {
         `Produit de stock avec l'ID "${id}" non trouvé`,
       );
     }
-    return this.toFlat(item, user.subsidiaryId);
-  }
-
-  async updatePrice(
-    id: string,
-    _updateStockItemPriceDto: UpdateStockItemPriceDto,
-    user: any,
-  ) {
-    // Le champ `price` a été supprimé du schéma Item — cette méthode retourne
-    // simplement l'article existant sans modification du prix.
-    const item = await this.prisma.item.findUnique({
-      where: { id },
-      include: {
-        ...STOCK_ITEM_INCLUDE,
-        stockLevels: { where: { subsidiaryId: user.subsidiaryId } },
-      },
-    });
-    if (!item) {
-      throw new NotFoundException(`Article avec l'ID "${id}" introuvable`);
-    }
-    return this.toFlat(item, user.subsidiaryId);
+    const costPriceByItemId = await this.getLatestCostPrices([item.id]);
+    return this.toFlat(item, user.subsidiaryId, costPriceByItemId.get(id));
   }
 
   async update(id: string, updateStockItemDto: UpdateStockItemDto, user: any) {

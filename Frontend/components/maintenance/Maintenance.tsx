@@ -36,7 +36,8 @@ const Maintenance: React.FC = () => {
     const { subsidiary, user } = useAuth();
     const queryClient = useQueryClient();
 
-    const isSuperAdmin = user?.userRole === UserRole.SUPER_ADMIN || user?.activeRole === UserRole.SUPER_ADMIN;
+    // activeRole prime sur userRole (apercu de role SUPER_ADMIN, voir Purchasing.tsx pour le meme correctif).
+    const isSuperAdmin = (user?.activeRole ?? user?.userRole) === UserRole.SUPER_ADMIN;
     const { hasRole } = useHasRole();
     const canLogMaintenance = hasRole(CAN_LOG_MAINTENANCE);
 

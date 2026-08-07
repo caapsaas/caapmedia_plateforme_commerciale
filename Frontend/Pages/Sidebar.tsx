@@ -32,6 +32,7 @@ import IconTruckCoins from '../components/icons/IconTruckCoins';
 import IconTrendingUp from '../components/icons/IconTrendingUp';
 import IconCurrency from '../components/icons/IconCurrency';
 import IconClipboardCheck from '../components/icons/IconClipboardCheck';
+import IconCash from '../components/icons/IconCash';
 import { Bell } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -205,7 +206,16 @@ const Sidebar: React.FC = () => {
             groupIcon: <IconFinance className="h-5 w-5" />,
             items: [
               { to: '/dashboard/finance', label: t('sidebar.finance'), icon: <IconFinance className="h-5 w-5" /> },
-              { to: '/dashboard/disbursement', label: t('sidebar.disbursement'), icon: <IconWallet className="h-5 w-5" /> },
+              // Décaissement (Coffre-fort + Banques) réservé au SUPER_ADMIN —
+              // trésorerie centralisée au siège, comme gmo (« le super admin
+              // gère le coffre et les banques »). Un ADMIN de filiale ne l'a
+              // plus : la Caisse dépense (gérée par le Directeur Financier)
+              // est désormais dans Finance, pas ici.
+              ...(activeRole === UserRole.SUPER_ADMIN ? [{
+                to: '/dashboard/disbursement',
+                label: t('sidebar.disbursement'),
+                icon: <IconWallet className="h-5 w-5" />,
+              }] : []),
               { to: '/dashboard/credit-history', label: t('sidebar.creditHistory'), icon: <IconTruckCoins className="h-5 w-5" /> },
               { to: '/dashboard/financial-history', label: t('sidebar.financialHistory'), icon: <IconTrendingUp className="h-5 w-5" /> },
               { to: '/dashboard/accountings', label: 'Comptabilité', icon: <IconAccounting className="h-5 w-5" /> },
@@ -291,6 +301,11 @@ const Sidebar: React.FC = () => {
             items: [
               { to: '/dashboard/caisse', label: t('sidebar.cashRegister'), icon: <IconCashRegister className="h-5 w-5" /> },
               { to: '/dashboard/sales', label: t('sidebar.transactions'), icon: <IconSales className="h-5 w-5" /> },
+              // La caisse ne fait l'objet d'aucun décaissement direct : un
+              // caissier ne fait que des remises de caisse (voir
+              // Finance.tsx::FinanceView.CASH_REMITTANCES, seul onglet visible
+              // pour ce rôle).
+              { to: '/dashboard/finance', label: t('cashRemittance.title'), icon: <IconCash className="h-5 w-5" /> },
             ],
           },
           {
@@ -354,11 +369,13 @@ const Sidebar: React.FC = () => {
             ],
           },
           {
+            // Décaissement (Coffre-fort/Banques) retiré : réservé au
+            // SUPER_ADMIN (trésorerie centralisée au siège). La Caisse
+            // dépense de sa filiale reste gérée ici via Finance & Gestion.
             groupLabel: 'Finance & Comptabilité',
             groupIcon: <IconFinance className="h-5 w-5" />,
             items: [
               { to: '/dashboard/finance', label: t('sidebar.finance'), icon: <IconFinance className="h-5 w-5" /> },
-              { to: '/dashboard/disbursement', label: t('sidebar.disbursement'), icon: <IconWallet className="h-5 w-5" /> },
               { to: '/dashboard/credit-history', label: t('sidebar.creditHistory'), icon: <IconTruckCoins className="h-5 w-5" /> },
               { to: '/dashboard/financial-history', label: t('sidebar.financialHistory'), icon: <IconTrendingUp className="h-5 w-5" /> },
               { to: '/dashboard/accountings', label: 'Comptabilité', icon: <IconAccounting className="h-5 w-5" /> },

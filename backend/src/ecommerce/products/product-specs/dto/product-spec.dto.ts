@@ -9,7 +9,6 @@ import {
   IsObject,
   IsOptional,
   IsString,
-  IsUUID,
   Matches,
   ValidateNested,
 } from 'class-validator';
@@ -28,8 +27,9 @@ export class CreateSpecGroupDto {
 export class UpdateSpecGroupDto extends PartialType(CreateSpecGroupDto) {}
 
 export class CreateSpecificationDto {
+  // ProductSpecGroup.id est un id préfixé custom (PSG-xxx), jamais un UUID.
   @IsOptional()
-  @IsUUID()
+  @IsString()
   groupId?: string;
 
   @IsString()
@@ -108,14 +108,16 @@ export class UpdateSpecificationDto extends PartialType(
 ) {}
 
 class ReorderItemDto {
-  @IsUUID()
+  // ProductSpecification.id/ProductSpecGroup.id sont des ids préfixés
+  // custom, jamais des UUID.
+  @IsString()
   id: string;
 
   @IsInt()
   order: number;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   groupId?: string | null;
 }
 

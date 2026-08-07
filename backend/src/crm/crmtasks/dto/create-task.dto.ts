@@ -3,7 +3,6 @@ import {
   IsNotEmpty,
   IsOptional,
   IsEnum,
-  IsUUID,
   IsDateString,
 } from 'class-validator';
 import { CrmTaskStatus, CrmTaskPriority } from '@prisma/client';
@@ -20,10 +19,14 @@ export class CreateTaskDto {
   @IsDateString()
   dueDate: string;
 
-  @IsUUID()
+  // Contact.id/Opportunity.id sont des ids préfixés custom
+  // (generateId(ID_PREFIXES.X)), jamais des UUID — @IsUUID() les rejetait
+  // systématiquement en 400 (voir même correctif sur find-all-orders.dto.ts).
+  @IsString()
+  @IsNotEmpty()
   contactId: string;
 
-  @IsUUID()
+  @IsString()
   @IsOptional()
   opportunityId?: string;
 

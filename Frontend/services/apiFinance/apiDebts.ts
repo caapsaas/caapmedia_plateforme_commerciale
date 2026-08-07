@@ -2,18 +2,19 @@ import { api } from '../api';
 import { SupplierDebt, LongTermDebt } from '../../types';
 
 // --- Types pour les Dettes Fournisseurs ---
+// Pas de type de création : une dette fournisseur résulte toujours d'un
+// achat non payé (créée automatiquement avec le bon de commande), jamais
+// créée à la main — voir SupplierDebts.tsx.
 
 /**
- * Données pour la création d'une dette fournisseur.
- */
-export type SupplierDebtCreationData = Omit<SupplierDebt, 'id' | 'subsidiaryId' | 'status'>;
-
-/**
- * Données pour le paiement d'une dette fournisseur.
+ * Données pour le paiement d'une dette fournisseur — prélèvement Coffre-fort
+ * ou Banque uniquement, réservé au SUPER_ADMIN (voir DebtsService.paySupplierDebt).
+ * `amount` omis = solde la dette intégralement.
  */
 export interface SupplierDebtPaymentData {
   paymentDate: string; // YYYY-MM-DD
   treasuryAccountId: string;
+  amount?: number;
 }
 
 // --- Types pour les Dettes à Long Terme ---
@@ -38,16 +39,6 @@ export interface LongTermDebtUpdateData {
 // ================================================================= //
 
 /**
- * Crée une nouvelle dette fournisseur.
- * Protégé par rôle (ADMIN, FINANCIAL_DIRECTOR, PURCHASING_MANAGER).
- * @param debtData - Les données de la dette à créer.
- */
-export const createSupplierDebt = async (debtData: SupplierDebtCreationData): Promise<SupplierDebt> => {
-  const { data } = await api.post<SupplierDebt>('/finance/debts/supplier', debtData);
-  return data;
-};
-
-/**
  * Récupère toutes les dettes fournisseurs de la filiale.
  */
 /**
@@ -60,8 +51,8 @@ export const getSupplierDebts = async (): Promise<SupplierDebt[]> => {
 };
 
 /**
- * Marque une dette fournisseur comme payée et crée la transaction de dépense.
- * Protégé par rôle (ADMIN, FINANCIAL_DIRECTOR, CAISSIER).
+ * Paie une dette fournisseur (totalement ou partiellement) en prélevant le
+ * Coffre-fort ou une Banque. Réservé au SUPER_ADMIN.
  * @param id - L'ID de la dette à payer.
  * @param paymentData - Les informations sur le paiement.
  */

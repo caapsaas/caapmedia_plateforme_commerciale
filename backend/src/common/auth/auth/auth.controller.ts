@@ -24,7 +24,6 @@ import {
   IsString,
   IsEmail,
   IsOptional,
-  IsUUID,
   IsEnum,
   IsArray,
   IsNotEmpty,
@@ -122,8 +121,9 @@ class SearchUsersDto extends PaginationQueryDto {
 }
 
 class AuditLogQueryDto {
+  // User.id est un id préfixé custom (USR-xxx), jamais un UUID.
   @IsOptional()
-  @IsUUID()
+  @IsString()
   userId?: string;
 
   @IsOptional()

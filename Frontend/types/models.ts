@@ -45,6 +45,9 @@ export enum View {
 export enum FinanceView {
     SUPPLIERS = 'suppliers',
     LONG_TERM_DEBTS = 'long_term_debts',
+    TREASURY = 'treasury',
+    EXPENSE_BOX = 'expense_box',
+    CASH_REMITTANCES = 'cash_remittances',
     EXPENSES = 'expenses',
     RECURRING_EXPENSES = 'recurring_expenses',
     TAX_TRANSPARENCY = 'tax_transparency',
@@ -243,7 +246,10 @@ export interface StockItem {
   description: string;
   sku?: string;
   stock: number;
-  price: number | null;
+  // Prix de revient = dernier prix d'achat réel enregistré sur ce produit
+  // (voir stock-items.service.ts::getLatestCostPrices) — plus un champ
+  // éditable directement depuis que `price` a été retiré du schéma Item.
+  costPrice: number | null;
   warehouse: string;
   productRange?: string;
   minThreshold?: number;
@@ -434,10 +440,20 @@ export interface OrderItemProductionSummary {
 
 export interface OrderItem {
   id?: string;
-  product: Product;
+  // OrdersService.mapOrderToResponse ne renvoie PAS d'objet `product` imbriqué
+  // — seulement `productName` (chaîne à plat) et `productId`. `product` reste
+  // déclaré (optionnel) pour le code qui le lit depuis d'autres endpoints,
+  // mais toute nouvelle lecture doit d'abord essayer `productName`.
+  product?: Product;
+  productName?: string;
+  productId?: string;
   quantity: number;
   unitPrice: number;
   discount?: number;
+  // Prix d'assemblage (montant) — pour certains services, coût de
+  // finition/assemblage facturé après la production, saisi par le
+  // commercial à la commande. Optionnel : seuls certains services en ont besoin.
+  assemblyPrice?: number | null;
   total?: number;
   options?: Partial<ProductOptions>;
   productOptions?: { optionType: string; optionValue: string }[];
@@ -467,7 +483,12 @@ export interface Order {
   customer?: { id: string; contactName: string; email?: string; phone?: string };
   salesRep?: { id: string; firstName?: string; lastName?: string; fullName?: string; email?: string };
   subsidiary?: { subsidiaryName: string };
+  // Le backend (OrdersService.mapOrderToResponse) renvoie TOUJOURS
+  // `orderItems`, jamais `items` — `items` n'est en pratique jamais peuplé
+  // par l'API mais reste déclaré ici pour ne pas casser le code existant qui
+  // le référence. Toute nouvelle lecture doit utiliser `orderItems`.
   items: OrderItem[];
+  orderItems?: OrderItem[];
   totalAmount: number;
   subtotal: number;
   taxAmount: number;
@@ -546,6 +567,10 @@ export enum PaymentTerms {
 }
 
 export interface PurchaseOrderItem {
+  // Id de la ligne de commande elle-même (PurchaseOrderItem.id, distinct de
+  // productId) — c'est CET id qu'attend la réception d'articles
+  // (ReceiveItemsDto.purchaseOrderItemId, voir ReceiveItemsModal.tsx).
+  id: string;
   productId: string;
   productName: string;
   quantity: number;
@@ -571,6 +596,8 @@ export interface PurchaseOrder {
   supplierName: string;
   orderDate: string;
   expectedDeliveryDate: string;
+  // Présent uniquement sur les réponses enrichies (vue consolidée SUPER_ADMIN).
+  subsidiary?: { id: string; subsidiaryName: string };
   items: PurchaseOrderItem[];
   totalAmount: number;
   status: PurchaseOrderStatus;
@@ -579,6 +606,11 @@ export interface PurchaseOrder {
   paymentStatus: PaymentStatus;
   amountPaid: number;
   history: PurchaseOrderHistory[];
+  // Dette fournisseur liée — toujours exactement une, créée automatiquement
+  // avec le bon de commande (voir purchase-orders.service.ts::create). Sert
+  // à retrouver l'id de dette pour le paiement (DebtsService.paySupplierDebt,
+  // voir Purchasing.tsx).
+  supplierDebts?: SupplierDebt[];
 }
 
 
@@ -591,13 +623,27 @@ export interface CreditAccount {
   subsidiaryId: string;
 }
 
+// CAISSE (caisse générale) a été fusionnée dans CASH_REGISTER (caisse de
+// vente/POS assignée à un caissier) — aucun flux métier ne les distinguait.
 export enum AccountType {
   BANQUE = 'BANQUE',
-  CAISSE = 'CAISSE',
   COMPTE_PREFINANCEMENT = 'COMPTE_PREFINANCEMENT',
   SAFE = 'SAFE',
   EXPENSE_BOX = 'EXPENSE_BOX',
   CASH_REGISTER = 'CASH_REGISTER',
+}
+
+export enum BankType {
+  COMMERCIAL_BANK = 'COMMERCIAL_BANK',
+  PUBLIC_BANK = 'PUBLIC_BANK',
+}
+
+export interface Bank {
+  id: string;
+  name: string;
+  address: string;
+  phone: string;
+  type: BankType;
 }
 
 export interface TreasuryAccount {
@@ -607,9 +653,12 @@ export interface TreasuryAccount {
   currency: string;
   accountType: AccountType;
   subsidiaryId: string;
+  subsidiary?: { id: string; subsidiaryName: string };
   cashierId?: string;
   accountCode?: string;
   accountNumber?: string;
+  bankId?: string;
+  bank?: Bank | null;
   initialBalance?: number;
 }
 
@@ -630,6 +679,10 @@ export enum TreasuryTransactionType {
   SALARY_PAYMENT = 'SALARY_PAYMENT',
   BONUS_PAYMENT = 'BONUS_PAYMENT',
   TAX_PAYMENT = 'TAX_PAYMENT',
+  IRPP_PAYMENT = 'IRPP_PAYMENT',
+  CNPS_PAYMENT = 'CNPS_PAYMENT',
+  CFC_FNE_PAYMENT = 'CFC_FNE_PAYMENT',
+  TVA_PAYMENT = 'TVA_PAYMENT',
   RENT = 'RENT',
   UTILITIES = 'UTILITIES',
   MARKETING = 'MARKETING',
@@ -679,8 +732,44 @@ export interface FinancialTransaction {
   counterparty?: { name: string };
 }
 
+export enum CashRemittanceStatus {
+  SUBMITTED = 'SUBMITTED',
+  RECEIVED = 'RECEIVED',
+  RECEIVED_WITH_DISCREPANCY = 'RECEIVED_WITH_DISCREPANCY',
+  REJECTED = 'REJECTED',
+}
+
+// Remise de caisse : un caissier déclare le contenu de sa caisse (CASH_REGISTER)
+// à remettre au coffre-fort du siège ; le Directeur Financier de la filiale
+// de la caisse réceptionne et confirme le comptage réel (écart détecté si
+// différent du montant déclaré). Voir CashRemittanceManagement.tsx.
+export interface CashRemittance {
+  id: string;
+  reference: string;
+  declaredAmount: number;
+  receivedAmount?: number | null;
+  discrepancy?: number | null;
+  remittanceDate: string;
+  status: CashRemittanceStatus;
+  notes?: string | null;
+  sourceCashRegisterId: string;
+  destinationSafeId: string;
+  subsidiaryId: string;
+  createdByUserId: string;
+  receivedByUserId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  createdByUser?: { userName: string };
+  receivedByUser?: { userName: string } | null;
+  sourceCashRegister?: TreasuryAccount;
+  destinationSafe?: TreasuryAccount;
+}
+
 export enum DebtStatus {
   A_PAYER = 'A_PAYER',
+  // Un paiement partiel a été enregistré (montant < solde total) mais la
+  // dette n'est pas encore soldée — voir DebtsService.paySupplierDebt.
+  PARTIELLEMENT_PAYE = 'PARTIELLEMENT_PAYE',
   PAYER = 'PAYER',
   EN_ATTENTE = 'EN_ATTENTE',
 }
@@ -695,6 +784,12 @@ export interface SupplierDebt {
   subsidiaryId: string;
   invoiceUrl?: string;
   purchaseOrderId: string; // Link back to the purchase order
+  // Récapitulatif du bon de commande lié — pour le même affichage
+  // (Total / Payé / Reste) que la modale de paiement du module Achats,
+  // voir PaySupplierDebtModal.tsx.
+  purchaseOrder?: { totalAmount: number; amountPaid: number };
+  // Pour la colonne Filiale en vue consolidée SUPER_ADMIN (voir SupplierDebts.tsx).
+  subsidiary?: { subsidiaryName: string };
 }
 
 export interface SalesChartData {
@@ -802,6 +897,7 @@ export enum PaymentMethod {
 }
 
 export enum CustomerPaymentMethod {
+  CASH = 'CASH',
   CARD = 'CARD',
   ORANGE_MONEY = 'ORANGE_MONEY',
   WAVE = 'WAVE',
@@ -809,6 +905,8 @@ export enum CustomerPaymentMethod {
   PAYCAAP = 'PAYCAAP',
   PAY_ON_DELIVERY = 'PAY_ON_DELIVERY',
   CUSTOMER_CREDIT = 'CUSTOMER_CREDIT',
+  BANK_TRANSFER = 'BANK_TRANSFER',
+  CHECK = 'CHECK',
 }
 
 export interface EmployeeDocument {

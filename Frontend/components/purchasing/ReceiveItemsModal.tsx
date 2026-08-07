@@ -15,7 +15,9 @@ const ReceiveItemsModal: React.FC<ReceiveItemsModalProps> = ({ isOpen, onClose, 
     
     const handleQuantityChange = (purchaseOrderItemId: string, value: string) => {
         const quantity = parseInt(value, 10);
-        const item = purchaseOrder.items.find(i => i.productId === purchaseOrderItemId);
+        // item.id (ligne de commande) et non item.productId (article) — c'est
+        // l'id attendu par le backend (ReceiveItemsDto.purchaseOrderItemId).
+        const item = purchaseOrder.items.find(i => i.id === purchaseOrderItemId);
         if (!item) return;
         
         const maxReceivable = item.quantity - item.quantityReceived;
@@ -64,7 +66,7 @@ const ReceiveItemsModal: React.FC<ReceiveItemsModalProps> = ({ isOpen, onClose, 
                                         const unit = item.purchaseUnit ?? item.product?.baseUnit;
                                         const unitLabel = unit ? (unit.symbol || unit.name) : null;
                                         return (
-                                            <tr key={item.productId} className="border-b">
+                                            <tr key={item.id} className="border-b">
                                                 <td className="px-4 py-3 font-medium">{item.productName}</td>
                                                 <td className="px-4 py-3 text-center text-slate-500">{unitLabel ?? '—'}</td>
                                                 <td className="px-4 py-3 text-center">{item.quantity}</td>
@@ -74,8 +76,8 @@ const ReceiveItemsModal: React.FC<ReceiveItemsModalProps> = ({ isOpen, onClose, 
                                                         type="number"
                                                         min="0"
                                                         max={remaining}
-                                                        value={receivedQuantities[item.productId] || ''}
-                                                        onChange={e => handleQuantityChange(item.productId, e.target.value)}
+                                                        value={receivedQuantities[item.id] || ''}
+                                                        onChange={e => handleQuantityChange(item.id, e.target.value)}
                                                         className="w-24 p-1 text-center border border-slate-300 rounded-md"
                                                         placeholder="0"
                                                         disabled={remaining === 0}

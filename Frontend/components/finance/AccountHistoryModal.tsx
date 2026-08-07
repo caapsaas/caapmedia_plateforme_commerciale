@@ -5,6 +5,7 @@ import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import { useHasRole } from '../../hooks/useHasRole';
 import { deleteTransaction, getAccountTransactions, updateTransactionStatus } from '../../services/apiFinance/apiTreasury';
+import { getTransactionLegForAccount } from '../../utils/transactionDisplay';
 import IconCheck from '../icons/IconCheck';
 import IconCancelX from '../icons/IconCancelX';
 
@@ -65,7 +66,7 @@ const AccountHistoryModal: React.FC<AccountHistoryModalProps> = ({ isOpen, onClo
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-slate-200 flex items-center justify-between">
           <div>
             <h3 className="text-lg font-bold text-slate-800">{t('treasury.history.title')}</h3>
@@ -87,74 +88,80 @@ const AccountHistoryModal: React.FC<AccountHistoryModalProps> = ({ isOpen, onClo
           </div>
         </div>
 
-        <div className="overflow-y-auto flex-1">
-          <table className="w-full text-sm text-left text-slate-500">
-            <thead className="text-xs text-slate-700 uppercase bg-slate-50 sticky top-0">
-              <tr>
-                <th className="px-4 py-3">{t('treasury.history.date')}</th>
-                <th className="px-4 py-3">{t('treasury.history.description')}</th>
-                <th className="px-4 py-3">{t('treasury.history.account')}</th>
-                <th className="px-4 py-3">{t('treasury.history.reference')}</th>
-                <th className="px-4 py-3 text-right">{t('treasury.history.amount')}</th>
-                <th className="px-4 py-3 text-right">{t('treasury.history.balanceAfter')}</th>
-                <th className="px-4 py-3 text-center">{t('treasury.history.status')}</th>
-                <th className="px-4 py-3 text-center no-print">{t('common.actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr><td colSpan={8} className="px-4 py-6 text-center text-slate-400">{t('common.loading')}</td></tr>
-              ) : transactions.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-6 text-center text-slate-400">{t('common.notAvailable')}</td></tr>
-              ) : transactions.map((tx) => {
-                const isSource = tx.sourceAccountId === account.id || tx.treasuryAccountId === account.id;
-                const balanceAfter = isSource ? tx.balanceAfterSource : tx.balanceAfterDest;
-                const counterpartAccountName = isSource
-                  ? tx.destinationAccount?.accountName
-                  : tx.treasuryAccount?.accountName;
+        <div className="overflow-auto flex-1">
+          <div className="min-w-max w-full">
+            <table className="w-full text-sm text-left text-slate-500">
+              <thead className="text-xs text-slate-700 uppercase bg-slate-50 sticky top-0">
+                <tr className="whitespace-nowrap">
+                  <th className="px-4 py-3">{t('treasury.history.date')}</th>
+                  <th className="px-4 py-3">{t('treasury.history.description')}</th>
+                  <th className="px-4 py-3">{t('treasury.history.direction')}</th>
+                  <th className="px-4 py-3">{t('treasury.history.counterparty')}</th>
+                  <th className="px-4 py-3">{t('treasury.history.reference')}</th>
+                  <th className="px-4 py-3 text-right">{t('treasury.history.amount')}</th>
+                  <th className="px-4 py-3 text-right">{t('treasury.history.balanceBefore')}</th>
+                  <th className="px-4 py-3 text-right">{t('treasury.history.balanceAfter')}</th>
+                  <th className="px-4 py-3 text-center">{t('treasury.history.status')}</th>
+                  <th className="px-4 py-3 text-center no-print">{t('common.actions')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <tr><td colSpan={10} className="px-4 py-6 text-center text-slate-400">{t('common.loading')}</td></tr>
+                ) : transactions.length === 0 ? (
+                  <tr><td colSpan={10} className="px-4 py-6 text-center text-slate-400">{t('common.notAvailable')}</td></tr>
+                ) : transactions.map((tx) => {
+                  const { isIncome, counterpartyName, balanceBefore, balanceAfter } = getTransactionLegForAccount(tx, account.id);
 
-                return (
-                  <tr key={tx.id} className="bg-white border-b hover:bg-slate-50">
-                    <td className="px-4 py-3">{new Date(tx.transactionDate).toLocaleDateString(language)}</td>
-                    <td className="px-4 py-3">{tx.description}</td>
-                    <td className="px-4 py-3">{counterpartAccountName || tx.counterparty?.name || '—'}</td>
-                    <td className="px-4 py-3">{tx.reference || '—'}</td>
-                    <td className={`px-4 py-3 text-right font-semibold ${isSource ? 'text-red-600' : 'text-green-600'}`}>
-                      {isSource ? '-' : '+'}{formatCurrency(tx.amount)}
-                    </td>
-                    <td className="px-4 py-3 text-right">{balanceAfter != null ? formatCurrency(balanceAfter) : '—'}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${tx.status === TransactionStatus.PENDING ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
-                        {tx.status === TransactionStatus.PENDING ? t('treasury.statusPending') : t('treasury.statusValidated')}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center no-print space-x-1">
-                      {canValidate && tx.status === TransactionStatus.PENDING && (
-                        <>
-                          <button
-                            disabled={isPending}
-                            onClick={() => setStatus({ id: tx.id, status: TransactionStatus.VALIDATED })}
-                            className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-100 rounded-full transition-colors disabled:opacity-50"
-                            title={t('treasury.validate')}
-                          >
-                            <IconCheck className="h-5 w-5" />
-                          </button>
-                          <button
-                            disabled={isCancelling}
-                            onClick={() => handleCancel(tx.id)}
-                            className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors disabled:opacity-50"
-                            title={t('treasury.reject')}
-                          >
-                            <IconCancelX className="h-5 w-5" />
-                          </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                  return (
+                    <tr key={tx.id} className="bg-white border-b hover:bg-slate-50 whitespace-nowrap">
+                      <td className="px-4 py-3">{new Date(tx.transactionDate).toLocaleDateString(language)}</td>
+                      <td className="px-4 py-3">{tx.description}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${isIncome ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {isIncome ? t('treasury.history.income') : t('treasury.history.expense')}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">{counterpartyName}</td>
+                      <td className="px-4 py-3">{tx.reference || '—'}</td>
+                      <td className={`px-4 py-3 text-right font-semibold ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
+                        {isIncome ? '+' : '-'}{formatCurrency(Number(tx.amount))}
+                      </td>
+                      <td className="px-4 py-3 text-right">{balanceBefore != null ? formatCurrency(balanceBefore) : '—'}</td>
+                      <td className="px-4 py-3 text-right">{balanceAfter != null ? formatCurrency(balanceAfter) : '—'}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${tx.status === TransactionStatus.PENDING ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
+                          {tx.status === TransactionStatus.PENDING ? t('treasury.statusPending') : t('treasury.statusValidated')}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center no-print space-x-1">
+                        {canValidate && tx.status === TransactionStatus.PENDING && (
+                          <>
+                            <button
+                              disabled={isPending}
+                              onClick={() => setStatus({ id: tx.id, status: TransactionStatus.VALIDATED })}
+                              className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-100 rounded-full transition-colors disabled:opacity-50"
+                              title={t('treasury.validate')}
+                            >
+                              <IconCheck className="h-5 w-5" />
+                            </button>
+                            <button
+                              disabled={isCancelling}
+                              onClick={() => handleCancel(tx.id)}
+                              className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors disabled:opacity-50"
+                              title={t('treasury.reject')}
+                            >
+                              <IconCancelX className="h-5 w-5" />
+                            </button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

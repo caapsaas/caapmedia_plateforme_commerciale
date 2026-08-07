@@ -15,7 +15,6 @@ import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { CurrentUser } from '../../common/auth/role/role.decorator';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
-import { CreateSupplierDebtDto } from './dto/create-supplier-debt.dto';
 import { PaySupplierDebtDto } from './dto/pay-supplier-debt.dto';
 import { CreateLongTermDebtDto } from './dto/create-long-term-debt.dto';
 import { UpdateLongTermDebtDto } from './dto/update-long-term-debt.dto';
@@ -26,14 +25,8 @@ export class DebtsController {
   constructor(private readonly debtsService: DebtsService) {}
 
   // --- Supplier Debts Routes ---
-  @Post('supplier')
-  createSupplierDebt(
-    @Body() createDto: CreateSupplierDebtDto,
-    @CurrentUser() user: JwtUser,
-  ) {
-    return this.debtsService.createSupplierDebt(createDto, user);
-  }
-
+  // Pas de route de création manuelle : une dette fournisseur résulte
+  // toujours d'un bon de commande (voir PurchaseOrdersService.create).
   @Get('supplier')
   findAllSupplierDebts(
     @CurrentUser() user: JwtUser,

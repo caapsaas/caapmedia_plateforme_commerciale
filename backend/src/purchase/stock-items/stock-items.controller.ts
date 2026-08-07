@@ -20,7 +20,6 @@ import {
   CreateStockItemDto,
   UpdatePackagingUnitDto,
   UpdateStockItemDto,
-  UpdateStockItemPriceDto,
 } from './dto/create-stock-item.dto';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
@@ -59,19 +58,6 @@ export class StockItemsController {
   @Get(':id')
   findOne(@Param('id') id: string, @Req() req: any) {
     return this.stockItemsService.findOne(id, req.user);
-  }
-
-  @Patch(':id/update-price')
-  updatePrice(
-    @Param('id') id: string,
-    @Body() updateStockItemPriceDto: UpdateStockItemPriceDto,
-    @Req() req: any,
-  ) {
-    return this.stockItemsService.updatePrice(
-      id,
-      updateStockItemPriceDto,
-      req.user,
-    );
   }
 
   @Patch(':id')

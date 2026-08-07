@@ -42,11 +42,6 @@ export const updateStockItem = async (id: string, itemData: Partial<StockItemFor
     return data;
 };
 
-export const updateStockItemPrice = async (id: string, price: number): Promise<StockItem> => {
-    const { data } = await api.patch(`${BASE_URL}/${id}/update-price`, { price });
-    return data;
-};
-
 export const deleteStockItem = async (id: string): Promise<{ id: string }> => {
     const { data } = await api.delete(`${BASE_URL}/${id}`);
     return data;

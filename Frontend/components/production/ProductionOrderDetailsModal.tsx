@@ -1,7 +1,6 @@
 import React from 'react';
 import { Order } from '../../types';
-import { useI18n } from '../../i18n';
-import SpecValuesSummary from '../common/SpecValuesSummary';
+import OrderDetailsPanel from './OrderDetailsPanel';
 
 interface ProductionOrderDetailsModalProps {
     isOpen: boolean;
@@ -9,41 +8,15 @@ interface ProductionOrderDetailsModalProps {
     order: Order | null;
 }
 
-// Détail d'une commande côté production (Chantier 5) : affiche, pour chaque
-// ligne, les spécifications techniques visibles par la production
-// (visibleToProduction) figées à la commande — pas un formulaire de saisie,
-// juste ce dont l'atelier a besoin pour fabriquer.
+// Fine enveloppe autour du panneau de détail partagé (voir
+// OrderDetailsPanel.tsx) — historiquement un modal minimal (specs
+// uniquement), maintenant le même détail complet (infos générales, résumé
+// financier, options/specs/fichier BAT/workflow production par ligne,
+// historique) que Sales.tsx "Voir détails" et la file de validation
+// production, en lecture seule (pas d'actions valider/rejeter ici).
 const ProductionOrderDetailsModal: React.FC<ProductionOrderDetailsModalProps> = ({ isOpen, onClose, order }) => {
-    const { t } = useI18n();
-
     if (!isOpen || !order) return null;
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                <div className="p-6 border-b">
-                    <h3 className="text-lg font-bold text-slate-900">{order.id}</h3>
-                    <p className="text-sm text-slate-500">{order.customerName}</p>
-                </div>
-                <div className="p-6 space-y-4">
-                    {order.orderItems.map((item, index) => (
-                        <div key={index} className="border-b border-slate-100 pb-4 last:border-b-0 last:pb-0">
-                            <p className="font-semibold text-slate-800">{item.quantity}x {item.product.name}</p>
-                            <SpecValuesSummary
-                                schema={item.specSnapshot}
-                                values={item.specValues}
-                                audience="production"
-                                className="mt-2 space-y-1 text-sm text-slate-600"
-                            />
-                        </div>
-                    ))}
-                </div>
-                <div className="px-6 py-4 bg-slate-50 flex justify-end rounded-b-lg">
-                    <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors">{t('common.close')}</button>
-                </div>
-            </div>
-        </div>
-    );
+    return <OrderDetailsPanel order={order} onClose={onClose} />;
 };
 
 export default ProductionOrderDetailsModal;

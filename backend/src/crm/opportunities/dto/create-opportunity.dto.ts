@@ -3,7 +3,6 @@ import {
   IsNotEmpty,
   IsNumber,
   IsDateString,
-  IsUUID,
   IsEnum,
   IsOptional,
   IsArray,
@@ -24,10 +23,14 @@ export class CreateOpportunityDto {
   @IsDateString()
   closeDate: string;
 
-  @IsUUID()
+  // Contact.id/Account.id/Item.id sont des ids préfixés custom, jamais des
+  // UUID — @IsUUID() les rejetait systématiquement en 400.
+  @IsString()
+  @IsNotEmpty()
   contactId: string;
 
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   accountId: string;
 
   @IsEnum(OpportunityStage)
@@ -38,7 +41,7 @@ export class CreateOpportunityDto {
   sourceOpportunity?: OpportunitySource;
 
   @IsArray()
-  @IsUUID('4', { each: true })
+  @IsString({ each: true })
   @IsOptional()
   productIds?: string[];
 }

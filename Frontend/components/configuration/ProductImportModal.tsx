@@ -93,7 +93,7 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({ isOpen, onClose
                     category,
                     description: productData.description || '',
                     stock: stockNum,
-                    price: priceNum,
+                    costPrice: priceNum,
                     warehouse: productData.warehouse || '',
                     productRange: productData.range || '',
                     stockManaged: true,

@@ -929,16 +929,15 @@ async function seedStockProducts(
   prisma: PrismaClient,
   unitIdByName: Map<string, string>,
 ) {
+  // Les Items de stock sont GLOBAUX — on charge toutes les filiales une seule
+  // fois pour créer un ItemStock par filiale pour chaque article.
+  const allSubsidiaries = await prisma.subsidiary.findMany();
+  if (allSubsidiaries.length === 0) {
+    console.warn('Aucune filiale trouvée — seedStockProducts ignoré.');
+    return;
+  }
+
   for (const p of STOCK_PRODUCTS_DATA) {
-    const subsidiary = await prisma.subsidiary.findUnique({
-      where: { email: p.subsidiaryEmail },
-    });
-    if (!subsidiary) {
-      console.warn(
-        `Subsidiary ${p.subsidiaryEmail} not found for stock product ${p.name}`,
-      );
-      continue;
-    }
 
     const baseUnitId = unitIdByName.get(p.baseUnit);
     if (!baseUnitId) {
@@ -946,8 +945,8 @@ async function seedStockProducts(
       continue;
     }
 
-    // Article global : idempotence sur (nom, type) seul — le stock, lui,
-    // est propre à la filiale (voir ItemStock).
+    // Article global : idempotence sur (nom, type) seul — le stock est
+    // propre à chaque filiale (voir ItemStock).
     let item = await prisma.item.findFirst({
       where: { name: p.name, type: ItemType.STOCK_PRODUCT },
     });
@@ -1001,20 +1000,27 @@ async function seedStockProducts(
       }
     }
 
-    const existingStock = await prisma.itemStock.findFirst({
-      where: { itemId: item.id, subsidiaryId: subsidiary.id },
-    });
-    if (existingStock) continue;
+    // Créer un ItemStock pour CHAQUE filiale (article global, stock par filiale).
+    // L'entrepôt de référence vient de la filiale d'origine (subsidiaryEmail) ;
+    // les autres filiales héritent du même nom d'entrepôt par défaut.
+    const refWarehouse = p.warehouse;
 
-    await prisma.itemStock.create({
-      data: {
-        id: generateId(ID_PREFIXES.ITEMSTOCK),
-        itemId: item.id,
-        subsidiaryId: subsidiary.id,
-        stock: new Prisma.Decimal(p.stock),
-        warehouse: p.warehouse,
-      },
-    });
+    for (const subsidiary of allSubsidiaries) {
+      const existingStock = await prisma.itemStock.findFirst({
+        where: { itemId: item.id, subsidiaryId: subsidiary.id },
+      });
+      if (existingStock) continue;
+
+      await prisma.itemStock.create({
+        data: {
+          id: generateId(ID_PREFIXES.ITEMSTOCK),
+          itemId: item.id,
+          subsidiaryId: subsidiary.id,
+          stock: new Prisma.Decimal(p.stock),
+          warehouse: refWarehouse,
+        },
+      });
+    }
   }
   console.log(
     'Produits de stock (article global + unités + stock par filiale) seedés',
@@ -1028,3 +1034,10 @@ async function runProductSeeder(prisma: PrismaClient) {
 }
 
 export { runProductSeeder };
+
+// Réexporté pour purchase-order.seeder.ts : le champ `price` ci-dessus n'est
+// jamais écrit sur l'Item (le schéma n'a plus de colonne price, voir
+// stock-items.service.ts) — c'est purchase-order.seeder.ts qui le transforme
+// en un vrai PurchaseOrderItem.purchasePrice ("prix de revient" = dernier
+// achat réel), seule et unique source de vérité pour le coût d'un article.
+export { STOCK_PRODUCTS_DATA };

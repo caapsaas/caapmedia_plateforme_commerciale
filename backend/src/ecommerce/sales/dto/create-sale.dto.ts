@@ -31,6 +31,16 @@ class DirectSaleItemDto {
   @Min(0)
   unitPrice: number;
 
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  discount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  assemblyPrice?: number;
+
   // Spécifications techniques saisies au comptoir (Chantier 5), validées
   // côté serveur contre la définition du service — voir sales.service.ts.
   @IsOptional()
@@ -46,6 +56,17 @@ export class CreateDirectSaleDto {
   @IsNotEmpty()
   @IsEnum(CustomerPaymentMethod)
   paymentMethod: CustomerPaymentMethod;
+
+  @IsOptional()
+  @IsString()
+  bankAccountId?: string;
+
+  @IsOptional()
+  @IsString()
+  transactionReference?: string;
+
+  @IsOptional()
+  applyTax?: boolean;
 
   @IsArray()
   @ValidateNested({ each: true })

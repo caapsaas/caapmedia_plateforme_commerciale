@@ -41,6 +41,11 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
         if (!product) return;
 
         setItems(prev => [...prev, {
+            // Id local temporaire (ligne pas encore créée côté serveur) —
+            // seuls productId/quantity/purchasePrice/purchaseUnitId sont
+            // effectivement envoyés au backend à la soumission (voir
+            // CreatePurchaseOrderItemDto), cet id n'est jamais transmis.
+            id: `draft-${Date.now()}-${product.id}`,
             productId: product.id,
             productName: product.name,
             quantity,
@@ -131,7 +136,7 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
                                         onChange={(value, option) => {
                                             setSelectedProduct(value || '');
                                             setSelectedProductData(option || null);
-                                            setPurchasePrice(option?.price || 0);
+                                            setPurchasePrice(option?.costPrice || 0);
                                             setPurchaseUnitId('');
                                         }}
                                         getOptionLabel={p => p.name}

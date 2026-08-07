@@ -259,7 +259,7 @@ const JournalCentralisateur: React.FC<JournalCentralisateurProps> = ({ fiscalPer
       {subsidiary && (
         <div style={{ display: 'none' }}>
           <div ref={printRef} className="p-8 bg-white" style={{ width: '1000px' }}>
-            <DocumentHeader subsidiary={subsidiary} showContactIcons={false} />
+            <DocumentHeader subsidiary={subsidiary} />
             <h2 className="text-xl font-bold text-slate-800 mb-4">Journal centralisateur — {fiscalPeriods.find((p) => p.id === fiscalYearId)?.name}</h2>
             {journals.map((group) => {
               const code = group.journal?.code ?? 'JOD';

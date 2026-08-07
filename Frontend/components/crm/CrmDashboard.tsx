@@ -19,6 +19,13 @@ interface CrmDashboardProps {
     onUpdateTaskStatus: (taskId: string, status: CrmTaskStatus) => void;
 }
 
+// `task.dueDate` était affiché brut (ISO) au lieu d'une date localisée.
+const fmtDate = (date?: string | null, language = 'fr') => {
+    if (!date) return '—';
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString(language);
+};
+
 const FUNNEL_STAGES: { key: OpportunityStage; color: string }[] = [
     { key: OpportunityStage.QUALIFICATION, color: '#6366f1' },
     { key: OpportunityStage.PROPOSAL,      color: '#f59e0b' },
@@ -34,7 +41,7 @@ const CrmDashboard: React.FC<CrmDashboardProps> = ({
     opportunities,
     onUpdateTaskStatus,
 }) => {
-    const { t, formatCurrency } = useI18n();
+    const { t, formatCurrency, language } = useI18n();
 
     const kpis = useMemo(() => {
         const active = opportunities.filter(
@@ -156,7 +163,7 @@ const CrmDashboard: React.FC<CrmDashboardProps> = ({
                                     <div className="min-w-0">
                                         <p className="font-semibold text-sm truncate">{task.title}</p>
                                         <p className="text-xs text-slate-500 truncate">
-                                            {contactMap.get(task.contactId) ?? '—'} · {task.dueDate}
+                                            {contactMap.get(task.contactId) ?? '—'} · {fmtDate(task.dueDate, language)}
                                         </p>
                                     </div>
                                     <button

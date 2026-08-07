@@ -11,8 +11,15 @@ interface OrderSelectionModalProps {
     onOrderSelect: (order: Order) => void;
 }
 
+// `order.date` était affiché brut (ISO) au lieu d'une date localisée.
+const fmtDate = (date?: string | null, language = 'fr') => {
+    if (!date) return '—';
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString(language);
+};
+
 const OrderSelectionModal: React.FC<OrderSelectionModalProps> = ({ isOpen, onClose, orders, contacts, onOrderSelect }) => {
-    const { t, formatCurrency } = useI18n();
+    const { t, formatCurrency, language } = useI18n();
     const [searchTerm, setSearchTerm] = useState('');
 
     const searchableOrders = useMemo(() => {
@@ -68,7 +75,7 @@ const OrderSelectionModal: React.FC<OrderSelectionModalProps> = ({ isOpen, onClo
                                     <tr key={order.id} onClick={() => onOrderSelect(order)} className="hover:bg-slate-100 cursor-pointer">
                                         <td className="px-4 py-3 font-semibold">{order.id}</td>
                                         <td className="px-4 py-3">{order.customerName}</td>
-                                        <td className="px-4 py-3">{order.date}</td>
+                                        <td className="px-4 py-3">{fmtDate(order.date, language)}</td>
                                         <td className="px-4 py-3 text-right font-bold text-red-600">{formatCurrency(order.totalAmount - order.amountPaid)}</td>
                                     </tr>
                                 ))}

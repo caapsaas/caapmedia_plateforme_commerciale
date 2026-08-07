@@ -9,7 +9,6 @@ import {
   IsOptional,
   IsPositive,
   IsString,
-  IsUUID,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -30,8 +29,12 @@ export const MANUAL_MOVEMENT_TYPES = [
   StockMovementType.SUPPLIER_RETURN,
 ];
 
+// Item.id/Subsidiary.id/Order.id sont des ids préfixés custom
+// (generateId(ID_PREFIXES.X)), jamais des UUID — @IsUUID() cassait
+// silencieusement (400) tout le module Stock Movements (mouvements manuels,
+// ajustement d'inventaire, prélèvement pour commande).
 export class CreateStockMovementDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   itemId: string;
 
@@ -48,7 +51,7 @@ export class CreateStockMovementDto {
 }
 
 export class InventoryAdjustmentDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   itemId: string;
 
@@ -60,13 +63,13 @@ export class InventoryAdjustmentDto {
   @IsOptional()
   reason?: string;
 
-  @IsUUID()
   @IsOptional()
+  @IsString()
   subsidiaryId?: string;
 }
 
 class WithdrawItemDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   itemId: string;
 
@@ -76,7 +79,7 @@ class WithdrawItemDto {
 }
 
 export class WithdrawForOrderDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   orderId: string;
 
@@ -88,12 +91,12 @@ export class WithdrawForOrderDto {
 }
 
 export class FindStockMovementsDto extends PaginationQueryDto {
-  @IsUUID()
   @IsOptional()
+  @IsString()
   subsidiaryId?: string;
 
-  @IsUUID()
   @IsOptional()
+  @IsString()
   itemId?: string;
 
   @IsEnum(StockMovementType)
