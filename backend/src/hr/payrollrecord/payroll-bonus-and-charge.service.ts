@@ -503,7 +503,7 @@ export class PayrollBonusAndChargeService {
       where: {
         subsidiaryId,
         payrollPeriod: month,
-        status: { in: [PayrollStatus.SIGNED, PayrollStatus.PAID] },
+        status: { in: [PayrollStatus.PENDING, PayrollStatus.SIGNED, PayrollStatus.PAID] },
       },
       include: {
         employee: { select: { paymentMethod: true } },
