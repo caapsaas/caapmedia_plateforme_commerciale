@@ -68,11 +68,11 @@ model Subsidiary {
   payrollConfiguration          PayrollConfiguration?
   counterparties                Counterparty[]
 
-  // NEW: Relations vers bonus et charges paie
   payrollBonusTypes             PayrollBonusType[]
   payrollBonuses                PayrollBonus[]
   payrollChargePayments         PayrollChargePayment[]
   payrollCumulatives            PayrollCumulative[] @relation("PayrollCumulatives")
+  cashRemittances               CashRemittance[]
 
   @@index([subsidiaryName]) // Ajout de cet index
   @@index([latitude, longitude])
@@ -122,6 +122,8 @@ model User {
   companyDocuments              CompanyDocument[]
   meetings                      Meeting[]
   secretariatTasks              SecretariatTask[]
+  createdCashRemittances        CashRemittance[]                @relation("CashRemittanceCreatedBy")
+  receivedCashRemittances       CashRemittance[]                @relation("CashRemittanceReceivedBy")
 
   @@map("users")
 }
@@ -949,17 +951,88 @@ model TreasuryAccount {
   // à terme pour affiner journalization.service.ts au-delà du mapping global actuel.
   accountCode             String?                @map("account_code")
   accountNumber           String?                @map("account_number") @db.VarChar(50)
+  // Banque physique (comptes BANQUE uniquement) — comme gmo, un compte
+  // bancaire référence une institution bancaire créée à part (Configuration).
+  bankId                  String?                @map("bank_id")
+  bank                    Bank?                  @relation(fields: [bankId], references: [id])
   // Solde de constitution, distinct de `balance` (qui évolue avec les
   // transactions) — conservé pour traçabilité, jamais réécrit après création.
   initialBalance          Decimal?               @map("initial_balance") @db.Decimal(15, 2)
   financialTransactions   FinancialTransaction[]
   sourceTransactions      FinancialTransaction[] @relation("SourceAccount")
   destinationTransactions FinancialTransaction[] @relation("DestinationAccount")
+  cashRemittancesSourced  CashRemittance[]       @relation("CashRemittanceSource")
+  cashRemittancesReceived CashRemittance[]       @relation("CashRemittanceDestination")
   subsidiary              Subsidiary             @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
   @@index([subsidiaryId, accountName])
   @@index([cashierId])
+  @@index([bankId])
   @@map("treasury_accounts")
+}
+
+enum BankType {
+  COMMERCIAL_BANK
+  PUBLIC_BANK
+}
+
+// Banque physique (institution) — distincte du compte de trésorerie
+// (TreasuryAccount.accountType = BANQUE) qui la référence. Une banque n'est
+// jamais rattachée à une filiale : les comptes bancaires sont centralisés au
+// siège (voir TreasuryService.createAccount), la banque elle-même est un
+// tiers global, comme sur gmo (Backend_GMO/prisma/schema.prisma::Bank).
+model Bank {
+  id        String            @id @default(uuid())
+  name      String            @unique
+  address   String
+  phone     String
+  type      BankType          @default(COMMERCIAL_BANK)
+  accounts  TreasuryAccount[]
+
+  @@map("banks")
+}
+
+enum CashRemittanceStatus {
+  SUBMITTED
+  RECEIVED
+  RECEIVED_WITH_DISCREPANCY
+  REJECTED
+}
+
+// Remise de caisse : un caissier déclare le contenu de sa caisse (CASH_REGISTER)
+// à remettre, toujours vers le coffre-fort (SAFE) du siège (trésorerie
+// centralisée, comme gmo) ; le Directeur Financier DE LA FILIALE DE LA CAISSE
+// (subsidiaryId ci-dessous = filiale de la caisse source, pas celle du coffre)
+// réceptionne et confirme le comptage réel — un écart (discrepancy) est
+// enregistré si le montant compté diffère du montant déclaré.
+model CashRemittance {
+  id                    String                @id @default(uuid())
+  reference             String                @unique
+  declaredAmount        Decimal               @map("declared_amount") @db.Decimal(15, 2)
+  receivedAmount        Decimal?              @map("received_amount") @db.Decimal(15, 2)
+  discrepancy           Decimal?              @db.Decimal(15, 2)
+  remittanceDate        DateTime              @map("remittance_date")
+  status                CashRemittanceStatus  @default(SUBMITTED)
+  notes                 String?
+  sourceCashRegisterId  String                @map("source_cash_register_id")
+  destinationSafeId     String                @map("destination_safe_id")
+  // Filiale de la caisse source (pas celle du coffre destinataire) — c'est
+  // elle qui détermine quel Directeur Financier peut réceptionner.
+  subsidiaryId          String                @map("subsidiary_id")
+  createdByUserId       String                @map("created_by_user_id")
+  receivedByUserId      String?               @map("received_by_user_id")
+  createdAt             DateTime              @default(now()) @map("created_at")
+  updatedAt             DateTime              @updatedAt @map("updated_at")
+
+  sourceCashRegister    TreasuryAccount       @relation("CashRemittanceSource", fields: [sourceCashRegisterId], references: [id])
+  destinationSafe       TreasuryAccount       @relation("CashRemittanceDestination", fields: [destinationSafeId], references: [id])
+  subsidiary            Subsidiary            @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  createdByUser         User                  @relation("CashRemittanceCreatedBy", fields: [createdByUserId], references: [id])
+  receivedByUser        User?                 @relation("CashRemittanceReceivedBy", fields: [receivedByUserId], references: [id])
+
+  @@index([subsidiaryId, status])
+  @@index([sourceCashRegisterId])
+  @@map("cash_remittances")
 }
 
 model Counterparty {
