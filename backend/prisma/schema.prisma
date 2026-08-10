@@ -2378,6 +2378,10 @@ enum TreasuryTransactionType {
   SUPPLIES
   PURCHASE_COST
   OTHER_EXPENSE
+  IRPP_PAYMENT
+  CNPS_PAYMENT
+  CFC_FNE_PAYMENT
+  TVA_PAYMENT
 }
 
 enum CounterpartyType {

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Product, Contact, Order, CustomerPaymentMethod, TaxRate, TreasuryAccount, AccountType } from '../../types';
+import { Product, Contact, Order, CustomerPaymentMethod, TaxRate, TreasuryAccount, AccountType, ProductOptions } from '../../types';
 import IconCreditCard from '../icons/IconCreditCard';
 import IconMobilePayment from '../icons/IconMobilePayment';
 import IconCash from '../icons/IconCash';
@@ -26,6 +26,13 @@ import { FormDefinition } from '../../types';
 import { SpecValues } from '../common/FormRenderer';
 import { ProductionCostResult } from '../ecommerce/ProductionCostModal';
 import { CartItem } from '../ecommerce/ShoppingCart';
+
+// CartItem étendu pour la caisse : discount et assemblyPrice ajoutés pour la
+// gestion des remises et des coûts d'assemblage par ligne de panier.
+type CaisseCartItem = CartItem & {
+    discount?: number;
+    assemblyPrice?: number;
+};
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getServicesCatalog } from '../../services/apiE-commerce/apiProducts';
 import { getContacts, createContactByEmployee, ContactCreationData } from '../../services/apiCrm/apicontacts';
@@ -62,7 +69,7 @@ const Caisse: React.FC = () => {
 
     // State for 'new_sale' mode
     const [searchTerm, setSearchTerm] = useState('');
-    const [cart, setCart] = useState<CartItem[]>([]);
+    const [cart, setCart] = useState<CaisseCartItem[]>([]);
     const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
     const [applyTax, setApplyTax] = useState(true);
 
@@ -490,7 +497,7 @@ const Caisse: React.FC = () => {
                                 <p><strong>{t('cashRegister.clientSection.title')}:</strong> {loadedOrder.customerName}</p>
                             </div>
                              <ul className="divide-y divide-slate-200">
-                                {loadedOrder.orderItems.map((item, index) => <li key={index} className="py-2 flex justify-between items-center"><p>{item.product.name} (x{item.quantity})</p><p className="font-semibold">{formatCurrency(item.unitPrice * item.quantity)}</p></li>)}
+                                {(loadedOrder.orderItems ?? []).map((item, index) => <li key={index} className="py-2 flex justify-between items-center"><p>{item.product?.name} (x{item.quantity})</p><p className="font-semibold">{formatCurrency(item.unitPrice * item.quantity)}</p></li>)}
                             </ul>
                         </div>
                     )}
