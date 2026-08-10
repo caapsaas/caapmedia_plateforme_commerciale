@@ -2388,6 +2388,7 @@ enum DebtStatus {
   A_PAYER
   PAYER
   EN_ATTENTE
+  PARTIELLEMENT_PAYE
 }
 
 enum DocumentType {
