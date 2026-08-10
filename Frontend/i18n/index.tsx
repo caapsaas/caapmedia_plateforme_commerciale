@@ -225,6 +225,7 @@ const frTranslations = {
     "items": "articles",
     "total": "Total",
     "orderViaWhatsApp": "Commander via WhatsApp",
+    "viewDetails": "Voir les détails",
     "checkout": "Passer la commande",
     "checkoutTitle": "Finaliser votre commande",
     "customerInfo": "Vos informations",
@@ -1498,13 +1499,6 @@ const frTranslations = {
       "PACKAGING": "Emballages",
       "TRANSACTION_FEES": "Frais de transaction",
       "OTHER": "Autre"
-    },
-    "table": {
-      "date": "Date",
-      "description": "Description",
-      "category": "Catégorie",
-      "type": "Type",
-      "amount": "Montant"
     },
     "modal": {
       "addTitle": "Ajouter une nouvelle charge",
@@ -3048,6 +3042,7 @@ const enTranslations: Translations = {
     "items": "items",
     "total": "Total",
     "orderViaWhatsApp": "Order via WhatsApp",
+    "viewDetails": "View Details",
     "checkout": "Checkout",
     "checkoutTitle": "Finalize Your Order",
     "customerInfo": "Your Information",
@@ -3870,6 +3865,7 @@ const enTranslations: Translations = {
             "position": "Position",
             "status": "Status",
             "salary": "Salary",
+            "contract": "Contract",
             "actions": "Actions"
         },
         "attendance": {
@@ -4678,6 +4674,9 @@ const enTranslations: Translations = {
     "categories": {
       "RENT": "Rent",
       "SALARIES": "Salaries",
+      "SALARY_CASH": "Salary (Cash)",
+      "SALARY_CHECK": "Salary (Check)",
+      "SALARY_BANK_TRANSFER": "Salary (Bank Transfer)",
       "ADVERTISING": "Advertising",
       "TRANSPORT": "Transport/Logistics",
       "SERVICES": "Services (IT, Accounting)",
