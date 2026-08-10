@@ -2076,11 +2076,14 @@ enum PayrollEntryStatus {
 }
 
 enum CustomerPaymentMethod {
-  CARD
-  ORANGE_MONEY
-  WAVE
+  CASH
   MOBILE_MONEY
   PAYCAAP
+  CARD
+  BANK_TRANSFER
+  CHECK
+  ORANGE_MONEY
+  WAVE
   PAY_ON_DELIVERY
   CUSTOMER_CREDIT
 
