@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SecretariatService } from './secretariat.service';
 import { PrismaService } from '../common/utils/prisma/prisma.service';
 import { LoggerService } from '../common/utils/logger/logger.service';
+import { EmailService } from '../common/utils/email/email.service';
 import {
   BadRequestException,
   NotFoundException,
@@ -18,6 +19,7 @@ describe('SecretariatService', () => {
   let service: SecretariatService;
   let prismaService: PrismaService;
   let loggerService: LoggerService;
+  let emailService: EmailService;
 
   const mockUser = {
     id: 'user-1',
@@ -59,6 +61,14 @@ describe('SecretariatService', () => {
               findUnique: jest.fn(),
               findMany: jest.fn(),
             },
+            meetingParticipant: {
+              create: jest.fn(),
+              createMany: jest.fn(),
+              deleteMany: jest.fn(),
+            },
+            user: {
+              findUnique: jest.fn(),
+            },
             secretariatTask: {
               create: jest.fn(),
               findUnique: jest.fn(),
@@ -77,12 +87,19 @@ describe('SecretariatService', () => {
             warn: jest.fn(),
           },
         },
+        {
+          provide: EmailService,
+          useValue: {
+            sendMeetingInvitationEmail: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<SecretariatService>(SecretariatService);
     prismaService = module.get<PrismaService>(PrismaService);
     loggerService = module.get<LoggerService>(LoggerService);
+    emailService = module.get<EmailService>(EmailService);
   });
 
   describe('CompanyDocument', () => {
@@ -217,6 +234,113 @@ describe('SecretariatService', () => {
       const result = await service.createMeeting(data, mockUser);
 
       expect(result).toEqual(mockMeeting);
+    });
+
+    it('should email an invitation to every participant', async () => {
+      const meetingDateTime = new Date('2026-09-01T10:00:00Z');
+      const data = {
+        title: 'Comité de direction',
+        meetingDateTime,
+        meetingLocation: 'Salle A',
+        agenda: 'Point sur le trimestre',
+        subsidiaryId: 'sub-1',
+        participantIds: ['emp-1', 'emp-2'],
+      };
+      const mockMeeting = {
+        id: 'MTG_test123',
+        title: data.title,
+        meetingDateTime,
+        meetingLocation: data.meetingLocation,
+        agenda: data.agenda,
+      };
+
+      jest.spyOn(prismaService.subsidiary, 'findUnique').mockResolvedValue({
+        id: 'sub-1',
+      } as any);
+      jest
+        .spyOn(prismaService.meeting, 'create')
+        .mockResolvedValue(mockMeeting as any);
+      jest.spyOn(prismaService.employee, 'findMany').mockResolvedValue([
+        { email: 'a@caapmedia.com', firstName: 'Awa', lastName: 'Ndiaye' },
+        { email: 'b@caapmedia.com', firstName: 'Boris', lastName: 'Kamga' },
+      ] as any);
+      jest
+        .spyOn(prismaService.meetingParticipant, 'createMany')
+        .mockResolvedValue({ count: 2 } as any);
+      jest
+        .spyOn(prismaService.user, 'findUnique')
+        .mockResolvedValue({ userName: 'Secrétaire' } as any);
+
+      await service.createMeeting(data, mockUser);
+
+      expect(emailService.sendMeetingInvitationEmail).toHaveBeenCalledTimes(2);
+      expect(emailService.sendMeetingInvitationEmail).toHaveBeenCalledWith(
+        'a@caapmedia.com',
+        'Awa Ndiaye',
+        expect.objectContaining({
+          title: 'Comité de direction',
+          meetingDateTime,
+          meetingLocation: 'Salle A',
+          organizerName: 'Secrétaire',
+        }),
+      );
+    });
+
+    it('should not send any invitation when the meeting has no participant', async () => {
+      const data = {
+        title: 'Point rapide',
+        meetingDateTime: new Date(),
+        subsidiaryId: 'sub-1',
+      };
+
+      jest.spyOn(prismaService.subsidiary, 'findUnique').mockResolvedValue({
+        id: 'sub-1',
+      } as any);
+      jest
+        .spyOn(prismaService.meeting, 'create')
+        .mockResolvedValue({ id: 'MTG_test456', ...data } as any);
+
+      await service.createMeeting(data, mockUser);
+
+      expect(emailService.sendMeetingInvitationEmail).not.toHaveBeenCalled();
+    });
+
+    it('should still create the meeting when sending invitations fails', async () => {
+      const data = {
+        title: 'Réunion projet',
+        meetingDateTime: new Date(),
+        subsidiaryId: 'sub-1',
+        participantIds: ['emp-1'],
+      };
+      const mockMeeting = { id: 'MTG_test789', ...data };
+
+      jest.spyOn(prismaService.subsidiary, 'findUnique').mockResolvedValue({
+        id: 'sub-1',
+      } as any);
+      jest
+        .spyOn(prismaService.meeting, 'create')
+        .mockResolvedValue(mockMeeting as any);
+      jest
+        .spyOn(prismaService.employee, 'findMany')
+        .mockResolvedValue([
+          { email: 'a@caapmedia.com', firstName: 'Awa', lastName: 'Ndiaye' },
+        ] as any);
+      jest
+        .spyOn(prismaService.meetingParticipant, 'createMany')
+        .mockResolvedValue({ count: 1 } as any);
+      jest
+        .spyOn(prismaService.user, 'findUnique')
+        .mockResolvedValue({ userName: 'Secrétaire' } as any);
+      jest
+        .spyOn(emailService, 'sendMeetingInvitationEmail')
+        .mockImplementation(() => {
+          throw new Error('SMTP down');
+        });
+
+      await expect(service.createMeeting(data, mockUser)).resolves.toEqual(
+        mockMeeting,
+      );
+      expect(loggerService.error).toHaveBeenCalled();
     });
   });
 

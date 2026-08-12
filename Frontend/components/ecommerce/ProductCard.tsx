@@ -23,7 +23,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isLiked, onLike, onU
     const [isZoomModalOpen, setIsZoomModalOpen] = useState(false);
 
     const hasImages = product.productImages && product.productImages.length > 0;
-    const activeImageUrl = hasImages && product.productImages? getImageUrl(product.productImages[activeImageIndex].imageUrl) : 'https://via.placeholder.com/400x300?text=Image+Indisponible';
+    // TEST: Utiliser lien direct pour vérifier que les images peuvent s'afficher
+    const activeImageUrl = product.id === 'PRD-MSN733ST0CZ'
+      ? 'https://caapmedia.com/public/products/010de8df71ac86f101c607ba027d7b1033f.jpg'
+      : (hasImages && product.productImages ? getImageUrl(product.productImages[activeImageIndex].imageUrl) : 'https://via.placeholder.com/400x300?text=Image+Indisponible');
 
     const handleOrderViaWhatsApp = () => {
         const message = [

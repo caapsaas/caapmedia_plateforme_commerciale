@@ -37,24 +37,28 @@ const EmployeeFilters: React.FC<EmployeeFiltersProps> = ({
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
           <div className="flex flex-wrap gap-2">
-            <Badge
-              variant={selectedStatus === null ? 'primary' : 'default'}
-              size="sm"
-              className="cursor-pointer hover:opacity-80 transition-opacity"
+            <button
               onClick={() => onStatusChange(null)}
+              className={`px-2 py-0.5 text-xs font-semibold rounded-full cursor-pointer hover:opacity-80 transition-opacity ${
+                selectedStatus === null
+                  ? 'bg-[#c6e911]/20 text-[#7a8e00]'
+                  : 'bg-slate-100 text-slate-800'
+              }`}
             >
               All
-            </Badge>
+            </button>
             {statuses.map((status) => (
-              <Badge
+              <button
                 key={status}
-                variant={selectedStatus === status ? 'primary' : 'default'}
-                size="sm"
-                className="cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={() => onStatusChange(selectedStatus === status ? null : status)}
+                className={`px-2 py-0.5 text-xs font-semibold rounded-full cursor-pointer hover:opacity-80 transition-opacity ${
+                  selectedStatus === status
+                    ? 'bg-[#c6e911]/20 text-[#7a8e00]'
+                    : 'bg-slate-100 text-slate-800'
+                }`}
               >
                 {status}
-              </Badge>
+              </button>
             ))}
           </div>
         </div>
@@ -63,24 +67,28 @@ const EmployeeFilters: React.FC<EmployeeFiltersProps> = ({
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-2">Contract</label>
           <div className="flex flex-wrap gap-2">
-            <Badge
-              variant={selectedContract === null ? 'primary' : 'default'}
-              size="sm"
-              className="cursor-pointer hover:opacity-80 transition-opacity"
+            <button
               onClick={() => onContractChange(null)}
+              className={`px-2 py-0.5 text-xs font-semibold rounded-full cursor-pointer hover:opacity-80 transition-opacity ${
+                selectedContract === null
+                  ? 'bg-[#c6e911]/20 text-[#7a8e00]'
+                  : 'bg-slate-100 text-slate-800'
+              }`}
             >
               All
-            </Badge>
+            </button>
             {contracts.map((contract) => (
-              <Badge
+              <button
                 key={contract}
-                variant={selectedContract === contract ? 'primary' : 'default'}
-                size="sm"
-                className="cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={() => onContractChange(selectedContract === contract ? null : contract)}
+                className={`px-2 py-0.5 text-xs font-semibold rounded-full cursor-pointer hover:opacity-80 transition-opacity ${
+                  selectedContract === contract
+                    ? 'bg-[#c6e911]/20 text-[#7a8e00]'
+                    : 'bg-slate-100 text-slate-800'
+                }`}
               >
                 {contract}
-              </Badge>
+              </button>
             ))}
           </div>
         </div>

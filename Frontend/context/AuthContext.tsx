@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useRe
 import { useQueryClient } from '@tanstack/react-query';
 import { User, Contact, Subsidiary, UserRole} from '../types';
 import { api } from '../services/api';
+import { clearSessionHint, hasSession } from '../services/sessionHint';
 import { logoutUser as apiLogoutUser, switchRole as apiSwitchRole } from '../services/apiCommon/apiUserAuth';
 
 const SIDEBAR_OPEN_KEY = 'caap-isSidebarOpen';
@@ -55,8 +56,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // on ne peut savoir si une session est active qu'en interrogeant le
   // serveur. Tente une seule fois au montage; le navigateur envoie le cookie
   // automatiquement (withCredentials, voir services/api.ts).
+  //
+  // Sauf s'il n'y a aucun temoin de session (services/sessionHint.ts): un
+  // visiteur anonyme (accueil, /login, storefront) n'a alors RIEN a demander
+  // au serveur. Sans ce garde-fou, chaque chargement de page publique partait
+  // en GET /auth/Userprofile 401 puis POST /auth/refresh 401 - deux erreurs
+  // rouges en console qu'aucun try/catch ne peut masquer, puisqu'elles sont
+  // emises par la couche reseau du navigateur et non par JS.
+  //
+  // Si le temoin existe mais que l'access token est expire, l'intercepteur de
+  // requete rafraichit la session AVANT d'emettre l'appel ci-dessous: la
+  // restauration se fait sans 401 intermediaire.
+  const hasRestoredRef = useRef(false);
   useEffect(() => {
+    // React StrictMode monte deux fois en dev: sans ce garde, la restauration
+    // part en double (d'ou les 401 vus deux fois de suite en console).
+    if (hasRestoredRef.current) return;
+    hasRestoredRef.current = true;
+
     const restoreSession = async () => {
+      if (!hasSession()) {
+        setUser(null);
+        setSubsidiary(null);
+        setIsAuthResolved(true);
+        return;
+      }
       try {
         const response = await api.get<{ user: User, subsidiary: Subsidiary }>('/auth/Userprofile');
         setUser(response.data.user);
@@ -163,7 +187,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Invalide le refresh token cote serveur et efface les cookies httpOnly.
     // Fire-and-forget: l'UI se deconnecte immediatement quoi qu'il arrive,
     // l'appel serveur est une best-effort (le cookie expirera de toute facon).
-    apiLogoutUser().catch(() => {});
+    // Le temoin de session est efface a la fin de l'appel, pas avant: laisse
+    // a l'intercepteur la possibilite de rafraichir d'abord si l'access token
+    // vient d'expirer (sinon ce logout partirait en 401). Le backend efface
+    // deja ce cookie en cas de succes; ce filet couvre l'echec (reseau coupe,
+    // session deja invalide), sans quoi le prochain chargement de page
+    // repartirait en appel authentifie voue au 401.
+    apiLogoutUser()
+      .catch(() => {})
+      .finally(() => clearSessionHint());
     // Ne navigue PAS ici: cette fonction est appelee depuis un composant
     // rendu par le routeur (Header.tsx, App.tsx) - c'est a l'appelant de
     // naviguer vers /login explicitement apres l'appel (useNavigate() n'est

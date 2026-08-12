@@ -115,8 +115,8 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
     },
     onSuccess: (data) => {
       // rafraîchir l'historique et tout autre cache pertinent
-      queryClient.invalidateQueries(['attendance-history']);
-      queryClient.invalidateQueries(['employees-with-qr']);
+      queryClient.invalidateQueries({ queryKey: ['attendance-history'] });
+      queryClient.invalidateQueries({ queryKey: ['employees-with-qr'] });
 
       // Optionally update cache optimistically with created/updated record
       if (data && data.record) {
@@ -246,8 +246,8 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
       setTimeout(() => setScanCooldown(false), 4000);
 
       // invalider l'historique (si pas déjà fait dans onSuccess)
-      queryClient.invalidateQueries(['attendance-history']);
-      queryClient.invalidateQueries(['employees-with-qr']);
+      queryClient.invalidateQueries({ queryKey: ['attendance-history'] });
+      queryClient.invalidateQueries({ queryKey: ['employees-with-qr'] });
 
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error: any) {

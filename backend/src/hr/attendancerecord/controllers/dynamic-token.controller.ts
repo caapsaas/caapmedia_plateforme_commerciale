@@ -24,7 +24,7 @@ export class DynamicTokenController {
 
     return {
       token,
-      qrUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/pointage?t=${token}`,
+      qrUrl: `${process.env.FRONTEND_URL || 'https://caapmedia.com'}/pointage?t=${token}`,
     };
   }
 
@@ -40,7 +40,7 @@ export class DynamicTokenController {
 
     return {
       token,
-      qrUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/pointage?t=${token}`,
+      qrUrl: `${process.env.FRONTEND_URL || 'https://caapmedia.com'}/pointage?t=${token}`,
     };
   }
 }

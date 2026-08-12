@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../src/common/utils/prisma/prisma.service';
 import { LoggerService } from '../../src/common/utils/logger/logger.service';
+import { EmailService } from '../common/utils/email/email.service';
 import {
   UserRole,
   DocumentCategory,
@@ -33,6 +34,7 @@ export class SecretariatService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
+    private readonly emailService: EmailService,
   ) {}
 
   private formatTaskDate(task: any) {
@@ -429,60 +431,125 @@ export class SecretariatService {
     }
 
     // Créer la réunion avec gestion des participants en transaction
-    const meeting = await this.prisma.$transaction(async (tx) => {
-      // Créer la réunion de base
-      const createdMeeting = await tx.meeting.create({
-        data: {
-          id: generateId(ID_PREFIXES.MEETING),
-          title: data.title,
-          meetingDateTime: data.meetingDateTime,
-          meetingLocation: data.meetingLocation,
-          agenda: data.agenda,
-          subsidiaryId: subsidiaryId,
-          createdBy: currentUser.id,
-        },
-      });
-
-      // Ajouter les participants si fournis
-      if (data.participantIds && data.participantIds.length > 0) {
-        // Vérifier que les employés existent et appartiennent à la même filiale
-        const employees = await tx.employee.findMany({
-          where: {
-            id: { in: data.participantIds },
-            subsidiaryId: subsidiaryId, // Restriction à la filiale du meeting
+    const { meeting, participants } = await this.prisma.$transaction(
+      async (tx) => {
+        // Créer la réunion de base
+        const createdMeeting = await tx.meeting.create({
+          data: {
+            id: generateId(ID_PREFIXES.MEETING),
+            title: data.title,
+            meetingDateTime: data.meetingDateTime,
+            meetingLocation: data.meetingLocation,
+            agenda: data.agenda,
+            subsidiaryId: subsidiaryId,
+            createdBy: currentUser.id,
           },
         });
 
-        if (employees.length !== data.participantIds.length) {
-          this.logger.error(
-            `Some employees not found or not from subsidiary ${subsidiaryId}`,
-            'SecretariatService',
-          );
-          throw new BadRequestException(
-            'Some employees not found or do not belong to the meeting subsidiary',
-          );
+        let employees: {
+          email: string;
+          firstName: string;
+          lastName: string;
+        }[] = [];
+
+        // Ajouter les participants si fournis
+        if (data.participantIds && data.participantIds.length > 0) {
+          // Vérifier que les employés existent et appartiennent à la même filiale
+          employees = await tx.employee.findMany({
+            where: {
+              id: { in: data.participantIds },
+              subsidiaryId: subsidiaryId, // Restriction à la filiale du meeting
+            },
+            select: { email: true, firstName: true, lastName: true },
+          });
+
+          if (employees.length !== data.participantIds.length) {
+            this.logger.error(
+              `Some employees not found or not from subsidiary ${subsidiaryId}`,
+              'SecretariatService',
+            );
+            throw new BadRequestException(
+              'Some employees not found or do not belong to the meeting subsidiary',
+            );
+          }
+
+          // Créer les liens participants
+          const participantData = data.participantIds.map((employeeId) => ({
+            meetingId: createdMeeting.id,
+            employeeId,
+          }));
+
+          await tx.meetingParticipant.createMany({
+            data: participantData,
+            skipDuplicates: true, // Ignore doublons via @@unique
+          });
         }
 
-        // Créer les liens participants
-        const participantData = data.participantIds.map((employeeId) => ({
-          meetingId: createdMeeting.id,
-          employeeId,
-        }));
-
-        await tx.meetingParticipant.createMany({
-          data: participantData,
-          skipDuplicates: true, // Ignore doublons via @@unique
-        });
-      }
-
-      return createdMeeting;
-    });
+        return { meeting: createdMeeting, participants: employees };
+      },
+    );
 
     this.logger.log(
       `Meeting ${meeting.title} created successfully`,
       'SecretariatService',
     );
+
+    // Convocations envoyées après le commit : un échec d'envoi ne doit ni
+    // annuler la réunion ni faire échouer la requête.
+    await this.sendMeetingInvitations(meeting, participants, currentUser.id);
+
     return meeting;
+  }
+
+  /**
+   * Convoque par e-mail chaque participant d'une réunion nouvellement créée.
+   * Best-effort : les erreurs sont journalisées, jamais propagées à l'appelant.
+   */
+  private async sendMeetingInvitations(
+    meeting: {
+      id: string;
+      title: string;
+      meetingDateTime: Date;
+      meetingLocation: string | null;
+      agenda: string | null;
+    },
+    participants: { email: string; firstName: string; lastName: string }[],
+    organizerId: string,
+  ): Promise<void> {
+    if (participants.length === 0) return;
+
+    try {
+      const organizer = await this.prisma.user.findUnique({
+        where: { id: organizerId },
+        select: { userName: true },
+      });
+
+      for (const participant of participants) {
+        this.emailService.sendMeetingInvitationEmail(
+          participant.email,
+          `${participant.firstName} ${participant.lastName}`,
+          {
+            title: meeting.title,
+            meetingDateTime: meeting.meetingDateTime,
+            meetingLocation: meeting.meetingLocation,
+            agenda: meeting.agenda,
+            organizerName: organizer?.userName,
+          },
+        );
+      }
+
+      this.logger.log(
+        `${participants.length} meeting invitation(s) sent for meeting ${meeting.id}`,
+        'SecretariatService',
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send meeting invitations for meeting ${meeting.id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'SecretariatService',
+      );
+    }
   }
 
   async updateMeeting(

@@ -1,4 +1,5 @@
 import { api } from '../api';
+import { API_BASE_URL } from '../apiConfig';
 import { AppNotification } from '../../types';
 import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
@@ -7,7 +8,7 @@ import { PaginatedResponse, PaginationParams } from '../../types/pagination.type
  * car `EventSource` ne peut pas reutiliser l'instance Axios (pas d'interceteur
  * possible sur ce type de connexion).
  */
-const SSE_BASE_URL = 'http://localhost:3000/api-caapmedia';
+const SSE_BASE_URL = API_BASE_URL;
 
 export const getNotifications = async (
   params: PaginationParams & { unreadOnly?: boolean } = {},

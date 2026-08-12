@@ -4,8 +4,7 @@ import {
     FormDefinition, ProductSpecification, SpecFieldType, ResolvedOption,
 } from '../../types';
 import ConfirmationModal from '../common/ConfirmationModal';
-
-const BACKEND_BASE = 'http://localhost:3000';
+import { BACKEND_ORIGIN as BACKEND_BASE } from '../../services/apiConfig';
 
 // ─── Formatters ────────────────────────────────────────────────────────────
 

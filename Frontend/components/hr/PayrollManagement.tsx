@@ -105,7 +105,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
       setIsLoadingGlobal(true);
       try {
         const data = await getPayrollRecordsGlobal();
-        setGlobalPayrolls(Array.isArray(data) ? data : data?.data || []);
+        setGlobalPayrolls(data);
         setGlobalView(true);
         toast.success('Vue globale', 'Affichage de toutes les filiales');
       } catch (error) {

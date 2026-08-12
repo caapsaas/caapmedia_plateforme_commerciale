@@ -2764,14 +2764,15 @@ model SubsidiaryQrCode {
 // Token dynamique court (30s) pour le nouveau flux de pointage QR
 model DynamicToken {
   id           String   @id @default(uuid())
-  subsidiaryId String   @map("subsidiary_id")
+  // Nullable : un token global (QR code imprime) n'est lie a aucune filiale
+  subsidiaryId String?  @map("subsidiary_id")
   token        String   @unique
   createdAt    DateTime @default(now()) @map("created_at")
   expiresAt    DateTime @map("expires_at")
   isUsed       Boolean  @default(false) @map("is_used")
   usedAt       DateTime? @map("used_at")
 
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  subsidiary   Subsidiary? @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
   @@index([subsidiaryId, isUsed])
   @@index([expiresAt])
