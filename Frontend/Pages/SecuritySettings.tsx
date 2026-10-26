@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useI18n } from '../i18n';
 import { setupTwoFactor, verifyTwoFactor, disableTwoFactor, TwoFactorSetupResponse } from '../services/apiCommon/apiTwoFactor';
+import PasswordInput from '../components/ui/PasswordInput';
 
 type EnableStep = 'idle' | 'setup' | 'recoveryCodes';
 
@@ -161,9 +162,8 @@ const SecuritySettings: React.FC = () => {
               <form onSubmit={handleDisable} className="space-y-4">
                 <div>
                   <label htmlFor="disable-password" className="block text-sm font-medium text-slate-700">{t('login.passwordLabel')}</label>
-                  <input
+                  <PasswordInput
                     id="disable-password"
-                    type="password"
                     autoComplete="current-password"
                     required
                     value={disablePassword}

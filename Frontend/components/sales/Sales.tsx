@@ -284,7 +284,7 @@ const Sales: React.FC = () => {
     },
   });
 
-  const { mutate: createOrderMutate } = useMutation({
+  const { mutateAsync: createOrderMutate } = useMutation({
     mutationFn: createOrderBySalesRepJson,
     onSuccess: (newOrder) => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
@@ -306,15 +306,11 @@ const Sales: React.FC = () => {
       lastOrderDataRef.current = null;
     },
     onError: () => {
-      toast.error(
-        "Erreur de création",
-        "Une erreur est survenue lors de la création de la commande.",
-      );
       lastOrderDataRef.current = null;
     },
   });
 
-  const handlePlaceOrder = (
+  const handlePlaceOrder = async (
     newOrderData: Omit<Order, "id" | "subsidiaryId">,
   ) => {
     const itemsForJson = newOrderData.items.map((item: OrderItem) => {
@@ -338,6 +334,8 @@ const Sales: React.FC = () => {
         assemblyPrice: item.assemblyPrice,
         options: optionsArray,
         specValues: item.specValues,
+        productionSteps: item.productionSteps,
+        productionSummary: item.productionSummary,
       };
     });
 
@@ -358,7 +356,7 @@ const Sales: React.FC = () => {
 
     // Capturer les données pour enrichir la réponse de l'API (via ref pour éviter race condition)
     lastOrderDataRef.current = orderData;
-    createOrderMutate(orderData);
+    await createOrderMutate(orderData);
   };
 
   // State for modals

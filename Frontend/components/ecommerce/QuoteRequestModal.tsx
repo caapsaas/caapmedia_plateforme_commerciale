@@ -1,21 +1,18 @@
 import React, { useState } from 'react';
 import { useI18n } from '../../i18n';
-import IconUpload from '../icons/IconUpload';
-import IconFile from '../icons/IconFile';
-import IconDelete from '../icons/IconDelete';
 import IconCheckCircle from '../icons/IconCheckCircle';
 
 interface QuoteRequestModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (data: { name: string; company: string; email: string; phone: string; description: string; file?: File | null; }) => void;
+    onSave: (data: { name: string; company: string; email: string; phone: string; description: string; }) => Promise<void>;
 }
 
 const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, onClose, onSave }) => {
     const { t } = useI18n();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
-    const [file, setFile] = useState<File | null>(null);
+    const [submitError, setSubmitError] = useState('');
     
     const [formData, setFormData] = useState({
         name: '',
@@ -29,28 +26,22 @@ const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, onClose, 
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
     
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            setFile(e.target.files[0]);
-        }
-    };
-    
-    const handleRemoveFile = () => {
-        setFile(null);
-        const fileInput = document.getElementById('quote-file-upload') as HTMLInputElement;
-        if(fileInput) fileInput.value = '';
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
-        onSave({ ...formData, file });
-        setIsSubmitting(false);
-        setIsSuccess(true);
-        setTimeout(() => {
-            onClose();
-            setIsSuccess(false);
-        }, 2000);
+        setSubmitError('');
+        try {
+            await onSave(formData);
+            setIsSuccess(true);
+            setTimeout(() => {
+                onClose();
+                setIsSuccess(false);
+            }, 2000);
+        } catch {
+            setSubmitError(t('quoteRequest.sendError'));
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -81,7 +72,7 @@ const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, onClose, 
                                 </div>
                                 <div>
                                     <label htmlFor="company" className="block text-sm font-medium text-slate-700">{t('quoteRequest.company')}</label>
-                                    <input type="text" name="company" id="company" value={formData.company} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]" />
+                                    <input type="text" name="company" id="company" value={formData.company} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]" />
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -98,28 +89,7 @@ const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, onClose, 
                                 <label htmlFor="description" className="block text-sm font-medium text-slate-700">{t('quoteRequest.projectDescription')}</label>
                                 <textarea name="description" id="description" value={formData.description} onChange={handleChange} rows={4} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"></textarea>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700">{t('quoteRequest.fileUpload')}</label>
-                                {!file ? (
-                                    <label htmlFor="quote-file-upload" className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-md cursor-pointer hover:border-[#c6e911]">
-                                        <div className="space-y-1 text-center">
-                                            <IconUpload className="mx-auto h-12 w-12 text-slate-400" />
-                                            <p className="text-sm text-slate-600">{t('calculator.dragAndDrop')}</p>
-                                        </div>
-                                        <input id="quote-file-upload" name="file-upload" type="file" className="sr-only" onChange={handleFileChange} />
-                                    </label>
-                                ) : (
-                                    <div className="mt-1 flex items-center justify-between p-3 border border-green-300 bg-green-50 rounded-md">
-                                        <div className="flex items-center gap-3">
-                                            <IconFile className="h-6 w-6 text-green-600"/>
-                                            <p className="text-sm text-green-700">{file.name}</p>
-                                        </div>
-                                        <button type="button" onClick={handleRemoveFile} className="p-1 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-full">
-                                            <IconDelete className="h-5 w-5"/>
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
+                            {submitError && <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">{submitError}</p>}
                         </div>
                         <div className="px-6 py-4 bg-slate-50 flex justify-end">
                             <button 

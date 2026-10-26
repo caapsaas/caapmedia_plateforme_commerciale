@@ -53,8 +53,9 @@ export class PayrollConfigurationService {
         minWage: 60000, // SMIG Cameroun
         minWagePeriod: 'monthly',
         minWageEffectiveDate: now,
-        cnpsEmployeeRate: 5.4,
-        cnpsEmployerRate: 6.4,
+        // Pension vieillesse, invalidité et décès: 4,2% employeur + 4,2% salarié.
+        cnpsEmployeeRate: 0.042,
+        cnpsEmployerRate: 0.042,
         cfcEmployeeRate: 0.01,
         cfcEmployerRate: 0.015,
         fneRate: 0.01,
@@ -88,18 +89,18 @@ export class PayrollConfigurationService {
         displayOrder: 1,
       },
       {
-        name: 'CNPS Employé',
-        description: 'Cotisation CNPS employee (5.4%)',
+        name: 'CNPS Pension Employé',
+        description: 'Pension vieillesse, invalidité et décès (4,2%)',
         type: 'CONTRIBUTION' as const,
-        rate: 5.4,
+        rate: 4.2,
         contributionType: 'EMPLOYEE' as const,
         displayOrder: 2,
       },
       {
-        name: 'CNPS Employeur',
-        description: 'Cotisation CNPS employeur (6.4%)',
+        name: 'CNPS Pension Employeur',
+        description: 'Pension vieillesse, invalidité et décès (4,2%)',
         type: 'CONTRIBUTION' as const,
-        rate: 6.4,
+        rate: 4.2,
         contributionType: 'EMPLOYER' as const,
         displayOrder: 3,
       },
@@ -132,10 +133,10 @@ export class PayrollConfigurationService {
   private async createDefaultTaxBrackets(configId: string) {
     const now = new Date();
     const brackets = [
-      { minSalary: 0, maxSalary: 355000, rate: 0, deductible: 0 },
-      { minSalary: 355000, maxSalary: 545000, rate: 10, deductible: 35500 },
-      { minSalary: 545000, maxSalary: 1000000, rate: 15, deductible: 89000 },
-      { minSalary: 1000000, maxSalary: null, rate: 20, deductible: 170000 },
+      { minSalary: 0, maxSalary: 2_000_000, rate: 0.1, deductible: 0 },
+      { minSalary: 2_000_001, maxSalary: 3_000_000, rate: 0.15, deductible: 0 },
+      { minSalary: 3_000_001, maxSalary: 5_000_000, rate: 0.25, deductible: 0 },
+      { minSalary: 5_000_001, maxSalary: null, rate: 0.35, deductible: 0 },
     ];
 
     for (const bracket of brackets) {

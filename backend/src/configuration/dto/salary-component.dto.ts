@@ -1,6 +1,8 @@
 import {
   IsString,
-  IsDecimal,
+  IsNumber,
+  Min,
+  Max,
   IsInt,
   IsEnum,
   IsOptional,
@@ -31,11 +33,14 @@ export class CreateSalaryComponentDto {
   @IsEnum(SalaryComponentType)
   type: SalaryComponentType;
 
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
   @IsOptional()
   rate?: number;
 
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
   @IsOptional()
   fixedAmount?: number;
 
@@ -61,11 +66,14 @@ export class UpdateSalaryComponentDto {
   @IsOptional()
   type?: SalaryComponentType;
 
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
   @IsOptional()
   rate?: number;
 
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
   @IsOptional()
   fixedAmount?: number;
 

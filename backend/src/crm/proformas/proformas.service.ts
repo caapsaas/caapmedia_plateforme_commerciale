@@ -2,12 +2,12 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateProformaDto, ProformaItemDto } from './dto/create-proforma.dto';
 import { UpdateProformaDto } from './dto/update-proforma.dto';
 import {
-  User,
   ProformaStatus,
   ContactStatus,
   OrderStatus,
@@ -22,14 +22,26 @@ import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 import { paginate, PaginatedResult } from 'src/common/pagination/pagination';
 import type { Proforma, Prisma } from '@prisma/client';
+import { JwtUser } from '../../common/auth/jwt/jwt-user.interface';
+import {
+  resolveScopeContext,
+  withSubsidiaryScope,
+} from '../../common/utils/subsidiary-scope';
+
+const creatorSelect = {
+  id: true,
+  userName: true,
+  email: true,
+} satisfies Prisma.UserSelect;
 @Injectable()
 export class ProformasService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createProformaDto: CreateProformaDto, user: User) {
-    // Vérifier que le lead existe
+  async create(createProformaDto: CreateProformaDto, user: JwtUser) {
+    const scope = resolveScopeContext(user);
+    // Le proforma et ses références locales doivent appartenir à la même filiale.
     const lead = await this.prisma.lead.findUnique({
-      where: { id: createProformaDto.leadId },
+      where: withSubsidiaryScope({ id: createProformaDto.leadId }, scope),
     });
 
     if (!lead) {
@@ -38,8 +50,28 @@ export class ProformasService {
       );
     }
 
+    // Pour le super administrateur, la filiale cible est celle du lead autorisé.
+    const targetSubsidiaryId = lead.subsidiaryId;
+    if (!targetSubsidiaryId)
+      throw new BadRequestException('Le lead doit appartenir à une filiale.');
+
+    if (createProformaDto.opportunityId) {
+      const opportunity = await this.prisma.opportunity.findUnique({
+        where: {
+          id: createProformaDto.opportunityId,
+          subsidiaryId: targetSubsidiaryId,
+        },
+        select: { id: true },
+      });
+      if (!opportunity)
+        throw new NotFoundException(
+          'Opportunité introuvable dans cette filiale.',
+        );
+    }
+
     // Générer le numéro Proforma
-    const proformaNumber = await this.generateProformaNumber(user.subsidiaryId);
+    const proformaNumber =
+      await this.generateProformaNumber(targetSubsidiaryId);
 
     // Le taux de TVA vient toujours du taux par défaut configuré dans le
     // module taxes ; le commercial peut le surcharger explicitement (devis
@@ -76,7 +108,7 @@ export class ProformasService {
         notes: createProformaDto.notes,
         status: ProformaStatus.DRAFT,
         createdBy: user.id,
-        subsidiaryId: user.subsidiaryId,
+        subsidiaryId: targetSubsidiaryId,
         items: {
           create: createProformaDto.items.map((item: ProformaItemDto) => ({
             id: generateId(ID_PREFIXES.PROFORMAITEM),
@@ -94,17 +126,20 @@ export class ProformasService {
           },
         },
         lead: true,
-        createdByUser: true,
+        createdByUser: { select: creatorSelect },
       },
     });
   }
 
   async findAll(
-    subsidiaryId: string,
+    user: JwtUser,
     paginationQuery: PaginationQueryDto,
     status?: ProformaStatus,
   ): Promise<PaginatedResult<Proforma>> {
-    const where: Prisma.ProformaWhereInput = { subsidiaryId };
+    const where: Prisma.ProformaWhereInput = withSubsidiaryScope(
+      {},
+      resolveScopeContext(user),
+    );
     if (status) {
       where.status = status;
     }
@@ -136,7 +171,7 @@ export class ProformasService {
         include: {
           items: { include: { product: true } },
           lead: true,
-          createdByUser: true,
+          createdByUser: { select: creatorSelect },
         },
         orderBy: { createdAt: 'desc' },
       },
@@ -148,29 +183,30 @@ export class ProformasService {
    * Compte les proformas par statut pour alimenter les badges d'onglets côté
    * frontend, sans avoir à charger toute la liste en mémoire.
    */
-  async getStatusCounts(subsidiaryId: string) {
+  async getStatusCounts(user: JwtUser) {
+    const scope = withSubsidiaryScope({}, resolveScopeContext(user));
     const [all, draft, sent, accepted, rejected] = await Promise.all([
-      this.prisma.proforma.count({ where: { subsidiaryId } }),
+      this.prisma.proforma.count({ where: scope }),
       this.prisma.proforma.count({
-        where: { subsidiaryId, status: ProformaStatus.DRAFT },
+        where: { ...scope, status: ProformaStatus.DRAFT },
       }),
       this.prisma.proforma.count({
-        where: { subsidiaryId, status: ProformaStatus.SENT },
+        where: { ...scope, status: ProformaStatus.SENT },
       }),
       this.prisma.proforma.count({
-        where: { subsidiaryId, status: ProformaStatus.ACCEPTED },
+        where: { ...scope, status: ProformaStatus.ACCEPTED },
       }),
       this.prisma.proforma.count({
-        where: { subsidiaryId, status: ProformaStatus.REJECTED },
+        where: { ...scope, status: ProformaStatus.REJECTED },
       }),
     ]);
 
     return { all, draft, sent, accepted, rejected };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: JwtUser) {
     const proforma = await this.prisma.proforma.findUnique({
-      where: { id },
+      where: withSubsidiaryScope({ id }, resolveScopeContext(user)),
       include: {
         items: {
           include: {
@@ -178,7 +214,7 @@ export class ProformasService {
           },
         },
         lead: true,
-        createdByUser: true,
+        createdByUser: { select: creatorSelect },
         opportunity: true,
       },
     });
@@ -190,32 +226,40 @@ export class ProformasService {
     return proforma;
   }
 
-  async update(id: string, updateProformaDto: UpdateProformaDto) {
-    const proforma = await this.findOne(id);
+  async update(
+    id: string,
+    updateProformaDto: UpdateProformaDto,
+    user: JwtUser,
+  ) {
+    const proforma = await this.findOne(id, user);
 
     // Vérifier que la proforma est en DRAFT
     if (proforma.status !== ProformaStatus.DRAFT) {
       throw new BadRequestException('Only draft proformas can be updated.');
     }
 
-    // Calculer les nouveaux montants si les items ont changé
-    const data: any = { ...updateProformaDto };
-    if (updateProformaDto.items) {
-      const { subtotal, taxAmount, totalAmount } = this.calculateAmounts(
-        updateProformaDto.items,
-        updateProformaDto.taxRate || proforma.taxRate.toNumber(),
+    const { items, ...changes } = updateProformaDto;
+    const data: Prisma.ProformaUpdateInput = { ...changes };
+    if (items || changes.taxRate !== undefined) {
+      const amountItems =
+        items ??
+        proforma.items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice.toNumber(),
+        }));
+      Object.assign(
+        data,
+        this.calculateAmounts(
+          amountItems,
+          changes.taxRate ?? proforma.taxRate.toNumber(),
+        ),
       );
-      data.subtotal = subtotal;
-      data.taxAmount = taxAmount;
-      data.totalAmount = totalAmount;
-
-      // Supprimer les items existants et en créer de nouveaux
-      await this.prisma.proformaItem.deleteMany({
-        where: { proformaId: id },
-      });
-
+    }
+    if (items) {
       data.items = {
-        create: updateProformaDto.items.map((item: ProformaItemDto) => ({
+        deleteMany: {},
+        create: items.map((item) => ({
           id: generateId(ID_PREFIXES.PROFORMAITEM),
           productId: item.productId,
           quantity: item.quantity,
@@ -223,33 +267,34 @@ export class ProformasService {
           description: item.description,
         })),
       };
-      delete data.items;
     }
-
+    // Remplacement des lignes et mise à jour du devis dans une seule écriture Prisma.
     return this.prisma.proforma.update({
-      where: { id },
+      where: withSubsidiaryScope(
+        { id, status: ProformaStatus.DRAFT },
+        resolveScopeContext(user),
+      ),
       data,
       include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
+        items: { include: { product: true } },
         lead: true,
-        createdByUser: true,
+        createdByUser: { select: creatorSelect },
       },
     });
   }
 
-  async send(id: string) {
-    const proforma = await this.findOne(id);
+  async send(id: string, user: JwtUser) {
+    const proforma = await this.findOne(id, user);
 
     if (proforma.status !== ProformaStatus.DRAFT) {
       throw new BadRequestException('Only draft proformas can be sent.');
     }
 
     return this.prisma.proforma.update({
-      where: { id },
+      where: withSubsidiaryScope(
+        { id, status: proforma.status },
+        resolveScopeContext(user),
+      ),
       data: {
         status: ProformaStatus.SENT,
         sentAt: new Date(),
@@ -265,18 +310,24 @@ export class ProformasService {
     });
   }
 
-  async markAsViewed(id: string) {
-    const proforma = await this.findOne(id);
+  async markAsViewed(id: string, user: JwtUser) {
+    const proforma = await this.findOne(id, user);
 
-    if (proforma.status === ProformaStatus.DRAFT) {
+    if (
+      proforma.status !== ProformaStatus.SENT &&
+      proforma.status !== ProformaStatus.VIEWED
+    ) {
       throw new BadRequestException(
-        'Draft proformas cannot be marked as viewed.',
+        'Only sent or viewed proformas can be marked as viewed.',
       );
     }
 
     if (!proforma.viewedAt) {
       return this.prisma.proforma.update({
-        where: { id },
+        where: withSubsidiaryScope(
+          { id, status: proforma.status },
+          resolveScopeContext(user),
+        ),
         data: {
           status: ProformaStatus.VIEWED,
           viewedAt: new Date(),
@@ -299,8 +350,8 @@ export class ProformasService {
    * sans mot de passe : pas d'accès portail tant que le client ne s'inscrit
    * pas lui-même).
    */
-  async accept(id: string) {
-    const proforma = await this.findOne(id);
+  async accept(id: string, user: JwtUser) {
+    const proforma = await this.findOne(id, user);
 
     if (
       proforma.status !== ProformaStatus.SENT &&
@@ -312,6 +363,18 @@ export class ProformasService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.proforma.updateMany({
+        where: withSubsidiaryScope(
+          { id, status: proforma.status },
+          resolveScopeContext(user),
+        ),
+        data: { status: ProformaStatus.CONVERTED, acceptedAt: new Date() },
+      });
+      if (claimed.count !== 1) {
+        throw new ConflictException(
+          'Ce proforma a déjà été modifié. Rechargez-le avant de réessayer.',
+        );
+      }
       let contact = await tx.contact.findUnique({
         where: { email: proforma.clientEmail },
       });
@@ -365,12 +428,8 @@ export class ProformasService {
         },
       });
 
-      const updatedProforma = await tx.proforma.update({
-        where: { id },
-        data: {
-          status: ProformaStatus.CONVERTED,
-          acceptedAt: new Date(),
-        },
+      const updatedProforma = await tx.proforma.findUniqueOrThrow({
+        where: withSubsidiaryScope({ id }, resolveScopeContext(user)),
         include: {
           items: { include: { product: true } },
         },
@@ -380,8 +439,8 @@ export class ProformasService {
     });
   }
 
-  async reject(id: string) {
-    const proforma = await this.findOne(id);
+  async reject(id: string, user: JwtUser) {
+    const proforma = await this.findOne(id, user);
 
     if (
       proforma.status !== ProformaStatus.SENT &&
@@ -393,22 +452,28 @@ export class ProformasService {
     }
 
     return this.prisma.proforma.update({
-      where: { id },
+      where: withSubsidiaryScope(
+        { id, status: proforma.status },
+        resolveScopeContext(user),
+      ),
       data: {
         status: ProformaStatus.REJECTED,
       },
     });
   }
 
-  async remove(id: string) {
-    const proforma = await this.findOne(id);
+  async remove(id: string, user: JwtUser) {
+    const proforma = await this.findOne(id, user);
 
     if (proforma.status !== ProformaStatus.DRAFT) {
       throw new BadRequestException('Only draft proformas can be deleted.');
     }
 
     await this.prisma.proforma.delete({
-      where: { id },
+      where: withSubsidiaryScope(
+        { id, status: proforma.status },
+        resolveScopeContext(user),
+      ),
     });
 
     return {

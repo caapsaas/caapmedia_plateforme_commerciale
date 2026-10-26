@@ -1,15 +1,18 @@
 import { ForbiddenException } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
+import {
+  getActiveRole,
+  isSuperAdmin,
+  RoleIdentity,
+} from '../auth/role/role-identity';
 
 /**
  * Forme minimale requise pour resoudre un scope filiale. Volontairement
  * structurelle (pas liee a JwtUser ni au type Prisma User) car req.user est
  * type de facon incoherente selon les controllers historiques du projet.
  */
-export interface ScopableUser {
+export interface ScopableUser extends RoleIdentity {
   subsidiaryId: string;
-  roles?: UserRole[];
-  role?: UserRole;
 }
 
 export interface SubsidiaryScopeContext {
@@ -17,12 +20,20 @@ export interface SubsidiaryScopeContext {
   hasGlobalScope: boolean;
 }
 
+function requireSubsidiaryId(subsidiaryId: string): void {
+  if (!subsidiaryId?.trim()) {
+    throw new ForbiddenException(
+      'Une filiale est requise pour cette opération.',
+    );
+  }
+}
+
 /**
  * Determine si l'utilisateur a une vue consolidee (toutes filiales) ou doit
  * etre restreint a sa propre filiale.
  *
  * SUPER_ADMIN a systematiquement le scope global. `extraGlobalRoles` permet
- * a un module d'autoriser aussi une vue consolidee a d'autres roles (ex.
+ * a un module d'autoriser aussi une vue consolidee au role ACTIF (ex.
  * FINANCIAL_DIRECTOR sur les rapports financiers) sans dupliquer cette logique
  * partout - voir Doc/architecture-multi-filiale-auth-rbac.md section 2.2/4.2.
  */
@@ -30,15 +41,11 @@ export function resolveScopeContext(
   user: ScopableUser,
   extraGlobalRoles: UserRole[] = [],
 ): SubsidiaryScopeContext {
-  const roles =
-    user.roles && user.roles.length > 0
-      ? user.roles
-      : user.role
-        ? [user.role]
-        : [];
+  requireSubsidiaryId(user?.subsidiaryId);
+  const activeRole = getActiveRole(user);
   const hasGlobalScope =
-    roles.includes(UserRole.SUPER_ADMIN) ||
-    extraGlobalRoles.some((r) => roles.includes(r));
+    isSuperAdmin(user) ||
+    (activeRole !== undefined && extraGlobalRoles.includes(activeRole));
   return { subsidiaryId: user.subsidiaryId, hasGlobalScope };
 }
 
@@ -57,6 +64,7 @@ export function withSubsidiaryScope<T extends Record<string, unknown>>(
   ctx: SubsidiaryScopeContext,
   requestedSubsidiaryId?: string,
 ): T & { subsidiaryId?: string } {
+  requireSubsidiaryId(ctx?.subsidiaryId);
   if (ctx.hasGlobalScope) {
     return requestedSubsidiaryId
       ? { ...where, subsidiaryId: requestedSubsidiaryId }
@@ -76,6 +84,7 @@ export function resolveEffectiveSubsidiaryId(
   ctx: SubsidiaryScopeContext,
   requestedSubsidiaryId?: string,
 ): string | undefined {
+  requireSubsidiaryId(ctx?.subsidiaryId);
   if (ctx.hasGlobalScope) {
     return requestedSubsidiaryId || undefined;
   }
@@ -91,6 +100,7 @@ export function assertSubsidiaryAccess(
   entitySubsidiaryId: string,
   ctx: SubsidiaryScopeContext,
 ): void {
+  requireSubsidiaryId(ctx?.subsidiaryId);
   if (!ctx.hasGlobalScope && entitySubsidiaryId !== ctx.subsidiaryId) {
     throw new ForbiddenException("Vous n'avez pas acces a cette ressource.");
   }

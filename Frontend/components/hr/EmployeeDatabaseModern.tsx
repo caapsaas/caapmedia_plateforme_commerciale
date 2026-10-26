@@ -8,7 +8,7 @@ import ConfirmationModal from '../common/ConfirmationModal';
 import { exportToCsv } from '../../utils/csvExporter';
 import { exportToPdf } from '../../utils/pdfExporter';
 import SearchBar from './SearchBar';
-import { getEmployees, getEmployeesPaginated, uploadDocumentFile, addDocumentToEmployee, addLeaveRecordToEmployee, saveEmployeeWithDocumentsAndLeaves } from '../../services/apihr/apiEmployees';
+import { getEmployees, getEmployeesPaginated, uploadDocumentFile, addDocumentToEmployee } from '../../services/apihr/apiEmployees';
 import { uploadEmployeeDocuments, deleteEmployeeDocument } from '../../services/apihr/apiEmployeeDocuments';
 
 // New UI Components
@@ -30,6 +30,7 @@ const EMPLOYEES_PAGE_SIZE = 10;
 
 interface EmployeeDatabaseModernProps {
   subsidiary: Subsidiary;
+  subsidiaryFilterId?: string;
   onSave: UseMutateFunction<Employee, Error, Partial<Employee>, unknown>;
   onDelete: UseMutateFunction<Employee, Error, string, unknown>;
 }
@@ -43,6 +44,7 @@ const hasFileObject = (obj: any): boolean => {
 
 const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
   subsidiary,
+  subsidiaryFilterId,
   onSave,
   onDelete,
 }) => {
@@ -77,8 +79,8 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
   // seulement la page affichée) — le tri, lui, reste appliqué côté client
   // sur la page courante.
   const { data: paginatedEmployees, isLoading } = useQuery({
-    queryKey: ['employees', subsidiary.id, 'paginated', page, searchTerm],
-    queryFn: () => getEmployeesPaginated({ page, limit: EMPLOYEES_PAGE_SIZE, search: searchTerm || undefined, includeRelations: true }),
+    queryKey: ['employees', subsidiary.id, subsidiaryFilterId, 'paginated', page, searchTerm],
+    queryFn: () => getEmployeesPaginated({ page, limit: EMPLOYEES_PAGE_SIZE, search: searchTerm || undefined, includeRelations: true, subsidiaryId: subsidiaryFilterId }),
   });
 
   const employees = paginatedEmployees?.data || [];
@@ -87,8 +89,8 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
   // Statistiques globales : nécessitent la liste complète (comptages exacts),
   // indépendamment de la pagination de la table ci-dessous.
   const { data: allEmployeesForStats = [] } = useQuery({
-    queryKey: ['employees', subsidiary.id, 'all-for-stats'],
-    queryFn: () => getEmployees(),
+    queryKey: ['employees', subsidiary.id, subsidiaryFilterId, 'all-for-stats'],
+    queryFn: () => getEmployees(false, subsidiaryFilterId),
   });
 
   // Tri de la page courante
@@ -201,18 +203,10 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
       }
 
       // Save the employee with documents
-      const hasLeaves = processedData.leaveRecords && Array.isArray(processedData.leaveRecords) && processedData.leaveRecords.length > 0;
-
       // Add ID if editing existing employee
       const saveData = editingEmployee ? { ...processedData, id: editingEmployee.id } : processedData;
-
-      if (hasLeaves) {
-        await saveEmployeeWithDocumentsAndLeaves(saveData);
-        toast.success(t('common.success'), t('hr.employee.savedWithDocs'));
-      } else {
-        await onSave(saveData);
-        toast.success(t('common.success'), t('hr.employee.saved'));
-      }
+      onSave(saveData);
+      toast.success(t('common.success'), t('hr.employee.saved'));
       setIsFormModalOpen(false);
       setEditingEmployee(null);
     } catch (error) {
@@ -316,50 +310,54 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="w-full px-1 py-2 sm:px-2 lg:px-3">
+      <div className="mx-auto max-w-[1440px] space-y-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">{t('hr.employees.title')}</h1>
+        <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{t('hr.title')}</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">{t('hr.employees.title')}</h1>
+            <p className="mt-1.5 text-sm text-slate-500">{t('hr.employees.directorySubtitle')}</p>
+          </div>
+          <Button variant="primary" size="md" className="rounded-xl px-5 py-2.5 shadow-sm" leftIcon={<Plus size={18} />} onClick={handleOpenAddModal}>
+            {t('hr.employees.add')}
+          </Button>
         </div>
 
         {/* Stats */}
         <EmployeeStats employees={allEmployeesForStats} />
 
         {/* Filters and Actions */}
-        <Card className="mb-6">
-          <CardBody>
-            <div className="flex flex-col lg:flex-row gap-4 items-end">
-              <div className="flex-1">
+        <Card className="!rounded-2xl !border-slate-200/80 !shadow-sm">
+          <CardBody className="!p-4 sm:!p-5">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+              <div className="min-w-0 flex-1">
                 <SearchBar value={searchTerm} onChange={handleSearchChange} />
               </div>
-              <div className="flex gap-2 flex-wrap">
-                <Button variant="primary" leftIcon={<Plus size={18} />} onClick={handleOpenAddModal}>
-                  {t('hr.employees.add')}
-                </Button>
-                <Button variant="secondary" leftIcon={<BarChart size={18} />} onClick={handleExportCsv} disabled={isExporting}>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="secondary" size="sm" className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-slate-600 hover:bg-slate-50" leftIcon={<BarChart size={16} />} onClick={handleExportCsv} disabled={isExporting}>
                   {t('hr.actions.csv')}
                 </Button>
-                <Button variant="secondary" leftIcon={<FileText size={18} />} onClick={handleExportPdf} disabled={isExporting}>
+                <Button variant="secondary" size="sm" className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-slate-600 hover:bg-slate-50" leftIcon={<FileText size={16} />} onClick={handleExportPdf} disabled={isExporting}>
                   {t('hr.actions.pdf')}
                 </Button>
-                <div className="flex gap-1 border border-slate-200 rounded-lg p-1">
+                <div className="ml-auto flex gap-1 rounded-xl bg-slate-100 p-1 xl:ml-1">
                   <button
                     onClick={() => handleViewModeChange('table')}
-                    className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
                       viewMode === 'table'
-                        ? 'bg-[#c6e911] text-slate-900'
-                        : 'text-slate-600 hover:bg-slate-100'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
                     {t('hr.viewMode.table')}
                   </button>
                   <button
                     onClick={() => handleViewModeChange('cards')}
-                    className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
                       viewMode === 'cards'
-                        ? 'bg-[#c6e911] text-slate-900'
-                        : 'text-slate-600 hover:bg-slate-100'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
                     {t('hr.viewMode.cards')}
@@ -373,19 +371,19 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
 
         {/* Employee List - Table View */}
         {viewMode === 'table' && (
-          <Card>
+          <Card className="!overflow-hidden !rounded-2xl !border-slate-200/80 !shadow-sm">
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
+              <table className="w-full min-w-[980px]">
+                <thead className="border-b border-slate-200 bg-slate-50/80">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">{t('hr.table.name')}</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Matricule</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">{t('hr.table.email')}</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">{t('hr.table.department')}</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">{t('hr.table.position')}</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">{t('hr.table.status')}</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">{t('hr.table.contract')}</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase">{t('hr.table.actions')}</th>
+                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">{t('hr.table.name')}</th>
+                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">Matricule</th>
+                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">{t('hr.table.email')}</th>
+                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">{t('hr.table.department')}</th>
+                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">{t('hr.table.position')}</th>
+                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">{t('hr.table.status')}</th>
+                    <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">{t('hr.table.contract')}</th>
+                    <th className="px-5 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-500">{t('hr.table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -400,20 +398,19 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
                   ) : filteredAndSortedEmployees.map((employee, idx) => (
                     <tr
                       key={employee.id}
-                      className={`border-b border-slate-200 hover:bg-slate-50 transition-colors ${
-                        idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                      }`}
+                      className={`border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/70 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}
                     >
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-slate-900">
-                          {employee.firstName} {employee.lastName}
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-lime-100 text-xs font-semibold text-lime-800">{`${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`.toUpperCase()}</span>
+                          <span className="font-medium text-slate-900">{employee.firstName} {employee.lastName}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600 font-mono">{employee.id}</td>
-                      <td className="px-6 py-4 text-sm text-slate-600">{employee.email}</td>
-                      <td className="px-6 py-4 text-sm text-slate-600">{employee.department}</td>
-                      <td className="px-6 py-4 text-sm text-slate-600">{employee.positions}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-5 py-4 font-mono text-xs text-slate-500">{employee.id}</td>
+                      <td className="px-5 py-4 text-sm text-slate-600">{employee.email}</td>
+                      <td className="px-5 py-4 text-sm text-slate-600">{employee.department}</td>
+                      <td className="px-5 py-4 text-sm text-slate-600">{employee.positions}</td>
+                      <td className="px-5 py-4">
                         <Badge
                           variant={
                             employee.status === EmployeeStatus.ACTIVE
@@ -423,11 +420,12 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
                                 : 'danger'
                           }
                           size="sm"
+                          className="!font-medium"
                         >
                           {employee.status}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-5 py-4">
                         <Badge
                           variant={
                             employee.contractType === ContractType.CDI
@@ -437,15 +435,16 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
                                 : 'info'
                           }
                           size="sm"
+                          className="!font-medium"
                         >
                           {employee.contractType}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2">
+                      <td className="px-5 py-4 text-right">
+                        <div className="flex justify-end gap-1">
                           <button
                             onClick={() => setViewingEmployee(employee)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                            className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
                             title={t('hr.actions.view')}
                           >
                             <Eye size={18} color="currentColor" />
@@ -455,14 +454,14 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
                               setEditingEmployee(employee);
                               setIsFormModalOpen(true);
                             }}
-                            className="p-2 text-[#c6e911] hover:bg-[#c6e911]/10 rounded transition-colors"
+                            className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-lime-50 hover:text-lime-800"
                             title={t('hr.actions.edit')}
                           >
                             <Edit size={18} color="currentColor" />
                           </button>
                           <button
                             onClick={() => setDeletingEmployee(employee)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600"
                             title={t('hr.actions.delete')}
                           >
                             <Trash size={18} color="currentColor" />

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PasswordInput from '../ui/PasswordInput';
 import { useI18n } from '../../i18n';
 
 const SecurityView: React.FC = () => {
@@ -29,15 +30,15 @@ const SecurityView: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
                  <div>
                     <label className="block text-sm font-medium text-slate-700">{t('customerAccount.currentPassword')}</label>
-                    <input type="password" name="current" value={passwords.current} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"/>
+                    <PasswordInput name="current" value={passwords.current} onChange={handleChange} required autoComplete="current-password" className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"/>
                 </div>
                  <div>
                     <label className="block text-sm font-medium text-slate-700">{t('customerAccount.newPassword')}</label>
-                    <input type="password" name="new" value={passwords.new} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"/>
+                    <PasswordInput name="new" value={passwords.new} onChange={handleChange} required autoComplete="new-password" className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-slate-700">{t('customerAccount.confirmPassword')}</label>
-                    <input type="password" name="confirm" value={passwords.confirm} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"/>
+                    <PasswordInput name="confirm" value={passwords.confirm} onChange={handleChange} required autoComplete="new-password" className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"/>
                 </div>
                 <div className="text-right pt-2">
                     <button type="submit" className="px-6 py-2 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f]">

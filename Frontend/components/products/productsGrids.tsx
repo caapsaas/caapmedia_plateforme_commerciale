@@ -34,6 +34,12 @@ export default function ProductsGrid({
 }: Props) {
   const [page, setPage] = useState(1);
   const [allLoaded, setAllLoaded] = useState<Product[]>([]);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm.trim());
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedSearchTerm(searchTerm.trim()), 300);
+    return () => window.clearTimeout(timeout);
+  }, [searchTerm]);
 
   // Le catalogue n'a plus qu'un seul niveau de catégorie côté backend (Chantier 1) —
   // ce mapping sert uniquement à filtrer côté client quand une catégorie principale
@@ -64,9 +70,9 @@ export default function ProductsGrid({
   });
 
   const { data: searchData, isLoading: searchLoading } = useQuery<Product[]>({
-    queryKey: ["productsSearch", searchTerm, selectedMainCategory, selectedSubcategory],
-    queryFn: () => getProduitsSearch(searchTerm),
-    enabled: searchTerm.length > 0,
+    queryKey: ["productsSearch", debouncedSearchTerm, selectedMainCategory, selectedSubcategory],
+    queryFn: () => getProduitsSearch(debouncedSearchTerm),
+    enabled: debouncedSearchTerm.length > 0,
   });
 
   const { data: favoriteProducts = [] } = useQuery<Product[]>({
@@ -94,7 +100,7 @@ export default function ProductsGrid({
 
   if (showFavorites) {
     filtered = favoriteProducts ?? [];
-  } else if (searchTerm.length > 0) {
+  } else if (debouncedSearchTerm.length > 0) {
     // Filtre les résultats de recherche par catégorie si une catégorie est sélectionnée
     filtered = (searchData ?? []).filter((p) => {
       if (selectedSubcategory) return p.category === selectedSubcategory;
@@ -115,7 +121,7 @@ export default function ProductsGrid({
   };
 
   return (
-    <div className="mt-12">
+    <div id="products-grid" className="mt-12 scroll-mt-36">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
         {/* Skeleton premier chargement */}
         {(isLoadingFirst || searchLoading) &&
@@ -164,7 +170,7 @@ export default function ProductsGrid({
           ))}
 
         {/* Empty state */}
-        {!isLoadingFirst && !searchLoading && filtered.length === 0 && (
+        {!isLoadingFirst && !searchLoading && filtered.length === 0 && !hasMore && (
           <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
             <div className="text-6xl mb-4">📦</div>
             <h3 className="text-xl font-bold text-slate-700 mb-2">
@@ -194,15 +200,15 @@ export default function ProductsGrid({
       </div>
 
       {/* Pagination */}
-      {!isLoadingFirst && !searchLoading && filtered.length > 0 && (
+      {!isLoadingFirst && !searchLoading && (filtered.length > 0 || hasMore) && (
         <div className="mt-14 flex flex-col items-center gap-4">
-          {hasMore && !showFavorites && !searchTerm ? (
+          {hasMore && !showFavorites && !debouncedSearchTerm ? (
             <button
               onClick={handleLoadMore}
               disabled={isFetching}
               className="group relative bg-[#c6e911] inline-flex items-center gap-3 px-10 py-2 text-gray-800 font-semibold rounded-full hover:bg-[#c6e000] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg hover:-translate-y-0.5"
             >
-              {isFetching && !searchTerm ? (
+              {isFetching && !debouncedSearchTerm ? (
                 <>
                   <svg
                     className="animate-spin h-4 w-4"

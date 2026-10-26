@@ -9,7 +9,10 @@ import {
   Param,
   Request,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { SubsidiaryService } from '../subsidiaries/subsidiaries.service';
 import { JwtAuthGuard } from '../../auth/jwt/jwt.guard';
 import { RoleGuard } from '../../auth/role/role.guard';
@@ -21,6 +24,7 @@ import {
   IsOptional,
   IsUUID,
   IsNumber,
+  IsBoolean,
   Min,
   Max,
 } from 'class-validator';
@@ -31,8 +35,9 @@ class CreateSubsidiaryDto {
   @IsString()
   subsidiaryName: string;
 
+  @IsOptional()
   @IsString()
-  logoSvg: string;
+  logoSvg?: string;
 
   @IsString()
   address: string;
@@ -69,6 +74,10 @@ class CreateSubsidiaryDto {
   @Min(0)
   @Max(1)
   taxRate?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isHeadquarter?: boolean;
 }
 
 class UpdateSubsidiaryDto {
@@ -122,6 +131,10 @@ class UpdateSubsidiaryDto {
   @Min(0)
   @Max(1)
   taxRate?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isHeadquarter?: boolean;
 }
 
 class SearchSubsidiariesDto extends PaginationQueryDto {
@@ -139,14 +152,14 @@ export class SubsidiaryController {
   constructor(private subsidiaryService: SubsidiaryService) {}
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN)
   @Post()
   async createSubsidiary(@Body() dto: CreateSubsidiaryDto, @Request() req) {
     return this.subsidiaryService.createSubsidiary(dto, req.user);
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.HR_MANAGER)
+  @Roles(UserRole.SUPER_ADMIN)
   @Patch(':id')
   async updateSubsidiary(
     @Param('id') id: string,
@@ -157,7 +170,19 @@ export class SubsidiaryController {
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN)
+  @UseInterceptors(FileInterceptor('logo', { limits: { fileSize: 5 * 1024 * 1024 } }))
+  @Post(':id/logo')
+  async uploadLogo(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Request() req,
+  ) {
+    return this.subsidiaryService.uploadLogo(id, file, req.user);
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN)
   @Delete(':id')
   async deleteSubsidiary(@Param('id') id: string, @Request() req) {
     return this.subsidiaryService.deleteSubsidiary(id, req.user);

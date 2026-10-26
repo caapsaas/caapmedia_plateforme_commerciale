@@ -21,18 +21,20 @@ const USERS_PAGE_SIZE = 10;
 const UserManagement: React.FC = () => {
     const { t } = useI18n();
     const toast = useToast();
-    const { subsidiary } = useAuth();
+    const { subsidiary, user: currentUser } = useAuth();
+    const isSuperAdmin = currentUser?.userRole === UserRole.SUPER_ADMIN || currentUser?.additionalRoles?.includes(UserRole.SUPER_ADMIN) === true;
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [deletingUser, setDeletingUser] = useState<User | null>(null);
     const [page, setPage] = useState(1);
+    const [search, setSearch] = useState('');
 
     // --- Data Fetching ---
     const { data: paginatedUsers, isLoading: isLoadingUsers } = useQuery({
-        queryKey: ['users', 'paginated', subsidiary?.id, page],
-        queryFn: () => getUsersPaginated({ page, limit: USERS_PAGE_SIZE }),
-        enabled: !!subsidiary,
+        queryKey: ['users', 'paginated', isSuperAdmin ? 'global' : subsidiary?.id, page, search],
+        queryFn: () => getUsersPaginated({ page, limit: USERS_PAGE_SIZE, search: search || undefined }),
+        enabled: isSuperAdmin || !!subsidiary,
     });
     const users = paginatedUsers?.data ?? [];
     const usersMeta = paginatedUsers?.meta;
@@ -118,7 +120,7 @@ const UserManagement: React.FC = () => {
         }
     };
 
-    if (!subsidiary) {
+    if (!subsidiary && !isSuperAdmin) {
         return <CrmListSkeleton columns={5} />;
     }
 
@@ -131,6 +133,16 @@ const UserManagement: React.FC = () => {
                     <span>{t('configuration.addUser')}</span>
                 </button>
             </div>
+            <div className="mb-4">
+                <input
+                    type="search"
+                    value={search}
+                    onChange={(event) => { setSearch(event.target.value); setPage(1); }}
+                    placeholder={t('common.search')}
+                    aria-label={t('common.search')}
+                    className="w-full md:max-w-sm rounded-md border border-slate-300 px-4 py-2 text-sm focus:border-[#c6e911] focus:outline-none focus:ring-1 focus:ring-[#c6e911]"
+                />
+            </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-slate-500">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50">
@@ -139,15 +151,16 @@ const UserManagement: React.FC = () => {
                             <th scope="col" className="px-6 py-3">{t('configuration.name')}</th>
                             <th scope="col" className="px-6 py-3">{t('configuration.email')}</th>
                             <th scope="col" className="px-6 py-3">{t('configuration.role')}</th>
+                            {isSuperAdmin && <th scope="col" className="px-6 py-3">Filiale</th>}
                             <th scope="col" className="px-6 py-3 text-center">{t('common.actions')}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {isLoadingUsers ? (
-                            <TableSkeleton rows={USERS_PAGE_SIZE} columns={5} />
+                            <TableSkeleton rows={USERS_PAGE_SIZE} columns={isSuperAdmin ? 6 : 5} />
                         ) : users.length === 0 ? (
                             <tr>
-                                <td colSpan={5}>
+                                <td colSpan={isSuperAdmin ? 6 : 5}>
                                     <EmptyState icon="inbox" title={t('configuration.userManagement')} description={t('common.notAvailable')} />
                                 </td>
                             </tr>
@@ -168,6 +181,7 @@ const UserManagement: React.FC = () => {
                                         ))}
                                     </div>
                                 </td>
+                                {isSuperAdmin && <td className="px-6 py-4">{user.subsidiary?.subsidiaryName || user.subsidiary?.name || '—'}</td>}
                                 <td className="px-6 py-4 text-center space-x-2">
                                     <button onClick={() => handleOpenEditModal(user)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
                                         <IconEdit className="h-5 w-5" />

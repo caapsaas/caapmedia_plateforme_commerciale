@@ -50,6 +50,22 @@ export class PayrollBonusAndChargeService {
     private readonly outbox: AccountingOutboxService,
   ) {}
 
+  async getBonusSubsidiaryId(bonusId: string): Promise<string> {
+    const bonus = await this.prisma.payrollBonus.findUnique({
+      where: { id: bonusId }, select: { subsidiaryId: true },
+    });
+    if (!bonus) throw new NotFoundException(`Bonus ${bonusId} introuvable`);
+    return bonus.subsidiaryId;
+  }
+
+  async getChargeSubsidiaryId(chargeId: string): Promise<string> {
+    const charge = await this.prisma.payrollChargePayment.findUnique({
+      where: { id: chargeId }, select: { subsidiaryId: true },
+    });
+    if (!charge) throw new NotFoundException(`Charge ${chargeId} introuvable`);
+    return charge.subsidiaryId;
+  }
+
   // ============================================================
   // BONUS
   // ============================================================

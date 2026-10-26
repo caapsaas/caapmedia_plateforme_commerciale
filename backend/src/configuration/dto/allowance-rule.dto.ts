@@ -1,11 +1,14 @@
 import {
   IsString,
-  IsDecimal,
+  IsNumber,
   IsInt,
   IsDate,
   IsOptional,
   IsBoolean,
+  Min,
+  Max,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateAllowanceRuleDto {
   @IsString()
@@ -23,7 +26,8 @@ export class CreateAllowanceRuleDto {
   @IsOptional()
   maxAge?: number;
 
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
   @IsOptional()
   minSalary?: number;
 
@@ -31,17 +35,22 @@ export class CreateAllowanceRuleDto {
   @IsOptional()
   numberOfDependents?: number;
 
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
   @IsOptional()
   amount?: number;
 
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
   @IsOptional()
   percentageOfSalary?: number;
 
+  @Type(() => Date)
   @IsDate()
   effectiveDate: Date;
 
+  @Type(() => Date)
   @IsDate()
   @IsOptional()
   expiryDate?: Date;
@@ -64,7 +73,8 @@ export class UpdateAllowanceRuleDto {
   @IsOptional()
   maxAge?: number;
 
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
   @IsOptional()
   minSalary?: number;
 
@@ -72,18 +82,23 @@ export class UpdateAllowanceRuleDto {
   @IsOptional()
   numberOfDependents?: number;
 
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
   @IsOptional()
   amount?: number;
 
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
   @IsOptional()
   percentageOfSalary?: number;
 
+  @Type(() => Date)
   @IsDate()
   @IsOptional()
   effectiveDate?: Date;
 
+  @Type(() => Date)
   @IsDate()
   @IsOptional()
   expiryDate?: Date;

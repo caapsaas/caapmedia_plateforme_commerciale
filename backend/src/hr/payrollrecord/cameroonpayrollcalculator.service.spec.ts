@@ -157,6 +157,19 @@ describe('CameroonPayrollCalculatorService', () => {
       );
     });
 
+    it('should not cap occupational accident contributions at the pension ceiling', () => {
+      const result = service.calculate({
+        baseSalary: 1_000_000,
+        riskGroup: 'A',
+        applyCfc: false,
+        applyFne: false,
+      });
+
+      expect(result.cnpsEmployee).toBe(Math.round(750_000 * 0.042));
+      expect(result.cnpsFamilyBenefits).toBe(Math.round(750_000 * 0.07));
+      expect(result.cnpsAccidentRisk).toBe(Math.round(1_000_000 * 0.0175));
+    });
+
     it('should calculate FNE when enabled', () => {
       const resultWithFne = service.calculate({
         baseSalary: 150000,
@@ -334,55 +347,23 @@ describe('CameroonPayrollCalculatorService', () => {
     });
   });
 
-  describe('Cumulative Calculations (Annual Caps)', () => {
-    it('should respect CNPS cumulative cap (750k annually)', () => {
-      // First payroll: 200k salary
-      const first = service.calculate({
+  describe('Cumulative Calculations (Annual Tax and Monthly CNPS Cap)', () => {
+    it('should apply the CNPS wage cap each month, independently of annual contributions', () => {
+      const result = service.calculate({
         baseSalary: 200000,
         riskGroup: 'A',
         applyCfc: true,
+        previousCnpsCumulative: 740000,
       });
 
-      const firstCnps = first.cnpsEmployee;
-
-      // Second payroll with cumulative tracking
-      const second = service.calculate({
-        baseSalary: 200000,
-        riskGroup: 'A',
-        applyCfc: true,
-        previousCnpsCumulative: firstCnps,
-      });
-
-      // Still under cap, should be normal
-      expect(second.cnpsEmployee).toBe(firstCnps);
-
-      // After 4+ payrolls, should hit cap
-      let cumulative = 0;
-      for (let i = 0; i < 5; i++) {
-        const result = service.calculate({
-          baseSalary: 200000,
-          riskGroup: 'A',
-          applyCfc: true,
-          previousCnpsCumulative: cumulative,
-        });
-        cumulative += result.cnpsEmployee;
-      }
-
-      // Last one should have 0 or minimal CNPS
-      const lastWithCap = service.calculate({
-        baseSalary: 200000,
-        riskGroup: 'A',
-        applyCfc: true,
-        previousCnpsCumulative: cumulative - firstCnps,
-      });
-
-      expect(lastWithCap.cnpsEmployee).toBeLessThanOrEqual(firstCnps);
+      expect(result.cnpsEmployee).toBe(Math.round(200000 * 0.042));
     });
 
     it('should handle progressive IRPP with cumulative tracking', () => {
       // Simulate monthly payrolls over the year
       const baseSalary = 200000;
       let grossCumulative = 0;
+      let cnpsCumulative = 0;
       let irppCumulative = 0;
 
       for (let month = 1; month <= 12; month++) {
@@ -390,11 +371,13 @@ describe('CameroonPayrollCalculatorService', () => {
           baseSalary,
           riskGroup: 'A',
           applyCfc: true,
+          previousCnpsCumulative: cnpsCumulative,
           previousGrossCumulative: grossCumulative,
           previousIrppCumulative: irppCumulative,
         });
 
         grossCumulative += result.grossSalary;
+        cnpsCumulative += result.cnpsEmployee;
         irppCumulative += result.irpp;
 
         // Each month should have IRPP
@@ -404,6 +387,12 @@ describe('CameroonPayrollCalculatorService', () => {
       // Cumulative should grow
       expect(irppCumulative).toBeGreaterThan(0);
       expect(grossCumulative).toBe(baseSalary * 12);
+      const taxableAnnual = Math.max(
+        0,
+        grossCumulative * 0.7 - cnpsCumulative - 500000,
+      );
+      const expectedAnnualIrpp = Math.round(taxableAnnual * 0.1);
+      expect(irppCumulative).toBe(expectedAnnualIrpp);
     });
   });
 

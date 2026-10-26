@@ -3,10 +3,12 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../utils/prisma/prisma.service';
 import { LoggerService } from '../../utils/logger/logger.service';
-import { UserRole } from '@prisma/client';
+import { FileUploadService } from '../../utils/file-upload.service';
+import { Prisma, UserRole } from '@prisma/client';
 import { generateId } from '../../utils/generate-id.util';
 import { ID_PREFIXES } from '../../constants/id-prefixes.const';
 import { PaginationQueryDto } from '../../pagination/dto/pagination-query.dto';
@@ -17,12 +19,40 @@ export class SubsidiaryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
+    private readonly fileUploadService: FileUploadService,
   ) {}
+
+  private hasAdminPrivileges(currentUser?: {
+    role?: UserRole;
+    roles?: UserRole[];
+  }): boolean {
+    const callerRoles = currentUser?.roles?.length
+      ? currentUser.roles
+      : currentUser?.role
+        ? [currentUser.role]
+        : [];
+    return (
+      callerRoles.includes(UserRole.ADMIN) ||
+      callerRoles.includes(UserRole.SUPER_ADMIN)
+    );
+  }
+
+  private hasSuperAdminPrivileges(currentUser?: {
+    role?: UserRole;
+    roles?: UserRole[];
+  }): boolean {
+    const callerRoles = currentUser?.roles?.length
+      ? currentUser.roles
+      : currentUser?.role
+        ? [currentUser.role]
+        : [];
+    return callerRoles.includes(UserRole.SUPER_ADMIN);
+  }
 
   async createSubsidiary(
     data: {
       subsidiaryName: string;
-      logoSvg: string;
+      logoSvg?: string;
       address: string;
       phone: string;
       email: string;
@@ -33,11 +63,12 @@ export class SubsidiaryService {
       swiftCode: string;
       shareCapital: number;
       taxRate?: number;
+      isHeadquarter?: boolean;
     },
-    currentUser: { id: string; role: UserRole; subsidiaryId: string },
+    currentUser: { id: string; role?: UserRole; roles?: UserRole[]; subsidiaryId: string },
   ) {
-    // Vérifier les autorisations (seul ADMIN peut créer une filiale)
-    if (currentUser.role !== UserRole.ADMIN) {
+    // Vérifier les autorisations (seul ADMIN ou SUPER_ADMIN peut créer une filiale)
+    if (!this.hasSuperAdminPrivileges(currentUser)) {
       this.logger.error(
         `User ${currentUser.id} is not authorized to create a subsidiary`,
         'SubsidiaryService',
@@ -63,8 +94,19 @@ export class SubsidiaryService {
     const subsidiary = await this.prisma.subsidiary.create({
       data: {
         id: generateId(ID_PREFIXES.SUBSIDIARY),
-        ...data,
+        subsidiaryName: data.subsidiaryName,
+        logoSvg: data.logoSvg || '',
+        address: data.address,
+        phone: data.phone,
+        email: data.email,
+        ifu: data.ifu,
+        rccm: data.rccm,
+        bankName: data.bankName,
+        accountNumber: data.accountNumber,
+        swiftCode: data.swiftCode,
         shareCapital: Number(data.shareCapital),
+        taxRate: data.taxRate !== undefined ? data.taxRate : 0.3,
+        isHeadquarter: data.isHeadquarter ?? false,
       },
     });
 
@@ -75,6 +117,8 @@ export class SubsidiaryService {
     return {
       id: subsidiary.id,
       subsidiaryName: subsidiary.subsidiaryName,
+      name: subsidiary.subsidiaryName,
+      logoSvg: subsidiary.logoSvg,
       email: subsidiary.email,
       address: subsidiary.address,
       phone: subsidiary.phone,
@@ -83,8 +127,9 @@ export class SubsidiaryService {
       bankName: subsidiary.bankName,
       accountNumber: subsidiary.accountNumber,
       swiftCode: subsidiary.swiftCode,
-      shareCapital: subsidiary.shareCapital,
+      shareCapital: Number(subsidiary.shareCapital),
       taxRate: subsidiary.taxRate.toNumber(),
+      isHeadquarter: subsidiary.isHeadquarter,
     };
   }
 
@@ -103,8 +148,9 @@ export class SubsidiaryService {
       swiftCode?: string;
       shareCapital?: number;
       taxRate?: number;
+      isHeadquarter?: boolean;
     },
-    currentUser: { id: string; role: UserRole; subsidiaryId: string },
+    currentUser: { id: string; role?: UserRole; roles?: UserRole[]; subsidiaryId: string },
   ) {
     // Vérifier si la filiale existe
     const subsidiary = await this.prisma.subsidiary.findUnique({
@@ -119,10 +165,7 @@ export class SubsidiaryService {
     }
 
     // Vérifier les autorisations
-    if (
-      currentUser.role !== UserRole.ADMIN &&
-      currentUser.subsidiaryId !== id
-    ) {
+    if (!this.hasSuperAdminPrivileges(currentUser)) {
       this.logger.error(
         `User ${currentUser.id} is not authorized to update subsidiary ${id}`,
         'SubsidiaryService',
@@ -151,7 +194,7 @@ export class SubsidiaryService {
       where: { id },
       data: {
         ...data,
-        shareCapital: data.shareCapital ? Number(data.shareCapital) : undefined,
+        shareCapital: data.shareCapital !== undefined ? Number(data.shareCapital) : undefined,
       },
     });
 
@@ -162,6 +205,8 @@ export class SubsidiaryService {
     return {
       id: updatedSubsidiary.id,
       subsidiaryName: updatedSubsidiary.subsidiaryName,
+      name: updatedSubsidiary.subsidiaryName,
+      logoSvg: updatedSubsidiary.logoSvg,
       email: updatedSubsidiary.email,
       address: updatedSubsidiary.address,
       phone: updatedSubsidiary.phone,
@@ -170,14 +215,58 @@ export class SubsidiaryService {
       bankName: updatedSubsidiary.bankName,
       accountNumber: updatedSubsidiary.accountNumber,
       swiftCode: updatedSubsidiary.swiftCode,
-      shareCapital: updatedSubsidiary.shareCapital,
+      shareCapital: Number(updatedSubsidiary.shareCapital),
       taxRate: updatedSubsidiary.taxRate.toNumber(),
+      isHeadquarter: updatedSubsidiary.isHeadquarter,
+    };
+  }
+
+  async uploadLogo(
+    id: string,
+    file: Express.Multer.File,
+    currentUser: { id: string; role?: UserRole; roles?: UserRole[]; subsidiaryId: string },
+  ) {
+    const subsidiary = await this.prisma.subsidiary.findUnique({ where: { id } });
+    if (!subsidiary) {
+      throw new NotFoundException('Subsidiary not found');
+    }
+
+    if (!this.hasSuperAdminPrivileges(currentUser)) {
+      throw new ForbiddenException('You are not authorized to update this subsidiary logo');
+    }
+
+    if (!file || !file.buffer) {
+      throw new BadRequestException('Aucun fichier fourni pour le logo');
+    }
+
+    const { url } = await this.fileUploadService.uploadFile(file.buffer, file.originalname, {
+      subfolder: 'subsidiaries',
+      maxSizeMb: 5,
+      allowedMimes: [
+        'image/jpeg',
+        'image/png',
+        'image/jpg',
+        'image/svg+xml',
+        'image/webp',
+      ],
+    });
+
+    const updated = await this.prisma.subsidiary.update({
+      where: { id },
+      data: { logoSvg: url },
+    });
+
+    return {
+      id: updated.id,
+      subsidiaryName: updated.subsidiaryName,
+      name: updated.subsidiaryName,
+      logoSvg: updated.logoSvg,
     };
   }
 
   async deleteSubsidiary(
     id: string,
-    currentUser: { id: string; role: UserRole; subsidiaryId: string },
+    currentUser: { id: string; role?: UserRole; roles?: UserRole[]; subsidiaryId: string },
   ) {
     // Vérifier si la filiale existe
     const subsidiary = await this.prisma.subsidiary.findUnique({
@@ -191,8 +280,8 @@ export class SubsidiaryService {
       throw new NotFoundException('Subsidiary not found');
     }
 
-    // Vérifier les autorisations (seul ADMIN peut supprimer)
-    if (currentUser.role !== UserRole.ADMIN) {
+    // Vérifier les autorisations (seul ADMIN ou SUPER_ADMIN peut supprimer)
+    if (!this.hasSuperAdminPrivileges(currentUser)) {
       this.logger.error(
         `User ${currentUser.id} is not authorized to delete subsidiary ${id}`,
         'SubsidiaryService',
@@ -202,8 +291,28 @@ export class SubsidiaryService {
       );
     }
 
+    // Vérifier si des utilisateurs sont rattachés à cette filiale
+    const userCount = await this.prisma.user.count({ where: { subsidiaryId: id } });
+    if (userCount > 0) {
+      throw new BadRequestException(
+        `Impossible de supprimer la filiale car ${userCount} utilisateur(s) lui sont actuellement rattaché(s). Veuillez d'abord réassigner ou supprimer ces utilisateurs.`,
+      );
+    }
+
     // Supprimer la filiale
-    await this.prisma.subsidiary.delete({ where: { id } });
+    try {
+      await this.prisma.subsidiary.delete({ where: { id } });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
+        throw new BadRequestException(
+          'Impossible de supprimer cette filiale car des données associées (commandes, stocks, etc.) existent encore.',
+        );
+      }
+      throw error;
+    }
 
     this.logger.log(
       `Subsidiary ${id} deleted successfully`,
@@ -215,15 +324,23 @@ export class SubsidiaryService {
   async getAllSubsidiaries(
     currentUser: {
       id: string;
-      role: UserRole;
+      role?: UserRole;
+      roles?: UserRole[];
       subsidiaryId: string;
     },
     paginationQuery: PaginationQueryDto = {},
   ) {
-    const isGlobalScope =
-      currentUser.role === UserRole.ADMIN ||
-      currentUser.role === UserRole.SUPER_ADMIN;
-    const where = isGlobalScope ? {} : { id: currentUser.subsidiaryId };
+    const isGlobalScope = this.hasAdminPrivileges(currentUser);
+    const where: any = isGlobalScope ? {} : { id: currentUser.subsidiaryId };
+
+    if (paginationQuery.search && paginationQuery.search.trim() !== '') {
+      const term = paginationQuery.search.trim();
+      where.OR = [
+        { subsidiaryName: { contains: term, mode: 'insensitive' } },
+        { email: { contains: term, mode: 'insensitive' } },
+        { address: { contains: term, mode: 'insensitive' } },
+      ];
+    }
 
     const result = await paginate(
       this.prisma.subsidiary,
@@ -240,6 +357,8 @@ export class SubsidiaryService {
       data: result.data.map((subsidiary) => ({
         id: subsidiary.id,
         subsidiaryName: subsidiary.subsidiaryName,
+        name: subsidiary.subsidiaryName,
+        logoSvg: subsidiary.logoSvg,
         email: subsidiary.email,
         address: subsidiary.address,
         phone: subsidiary.phone,
@@ -248,19 +367,18 @@ export class SubsidiaryService {
         bankName: subsidiary.bankName,
         accountNumber: subsidiary.accountNumber,
         swiftCode: subsidiary.swiftCode,
-        shareCapital: subsidiary.shareCapital,
+        shareCapital: Number(subsidiary.shareCapital),
         taxRate: subsidiary.taxRate.toNumber(),
+        isHeadquarter: subsidiary.isHeadquarter,
       })),
     };
   }
 
   async searchSubsidiaries(
     query: { subsidiaryName?: string; email?: string } & PaginationQueryDto,
-    currentUser: { id: string; role: UserRole; subsidiaryId: string },
+    currentUser: { id: string; role?: UserRole; roles?: UserRole[]; subsidiaryId: string },
   ) {
-    const isGlobalScope =
-      currentUser.role === UserRole.ADMIN ||
-      currentUser.role === UserRole.SUPER_ADMIN;
+    const isGlobalScope = this.hasAdminPrivileges(currentUser);
     const where: any = isGlobalScope ? {} : { id: currentUser.subsidiaryId };
     if (query.subsidiaryName) {
       where.subsidiaryName = {
@@ -270,6 +388,13 @@ export class SubsidiaryService {
     }
     if (query.email) {
       where.email = { contains: query.email, mode: 'insensitive' };
+    }
+    if (query.search && query.search.trim() !== '') {
+      const term = query.search.trim();
+      where.OR = [
+        { subsidiaryName: { contains: term, mode: 'insensitive' } },
+        { email: { contains: term, mode: 'insensitive' } },
+      ];
     }
 
     const result = await paginate(
@@ -287,6 +412,8 @@ export class SubsidiaryService {
       data: result.data.map((subsidiary) => ({
         id: subsidiary.id,
         subsidiaryName: subsidiary.subsidiaryName,
+        name: subsidiary.subsidiaryName,
+        logoSvg: subsidiary.logoSvg,
         email: subsidiary.email,
         address: subsidiary.address,
         phone: subsidiary.phone,
@@ -295,8 +422,9 @@ export class SubsidiaryService {
         bankName: subsidiary.bankName,
         accountNumber: subsidiary.accountNumber,
         swiftCode: subsidiary.swiftCode,
-        shareCapital: subsidiary.shareCapital,
+        shareCapital: Number(subsidiary.shareCapital),
         taxRate: subsidiary.taxRate.toNumber(),
+        isHeadquarter: subsidiary.isHeadquarter,
       })),
     };
   }

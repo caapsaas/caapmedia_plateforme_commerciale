@@ -17,6 +17,7 @@ export enum UserRole {
   FINANCIAL_DIRECTOR = 'FINANCIAL_DIRECTOR',
   SECRETARY = 'SECRETARY',
   HR_MANAGER = 'HR_MANAGER',
+  PRE_HIRE_MANAGER = 'PRE_HIRE_MANAGER',
   PRODUCTION_DIRECTOR = 'PRODUCTION_DIRECTOR',
 }
 
@@ -148,6 +149,9 @@ export interface Subsidiary {
     accountNumber: string;
     swift: string;
   };
+  bankName?: string;
+  accountNumber?: string;
+  swiftCode?: string;
   shareCapital: number;
   logoSvg?: string;
   isHeadquarter?: boolean;
@@ -165,6 +169,7 @@ export interface User {
   /** Role actif pour un utilisateur multi-role (POST /auth/switch-role) - retombe sur userRole si absent. */
   activeRole?: UserRole;
   subsidiaryId: string;
+  subsidiary?: { id: string; subsidiaryName: string; name?: string } | null;
   password?: string;
   twoFactorEnabled?: boolean;
 }

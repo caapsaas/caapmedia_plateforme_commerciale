@@ -27,6 +27,7 @@ const ProductManagement: React.FC = () => {
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<StockItem | null>(null);
     const [deletingItem, setDeletingItem] = useState<StockItem | null>(null);
+    const [search, setSearch] = useState('');
 
     // --- TanStack Query: Data Fetching ---
     const { data: items = [], isLoading, isError } = useQuery<StockItem[]>({
@@ -34,6 +35,11 @@ const ProductManagement: React.FC = () => {
         queryFn: getStockItemsBySubsidiary,
         enabled: !!subsidiary,
     });
+    const filteredItems = items.filter((item) =>
+        [item.name, item.productRange, item.category, item.id].some((value) =>
+            String(value ?? '').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
+        ),
+    );
 
     // --- TanStack Query: Mutations ---
     const { mutate: saveItemMutate } = useMutation({
@@ -110,6 +116,7 @@ const ProductManagement: React.FC = () => {
                     </button>
                 </div>
             </div>
+            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('common.search')} aria-label={t('common.search')} className="mb-4 w-full rounded-md border border-slate-300 px-4 py-2 text-sm md:max-w-sm" />
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-slate-500">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50">
@@ -125,13 +132,13 @@ const ProductManagement: React.FC = () => {
                     <tbody>
                         {isLoading ? (
                             <TableSkeleton rows={6} columns={6} />
-                        ) : items.length === 0 ? (
+                        ) : filteredItems.length === 0 ? (
                             <tr>
                                 <td colSpan={6}>
                                     <EmptyState icon="stock" title={t('configuration.productManagement')} description={t('common.notAvailable')} />
                                 </td>
                             </tr>
-                        ) : items.map((item) => (
+                        ) : filteredItems.map((item) => (
                             <tr key={item.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{item.name}</td>
                                 <td className="px-6 py-4">{item.productRange ? t(rangeToKeyMap[item.productRange] || item.productRange) : 'Non specifie'}</td>

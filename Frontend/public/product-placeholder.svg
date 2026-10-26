@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Image de produit indisponible">
+  <rect width="800" height="600" fill="#f1f5f9"/>
+  <rect x="245" y="155" width="310" height="230" rx="24" fill="#e2e8f0"/>
+  <circle cx="345" cy="235" r="28" fill="#cbd5e1"/>
+  <path d="m270 350 92-82 62 54 49-41 57 69H270Z" fill="#cbd5e1"/>
+  <text x="400" y="445" text-anchor="middle" fill="#64748b" font-family="Arial,sans-serif" font-size="24">Visuel indisponible</text>
+</svg>

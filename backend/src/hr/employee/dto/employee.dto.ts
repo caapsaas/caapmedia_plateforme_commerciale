@@ -13,6 +13,7 @@ import {
   Length,
   IsUUID,
   IsNumber,
+  IsInt,
   ValidateNested,
   ValidateIf,
 } from 'class-validator';
@@ -74,8 +75,8 @@ export class LeaveRecordDto {
   endDate: Date;
 
   @IsNotEmpty()
-  @IsNumber()
-  @Min(0)
+  @IsInt()
+  @Min(1)
   days: number;
 }
 

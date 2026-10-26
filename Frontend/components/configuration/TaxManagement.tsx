@@ -27,6 +27,7 @@ const TaxManagement: React.FC = () => {
     const [editingTax, setEditingTax] = useState<TaxRate | null>(null);
     const [deletingTax, setDeletingTax] = useState<TaxRate | null>(null);
     const [isRateValue, setIsRateValue] = useState(0);
+    const [search, setSearch] = useState('');
 
     useEffect(() => {
         if (subsidiary) setIsRateValue((subsidiary.taxRate ?? 0) * 100);
@@ -44,6 +45,11 @@ const TaxManagement: React.FC = () => {
         queryKey: ['taxes'],
         queryFn: getTaxes,
     });
+    const filteredTaxRates = taxRates.filter((tax) =>
+        [tax.taxRatesName, tax.rate].some((value) =>
+            String(value ?? '').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
+        ),
+    );
 
     const { mutate: saveTaxMutate } = useMutation({
         mutationFn: (taxData: Omit<TaxRate, 'id'> & { id?: string }) => 
@@ -136,6 +142,7 @@ const TaxManagement: React.FC = () => {
                     <span>{t('configuration.addTax')}</span>
                 </button>
             </div>
+            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('common.search')} aria-label={t('common.search')} className="mb-4 w-full rounded-md border border-slate-300 px-4 py-2 text-sm md:max-w-sm" />
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-slate-500">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50">
@@ -149,13 +156,13 @@ const TaxManagement: React.FC = () => {
                     <tbody>
                         {isLoading ? (
                             <TableSkeleton rows={4} columns={4} />
-                        ) : taxRates.length === 0 ? (
+                        ) : filteredTaxRates.length === 0 ? (
                             <tr>
                                 <td colSpan={4}>
                                     <EmptyState icon="inbox" title={t('configuration.taxManagement')} description={t('common.notAvailable')} />
                                 </td>
                             </tr>
-                        ) : taxRates.map((tax) => (
+                        ) : filteredTaxRates.map((tax) => (
                             <tr key={tax.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{tax.taxRatesName}</td>
                                 <td className="px-6 py-4">{(tax.rate * 100).toFixed(2)}%</td>

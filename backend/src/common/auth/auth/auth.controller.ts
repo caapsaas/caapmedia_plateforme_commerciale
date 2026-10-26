@@ -27,6 +27,7 @@ import {
   IsEnum,
   IsArray,
   IsNotEmpty,
+  MinLength,
 } from 'class-validator';
 import { UserRole, AuthAuditEvent } from '@prisma/client';
 import { Type } from 'class-transformer';
@@ -74,6 +75,16 @@ class ForgotPasswordDto {
   email: string;
 }
 
+class ResetPasswordDto {
+  @IsString()
+  @IsNotEmpty()
+  token: string;
+
+  @IsString()
+  @MinLength(10)
+  password: string;
+}
+
 class SwitchRoleDto {
   @IsEnum(UserRole)
   role: UserRole;
@@ -106,6 +117,12 @@ class UpdateUserDto {
   subsidiaryId?: string;
 }
 
+class GetUsersQueryDto extends PaginationQueryDto {
+  @IsOptional()
+  @IsString()
+  subsidiaryId?: string;
+}
+
 class SearchUsersDto extends PaginationQueryDto {
   @IsOptional()
   @IsEmail()
@@ -118,6 +135,10 @@ class SearchUsersDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(UserRole)
   userRole?: UserRole;
+
+  @IsOptional()
+  @IsString()
+  subsidiaryId?: string;
 }
 
 class AuditLogQueryDto {
@@ -259,6 +280,12 @@ export class AuthController {
     return result;
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('reset-password')
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto.token, dto.password);
+  }
+
   /**
    * Change le role actif d'un utilisateur multi-role. Effectif immediatement
    * (pas de re-emission de token requise, voir auth.service.ts::switchRole).
@@ -321,7 +348,7 @@ export class AuthController {
   @Get('users')
   async getAllUsers(
     @Request() req,
-    @Query() paginationQuery: PaginationQueryDto,
+    @Query() paginationQuery: GetUsersQueryDto,
   ) {
     return this.authService.getAllUsers(req.user, paginationQuery);
   }

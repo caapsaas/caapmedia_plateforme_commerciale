@@ -51,7 +51,7 @@ export class SalesService {
         'Un compte bancaire doit être sélectionné pour ce mode de paiement.',
       );
     }
-    const { userId: salesRepId, subsidiaryId } = user;
+    const { id: salesRepId, subsidiaryId } = user;
 
     if (!items || items.length === 0) {
       throw new BadRequestException(

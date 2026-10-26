@@ -38,37 +38,21 @@ export class PointageController {
 
   @Get('employees')
   async getActiveEmployees(@Query('token') token: string) {
-    this.logger.log(`Fetching active employees for token ${token}`);
-
-    // Temporairement : pas de validation de token pour faciliter les tests
-    // TODO: Réactiver la validation une fois le système stable
-    // try {
-    //   await this.dynamicTokenService.validateToken(token);
-    //   this.logger.log(`Token validated successfully`);
-    // } catch (error) {
-    //   this.logger.error(`Token validation failed: ${error.message}`);
-    //   throw error;
-    // }
-
-    // 2. Récupérer tous les employés actifs (toutes filiales)
-    this.logger.log(`Querying all active employees globally`);
+    if (!token) throw new BadRequestException('Token requis');
+    const subsidiaryId = await this.dynamicTokenService.validateToken(token);
     const employees = await this.prisma.employee.findMany({
       where: {
         status: 'ACTIVE',
+        subsidiaryId,
       },
       select: {
         id: true,
         firstName: true,
         lastName: true,
-        email: true,
-        department: true,
         positions: true,
-        subsidiaryId: true,
       },
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
     });
-
-    this.logger.log(`Found ${employees.length} active employees globally`);
 
     return {
       success: true,
@@ -78,49 +62,19 @@ export class PointageController {
 
   @Post()
   async pointage(@Body() dto: PointageDto) {
-    this.logger.log(
-      `Pointage attempt for id ${dto.matricule} with token ${dto.token}`,
-    );
-
-    // Temporairement : pas de validation de token pour faciliter les tests
-    // TODO: Réactiver la validation une fois le système stable
-    // try {
-    //   await this.dynamicTokenService.validateToken(dto.token);
-    //   this.logger.log(`Token validated successfully`);
-    // } catch (error) {
-    //   this.logger.error(`Token validation failed: ${error.message}`);
-    //   throw error;
-    // }
-
-    // 2. Trouver l'employé par matricule (global, toutes filiales)
-    this.logger.log(
-      `Searching for employee with id: ${dto.matricule} globally`,
-    );
+    if (!dto.token || !dto.matricule) throw new BadRequestException('Token et matricule requis');
+    const subsidiaryId = await this.dynamicTokenService.validateToken(dto.token);
 
     const employee = await this.prisma.employee.findFirst({
       where: {
-        id: dto.matricule, // Le matricule est l'ID de l'employé
+        id: dto.matricule,
+        subsidiaryId,
+        status: 'ACTIVE',
       },
     });
 
     if (!employee) {
       this.logger.error(`Employee not found with id: ${dto.matricule}`);
-      // Log tous les employés actifs pour debug
-      const allEmployees = await this.prisma.employee.findMany({
-        where: { status: 'ACTIVE' },
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          status: true,
-          subsidiaryId: true,
-        },
-        take: 10,
-      });
-      this.logger.log(
-        `Sample of active employees in database:`,
-        JSON.stringify(allEmployees, null, 2),
-      );
       throw new BadRequestException('Employé non trouvé ou inactif');
     }
 

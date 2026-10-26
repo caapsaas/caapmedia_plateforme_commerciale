@@ -32,8 +32,7 @@ const ProductionWorkflowManagement: React.FC = () => {
     const { user } = useAuth();
     const { t } = useI18n();
     const queryClient = useQueryClient();
-    const activeRole = user?.activeRole ?? user?.userRole;
-    const isSuperAdmin = activeRole === UserRole.SUPER_ADMIN;
+    const isSuperAdmin = user?.userRole === UserRole.SUPER_ADMIN || user?.additionalRoles?.includes(UserRole.SUPER_ADMIN) === true;
 
     const [filterSubsidiaryId, setFilterSubsidiaryId] = useState('');
     const [showForm, setShowForm] = useState(false);
@@ -41,6 +40,7 @@ const ProductionWorkflowManagement: React.FC = () => {
     const [form, setForm] = useState<WorkflowFormState>(EMPTY_FORM);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [error, setError] = useState('');
+    const [search, setSearch] = useState('');
 
     const { data: subsidiaries = [] } = useQuery<Subsidiary[]>({
         queryKey: ['subsidiaries'],
@@ -52,6 +52,10 @@ const ProductionWorkflowManagement: React.FC = () => {
         queryKey: ['workflows', filterSubsidiaryId],
         queryFn: () => getWorkflows(filterSubsidiaryId || undefined),
     });
+    const filteredWorkflows = workflows.filter((workflow) =>
+        [workflow.name, workflow.description, workflow.item?.name, workflow.steps.map((step) => step.equipment.equipmentName).join(' ')]
+            .some((value) => value?.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())),
+    );
 
     const { data: configuredEquipments = [] } = useQuery({
         queryKey: ['equipment-configured'],
@@ -159,6 +163,8 @@ const ProductionWorkflowManagement: React.FC = () => {
                 </div>
             </div>
 
+            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('common.search')} aria-label={t('common.search')} className="mb-4 w-full rounded-md border border-slate-300 px-4 py-2 text-sm md:max-w-sm" />
+
             {/* Liste */}
             {isLoading ? (
                 <div className="space-y-3">
@@ -166,13 +172,13 @@ const ProductionWorkflowManagement: React.FC = () => {
                         <div key={i} className="h-20 bg-white border border-slate-200 rounded-xl animate-pulse" />
                     ))}
                 </div>
-            ) : workflows.length === 0 ? (
+            ) : filteredWorkflows.length === 0 ? (
                 <div className="bg-white border border-dashed border-slate-200 rounded-xl">
                     <EmptyState icon="document" title={t('production.workflows.noWorkflow')} />
                 </div>
             ) : (
                 <div className="space-y-2">
-                    {workflows.map(w => (
+                    {filteredWorkflows.map(w => (
                         <div key={w.id} className="bg-white border border-slate-200 rounded-xl px-4 py-3 flex items-start justify-between gap-4 hover:border-slate-300 transition-colors">
                             <div className="min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">

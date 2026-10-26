@@ -22,6 +22,8 @@ export function getDefaultViewForRole(role?: UserRole): string {
       return '/dashboard/secretariat';
     case UserRole.HR_MANAGER:
       return '/dashboard/hr';
+    case UserRole.PRE_HIRE_MANAGER:
+      return '/dashboard/hr/pre-hire-training';
     case UserRole.PRODUCTION_DIRECTOR:
       return '/dashboard/production';
     case UserRole.FINANCIAL_DIRECTOR:

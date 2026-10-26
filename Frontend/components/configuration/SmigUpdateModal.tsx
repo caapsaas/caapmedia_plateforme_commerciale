@@ -34,7 +34,7 @@ const SmigUpdateModal: React.FC<SmigUpdateModalProps> = ({
     setError('');
 
     const value = parseFloat(minWage);
-    if (isNaN(value) || value <= 0) {
+    if (isNaN(value) || value < 41875) {
       setError(t('payroll.errors.invalidAmount'));
       return;
     }
@@ -81,7 +81,7 @@ const SmigUpdateModal: React.FC<SmigUpdateModalProps> = ({
                   value={minWage}
                   onChange={(e) => setMinWage(e.target.value)}
                   step="1000"
-                  min="0"
+                  min="41875"
                   required
                   disabled={isLoading}
                   className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm disabled:bg-slate-100"

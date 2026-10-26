@@ -1,5 +1,4 @@
 import {
-  IsDecimal,
   IsString,
   IsDate,
   IsOptional,
@@ -57,8 +56,8 @@ export class CreatePayrollConfigDto {
   @IsString()
   subsidiaryId: string;
 
-  @IsDecimal({ decimal_digits: '1,2' })
-  @Min(50000, { message: 'Le salaire minimum doit être au moins 50000 FCFA' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(41875, { message: 'Le salaire minimum configuré est inférieur au plancher légal de 41875 FCFA' })
   @Max(500000, {
     message: 'Le salaire minimum ne peut pas dépasser 500000 FCFA',
   })
@@ -68,16 +67,17 @@ export class CreatePayrollConfigDto {
   @IsOptional()
   minWagePeriod?: string;
 
+  @Type(() => Date)
   @IsDate()
   minWageEffectiveDate: Date;
 
-  @IsDecimal({ decimal_digits: '1,4' })
+  @IsNumber({ maxDecimalPlaces: 4 })
   @Min(0, { message: 'Le taux CNPS employé ne peut pas être négatif' })
   @Max(0.2, { message: 'Le taux CNPS employé ne peut pas dépasser 20%' })
   @IsOptional()
   cnpsEmployeeRate?: number;
 
-  @IsDecimal({ decimal_digits: '1,4' })
+  @IsNumber({ maxDecimalPlaces: 4 })
   @Min(0, { message: 'Le taux CNPS employeur ne peut pas être négatif' })
   @Max(0.3, { message: 'Le taux CNPS employeur ne peut pas dépasser 30%' })
   @IsOptional()
@@ -86,7 +86,7 @@ export class CreatePayrollConfigDto {
 
 export class UpdatePayrollConfigDto {
   @IsNumber({}, { message: 'Le salaire minimum doit être un nombre' })
-  @Min(50000, { message: 'Le salaire minimum doit être au moins 50000 FCFA' })
+  @Min(41875, { message: 'Le salaire minimum configuré est inférieur au plancher légal de 41875 FCFA' })
   @Max(500000, {
     message: 'Le salaire minimum ne peut pas dépasser 500000 FCFA',
   })

@@ -4,6 +4,7 @@ import App from './App'; // Nous allons refactorer App.tsx pour qu'il devienne n
 import { useAppContext } from './context/AppContext';
 import { useAuth } from './context/AuthContext'; // Importez le hook d'authentification
 import LoginPage from './Pages/LoginPage';
+import ResetPasswordPage from './Pages/ResetPasswordPage';
 import PointagePage from './Pages/PointagePage';
 import ECommercePage from './components/ecommerce/ECommercePage';
 import RealisationsPage from './components/ecommerce/RealisationsPage';
@@ -37,6 +38,8 @@ import SecuritySettings from './Pages/SecuritySettings';
 import PayrollSigningPage from './Pages/PayrollSigningPage';
 import BonusManagement from './components/hr/BonusManagement';
 import { getDefaultViewForRole, ANALYTICS_ALLOWED_ROLES } from './utils/roleViews';
+import { UserRole } from './types';
+import PreHireTrainingManagement from './components/hr/PreHireTrainingManagement';
 
 // Le token "user" vit dans un cookie httpOnly (illisible en JS) - au chargement
 // de l'app, AuthContext doit d'abord interroger le serveur pour savoir si une
@@ -99,6 +102,15 @@ const loginRoute = createRoute({
   }),
 });
 
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/reset-password',
+  component: ResetPasswordPage,
+  validateSearch: (search: Record<string, unknown>): { token?: string } => ({
+    token: typeof search.token === 'string' ? search.token : undefined,
+  }),
+});
+
 const pointageRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/pointage',
@@ -140,6 +152,12 @@ const dashboardRoute = createRoute({
           redirect: location.href,
         },
       });
+    }
+    if (
+      context.auth.authLive.current.activeRole === UserRole.PRE_HIRE_MANAGER &&
+      location.pathname !== '/dashboard/hr/pre-hire-training'
+    ) {
+      throw redirect({ to: '/dashboard/hr/pre-hire-training' });
     }
   },
   // Meme raisonnement que waitForAuthResolved ci-dessus: on lit
@@ -209,6 +227,17 @@ const securityRoute = createRoute({ getParentRoute: () => dashboardRoute, path: 
 const secretariatRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/secretariat', component: Secretariat });
 const hrRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/hr', component: HrManagement });
 
+const PreHireTrainingRoute: React.FC = () => {
+  const { subsidiary } = useAuth();
+  return <PreHireTrainingManagement subsidiaryId={subsidiary?.id || ''} onConverted={() => {}} />;
+};
+
+const hrPreHireTrainingRoute = createRoute({
+  getParentRoute: () => hrRoute,
+  path: '/pre-hire-training',
+  component: PreHireTrainingRoute,
+});
+
 // AttendanceCards prend `subsidiary` en prop obligatoire (meme convention que dans
 // HrManagement.tsx) - un composant de route ne recoit pas de props custom, d'ou ce
 // petit wrapper qui lit le contexte auth comme le fait HrManagement.
@@ -268,6 +297,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   realisationsRoute,
   loginRoute,
+  resetPasswordRoute,
   pointageRoute,
   customerAccountRoute,
   dashboardRoute.addChildren([
@@ -290,6 +320,7 @@ const routeTree = rootRoute.addChildren([
     notificationsRoute,
     configurationRoute,
     hrRoute.addChildren([
+      hrPreHireTrainingRoute,
       hrCardsRoute,
       hrHistoryRoute,
       hrSigningRoute,

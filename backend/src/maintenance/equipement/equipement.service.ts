@@ -5,8 +5,12 @@ import {
   SearchEquipmentDto,
 } from './dto/create-equipement.dto';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
-import { generateId } from 'src/common/utils/generate-id.util';
-import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
+import { JwtUser } from '../../common/auth/jwt/jwt-user.interface';
+import {
+  resolveScopeContext,
+  withSubsidiaryScope,
+} from '../../common/utils/subsidiary-scope';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class EquipementService {
@@ -17,18 +21,19 @@ export class EquipementService {
     subsidiary: true,
   };
 
-  async create(createEquipementDto: CreateEquipmentDto, user: any) {
-    const isSuperAdmin =
-      user.role === 'SUPER_ADMIN' || user.userRole === 'SUPER_ADMIN';
+  async create(createEquipementDto: CreateEquipmentDto, user: JwtUser) {
+    const ctx = resolveScopeContext(user);
     const subsidiaryId =
-      isSuperAdmin && createEquipementDto.subsidiaryId
+      ctx.hasGlobalScope && createEquipementDto.subsidiaryId
         ? createEquipementDto.subsidiaryId
-        : user.subsidiaryId;
+        : ctx.subsidiaryId;
 
-    const { subsidiaryId: _ignored, ...rest } = createEquipementDto;
+    const rest = createEquipementDto;
     const equipment = await this.prisma.equipment.create({
       data: {
-        ...rest,
+        equipmentName: rest.equipmentName,
+        status: rest.status,
+        acquisitionValue: rest.acquisitionValue,
         lastMaintenanceDate: new Date(rest.lastMaintenanceDate),
         nextMaintenanceDate: new Date(rest.nextMaintenanceDate),
         acquisitionDate: new Date(rest.acquisitionDate),
@@ -39,14 +44,12 @@ export class EquipementService {
     return equipment;
   }
 
-  async findAll(user: any, querySubsidiaryId?: string) {
-    const isSuperAdmin =
-      user.role === 'SUPER_ADMIN' || user.userRole === 'SUPER_ADMIN';
-    const where = isSuperAdmin
-      ? querySubsidiaryId
-        ? { subsidiaryId: querySubsidiaryId }
-        : {}
-      : { subsidiaryId: user.subsidiaryId };
+  async findAll(user: JwtUser, querySubsidiaryId?: string) {
+    const where = withSubsidiaryScope(
+      {},
+      resolveScopeContext(user),
+      querySubsidiaryId,
+    );
 
     const equipments = await this.prisma.equipment.findMany({
       where,
@@ -68,9 +71,9 @@ export class EquipementService {
    * @param id // ID de l'équipement
    * @returns // Équipement trouvé
    */
-  async findOne(id: string) {
+  async findOne(id: string, user: JwtUser) {
     const equipment = await this.prisma.equipment.findUnique({
-      where: { id },
+      where: withSubsidiaryScope({ id }, resolveScopeContext(user)),
       include: this.includeAll,
     });
     if (!equipment) {
@@ -85,10 +88,18 @@ export class EquipementService {
    * @param updateEquipementDto // DTO contenant les données de l'équipement à mettre à jour
    * @returns // Équipement mis à jour
    */
-  async update(id: string, updateEquipementDto: UpdateEquipmentDto, user: any) {
-    await this.findOne(id);
-    const { subsidiaryId: _ignored, ...rest } = updateEquipementDto;
-    const data: any = { ...rest };
+  async update(
+    id: string,
+    updateEquipementDto: UpdateEquipmentDto,
+    user: JwtUser,
+  ) {
+    await this.findOne(id, user);
+    const rest = updateEquipementDto;
+    const data: Prisma.EquipmentUpdateInput = {
+      equipmentName: rest.equipmentName,
+      status: rest.status,
+      acquisitionValue: rest.acquisitionValue,
+    };
     if (rest.lastMaintenanceDate)
       data.lastMaintenanceDate = new Date(rest.lastMaintenanceDate);
     if (rest.nextMaintenanceDate)
@@ -97,7 +108,7 @@ export class EquipementService {
       data.acquisitionDate = new Date(rest.acquisitionDate);
 
     const equipment = await this.prisma.equipment.update({
-      where: { id },
+      where: withSubsidiaryScope({ id }, resolveScopeContext(user)),
       data,
       include: this.includeAll,
     });
@@ -112,10 +123,10 @@ export class EquipementService {
    * @param id // ID de l'équipement
    * @returns // Équipement supprimé
    */
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, user: JwtUser) {
+    await this.findOne(id, user);
     const equipment = await this.prisma.equipment.delete({
-      where: { id },
+      where: withSubsidiaryScope({ id }, resolveScopeContext(user)),
       include: this.includeAll,
     });
     return equipment;
@@ -126,11 +137,12 @@ export class EquipementService {
    * @param query // DTO contenant les filtres de recherche
    * @returns // Liste des équipements correspondant aux filtres
    */
-  async search(query: SearchEquipmentDto, user: any) {
+  async search(query: SearchEquipmentDto, user: JwtUser) {
     // On construit l'objet "where" pour Prisma en fonction des filtres fournis
-    const where: any = {
-      subsidiaryId: user.subsidiaryId, // on limite à la filiale de l’utilisateur
-    };
+    const where: Prisma.EquipmentWhereInput = withSubsidiaryScope(
+      {},
+      resolveScopeContext(user),
+    );
 
     // Filtrage par nom de l'équipement (partiel, insensible à la casse)
     if (query.equipmentName) {

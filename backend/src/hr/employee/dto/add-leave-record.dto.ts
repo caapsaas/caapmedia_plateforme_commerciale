@@ -1,8 +1,7 @@
 import {
   IsDate,
   IsNotEmpty,
-  IsOptional,
-  IsNumber,
+  IsInt,
   IsEnum,
   Min,
 } from 'class-validator';
@@ -20,10 +19,9 @@ export class AddLeaveRecordDto {
   @Transform(({ value }) => new Date(value))
   endDate: Date;
 
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  days?: number;
+  @IsInt()
+  @Min(1)
+  days: number;
 
   @IsNotEmpty()
   @IsEnum(LeaveType, { message: 'Invalid leave type' })

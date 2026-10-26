@@ -67,7 +67,7 @@ const LeaveManagementSection: React.FC<LeaveManagementSectionProps> = ({
     if (newRecord.startDate && newRecord.endDate && newRecord.startDate > newRecord.endDate) {
       errors.endDate = t('hr.leaves.validation.endDateAfterStart');
     }
-    if (!newRecord.days || newRecord.days <= 0) {
+    if (!newRecord.days || newRecord.days <= 0 || !Number.isInteger(newRecord.days)) {
       errors.days = t('hr.leaves.validation.daysRequired');
     }
 
@@ -302,7 +302,7 @@ const LeaveManagementSection: React.FC<LeaveManagementSectionProps> = ({
                   }
                   error={recordErrors.days}
                   min="1"
-                  step="0.5"
+                  step="1"
                 />
               </div>
 
@@ -333,6 +333,7 @@ const LeaveManagementSection: React.FC<LeaveManagementSectionProps> = ({
 
               <div className="flex gap-2 justify-end">
                 <Button
+                  type="button"
                   variant="secondary"
                   onClick={() => {
                     setShowAddRecord(false);
@@ -341,7 +342,7 @@ const LeaveManagementSection: React.FC<LeaveManagementSectionProps> = ({
                 >
                   {t('hr.cancel')}
                 </Button>
-                <Button variant="primary" onClick={handleAddRecord}>
+                <Button type="button" variant="primary" onClick={handleAddRecord}>
                   {t('hr.leaves.addRecord')}
                 </Button>
               </div>

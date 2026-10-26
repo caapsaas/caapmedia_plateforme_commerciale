@@ -197,9 +197,9 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = () => {
   ];
 
   return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden">
+    <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
       {/* Header */}
-      <div className="p-6 border-b-2 border-slate-200">
+      <div className="border-b border-slate-200/80 p-5 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-slate-800">
@@ -239,7 +239,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = () => {
       </div>
 
       {/* Barre de recherche + filtres */}
-      <div className="p-4 bg-slate-50 border-b border-slate-200 space-y-3">
+      <div className="space-y-3 border-b border-slate-200/80 bg-white p-4">
         <div className="flex flex-col md:flex-row gap-3">
           {/* Recherche */}
           <div className="relative flex-1">
@@ -321,7 +321,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = () => {
       {/* Tableau */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gradient-to-r from-slate-50 to-slate-100 border-b-2 border-slate-200">
+            <thead className="border-b border-slate-200 bg-slate-50">
               <tr>
                 <th className="px-6 py-4 text-left font-semibold text-slate-700">
                   Employé

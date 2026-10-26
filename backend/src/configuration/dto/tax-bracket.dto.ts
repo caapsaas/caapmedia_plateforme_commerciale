@@ -1,49 +1,64 @@
-import { IsDecimal, IsDate, IsOptional } from 'class-validator';
+import { IsNumber, IsDate, IsOptional, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateTaxBracketDto {
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
   minSalary: number;
 
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
   @IsOptional()
   maxSalary?: number;
 
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
   rate: number;
 
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
   @IsOptional()
   deductible?: number;
 
+  @Type(() => Date)
   @IsDate()
   effectiveDate: Date;
 
+  @Type(() => Date)
   @IsDate()
   @IsOptional()
   expiryDate?: Date;
 }
 
 export class UpdateTaxBracketDto {
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
   @IsOptional()
   minSalary?: number;
 
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
   @IsOptional()
   maxSalary?: number;
 
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
   @IsOptional()
   rate?: number;
 
-  @IsDecimal({ decimal_digits: '1,2' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
   @IsOptional()
   deductible?: number;
 
+  @Type(() => Date)
   @IsDate()
   @IsOptional()
   effectiveDate?: Date;
 
+  @Type(() => Date)
   @IsDate()
   @IsOptional()
   expiryDate?: Date;

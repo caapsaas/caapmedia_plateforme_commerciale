@@ -63,10 +63,10 @@ const MesCommandes: React.FC = () => {
         enabled: !!subsidiary,
     });
 
-    const { mutate: placeOrderMutation } = useMutation({
+    const { mutateAsync: placeOrderMutation } = useMutation({
         mutationFn: createOrderBySalesRepJson,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['customerOrders', currentCustomer?.id] });
+            queryClient.invalidateQueries({ queryKey: ['customerOrders'] });
             setActiveTab('history');
         },
     });
@@ -91,7 +91,7 @@ const MesCommandes: React.FC = () => {
 
     const productOptions = products.map(p => ({ value: p.id, label: p.name }));
 
-    const handlePlaceOrder = (newOrderData: Omit<Order, 'id' | 'subsidiaryId'>) => {
+    const handlePlaceOrder = async (newOrderData: Omit<Order, 'id' | 'subsidiaryId'>) => {
         // Préparer les données selon la structure attendue par CreateOrderBySalesRepDto
         const orderPayload = {
             customerId: newOrderData.customerId,
@@ -100,10 +100,13 @@ const MesCommandes: React.FC = () => {
             paymentMethod: newOrderData.paymentMethod || 'PAY_ON_DELIVERY',
             source: 'MANUAL',
             items: newOrderData.items.map(item => ({
-                productId: item.product.id,
+                productId: item.product!.id,
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
                 discount: item.discount,
+                assemblyPrice: item.assemblyPrice,
+                productionSteps: item.productionSteps,
+                productionSummary: item.productionSummary,
                 options: item.options ? Object.entries(item.options).map(([key, value]) => ({
                     optionType: key,
                     optionValue: value
@@ -114,7 +117,7 @@ const MesCommandes: React.FC = () => {
             applyTax: newOrderData.applyTax,
         };
 
-        placeOrderMutation(orderPayload);
+        await placeOrderMutation(orderPayload);
     };
 
     const handleViewBL = (order: Order) => {

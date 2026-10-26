@@ -7,7 +7,6 @@ import {
   Param,
   Body,
   UseGuards,
-  ForbiddenException,
 } from '@nestjs/common';
 import { SalaryComponentService } from '../services/salary-component.service';
 import {
@@ -19,18 +18,16 @@ import { RoleGuard } from '../../common/auth/role/role.guard';
 import { Roles, CurrentUser } from '../../common/auth/role/role.decorator';
 import type { JwtUser } from '../../common/auth/jwt/jwt-user.interface';
 import { UserRole } from '@prisma/client';
+import { ConfigurationAccessService } from '../services/configuration-access.service';
 
 @Controller('configuration/salary-components')
 @UseGuards(JwtAuthGuard, RoleGuard)
 @Roles(UserRole.ADMIN, UserRole.HR_MANAGER)
 export class SalaryComponentController {
-  constructor(private readonly service: SalaryComponentService) {}
-
-  private validateSubsidiaryAccess(user: JwtUser, subsidiaryId: string): void {
-    if (user.role !== UserRole.ADMIN && user.subsidiaryId !== subsidiaryId) {
-      throw new ForbiddenException("Vous n'avez pas accès à cette filiale");
-    }
-  }
+  constructor(
+    private readonly service: SalaryComponentService,
+    private readonly access: ConfigurationAccessService,
+  ) {}
 
   @Post(':subsidiaryId')
   async create(
@@ -38,17 +35,19 @@ export class SalaryComponentController {
     @Body() dto: CreateSalaryComponentDto,
     @CurrentUser() user: JwtUser,
   ) {
-    this.validateSubsidiaryAccess(user, subsidiaryId);
+    await this.access.assertSubsidiaryConfigAccess(subsidiaryId, user);
     return this.service.create(subsidiaryId, dto, user);
   }
 
   @Get('config/:configId')
-  async getByConfigId(@Param('configId') configId: string) {
+  async getByConfigId(@Param('configId') configId: string, @CurrentUser() user: JwtUser) {
+    await this.access.assertConfigAccess(configId, user);
     return this.service.getByConfigId(configId);
   }
 
   @Get('config/:configId/active')
-  async getActiveByConfigId(@Param('configId') configId: string) {
+  async getActiveByConfigId(@Param('configId') configId: string, @CurrentUser() user: JwtUser) {
+    await this.access.assertConfigAccess(configId, user);
     return this.service.getActiveByConfigId(configId);
   }
 
@@ -58,6 +57,7 @@ export class SalaryComponentController {
     @Body() dto: UpdateSalaryComponentDto,
     @CurrentUser() user: JwtUser,
   ) {
+    await this.access.assertSalaryComponentAccess(componentId, user);
     return this.service.update(componentId, dto, user);
   }
 
@@ -66,6 +66,7 @@ export class SalaryComponentController {
     @Param('componentId') componentId: string,
     @CurrentUser() user: JwtUser,
   ) {
+    await this.access.assertSalaryComponentAccess(componentId, user);
     return this.service.delete(componentId, user);
   }
 
@@ -74,6 +75,7 @@ export class SalaryComponentController {
     @Param('componentId') componentId: string,
     @CurrentUser() user: JwtUser,
   ) {
+    await this.access.assertSalaryComponentAccess(componentId, user);
     return this.service.deactivate(componentId, user);
   }
 
@@ -83,6 +85,8 @@ export class SalaryComponentController {
     @Body() components: { id: string; displayOrder: number }[],
     @CurrentUser() user: JwtUser,
   ) {
+    await this.access.assertConfigAccess(configId, user);
+    await Promise.all(components.map(({ id }) => this.access.assertSalaryComponentAccess(id, user)));
     return this.service.reorder(components, user);
   }
 }

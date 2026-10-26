@@ -25,11 +25,16 @@ const SpecReferenceListsManagement: React.FC = () => {
     const [newListName, setNewListName] = useState('');
     const [isAddingList, setIsAddingList] = useState(false);
     const [newValueDrafts, setNewValueDrafts] = useState<Record<string, { value: string; label: string }>>({});
+    const [search, setSearch] = useState('');
 
     const { data: lists = [], isLoading } = useQuery<SpecReferenceList[]>({
         queryKey: ['spec-reference-lists'],
         queryFn: getReferenceLists,
     });
+    const filteredLists = lists.filter((list) =>
+        [list.name, list.key, ...list.values.flatMap((value) => [value.value, value.label])]
+            .some((value) => value?.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())),
+    );
 
     const invalidate = () => queryClient.invalidateQueries({ queryKey: ['spec-reference-lists'] });
 
@@ -74,6 +79,8 @@ const SpecReferenceListsManagement: React.FC = () => {
                 </button>
             </div>
 
+            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('common.search')} aria-label={t('common.search')} className="mb-4 w-full rounded-md border border-slate-300 px-4 py-2 text-sm md:max-w-sm" />
+
             {isLoading ? (
                 <div className="space-y-3">
                     {Array.from({ length: 3 }).map((_, i) => (
@@ -104,7 +111,7 @@ const SpecReferenceListsManagement: React.FC = () => {
             )}
 
             <div className="space-y-3">
-                {lists.map(list => {
+                {filteredLists.map(list => {
                     const isExpanded = expandedListId === list.id;
                     const draft = newValueDrafts[list.id] ?? { value: '', label: '' };
                     return (

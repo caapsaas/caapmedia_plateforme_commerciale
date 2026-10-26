@@ -5,6 +5,7 @@ import { Request } from 'express';
 import { PrismaService } from '../../utils/prisma/prisma.service';
 import { LoggerService } from '../../utils/logger/logger.service';
 import { ACCESS_TOKEN_COOKIE } from '../cookie.util';
+import { JwtUser } from '../jwt/jwt-user.interface';
 
 /**
  * Priorite au cookie httpOnly (mecanisme normal depuis la migration cookie),
@@ -31,7 +32,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any) {
+  async validate(payload: any): Promise<JwtUser | null> {
     // Token intermediaire 2FA (voir auth.service.ts login()): ne doit JAMAIS
     // etre accepte comme access token, meme s'il porte un `sub` valide -
     // sinon un token pending vole permettrait de contourner le 2eme facteur.

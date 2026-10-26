@@ -88,6 +88,9 @@ export class PayrollRecordService {
       if (!employee) {
         throw new NotFoundException(`Employé ${employeeId} introuvable`);
       }
+      const payrollConfig = await this.prisma.payrollConfiguration.findUnique({
+        where: { subsidiaryId },
+      });
 
       calculated = this.calculator.calculate({
         baseSalary: Number(employee.baseSalary),
@@ -97,6 +100,7 @@ export class PayrollRecordService {
         riskGroup: 'A',
         applyCfc: true,
         applyFne: true,
+        payrollConfig: this.getCalculatorConfig(payrollConfig),
       });
     }
 
@@ -411,6 +415,10 @@ export class PayrollRecordService {
       );
     }
 
+    const payrollConfig = await this.prisma.payrollConfiguration.findUnique({
+      where: { subsidiaryId },
+    });
+
     // --- 1. Récupérer les employés ACTIVE de la filiale ---
     const activeEmployees = await this.prisma.employee.findMany({
       where: {
@@ -482,6 +490,14 @@ export class PayrollRecordService {
 
     // Si forceRegenerate, supprimer les fiches existantes et traiter tous les employés
     if (options?.forceRegenerate && existingPayrolls.length > 0) {
+      const protectedPayrolls = existingPayrolls.filter((payroll) =>
+        ([PayrollStatus.SIGNED, PayrollStatus.PAID] as PayrollStatus[]).includes(payroll.status),
+      );
+      if (protectedPayrolls.length > 0) {
+        throw new ConflictException(
+          `Régénération refusée : ${protectedPayrolls.length} fiche(s) sont signées ou payées. Corrigez-les par un processus de régularisation.`,
+        );
+      }
       this.logger.log(
         `🔄 Mode régénération: suppression de ${existingPayrolls.length} fiche(s) existante(s)`,
       );
@@ -512,35 +528,33 @@ export class PayrollRecordService {
     const applyCfc = options?.applyCfc ?? true;
     const applyFne = options?.applyFne ?? true;
 
-    // Phase 4: Récupérer les cumuls annuels (pour calculs progressifs)
+    // Recalculer les cumuls précédant la période à partir des fiches source.
+    // Cela évite de reprendre une fiche du même mois lors d'une régénération,
+    // et reste exact même si le cumul matérialisé doit être réparé.
     const year = period.substring(0, 4);
-    const cumulativesMap = new Map();
-
-    const cumulatives = await this.prisma.payrollCumulative.findMany({
+    const previousPayrolls = await this.prisma.payrollRecord.findMany({
       where: {
         subsidiaryId,
-        year,
-        month: null, // cumul annuel
+        payrollPeriod: { gte: `${year}-01`, lt: period },
         employeeId: { in: employeesToProcess.map((e) => e.id) },
       },
+      select: { employeeId: true, grossSalary: true, cnpsEmployee: true, irpp: true },
     });
-
-    cumulatives.forEach((cum) => {
-      cumulativesMap.set(cum.employeeId, cum);
+    const cumulativesMap = new Map<string, { gross: number; cnps: number; irpp: number }>();
+    previousPayrolls.forEach((payroll) => {
+      const previous = cumulativesMap.get(payroll.employeeId) ?? { gross: 0, cnps: 0, irpp: 0 };
+      previous.gross += Number(payroll.grossSalary);
+      previous.cnps += Number(payroll.cnpsEmployee);
+      previous.irpp += Number(payroll.irpp);
+      cumulativesMap.set(payroll.employeeId, previous);
     });
 
     const newPayrollsData = employeesToProcess.map((employee) => {
       // Récupérer les cumuls pour cet employé
       const employeeCumulative = cumulativesMap.get(employee.id);
-      const previousCnpsCumulative = employeeCumulative
-        ? Number(employeeCumulative.cnpsCumulative)
-        : 0;
-      const previousIrppCumulative = employeeCumulative
-        ? Number(employeeCumulative.irppCumulative)
-        : 0;
-      const previousGrossCumulative = employeeCumulative
-        ? Number(employeeCumulative.grossCumululative)
-        : 0;
+      const previousCnpsCumulative = employeeCumulative?.cnps ?? 0;
+      const previousIrppCumulative = employeeCumulative?.irpp ?? 0;
+      const previousGrossCumulative = employeeCumulative?.gross ?? 0;
 
       // Convertir les indemnities en allowances (sum)
       const totalIndemnities = Array.isArray(employee.indemnities)
@@ -561,6 +575,7 @@ export class PayrollRecordService {
         previousCnpsCumulative,
         previousIrppCumulative,
         previousGrossCumulative,
+        payrollConfig: this.getCalculatorConfig(payrollConfig),
       });
 
       return {
@@ -606,8 +621,8 @@ export class PayrollRecordService {
         ],
         calculationMeta: {
           riskGroup,
-          cnpsCap: 750000,
-          cnpsEmployeeRate: 0.042,
+          cnpsCap: Number(payrollConfig?.cnpsCap ?? 750000),
+          cnpsEmployeeRate: Number(payrollConfig?.cnpsEmployeeRate ?? 0.042),
           cfcEmployeeRate: applyCfc ? 0.01 : 0,
           totalIndemnities,
           calculatedAt: new Date().toISOString(),
@@ -672,13 +687,53 @@ export class PayrollRecordService {
 
     for (const payroll of newPayrolls) {
       try {
-        // Mettre à jour les cumuls
-        await this.cumulative.updateCumulatives(
-          this.prisma as unknown as Prisma.TransactionClient,
-          payroll,
-        );
+        // Les cumuls sont reconstruits depuis les fiches existantes afin que
+        // relancer le traitement d'une période ne double jamais les montants.
+        const year = payroll.payrollPeriod.substring(0, 4);
+        const annualRecords = await this.prisma.payrollRecord.findMany({
+          where: { employeeId: payroll.employeeId, payrollPeriod: { startsWith: year } },
+          orderBy: { payrollPeriod: 'desc' },
+        });
+        const totals = annualRecords.reduce((acc, record) => ({
+          gross: acc.gross + Number(record.grossSalary),
+          deductions: acc.deductions + Number(record.deductions),
+          net: acc.net + Number(record.netSalary),
+          cnps: acc.cnps + Number(record.cnpsEmployee),
+          cfc: acc.cfc + Number(record.cfcEmployee),
+          irpp: acc.irpp + Number(record.irpp),
+          cac: acc.cac + Number(record.cac),
+        }), { gross: 0, deductions: 0, net: 0, cnps: 0, cfc: 0, irpp: 0, cac: 0 });
+        await this.prisma.payrollCumulative.upsert({
+          where: { employeeId_year_month: { employeeId: payroll.employeeId, year, month: null } },
+          create: {
+            id: generateId(ID_PREFIXES.PAYROLL_CUMULATIVE),
+            employeeId: payroll.employeeId,
+            subsidiaryId: payroll.subsidiaryId,
+            year,
+            month: null,
+            grossCumululative: new Prisma.Decimal(totals.gross),
+            deductionsCumululative: new Prisma.Decimal(totals.deductions),
+            netCumululative: new Prisma.Decimal(totals.net),
+            cnpsCumulative: new Prisma.Decimal(totals.cnps),
+            cfcCumulative: new Prisma.Decimal(totals.cfc),
+            irppCumulative: new Prisma.Decimal(totals.irpp),
+            cacCumulative: new Prisma.Decimal(totals.cac),
+            lastPayrollId: annualRecords[0]?.id ?? null,
+          },
+          update: {
+            grossCumululative: new Prisma.Decimal(totals.gross),
+            deductionsCumululative: new Prisma.Decimal(totals.deductions),
+            netCumululative: new Prisma.Decimal(totals.net),
+            cnpsCumulative: new Prisma.Decimal(totals.cnps),
+            cfcCumulative: new Prisma.Decimal(totals.cfc),
+            irppCumulative: new Prisma.Decimal(totals.irpp),
+            cacCumulative: new Prisma.Decimal(totals.cac),
+            lastPayrollId: annualRecords[0]?.id ?? null,
+          },
+        });
 
         // Créer les détails de déductions
+        await this.prisma.payrollDeductionDetail.deleteMany({ where: { payrollRecordId: payroll.id } });
         await this.cumulative.createDeductionDetails(
           this.prisma as unknown as Prisma.TransactionClient,
           payroll.id,
@@ -721,6 +776,10 @@ export class PayrollRecordService {
       throw new NotFoundException(`Employé ${employeeId} introuvable`);
     }
 
+    const payrollConfig = await this.prisma.payrollConfiguration.findUnique({
+      where: { subsidiaryId: employee.subsidiaryId },
+    });
+
     const result = this.calculator.calculate({
       baseSalary: Number(employee.baseSalary),
       bonus: options?.bonus ?? Number(employee.bonus || 0),
@@ -729,6 +788,7 @@ export class PayrollRecordService {
       riskGroup: options?.riskGroup ?? 'A',
       applyCfc: true,
       applyFne: true,
+      payrollConfig: this.getCalculatorConfig(payrollConfig),
     });
 
     return {
@@ -744,11 +804,20 @@ export class PayrollRecordService {
   /**
    * Récupère les fiches de paie d'un employé
    */
-  async findByEmployee(employeeId: string): Promise<PayrollRecord[]> {
+  async findByEmployee(employeeId: string, subsidiaryId?: string): Promise<PayrollRecord[]> {
     return this.prisma.payrollRecord.findMany({
-      where: { employeeId },
+      where: { employeeId, ...(subsidiaryId ? { subsidiaryId } : {}) },
       orderBy: { payrollPeriod: 'desc' },
     });
+  }
+
+  async findEmployeeForScope(employeeId: string): Promise<{ subsidiaryId: string }> {
+    const employee = await this.prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: { subsidiaryId: true },
+    });
+    if (!employee) throw new NotFoundException(`Employé ${employeeId} introuvable`);
+    return employee;
   }
 
   /**
@@ -775,5 +844,34 @@ export class PayrollRecordService {
       },
       orderBy: { employeeName: 'asc' },
     });
+  }
+
+  private getCalculatorConfig(config: {
+    cnpsEmployeeRate: Prisma.Decimal;
+    cnpsEmployerRate: Prisma.Decimal;
+    cfcEmployeeRate: Prisma.Decimal;
+    cfcEmployerRate: Prisma.Decimal;
+    fneRate: Prisma.Decimal;
+    cnpsCap: Prisma.Decimal;
+    professionalExpenseRate: Prisma.Decimal;
+    fixedAbatementAnnual: Prisma.Decimal;
+    riskGroupARate: Prisma.Decimal;
+    riskGroupBRate: Prisma.Decimal;
+    riskGroupCRate: Prisma.Decimal;
+  } | null) {
+    if (!config) return undefined;
+    return {
+      cnpsEmployeeRate: Number(config.cnpsEmployeeRate),
+      cnpsEmployerRate: Number(config.cnpsEmployerRate),
+      cfcEmployeeRate: Number(config.cfcEmployeeRate),
+      cfcEmployerRate: Number(config.cfcEmployerRate),
+      fneRate: Number(config.fneRate),
+      cnpsCap: Number(config.cnpsCap),
+      professionalExpenseRate: Number(config.professionalExpenseRate),
+      fixedAbatementAnnual: Number(config.fixedAbatementAnnual),
+      riskGroupARate: Number(config.riskGroupARate),
+      riskGroupBRate: Number(config.riskGroupBRate),
+      riskGroupCRate: Number(config.riskGroupCRate),
+    };
   }
 }

@@ -115,7 +115,7 @@ export const DynamicQrDisplay: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-md p-6">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin w-8 h-8 border-4 border-slate-300 border-t-[#c6e911] rounded-full"></div>
         </div>
@@ -125,7 +125,7 @@ export const DynamicQrDisplay: React.FC = () => {
 
   if (error) {
     return (
-      <div className="bg-white rounded-xl shadow-md p-6">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
           <button
@@ -140,7 +140,7 @@ export const DynamicQrDisplay: React.FC = () => {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6">
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-xl font-bold text-slate-800">QR Code de Pointage</h3>
         <button

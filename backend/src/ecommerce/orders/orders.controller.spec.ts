@@ -1,18 +1,27 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { OrdersController } from './orders.controller';
+import { OrdersService } from './orders.service';
 
-describe('OrdersController', () => {
-  let controller: OrdersController;
+describe('OrdersController customer identity', () => {
+  const service = {
+    findOneForCustomer: jest.fn(),
+    findGroupsByCustomer: jest.fn(),
+  };
+  const controller = new OrdersController(service as unknown as OrdersService);
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [OrdersController],
-    }).compile();
+  beforeEach(() => jest.clearAllMocks());
 
-    controller = module.get<OrdersController>(OrdersController);
+  it('passes the authenticated customer to the ownership-aware detail query', async () => {
+    const req = { user: { id: 'customer' } };
+    await controller.findOne('order', req);
+    expect(service.findOneForCustomer).toHaveBeenCalledWith('order', req.user);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('passes the authenticated customer when an identifier is supplied in the URL', async () => {
+    const req = { user: { id: 'customer' } };
+    await controller.findByCustomer('other-customer', req);
+    expect(service.findGroupsByCustomer).toHaveBeenCalledWith(
+      'other-customer',
+      req.user,
+    );
   });
 });

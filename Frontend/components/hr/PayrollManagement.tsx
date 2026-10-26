@@ -44,6 +44,11 @@ interface PayrollManagementProps {
   >;
 }
 
+const getLocalPayrollPeriod = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+};
+
 const PayrollManagement: React.FC<PayrollManagementProps> = ({
   subsidiary,
   employees,
@@ -66,7 +71,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
   const [viewingDetails, setViewingDetails] = useState<PayrollRecord | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState(
-    new Date().toISOString().slice(0, 7), // YYYY-MM
+    getLocalPayrollPeriod(),
   );
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -129,10 +134,14 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
       toast.error('Période invalide', 'Sélectionnez une période valide');
       return;
     }
+    if (!targetSubsidiaryId) {
+      toast.error('Filiale requise', 'Sélectionnez une filiale avant de calculer les charges.');
+      return;
+    }
 
     setIsGeneratingCharges(true);
     try {
-      const result: any = await accumulateCharges(month);
+      const result: any = await accumulateCharges(month, targetSubsidiaryId);
 
       if (result.totalPayrolls === 0) {
         setIsGeneratingCharges(false);
@@ -152,16 +161,9 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
     }
   };
 
-  const handleConfirmCharges = () => {
-    if (chargesData) {
-      const month = selectedPeriod;
-      toast.success(
-        'Charges générées',
-        `${chargesData.totalPayrolls} fiche(s) de paie - Total: ${formatCurrency(chargesData.grandTotalAllCharges)}`
-      );
-      setShowChargesConfirmation(false);
-      setChargesData(null);
-    }
+  const closeChargesSummary = () => {
+    setShowChargesConfirmation(false);
+    setChargesData(null);
   };
 
   // Utiliser les données globales ou filiales selon la vue
@@ -245,15 +247,14 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
 
     setIsProcessing(true);
 
-    // Préparer le payload avec subsidiaryId si SUPER_ADMIN
+    // La page parent fournit la filiale active; le backend en a besoin pour
+    // les utilisateurs globaux et vérifie le scope pour les autres rôles.
     const payload: any = {
       period,
+      subsidiaryId: targetSubsidiaryId,
       riskGroup: 'A',
       forceRegenerate
     };
-    if (isSuperAdmin && selectedSubsidiaryId) {
-      payload.subsidiaryId = selectedSubsidiaryId;
-    }
 
     onProcessPayroll(
       payload,
@@ -368,141 +369,83 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
   // ============================================================
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-      {/* En-tête */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div>
-          <h3 className="text-xl font-semibold text-slate-800">
-            {t('hr.payroll.title')}
-          </h3>
-          {globalView && (
-            <p className="text-xs text-purple-600 font-medium mt-1">
-              Vue globale - Toutes les filiales
-            </p>
-          )}
+    <div className="space-y-5">
+      <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{t('hr.title')}</p>
+            <h3 className="text-2xl font-semibold tracking-tight text-slate-900">{t('hr.payroll.title')}</h3>
+            <p className="mt-1.5 max-w-2xl text-sm text-slate-500">{t('hr.payroll.subtitle')}</p>
+            {globalView && <p className="mt-2 inline-flex rounded-full bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700">{t('hr.payroll.globalView')}</p>}
+          </div>
+
+          <div className="flex flex-wrap items-end gap-2.5 no-print xl:justify-end">
+            <label className="text-xs font-medium text-slate-500">
+              <span className="mb-1.5 block">{t('hr.payroll.period')}</span>
+              <input type="month" value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-lime-400 focus:ring-4 focus:ring-lime-100" />
+            </label>
+            {isSuperAdmin && (
+              <button onClick={handleToggleGlobalView} disabled={isLoadingGlobal} className={`h-10 rounded-xl border px-3.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${globalView ? 'border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
+                {isLoadingGlobal ? t('hr.payroll.loading') : globalView ? t('hr.payroll.subsidiaryView') : t('hr.payroll.globalView')}
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 no-print">
-          {/* Sélecteur de période */}
-          <input
-            type="month"
-            value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(e.target.value)}
-            className="px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
-          />
-
-          {/* Toggle Vue Globale (SUPER_ADMIN uniquement) */}
-          {isSuperAdmin && (
-            <button
-              onClick={handleToggleGlobalView}
-              disabled={isLoadingGlobal}
-              className={`flex items-center space-x-2 px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
-                globalView
-                  ? 'bg-purple-600 text-white hover:bg-purple-700'
-                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              <span>{isLoadingGlobal ? 'Chargement...' : globalView ? 'Vue filiale' : 'Vue globale'}</span>
-            </button>
-          )}
-
-          <button
-            onClick={() => handleProcessPayroll()}
-            disabled={isProcessing || globalView}
-            className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Générer les fiches de paie (crée ou regénère selon les fiches existantes)"
-          >
-            <span>
-              {isProcessing ? 'Traitement...' : t('hr.payroll.process')}
-            </span>
+        <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4 no-print">
+          <button onClick={() => handleProcessPayroll()} disabled={isProcessing || globalView} className="inline-flex h-10 items-center justify-center rounded-xl bg-[#c6e911] px-4 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-[#b6d90e] disabled:cursor-not-allowed disabled:opacity-50" title={t('hr.payroll.processHelp')}>
+            {isProcessing ? t('hr.payroll.processing') : t('hr.payroll.process')}
           </button>
-
-          <button
-            onClick={handleGoToBonus}
-            className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-md hover:bg-indigo-700 transition-colors"
-            title="Gérer les paiements de bonus"
-          >
-            <span>Paiement des bonus</span>
+          <button onClick={handleGoToBonus} className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">{t('hr.payroll.bonusPayments')}</button>
+          <button onClick={handleAccumulateCharges} disabled={isGeneratingCharges || globalView} className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
+            {isGeneratingCharges ? t('hr.payroll.generatingCharges') : t('hr.payroll.generateCharges')}
           </button>
-
-          <button
-            onClick={handleAccumulateCharges}
-            disabled={isGeneratingCharges || globalView}
-            className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white text-sm font-semibold rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Générer les charges de paies"
-          >
-            <span>
-              {isGeneratingCharges ? 'Génération...' : 'Génération des charges de paies'}
-            </span>
-          </button>
-
-          <button
-            onClick={() => navigate({ to: '/dashboard/hr/signing' })}
-            className="flex items-center space-x-2 px-4 py-2 text-sm font-semibold rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-colors"
-          >
-            <span>Aller au paiement</span>
-          </button>
-
-          <button
-            onClick={handlePrint}
-            className="p-2 text-slate-700 hover:bg-slate-200 rounded-md transition-colors"
-            title={t('common.print')}
-          >
-            <IconPrint className="h-5 w-5" />
-          </button>
-          <button
-            onClick={handleExportCsv}
-            className="p-2 text-slate-700 hover:bg-slate-200 rounded-md transition-colors"
-            title={t('common.export')}
-          >
-            <IconExport className="h-5 w-5" />
-          </button>
-          <button
-            onClick={handleExportPdf}
-            className="p-2 text-slate-700 hover:bg-slate-200 rounded-md transition-colors"
-            title={t('common.exportPdf')}
-          >
-            <IconPdf className="h-5 w-5" />
-          </button>
+          <button onClick={() => navigate({ to: '/dashboard/hr/signing' })} className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-3.5 text-sm font-medium text-white transition hover:bg-slate-700">{t('hr.payroll.goToPayments')}</button>
+          <span className="mx-1 hidden h-6 border-l border-slate-200 sm:block" />
+          <div className="ml-auto flex items-center gap-1">
+            <button onClick={handlePrint} className="rounded-xl p-2.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900" title={t('common.print')} aria-label={t('common.print')}><IconPrint className="h-5 w-5" /></button>
+            <button onClick={handleExportCsv} className="rounded-xl p-2.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900" title={t('common.export')} aria-label={t('common.export')}><IconExport className="h-5 w-5" /></button>
+            <button onClick={handleExportPdf} className="rounded-xl p-2.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900" title={t('common.exportPdf')} aria-label={t('common.exportPdf')}><IconPdf className="h-5 w-5" /></button>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Résumé */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-        <div className="bg-slate-50 rounded-lg p-3">
-          <p className="text-xs text-slate-500">Fiches</p>
-          <p className="text-lg font-bold text-slate-800">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-slate-500">{t('hr.payroll.records')}</p>
+          <p className="mt-2 text-xl font-semibold text-slate-900">
             {filteredPayrolls.length}
           </p>
         </div>
-        <div className="bg-blue-50 rounded-lg p-3">
-          <p className="text-xs text-blue-600">Total Brut</p>
-          <p className="text-lg font-bold text-blue-800">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-slate-500">{t('hr.payroll.totalGross')}</p>
+          <p className="mt-2 text-lg font-semibold text-slate-900">
             {formatCurrency(summary.totalGross)}
           </p>
         </div>
-        <div className="bg-orange-50 rounded-lg p-3">
-          <p className="text-xs text-orange-600">Total Retenues</p>
-          <p className="text-lg font-bold text-orange-800">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-slate-500">{t('hr.payroll.totalDeductions')}</p>
+          <p className="mt-2 text-lg font-semibold text-slate-900">
             {formatCurrency(summary.totalDeductions)}
           </p>
         </div>
-        <div className="bg-green-50 rounded-lg p-3">
-          <p className="text-xs text-green-600">Total Net</p>
-          <p className="text-lg font-bold text-green-800">
+        <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50/60 p-4 shadow-sm">
+          <p className="text-xs font-medium text-emerald-700">{t('hr.payroll.totalNet')}</p>
+          <p className="mt-2 text-lg font-semibold text-emerald-900">
             {formatCurrency(summary.totalNet)}
           </p>
         </div>
-        <div className="bg-yellow-50 rounded-lg p-3">
-          <p className="text-xs text-yellow-600">En attente</p>
-          <p className="text-lg font-bold text-yellow-800">
+        <div className="rounded-2xl border border-amber-200/70 bg-amber-50/60 p-4 shadow-sm">
+          <p className="text-xs font-medium text-amber-700">{t('hr.payroll.pending')}</p>
+          <p className="mt-2 text-xl font-semibold text-amber-900">
             {summary.pendingCount}
           </p>
         </div>
       </div>
 
       {/* Recherche */}
-      <div className="mb-4 no-print">
+      <div className="no-print">
         <SearchBar
           value={searchTerm}
           onChange={setSearchTerm}
@@ -512,69 +455,65 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
       </div>
 
       {/* Tableau */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left text-slate-500">
-          <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+       <div className="overflow-x-auto">
+        <table className="w-full min-w-[980px] text-left text-sm text-slate-600">
+          <thead className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
             <tr>
-              <th className="px-4 py-3">{t('hr.payroll.employee')}</th>
-              {globalView && <th className="px-4 py-3">Filiale</th>}
-              <th className="px-4 py-3">{t('hr.payroll.period')}</th>
-              <th className="px-4 py-3 text-right">Brut</th>
-              <th className="px-4 py-3 text-right">Retenues</th>
-              <th className="px-4 py-3 text-right">{t('hr.payroll.netSalary')}</th>
-              <th className="px-4 py-3">{t('hr.payroll.paymentDate')}</th>
-              <th className="px-4 py-3 text-center">{t('hr.payroll.status')}</th>
-              {/* <th className="px-4 py-3 text-center no-print">
-                {t('hr.payroll.signature')}
-              </th>
-              <th className="px-4 py-3 text-center no-print">
-                {t('common.actions')}
-              </th> */}
+              <th className="px-5 py-3.5">{t('hr.payroll.employee')}</th>
+              {globalView && <th className="px-5 py-3.5">{t('hr.payroll.subsidiary')}</th>}
+              <th className="px-5 py-3.5">{t('hr.payroll.period')}</th>
+              <th className="px-5 py-3.5 text-right">{t('hr.payroll.gross')}</th>
+              <th className="px-5 py-3.5 text-right">{t('hr.payroll.deductions')}</th>
+              <th className="px-5 py-3.5 text-right">{t('hr.payroll.netSalary')}</th>
+              <th className="px-5 py-3.5">{t('hr.payroll.paymentDate')}</th>
+              <th className="px-5 py-3.5 text-center">{t('hr.payroll.status')}</th>
+              <th className="px-5 py-3.5 text-right no-print">{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <TableSkeleton rows={7} columns={globalView ? 8 : 7} />
+              <TableSkeleton rows={7} columns={globalView ? 9 : 8} />
             ) : filteredPayrolls.length === 0 ? (
               <tr>
-                <td colSpan={globalView ? 8 : 7}>
-                  <EmptyState icon="finance" title={t('hr.payroll.title')} description="Aucune fiche de paie trouvée" />
+                <td colSpan={globalView ? 9 : 8}>
+                  <EmptyState icon="finance" title={t('hr.payroll.title')} description={t('hr.payroll.noPayrollFound')} />
                 </td>
               </tr>
             ) : (
               filteredPayrolls.map((record) => (
                 <tr
                   key={record.id}
-                  className="bg-white border-b hover:bg-slate-50"
+                  className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/70"
                 >
-                  <td className="px-4 py-3 font-semibold text-slate-800">
-                    {record.employeeName}
+                  <td className="px-5 py-4 font-medium text-slate-900">
+                    <div className="flex items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs font-semibold text-slate-600">{record.employeeName?.split(/\s+/).slice(0, 2).map((part) => part[0] || '').join('').toUpperCase()}</span>{record.employeeName}</div>
                   </td>
                   {globalView && (
-                    <td className="px-4 py-3 text-purple-700 font-medium">
+                    <td className="px-5 py-4 text-sm text-slate-600">
                       {(record as any).subsidiary?.subsidiaryName || '—'}
                     </td>
                   )}
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-4 text-sm text-slate-600">
                     {record.payrollPeriod || record.period}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-5 py-4 text-right tabular-nums">
                     {formatCurrency(Number(record.grossSalary || 0))}
                   </td>
-                  <td className="px-4 py-3 text-right text-orange-600">
+                  <td className="px-5 py-4 text-right tabular-nums text-slate-500">
                     {formatCurrency(Number(record.deductions || 0))}
                   </td>
-                  <td className="px-4 py-3 text-right font-bold text-slate-800">
+                  <td className="px-5 py-4 text-right font-semibold tabular-nums text-slate-900">
                     {formatCurrency(Number(record.netSalary || 0))}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-4 text-sm text-slate-500">
                     {record.paymentDate
                       ? new Date(record.paymentDate).toLocaleDateString('fr-FR')
                       : '—'}
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-5 py-4 text-center">
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(record.status)}`}
+                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(record.status)}`}
                     >
                       {t(`hr.payroll.status_${record.status}`)}
                     </span>
@@ -611,11 +550,15 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
                       <IconEye className="h-5 w-5" />
                     </button>
                   </td> */}
+                  <td className="px-5 py-4 text-right no-print">
+                    <button onClick={() => setViewingDetails(record)} className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900" title={t('hr.payroll.details')} aria-label={t('hr.payroll.details')}><IconEye className="h-4 w-4" /></button>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
+       </div>
       </div>
 
       {/* Modale de confirmation régénération */}
@@ -674,20 +617,20 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
         totalAllCharges += chargesData.bonusCharges?.netBonusesTotal || 0;
 
         return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
             {/* En-tête avec gradient vert */}
-            <div className="bg-gradient-to-br from-[#c6e911] to-[#a8c90d] px-8 py-8 text-slate-900">
+            <div className="border-b border-slate-100 bg-white px-6 py-5 text-slate-900 sm:px-8">
               <div className="flex items-start justify-between">
                 <div>
-                  <h2 className="text-3xl font-bold mb-2">📊 Résumé des charges</h2>
-                  <p className="text-sm font-semibold text-slate-700 opacity-90">Période: {selectedPeriod} • {chargesData.totalPayrolls} fiche(s)</p>
+                  <h2 className="text-xl font-semibold tracking-tight">Résumé des charges</h2>
+                  <p className="mt-1 text-sm text-slate-500">Période : {selectedPeriod} · {chargesData.totalPayrolls} fiche(s)</p>
                 </div>
               </div>
             </div>
 
             {/* Contenu scrollable */}
-            <div className="p-8 space-y-5 max-h-96 overflow-y-auto">
+            <div className="max-h-[65vh] space-y-4 overflow-y-auto p-5 sm:p-6">
               {/* Salaires par mode de paiement - SECTION PRINCIPALE */}
               {chargesData.salaryDeductions?.grandTotal > 0 && (
                 <div className="bg-gradient-to-br from-[#f0fde4] to-white rounded-xl p-5 border-2 border-[#c6e911]/30">
@@ -811,21 +754,12 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
             </div>
 
             {/* Boutons d'action */}
-            <div className="bg-slate-50 px-8 py-5 flex justify-end gap-3 border-t border-slate-200">
+            <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50/70 px-5 py-4 sm:px-6">
               <button
-                onClick={() => {
-                  setShowChargesConfirmation(false);
-                  setChargesData(null);
-                }}
-                className="px-6 py-2.5 bg-white text-slate-700 font-semibold rounded-lg border-2 border-slate-200 hover:bg-slate-100 hover:border-slate-300 transition-all"
+                onClick={closeChargesSummary}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
               >
-                Annuler
-              </button>
-              <button
-                onClick={handleConfirmCharges}
-                className="px-6 py-2.5 bg-gradient-to-r from-[#c6e911] to-[#a8c90d] text-slate-900 font-bold rounded-lg hover:shadow-lg hover:scale-105 transition-all"
-              >
-                ✓ Confirmer les charges
+                Fermer
               </button>
             </div>
           </div>

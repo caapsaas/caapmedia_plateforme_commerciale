@@ -31,6 +31,28 @@
 $ npm install
 ```
 
+## Password reset email configuration
+
+The staff password reset flow requires the following backend environment variables:
+
+```dotenv
+FRONTEND_URL=https://caapmedia.com
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-smtp-user
+SMTP_PASS=your-smtp-password
+SMTP_FROM="CaapMedia <no-reply@caapmedia.com>"
+```
+
+Use the SMTP host and credentials supplied by the mail provider. `SMTP_SECURE=true` is generally used with port 465; use `false` with STARTTLS on port 587. In local development, `FRONTEND_URL` should point to the Vite origin (usually `http://localhost:5173`). Apply pending Prisma migrations before starting the backend:
+
+```bash
+npx prisma migrate deploy
+```
+
+Reset links expire after one hour and can only be used once.
+
 ## Compile and run the project
 
 ```bash

@@ -2,7 +2,16 @@ import { api } from '../api';
 import { Subsidiary } from '../../types';
 import { PaginatedResponse } from '../../types/pagination.types';
 
-export type SubsidiaryCreationData = Omit<Subsidiary, 'id'>;
+export type SubsidiaryCreationData = Pick<Subsidiary,
+  'subsidiaryName' | 'address' | 'phone' | 'email' | 'ifu' | 'rccm' | 'shareCapital'
+> & {
+  bankName: string;
+  accountNumber: string;
+  swiftCode: string;
+  taxRate?: number;
+  isHeadquarter?: boolean;
+  logoSvg?: string;
+};
 
 export type SubsidiaryUpdateData = Partial<SubsidiaryCreationData>;
 
@@ -10,6 +19,15 @@ export interface SubsidiarySearchQuery {
   subsidiaryName?: string;
   email?: string;
 }
+
+export const uploadSubsidiaryLogo = async (id: string, file: File): Promise<Subsidiary> => {
+  const formData = new FormData();
+  formData.append('logo', file);
+  const { data } = await api.post<Subsidiary>(`/subsidiaries/${id}/logo`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data;
+};
 
 /**
  * Récupère toutes les filiales disponibles.

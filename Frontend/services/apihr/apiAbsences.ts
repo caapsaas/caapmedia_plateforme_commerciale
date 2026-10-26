@@ -22,8 +22,8 @@ export type AbsenceRecordUpdateData = Partial<AbsenceRecordCreationData>;
  * Récupère tous les enregistrements d'absence de la filiale.
  * Protégé par rôle (HR_MANAGER, ADMIN, SUPER_ADMIN).
  */
-export const getAbsenceRecords = async (): Promise<AbsenceRecord[]> => {
-  const { data } = await api.get<PaginatedResponse<AbsenceRecord>>('/hr/absence-records');
+export const getAbsenceRecords = async (subsidiaryId?: string): Promise<AbsenceRecord[]> => {
+  const { data } = await api.get<PaginatedResponse<AbsenceRecord>>('/hr/absence-records', { params: { subsidiaryId, limit: 500 } });
   return data.data;
 };
 
@@ -76,18 +76,61 @@ export const deleteAbsenceRecord = async (
   return data;
 };
 
+export interface SubsidiaryHoliday {
+  id: string;
+  date: string;
+  name: string;
+  subsidiaryId: string;
+}
+
+export interface SubsidiaryCalendar {
+  workingDays: number[];
+  holidays: SubsidiaryHoliday[];
+}
+
+export const getSubsidiaryCalendar = async (subsidiaryId: string): Promise<SubsidiaryCalendar> => {
+  const { data } = await api.get<SubsidiaryCalendar>('/hr/absence-records/calendar', { params: { subsidiaryId } });
+  return data;
+};
+
+export const saveSubsidiaryWorkingDays = async (
+  subsidiaryId: string,
+  workingDays: number[],
+): Promise<{ id: string; workingDays: number[] }> => {
+  const { data } = await api.patch('/hr/absence-records/calendar/working-days', { workingDays }, { params: { subsidiaryId } });
+  return data;
+};
+
+export const addSubsidiaryHoliday = async (
+  subsidiaryId: string,
+  holiday: { date: string; name: string },
+): Promise<SubsidiaryHoliday> => {
+  const { data } = await api.post('/hr/absence-records/calendar/holidays', holiday, { params: { subsidiaryId } });
+  return data;
+};
+
+export const deleteSubsidiaryHoliday = async (
+  subsidiaryId: string,
+  holidayId: string,
+): Promise<SubsidiaryHoliday> => {
+  const { data } = await api.delete(`/hr/absence-records/calendar/holidays/${holidayId}`, { params: { subsidiaryId } });
+  return data;
+};
+
 /**
  * Lance manuellement la génération des absences du jour
  * (employés sans présence → absence UNJUSTIFIED).
  * Protégé par rôle (ADMIN, SUPER_ADMIN).
  * Le cron backend s'exécute aussi automatiquement à 18h.
  */
-export const generateDailyAbsences = async (): Promise<{
+export const generateDailyAbsences = async (subsidiaryId?: string): Promise<{
   success: boolean;
   message: string;
 }> => {
   const { data } = await api.post<{ success: boolean; message: string }>(
     '/hr/absence-records/generate-daily',
+    undefined,
+    { params: { subsidiaryId } },
   );
   return data;
 };

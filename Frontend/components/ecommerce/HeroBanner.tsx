@@ -18,6 +18,9 @@ interface HeroBannerProps {
 const HeroBanner: React.FC<HeroBannerProps> = ({ onNavigateToRealisations, onQuoteRequest }) => {
     const { t } = useI18n();
     const [currentSlide, setCurrentSlide] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
+    const [isInteracting, setIsInteracting] = useState(false);
+    const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
     const handleScrollToProducts = () => {
         const productsGrid = document.getElementById('products-grid');
@@ -94,12 +97,29 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ onNavigateToRealisations, onQuo
     };
     
     useEffect(() => {
-        const timer = setInterval(nextSlide, 5000); // Change slide every 5 seconds
+        const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const updatePreference = () => setPrefersReducedMotion(mediaQuery.matches);
+        updatePreference();
+        mediaQuery.addEventListener('change', updatePreference);
+        return () => mediaQuery.removeEventListener('change', updatePreference);
+    }, []);
+
+    useEffect(() => {
+        if (isPaused || isInteracting || prefersReducedMotion) return;
+        const timer = setInterval(nextSlide, 7000);
         return () => clearInterval(timer);
-    }, [nextSlide]);
+    }, [nextSlide, isPaused, isInteracting, prefersReducedMotion]);
 
     return (
-        <div className="relative w-full h-48 md:h-[250px] lg:h-[300px] overflow-hidden">
+        <div
+            className="relative w-full h-48 md:h-[250px] lg:h-[300px] overflow-hidden"
+            onMouseEnter={() => setIsInteracting(true)}
+            onMouseLeave={() => setIsInteracting(false)}
+            onFocusCapture={() => setIsInteracting(true)}
+            onBlurCapture={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsInteracting(false);
+            }}
+        >
             {slides.map((slide, index) => (
                 <div
                     key={index}
@@ -149,6 +169,14 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ onNavigateToRealisations, onQuo
                     />
                 ))}
             </div>
+            <button
+                type="button"
+                onClick={() => setIsPaused((paused) => !paused)}
+                className="absolute bottom-3 right-4 z-10 rounded-full bg-black/50 px-3 py-1 text-xs font-semibold text-white hover:bg-black/70"
+                aria-label={isPaused ? t('ecommerce.resumeCarousel') : t('ecommerce.pauseCarousel')}
+            >
+                {isPaused ? t('ecommerce.resumeCarousel') : t('ecommerce.pauseCarousel')}
+            </button>
         </div>
     );
 };

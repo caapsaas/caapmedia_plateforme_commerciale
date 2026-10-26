@@ -22,11 +22,17 @@ const UnitsManagement: React.FC = () => {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [name, setName] = useState('');
     const [symbol, setSymbol] = useState('');
+    const [search, setSearch] = useState('');
 
     const { data: units = [], isLoading } = useQuery<Unit[]>({
         queryKey: ['units'],
         queryFn: getUnits,
     });
+    const filteredUnits = units.filter((unit) =>
+        [unit.name, unit.symbol].some((value) =>
+            String(value ?? '').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
+        ),
+    );
 
     const invalidate = () => queryClient.invalidateQueries({ queryKey: ['units'] });
 
@@ -81,6 +87,7 @@ const UnitsManagement: React.FC = () => {
                     <span>{t('configuration.unitsManagement.addNew')}</span>
                 </button>
             </div>
+            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('common.search')} aria-label={t('common.search')} className="mb-4 w-full rounded-md border border-slate-300 px-4 py-2 text-sm md:max-w-sm" />
 
             {(isAdding || editingId) && (
                 <div className="mb-4 p-4 bg-slate-50 border border-slate-200 rounded-lg grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
@@ -111,7 +118,7 @@ const UnitsManagement: React.FC = () => {
                     <tbody>
                         {isLoading ? (
                             <TableSkeleton rows={5} columns={3} />
-                        ) : units.map(unit => (
+                        ) : filteredUnits.map(unit => (
                             <tr key={unit.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{unit.name}</td>
                                 <td className="px-6 py-4">{unit.symbol || '-'}</td>
@@ -127,7 +134,7 @@ const UnitsManagement: React.FC = () => {
                                 </td>
                             </tr>
                         ))}
-                        {!isLoading && units.length === 0 && (
+                        {!isLoading && filteredUnits.length === 0 && (
                             <tr><td colSpan={3}><EmptyState icon="document" title={t('configuration.unitsManagement.empty')} /></td></tr>
                         )}
                     </tbody>

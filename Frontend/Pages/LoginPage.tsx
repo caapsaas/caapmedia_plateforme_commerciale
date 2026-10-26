@@ -10,6 +10,9 @@ import { getSubsidiaries } from '../services/apiCommon/apiSubsidiaries'; // Impo
 import { Subsidiary } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { getDefaultViewForRole } from '../utils/roleViews';
+import PasswordInput from '../components/ui/PasswordInput';
+
+const REMEMBERED_EMAIL_KEY = 'caap-remembered-login-email';
 
 const LoginPage: React.FC = () => {
   const { t } = useI18n();
@@ -21,6 +24,12 @@ const LoginPage: React.FC = () => {
   const [selectedSubsidiary, setSelectedSubsidiary] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [rememberMe, setRememberMe] = useState(() => Boolean(localStorage.getItem(REMEMBERED_EMAIL_KEY)));
+
+  useEffect(() => {
+    const rememberedEmail = localStorage.getItem(REMEMBERED_EMAIL_KEY);
+    if (rememberedEmail) setEmail(rememberedEmail);
+  }, []);
 
   // Etape 2FA: si le login renvoie twoFactorRequired, on bascule sur ce
   // formulaire au lieu du formulaire email/mot de passe.
@@ -67,6 +76,9 @@ const LoginPage: React.FC = () => {
 
   setIsLoading(true);
 
+  if (rememberMe) localStorage.setItem(REMEMBERED_EMAIL_KEY, email.trim());
+  else localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+
   try {
     // 1️⃣ Appel à l'API d'authentification (le serveur pose les cookies httpOnly)
     const result = await apiLogin({ email, password });
@@ -111,7 +123,7 @@ const handleTwoFactorSubmit = async (e: React.FormEvent) => {
   const handleForgotPassword = () => {
     setShowForgotPassword(true);
     setResetSent(false);
-    setResetEmail('');
+    setResetEmail(email.trim());
   };
 
   const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
@@ -319,15 +331,14 @@ const handleTwoFactorSubmit = async (e: React.FormEvent) => {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <IconLock className="h-5 w-5 text-gray-400" />
                 </div>
-                <input
+                <PasswordInput
                   id="password"
                   name="password"
-                  type="password"
                   autoComplete="current-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#c6e911] focus:border-transparent transition"
+                  className="w-full pl-10 py-2 border border-slate-300 rounded-md bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#c6e911] focus:border-transparent transition"
                   placeholder="********"
                   disabled={isLoading}
                   aria-label={t('login.passwordLabel')}
@@ -339,7 +350,7 @@ const handleTwoFactorSubmit = async (e: React.FormEvent) => {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <input id="remember-me" name="remember-me" type="checkbox" className="h-4 w-4 text-[#c6e911] focus:ring-lime-400 border-gray-300 rounded" />
+                <input id="remember-me" name="remember-me" type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="h-4 w-4 text-[#c6e911] focus:ring-lime-400 border-gray-300 rounded" />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-900">{t('login.rememberMe')}</label>
               </div>
               <div className="text-sm">

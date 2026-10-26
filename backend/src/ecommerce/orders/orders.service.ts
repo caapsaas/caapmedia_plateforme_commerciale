@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   InternalServerErrorException,
@@ -39,6 +40,23 @@ import {
 import { Decimal } from '@prisma/client/runtime/library';
 import { ProductSpecsService } from '../products/product-specs/product-specs.service';
 
+// Allowlist shared by every order response, including raw Prisma responses.
+const orderCustomerSelect = {
+  id: true,
+  contactName: true,
+  company: true,
+  email: true,
+  phone: true,
+  address: true,
+  subsidiaryId: true,
+} satisfies Prisma.ContactSelect;
+const orderSalesRepSelect = {
+  id: true,
+  userName: true,
+  email: true,
+  subsidiaryId: true,
+} satisfies Prisma.UserSelect;
+
 @Injectable()
 export class OrdersService {
   constructor(
@@ -75,7 +93,9 @@ export class OrdersService {
         quantity: item.quantity,
         unitPrice: item.unitPrice ? item.unitPrice.toNumber() : 0,
         discount: item.discount ? item.discount.toNumber() : 0,
-        assemblyPrice: item.assemblyPrice ? item.assemblyPrice.toNumber() : null,
+        assemblyPrice: item.assemblyPrice
+          ? item.assemblyPrice.toNumber()
+          : null,
         total: item.total ? item.total.toNumber() : 0,
         designFileName: item.designFileName,
         designFileUrl: item.designFileUrl,
@@ -124,7 +144,7 @@ export class OrdersService {
     // Le corps d'un formulaire multipart est toujours en string, il faut parser les items.
     const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
 
-    const { userId: salesRepId, subsidiaryId: salesRepSubsidiaryId } = user;
+    const { id: salesRepId, subsidiaryId: salesRepSubsidiaryId } = user;
 
     if (!parsedItems || parsedItems.length === 0) {
       throw new BadRequestException(
@@ -142,6 +162,7 @@ export class OrdersService {
     }
 
     const productIds = parsedItems.map((item) => item.productId);
+    const distinctProductIds = [...new Set<string>(productIds)];
 
     const [products, taxRate, customer] = await Promise.all([
       this.prisma.item.findMany({
@@ -155,7 +176,7 @@ export class OrdersService {
     // dans une autre filiale, la commande reste tout de même rattachée à la
     // filiale du commercial connecté (pas de blocage sur l'origine du client).
 
-    if (products.length !== productIds.length) {
+    if (products.length !== distinctProductIds.length) {
       throw new NotFoundException(
         'Un ou plusieurs services sont introuvables.',
       );
@@ -169,7 +190,6 @@ export class OrdersService {
     // spécifications différentes. La définition figée sert d'instantané,
     // jamais affectée par une modification ultérieure du produit. Ne jamais
     // faire confiance à la validation frontend seule.
-    const distinctProductIds = [...new Set<string>(productIds)];
     const formDefinitionByProductId = new Map(
       await Promise.all(
         distinctProductIds.map(async (productId) => {
@@ -228,7 +248,8 @@ export class OrdersService {
       }
       const unitPrice = new Decimal(item.unitPrice);
       const discount = new Decimal(item.discount ?? 0);
-      const assemblyPrice = item.assemblyPrice != null ? new Decimal(item.assemblyPrice) : null;
+      const assemblyPrice =
+        item.assemblyPrice != null ? new Decimal(item.assemblyPrice) : null;
       const total = unitPrice
         .mul(item.quantity)
         .sub(discount)
@@ -460,8 +481,8 @@ export class OrdersService {
     const orders = await this.prisma.order.findMany({
       where,
       include: {
-        customer: true,
-        salesRep: true,
+        customer: { select: orderCustomerSelect },
+        salesRep: { select: orderSalesRepSelect },
         orderItems: { include: { product: true } },
       },
       orderBy: { orderDate: 'desc' },
@@ -481,6 +502,17 @@ export class OrdersService {
    * @param user // Utilisateur connecté
    * @returns // Commande trouvée
    */
+  async findOneForCustomer(id: string, contact: { id: string }) {
+    const order = await this.prisma.order.findUnique({
+      where: { id, customerId: contact.id },
+      include: this.orderFullInclude,
+    });
+    if (!order) {
+      throw new NotFoundException(`Commande avec l'ID "${id}" non trouvée.`);
+    }
+    return this.mapOrderToResponse(order);
+  }
+
   async findOne(id: string, user: any) {
     const order = await this.prisma.order.findUnique({
       where: { id, subsidiaryId: user.subsidiaryId },
@@ -494,8 +526,8 @@ export class OrdersService {
           },
         },
         productionHistory: { orderBy: { changeDate: 'asc' } },
-        customer: true,
-        salesRep: true,
+        customer: { select: orderCustomerSelect },
+        salesRep: { select: orderSalesRepSelect },
         taxRate: true,
       },
     });
@@ -539,7 +571,11 @@ export class OrdersService {
       const updatedOrder = await tx.order.update({
         where: { id },
         data: { status: updateDto.status },
-        include: { orderItems: true, customer: true, salesRep: true },
+        include: {
+          orderItems: true,
+          customer: { select: orderCustomerSelect },
+          salesRep: { select: orderSalesRepSelect },
+        },
       });
 
       return this.mapOrderToResponse(updatedOrder);
@@ -583,7 +619,12 @@ export class OrdersService {
    * @param customerId // ID du client
    * @returns // Liste des commandes du client
    */
-  async findGroupsByCustomer(customerId: string) {
+  async findGroupsByCustomer(customerId: string, contact: { id: string }) {
+    if (customerId !== contact.id) {
+      throw new ForbiddenException(
+        'Accès aux commandes de ce client interdit.',
+      );
+    }
     const [groups, singleOrders] = await Promise.all([
       // 1. Récupérer les groupes de commandes existants
       this.prisma.orderGroup.findMany({
@@ -707,7 +748,8 @@ export class OrdersService {
     recordPaymentDto: RecordPaymentDto,
     user: any,
   ) {
-    const { amount, paymentMethod, bankAccountId, transactionReference } = recordPaymentDto;
+    const { amount, paymentMethod, bankAccountId, transactionReference } =
+      recordPaymentDto;
 
     const BANKING_METHODS: CustomerPaymentMethod[] = [
       CustomerPaymentMethod.BANK_TRANSFER,
@@ -724,10 +766,19 @@ export class OrdersService {
     const paymentAmount = new Decimal(amount);
 
     return this.prisma.$transaction(async (tx) => {
-      // 1. Récupérer la commande et vérifier les droits
+      // Fail closed: a staff identity must carry a subsidiary scope.
+      if (!user.subsidiaryId) {
+        throw new ForbiddenException(
+          'Filiale requise pour enregistrer un paiement.',
+        );
+      }
+      // 1. Récupérer uniquement une commande de la filiale de l'utilisateur.
       const order = await tx.order.findUnique({
-        where: { id },
-        include: { orderItems: { include: { product: true } }, customer: true },
+        where: { id, subsidiaryId: user.subsidiaryId },
+        include: {
+          orderItems: { include: { product: true } },
+          customer: { select: orderCustomerSelect },
+        },
       });
 
       if (!order) {
@@ -812,7 +863,10 @@ export class OrdersService {
       // Re-récupérer la commande mise à jour
       const updatedOrder = await tx.order.findUniqueOrThrow({
         where: { id },
-        include: { orderItems: { include: { product: true } }, customer: true },
+        include: {
+          orderItems: { include: { product: true } },
+          customer: { select: orderCustomerSelect },
+        },
       });
 
       // 4. Si la commande est entièrement payée, créer les enregistrements de vente
@@ -854,8 +908,8 @@ export class OrdersService {
         where: { id },
         include: {
           orderItems: { include: { product: true } },
-          customer: true,
-          salesRep: true,
+          customer: { select: orderCustomerSelect },
+          salesRep: { select: orderSalesRepSelect },
         },
       });
 
@@ -871,8 +925,8 @@ export class OrdersService {
 
   private get orderFullInclude() {
     return {
-      customer: true,
-      salesRep: true,
+      customer: { select: orderCustomerSelect },
+      salesRep: { select: orderSalesRepSelect },
       taxRate: true,
       subsidiary: { select: { subsidiaryName: true } },
       orderItems: {

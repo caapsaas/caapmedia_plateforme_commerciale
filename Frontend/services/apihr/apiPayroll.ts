@@ -219,8 +219,8 @@ export const updatePayrollConfiguration = async (
  * Récupère toutes les fiches de paie de la filiale de l'utilisateur connecté
  * GET /hr/payroll-records
  */
-export const getPayrollRecords = async (): Promise<PayrollRecord[]> => {
-  const { data } = await api.get<PaginatedResponse<PayrollRecord>>('/hr/payroll-records');
+export const getPayrollRecords = async (subsidiaryId?: string): Promise<PayrollRecord[]> => {
+  const { data } = await api.get<PaginatedResponse<PayrollRecord>>('/hr/payroll-records', { params: { subsidiaryId, limit: 500 } });
   return Array.isArray(data) ? data : (data?.data || []);
 };
 
@@ -541,9 +541,10 @@ export interface PayrollCharge {
  * Accumuler les charges patronales pour un mois
  * POST /hr/payroll-records/charges/accumulate
  */
-export const accumulateCharges = async (month: string): Promise<any> => {
+export const accumulateCharges = async (month: string, subsidiaryId: string): Promise<any> => {
   const { data } = await api.post('/hr/payroll-records/charges/accumulate', {
     month,
+    subsidiaryId,
   });
   return data;
 };

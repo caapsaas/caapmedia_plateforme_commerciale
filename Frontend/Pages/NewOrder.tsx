@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Subsidiary, Product, Order, Contact, TaxRate, OrderStatus, ProductionStatus, PaymentStatus, CustomerPaymentMethod, FormDefinition } from '../types';
 import IconMinus from '../components/icons/IconMinus';
 import IconPlus from '../components/icons/IconPlus';
 import IconDelete from '../components/icons/IconDelete';
 import { useI18n } from '../i18n';
+import { isAxiosError } from 'axios';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getContacts, searchContactsGlobal, GlobalContactSearchResult } from '../services/apiCrm/apicontacts';
 import { getTaxes } from '../services/apiE-commerce/apitaxes';
@@ -26,7 +27,7 @@ interface NewOrderProps {
     subsidiary: Subsidiary;
     products: Product[];
     selectedCustomer?: Contact;
-    onOrderPlaced: (newOrder: Omit<Order, 'id' | 'subsidiaryId'>) => void;
+    onOrderPlaced: (newOrder: Omit<Order, 'id' | 'subsidiaryId'>) => Promise<void>;
 }
 
 type CartItem = {
@@ -50,6 +51,9 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
     const [searchTerm, setSearchTerm] = useState('');
     const [cart, setCart] = useState<CartItem[]>([]);
     const [orderPlaced, setOrderPlaced] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState('');
+    const submittingRef = useRef(false);
     const [quantities, setQuantities] = useState<Record<string, number>>({});
 
     // Modale unifiée multi-étapes (coût de production → specs)
@@ -219,7 +223,8 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
     const taxAmount = useMemo(() => applyTax ? subtotal * defaultTaxRate.rate : 0, [subtotal, defaultTaxRate, applyTax]);
     const totalAmount = useMemo(() => subtotal + taxAmount, [subtotal, taxAmount]);
 
-    const handleSubmitOrder = () => {
+    const handleSubmitOrder = async () => {
+        if (submittingRef.current || cart.length === 0 || orderPlaced) return;
         const customer = clients.find(c => c.id === selectedCustomerId)
             || (externalCustomer?.id === selectedCustomerId ? externalCustomer : null);
         if (!customer) return;
@@ -260,15 +265,32 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
             paymentMethod: selectedPaymentMethod,
         };
 
-        onOrderPlaced(newOrderData);
+        submittingRef.current = true;
+        setIsSubmitting(true);
+        setSubmitError('');
+        try {
+            await onOrderPlaced(newOrderData);
+            setOrderPlaced(true);
+            setCart([]);
+        } catch (error) {
+            const message: unknown = isAxiosError(error) ? error.response?.data?.message : undefined;
+            const detail = typeof message === 'string' ? message
+                : Array.isArray(message) && message.every(value => typeof value === 'string') ? message.join(' · ') : '';
+            setSubmitError(detail || t('newOrder.submitError'));
+        } finally {
+            submittingRef.current = false;
+            setIsSubmitting(false);
+        }
+    };
 
-        setOrderPlaced(true);
-        setCart([]);
-        setTimeout(() => {
+    useEffect(() => {
+        if (!orderPlaced) return;
+        const timer = window.setTimeout(() => {
             setOrderPlaced(false);
             setSelectedCustomerId(selectedCustomer?.id || '');
         }, 4000);
-    };
+        return () => window.clearTimeout(timer);
+    }, [orderPlaced, selectedCustomer?.id]);
 
     const clientOptions = useMemo(() =>
         clients.map(c => ({ value: c.id, label: `${c.contactName} (${c.company || 'N/A'})` })),
@@ -276,7 +298,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
     );
 
     return (
-        <div className="grid grid-cols-12 gap-6">
+        <fieldset disabled={isSubmitting} aria-busy={isSubmitting} className="grid min-w-0 grid-cols-12 gap-6">
             {/* Catalogue */}
             <div className="col-span-12 lg:col-span-7 bg-white p-6 rounded-xl shadow-md flex flex-col">
                 <h3 className="text-xl font-bold text-slate-800 mb-4">{t('newOrder.productCatalog')}</h3>
@@ -521,12 +543,14 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                         </select>
                     </div>
 
+                    {submitError && <p role="alert" className="text-sm text-red-700">{submitError}</p>}
                     <button
+                        type="button"
                         onClick={handleSubmitOrder}
-                        disabled={cart.length === 0 || orderPlaced || !selectedCustomerId}
+                        disabled={isSubmitting || cart.length === 0 || orderPlaced || !selectedCustomerId}
                         className="w-full text-center px-4 py-3 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                     >
-                        {t('newOrder.submitOrder')}
+                        {t(isSubmitting ? 'common.saving' : 'newOrder.submitOrder')}
                     </button>
                 </div>
             </div>
@@ -544,7 +568,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                     onClose={() => setAddItemModalState(null)}
                 />
             )}
-        </div>
+        </fieldset>
     );
 };
 

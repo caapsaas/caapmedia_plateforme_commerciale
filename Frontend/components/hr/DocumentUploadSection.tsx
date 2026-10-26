@@ -316,7 +316,7 @@ const DocumentUploadSection: React.FC<DocumentUploadSectionProps> = ({
           <div className="mt-6">
             <h4 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
               <CheckCircle size={18} className="text-green-600" />
-              {t('hr.documents.uploaddedDiplomas')} ({documents.diplomas.length})
+              {t('hr.documents.uploadedDiplomas')} ({documents.diplomas.length})
             </h4>
             <div className="space-y-2">
               {(documents.diplomas || []).map((diploma, index) => (

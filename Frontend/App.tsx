@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Sidebar from './Pages/Sidebar';
 import Header from './Pages/Header';
 import useIdleTimer from './hooks/useIdleTimer';
@@ -15,7 +15,67 @@ const App: React.FC = () => {
   const { logout, isAuthenticated } = useAuth();
   const routerState = useRouterState();
   const navigate = useNavigate();
-  const isDashboard = routerState.location.pathname.startsWith('/dashboard');
+  const pathname = routerState.location.pathname;
+  const normalizedPathname = pathname.replace(/\/+$/, '') || '/';
+  const isDashboard = pathname.startsWith('/dashboard');
+
+  useEffect(() => {
+    const publicPages: Record<string, { title: string; description: string }> = {
+      '/': {
+        title: 'Imprimerie à Douala, supports publicitaires et objets personnalisés | CaapMedia',
+        description: 'CaapMedia accompagne les entreprises de Douala dans leurs projets d’impression, de communication visuelle et de supports personnalisés. Découvrez nos services et demandez un devis.',
+      },
+      '/realisations': {
+        title: 'Réalisations et prestations d’imprimerie à Douala | CaapMedia',
+        description: 'Découvrez les prestations de CaapMedia : impression numérique et grand format, design graphique, sérigraphie, broderie et communication visuelle à Douala.',
+      },
+    };
+    const page = publicPages[normalizedPathname];
+    const ensureMeta = (selector: string, attributes: Record<string, string>) => {
+      let element = document.head.querySelector<HTMLMetaElement>(selector);
+      if (!element) {
+        element = document.createElement('meta');
+        document.head.appendChild(element);
+      }
+      Object.entries(attributes).forEach(([key, value]) => element!.setAttribute(key, value));
+      return element;
+    };
+
+    document.title = page?.title ?? 'CaapMedia | Espace client';
+    ensureMeta('meta[name="description"]', {
+      name: 'description',
+      content: page?.description ?? 'Espace de connexion et de gestion CaapMedia.',
+    });
+    ensureMeta('meta[name="robots"]', {
+      name: 'robots',
+      content: page ? 'index,follow' : 'noindex,nofollow',
+    });
+    ensureMeta('meta[property="og:title"]', {
+      property: 'og:title',
+      content: page?.title ?? 'CaapMedia | Espace client',
+    });
+    ensureMeta('meta[property="og:description"]', {
+      property: 'og:description',
+      content: page?.description ?? 'Espace de connexion et de gestion CaapMedia.',
+    });
+
+    let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (page) {
+      if (!canonical) {
+        canonical = document.createElement('link');
+        canonical.rel = 'canonical';
+        document.head.appendChild(canonical);
+      }
+      canonical.href = `https://caapmedia.com${normalizedPathname === '/' ? '/' : normalizedPathname}`;
+      ensureMeta('meta[property="og:url"]', {
+        property: 'og:url',
+        content: canonical.href,
+      });
+    } else {
+      canonical?.remove();
+      document.head.querySelector('meta[property="og:url"]')?.remove();
+    }
+  }, [normalizedPathname]);
 
   const handleLogout = () => {
     logout();

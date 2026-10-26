@@ -26,9 +26,9 @@ export type EmployeeSaveData = EmployeeFormData & { id?: string };
  * client-side, export CSV/PDF dans EmployeeDatabaseModern).
  * @param includeRelations - Si true, inclut les relations (documents, manager, etc.).
  */
-export const getEmployees = async (includeRelations = false): Promise<Employee[]> => {
+export const getEmployees = async (includeRelations = false, subsidiaryId?: string): Promise<Employee[]> => {
     const { data } = await api.get<PaginatedResponse<Employee>>('/hr/employees', {
-    params: { includeRelations, limit: 500 },
+    params: { includeRelations, limit: 500, subsidiaryId },
   });
   return data.data;
 };
@@ -37,7 +37,7 @@ export const getEmployees = async (includeRelations = false): Promise<Employee[]
  * Version paginée/recherchable pour les selects (AsyncSelect).
  */
 export const getEmployeesPaginated = async (
-    params: PaginationParams & { includeRelations?: boolean },
+    params: PaginationParams & { includeRelations?: boolean; subsidiaryId?: string },
 ): Promise<PaginatedResponse<Employee>> => {
     const { data } = await api.get<PaginatedResponse<Employee>>('/hr/employees', { params });
     return data;
@@ -246,83 +246,10 @@ export const addLeaveRecordToEmployee = async (
  * Stocke les documents et crée les enregistrements de congés.
  */
 export const saveEmployeeWithDocumentsAndLeaves = async (employeeData: EmployeeSaveData): Promise<Employee> => {
-    // 1. D'abord, sauvegarder l'employé sans documents/congés
-    const savedEmployee = await saveEmployee(employeeData);
-
-    try {
-        // 2. Ajouter les documents
-        if (employeeData.documents) {
-            const docFields = ['contract', 'idCard', 'workPermit'] as const;
-            const docTypeMap: Record<string, string> = {
-                contract: 'CONTRACT',
-                idCard: 'ID_CARD',
-                workPermit: 'WORK_PERMIT',
-            };
-
-            for (const field of docFields) {
-                const doc = employeeData.documents[field];
-                if (doc && doc.name) {
-                    try {
-                        await addDocumentToEmployee(savedEmployee.id, {
-                            documentName: doc.name,
-                            url: doc.url || '', // Peut être une blob URL ou vide
-                            docType: docTypeMap[field] as any,
-                        });
-                    } catch (docError) {
-                        console.warn(`Warning adding ${field} document:`, docError);
-                        // Continuer même si un document échoue
-                    }
-                }
-            }
-
-            // Ajouter les diplômes
-            if (employeeData.documents.diplomas && Array.isArray(employeeData.documents.diplomas)) {
-                for (const diploma of employeeData.documents.diplomas) {
-                    if (diploma && diploma.name) {
-                        try {
-                            await addDocumentToEmployee(savedEmployee.id, {
-                                documentName: diploma.name,
-                                url: diploma.url || '', // Peut être une blob URL ou vide
-                                docType: 'DIPLOMA' as any,
-                            });
-                        } catch (diplomaError) {
-                            console.warn('Warning adding diploma document:', diplomaError);
-                            // Continuer même si un diplôme échoue
-                        }
-                    }
-                }
-            }
-        }
-
-        // 3. Ajouter les enregistrements de congés
-        if (employeeData.leaveRecords && Array.isArray(employeeData.leaveRecords)) {
-            for (const record of employeeData.leaveRecords) {
-                try {
-                    await addLeaveRecordToEmployee(savedEmployee.id, {
-                        startDate: typeof record.startDate === 'string'
-                            ? record.startDate
-                            : new Date(record.startDate).toISOString().split('T')[0],
-                        endDate: typeof record.endDate === 'string'
-                            ? record.endDate
-                            : new Date(record.endDate).toISOString().split('T')[0],
-                        days: record.days,
-                        leaveRecordType: record.leaveRecordType,
-                    });
-                } catch (leaveError) {
-                    console.warn('Warning adding leave record:', leaveError);
-                    // Continuer même si un congé échoue
-                }
-            }
-        }
-
-        return savedEmployee;
-    } catch (error) {
-        console.error('Error adding documents/leaves:', error);
-        // Retourner quand même l'employé sauvegardé, même si docs/leaves échouent
-        return savedEmployee;
-    }
+    // saveEmployee already sends balances, leave records and documents in one request.
+    // Recreating them through separate endpoints duplicated leave records and deductions.
+    return saveEmployee(employeeData);
 };
-
 /**
  * Ajoute un historique de poste pour un employé.
  */

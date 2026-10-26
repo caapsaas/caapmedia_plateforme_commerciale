@@ -27,6 +27,10 @@ import {
   assertSubsidiaryAccess,
 } from '../../common/utils/subsidiary-scope';
 import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
+import {
+  CreateSubsidiaryHolidayDto,
+  UpdateWorkingDaysDto,
+} from './dto/subsidiary-calendar.dto';
 
 @Controller('hr/absence-records')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -62,10 +66,72 @@ export class AbsencerecordController {
   // ------------------------------------------------------------------
   @Post('generate-daily')
   @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
-  async generateDailyAbsences(@Request() req) {
+  async generateDailyAbsences(
+    @Request() req,
+    @Query('subsidiaryId') requestedId?: string,
+  ) {
     const ctx = resolveScopeContext(req.user);
-    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx, requestedId);
+    if (!subsidiaryId) {
+      throw new BadRequestException('Sélectionnez une filiale avant de générer les absences.');
+    }
     return this.absenceRecordService.generateDailyAbsences(subsidiaryId);
+  }
+
+  @Get('calendar')
+  @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
+  getCalendar(@Request() req, @Query('subsidiaryId') requestedId?: string) {
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx, requestedId);
+    if (!subsidiaryId) {
+      throw new BadRequestException('Sélectionnez une filiale pour consulter son calendrier.');
+    }
+    return this.absenceRecordService.getSubsidiaryCalendar(subsidiaryId);
+  }
+
+  @Patch('calendar/working-days')
+  @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
+  updateWorkingDays(
+    @Request() req,
+    @Body() body: UpdateWorkingDaysDto,
+    @Query('subsidiaryId') requestedId?: string,
+  ) {
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx, requestedId);
+    if (!subsidiaryId) {
+      throw new BadRequestException('Sélectionnez une filiale pour modifier son calendrier.');
+    }
+    return this.absenceRecordService.updateWorkingDays(subsidiaryId, body.workingDays);
+  }
+
+  @Post('calendar/holidays')
+  @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
+  addHoliday(
+    @Request() req,
+    @Body() body: CreateSubsidiaryHolidayDto,
+    @Query('subsidiaryId') requestedId?: string,
+  ) {
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx, requestedId);
+    if (!subsidiaryId) {
+      throw new BadRequestException('Sélectionnez une filiale pour ajouter un jour férié.');
+    }
+    return this.absenceRecordService.addHoliday(subsidiaryId, body.date, body.name);
+  }
+
+  @Delete('calendar/holidays/:holidayId')
+  @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
+  removeHoliday(
+    @Request() req,
+    @Param('holidayId') holidayId: string,
+    @Query('subsidiaryId') requestedId?: string,
+  ) {
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx, requestedId);
+    if (!subsidiaryId) {
+      throw new BadRequestException('Sélectionnez une filiale pour supprimer un jour férié.');
+    }
+    return this.absenceRecordService.removeHoliday(subsidiaryId, holidayId);
   }
 
   // ------------------------------------------------------------------
@@ -73,8 +139,13 @@ export class AbsencerecordController {
   // ------------------------------------------------------------------
   @Get()
   @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
-  findAll(@Request() req, @Query() paginationQuery: PaginationQueryDto) {
-    const subsidiaryId = req.user.subsidiaryId;
+  findAll(
+    @Request() req,
+    @Query() paginationQuery: PaginationQueryDto,
+    @Query('subsidiaryId') subsidiaryIdFilter?: string,
+  ) {
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx, subsidiaryIdFilter);
     return this.absenceRecordService.findAll(subsidiaryId, paginationQuery);
   }
 

@@ -4,6 +4,7 @@ import { PayrollConfigurationService } from './services/payroll-configuration.se
 import { SalaryComponentService } from './services/salary-component.service';
 import { TaxBracketService } from './services/tax-bracket.service';
 import { AllowanceRuleService } from './services/allowance-rule.service';
+import { ConfigurationAccessService } from './services/configuration-access.service';
 import { PayrollConfigurationController } from './controllers/payroll-configuration.controller';
 import { SalaryComponentController } from './controllers/salary-component.controller';
 import { TaxBracketController } from './controllers/tax-bracket.controller';
@@ -16,6 +17,7 @@ import { AllowanceRuleController } from './controllers/allowance-rule.controller
     SalaryComponentService,
     TaxBracketService,
     AllowanceRuleService,
+    ConfigurationAccessService,
   ],
   controllers: [
     PayrollConfigurationController,

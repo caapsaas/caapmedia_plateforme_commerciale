@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Product } from "../../types";
 import { useI18n } from "../../i18n";
 import { useToast } from "../../context/ToastContext";
@@ -45,6 +45,14 @@ const ECommercePage: React.FC = () => {
       return [];
     }
   });
+  useEffect(() => {
+    try {
+      const cartForStorage = cart.map(({ designFileObject, designFile, ...item }) => item);
+      window.localStorage.setItem("shoppingCart", JSON.stringify(cartForStorage));
+    } catch (error) {
+      console.error("Unable to persist quote cart:", error);
+    }
+  }, [cart]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [detailsProduct, setDetailsProduct] = useState<Product | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -84,7 +92,7 @@ const ECommercePage: React.FC = () => {
     },
   });
 
-  const { mutate: quoteRequestMutation } = useMutation<any, Error, any>({
+  const { mutateAsync: quoteRequestMutation } = useMutation<any, Error, any>({
     mutationFn: createQuoteRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
@@ -311,6 +319,14 @@ const ECommercePage: React.FC = () => {
         onQuoteRequest={() => setIsQuoteModalOpen(true)}
       />
       <main className="container mx-auto px-4 pt-8 pb-8 ">
+        <section className="mb-6" aria-labelledby="storefront-title">
+          <h1 id="storefront-title" className="text-2xl font-bold tracking-tight text-slate-900">
+            Imprimerie et supports de communication à Douala
+          </h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+            Découvrez nos impressions, supports publicitaires et objets personnalisés pour les entreprises au Cameroun.
+          </p>
+        </section>
         {/* <CategoryShowcase
                     productHierarchy={PRODUCT_HIERARCHY.filter(cat => cat.category !== 'Matières Premières')}
                     onSelectMainCategory={handleSelectMainCategory}
@@ -781,7 +797,7 @@ const ECommercePage: React.FC = () => {
         <QuoteRequestModal
           isOpen={isQuoteModalOpen}
           onClose={() => setIsQuoteModalOpen(false)}
-          onSave={(data) => {
+          onSave={async (data) => {
             const quoteData = {
               leadName: data.name,
               company: data.company,
@@ -789,7 +805,7 @@ const ECommercePage: React.FC = () => {
               phone: data.phone,
               description: data.description,
             };
-            quoteRequestMutation(quoteData);
+            await quoteRequestMutation(quoteData);
           }}
         />
       )}

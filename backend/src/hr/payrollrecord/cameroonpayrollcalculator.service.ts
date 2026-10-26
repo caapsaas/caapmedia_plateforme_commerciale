@@ -16,6 +16,19 @@ export interface CameroonPayrollInput {
   previousCnpsCumulative?: number; // CNPS cumulatif annuel avant cette paie
   previousIrppCumulative?: number; // IRPP cumulatif annuel avant cette paie
   previousGrossCumulative?: number; // Brut cumulatif annuel avant cette paie
+  payrollConfig?: {
+    cnpsEmployeeRate?: number;
+    cnpsEmployerRate?: number;
+    cfcEmployeeRate?: number;
+    cfcEmployerRate?: number;
+    fneRate?: number;
+    cnpsCap?: number;
+    professionalExpenseRate?: number;
+    fixedAbatementAnnual?: number;
+    riskGroupARate?: number;
+    riskGroupBRate?: number;
+    riskGroupCRate?: number;
+  };
 }
 
 export interface CameroonPayrollResult {
@@ -65,6 +78,15 @@ export class CameroonPayrollCalculatorService {
   };
 
   calculate(input: CameroonPayrollInput): CameroonPayrollResult {
+    const config = input.payrollConfig;
+    const cnpsCap = config?.cnpsCap ?? this.CNPS_CAP;
+    const cnpsEmployeeRate = config?.cnpsEmployeeRate ?? this.CNPS_EMPLOYEE_RATE;
+    const cnpsEmployerRate = config?.cnpsEmployerRate ?? this.CNPS_EMPLOYER_PENSION;
+    const cfcEmployeeRate = config?.cfcEmployeeRate ?? this.CFC_EMPLOYEE;
+    const cfcEmployerRate = config?.cfcEmployerRate ?? this.CFC_EMPLOYER;
+    const fneRate = config?.fneRate ?? this.FNE_RATE;
+    const professionalExpenseRate = config?.professionalExpenseRate ?? this.PROFESSIONAL_EXPENSE_RATE;
+    const fixedAbatementAnnual = config?.fixedAbatementAnnual ?? this.FIXED_ABATEMENT_ANNUAL;
     const gross =
       (input.baseSalary || 0) +
       (input.bonus || 0) +
@@ -73,37 +95,35 @@ export class CameroonPayrollCalculatorService {
       (input.otherTaxable || 0);
 
     // Base plafonnée CNPS (pour charges patronales, toujours plafonné à 750k)
-    const cnpsBase = Math.min(gross, this.CNPS_CAP);
+    const cnpsBase = Math.min(gross, cnpsCap);
 
-    // === Phase 4: Calcul CNPS avec respect du plafond annuel ===
+    // Le plafond CNPS est un plafond de rémunération par mois, pas un plafond
+    // annuel de cotisations. Le cumul annuel reste utilisé pour la base IRPP.
     const cnpsEmployee = this.calculateCnpsEmployee(
       gross,
-      input.previousCnpsCumulative || 0,
+      cnpsEmployeeRate,
+      cnpsCap,
     );
 
     // === Calcul IRPP progressif avec cumul annuel ===
     const cfcEmployee =
-      input.applyCfc !== false ? this.round(gross * this.CFC_EMPLOYEE) : 0;
+      input.applyCfc !== false ? this.round(gross * cfcEmployeeRate) : 0;
 
     // Base imposable IRPP
-    const afterCnps = gross - cnpsEmployee;
     const professionalExpense = this.round(
-      afterCnps * this.PROFESSIONAL_EXPENSE_RATE,
+      gross * professionalExpenseRate,
     );
-    const monthlyFixedAbatement = this.FIXED_ABATEMENT_ANNUAL / 12;
-    const taxableMonthly = Math.max(
-      0,
-      afterCnps - professionalExpense - monthlyFixedAbatement,
-    );
-    const taxableAnnual = taxableMonthly * 12;
-
     // Cumul brut annuel pour base taxable progressive
     const grossCumulativeAnnual = (input.previousGrossCumulative || 0) + gross;
+    const cnpsCumulativeAnnual =
+      (input.previousCnpsCumulative || 0) + cnpsEmployee;
 
     const { irpp, cac } = this.calculateIrppWithCumulative(
-      taxableMonthly,
       grossCumulativeAnnual,
+      cnpsCumulativeAnnual,
       input.previousIrppCumulative || 0,
+      professionalExpenseRate,
+      fixedAbatementAnnual,
     );
 
     const totalDeductions = cnpsEmployee + cfcEmployee + irpp + cac;
@@ -111,15 +131,21 @@ export class CameroonPayrollCalculatorService {
 
     // === Charges patronales ===
     const cnpsEmployerPension = this.round(
-      cnpsBase * this.CNPS_EMPLOYER_PENSION,
+      cnpsBase * cnpsEmployerRate,
     );
     const cnpsFamilyBenefits = this.round(cnpsBase * this.CNPS_FAMILY);
-    const riskRate = this.RISK_RATES[input.riskGroup || 'A'];
-    const cnpsAccidentRisk = this.round(cnpsBase * riskRate);
+    const riskRate = input.riskGroup === 'B'
+      ? config?.riskGroupBRate ?? this.RISK_RATES.B
+      : input.riskGroup === 'C'
+        ? config?.riskGroupCRate ?? this.RISK_RATES.C
+        : config?.riskGroupARate ?? this.RISK_RATES.A;
+    // The CNPS occupational risk contribution has no salary cap (unlike
+    // pension and family benefits, which use the monthly cap).
+    const cnpsAccidentRisk = this.round(gross * riskRate);
     const cfcEmployer =
-      input.applyCfc !== false ? this.round(gross * this.CFC_EMPLOYER) : 0;
+      input.applyCfc !== false ? this.round(gross * cfcEmployerRate) : 0;
     const fne =
-      input.applyFne !== false ? this.round(gross * this.FNE_RATE) : 0;
+      input.applyFne !== false ? this.round(gross * fneRate) : 0;
 
     const totalEmployerCharges =
       cnpsEmployerPension +
@@ -158,25 +184,15 @@ export class CameroonPayrollCalculatorService {
   }
 
   /**
-   * Phase 4: Calculer CNPS avec respect du plafond annuel (750k FCFA).
-   * Si le cumul + cette paie dépasse le cap, seul le montant jusqu'au cap est retenu.
+   * Calcule la retenue CNPS sur la rémunération du mois, plafonnée à 750 000 FCFA.
    */
   private calculateCnpsEmployee(
     gross: number,
-    previousCnpsCumulative: number,
+    cnpsEmployeeRate: number,
+    cnpsCap: number,
   ): number {
-    const cnpsBase = Math.min(gross, this.CNPS_CAP);
-    const maxAllowedCnps = this.CNPS_CAP - previousCnpsCumulative;
-
-    if (maxAllowedCnps <= 0) {
-      // Plafond atteint, pas de CNPS cette paie
-      return 0;
-    }
-
-    const cnpsThisPeriod = this.round(cnpsBase * this.CNPS_EMPLOYEE_RATE);
-    const actualCnps = Math.min(cnpsThisPeriod, maxAllowedCnps);
-
-    return actualCnps;
+    const cnpsBase = Math.min(gross, cnpsCap);
+    return this.round(cnpsBase * cnpsEmployeeRate);
   }
 
   /**
@@ -184,15 +200,21 @@ export class CameroonPayrollCalculatorService {
    * Calcule l'IRPP basé sur le cumul annuel, puis retourne seulement la part de ce mois.
    */
   private calculateIrppWithCumulative(
-    taxableMonthly: number,
     grossCumulativeAnnual: number,
+    cnpsCumulativeAnnual: number,
     previousIrppCumulative: number,
+    professionalExpenseRate: number,
+    fixedAbatementAnnual: number,
   ): { irpp: number; cac: number } {
     // Calculer l'impôt total sur le cumul annuel
-    const { irppAnnual: totalIrppOnCumulative } = this.calculateIrppAndCac(
-      grossCumulativeAnnual * this.PROFESSIONAL_EXPENSE_RATE -
-        this.FIXED_ABATEMENT_ANNUAL,
+    const taxableAnnual = Math.max(
+      0,
+      grossCumulativeAnnual * (1 - professionalExpenseRate) -
+        cnpsCumulativeAnnual -
+        fixedAbatementAnnual,
     );
+    const { irppAnnual: totalIrppOnCumulative } =
+      this.calculateIrppAndCac(taxableAnnual);
 
     // La part d'IRPP à retenir ce mois = IRPP total - IRPP précédent
     const irppThisMonth = this.round(

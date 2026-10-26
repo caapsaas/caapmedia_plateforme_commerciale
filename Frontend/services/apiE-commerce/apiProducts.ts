@@ -22,7 +22,7 @@ export const getFavoriteProducts = async (ids: string[]) => {
   return data;
 };
 export const getProduitsSearch = async (searchTerm: string) => {
-    const { data } = await api.get(`/products/search-products?query=${searchTerm}`);
+    const { data } = await api.get('/products/search-products', { params: { query: searchTerm } });
     return data;
 };
 

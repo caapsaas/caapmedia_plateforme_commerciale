@@ -5,6 +5,7 @@ import {
   BadRequestException,
   InternalServerErrorException,
   ConflictException,
+  HttpException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { CreateEmployeeDto, UpdateEmployeeDto } from './dto/employee.dto';
@@ -194,38 +195,6 @@ export class EmployeeService {
   }
 
   /**
-   * Helper method to convert leave balances from frontend format to database operations
-   */
-  private async updateLeaveBalancesFromFrontendFormat(
-    employeeId: string,
-    leaveBalance: {
-      annual: number;
-      sick: number;
-      personal: number;
-      maternity: number;
-      paternity: number;
-      other: number;
-    },
-  ) {
-    const leaveTypeMapping = {
-      annual: 'ANNUAL' as LeaveType,
-      sick: 'SICK' as LeaveType,
-      personal: 'PERSONAL' as LeaveType,
-      maternity: 'MATERNITY' as LeaveType,
-      paternity: 'PATERNITY' as LeaveType,
-      other: 'OTHER' as LeaveType,
-      unpaid: 'UNPAID' as LeaveType,
-    };
-
-    for (const [key, days] of Object.entries(leaveBalance)) {
-      const leaveType = leaveTypeMapping[key as keyof typeof leaveTypeMapping];
-      if (leaveType && days !== undefined) {
-        await this.updateLeaveBalance(employeeId, leaveType, days, 'set');
-      }
-    }
-  }
-
-  /**
    * CREATE employee with leave balances
    */
   async create(
@@ -344,6 +313,31 @@ export class EmployeeService {
           });
         }
 
+        // Persist the supplied history in the same transaction as the opening
+        // balances. Those balances already reflect the records entered in the
+        // form, so do not debit them again here.
+        for (const record of createEmployeeDto.leaveRecords || []) {
+          if (
+            !Number.isFinite(record.startDate.getTime()) ||
+            !Number.isFinite(record.endDate.getTime()) ||
+            record.startDate > record.endDate ||
+            !Number.isInteger(record.days) ||
+            record.days < 1
+          ) {
+            throw new BadRequestException('Enregistrement de congé invalide.');
+          }
+          await prisma.employeeLeaveRecord.create({
+            data: {
+              id: generateId(ID_PREFIXES.EMPLOYEELEAVERECORD),
+              employeeId: newEmployee.id,
+              leaveRecordType: record.leaveRecordType,
+              startDate: record.startDate,
+              endDate: record.endDate,
+              days: record.days,
+            },
+          });
+        }
+
         // Handle documents if provided
         if (createEmployeeDto.documents) {
           const docsData = createEmployeeDto.documents as any;
@@ -405,6 +399,7 @@ export class EmployeeService {
       this.logger.log(`Employee created with ID: ${employee.id}`);
       return this.convertEmployeeToDTO(employee);
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       this.logger.error(
         `Failed to create employee: ${error.message}`,
         error.stack,
@@ -539,12 +534,35 @@ export class EmployeeService {
     days: number,
     operation: 'set' | 'add' | 'subtract' = 'set',
   ) {
+    if (!Number.isInteger(days) || days < 0) {
+      throw new BadRequestException('Le nombre de jours doit être un entier positif ou nul.');
+    }
+    if (!['set', 'add', 'subtract'].includes(operation)) {
+      throw new BadRequestException('Opération de solde de congé invalide.');
+    }
     const employee = await this.prisma.employee.findUnique({
       where: { id: employeeId },
     });
 
     if (!employee) {
       throw new NotFoundException(`Employee with ID ${employeeId} not found`);
+    }
+
+    if (operation === 'subtract') {
+      const updated = await this.prisma.employeeLeaveBalance.updateMany({
+        where: {
+          employeeId,
+          leaveType,
+          days: { gte: days },
+        },
+        data: { days: { decrement: days }, lastUpdated: new Date() },
+      });
+      if (updated.count === 0) {
+        throw new BadRequestException('Le solde de congés est insuffisant.');
+      }
+      return this.prisma.employeeLeaveBalance.findUnique({
+        where: { employeeId_leaveType: { employeeId, leaveType } },
+      });
     }
 
     return this.prisma.employeeLeaveBalance.upsert({
@@ -584,6 +602,7 @@ export class EmployeeService {
       maternity: number;
       paternity: number;
       other: number;
+      unpaid?: number;
     },
   ) {
     const employee = await this.prisma.employee.findUnique({
@@ -595,10 +614,31 @@ export class EmployeeService {
     }
 
     return this.prisma.$transaction(async (prisma) => {
-      await this.updateLeaveBalancesFromFrontendFormat(
-        employeeId,
-        leaveBalance,
-      );
+      const leaveTypes: [keyof typeof leaveBalance, LeaveType][] = [
+        ['annual', 'ANNUAL'],
+        ['sick', 'SICK'],
+        ['personal', 'PERSONAL'],
+        ['maternity', 'MATERNITY'],
+        ['paternity', 'PATERNITY'],
+        ['other', 'OTHER'],
+        ['unpaid', 'UNPAID'],
+      ];
+      for (const [key, leaveType] of leaveTypes) {
+        const days = leaveBalance[key] ?? 0;
+        if (!Number.isInteger(days) || days < 0) {
+          throw new BadRequestException('Les soldes de congés doivent être des entiers positifs ou nuls.');
+        }
+        await prisma.employeeLeaveBalance.upsert({
+          where: { employeeId_leaveType: { employeeId, leaveType } },
+          update: { days, lastUpdated: new Date() },
+          create: {
+            id: generateId(ID_PREFIXES.EMPLOYEELEAVEBALANCE),
+            employeeId,
+            leaveType,
+            days,
+          },
+        });
+      }
 
       // Return updated balances
       const updatedEmployee = await prisma.employee.findUnique({
@@ -624,18 +664,35 @@ export class EmployeeService {
     leaveData: {
       startDate: Date;
       endDate: Date;
-      days?: number;
+      days: number;
       leaveRecordType: LeaveType;
     },
   ): Promise<any> {
-    const days =
-      leaveData.days ||
-      Math.ceil(
-        (leaveData.endDate.getTime() - leaveData.startDate.getTime()) /
-          (1000 * 60 * 60 * 24),
-      );
+    const days = leaveData.days;
+    if (
+      !Number.isFinite(leaveData.startDate.getTime()) ||
+      !Number.isFinite(leaveData.endDate.getTime()) ||
+      leaveData.startDate > leaveData.endDate
+    ) {
+      throw new BadRequestException('Les dates de congé sont invalides.');
+    }
+    if (!Number.isInteger(days) || days < 1) {
+      throw new BadRequestException('La durée doit être un nombre entier de jours ouvrables.');
+    }
 
     return this.prisma.$transaction(async (prisma) => {
+      const balanceUpdate = await prisma.employeeLeaveBalance.updateMany({
+        where: {
+          employeeId,
+          leaveType: leaveData.leaveRecordType,
+          days: { gte: days },
+        },
+        data: { days: { decrement: days }, lastUpdated: new Date() },
+      });
+      if (balanceUpdate.count === 0) {
+        throw new BadRequestException('Le solde de congés est insuffisant.');
+      }
+
       const leaveRecord = await prisma.employeeLeaveRecord.create({
         data: {
           id: generateId(ID_PREFIXES.EMPLOYEELEAVERECORD),
@@ -644,14 +701,6 @@ export class EmployeeService {
           employeeId,
         },
       });
-
-      // Update specific leave balance instead of general balance
-      await this.updateLeaveBalance(
-        employeeId,
-        leaveData.leaveRecordType,
-        days,
-        'subtract',
-      );
 
       return leaveRecord;
     });

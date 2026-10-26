@@ -24,6 +24,8 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { EmployeeService } from './employee.service';
+import { AddLeaveRecordDto } from './dto/add-leave-record.dto';
+import { UpdateLeaveBalanceDto } from './dto/update-leave-balance.dto';
 import {
   CreateEmployeeDto,
   UpdateEmployeeDto,
@@ -73,6 +75,8 @@ export class EmployeeController {
 
     if (employeeId) {
       this.logger.log(`Redirecting to update for employee ${employeeId}`);
+      const employee = await this.employeeService.findOne(employeeId, false);
+      assertSubsidiaryAccess(employee.subsidiaryId, ctx);
       return this.employeeService.update(employeeId, dtoAsAny);
     }
 
@@ -240,7 +244,10 @@ export class EmployeeController {
   async addDocument(
     @Param('id') id: string,
     @Body() body: { documentName: string; url: string; docType: DocumentType },
+    @Request() req,
   ) {
+    const employee = await this.employeeService.findOne(id, false);
+    assertSubsidiaryAccess(employee.subsidiaryId, resolveScopeContext(req.user));
     return this.employeeService.addDocument(
       id,
       body.documentName,
@@ -256,7 +263,10 @@ export class EmployeeController {
     @Param('id') id: string,
     @Body()
     body: { trainingName: string; trainingDate: string; provider?: string },
+    @Request() req,
   ) {
+    const employee = await this.employeeService.findOne(id, false);
+    assertSubsidiaryAccess(employee.subsidiaryId, resolveScopeContext(req.user));
     return this.employeeService.addTraining(id, {
       ...body,
       trainingDate: new Date(body.trainingDate),
@@ -275,7 +285,10 @@ export class EmployeeController {
       startDate: string;
       endDate?: string;
     },
+    @Request() req,
   ) {
+    const employee = await this.employeeService.findOne(id, false);
+    assertSubsidiaryAccess(employee.subsidiaryId, resolveScopeContext(req.user));
     return this.employeeService.addPositionHistory(id, {
       ...body,
       startDate: new Date(body.startDate),
@@ -295,7 +308,10 @@ export class EmployeeController {
       rating?: number;
       reviewComments?: string;
     },
+    @Request() req,
   ) {
+    const employee = await this.employeeService.findOne(id, false);
+    assertSubsidiaryAccess(employee.subsidiaryId, resolveScopeContext(req.user));
     return this.employeeService.addPerformanceReview(id, {
       ...body,
       reviewDate: new Date(body.reviewDate),
@@ -307,14 +323,11 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Add a leave record' })
   async addLeaveRecord(
     @Param('id') id: string,
-    @Body()
-    body: {
-      startDate: string;
-      endDate: string;
-      days?: number;
-      leaveRecordType: LeaveType;
-    },
+    @Body() body: AddLeaveRecordDto,
+    @Request() req,
   ) {
+    const employee = await this.employeeService.findOne(id, false);
+    assertSubsidiaryAccess(employee.subsidiaryId, resolveScopeContext(req.user));
     return this.employeeService.addLeaveRecord(id, {
       ...body,
       startDate: new Date(body.startDate),
@@ -325,7 +338,9 @@ export class EmployeeController {
   @Get(':id/leave-balances')
   @Roles('HR_MANAGER', 'ADMIN')
   @ApiOperation({ summary: 'Get employee leave balances' })
-  async getLeaveBalances(@Param('id') id: string) {
+  async getLeaveBalances(@Param('id') id: string, @Request() req) {
+    const employee = await this.employeeService.findOne(id, false);
+    assertSubsidiaryAccess(employee.subsidiaryId, resolveScopeContext(req.user));
     return this.employeeService.getLeaveBalances(id);
   }
 
@@ -335,8 +350,11 @@ export class EmployeeController {
   async updateLeaveBalance(
     @Param('id') id: string,
     @Param('leaveType') leaveType: LeaveType,
-    @Body() body: { days: number; operation?: 'set' | 'add' | 'subtract' },
+    @Body() body: UpdateLeaveBalanceDto,
+    @Request() req,
   ) {
+    const employee = await this.employeeService.findOne(id, false);
+    assertSubsidiaryAccess(employee.subsidiaryId, resolveScopeContext(req.user));
     return this.employeeService.updateLeaveBalance(
       id,
       leaveType,
@@ -351,7 +369,10 @@ export class EmployeeController {
   async updateAllLeaveBalances(
     @Param('id') id: string,
     @Body() leaveBalance: LeaveBalanceDto,
+    @Request() req,
   ) {
+    const employee = await this.employeeService.findOne(id, false);
+    assertSubsidiaryAccess(employee.subsidiaryId, resolveScopeContext(req.user));
     return this.employeeService.updateAllLeaveBalances(id, leaveBalance);
   }
 }

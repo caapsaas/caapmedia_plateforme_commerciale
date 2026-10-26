@@ -13,12 +13,13 @@ import EquipmentCostManagement from '../components/configuration/EquipmentCostMa
 import CommercialParamsManagement from '../components/configuration/CommercialParamsManagement';
 import ProductionWorkflowManagement from '../components/configuration/ProductionWorkflowManagement';
 import PayrollScaleManagement from '../components/configuration/PayrollScaleManagement';
+import SubsidiaryManagement from '../components/configuration/SubsidiaryManagement';
 import { useI18n } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
 import CrmListSkeleton from '../components/ui/CrmListSkeleton';
 
-type ConfigGroup = 'catalogue' | 'users' | 'suppliers' | 'clients' | 'taxes' | 'treasury' | 'production' | 'payroll';
+type ConfigGroup = 'catalogue' | 'users' | 'suppliers' | 'clients' | 'taxes' | 'treasury' | 'production' | 'payroll' | 'subsidiaries';
 type CatalogueSub = 'products' | 'units' | 'services' | 'referenceLists';
 type ProductionSub = 'equipmentCosts' | 'commercialParams' | 'productionWorkflows';
 type TreasurySub = 'accounts' | 'banks';
@@ -53,11 +54,10 @@ const Configuration: React.FC = () => {
     const [productionSub, setProductionSub] = useState<ProductionSub>('equipmentCosts');
     const [treasurySub, setTreasurySub] = useState<TreasurySub>('accounts');
 
-    const activeRole = user?.activeRole ?? user?.userRole;
-    const isSuperAdmin = activeRole === UserRole.SUPER_ADMIN;
+    const isSuperAdmin = user?.userRole === UserRole.SUPER_ADMIN || user?.additionalRoles?.includes(UserRole.SUPER_ADMIN) === true;
 
     const renderActiveView = () => {
-        if (!subsidiary) return <CrmListSkeleton columns={5} />;
+        if (!subsidiary && !(isSuperAdmin && activeGroup === 'subsidiaries')) return <CrmListSkeleton columns={5} />;
 
         switch (activeGroup) {
             case 'catalogue':
@@ -79,6 +79,7 @@ const Configuration: React.FC = () => {
                 }
                 break;
             case 'payroll':   return <PayrollScaleManagement />;
+            case 'subsidiaries': return isSuperAdmin ? <SubsidiaryManagement /> : null;
             case 'production':
                 switch (productionSub) {
                     case 'equipmentCosts':      return <EquipmentCostManagement />;
@@ -116,6 +117,7 @@ const Configuration: React.FC = () => {
                                 <>
                                     <div className="w-px bg-slate-300 mx-1 self-stretch" />
                                     <TabButton label={t('configuration.production')} {...group('production')} />
+                                    <TabButton label="Filiales" {...group('subsidiaries')} />
                                 </>
                             )}
                         </div>

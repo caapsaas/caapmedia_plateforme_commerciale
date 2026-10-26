@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, Subsidiary } from '../../types';
 import { useI18n } from '../../i18n';
+import PasswordInput from '../ui/PasswordInput';
 
 // SUPER_ADMIN n'est jamais attribuable depuis ce formulaire: c'est un role
 // d'exception (vue consolidee toutes filiales) attribue manuellement en base,
 // pas via la gestion courante des utilisateurs.
-const ASSIGNABLE_ROLES = Object.values(UserRole).filter(r => r !== UserRole.SUPER_ADMIN);
+const ASSIGNABLE_ROLES = Object.values(UserRole).filter(
+    role => role !== UserRole.SUPER_ADMIN && role !== UserRole.PRE_HIRE_MANAGER,
+);
 
 interface UserFormModalProps {
     isOpen: boolean;
@@ -57,7 +60,9 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
             setFormData(prev => ({
                 ...prev,
                 userRole: value as UserRole,
-                additionalRoles: prev.additionalRoles.filter(r => r !== value),
+                additionalRoles: value === UserRole.PRE_HIRE_MANAGER
+                    ? []
+                    : prev.additionalRoles.filter(r => r !== value && r !== UserRole.PRE_HIRE_MANAGER),
             }));
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
@@ -100,7 +105,9 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
                 userName: formData.userName,
                 email: formData.email,
                 userRole: formData.userRole,
-                additionalRoles: formData.additionalRoles,
+                additionalRoles: formData.userRole === UserRole.PRE_HIRE_MANAGER
+                    ? []
+                    : formData.additionalRoles.filter(role => role !== UserRole.PRE_HIRE_MANAGER),
                 subsidiaryId: formData.subsidiaryId,
                 ...(password ? { password } : {})
             };
@@ -109,8 +116,11 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
             if (formData.userName !== user.userName) saveData.userName = formData.userName;
             if (formData.email !== user.email) saveData.email = formData.email;
             if (formData.userRole !== user.userRole) saveData.userRole = formData.userRole;
-            if (JSON.stringify(formData.additionalRoles) !== JSON.stringify(user.additionalRoles ?? [])) {
-                saveData.additionalRoles = formData.additionalRoles;
+            const additionalRoles = formData.userRole === UserRole.PRE_HIRE_MANAGER
+                ? []
+                : formData.additionalRoles.filter(role => role !== UserRole.PRE_HIRE_MANAGER);
+            if (JSON.stringify(additionalRoles) !== JSON.stringify(user.additionalRoles ?? [])) {
+                saveData.additionalRoles = additionalRoles;
             }
             if (formData.subsidiaryId !== user.subsidiaryId) saveData.subsidiaryId = formData.subsidiaryId;
             if (showPasswordFields && password) saveData.password = password;
@@ -126,7 +136,7 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
 
     if (!isOpen) return null;
 
-    const secondaryRoles = ASSIGNABLE_ROLES.filter(r => r !== formData.userRole);
+    const secondaryRoles = ASSIGNABLE_ROLES.filter(r => r !== formData.userRole && r !== UserRole.PRE_HIRE_MANAGER);
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
@@ -160,6 +170,9 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
                                             {ASSIGNABLE_ROLES.map(roleValue => (
                                                 <option key={roleValue} value={roleValue}>{t(`roles.${roleValue}`)}</option>
                                             ))}
+                                            <option value={UserRole.PRE_HIRE_MANAGER}>
+                                                {t('roles.PRE_HIRE_MANAGER')}
+                                            </option>
                                         </select>
                                     )}
                                 </div>
@@ -203,11 +216,11 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
                                     <hr className="my-2"/>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700">{user ? 'Nouveau mot de passe' : 'Mot de passe'}</label>
-                                        <input type="password" value={password} onChange={e => setPassword(e.target.value)} required={!user} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                        <PasswordInput value={password} onChange={e => setPassword(e.target.value)} required={!user} autoComplete="new-password" className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700">Confirmer le mot de passe</label>
-                                        <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required={!user} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
+                                        <PasswordInput value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required={!user} autoComplete="new-password" className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                     </div>
                                 </>
                             )}

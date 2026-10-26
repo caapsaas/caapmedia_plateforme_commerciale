@@ -44,11 +44,11 @@ const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, onEdit, onView, o
   const { t, formatCurrency } = useI18n();
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-4">
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
       {/* Header with Avatar */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#c6e911] to-[#adc40f] flex items-center justify-center font-bold text-slate-800">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-lime-100 text-sm font-semibold text-lime-800">
             {getInitials(employee.firstName, employee.lastName)}
           </div>
           <div>
@@ -71,13 +71,13 @@ const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, onEdit, onView, o
       </div>
 
       {/* Info Grid */}
-      <div className="grid grid-cols-2 gap-3 text-sm mb-4 pb-4 border-b border-slate-200">
+      <div className="mb-4 grid grid-cols-2 gap-3 border-b border-slate-100 pb-4 text-sm">
         <div>
-          <p className="text-slate-600 text-xs uppercase font-semibold">{t('configuration.form.department')}</p>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{t('configuration.form.department')}</p>
           <p className="text-slate-900 font-medium">{employee.department}</p>
         </div>
         <div>
-          <p className="text-slate-600 text-xs uppercase font-semibold">{t('hr.table.salary')}</p>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{t('hr.table.salary')}</p>
           <p className="text-slate-900 font-medium">
             {typeof employee.baseSalary === 'number'
               ? formatCurrency(employee.baseSalary)
@@ -85,11 +85,11 @@ const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, onEdit, onView, o
           </p>
         </div>
         <div>
-          <p className="text-slate-600 text-xs uppercase font-semibold">{t('configuration.form.email')}</p>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{t('configuration.form.email')}</p>
           <p className="text-slate-900 font-medium text-xs truncate">{employee.email}</p>
         </div>
         <div>
-          <p className="text-slate-600 text-xs uppercase font-semibold">{t('configuration.form.phone')}</p>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{t('configuration.form.phone')}</p>
           <p className="text-slate-900 font-medium">{employee.phone}</p>
         </div>
       </div>
@@ -99,7 +99,7 @@ const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, onEdit, onView, o
         {onView && (
           <button
             onClick={() => onView(employee)}
-            className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded transition-colors flex items-center gap-1.5"
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100"
             title={t('hr.actions.view')}
           >
             <Eye size={16} />
@@ -109,7 +109,7 @@ const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, onEdit, onView, o
         {onEdit && (
           <button
             onClick={() => onEdit(employee)}
-            className="px-3 py-1.5 text-sm font-medium text-[#c6e911] hover:bg-[#c6e911]/10 rounded transition-colors flex items-center gap-1.5"
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-lime-50 hover:text-lime-800"
             title={t('hr.actions.edit')}
           >
             <Edit size={16} />
@@ -119,7 +119,7 @@ const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, onEdit, onView, o
         {onDelete && (
           <button
             onClick={() => onDelete(employee)}
-            className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded transition-colors flex items-center gap-1.5"
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600"
             title={t('hr.actions.delete')}
           >
             <Trash size={16} />

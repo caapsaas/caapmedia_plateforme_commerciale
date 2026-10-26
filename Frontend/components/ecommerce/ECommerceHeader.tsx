@@ -128,7 +128,7 @@ const ECommerceHeader: React.FC<ECommerceHeaderProps> = (props) => {
                 <div className="flex items-center gap-2 sm:gap-4">
                      <button
                         onClick={props.onQuoteRequest}
-                        className="py-2 px-4 rounded-full bg-[#E61D2B] text-white animate-blink shadow-lg hover:bg-red-700 transition-colors font-bold text-xs md:text-sm"
+                        className="py-2 px-4 rounded-full bg-[#c6e911] text-slate-900 shadow-sm hover:bg-[#b5d40e] transition-colors font-bold text-xs md:text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700"
                     >
                         Demander un devis
                     </button>

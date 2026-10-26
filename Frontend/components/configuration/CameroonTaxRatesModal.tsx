@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useI18n } from '../../i18n';
 
 interface CameroonTaxRatesModalProps {
   isOpen: boolean;
@@ -41,6 +42,7 @@ const CameroonTaxRatesModal: React.FC<CameroonTaxRatesModalProps> = ({
   riskGroupCRate,
   isLoading,
 }) => {
+  const { t } = useI18n();
   const [formData, setFormData] = useState({
     cfcEmployeeRate,
     cfcEmployerRate,
@@ -77,39 +79,39 @@ const CameroonTaxRatesModal: React.FC<CameroonTaxRatesModalProps> = ({
 
     // Validation
     if (formData.cfcEmployeeRate < 0 || formData.cfcEmployeeRate > 1) {
-      setError('Le taux CFC employé doit être entre 0 et 1');
+      setError(t('hr.payroll.cameroonTaxRates.validation.cfcEmployee'));
       return;
     }
     if (formData.cfcEmployerRate < 0 || formData.cfcEmployerRate > 1) {
-      setError('Le taux CFC employeur doit être entre 0 et 1');
+      setError(t('hr.payroll.cameroonTaxRates.validation.cfcEmployer'));
       return;
     }
     if (formData.fneRate < 0 || formData.fneRate > 1) {
-      setError('Le taux FNE doit être entre 0 et 1');
+      setError(t('hr.payroll.cameroonTaxRates.validation.fne'));
       return;
     }
     if (formData.cnpsCap < 0) {
-      setError('Le plafond CNPS doit être positif');
+      setError(t('hr.payroll.cameroonTaxRates.validation.cnpsCap'));
       return;
     }
     if (formData.professionalExpenseRate < 0 || formData.professionalExpenseRate > 1) {
-      setError('Le taux d\'abattement professionnel doit être entre 0 et 1');
+      setError(t('hr.payroll.cameroonTaxRates.validation.professionalExpense'));
       return;
     }
     if (formData.fixedAbatementAnnual < 0) {
-      setError('L\'abattement fixe annuel doit être positif');
+      setError(t('hr.payroll.cameroonTaxRates.validation.fixedAbatement'));
       return;
     }
     if (formData.riskGroupARate < 0 || formData.riskGroupARate > 1) {
-      setError('Le taux du groupe A doit être entre 0 et 1');
+      setError(t('hr.payroll.cameroonTaxRates.validation.riskGroupA'));
       return;
     }
     if (formData.riskGroupBRate < 0 || formData.riskGroupBRate > 1) {
-      setError('Le taux du groupe B doit être entre 0 et 1');
+      setError(t('hr.payroll.cameroonTaxRates.validation.riskGroupB'));
       return;
     }
     if (formData.riskGroupCRate < 0 || formData.riskGroupCRate > 1) {
-      setError('Le taux du groupe C doit être entre 0 et 1');
+      setError(t('hr.payroll.cameroonTaxRates.validation.riskGroupC'));
       return;
     }
 
@@ -126,7 +128,7 @@ const CameroonTaxRatesModal: React.FC<CameroonTaxRatesModalProps> = ({
         riskGroupCRate: formData.riskGroupCRate,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la sauvegarde');
+      setError(err instanceof Error ? err.message : t('hr.payroll.error.update'));
     }
   };
 
@@ -138,10 +140,10 @@ const CameroonTaxRatesModal: React.FC<CameroonTaxRatesModalProps> = ({
       <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <h2 className="text-xl font-bold text-slate-900 mb-4">
-            Paramètres fiscaux camerounais
+            {t('hr.payroll.cameroonTaxRates.title')}
           </h2>
           <p className="text-sm text-slate-600 mb-6">
-            Configurez les taux et plafonds utilisés pour le calcul de la paie au Cameroun.
+            {t('hr.payroll.cameroonTaxRates.description')}
           </p>
 
           {error && (
@@ -153,11 +155,11 @@ const CameroonTaxRatesModal: React.FC<CameroonTaxRatesModalProps> = ({
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* CFC Rates */}
             <div>
-              <h3 className="text-sm font-semibold text-slate-900 mb-3">Crédit Foncier (CFC)</h3>
+              <h3 className="text-sm font-semibold text-slate-900 mb-3">{t('hr.payroll.cameroonTaxRates.cfcTitle')}</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Taux employé (%)
+                    {t('hr.payroll.form.employeeRate')} (%)
                   </label>
                   <input
                     type="number"
@@ -172,7 +174,7 @@ const CameroonTaxRatesModal: React.FC<CameroonTaxRatesModalProps> = ({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Taux employeur (%)
+                    {t('hr.payroll.form.employerRate')} (%)
                   </label>
                   <input
                     type="number"
@@ -191,7 +193,7 @@ const CameroonTaxRatesModal: React.FC<CameroonTaxRatesModalProps> = ({
             {/* FNE Rate */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Fonds National de l'Emploi (FNE) - Taux (%)
+                {t('hr.payroll.cameroonTaxRates.fne')} (%)
               </label>
               <input
                 type="number"
@@ -208,7 +210,7 @@ const CameroonTaxRatesModal: React.FC<CameroonTaxRatesModalProps> = ({
             {/* CNPS Cap */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Plafond CNPS (FCFA)
+                {t('hr.payroll.cameroonTaxRates.cnpsCap')} (FCFA)
               </label>
               <input
                 type="number"
@@ -220,14 +222,14 @@ const CameroonTaxRatesModal: React.FC<CameroonTaxRatesModalProps> = ({
                 disabled={isLoading}
               />
               <p className="text-xs text-slate-500 mt-1">
-                Plafond mensuel pour le calcul des cotisations CNPS
+                {t('hr.payroll.cameroonTaxRates.cnpsCapDescription')}
               </p>
             </div>
 
             {/* Professional Expense Rate */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Abattement professionnel (%)
+                {t('hr.payroll.cameroonTaxRates.professionalExpense')} (%)
               </label>
               <input
                 type="number"
@@ -240,14 +242,14 @@ const CameroonTaxRatesModal: React.FC<CameroonTaxRatesModalProps> = ({
                 disabled={isLoading}
               />
               <p className="text-xs text-slate-500 mt-1">
-                Pourcentage appliqué sur le salaire après CNPS pour le calcul de l'IRPP
+                {t('hr.payroll.cameroonTaxRates.professionalExpenseDescription')}
               </p>
             </div>
 
             {/* Fixed Abatement Annual */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Abattement fixe annuel (FCFA)
+                {t('hr.payroll.cameroonTaxRates.fixedAbatement')} (FCFA)
               </label>
               <input
                 type="number"
@@ -259,17 +261,17 @@ const CameroonTaxRatesModal: React.FC<CameroonTaxRatesModalProps> = ({
                 disabled={isLoading}
               />
               <p className="text-xs text-slate-500 mt-1">
-                Montant déduit annuellement (divisé par 12 mensuellement)
+                {t('hr.payroll.cameroonTaxRates.fixedAbatementDescription')}
               </p>
             </div>
 
             {/* Risk Group Rates */}
             <div>
-              <h3 className="text-sm font-semibold text-slate-900 mb-3">Taux d'accident du travail</h3>
+              <h3 className="text-sm font-semibold text-slate-900 mb-3">{t('hr.payroll.cameroonTaxRates.riskRates')}</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Groupe A (%)
+                    {t('hr.payroll.cameroonTaxRates.groupA')} (%)
                   </label>
                   <input
                     type="number"
@@ -281,11 +283,11 @@ const CameroonTaxRatesModal: React.FC<CameroonTaxRatesModalProps> = ({
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
                     disabled={isLoading}
                   />
-                  <p className="text-xs text-slate-500 mt-1">Risque faible</p>
+                  <p className="text-xs text-slate-500 mt-1">{t('hr.payroll.cameroonTaxRates.riskLow')}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Groupe B (%)
+                    {t('hr.payroll.cameroonTaxRates.groupB')} (%)
                   </label>
                   <input
                     type="number"
@@ -297,11 +299,11 @@ const CameroonTaxRatesModal: React.FC<CameroonTaxRatesModalProps> = ({
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
                     disabled={isLoading}
                   />
-                  <p className="text-xs text-slate-500 mt-1">Risque moyen</p>
+                  <p className="text-xs text-slate-500 mt-1">{t('hr.payroll.cameroonTaxRates.riskMedium')}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Groupe C (%)
+                    {t('hr.payroll.cameroonTaxRates.groupC')} (%)
                   </label>
                   <input
                     type="number"
@@ -313,7 +315,7 @@ const CameroonTaxRatesModal: React.FC<CameroonTaxRatesModalProps> = ({
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
                     disabled={isLoading}
                   />
-                  <p className="text-xs text-slate-500 mt-1">Risque élevé</p>
+                  <p className="text-xs text-slate-500 mt-1">{t('hr.payroll.cameroonTaxRates.riskHigh')}</p>
                 </div>
               </div>
             </div>
@@ -325,14 +327,14 @@ const CameroonTaxRatesModal: React.FC<CameroonTaxRatesModalProps> = ({
                 disabled={isLoading}
                 className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
-                Annuler
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={isLoading}
                 className="px-4 py-2 bg-[#c6e911] text-slate-800 rounded-lg font-semibold hover:bg-[#adc40f] transition-colors disabled:opacity-50"
               >
-                {isLoading ? 'Enregistrement...' : 'Enregistrer'}
+                {isLoading ? t('common.saving') : t('common.save')}
               </button>
             </div>
           </form>

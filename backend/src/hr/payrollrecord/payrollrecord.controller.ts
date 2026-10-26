@@ -137,9 +137,11 @@ export class PayrollRecordController {
    */
   @Get('by-employee/:employeeId')
   @Roles('HR_MANAGER', 'ADMIN')
-  findByEmployee(@Param('employeeId') employeeId: string) {
+  async findByEmployee(@Param('employeeId') employeeId: string, @Request() req: any) {
     // Pas de ParseUUIDPipe : les IDs du projet ne sont pas des UUID
-    return this.payrollRecordService.findByEmployee(employeeId);
+    const employee = await this.payrollRecordService.findEmployeeForScope(employeeId);
+    assertSubsidiaryAccess(employee.subsidiaryId, resolveScopeContext(req.user));
+    return this.payrollRecordService.findByEmployee(employeeId, employee.subsidiaryId);
   }
 
   /**
@@ -148,9 +150,11 @@ export class PayrollRecordController {
    */
   @Get(':id')
   @Roles('HR_MANAGER', 'ADMIN')
-  findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string, @Request() req: any) {
     // Pas de ParseUUIDPipe
-    return this.payrollRecordService.findOne(id);
+    const record = await this.payrollRecordService.findOne(id);
+    assertSubsidiaryAccess(record.subsidiaryId, resolveScopeContext(req.user));
+    return record;
   }
 
   // ============================================================
@@ -337,6 +341,7 @@ export class PayrollRecordController {
   @Post('bonus/:bonusId/approve')
   @Roles('HR_MANAGER', 'ADMIN')
   async approveBonus(@Param('bonusId') bonusId: string, @Request() req: any) {
+    await this.assertBonusScope(bonusId, req.user);
     return this.bonusAndChargeService.approveBonus(bonusId, req.user.id);
   }
 
@@ -349,7 +354,9 @@ export class PayrollRecordController {
   async recordBonusPayment(
     @Param('bonusId') bonusId: string,
     @Body() dto: RecordBonusPaymentDto,
+    @Request() req: any,
   ) {
+    await this.assertBonusScope(bonusId, req.user);
     return this.bonusAndChargeService.recordBonusPayment(
       bonusId,
       dto.bankTransferId,
@@ -366,7 +373,9 @@ export class PayrollRecordController {
   async cancelBonus(
     @Param('bonusId') bonusId: string,
     @Body() dto: CancelBonusDto,
+    @Request() req: any,
   ) {
+    await this.assertBonusScope(bonusId, req.user);
     return this.bonusAndChargeService.cancelBonus(bonusId, dto.reason);
   }
 
@@ -479,13 +488,21 @@ export class PayrollRecordController {
   async recordChargePayment(
     @Param('chargePaymentId') chargePaymentId: string,
     @Body() dto: RecordChargePaymentDto,
+    @Request() req: any,
   ) {
+    const subsidiaryId = await this.bonusAndChargeService.getChargeSubsidiaryId(chargePaymentId);
+    assertSubsidiaryAccess(subsidiaryId, resolveScopeContext(req.user));
     return this.bonusAndChargeService.recordChargePayment(
       chargePaymentId,
       dto.bankTransferId,
       dto.paidAmount,
       dto.declarationNumber,
     );
+  }
+
+  private async assertBonusScope(bonusId: string, user: any): Promise<void> {
+    const subsidiaryId = await this.bonusAndChargeService.getBonusSubsidiaryId(bonusId);
+    assertSubsidiaryAccess(subsidiaryId, resolveScopeContext(user));
   }
 
   // ============================================================

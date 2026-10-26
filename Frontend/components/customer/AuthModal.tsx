@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PasswordInput from '../ui/PasswordInput';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import { ContactRegisterData } from '../../services/apiCrm/apicontacts';
@@ -134,7 +135,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegis
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700">{t('customerAccount.password')}</label>
-                            <input type="password" name="password" value={loginData.password} onChange={handleLoginChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"/>
+                            <PasswordInput name="password" value={loginData.password} onChange={handleLoginChange} required autoComplete="current-password" className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"/>
                         </div>
                         <div className="text-right text-sm">
                             <button type="button" onClick={handleForgotPassword} className="font-medium text-[#c6e911] hover:text-[#adc40f]">{t('login.forgotPassword')}</button>
@@ -174,11 +175,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegis
                         </div>
                          <div>
                             <label className="block text-sm font-medium text-slate-700">{t('customerAccount.password')}</label>
-                            <input type="password" name="password" value={signupData.password} onChange={handleSignupChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"/>
+                            <PasswordInput name="password" value={signupData.password} onChange={handleSignupChange} required autoComplete="new-password" className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"/>
                         </div>
                          <div>
                             <label className="block text-sm font-medium text-slate-700">{t('customerAccount.confirmPassword')}</label>
-                            <input type="password" id="confirmPassword" required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"/>
+                            <PasswordInput id="confirmPassword" required autoComplete="new-password" className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"/>
                         </div>
                         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
                         <button type="submit" className="w-full py-3 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f]">{t('customerAccount.signupAction')}</button>

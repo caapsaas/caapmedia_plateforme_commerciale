@@ -26,6 +26,8 @@ const frTranslations = {
     "exportPdf": "Exporter en PDF",
     "send": "Envoyer",
     "notAvailable": "Non défini",
+    "showPassword": "Afficher le mot de passe",
+    "hidePassword": "Masquer le mot de passe",
     "create": "Créer",
     "update": "Mettre à jour",
     "saving": "Enregistrement...",
@@ -110,6 +112,7 @@ const frTranslations = {
     "FINANCIAL_DIRECTOR": "Directeur Financier",
     "SECRETARY": "Secrétaire",
     "HR_MANAGER": "Responsable RH",
+    "PRE_HIRE_MANAGER": "Responsable pré-embauche",
     "PRODUCTION_DIRECTOR": "Directeur de Production"
   },
   "sidebar": {
@@ -192,6 +195,22 @@ const frTranslations = {
     "backToLogin": "Retour à la connexion",
     "successMessage": "Si un compte existe avec cet e-mail, nous avons envoyé un lien pour réinitialiser votre mot de passe.",
     "errorMessage": "Une erreur est survenue lors de l'envoi du lien de réinitialisation. Veuillez réessayer."
+  },
+  "resetPassword": {
+    "title": "Choisir un nouveau mot de passe",
+    "instruction": "Créez un mot de passe d'au moins 10 caractères.",
+    "newPassword": "Nouveau mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "submit": "Enregistrer le nouveau mot de passe",
+    "saving": "Enregistrement...",
+    "success": "Votre mot de passe a été modifié. Vous pouvez maintenant vous connecter.",
+    "error": "Impossible de modifier le mot de passe. Le lien est peut-être expiré.",
+    "invalidLink": "Le lien de réinitialisation est manquant ou invalide.",
+    "passwordTooShort": "Le mot de passe doit contenir au moins 10 caractères.",
+    "passwordsDoNotMatch": "Les mots de passe ne correspondent pas.",
+    "showPassword": "Afficher",
+    "hidePassword": "Masquer",
+    "backToLogin": "Retour à la connexion"
   },
   "security": {
     "title": "Sécurité du compte",
@@ -1035,6 +1054,7 @@ const frTranslations = {
     "cartEmpty": "Votre panier est vide.",
     "total": "Total",
     "submitOrder": "Passer la commande",
+    "submitError": "Impossible de créer la commande. Votre panier est conservé ; vous pouvez réessayer.",
     "orderPlacedSuccess": "Commande passée avec succès !",
     "item": "Article",
     "subtotal": "Sous-total",
@@ -2003,9 +2023,73 @@ const frTranslations = {
   },
   "hr": {
     "title": "Gestion des Ressources Humaines",
+    "management": "Gestion RH",
+    "employeeManagement": "Gestion des employés",
+    "deleteEmployee": "Supprimer l'employé",
+    "foundEmployees": "employé(s) trouvé(s)",
+    "noEmployeesToExport": "Aucun employé à exporter",
+    "noEmployeesFound": "Aucun employé trouvé",
+    "exportedCsv": "Employés exportés en CSV",
+    "exportedPdf": "Employés exportés en PDF",
+    "exportFailed": "Erreur lors de l'export",
+    "activeSubsidiary": "Filiale active",
+    "selectSubsidiary": "Sélectionner une filiale",
+    "preHire": {
+      "title": "Formation pré-embauche",
+      "eyebrow": "Parcours talents",
+      "subtitle": "Suivez les parcours de formation avant toute décision de recrutement.",
+      "noCommitment": "Cette formation ne vaut pas promesse d'embauche et ne crée pas de dossier employé.",
+      "add": "Nouvelle personne en formation",
+      "edit": "Modifier le parcours",
+      "delete": "Supprimer",
+      "confirmDelete": "Supprimer ce dossier de formation ?",
+      "save": "Enregistrer le parcours",
+      "saving": "Enregistrement…",
+      "cancel": "Annuler",
+      "loading": "Chargement des parcours…",
+      "empty": "Aucun parcours de formation pour cette filiale.",
+      "saveError": "Impossible d'enregistrer le parcours. Vérifiez les informations et réessayez.",
+      "convert": "Convertir en employé",
+      "employeeCreated": "Dossier employé créé",
+      "convertError": "Impossible de convertir ce candidat. Vérifiez les informations et l’unicité de son email.",
+      "convertHelp": "Complétez les informations obligatoires du dossier employé. Le candidat sera rattaché à la filiale de ce parcours.",
+      "confirmConvert": "Créer le dossier employé",
+      "converting": "Création en cours…",
+      "search": "Rechercher un candidat, un poste ou un département…",
+      "allStatuses": "Tous",
+      "listView": "Vue liste",
+      "tableView": "Vue tableau",
+      "viewMode": "Mode d’affichage des candidats",
+      "candidate": "Candidat",
+      "actions": "Actions",
+      "noResults": "Aucun parcours ne correspond aux filtres.",
+      "stats": { "total": "Candidats suivis", "active": "En formation", "completed": "Formations terminées", "hired": "Recrutés" },
+      "results": { "title": "Résultats après formation", "help": "Renseignez ces résultats une fois le parcours terminé.", "clients": "Clients acquis", "prospects": "Prospects acquis", "clientsTotal": "Clients acquis au total", "prospectsTotal": "Prospects acquis au total" },
+      "employeeFields": {
+        "firstName": "Prénom", "lastName": "Nom", "email": "Email professionnel", "phone": "Téléphone",
+        "birthDate": "Date de naissance", "address": "Adresse", "nationality": "Nationalité", "socialSecurityNumber": "Numéro de sécurité sociale",
+        "positions": "Poste", "department": "Département", "hireDate": "Date d’embauche", "workLocation": "Lieu de travail",
+        "baseSalary": "Salaire de base (FCFA)", "bonus": "Prime (FCFA)", "gender": "Genre", "contractType": "Type de contrat", "paymentMethod": "Mode de paiement", "bankName": "Nom de la banque", "bankAccountNumber": "Numéro de compte bancaire"
+      },
+      "gender": { "MALE": "Homme", "FEMALE": "Femme", "OTHER": "Autre" },
+      "contract": { "CDI": "CDI", "CDD": "CDD", "FREELANCE": "Freelance", "INTERNSHIP": "Stage" },
+      "payment": { "CASH": "Espèces", "CHECK": "Chèque", "BANK_TRANSFER": "Virement bancaire" },
+      "fields": {
+        "firstName": "Prénom", "lastName": "Nom", "email": "Email", "phone": "Téléphone",
+        "targetPosition": "Poste visé", "department": "Département", "mentorName": "Référent",
+        "startDate": "Début de formation", "plannedEndDate": "Fin prévue", "status": "Statut",
+        "progress": "Progression", "evaluation": "Évaluation", "outcome": "Décision finale", "notes": "Notes"
+      },
+      "status": {
+        "PLANNED": "Planifiée", "IN_PROGRESS": "En cours", "COMPLETED": "Terminée",
+        "HIRED": "Recrutée", "NOT_RETAINED": "Non retenue", "CANCELLED": "Annulée"
+      }
+    },
     "tabs": {
       "employees": "Employés",
+      "preHireTraining": "Formation pré-embauche",
       "attendance": "Présences",
+      "attendances": "Présences",
       "attendance_cards": "Code QR de présence",
       "attendance_history": "Historique des présences",
       "payroll": "Paie",
@@ -2017,6 +2101,7 @@ const frTranslations = {
     },
     "employees": {
       "title": "Gestion des Employés",
+      "directorySubtitle": "Consultez et gérez les dossiers de votre équipe.",
       "add": "Ajouter un employé",
       "id": "ID",
       "fullName": "Nom complet",
@@ -2053,8 +2138,43 @@ const frTranslations = {
       "notSigned": "Non signé"
     },
     "payroll": {
+      "subtitle": "Suivez les bulletins, les montants et les opérations du mois.",
+      "globalView": "Vue globale",
+      "loading": "Chargement…",
+      "subsidiaryView": "Vue filiale",
+      "processHelp": "Calculer les bulletins de la période sélectionnée",
+      "processing": "Calcul en cours…",
+      "bonusPayments": "Primes et bonus",
+      "generatingCharges": "Calcul des charges…",
+      "generateCharges": "Récapitulatif des charges",
+      "goToPayments": "Suivi des paiements",
+      "records": "Bulletins",
+      "totalGross": "Total brut",
+      "totalDeductions": "Total des retenues",
+      "totalNet": "Total net à payer",
+      "pending": "En attente",
+      "details": "Voir le détail",
       "title": "Échelles et Configuration de Paie",
       "taxBracketsDesc": "Configurez les paramètres de paie standard pour le Cameroun",
+      "sections": {
+        "overview": "Vue d’ensemble",
+        "minimum": "Salaire minimum",
+        "contributions": "Cotisations",
+        "tax": "Impôt sur le revenu",
+        "leaves": "Congés",
+        "salaryMinimumTitle": "Salaire minimum",
+        "salaryMinimumDetail": "Montant configuré et date d’effet",
+        "employeePensionTitle": "CNPS salarié",
+        "employeePensionDetail": "Pension vieillesse, invalidité et décès",
+        "employerPensionTitle": "CNPS employeur",
+        "employerPensionDetail": "Pension, prestations familiales et risques professionnels",
+        "annualLeaveTitle": "Congé annuel légal",
+        "annualLeaveValue": "1,5 jour ouvrable par mois",
+        "annualLeaveDetail": "Soit 18 jours sur 12 mois de service effectif",
+        "manage": "Gérer la rubrique →",
+        "cnpsBreakdown": "Pension : 4,2 % salarié et 4,2 % employeur. À la charge de l’employeur s’ajoutent les prestations familiales (7 %) et les accidents du travail selon le groupe de risque.",
+        "irppLegalNote": "Tranches annuelles prévues par le CGI, article 69. L’IRPP est calculé sur le revenu net imposable après abattements; les centimes additionnels communaux s’ajoutent à l’impôt."
+      },
       "process": "Traiter la paie du mois",
       "employee": "Employé",
       "period": "Période",
@@ -2111,20 +2231,43 @@ const frTranslations = {
       },
       "cameroonTaxRates": {
         "title": "Paramètres fiscaux camerounais",
+        "description": "Configurez les taux et plafonds utilisés pour le calcul de la paie au Cameroun.",
+        "cfcTitle": "Crédit Foncier (CFC)",
         "cfcEmployee": "CFC Employé",
         "cfcEmployer": "CFC Employeur",
         "fne": "FNE",
         "cnpsCap": "Plafond CNPS",
+        "cnpsCapDescription": "Plafond mensuel applicable aux cotisations CNPS plafonnées.",
         "professionalExpense": "Abattement professionnel",
+        "professionalExpenseDescription": "Pourcentage appliqué au revenu après déduction CNPS pour le calcul de l’IRPP.",
         "fixedAbatement": "Abattement fixe annuel",
-        "riskRates": "Taux d'accident du travail"
+        "fixedAbatementDescription": "Montant déduit chaque année, réparti mensuellement pour le calcul de l’IRPP.",
+        "riskRates": "Taux d'accident du travail",
+        "groupA": "Groupe A",
+        "groupB": "Groupe B",
+        "groupC": "Groupe C",
+        "riskLow": "Risque faible",
+        "riskMedium": "Risque moyen",
+        "riskHigh": "Risque élevé",
+        "validation": {
+          "cfcEmployee": "Le taux CFC employé doit être compris entre 0 et 100 %.",
+          "cfcEmployer": "Le taux CFC employeur doit être compris entre 0 et 100 %.",
+          "fne": "Le taux FNE doit être compris entre 0 et 100 %.",
+          "cnpsCap": "Le plafond CNPS doit être positif ou nul.",
+          "professionalExpense": "Le taux d'abattement professionnel doit être compris entre 0 et 100 %.",
+          "fixedAbatement": "L'abattement fixe annuel doit être positif ou nul.",
+          "riskGroupA": "Le taux du groupe A doit être compris entre 0 et 100 %.",
+          "riskGroupB": "Le taux du groupe B doit être compris entre 0 et 100 %.",
+          "riskGroupC": "Le taux du groupe C doit être compris entre 0 et 100 %."
+        }
       },
       "infoBox": {
-        "title": "Note"
+        "title": "Note",
+        "text": "Ces paramètres sont utilisés pour le calcul automatique de la paie. Modifiez-les uniquement si la législation évolue."
       },
       "infoBoxText": "Ce sont les taux standards au Cameroun pour 2024. Toutes les valeurs sont utilisées automatiquement lors du calcul de la paie des employés. Les modifications s'appliqueront aux futures paies."
     },
-    "employee": "Employé",
+    "employee": { "default": "Employé" },
     "employeeLabel": "Employé",
     "modals": {
       "sign": {
@@ -2202,6 +2345,16 @@ const frTranslations = {
     "leaves": {
       "leaveHistory": "Historique des congés",
       "addLeaveRecord": "Enregistrer un congé",
+      "currentBalance": "Solde actuel des congés",
+      "addRecord": "Ajouter",
+      "available": "Disponible",
+      "validation": {
+        "startDateRequired": "La date de début est requise",
+        "endDateRequired": "La date de fin est requise",
+        "endDateAfterStart": "La date de fin doit être le même jour ou après la date de début",
+        "daysRequired": "Indiquez un nombre entier de jours ouvrables supérieur à 0",
+        "insufficientBalance": "Solde de congés insuffisant"
+      },
       "noRecords": "Aucun enregistrement de congé",
       "daysHelper": "Nombre de jours de congé",
       "unpaidHelperText": "Jours de congé non payés",
@@ -2215,6 +2368,13 @@ const frTranslations = {
     "cancel": "Annuler",
     "documents": {
       "title": "Documents",
+      "idCardDesc": "Carte d'identité ou passeport",
+      "workPermitDesc": "Permis de travail ou visa",
+      "removeDocument": "Retirer ce document",
+      "contractUploadFailed": "Erreur lors du téléversement du contrat",
+      "idCardUploadFailed": "Erreur lors du téléversement de la carte d'identité",
+      "workPermitUploadFailed": "Erreur lors du téléversement du permis de travail",
+      "fileNotYetUploaded": "Les fichiers sélectionnés ne seront pas sauvegardés. Un point d'accès de téléversement doit d'abord être implémenté dans le backend.",
       "addDocument": "Ajouter un document",
       "document": "Document",
       "name": "Nom du document",
@@ -2282,6 +2442,15 @@ const frTranslations = {
     "absences": {
       "title": "Gestion des Absences",
       "add": "Enregistrer une absence",
+      "calendar": {
+        "title": "Calendrier des absences", "subtitle": "Sélectionnez un jour pour afficher les personnes absentes", "previousMonth": "Mois précédent", "month": "Mois", "year": "Année", "nextMonth": "Mois suivant", "weekdays": ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"], "absenceDay": "Jour avec absence", "monthCount": "{{count}} absence(s) sur ce mois", "dayCount": "{{count}} abs.", "holidayTag": "Férié", "restDay": "Repos", "globalTitle": "Vue d’ensemble · toutes périodes", "globalTotal": "absences enregistrées au total", "justified": "Justifiées", "unjustified": "Non justifiées", "thisMonth": "ce mois", "monthLabel": "Sur {{month}}", "workingDaysTitle": "Jours travaillés de la filiale", "workingDaysHelp": "Les absences automatiques ne sont générées que ces jours-là.", "holidaysTitle": "Jours fériés", "holidaysHelp": "Ajoutez les dates propres à cette filiale; elles seront ignorées lors de la génération.", "date": "Date", "name": "Nom", "holidayPlaceholder": "Ex. Fête nationale", "addHoliday": "Ajouter", "holidayAdded": "Jour férié ajouté", "holidayAddedHelp": "Il sera exclu de la génération des absences.", "holidayError": "Jour férié non ajouté", "holidayErrorHelp": "Vérifiez la date et le nom, ou si cette date existe déjà.", "calendarError": "Calendrier non enregistré", "calendarErrorHelp": "Impossible de modifier les jours travaillés.", "deleteHolidayError": "Jour férié non supprimé", "deleteHolidayErrorHelp": "Impossible de modifier le calendrier.", "deleteHoliday": "Supprimer {{name}}"
+      },
+      "filters": { "allTypes": "Tous les types", "justified": "Justifiées", "unjustified": "Non justifiées", "searchPlaceholder": "Rechercher les absences…", "fromDate": "Du", "toDate": "Au", "allPeriods": "Toutes les périodes", "calendarPeriod": "Période du calendrier : {{month}}", "selectedDate": "Date sélectionnée : {{date}}", "reset": "Réinitialiser" },
+      "actions": { "generateTooltip": "Créer une absence non justifiée pour chaque employé sans présence aujourd'hui", "generating": "Génération…", "generateDaily": "Générer les absences du jour" },
+      "results": { "count": "{{count}} résultat(s)", "ofTotal": "sur {{total}}" },
+      "registry": { "title": "Registre des absences", "subtitle": "Liste des absences enregistrées", "empty": "Aucune absence trouvée" },
+      "confirmations": { "deleteTitle": "Supprimer l’absence", "deleteMessage": "Voulez-vous vraiment supprimer l’absence de {{employee}} ?", "generateTitle": "Générer les absences", "generateMessage": "Générer automatiquement les absences pour tous les employés sans présence aujourd'hui ?", "generateConfirm": "Oui, générer" },
+      "feedback": { "generationComplete": "Génération terminée", "generationError": "Erreur de génération", "generationErrorHelp": "Impossible de générer les absences automatiquement.", "savedTitle": "Absence enregistrée", "updated": "L’absence a été modifiée avec succès.", "added": "L’absence a été ajoutée avec succès.", "saveError": "Erreur de sauvegarde", "saveErrorHelp": "Une erreur est survenue lors de la sauvegarde de l’absence.", "deletedTitle": "Absence supprimée", "deleted": "L’absence a été supprimée avec succès.", "deleteError": "Erreur de suppression", "deleteErrorHelp": "Une erreur est survenue lors de la suppression de l’absence.", "printStarted": "Impression lancée", "printHelp": "La page est en cours d’impression.", "csvExported": "Export CSV réussi", "pdfExported": "Export PDF réussi", "exportHelp": "Les données ont été exportées.", "exportError": "Erreur d’export", "csvExportErrorHelp": "Une erreur est survenue lors de l’export CSV.", "pdfExportErrorHelp": "Une erreur est survenue lors de l’export PDF." },
       "table": {
         "employee": "Employé",
         "type": "Type",
@@ -2317,6 +2486,15 @@ const frTranslations = {
       "confirm": "Êtes-vous sûr ?"
     },
     "details": {
+      "gender": "Genre",
+      "benefits": "Avantages",
+      "bankName": "Nom de la banque",
+      "leaveHistory": "Historique des congés",
+      "positionHistory": "Historique des postes",
+      "trainings": "Formations",
+      "performanceReviews": "Évaluations de performance",
+      "reviewer": "Évaluateur",
+      "rating": "Note",
       "personalInfo": "Informations personnelles",
       "firstName": "Prénom",
       "lastName": "Nom",
@@ -2843,6 +3021,8 @@ const enTranslations: Translations = {
     "send": "Send",
     "exportPdf": "Export to PDF",
     "notAvailable": "Not defined",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "create": "Create",
     "update": "Update",
     "saving": "Saving...",
@@ -2927,6 +3107,7 @@ const enTranslations: Translations = {
     "FINANCIAL_DIRECTOR": "Financial Director",
     "SECRETARY": "Secretary",
     "HR_MANAGER": "HR Manager",
+    "PRE_HIRE_MANAGER": "Pre-hire Manager",
     "PRODUCTION_DIRECTOR": "Production Director"
   },
   "sidebar": {
@@ -3009,6 +3190,22 @@ const enTranslations: Translations = {
     "backToLogin": "Back to Login",
     "successMessage": "If an account with that email exists, we have sent a link to reset your password.",
     "errorMessage": "An error occurred while sending the reset link. Please try again."
+  },
+  "resetPassword": {
+    "title": "Choose a new password",
+    "instruction": "Create a password with at least 10 characters.",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "submit": "Save new password",
+    "saving": "Saving...",
+    "success": "Your password has been changed. You can now sign in.",
+    "error": "Unable to change the password. The link may have expired.",
+    "invalidLink": "The reset link is missing or invalid.",
+    "passwordTooShort": "The password must contain at least 10 characters.",
+    "passwordsDoNotMatch": "The passwords do not match.",
+    "showPassword": "Show",
+    "hidePassword": "Hide",
+    "backToLogin": "Back to login"
   },
   "security": {
     "title": "Account security",
@@ -3836,9 +4033,73 @@ const enTranslations: Translations = {
   },
   "hr": {
         "title": "Human Resources Management",
+        "management": "HR Management",
+        "employeeManagement": "Employee Management",
+        "deleteEmployee": "Delete Employee",
+        "foundEmployees": "employee(s) found",
+        "noEmployeesToExport": "No employees to export",
+        "noEmployeesFound": "No employees found",
+        "exportedCsv": "Employees exported to CSV",
+        "exportedPdf": "Employees exported to PDF",
+        "exportFailed": "Export failed",
+        "activeSubsidiary": "Active subsidiary",
+        "selectSubsidiary": "Select a subsidiary",
+        "preHire": {
+            "title": "Pre-hire training",
+        "eyebrow": "Talent pipeline",
+            "subtitle": "Track training paths before any hiring decision.",
+            "noCommitment": "This training is not a promise of employment and does not create an employee record.",
+            "add": "Add trainee",
+            "edit": "Edit training path",
+            "delete": "Delete",
+            "confirmDelete": "Delete this training record?",
+            "save": "Save training path",
+            "saving": "Saving…",
+            "cancel": "Cancel",
+            "loading": "Loading training paths…",
+            "empty": "No training paths for this subsidiary.",
+            "saveError": "Could not save the training path. Check the information and try again.",
+        "convert": "Convert to employee",
+        "employeeCreated": "Employee record created",
+        "convertError": "Could not convert this candidate. Check the information and email uniqueness.",
+        "convertHelp": "Complete the required employee record details. The candidate will be assigned to this training path’s subsidiary.",
+        "confirmConvert": "Create employee record",
+        "converting": "Creating…",
+        "search": "Search candidate, position or department…",
+        "allStatuses": "All",
+        "listView": "List view",
+        "tableView": "Table view",
+        "viewMode": "Candidate display mode",
+        "candidate": "Candidate",
+        "actions": "Actions",
+        "noResults": "No training paths match these filters.",
+        "stats": { "total": "Candidates tracked", "active": "In training", "completed": "Training completed", "hired": "Hired" },
+        "results": { "title": "Results after training", "help": "Enter these results once the training path is complete.", "clients": "Clients acquired", "prospects": "Prospects acquired", "clientsTotal": "Total clients acquired", "prospectsTotal": "Total prospects acquired" },
+        "employeeFields": {
+          "firstName": "First name", "lastName": "Last name", "email": "Work email", "phone": "Phone",
+          "birthDate": "Date of birth", "address": "Address", "nationality": "Nationality", "socialSecurityNumber": "Social security number",
+          "positions": "Position", "department": "Department", "hireDate": "Hire date", "workLocation": "Work location",
+          "baseSalary": "Base salary (FCFA)", "bonus": "Bonus (FCFA)", "gender": "Gender", "contractType": "Contract type", "paymentMethod": "Payment method", "bankName": "Bank name", "bankAccountNumber": "Bank account number"
+        },
+        "gender": { "MALE": "Male", "FEMALE": "Female", "OTHER": "Other" },
+        "contract": { "CDI": "Permanent", "CDD": "Fixed-term", "FREELANCE": "Freelance", "INTERNSHIP": "Internship" },
+        "payment": { "CASH": "Cash", "CHECK": "Check", "BANK_TRANSFER": "Bank transfer" },
+            "fields": {
+                "firstName": "First name", "lastName": "Last name", "email": "Email", "phone": "Phone",
+                "targetPosition": "Target position", "department": "Department", "mentorName": "Mentor",
+                "startDate": "Training start", "plannedEndDate": "Planned end", "status": "Status",
+                "progress": "Progress", "evaluation": "Evaluation", "outcome": "Final decision", "notes": "Notes"
+            },
+            "status": {
+                "PLANNED": "Planned", "IN_PROGRESS": "In progress", "COMPLETED": "Completed",
+                "HIRED": "Hired", "NOT_RETAINED": "Not retained", "CANCELLED": "Cancelled"
+            }
+        },
         "tabs": {
             "employees": "Employees",
+            "preHireTraining": "Pre-hire training",
             "attendance": "Attendance",
+            "attendances": "Attendance",
             "attendance_cards": "Attendance QR code",
             "attendance_history": "Attendance History",
             "payroll": "Payroll",
@@ -3850,6 +4111,7 @@ const enTranslations: Translations = {
         },
         "employees": {
             "title": "Employee Database",
+            "directorySubtitle": "View and manage your team's employee records.",
             "add": "Add Employee",
             "id": "ID",
             "fullName": "Full Name",
@@ -3886,8 +4148,43 @@ const enTranslations: Translations = {
             "notSigned": "Not signed"
         },
         "payroll": {
+            "subtitle": "Review payslips, amounts, and this month's payroll activity.",
+            "globalView": "Global view",
+            "loading": "Loading…",
+            "subsidiaryView": "Subsidiary view",
+            "processHelp": "Calculate payslips for the selected period",
+            "processing": "Calculating…",
+            "bonusPayments": "Bonuses",
+            "generatingCharges": "Calculating charges…",
+            "generateCharges": "Charges summary",
+            "goToPayments": "Payment tracking",
+            "records": "Payslips",
+            "totalGross": "Total gross",
+            "totalDeductions": "Total deductions",
+            "totalNet": "Total net payable",
+            "pending": "Pending",
+            "details": "View details",
             "title": "Payroll Scales & Configuration",
             "taxBracketsDesc": "Configure standard payroll parameters for Cameroon",
+            "sections": {
+                "overview": "Overview",
+                "minimum": "Minimum wage",
+                "contributions": "Contributions",
+                "tax": "Income tax",
+                "leaves": "Leave",
+                "salaryMinimumTitle": "Minimum wage",
+                "salaryMinimumDetail": "Configured amount and effective date",
+                "employeePensionTitle": "Employee CNPS",
+                "employeePensionDetail": "Old-age, disability and survivors’ pension",
+                "employerPensionTitle": "Employer CNPS",
+                "employerPensionDetail": "Pension, family benefits and occupational risks",
+                "annualLeaveTitle": "Statutory annual leave",
+                "annualLeaveValue": "1.5 working days per month",
+                "annualLeaveDetail": "18 days for 12 months of effective service",
+                "manage": "Manage section →",
+                "cnpsBreakdown": "Pension: 4.2% employee and 4.2% employer. The employer also pays family benefits (7%) and occupational accident contributions based on the risk group.",
+                "irppLegalNote": "Annual bands under article 69 of the General Tax Code. IRPP is calculated on taxable net income after allowances; municipal additional council tax is added to income tax."
+            },
             "process": "Process this month's payroll",
             "employee": "Employee",
             "period": "Period",
@@ -3944,20 +4241,43 @@ const enTranslations: Translations = {
             },
             "cameroonTaxRates": {
                 "title": "Cameroon Tax Parameters",
+                "description": "Configure the rates and ceilings used to calculate payroll in Cameroon.",
+                "cfcTitle": "Housing Credit (CFC)",
                 "cfcEmployee": "CFC Employee",
                 "cfcEmployer": "CFC Employer",
                 "fne": "FNE",
                 "cnpsCap": "CNPS Cap",
+                "cnpsCapDescription": "Monthly ceiling for CNPS contributions subject to a cap.",
                 "professionalExpense": "Professional Expense",
+                "professionalExpenseDescription": "Percentage applied to income after CNPS deductions when calculating IRPP.",
                 "fixedAbatement": "Fixed Annual Abatement",
-                "riskRates": "Work Accident Rates"
+                "fixedAbatementDescription": "Annual deduction, apportioned monthly for IRPP calculation.",
+                "riskRates": "Occupational Accident Rates",
+                "groupA": "Group A",
+                "groupB": "Group B",
+                "groupC": "Group C",
+                "riskLow": "Low risk",
+                "riskMedium": "Medium risk",
+                "riskHigh": "High risk",
+                "validation": {
+                    "cfcEmployee": "The employee CFC rate must be between 0 and 100%.",
+                    "cfcEmployer": "The employer CFC rate must be between 0 and 100%.",
+                    "fne": "The FNE rate must be between 0 and 100%.",
+                    "cnpsCap": "The CNPS ceiling must be greater than or equal to zero.",
+                    "professionalExpense": "The professional expense rate must be between 0 and 100%.",
+                    "fixedAbatement": "The fixed annual abatement must be greater than or equal to zero.",
+                    "riskGroupA": "The Group A rate must be between 0 and 100%.",
+                    "riskGroupB": "The Group B rate must be between 0 and 100%.",
+                    "riskGroupC": "The Group C rate must be between 0 and 100%."
+                }
             },
             "infoBox": {
-                "title": "Note"
+                "title": "Note",
+                "text": "These parameters are used for automatic payroll calculation. Modify them only when legislation changes."
             },
             "infoBoxText": "These are the standard rates for Cameroon 2024. All values are used automatically when calculating employee payroll. Changes will apply to future payroll calculations."
         },
-        "employee": "Employee",
+        "employee": { "default": "Employee" },
         "employeeLabel": "Employee",
         "modals": {
             "sign": {
@@ -4036,6 +4356,16 @@ const enTranslations: Translations = {
         "leaves": {
             "leaveHistory": "Leave History",
             "addLeaveRecord": "Record Leave",
+            "currentBalance": "Current leave balance",
+            "addRecord": "Add",
+            "available": "Available",
+            "validation": {
+                "startDateRequired": "Start date is required",
+                "endDateRequired": "End date is required",
+                "endDateAfterStart": "End date must be the same as or later than the start date",
+                "daysRequired": "Enter a whole number of working days greater than 0",
+                "insufficientBalance": "Insufficient leave balance"
+            },
             "noRecords": "No leave records",
             "daysHelper": "Number of leave days",
             "unpaidHelperText": "Unpaid leave days",
@@ -4048,6 +4378,13 @@ const enTranslations: Translations = {
         },
         "documents": {
             "title": "Documents",
+            "idCardDesc": "ID card or passport",
+            "workPermitDesc": "Work permit or visa",
+            "removeDocument": "Remove this document",
+            "contractUploadFailed": "Error uploading contract",
+            "idCardUploadFailed": "Error uploading ID card",
+            "workPermitUploadFailed": "Error uploading work permit",
+            "fileNotYetUploaded": "Selected files will not be saved. A file upload endpoint must be implemented in the backend first.",
             "addDocument": "Add Document",
             "document": "Document",
             "name": "Document Name",
@@ -4115,6 +4452,15 @@ const enTranslations: Translations = {
         "absences": {
             "title": "Absence Management",
             "add": "Record Absence",
+            "calendar": {
+                "title": "Absence calendar", "subtitle": "Select a day to view employees absent on that date", "previousMonth": "Previous month", "month": "Month", "year": "Year", "nextMonth": "Next month", "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "absenceDay": "Day with absences", "monthCount": "{{count}} absence(s) this month", "dayCount": "{{count}} abs.", "holidayTag": "Holiday", "restDay": "Rest day", "globalTitle": "Overview · all periods", "globalTotal": "absences recorded in total", "justified": "Justified", "unjustified": "Unjustified", "thisMonth": "this month", "monthLabel": "For {{month}}", "workingDaysTitle": "Subsidiary working days", "workingDaysHelp": "Automatic absences are generated only on these days.", "holidaysTitle": "Public holidays", "holidaysHelp": "Add dates for this subsidiary; they will be skipped during generation.", "date": "Date", "name": "Name", "holidayPlaceholder": "e.g. National Day", "addHoliday": "Add", "holidayAdded": "Holiday added", "holidayAddedHelp": "It will be excluded from absence generation.", "holidayError": "Holiday not added", "holidayErrorHelp": "Check the date and name, or whether the date already exists.", "calendarError": "Calendar not saved", "calendarErrorHelp": "Unable to update working days.", "deleteHolidayError": "Holiday not removed", "deleteHolidayErrorHelp": "Unable to update the calendar.", "deleteHoliday": "Delete {{name}}"
+            },
+            "filters": { "allTypes": "All types", "justified": "Justified", "unjustified": "Unjustified", "searchPlaceholder": "Search absences…", "fromDate": "From", "toDate": "To", "allPeriods": "All periods", "calendarPeriod": "Calendar period: {{month}}", "selectedDate": "Selected date: {{date}}", "reset": "Reset" },
+            "actions": { "generateTooltip": "Create an unjustified absence for each employee with no attendance today", "generating": "Generating…", "generateDaily": "Generate today’s absences" },
+            "results": { "count": "{{count}} result(s)", "ofTotal": "of {{total}}" },
+            "registry": { "title": "Absence register", "subtitle": "List of recorded absences", "empty": "No absences found" },
+            "confirmations": { "deleteTitle": "Delete absence", "deleteMessage": "Do you really want to delete {{employee}}’s absence?", "generateTitle": "Generate absences", "generateMessage": "Automatically generate absences for all employees with no attendance today?", "generateConfirm": "Yes, generate" },
+            "feedback": { "generationComplete": "Generation complete", "generationError": "Generation error", "generationErrorHelp": "Unable to generate absences automatically.", "savedTitle": "Absence saved", "updated": "The absence was updated successfully.", "added": "The absence was added successfully.", "saveError": "Save error", "saveErrorHelp": "An error occurred while saving the absence.", "deletedTitle": "Absence deleted", "deleted": "The absence was deleted successfully.", "deleteError": "Delete error", "deleteErrorHelp": "An error occurred while deleting the absence.", "printStarted": "Printing started", "printHelp": "The page is being prepared for printing.", "csvExported": "CSV export successful", "pdfExported": "PDF export successful", "exportHelp": "The data was exported.", "exportError": "Export error", "csvExportErrorHelp": "An error occurred while exporting the CSV file.", "pdfExportErrorHelp": "An error occurred while exporting the PDF file." },
             "table": {
                 "employee": "Employee",
                 "type": "Type",
@@ -4150,6 +4496,15 @@ const enTranslations: Translations = {
             "confirm": "Are you sure?"
         },
         "details": {
+            "gender": "Gender",
+            "benefits": "Benefits",
+            "bankName": "Bank name",
+            "leaveHistory": "Leave history",
+            "positionHistory": "Position history",
+            "trainings": "Training records",
+            "performanceReviews": "Performance reviews",
+            "reviewer": "Reviewer",
+            "rating": "Rating",
             "personalInfo": "Personal Information",
             "firstName": "First Name",
             "lastName": "Last Name",
@@ -4222,6 +4577,7 @@ const enTranslations: Translations = {
     "cartEmpty": "Your cart is empty.",
     "total": "Total",
     "submitOrder": "Place Order",
+    "submitError": "Unable to create the order. Your cart has been kept; you can try again.",
     "orderPlacedSuccess": "Order placed successfully!",
     "item": "Item",
     "subtotal": "Subtotal",
@@ -5639,6 +5995,594 @@ const translations: { [key: string]: Translations } = {
   en: enTranslations,
 };
 
+// Certaines vues historiques utilisent des clés ajoutées après la création
+// du catalogue embarqué. Ces compléments garantissent une traduction pendant
+// la migration progressive de toutes les vues vers une structure unifiée.
+const additionalTranslations: Record<string, Record<string, any>> = {
+  "fr": {
+    "sidebar": {
+      "adminView": "Vue Admin"
+    },
+    "header": {
+      "changeRole": "Changer de rôle"
+    },
+    "notifications": {
+      "empty": "Aucune notification"
+    },
+    "common": {
+      "viewBonDeCommande": "Voir BC",
+      "success": "Opération effectuée avec succès.",
+      "warning": "Attention",
+      "info": "Information",
+      "showing": "Affichage de",
+      "to": "à",
+      "of": "sur",
+      "results": "résultats",
+      "previous": "Précédent",
+      "next": "Suivant",
+      "noResultsFound": "Aucun résultat trouvé.",
+      "loadingMore": "Chargement de la suite...",
+      "scrollForMore": "Faites défiler pour voir plus",
+      "select": "Sélectionner…",
+      "error": {
+        "load": "Erreur lors du chargement de {{item}}.",
+        "default": "Une erreur est survenue."
+      },
+      "back": "Retour",
+      "date": "Date",
+      "deleted": "Élément supprimé avec succès.",
+      "email": "Adresse e-mail",
+      "noData": "Aucune donnée disponible."
+    },
+    "hr": {
+      "employee": {
+        "deleteFailed": "Impossible de supprimer l'employé.",
+        "deleted": "Employé supprimé avec succès.",
+        "detailsLoadFailed": "Impossible de charger les détails de l'employé.",
+        "saveFailed": "Impossible d'enregistrer l'employé.",
+        "saved": "Employé enregistré avec succès."
+      },
+      "payroll": {
+        "errors": {
+          "emptyBrackets": "Ajoutez au moins une tranche avant de continuer.",
+          "invalidBracket": "Vérifiez les limites et le taux de chaque tranche."
+        },
+        "gross": "Salaire brut",
+        "noPayrollFound": "Aucun bulletin de paie pour cette période.",
+        "noPendingPayrolls": "Aucun bulletin en attente de signature.",
+        "subsidiary": "Filiale"
+      }
+    },
+    "pnl": {
+      "expenses": "Dépenses",
+      "taxes": "Impôts"
+    },
+    "externalTransactions": {
+      "accessDenied": "Accès refusé. Vous n'avez pas les permissions nécessaires pour accéder à cette page.",
+      "actions": {
+        "delete": "Supprimer"
+      },
+      "confirm": {
+        "adminDelete": "Supprimer définitivement cette transaction ? Cette action est réservée au super-administrateur."
+      },
+      "error": {
+        "adminDelete": "Impossible de supprimer la transaction.",
+        "invalidAmount": "Saisissez un montant supérieur à zéro.",
+        "invalidDate": "Saisissez une date valide.",
+        "invalidDescription": "La description est obligatoire."
+      },
+      "success": {
+        "adminDeleted": "Transaction supprimée avec succès."
+      }
+    },
+    "production": {
+      "emptyColumn": "Aucun élément dans cette étape."
+    },
+    "equipment": {
+      "title": "Machines / Équipements",
+      "subtitle": "Gérez le parc de machines de production. Définissez ensuite les coûts horaires pour l'utiliser dans les workflows.",
+      "addButton": "Ajouter une machine",
+      "addTitle": "Ajouter une machine",
+      "editTitle": "Modifier la machine",
+      "name": "Nom de la machine",
+      "status": {
+        "OPERATIONAL": "Opérationnelle",
+        "NEEDS_MAINTENANCE": "Maintenance requise",
+        "OUT_OF_SERVICE": "Hors service"
+      },
+      "lastMaintenance": "Dernière maintenance",
+      "nextMaintenance": "Prochaine maintenance",
+      "acquisitionDate": "Date d'acquisition",
+      "acquisitionValue": "Valeur d'acquisition",
+      "noEquipment": "Aucune machine enregistrée.",
+      "saved": "Machine sauvegardée",
+      "createdMsg": "La machine a été ajoutée avec succès.",
+      "updatedMsg": "La machine a été mise à jour.",
+      "deleted": "Machine supprimée",
+      "deletedMsg": "La machine a été supprimée.",
+      "saveError": "Impossible de sauvegarder la machine.",
+      "deleteError": "Impossible de supprimer la machine.",
+      "deleteConfirm": {
+        "title": "Supprimer la machine",
+        "message": "Voulez-vous supprimer « {{name}} » ? Cette action est irréversible."
+      },
+      "statusLabel": "Statut"
+    },
+    "analytics": {
+      "periods": {
+        "selectDates": "Sélectionnez une date de début et une date de fin."
+      }
+    },
+    "crm": {
+      "pipeline": {
+        "emptyColumn": "Aucune opportunité dans cette étape."
+      }
+    },
+    "cashRegister": {
+      "noProducts": "Aucun produit trouvé."
+    },
+    "payroll": {
+      "title": "Barèmes de paie",
+      "configuration": "Configuration",
+      "components": "Composants de salaire",
+      "taxBrackets": "Tranches d'imposition",
+      "allowances": "Allocations",
+      "salaryComponents": "Composants du salaire",
+      "minWage": "Salaire minimum",
+      "wagePeriod": "Période de salaire",
+      "cnpsEmployeeRate": "Taux CNPS salarié",
+      "cnpsEmployerRate": "Taux CNPS employeur",
+      "rate": "Taux",
+      "type": "Type",
+      "cameroonLaw": "Références légales",
+      "taxBracketsDesc": "Gestion des tranches d'imposition sur les revenus",
+      "signingTitle": "Signature des fiches de paie",
+      "noPendingPayrolls": "Aucune fiche de paie en attente de signature",
+      "sign": "Signer",
+      "period": "Période",
+      "status": {
+        "pending": "En attente",
+        "paid": "Payée"
+      },
+      "signatureSuccess": "Signature enregistrée avec succès",
+      "signatureError": "Erreur lors de la signature",
+      "modal": {
+        "updateSmigTitle": "Mettre à jour le Salaire Minimum (SMIG)",
+        "updateSmigDesc": "Mettre à jour le salaire minimum garanti au Cameroun",
+        "updateCnpsTitle": "Mettre à jour les taux de cotisation CNPS",
+        "updateCnpsDesc": "Mettre à jour les taux de cotisation des employés et employeurs à la CNPS",
+        "updateIrppTitle": "Mettre à jour les tranches d'imposition IRPP",
+        "updateIrppDesc": "Configurer les tranches d'imposition sur le revenu pour le calcul de paie",
+        "updateLeaveTitle": "Mettre à jour les droits aux congés",
+        "updateLeaveDesc": "Configurer les droits aux congés et durées pour tous les types de congés"
+      },
+      "form": {
+        "minWage": "Salaire minimum",
+        "effectiveDate": "Date d'effet",
+        "employeeRate": "Taux employé",
+        "employerRate": "Taux employeur",
+        "minAmount": "Montant min (FCFA)",
+        "maxAmount": "Montant max (FCFA)",
+        "rate": "Taux d'imposition",
+        "leaveType": "Type de congé",
+        "daysPerYear": "Jours par an",
+        "isPaid": "Congé payé",
+        "paid": "Payé",
+        "unpaid": "Non payé",
+        "description": "Description",
+        "above": "Au-dessus de",
+        "leaveTypePlaceholder": "Ex. : congé annuel, congé maladie",
+        "descriptionPlaceholder": "Description facultative"
+      },
+      "infoBox": {
+        "title": "Note"
+      },
+      "infoBoxText": "Ce sont les taux standards au Cameroun pour 2024. Toutes les valeurs sont utilisées automatiquement lors du calcul de la paie des employés. Les modifications s'appliqueront aux futures paies.",
+      "errors": {
+        "invalidAmount": "Le montant doit respecter le minimum légal configuré (au moins 41 875 FCFA).",
+        "invalidRate": "Veuillez saisir un taux valide entre 0 et 100 %.",
+        "invalidBracket": "Veuillez vérifier les valeurs des tranches d'imposition",
+        "invalidEntitlement": "Veuillez vérifier les valeurs des droits aux congés.",
+        "emptyBrackets": "Au moins une tranche d'imposition est requise",
+        "emptyEntitlements": "Au moins un droit aux congés est requis."
+      },
+      "success": {
+        "updated": "Configuration de paie mise à jour avec succès"
+      },
+      "error": {
+        "update": "Erreur lors de la mise à jour de la configuration de paie"
+      }
+    },
+    "secretariat": {
+      "documents": {
+        "default": "Documents"
+      },
+      "meetings": {
+        "default": "Réunions"
+      },
+      "tasks": {
+        "default": "Tâches"
+      },
+      "addDocument": "Ajouter un document",
+      "addMeeting": "Ajouter une réunion",
+      "addTask": "Ajouter une tâche",
+      "editDocument": "Modifier le document",
+      "editMeeting": "Modifier la réunion",
+      "editTask": "Modifier la tâche",
+      "deleteDocument": "Supprimer le document",
+      "deleteMeeting": "Supprimer la réunion",
+      "deleteTask": "Supprimer la tâche",
+      "documentName": "Nom du document",
+      "category": "Catégorie",
+      "status": "Statut",
+      "uploadDate": "Date de création",
+      "fileUrl": "Fichier",
+      "meetingDate": "Date de réunion",
+      "meetingTime": "Heure de réunion",
+      "meetingLocation": "Lieu",
+      "agenda": "Ordre du jour",
+      "minutes": "Compte-rendu",
+      "participants": "Participants",
+      "description": "Description",
+      "dueDate": "Date limite",
+      "assignedTo": "Assigné à",
+      "documentCategory": {
+        "LEGAL": "Juridique",
+        "FINANCIAL": "Financier",
+        "HR": "Ressources Humaines",
+        "CONTRACT": "Contrat",
+        "OTHER": "Autre"
+      },
+      "documentStatus": {
+        "DRAFT": "Brouillon",
+        "FINAL": "Final",
+        "ARCHIVED": "Archivé"
+      },
+      "taskStatus": {
+        "TODO": "À faire",
+        "IN_PROGRESS": "En cours",
+        "DONE": "Terminé"
+      },
+      "form": {
+        "selectCategory": "Sélectionner une catégorie",
+        "selectStatus": "Sélectionner un statut",
+        "selectEmployee": "Sélectionner un employé",
+        "uploadFile": "Télécharger un fichier",
+        "addParticipant": "Ajouter un participant",
+        "removeParticipant": "Retirer le participant"
+      },
+      "errors": {
+        "loadFailed": "Erreur lors du chargement des données",
+        "createFailed": "Erreur lors de la création",
+        "updateFailed": "Erreur lors de la mise à jour",
+        "deleteFailed": "Erreur lors de la suppression",
+        "uploadFailed": "Erreur lors du téléchargement du fichier"
+      },
+      "success": {
+        "created": "Créé avec succès",
+        "updated": "Mis à jour avec succès",
+        "deleted": "Supprimé avec succès"
+      }
+    },
+    "aiMarketing": {
+      "title": "Assistant marketing IA",
+      "subtitle": "Générez des textes marketing adaptés à vos produits.",
+      "productInfoLabel": "Informations sur le produit",
+      "productInfoPlaceholder": "Décrivez le produit, ses avantages et son public cible…",
+      "errorPrompt": "Veuillez saisir les informations du produit avant de continuer.",
+      "generateButton": "Générer les idées de campagne",
+      "generating": "Génération en cours…",
+      "suggestedCampaigns": "Suggestions de campagnes"
+    },
+    "clients": {
+      "title": "Clients",
+      "listTitle": "Liste des clients",
+      "addCustomer": "Ajouter un client",
+      "customerId": "Identifiant client",
+      "name": "Nom",
+      "company": "Entreprise",
+      "email": "Adresse e-mail",
+      "phone": "Téléphone",
+      "customerSince": "Client depuis"
+    },
+    "createAndSelect": "Créer et sélectionner",
+    "maintenance": {
+      "noEquipment": "Aucun équipement trouvé."
+    }
+  },
+  "en": {
+    "sidebar": {
+      "adminView": "Admin View"
+    },
+    "header": {
+      "changeRole": "Change role"
+    },
+    "notifications": {
+      "empty": "No notifications"
+    },
+    "common": {
+      "viewBonDeCommande": "View PO",
+      "success": "Completed successfully.",
+      "warning": "Warning",
+      "info": "Information",
+      "showing": "Showing",
+      "to": "to",
+      "of": "of",
+      "results": "results",
+      "previous": "Previous",
+      "next": "Next",
+      "noResultsFound": "No results found.",
+      "loadingMore": "Loading more...",
+      "scrollForMore": "Scroll to load more",
+      "select": "Select…",
+      "error": {
+        "load": "Could not load {{item}}.",
+        "default": "An error occurred."
+      },
+      "back": "Back",
+      "date": "Date",
+      "deleted": "Item deleted successfully.",
+      "email": "Email address",
+      "noData": "No data available."
+    },
+    "hr": {
+      "employee": {
+        "deleteFailed": "Could not delete the employee.",
+        "deleted": "Employee deleted successfully.",
+        "detailsLoadFailed": "Could not load employee details.",
+        "saveFailed": "Could not save the employee.",
+        "saved": "Employee saved successfully."
+      },
+      "payroll": {
+        "errors": {
+          "emptyBrackets": "Add at least one tax bracket to continue.",
+          "invalidBracket": "Check the limits and rate for each tax bracket."
+        },
+        "gross": "Gross salary",
+        "noPayrollFound": "No payroll records found for this period.",
+        "noPendingPayrolls": "No payroll records are awaiting signature.",
+        "subsidiary": "Subsidiary"
+      }
+    },
+    "pnl": {
+      "expenses": "Expenses",
+      "taxes": "Taxes"
+    },
+    "externalTransactions": {
+      "accessDenied": "Access denied. You don't have the required permission to view this page.",
+      "actions": {
+        "delete": "Delete"
+      },
+      "confirm": {
+        "adminDelete": "Permanently delete this transaction? This action is limited to the super-admin."
+      },
+      "error": {
+        "adminDelete": "Could not delete the transaction.",
+        "invalidAmount": "Enter an amount greater than zero.",
+        "invalidDate": "Enter a valid date.",
+        "invalidDescription": "A description is required."
+      },
+      "success": {
+        "adminDeleted": "Transaction deleted successfully."
+      }
+    },
+    "production": {
+      "emptyColumn": "Nothing in this stage yet."
+    },
+    "equipment": {
+      "title": "Machines / Equipment",
+      "subtitle": "Manage your production equipment fleet. Then set hourly rates to use in workflows.",
+      "addButton": "Add equipment",
+      "addTitle": "Add equipment",
+      "editTitle": "Edit equipment",
+      "name": "Equipment name",
+      "statusLabel": "Status",
+      "lastMaintenance": "Last maintenance",
+      "nextMaintenance": "Next maintenance",
+      "acquisitionDate": "Acquisition date",
+      "acquisitionValue": "Acquisition value",
+      "noEquipment": "No equipment recorded.",
+      "saved": "Equipment saved",
+      "createdMsg": "The equipment was added successfully.",
+      "updatedMsg": "The equipment was updated.",
+      "deleted": "Equipment deleted",
+      "deletedMsg": "The equipment was deleted.",
+      "saveError": "Unable to save the equipment.",
+      "deleteError": "Unable to delete the equipment.",
+      "deleteConfirm": {
+        "title": "Delete equipment",
+        "message": "Delete \"{{name}}\"? This action cannot be undone."
+      },
+      "status": {
+        "OPERATIONAL": "Operational",
+        "NEEDS_MAINTENANCE": "Maintenance required",
+        "OUT_OF_SERVICE": "Out of service"
+      }
+    },
+    "analytics": {
+      "periods": {
+        "selectDates": "Select a start date and an end date."
+      }
+    },
+    "crm": {
+      "pipeline": {
+        "emptyColumn": "No opportunities in this stage."
+      }
+    },
+    "cashRegister": {
+      "noProducts": "No products found."
+    },
+    "payroll": {
+      "title": "Payroll Scales",
+      "configuration": "Configuration",
+      "components": "Salary Components",
+      "taxBrackets": "Tax Brackets",
+      "allowances": "Allowances",
+      "salaryComponents": "Salary Components",
+      "minWage": "Minimum Wage",
+      "wagePeriod": "Wage Period",
+      "cnpsEmployeeRate": "Employee CNPS rate",
+      "cnpsEmployerRate": "CNPS Employer Rate",
+      "rate": "Rate",
+      "type": "Type",
+      "cameroonLaw": "Legal References",
+      "taxBracketsDesc": "Income tax brackets management",
+      "signingTitle": "Payroll Signature",
+      "noPendingPayrolls": "No pending payroll slips to sign",
+      "sign": "Sign",
+      "period": "Period",
+      "status": {
+        "pending": "Pending",
+        "paid": "Paid"
+      },
+      "signatureSuccess": "Signature saved successfully",
+      "signatureError": "Error during signature",
+      "modal": {
+        "updateSmigTitle": "Update Minimum Wage (SMIG)",
+        "updateSmigDesc": "Update the minimum guaranteed salary for Cameroon",
+        "updateCnpsTitle": "Update CNPS Contribution Rates",
+        "updateCnpsDesc": "Update employee and employer contribution rates to CNPS",
+        "updateIrppTitle": "Update IRPP Tax Brackets",
+        "updateIrppDesc": "Configure income tax brackets for payroll calculations",
+        "updateLeaveTitle": "Update Leave Entitlements",
+        "updateLeaveDesc": "Configure leave entitlements and durations for all leave types"
+      },
+      "form": {
+        "minWage": "Minimum Wage",
+        "effectiveDate": "Effective Date",
+        "employeeRate": "Employee Rate",
+        "employerRate": "Employer Rate",
+        "minAmount": "Min Amount (FCFA)",
+        "maxAmount": "Max Amount (FCFA)",
+        "rate": "Tax Rate",
+        "leaveType": "Leave Type",
+        "daysPerYear": "Days Per Year",
+        "isPaid": "Paid Leave",
+        "paid": "Paid",
+        "unpaid": "Unpaid",
+        "description": "Description",
+        "above": "Above",
+        "leaveTypePlaceholder": "E.g. annual leave, sick leave",
+        "descriptionPlaceholder": "Optional description"
+      },
+      "infoBox": {
+        "title": "Note"
+      },
+      "infoBoxText": "These are the standard rates for Cameroon 2024. All values are used automatically when calculating employee payroll. Changes will apply to future payroll calculations.",
+      "errors": {
+        "invalidAmount": "The amount must meet the configured legal minimum (at least CFAF 41,875).",
+        "invalidRate": "Enter a valid rate between 0 and 100%.",
+        "invalidBracket": "Please verify tax bracket values",
+        "invalidEntitlement": "Please check the leave entitlement values.",
+        "emptyBrackets": "At least one tax bracket is required",
+        "emptyEntitlements": "At least one leave entitlement is required."
+      },
+      "success": {
+        "updated": "Payroll configuration updated successfully"
+      },
+      "error": {
+        "update": "Error updating payroll configuration"
+      }
+    },
+    "secretariat": {
+      "documents": {
+        "default": "Documents"
+      },
+      "meetings": {
+        "default": "Meetings"
+      },
+      "tasks": {
+        "default": "Tasks"
+      },
+      "addDocument": "Add Document",
+      "addMeeting": "Add Meeting",
+      "addTask": "Add Task",
+      "editDocument": "Edit Document",
+      "editMeeting": "Edit Meeting",
+      "editTask": "Edit Task",
+      "deleteDocument": "Delete Document",
+      "deleteMeeting": "Delete Meeting",
+      "deleteTask": "Delete Task",
+      "documentName": "Document Name",
+      "category": "Category",
+      "status": "Status",
+      "uploadDate": "Upload Date",
+      "fileUrl": "File",
+      "meetingDate": "Meeting Date",
+      "meetingTime": "Meeting Time",
+      "meetingLocation": "Location",
+      "agenda": "Agenda",
+      "minutes": "Minutes",
+      "participants": "Participants",
+      "description": "Description",
+      "dueDate": "Due Date",
+      "assignedTo": "Assigned To",
+      "documentCategory": {
+        "LEGAL": "Legal",
+        "FINANCIAL": "Financial",
+        "HR": "Human Resources",
+        "CONTRACT": "Contract",
+        "OTHER": "Other"
+      },
+      "documentStatus": {
+        "DRAFT": "Draft",
+        "FINAL": "Final",
+        "ARCHIVED": "Archived"
+      },
+      "taskStatus": {
+        "TODO": "To Do",
+        "IN_PROGRESS": "In Progress",
+        "DONE": "Done"
+      },
+      "form": {
+        "selectCategory": "Select a category",
+        "selectStatus": "Select a status",
+        "selectEmployee": "Select an employee",
+        "uploadFile": "Upload a file",
+        "addParticipant": "Add participant",
+        "removeParticipant": "Remove participant"
+      },
+      "errors": {
+        "loadFailed": "Error loading data",
+        "createFailed": "Error creating",
+        "updateFailed": "Error updating",
+        "deleteFailed": "Error deleting",
+        "uploadFailed": "Error uploading file"
+      },
+      "success": {
+        "created": "Created successfully",
+        "updated": "Updated successfully",
+        "deleted": "Deleted successfully"
+      }
+    },
+    "aiMarketing": {
+      "title": "AI Marketing Assistant",
+      "subtitle": "Generate marketing copy tailored to your products.",
+      "productInfoLabel": "Product information",
+      "productInfoPlaceholder": "Describe the product, its benefits, and its target audience…",
+      "errorPrompt": "Enter the product information before continuing.",
+      "generateButton": "Generate campaign ideas",
+      "generating": "Generating…",
+      "suggestedCampaigns": "Suggested campaigns"
+    },
+    "clients": {
+      "title": "Customers",
+      "listTitle": "Customer list",
+      "addCustomer": "Add customer",
+      "customerId": "Customer ID",
+      "name": "Name",
+      "company": "Company",
+      "email": "Email address",
+      "phone": "Phone",
+      "customerSince": "Customer since"
+    },
+    "createAndSelect": "Create and select",
+    "maintenance": {
+      "noEquipment": "No equipment found."
+    }
+  }
+};
+
 const I18nContext = createContext<{
   language: string;
   setLanguage: (lang: string) => void;
@@ -5662,13 +6606,22 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({ children }) => {
 
   const t = useCallback((key: string, params?: { [key: string]: any }) => {
     const keys = key.split('.');
-    let value: any = translations[language] || translations['fr'];
-    for (const k of keys) {
-      if (value && typeof value === 'object' && k in value) {
-        value = value[k];
-      } else {
-        return key; // Key not found
+    const lookup = (catalog: any) => {
+      let value = catalog;
+      for (const k of keys) {
+        if (value && typeof value === 'object' && k in value) {
+          value = value[k];
+        } else {
+          return undefined;
+        }
       }
+      return value;
+    };
+    let value: any = lookup(translations[language] || translations['fr']);
+    if (value === undefined) value = lookup(additionalTranslations[language] || additionalTranslations['fr']);
+    if (value === undefined) return key; // Key not found
+    if (value && typeof value === 'object' && typeof value.default === 'string') {
+      value = value.default;
     }
     if (typeof value === 'string' && params) {
       return Object.entries(params).reduce((acc, [paramKey, paramValue]) => {

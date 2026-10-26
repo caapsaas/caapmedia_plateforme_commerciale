@@ -22,11 +22,17 @@ const BankManagement: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingBank, setEditingBank] = useState<Bank | null>(null);
     const [deletingBank, setDeletingBank] = useState<Bank | null>(null);
+    const [search, setSearch] = useState('');
 
     const { data: banks = [], isLoading, isError } = useQuery<Bank[]>({
         queryKey: ['banks'],
         queryFn: getBanks,
     });
+    const filteredBanks = banks.filter((bank) =>
+        [bank.name, bank.address, bank.phone, bank.type].some((value) =>
+            String(value ?? '').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
+        ),
+    );
 
     const onMutationError = (error: any) => {
         toast('error', error?.response?.data?.message || t('common.error'));
@@ -89,6 +95,7 @@ const BankManagement: React.FC = () => {
                     <span>{t('configuration.bank.add')}</span>
                 </button>
             </div>
+            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('common.search')} aria-label={t('common.search')} className="mb-4 w-full rounded-md border border-slate-300 px-4 py-2 text-sm md:max-w-sm" />
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-slate-500">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50">
@@ -103,13 +110,13 @@ const BankManagement: React.FC = () => {
                     <tbody>
                         {isLoading ? (
                             <TableSkeleton rows={4} columns={5} />
-                        ) : banks.length === 0 ? (
+                        ) : filteredBanks.length === 0 ? (
                             <tr>
                                 <td colSpan={5}>
                                     <EmptyState icon="inbox" title={t('configuration.bank.management')} description={t('common.notAvailable')} />
                                 </td>
                             </tr>
-                        ) : banks.map((bank) => (
+                        ) : filteredBanks.map((bank) => (
                             <tr key={bank.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold text-slate-900">{bank.name}</td>
                                 <td className="px-6 py-4">{bank.address}</td>

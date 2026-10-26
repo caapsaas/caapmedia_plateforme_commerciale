@@ -10,6 +10,10 @@ const CommercialParamsManagement: React.FC = () => {
     const [max, setMax] = useState<string>('');
     const [error, setError] = useState<string>('');
     const [success, setSuccess] = useState(false);
+    const [search, setSearch] = useState('');
+    const normalizedSearch = search.trim().toLocaleLowerCase();
+    const showMinField = !normalizedSearch || 'minimum min marge margin'.includes(normalizedSearch);
+    const showMaxField = !normalizedSearch || 'maximum max marge margin'.includes(normalizedSearch);
 
     const { data: params, isLoading } = useQuery<CommercialParams>({
         queryKey: ['commercial-params'],
@@ -68,6 +72,8 @@ const CommercialParamsManagement: React.FC = () => {
                 <p className="text-sm text-slate-500 mt-0.5">{t('production.commercialParams.subtitle')}</p>
             </div>
 
+            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('common.search')} aria-label={t('common.search')} className="w-full rounded-md border border-slate-300 px-4 py-2 text-sm md:max-w-sm" />
+
             {/* Bandeau non configuré */}
             {!params && (
                 <div className="flex items-start gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
@@ -82,7 +88,7 @@ const CommercialParamsManagement: React.FC = () => {
                 {/* Champs */}
                 <div className="p-6 space-y-5">
                     <div className="grid grid-cols-2 gap-4">
-                        <div>
+                        {showMinField && <div>
                             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
                                 {t('production.commercialParams.minMargin')}
                             </label>
@@ -100,8 +106,8 @@ const CommercialParamsManagement: React.FC = () => {
                                 />
                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">%</span>
                             </div>
-                        </div>
-                        <div>
+                        </div>}
+                        {showMaxField && <div>
                             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
                                 {t('production.commercialParams.maxMargin')}
                             </label>
@@ -119,7 +125,7 @@ const CommercialParamsManagement: React.FC = () => {
                                 />
                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">%</span>
                             </div>
-                        </div>
+                        </div>}
                     </div>
 
                     {/* Aperçu visuel de la plage */}

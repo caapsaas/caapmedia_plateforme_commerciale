@@ -12,13 +12,13 @@ const EquipmentCostManagement: React.FC = () => {
     const { user } = useAuth();
     const { t } = useI18n();
     const queryClient = useQueryClient();
-    const activeRole = user?.activeRole ?? user?.userRole;
-    const isSuperAdmin = activeRole === UserRole.SUPER_ADMIN;
+    const isSuperAdmin = user?.userRole === UserRole.SUPER_ADMIN || user?.additionalRoles?.includes(UserRole.SUPER_ADMIN) === true;
 
     const [filterSubsidiaryId, setFilterSubsidiaryId] = useState<string>('');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editingRate, setEditingRate] = useState<string>('');
     const [error, setError] = useState<string>('');
+    const [search, setSearch] = useState('');
 
     const { data: subsidiaries = [] } = useQuery<Subsidiary[]>({
         queryKey: ['subsidiaries'],
@@ -30,6 +30,10 @@ const EquipmentCostManagement: React.FC = () => {
         queryKey: ['equipment-costs', filterSubsidiaryId],
         queryFn: () => getEquipmentCosts(filterSubsidiaryId || undefined),
     });
+    const filteredEquipments = equipments.filter((equipment) =>
+        [equipment.equipmentName, equipment.status, equipment.subsidiaryId, equipment.hourlyRate]
+            .some((value) => String(value ?? '').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())),
+    );
 
     const { mutate: saveCost, isPending } = useMutation({
         mutationFn: upsertEquipmentCost,
@@ -75,6 +79,8 @@ const EquipmentCostManagement: React.FC = () => {
                 )}
             </div>
 
+            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('common.search')} aria-label={t('common.search')} className="w-full rounded-md border border-slate-300 px-4 py-2 text-sm md:max-w-sm" />
+
             {error && <p className="text-red-600 text-sm">{error}</p>}
 
                 <div className="overflow-x-auto rounded-lg border border-slate-200">
@@ -91,7 +97,7 @@ const EquipmentCostManagement: React.FC = () => {
                         <tbody className="divide-y divide-slate-200">
                             {isLoading ? (
                                 <TableSkeleton rows={5} columns={isSuperAdmin ? 5 : 4} />
-                            ) : equipments.map(eq => (
+                            ) : filteredEquipments.map(eq => (
                                 <tr key={eq.id} className="bg-white hover:bg-slate-50">
                                     <td className="px-4 py-3 font-medium text-slate-800">{eq.equipmentName}</td>
                                     <td className="px-4 py-3">

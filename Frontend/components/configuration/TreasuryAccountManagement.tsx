@@ -27,8 +27,9 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
   const [showModal, setShowModal] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<TreasuryAccount | null>(null);
   const [editingAccount, setEditingAccount] = useState<TreasuryAccount | null>(null);
+  const [search, setSearch] = useState('');
 
-  const isSuperAdmin = (user?.activeRole ?? user?.userRole) === UserRole.SUPER_ADMIN;
+  const isSuperAdmin = user?.userRole === UserRole.SUPER_ADMIN || user?.additionalRoles?.includes(UserRole.SUPER_ADMIN) === true;
 
   const { data: subsidiaries = [] } = useQuery<Subsidiary[]>({
     queryKey: ['subsidiaries-list'],
@@ -37,6 +38,10 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
   });
 
   const [subsidiaryFilter, setSubsidiaryFilter] = useState<string>('');
+  const filteredAccounts = accounts.filter((account) =>
+    [account.accountName, account.accountCode, account.accountType, account.currency, account.subsidiary?.subsidiaryName]
+      .some((value) => String(value ?? '').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())),
+  );
 
   // Vérifier les permissions
   const canManage = hasRole([UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR]);
@@ -260,6 +265,8 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
         </div>
       </div>
 
+      <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('common.search')} aria-label={t('common.search')} className="w-full rounded-md border border-slate-300 px-4 py-2 text-sm md:max-w-sm" />
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-6 rounded-lg shadow">
@@ -320,7 +327,7 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <TableSkeleton rows={5} columns={6} />
-              ) : accounts.map((account) => (
+              ) : filteredAccounts.map((account) => (
                 <tr key={account.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {account.accountName}

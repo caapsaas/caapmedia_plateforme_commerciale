@@ -428,6 +428,17 @@ const Sidebar: React.FC = () => {
           },
         ];
 
+      case UserRole.PRE_HIRE_MANAGER:
+        return [
+          {
+            groupLabel: t('sidebar.hrManagement'),
+            groupIcon: <IconBriefcase className="h-5 w-5" />,
+            items: [
+              { to: '/dashboard/hr/pre-hire-training', label: t('hr.tabs.preHireTraining'), icon: <IconBriefcase className="h-5 w-5" /> },
+            ],
+          },
+        ];
+
       case UserRole.PRODUCTION_DIRECTOR:
         return [
           {

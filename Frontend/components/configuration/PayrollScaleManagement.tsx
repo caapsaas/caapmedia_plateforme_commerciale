@@ -3,15 +3,12 @@ import Card, { CardBody, CardHeader } from '../ui/Card';
 import { useI18n } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
 import SmigUpdateModal from './SmigUpdateModal';
-import CnpsRatesModal from './CnpsRatesModal';
-import IrppBracketsModal from './IrppBracketsModal';
 import LeaveEntitlementsModal from './LeaveEntitlementsModal';
 import CameroonTaxRatesModal from './CameroonTaxRatesModal';
 import {
   getFullPayrollConfiguration,
   updatePayrollConfiguration,
   PayrollConfig,
-  TaxBracket,
   LeaveEntitlement,
 } from '../../services/apihr/apiPayroll';
 
@@ -30,10 +27,10 @@ const PayrollScaleManagement: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [successMsg, setSuccessMsg] = useState<string>('');
   const [saving, setSaving] = useState(false);
+  const [activeSection, setActiveSection] = useState<'overview' | 'minimum' | 'contributions' | 'tax' | 'leaves'>('overview');
+  const showSection = (section: typeof activeSection) => activeSection === section;
 
   const [smigModalOpen, setSmigModalOpen] = useState(false);
-  const [cnpsModalOpen, setCnpsModalOpen] = useState(false);
-  const [irppModalOpen, setIrppModalOpen] = useState(false);
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
   const [cameroonTaxModalOpen, setCameroonTaxModalOpen] = useState(false);
 
@@ -71,38 +68,6 @@ const PayrollScaleManagement: React.FC = () => {
       console.error('Full error from backend:', err);
       console.error('Error response:', err.response?.data);
       throw new Error(err instanceof Error ? err.message : t('hr.payroll.error.update'));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSaveCnps = async (data: {
-    cnpsEmployeeRate: number;
-    cnpsEmployerRate: number;
-  }) => {
-    setSaving(true);
-    try {
-      const updated = await updatePayrollConfiguration(subsidiaryId, data);
-      setConfig(updated);
-      setSuccessMsg(t('hr.payroll.success.updated'));
-      setTimeout(() => setSuccessMsg(''), 3000);
-    } catch (err) {
-      throw new Error(err instanceof Error ? err.message : t('hr.payroll.error.update'));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSaveIrpp = async (data: { irppBrackets: TaxBracket[] }) => {
-    setSaving(true);
-    try {
-      const updated = await updatePayrollConfiguration(subsidiaryId, { irppBrackets: data.irppBrackets });
-      setConfig(updated);
-      setSuccessMsg(t('hr.payroll.success.updated'));
-      setTimeout(() => setSuccessMsg(''), 3000);
-      setIrppModalOpen(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('hr.payroll.error.update'));
     } finally {
       setSaving(false);
     }
@@ -207,7 +172,33 @@ const PayrollScaleManagement: React.FC = () => {
         </Card>
       )}
 
-      <Card>
+      <nav className="flex flex-wrap gap-2" aria-label="Rubriques de configuration de paie">
+        {([
+          ['overview', t('hr.payroll.sections.overview')],
+          ['minimum', t('hr.payroll.sections.minimum')],
+          ['contributions', t('hr.payroll.sections.contributions')],
+          ['tax', t('hr.payroll.sections.tax')],
+          ['leaves', t('hr.payroll.sections.leaves')],
+        ] as const).map(([section, label]) => (
+          <button key={section} type="button" onClick={() => setActiveSection(section)} aria-current={activeSection === section ? 'page' : undefined}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${activeSection === section ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      {showSection('overview') && <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          { title: t('hr.payroll.sections.salaryMinimumTitle'), value: `${config.minWage?.toLocaleString('fr-FR')} FCFA`, detail: `${t('hr.payroll.sections.salaryMinimumDetail')} · ${fmtDate(config.minWageEffectiveDate, language)}`, section: 'minimum' as const },
+          { title: t('hr.payroll.sections.employeePensionTitle'), value: '4,2 %', detail: t('hr.payroll.sections.employeePensionDetail'), section: 'contributions' as const },
+          { title: t('hr.payroll.sections.employerPensionTitle'), value: '4,2 % + branches', detail: t('hr.payroll.sections.employerPensionDetail'), section: 'contributions' as const },
+          { title: t('hr.payroll.sections.annualLeaveTitle'), value: t('hr.payroll.sections.annualLeaveValue'), detail: t('hr.payroll.sections.annualLeaveDetail'), section: 'leaves' as const },
+        ].map((item) => <button key={item.title} type="button" onClick={() => setActiveSection(item.section)} className="rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm hover:border-slate-400">
+          <span className="text-sm font-medium text-slate-500">{item.title}</span><span className="mt-2 block text-xl font-bold text-slate-900">{item.value}</span><span className="mt-1 block text-xs text-slate-500">{item.detail}</span><span className="mt-4 block text-xs font-semibold text-slate-700">{t('hr.payroll.sections.manage')}</span>
+        </button>)}
+      </div>}
+
+      {!showSection('overview') && <Card>
         <CardHeader gradient>
           <h3 className="text-xl font-bold">{t('hr.payroll.title')}</h3>
           <p className="text-sm text-slate-600 mt-1">{t('hr.payroll.taxBracketsDesc')}</p>
@@ -215,7 +206,7 @@ const PayrollScaleManagement: React.FC = () => {
         <CardBody>
           <div className="space-y-4">
             {/* SMIG Configuration */}
-            <div className="border border-slate-200 rounded-lg p-4">
+            {showSection('minimum') && <div className="border border-slate-200 rounded-lg p-4">
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <h4 className="font-semibold text-slate-900">
@@ -239,12 +230,12 @@ const PayrollScaleManagement: React.FC = () => {
               >
                 {t('common.edit')}
               </button>
-            </div>
+            </div>}
 
             {/* CNPS Rates */}
-            <div className="border border-slate-200 rounded-lg p-4">
+            {showSection('contributions') && <div className="border border-slate-200 rounded-lg p-4">
               <h4 className="font-semibold text-slate-900 mb-4">
-                {t('hr.payroll.cnpsEmployeeRate')} {t('hr.payroll.form.employeeRate')} & {t('hr.payroll.form.employerRate')}
+                {t('payroll.cnpsEmployeeRate')} {t('hr.payroll.form.employeeRate')} & {t('hr.payroll.form.employerRate')}
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-slate-50 rounded-lg p-4">
@@ -252,7 +243,7 @@ const PayrollScaleManagement: React.FC = () => {
                     {t('hr.payroll.form.employeeRate')}
                   </p>
                   <p className="text-2xl font-bold mt-2">
-                    {((config.cnpsEmployeeRate || 0.054) * 100).toFixed(2)}%
+                    4,20 %
                   </p>
                 </div>
                 <div className="bg-slate-50 rounded-lg p-4">
@@ -260,21 +251,15 @@ const PayrollScaleManagement: React.FC = () => {
                     {t('hr.payroll.form.employerRate')}
                   </p>
                   <p className="text-2xl font-bold mt-2">
-                    {((config.cnpsEmployerRate || 0.064) * 100).toFixed(2)}%
+                    4,20 %
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setCnpsModalOpen(true)}
-                disabled={saving}
-                className="mt-4 px-4 py-2 bg-[#c6e911] text-slate-800 rounded-lg font-semibold hover:bg-[#adc40f] transition-colors disabled:opacity-50"
-              >
-                {t('common.edit')}
-              </button>
-            </div>
+              <p className="mt-3 text-xs text-slate-500">{t('hr.payroll.sections.cnpsBreakdown')}</p>
+            </div>}
 
             {/* IRPP Brackets */}
-            <div className="border border-slate-200 rounded-lg p-4">
+            {showSection('tax') && <div className="border border-slate-200 rounded-lg p-4">
               <h4 className="font-semibold text-slate-900 mb-4">
                 {t('hr.payroll.modal.updateIrppTitle')}
               </h4>
@@ -294,14 +279,12 @@ const PayrollScaleManagement: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {(
-                      config.taxBrackets || [
-                        { minSalary: 0, maxSalary: 355000, rate: 0, deductible: 0 },
-                        { minSalary: 355000, maxSalary: 545000, rate: 10, deductible: 35500 },
-                        { minSalary: 545000, maxSalary: 1000000, rate: 15, deductible: 89000 },
-                        { minSalary: 1000000, maxSalary: null, rate: 20, deductible: 170000 },
-                      ]
-                    ).map((bracket, idx) => (
+                    {[
+                      { minSalary: 0, maxSalary: 2000000, rate: 10 },
+                      { minSalary: 2000001, maxSalary: 3000000, rate: 15 },
+                      { minSalary: 3000001, maxSalary: 5000000, rate: 25 },
+                      { minSalary: 5000001, maxSalary: null, rate: 35 },
+                    ].map((bracket, idx) => (
                       <tr key={idx} className="border-b">
                         <td className="px-4 py-2">
                           {(bracket.minSalary || 0).toLocaleString('fr-FR')}
@@ -311,27 +294,17 @@ const PayrollScaleManagement: React.FC = () => {
                             ? `${t('hr.payroll.form.above')} ${(bracket.minSalary || 0).toLocaleString('fr-FR')}`
                             : (bracket.maxSalary || 0).toLocaleString('fr-FR')}
                         </td>
-                        <td className="px-4 py-2 font-semibold">
-                          {typeof bracket.rate === 'number'
-                            ? (bracket.rate > 1 ? bracket.rate : (bracket.rate * 100)).toFixed(2)
-                            : bracket.rate}%
-                        </td>
+                        <td className="px-4 py-2 font-semibold">{bracket.rate}%</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <button
-                onClick={() => setIrppModalOpen(true)}
-                disabled={saving}
-                className="mt-4 px-4 py-2 bg-[#c6e911] text-slate-800 rounded-lg font-semibold hover:bg-[#adc40f] transition-colors disabled:opacity-50"
-              >
-                {t('common.edit')}
-              </button>
-            </div>
+              <p className="mt-3 text-xs text-slate-500">{t('hr.payroll.sections.irppLegalNote')}</p>
+            </div>}
 
             {/* Cameroon Tax Rates */}
-            <div className="border border-slate-200 rounded-lg p-4">
+            {showSection('contributions') && <div className="border border-slate-200 rounded-lg p-4">
               <h4 className="font-semibold text-slate-900 mb-4">
                 {t('hr.payroll.cameroonTaxRates.title')}
               </h4>
@@ -417,23 +390,20 @@ const PayrollScaleManagement: React.FC = () => {
               >
                 {t('common.edit')}
               </button>
-            </div>
+            </div>}
 
             {/* Leave Entitlements */}
-            <div className="border border-slate-200 rounded-lg p-4">
+            {showSection('leaves') && <div className="border border-slate-200 rounded-lg p-4">
               <h4 className="font-semibold text-slate-900 mb-4">
                 {t('hr.payroll.modal.updateLeaveTitle')}
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {(config.leaveEntitlements || [
-                  { type: t('hr.leaveType.annual'), daysPerYear: 30, isPaid: true },
-                  { type: t('hr.leaveType.sick'), daysPerYear: 15, isPaid: true },
-                  { type: t('hr.leaveType.maternity'), daysPerYear: 56, isPaid: true },
-                  { type: t('hr.leaveType.paternity'), daysPerYear: 3, isPaid: true },
+                {(config.leaveEntitlements?.length ? config.leaveEntitlements : [
+                  { type: 'ANNUAL', daysPerYear: 18, isPaid: true, description: '1,5 jour ouvrable par mois de service effectif (Code du travail, art. 89).' },
                 ]).map((leave, idx) => (
                   <div key={idx} className="bg-slate-50 rounded-lg p-4">
                     <p className="text-sm text-slate-600">
-                      {leave.type} {leave.isPaid ? `(${t('hr.payroll.form.paid')})` : `(${t('hr.payroll.form.unpaid')})`}
+                      {(leave.type === 'ANNUAL' ? t('hr.leaveType.annual') : leave.type)} {leave.isPaid ? `(${t('hr.payroll.form.paid')})` : `(${t('hr.payroll.form.unpaid')})`}
                     </p>
                     <p className="text-2xl font-bold mt-2">
                       {leave.daysPerYear} {t('hr.payroll.form.daysPerYear')}
@@ -448,17 +418,17 @@ const PayrollScaleManagement: React.FC = () => {
               >
                 {t('common.edit')}
               </button>
-            </div>
+            </div>}
           </div>
         </CardBody>
-      </Card>
+      </Card>}
 
       {/* Info Box */}
       <Card>
         <CardBody>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-700">
-              ℹ️ <strong>{t('hr.payroll.infoBox.title')}:</strong> {t('hr.payroll.infoBoxText')}
+              ℹ️ <strong>{t('hr.payroll.infoBox.title')}:</strong> {t('hr.payroll.infoBox.text')}
             </p>
           </div>
         </CardBody>
@@ -474,44 +444,13 @@ const PayrollScaleManagement: React.FC = () => {
         isLoading={saving}
       />
 
-      <CnpsRatesModal
-        isOpen={cnpsModalOpen}
-        onClose={() => setCnpsModalOpen(false)}
-        onSave={handleSaveCnps}
-        employeeRate={config.cnpsEmployeeRate || 0.11}
-        employerRate={config.cnpsEmployerRate || 0.176}
-        isLoading={saving}
-      />
-
-      <IrppBracketsModal
-        isOpen={irppModalOpen}
-        onClose={() => setIrppModalOpen(false)}
-        onSave={handleSaveIrpp}
-        brackets={
-          config.taxBrackets?.map(b => ({
-            ...b,
-            minAmount: b.minSalary,
-            maxAmount: b.maxSalary,
-          })) || [
-            { minAmount: 0, maxAmount: 355000, rate: 0 },
-            { minAmount: 355000, maxAmount: 545000, rate: 0.1 },
-            { minAmount: 545000, maxAmount: 1000000, rate: 0.15 },
-            { minAmount: 1000000, maxAmount: null, rate: 0.2 },
-          ]
-        }
-        isLoading={saving}
-      />
-
       <LeaveEntitlementsModal
         isOpen={leaveModalOpen}
         onClose={() => setLeaveModalOpen(false)}
         onSave={handleSaveLeave}
         entitlements={
-          config.leaveEntitlements || [
-            { type: t('hr.leaveType.annual'), daysPerYear: 30, isPaid: true },
-            { type: t('hr.leaveType.sick'), daysPerYear: 15, isPaid: true },
-            { type: t('hr.leaveType.maternity'), daysPerYear: 56, isPaid: true },
-            { type: t('hr.leaveType.paternity'), daysPerYear: 3, isPaid: true },
+          config.leaveEntitlements?.length ? config.leaveEntitlements : [
+            { type: 'ANNUAL', daysPerYear: 18, isPaid: true, description: '1,5 jour ouvrable par mois de service effectif (Code du travail, art. 89).' },
           ]
         }
         isLoading={saving}
@@ -521,15 +460,15 @@ const PayrollScaleManagement: React.FC = () => {
         isOpen={cameroonTaxModalOpen}
         onClose={() => setCameroonTaxModalOpen(false)}
         onSave={handleSaveCameroonTax}
-        cfcEmployeeRate={config.cfcEmployeeRate || 0.01}
-        cfcEmployerRate={config.cfcEmployerRate || 0.015}
-        fneRate={config.fneRate || 0.01}
-        cnpsCap={config.cnpsCap || 750000}
-        professionalExpenseRate={config.professionalExpenseRate || 0.30}
-        fixedAbatementAnnual={config.fixedAbatementAnnual || 500000}
-        riskGroupARate={config.riskGroupARate || 0.0175}
-        riskGroupBRate={config.riskGroupBRate || 0.025}
-        riskGroupCRate={config.riskGroupCRate || 0.05}
+        cfcEmployeeRate={config.cfcEmployeeRate ?? 0.01}
+        cfcEmployerRate={config.cfcEmployerRate ?? 0.015}
+        fneRate={config.fneRate ?? 0.01}
+        cnpsCap={config.cnpsCap ?? 750000}
+        professionalExpenseRate={config.professionalExpenseRate ?? 0.30}
+        fixedAbatementAnnual={config.fixedAbatementAnnual ?? 500000}
+        riskGroupARate={config.riskGroupARate ?? 0.0175}
+        riskGroupBRate={config.riskGroupBRate ?? 0.025}
+        riskGroupCRate={config.riskGroupCRate ?? 0.05}
         isLoading={saving}
       />
     </div>

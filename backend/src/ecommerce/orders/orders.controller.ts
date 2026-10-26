@@ -172,7 +172,7 @@ export class OrdersController {
   @Get(':id')
   @UseGuards(ContactJwtAuthGuard)
   findOne(@Param('id') id: string, @Req() req) {
-    return this.ordersService.findOne(id, req.user);
+    return this.ordersService.findOneForCustomer(id, req.user);
   }
 
   /**
@@ -181,8 +181,8 @@ export class OrdersController {
    */
   @Get('customer/:customerId')
   @UseGuards(ContactJwtAuthGuard)
-  findByCustomer(@Param('customerId') customerId: string) {
-    return this.ordersService.findGroupsByCustomer(customerId);
+  findByCustomer(@Param('customerId') customerId: string, @Req() req) {
+    return this.ordersService.findGroupsByCustomer(customerId, req.user);
   }
 
   /**

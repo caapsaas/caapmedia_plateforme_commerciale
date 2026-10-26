@@ -23,6 +23,7 @@ const ClientManagement: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingContact, setEditingContact] = useState<Contact | null>(null);
     const [deletingContact, setDeletingContact] = useState<Contact | null>(null);
+    const [search, setSearch] = useState('');
 
     // --- Data Fetching & Mutations ---
     const { data: contacts = [], isLoading, isError } = useQuery<Contact[]>({
@@ -30,6 +31,10 @@ const ClientManagement: React.FC = () => {
         queryFn: () => getContacts(subsidiary!.id),
         enabled: !!subsidiary,
     });
+    const filteredContacts = contacts.filter((contact) =>
+        [contact.contactName, contact.company, contact.email, contact.phone, contact.id]
+            .some((value) => value?.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())),
+    );
 
     const { mutate: onSave } = useMutation<Contact, Error, Omit<Contact, 'id'> & { id?: string }>({ 
         mutationFn: saveContact, 
@@ -100,6 +105,7 @@ const ClientManagement: React.FC = () => {
                     <span>{t('configuration.addClient')}</span>
                 </button>
             </div>
+            <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('common.search')} aria-label={t('common.search')} className="mb-4 w-full rounded-md border border-slate-300 px-4 py-2 text-sm md:max-w-sm" />
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-slate-500">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50">
@@ -115,13 +121,13 @@ const ClientManagement: React.FC = () => {
                     <tbody>
                         {isLoading ? (
                             <TableSkeleton rows={6} columns={6} />
-                        ) : contacts.length === 0 ? (
+                        ) : filteredContacts.length === 0 ? (
                             <tr>
                                 <td colSpan={6}>
                                     <EmptyState icon="inbox" title={t('configuration.clientManagement')} description={t('common.notAvailable')} />
                                 </td>
                             </tr>
-                        ) : contacts.map((contact) => (
+                        ) : filteredContacts.map((contact) => (
                             <tr key={contact.id} className="bg-white border-b hover:bg-slate-50">
                                 <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{contact.id}</th>
                                 <td className="px-6 py-4 font-semibold">{contact.contactName}</td>

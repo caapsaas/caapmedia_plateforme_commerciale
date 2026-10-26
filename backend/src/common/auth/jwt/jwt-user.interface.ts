@@ -8,5 +8,7 @@ export interface JwtUser {
   /** Role actuellement actif (POST /auth/switch-role) - source de verite pour l'autorisation, voir role.guard.ts. */
   activeRole: UserRole;
   subsidiaryId: string;
-  employeeId?: string;
+  /** Alias historique, conservé pendant la migration des services. */
+  userRole?: UserRole;
+  employeeId?: string | null;
 }

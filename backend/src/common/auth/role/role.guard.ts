@@ -6,7 +6,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { UserRole } from '@prisma/client'; // Ou votre enum
+import { UserRole } from '@prisma/client';
+import { getActiveRole, isSuperAdmin } from './role-identity';
 
 @Injectable()
 export class RoleGuard implements CanActivate {
@@ -53,7 +54,7 @@ export class RoleGuard implements CanActivate {
     // @Roles(...)/@SetMetadata('roles', ...) de l'app serait fragile (c'est
     // exactement l'oubli qui a laisse finances-stats/* sans guard, cf. audit
     // Doc/architecture-multi-filiale-auth-rbac.md section 1.1/4.2).
-    if (user.roles?.includes(UserRole.SUPER_ADMIN)) {
+    if (isSuperAdmin(user)) {
       this.logger.debug(
         `User ${user.id} is SUPER_ADMIN, bypassing role check for ${method} ${url}`,
         'RoleGuard',
@@ -67,8 +68,7 @@ export class RoleGuard implements CanActivate {
     // meme s'il le possede. Avant l'introduction d'activeRole, ce guard
     // faisait un OR sur TOUS les roles de l'utilisateur (roles[]/
     // additionalRoles), ce qui contournait le principe de moindre privilege.
-    const activeRole: UserRole | undefined =
-      user.activeRole || user.role || user.userRole;
+    const activeRole = getActiveRole(user);
     this.logger.debug(
       `User ${user.id} active role: ${activeRole}`,
       'RoleGuard',
