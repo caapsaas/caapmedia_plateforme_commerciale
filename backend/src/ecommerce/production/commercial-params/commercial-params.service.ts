@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { UpsertCommercialParamsDto } from './dto/upsert-commercial-params.dto';
 import { Prisma } from '@prisma/client';
@@ -45,12 +41,6 @@ export class CommercialParamsService {
   }
 
   async findGlobal() {
-    const params = await this.prisma.commercialParams.findFirst();
-    if (!params) {
-      throw new NotFoundException(
-        'Les paramètres commerciaux ne sont pas encore configurés.',
-      );
-    }
-    return params;
+    return this.prisma.commercialParams.findFirst();
   }
 }

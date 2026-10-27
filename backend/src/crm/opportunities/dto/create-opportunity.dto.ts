@@ -6,7 +6,7 @@ import {
   IsEnum,
   IsOptional,
   IsArray,
-  ArrayNotEmpty,
+  ValidateIf,
 } from 'class-validator';
 import { OpportunityStage, OpportunitySource } from '@prisma/client';
 import { Type } from 'class-transformer';
@@ -42,6 +42,6 @@ export class CreateOpportunityDto {
 
   @IsArray()
   @IsString({ each: true })
-  @IsOptional()
+  @ValidateIf((_object: unknown, value: unknown) => value !== undefined)
   productIds?: string[];
 }

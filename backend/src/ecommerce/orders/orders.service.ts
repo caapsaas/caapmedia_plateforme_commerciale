@@ -39,6 +39,8 @@ import {
 } from 'date-fns';
 import { Decimal } from '@prisma/client/runtime/library';
 import { ProductSpecsService } from '../products/product-specs/product-specs.service';
+import { OrderNotificationsService } from '../../notifications/order-notifications.service';
+import { assertOrderTransition, BEFORE_PRODUCTION, nextOrderStatusForProduction } from './order-workflow';
 
 // Allowlist shared by every order response, including raw Prisma responses.
 const orderCustomerSelect = {
@@ -62,6 +64,7 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly productSpecsService: ProductSpecsService,
+    private readonly orderNotifications: OrderNotificationsService,
   ) {}
 
   // Fonction utilitaire pour mapper une commande à son format de réponse
@@ -210,32 +213,7 @@ export class OrdersService {
       }
     }
 
-    // Validation des marges : si au moins une ligne de service a un résumé de
-    // production, on vérifie que la marge est dans la plage autorisée par les
-    // paramètres commerciaux globaux.
-    const itemsWithProduction = parsedItems.filter(
-      (item) => item.productionSummary,
-    );
-    if (itemsWithProduction.length > 0) {
-      const commercialParams = await this.prisma.commercialParams.findFirst();
-      if (!commercialParams) {
-        throw new BadRequestException(
-          'Les paramètres commerciaux ne sont pas configurés. Contactez un super administrateur.',
-        );
-      }
-      for (const item of itemsWithProduction) {
-        const margin = new Decimal(item.productionSummary.marginPercent);
-        if (
-          margin.lessThan(commercialParams.minMarginPercent) ||
-          margin.greaterThan(commercialParams.maxMarginPercent)
-        ) {
-          throw new BadRequestException(
-            `La marge de ${margin}% est hors de la plage autorisée ` +
-              `(${commercialParams.minMarginPercent}% – ${commercialParams.maxMarginPercent}%).`,
-          );
-        }
-      }
-    }
+    // Les marges configurées sont indicatives et ne bloquent pas les commandes.
 
     // Le prix de chaque ligne est celui saisi par le commercial (négocié via WhatsApp),
     // jamais dérivé du catalogue. La remise et le total sont figés ici, historiquement.
@@ -272,7 +250,7 @@ export class OrdersService {
     const taxAmount = subtotal.mul(effectiveTaxRate);
     const totalAmount = subtotal.add(taxAmount);
 
-    return this.prisma.$transaction(async (tx) => {
+    const createdOrder = await this.prisma.$transaction(async (tx) => {
       const newOrder = await tx.order.create({
         data: {
           id: generateId(ID_PREFIXES.ORDER),
@@ -295,35 +273,38 @@ export class OrdersService {
           salesRepId,
           opportunityId,
           orderItems: {
-            create: orderItemsData.map((item, index) => {
-              const file = designFiles?.[index];
-              return {
-                id: generateId(ID_PREFIXES.ORDERITEM),
-                quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                discount: item.discount,
-                assemblyPrice: item.assemblyPrice,
-                total: item.total,
-                specValues: item.specValues,
-                specSnapshot: item.specSnapshot,
-                designFileName: file?.originalname,
-                designFileUrl: file
-                  ? `/public/order_item_img/${file.filename}`
-                  : undefined,
-                productId: item.productId,
-                productOptions: item.options
-                  ? {
-                      create: Object.entries(item.options).map(
-                        ([optionType, optionValue]) => ({
+            create: orderItemsData.map(
+              (
+                item,
+                index,
+              ): Prisma.OrderItemUncheckedCreateWithoutOrderInput => {
+                const file = designFiles?.[index];
+                return {
+                  id: generateId(ID_PREFIXES.ORDERITEM),
+                  quantity: item.quantity,
+                  unitPrice: item.unitPrice,
+                  discount: item.discount,
+                  assemblyPrice: item.assemblyPrice,
+                  total: item.total,
+                  specValues: item.specValues,
+                  specSnapshot: item.specSnapshot,
+                  designFileName: file?.originalname,
+                  designFileUrl: file
+                    ? `/public/order_item_img/${file.filename}`
+                    : undefined,
+                  productId: item.productId,
+                  productOptions: item.options
+                    ? {
+                        create: item.options.map((option) => ({
                           id: generateId(ID_PREFIXES.PRODUCTOPTION),
-                          optionType,
-                          optionValue: String(optionValue),
-                        }),
-                      ),
-                    }
-                  : undefined,
-              };
-            }),
+                          optionType: option.optionType,
+                          optionValue: option.optionValue,
+                        })),
+                      }
+                    : undefined,
+                };
+              },
+            ),
           },
           productionHistory: {
             create: {
@@ -384,6 +365,8 @@ export class OrdersService {
 
       return newOrder;
     });
+    await this.orderNotifications.created(createdOrder);
+    return createdOrder;
   }
 
   /**
@@ -551,6 +534,7 @@ export class OrdersService {
     updateDto: UpdateOrderStatusDto,
     user: any,
   ) {
+    if (!user.subsidiaryId) throw new ForbiddenException('Filiale requise.');
     // Vérifier que la commande existe et appartient à la bonne filiale
     const order = await this.prisma.order.findUnique({
       where: { id, subsidiaryId: user.subsidiaryId },
@@ -560,26 +544,44 @@ export class OrdersService {
       throw new NotFoundException(`Commande avec l'ID "${id}" non trouvée.`);
     }
 
-    // Empêcher toute modification d'une commande annulée
-    if (order.status === 'CANCELLED') {
+    assertOrderTransition(order, updateDto.status, user);
+    if (order.status === updateDto.status) return this.mapOrderToResponse(order);
+
+    return this.prisma
+      .$transaction(async (tx) => {
+        const updatedOrder = await tx.order.update({
+          where: {
+            id, subsidiaryId: user.subsidiaryId, status: order.status,
+            productionStatus: order.productionStatus,
+            amountPaid: order.amountPaid, paymentStatus: order.paymentStatus,
+          },
+          data: { status: updateDto.status },
+          include: this.orderFullInclude,
+        });
+
+        return this.mapOrderToResponse(updatedOrder);
+      })
+      .catch((error: unknown) => this.handleStatusConflict(error))
+      .then(async (updated) => {
+        await this.orderNotifications.statusChanged(
+          order,
+          updateDto.status,
+          order.status,
+        );
+        return updated;
+      });
+  }
+
+  private handleStatusConflict(error: unknown): never {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2025'
+    ) {
       throw new ConflictException(
-        'Une commande annulée ne peut pas être modifiée.',
+        'Le statut de cette commande a changé. Actualisez la liste avant de réessayer.',
       );
     }
-
-    return this.prisma.$transaction(async (tx) => {
-      const updatedOrder = await tx.order.update({
-        where: { id },
-        data: { status: updateDto.status },
-        include: {
-          orderItems: true,
-          customer: { select: orderCustomerSelect },
-          salesRep: { select: orderSalesRepSelect },
-        },
-      });
-
-      return this.mapOrderToResponse(updatedOrder);
-    });
+    throw error;
   }
 
   /**
@@ -594,12 +596,15 @@ export class OrdersService {
     updateDto: updateProductionStatusDto,
     user: any,
   ) {
-    await this.findOne(id, user);
+    if (!user.subsidiaryId) throw new ForbiddenException('Filiale requise.');
+    const order = await this.prisma.order.findUnique({ where: { id, subsidiaryId: user.subsidiaryId } });
+    if (!order) throw new NotFoundException(`Commande "${id}" introuvable.`);
+    const nextStatus = nextOrderStatusForProduction(order, updateDto.productionStatus, user);
 
-    return this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       const updateProduction = await tx.order.update({
-        where: { id },
-        data: { productionStatus: updateDto.productionStatus },
+        where: { id, subsidiaryId: user.subsidiaryId, status: order.status, productionStatus: order.productionStatus },
+        data: { productionStatus: updateDto.productionStatus, status: nextStatus },
       });
 
       await tx.orderProductionHistory.create({
@@ -611,7 +616,14 @@ export class OrdersService {
       });
 
       return updateProduction;
-    });
+    }).catch((error: unknown) => this.handleStatusConflict(error));
+    if (order.productionStatus !== updateDto.productionStatus) {
+      await this.orderNotifications.productionChanged(
+        updated,
+        updateDto.productionStatus,
+      );
+    }
+    return updated;
   }
 
   /**
@@ -694,13 +706,11 @@ export class OrdersService {
     const conditions: Prisma.Sql[] = [];
     if (effectiveSubsidiaryId) {
       conditions.push(
-        Prisma.sql`AND o.subsidiary_id = ${effectiveSubsidiaryId}::uuid`,
+        Prisma.sql`AND o.subsidiary_id = ${effectiveSubsidiaryId}`,
       );
     }
     if (query?.salesRepId) {
-      conditions.push(
-        Prisma.sql`AND o.sales_rep_id = ${query.salesRepId}::uuid`,
-      );
+      conditions.push(Prisma.sql`AND o.sales_rep_id = ${query.salesRepId}`);
     }
     const extraConditions =
       conditions.length > 0
@@ -743,6 +753,19 @@ export class OrdersService {
    * @param user Utilisateur connecté
    * @returns La commande mise à jour avec le solde
    */
+  async findPaymentAccounts(user: { subsidiaryId?: string }) {
+    if (!user.subsidiaryId) {
+      throw new ForbiddenException(
+        'Filiale requise pour enregistrer un paiement.',
+      );
+    }
+    return this.prisma.treasuryAccount.findMany({
+      where: { subsidiaryId: user.subsidiaryId, accountType: 'BANQUE' },
+      select: { id: true, accountName: true },
+      orderBy: { accountName: 'asc' },
+    });
+  }
+
   async recordPayment(
     id: string,
     recordPaymentDto: RecordPaymentDto,
@@ -765,7 +788,7 @@ export class OrdersService {
     }
     const paymentAmount = new Decimal(amount);
 
-    return this.prisma.$transaction(async (tx) => {
+    const payment = await this.prisma.$transaction(async (tx) => {
       // Fail closed: a staff identity must carry a subsidiary scope.
       if (!user.subsidiaryId) {
         throw new ForbiddenException(
@@ -805,17 +828,12 @@ export class OrdersService {
         ? PaymentStatus.PAID
         : PaymentStatus.PARTIALLY_PAID;
 
-      // Une fois encaissée, une commande en attente de validation ou nouvelle bascule en production
-      const newOrderStatus =
-        order.status === OrderStatus.PENDING_VALIDATION ||
-        order.status === OrderStatus.NEW
-          ? OrderStatus.IN_PRODUCTION
-          : order.status;
-
       // Utiliser updateMany avec verrou optimiste pour éviter les race conditions
       const updateCount = await tx.order.updateMany({
         where: {
           id,
+          subsidiaryId: user.subsidiaryId,
+          status: order.status,
           amountPaid: order.amountPaid, // Vérifier que amountPaid n'a pas changé
           paymentStatus: order.paymentStatus, // Vérifier que paymentStatus n'a pas changé
         },
@@ -823,7 +841,6 @@ export class OrdersService {
           amountPaid: newAmountPaid,
           paymentStatus: newPaymentStatus,
           paymentMethod: paymentMethod,
-          status: newOrderStatus,
         },
       });
 
@@ -837,7 +854,11 @@ export class OrdersService {
       // 3. Pour les paiements bancaires : créer une FinancialTransaction EN_ATTENTE de validation par le SUPER_ADMIN
       if (isBankingPayment && bankAccountId) {
         const bankAccount = await tx.treasuryAccount.findFirst({
-          where: { id: bankAccountId, subsidiaryId: order.subsidiaryId },
+          where: {
+            id: bankAccountId,
+            subsidiaryId: order.subsidiaryId,
+            accountType: 'BANQUE',
+          },
         });
         if (!bankAccount) {
           throw new NotFoundException(
@@ -915,6 +936,9 @@ export class OrdersService {
 
       return this.mapOrderToResponse(finalOrder);
     });
+    const reference = { id, subsidiaryId: user.subsidiaryId };
+    await this.orderNotifications.paymentReceived(reference);
+    return payment;
   }
 
   // getAllCustomerCredit / getOneCustomerCredit (endpoints /orders/credit)
@@ -942,41 +966,11 @@ export class OrdersService {
   }
 
   async validateForProduction(id: string, user: any) {
-    const order = await this.prisma.order.findUnique({
-      where: { id, subsidiaryId: user.subsidiaryId },
-    });
-    if (!order) {
-      throw new NotFoundException(`Commande "${id}" introuvable.`);
-    }
-    if (order.status !== OrderStatus.PENDING_VALIDATION) {
-      throw new BadRequestException(
-        `La commande n'est pas en attente de validation (statut actuel : ${order.status}).`,
-      );
-    }
-    return this.prisma.order.update({
-      where: { id },
-      data: { status: OrderStatus.IN_PRODUCTION },
-      include: this.orderFullInclude,
-    });
+    return this.updateOrderStatus(id, { status: OrderStatus.IN_PRODUCTION }, user);
   }
 
   async rejectByProductionDirector(id: string, user: any) {
-    const order = await this.prisma.order.findUnique({
-      where: { id, subsidiaryId: user.subsidiaryId },
-    });
-    if (!order) {
-      throw new NotFoundException(`Commande "${id}" introuvable.`);
-    }
-    if (order.status !== OrderStatus.PENDING_VALIDATION) {
-      throw new BadRequestException(
-        `Seules les commandes en attente de validation peuvent être rejetées.`,
-      );
-    }
-    return this.prisma.order.update({
-      where: { id },
-      data: { status: OrderStatus.CANCELLED },
-      include: this.orderFullInclude,
-    });
+    return this.updateOrderStatus(id, { status: OrderStatus.CANCELLED }, user);
   }
 
   async findPendingValidation(
@@ -988,7 +982,7 @@ export class OrdersService {
     const isSuperAdmin =
       user.userRole === 'SUPER_ADMIN' || user.activeRole === 'SUPER_ADMIN';
     const where: Prisma.OrderWhereInput = {
-      status: OrderStatus.PENDING_VALIDATION,
+      status: { in: BEFORE_PRODUCTION },
       ...(isSuperAdmin
         ? subsidiaryId
           ? { subsidiaryId }

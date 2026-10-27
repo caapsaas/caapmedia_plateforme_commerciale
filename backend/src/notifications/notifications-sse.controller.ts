@@ -18,6 +18,6 @@ export class NotificationsSseController {
 
   @Sse('sse')
   stream(@CurrentUser() user: JwtUser): Observable<MessageEvent> {
-    return this.sse.subscribe(user.id);
+    return this.sse.subscribe(user.id, user.activeRole);
   }
 }

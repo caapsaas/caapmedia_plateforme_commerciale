@@ -1480,7 +1480,7 @@
     "commercialParams": {
       "title": "Paramètres commerciaux globaux",
       "subtitle": "Définissez la plage de marge autorisée pour les devis de services. Le commercial doit saisir un pourcentage de marge dans cette plage lors de la création d'une commande.",
-      "notConfigured": "Aucun paramètre configuré. Définissez les marges pour activer le module de coût de production.",
+      "notConfigured": "Aucune marge indicative configurée. Le calcul des coûts et les commandes restent disponibles.",
       "minMargin": "Marge minimale (%)",
       "maxMargin": "Marge maximale (%)",
       "rangeHint": "Le commercial devra saisir une marge entre {{min}}% et {{max}}%.",
@@ -1537,7 +1537,7 @@
       "hoursPlaceholder": "Heures",
       "totalCost": "Coût total de production",
       "margin": "Marge (%) *",
-      "marginRange": "Plage autorisée : {{min}}% – {{max}}%",
+      "marginRange": "Plage indicative : {{min}}% – {{max}}%",
       "finalPrice": "Prix final (= prix de la ligne)",
       "priceNote": "Ce montant sera appliqué comme prix unitaire sur la ligne de commande.",
       "confirmButton": "Confirmer le coût",

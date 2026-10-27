@@ -169,6 +169,13 @@ export class OrdersController {
    * Endpoint pour récupérer une commande par son ID
    * Exemple d'URL : /ecommerce/orders/:id
    */
+  @Get('payment-accounts')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.CAISSIER)
+  findPaymentAccounts(@Req() req: { user: { subsidiaryId: string } }) {
+    return this.ordersService.findPaymentAccounts(req.user);
+  }
+
   @Get(':id')
   @UseGuards(ContactJwtAuthGuard)
   findOne(@Param('id') id: string, @Req() req) {
@@ -218,9 +225,7 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(
     UserRole.ADMIN,
-    UserRole.COMMERCIAL,
     UserRole.PRODUCTION_DIRECTOR,
-    UserRole.FINANCIAL_DIRECTOR,
   )
   updateProductionStatus(
     @Param('id') id: string,
@@ -240,7 +245,7 @@ export class OrdersController {
    */
   @Patch('/payment/:id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.CAISSIER)
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.CAISSIER)
   recordPayment(
     @Param('id') id: string,
     @Body() recordPaymentDto: RecordPaymentDto,

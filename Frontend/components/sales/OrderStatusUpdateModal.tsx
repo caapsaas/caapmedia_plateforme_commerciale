@@ -11,24 +11,24 @@ interface OrderStatusUpdateModalProps {
 
 const OrderStatusUpdateModal: React.FC<OrderStatusUpdateModalProps> = ({ isOpen, onClose, order, onUpdateStatus }) => {
     const { t } = useI18n();
-    const [newStatus, setNewStatus] = useState<OrderStatus>(order.status);
+    const canChangeStatus = [OrderStatus.NEW, OrderStatus.PENDING_VALIDATION].includes(order.status);
+    const allowedStatuses = canChangeStatus ? [OrderStatus.IN_PRODUCTION, OrderStatus.CANCELLED] : [];
+    const [newStatus, setNewStatus] = useState<OrderStatus>(OrderStatus.IN_PRODUCTION);
 
     useEffect(() => {
         if (isOpen) {
-            setNewStatus(order.status);
+            setNewStatus(OrderStatus.IN_PRODUCTION);
         }
     }, [isOpen, order]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (!allowedStatuses.includes(newStatus)) return;
         onUpdateStatus(order.id, newStatus);
         onClose();
     };
 
-    // Commercial users can only change status to IN_PRODUCTION or CANCELLED
-    const allowedStatuses = [OrderStatus.IN_PRODUCTION, OrderStatus.CANCELLED];
-
-    if (!isOpen) return null;
+    if (!isOpen || !canChangeStatus) return null;
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>

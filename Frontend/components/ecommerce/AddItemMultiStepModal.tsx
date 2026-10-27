@@ -98,11 +98,11 @@ const ProductionCostPanel: React.FC<CostPanelProps> = ({
     const totalProductionCost = useMemo(() =>
         steps.reduce((sum, s) => {
             const h = parseFloat(s.estimatedTimeHours);
-            return sum + (isNaN(h) ? 0 : h * s.hourlyRateSnapshot);
+            return sum + (isNaN(h) ? 0 : Number((h * s.hourlyRateSnapshot).toFixed(2)));
         }, 0), [steps]);
 
     const marginVal = parseFloat(marginPercent);
-    const finalPrice = !isNaN(marginVal) && totalProductionCost > 0 ? totalProductionCost * (1 + marginVal / 100) : 0;
+    const finalPrice = !isNaN(marginVal) && totalProductionCost > 0 ? Number((totalProductionCost * (1 + marginVal / 100)).toFixed(2)) : 0;
     const unitPrice = finalPrice > 0 && quantity > 0 ? finalPrice / quantity : 0;
 
     const minMargin = commercialParams ? Number(commercialParams.minMarginPercent) : null;
@@ -121,16 +121,11 @@ const ProductionCostPanel: React.FC<CostPanelProps> = ({
             setError('Saisissez un temps valide pour chaque étape.'); return;
         }
         if (isNaN(marginVal)) { setError('Saisissez une marge.'); return; }
-        if (commercialParams) {
-            if (marginVal < Number(minMargin) || marginVal > Number(maxMargin)) {
-                setError(`Marge hors plage autorisée (${minMargin} – ${maxMargin} %).`); return;
-            }
-        }
         const builtSteps: ProductionStep[] = steps.map((s, i) => {
             const h = parseFloat(s.estimatedTimeHours);
-            return { equipmentId: s.equipmentId, equipmentNameSnapshot: s.equipmentNameSnapshot, stepOrder: i + 1, estimatedTimeHours: h, hourlyRateSnapshot: s.hourlyRateSnapshot, calculatedCost: h * s.hourlyRateSnapshot };
+            return { equipmentId: s.equipmentId, equipmentNameSnapshot: s.equipmentNameSnapshot, stepOrder: i + 1, estimatedTimeHours: h, hourlyRateSnapshot: s.hourlyRateSnapshot, calculatedCost: Number((h * s.hourlyRateSnapshot).toFixed(2)) };
         });
-        onNext({ steps: builtSteps, summary: { totalProductionCost, marginPercent: marginVal, finalPrice } });
+        onNext({ steps: builtSteps, summary: { totalProductionCost: Number(totalProductionCost.toFixed(2)), marginPercent: marginVal, finalPrice } });
     };
 
     return (
@@ -234,7 +229,7 @@ const ProductionCostPanel: React.FC<CostPanelProps> = ({
                                     <span className="text-xs text-slate-400">{minMargin} – {maxMargin} %</span>
                                 )}
                                 <div className="relative">
-                                    <input type="number" min={minMargin ?? 0} max={maxMargin ?? 100} step="0.5"
+                                    <input type="number" step="0.5"
                                         value={marginPercent} onChange={e => setMarginPercent(e.target.value)}
                                         placeholder="ex: 40"
                                         className="w-24 px-3 py-1.5 pr-7 border border-slate-200 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-[#c6e911]" />

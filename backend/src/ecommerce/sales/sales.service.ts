@@ -9,6 +9,7 @@ import { FindAllSalesDto, OrderPeriod } from './dto/find-all-sales.dto';
 import { CustomerPaymentMethod, ItemType, OrderSource, OrderStatus, PaymentStatus, ProductionStatus, Prisma, SaleStatus, TransactionStatus, TransactionType, UserRole } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { ProductSpecsService } from '../products/product-specs/product-specs.service';
+import { OrderNotificationsService } from '../../notifications/order-notifications.service';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 import { paginate } from 'src/common/pagination/pagination';
@@ -26,6 +27,7 @@ export class SalesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly productSpecsService: ProductSpecsService,
+    private readonly orderNotifications: OrderNotificationsService,
   ) {}
 
   /**
@@ -158,7 +160,7 @@ export class SalesService {
           totalAmount,
           taxRateValue: effectiveTaxRate,
           applyTax,
-          status: OrderStatus.IN_PRODUCTION,
+          status: OrderStatus.PENDING_VALIDATION,
           paymentMethod: paymentMethod,
           productionStatus: ProductionStatus.PREPRESS,
           paymentStatus: PaymentStatus.PAID,
@@ -168,7 +170,7 @@ export class SalesService {
           taxRateId: taxRate.id,
           salesRepId,
           orderItems: {
-            create: orderItemsData.map((item) => ({
+            create: orderItemsData.map((item): Prisma.OrderItemUncheckedCreateWithoutOrderInput => ({
               id: generateId(ID_PREFIXES.ORDERITEM),
               quantity: item.quantity,
               unitPrice: item.unitPrice,
@@ -243,6 +245,11 @@ export class SalesService {
         message: `${result.count} vente(s) enregistrée(s) avec succès (Commande ${newOrder.id}).`,
         orderId: newOrder.id,
       };
+    }).then(async (result) => {
+      const order = { id: result.orderId, subsidiaryId: user.subsidiaryId };
+      await this.orderNotifications.created(order);
+      await this.orderNotifications.paymentReceived(order);
+      return result;
     });
   }
 

@@ -1,5 +1,6 @@
 import { Injectable, MessageEvent } from '@nestjs/common';
-import { Observable, Subject, merge, interval, map } from 'rxjs';
+import { Observable, Subject, merge, interval, map, filter } from 'rxjs';
+import { UserRole } from '@prisma/client';
 
 /**
  * Diffusion temps réel des notifications — un flux RxJS par utilisateur
@@ -20,11 +21,17 @@ export class NotificationsSseService {
     return stream;
   }
 
-  subscribe(userId: string): Observable<MessageEvent> {
+  subscribe(userId: string, activeRole: UserRole): Observable<MessageEvent> {
     const heartbeat = interval(30_000).pipe(
       map((): MessageEvent => ({ type: 'heartbeat', data: {} })),
     );
-    return merge(this.getOrCreateStream(userId).asObservable(), heartbeat);
+    const notifications = this.getOrCreateStream(userId).pipe(
+      filter((event) => {
+        const { targetRole } = event.data as { targetRole?: UserRole | null };
+        return targetRole == null || targetRole === activeRole;
+      }),
+    );
+    return merge(notifications, heartbeat);
   }
 
   push(userId: string, notification: object): void {

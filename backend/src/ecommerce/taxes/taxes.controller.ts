@@ -13,7 +13,6 @@ import { CreateTaxDto, UpdateTaxDto } from './dto/create-taxe.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { Roles } from 'src/common/auth/role/role.decorator';
-import { SetMetadata } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 
 @Controller('ecommerce/taxes')
@@ -29,14 +28,14 @@ export class TaxesController {
 
   @Get()
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
   findAll() {
     return this.taxesService.findAll();
   }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
   findOne(@Param('id') id: string) {
     return this.taxesService.findOne(id);
   }

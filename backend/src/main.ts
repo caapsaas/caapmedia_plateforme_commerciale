@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { csrfMiddleware } from './common/auth/csrf.middleware';
+import { formatValidationErrors } from './common/utils/validation-errors';
 
 async function bootstrap() {
   // Crée une instance avec le logger activé
@@ -55,10 +56,7 @@ async function bootstrap() {
         enableImplicitConversion: true,
       },
       exceptionFactory: (errors) => {
-        const errorMessages = errors.map((error) => {
-          const constraints = Object.values(error.constraints || {});
-          return `${error.property}: ${constraints.join(', ')}`;
-        });
+        const errorMessages = formatValidationErrors(errors);
         return new BadRequestException({
           message: errorMessages,
           error: 'Validation failed',

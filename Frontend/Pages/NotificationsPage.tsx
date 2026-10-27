@@ -11,6 +11,7 @@ import { AppNotification } from '../types';
 import { getNotificationDisplay } from '../utils/notificationDisplay';
 import Pagination from '../components/common/Pagination';
 import EmptyState from '../components/ui/EmptyState';
+import { useAuth } from '../context/AuthContext';
 
 type NotificationFilter = 'all' | 'unread';
 const PAGE_SIZE = 15;
@@ -20,12 +21,13 @@ const PAGE_SIZE = 15;
 // que gmo (groupe "Outils" du sidebar).
 const NotificationsPage: React.FC = () => {
   const { t } = useI18n();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<NotificationFilter>('all');
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['notifications', 'page', filter, page],
+    queryKey: ['notifications', 'page', user?.id, user?.activeRole ?? user?.userRole, filter, page],
     queryFn: () => getNotifications({ page, limit: PAGE_SIZE, unreadOnly: filter === 'unread' }),
   });
 

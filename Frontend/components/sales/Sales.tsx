@@ -158,6 +158,7 @@ const Sales: React.FC = () => {
 
   const effectiveRole = user?.activeRole ?? user?.userRole;
   const hasGlobalScope = effectiveRole === UserRole.SUPER_ADMIN;
+  const canRecordPayment = effectiveRole === UserRole.ADMIN || effectiveRole === UserRole.COMMERCIAL || effectiveRole === UserRole.CAISSIER;
   const canFilterByCommercial =
     effectiveRole === UserRole.SUPER_ADMIN ||
     effectiveRole === UserRole.ADMIN ||
@@ -445,13 +446,6 @@ const Sales: React.FC = () => {
     return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('fr-FR');
   };
 
-  const getPaymentMethodLabel = (method?: CustomerPaymentMethod) => {
-    if (!method) return '—';
-    const key = `newOrder.paymentMethod_${method}`;
-    const label = t(key as any);
-    return label !== key ? label : method;
-  };
-
   const getOrderStatusClass = (status: OrderStatus) => {
     switch (status) {
       case OrderStatus.COMPLETED:
@@ -675,7 +669,6 @@ const Sales: React.FC = () => {
                               <th className="px-4 py-3 bg-slate-50 whitespace-nowrap">{t("order.date")}</th>
                               <th className="px-4 py-3 bg-slate-50 text-right whitespace-nowrap">{t("order.total")}</th>
                               <th className="px-4 py-3 bg-slate-50 text-right whitespace-nowrap">{t("invoice.tax")}</th>
-                              <th className="px-4 py-3 bg-slate-50 whitespace-nowrap">{t("newOrder.paymentMethod")}</th>
                               <th className="px-4 py-3 bg-slate-50 text-center whitespace-nowrap">{t("order.paymentStatus")}</th>
                               <th className="px-4 py-3 bg-slate-50 text-center whitespace-nowrap">{t("order.orderStatus")}</th>
                               <th className="sticky right-0 z-10 px-4 py-3 bg-slate-100 text-center whitespace-nowrap border-l border-slate-200 shadow-[-6px_0_10px_-6px_rgba(15,23,42,0.08)]">{t("common.actions")}</th>
@@ -690,7 +683,6 @@ const Sales: React.FC = () => {
                                 <td className="px-4 py-4"><div className="h-3 w-20 bg-slate-200 rounded animate-pulse" /></td>
                                 <td className="px-4 py-4"><div className="h-3 w-20 bg-slate-200 rounded animate-pulse ml-auto" /></td>
                                 <td className="px-4 py-4"><div className="h-3 w-16 bg-slate-200 rounded animate-pulse ml-auto" /></td>
-                                <td className="px-4 py-4"><div className="h-3 w-24 bg-slate-200 rounded animate-pulse" /></td>
                                 <td className="px-4 py-4 text-center"><div className="h-5 w-20 bg-slate-200 rounded-full animate-pulse mx-auto" /></td>
                                 <td className="px-4 py-4 text-center"><div className="h-5 w-20 bg-slate-200 rounded-full animate-pulse mx-auto" /></td>
                                 <td className="sticky right-0 z-10 px-4 py-4 text-center bg-white border-l border-slate-200"><div className="h-5 w-24 bg-slate-200 rounded animate-pulse mx-auto" /></td>
@@ -709,7 +701,6 @@ const Sales: React.FC = () => {
                                 <th scope="col" className="px-4 py-3 bg-slate-50 whitespace-nowrap">{t("order.date")}</th>
                                 <th scope="col" className="px-4 py-3 bg-slate-50 text-right whitespace-nowrap">{t("order.total")}</th>
                                 <th scope="col" className="px-4 py-3 bg-slate-50 text-right whitespace-nowrap">{t("invoice.tax")}</th>
-                                <th scope="col" className="px-4 py-3 bg-slate-50 whitespace-nowrap">{t("newOrder.paymentMethod")}</th>
                                 <th scope="col" className="px-4 py-3 bg-slate-50 text-center whitespace-nowrap">{t("order.paymentStatus")}</th>
                                 <th scope="col" className="px-4 py-3 bg-slate-50 text-center whitespace-nowrap">{t("order.orderStatus")}</th>
                                 <th scope="col" className="sticky right-0 z-10 px-4 py-3 bg-slate-100 text-center whitespace-nowrap border-l border-slate-200 shadow-[-6px_0_10px_-6px_rgba(15,23,42,0.08)]">{t("common.actions")}</th>
@@ -749,9 +740,6 @@ const Sales: React.FC = () => {
                                       <td className="px-6 py-4 text-right text-slate-500">
                                         {formatCurrency(order.taxAmount)}
                                       </td>
-                                      <td className="px-6 py-4 text-slate-600">
-                                        {getPaymentMethodLabel(order.paymentMethod)}
-                                      </td>
                                       <td className="px-6 py-4 text-center">
                                         <div className="flex items-center justify-center gap-2">
                                           <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPaymentStatusClass(order.paymentStatus)}`}>
@@ -780,7 +768,8 @@ const Sales: React.FC = () => {
                                         className="sticky right-0 z-10 px-4 py-4 text-center bg-white border-l border-slate-200 shadow-[-6px_0_10px_-6px_rgba(15,23,42,0.08)]"
                                         onClick={(e) => e.stopPropagation()}
                                       >
-                                        {!hasGlobalScope && order.status === OrderStatus.PENDING_VALIDATION ? (
+                                        <div className="flex justify-center items-center space-x-1">
+                                        {!hasGlobalScope && order.status === OrderStatus.PENDING_VALIDATION && (
                                           <button
                                             onClick={() => updateOrderStatusMutate({ orderId: order.id, status: OrderStatus.IN_PRODUCTION })}
                                             className="flex items-center mx-auto space-x-2 px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-md hover:bg-green-600 transition-colors"
@@ -789,9 +778,8 @@ const Sales: React.FC = () => {
                                             <IconCheckCircle className="h-4 w-4" />
                                             <span>{t("sales.validateForProduction")}</span>
                                           </button>
-                                        ) : (
-                                          <div className="flex justify-center items-center space-x-1">
-                                            {!hasGlobalScope && order.paymentStatus !== PaymentStatus.PAID && (
+                                        )}
+                                            {canRecordPayment && order.status !== OrderStatus.CANCELLED && order.paymentStatus !== PaymentStatus.PAID && (
                                               <button
                                                 onClick={() => setPayingOrder(order)}
                                                 className="p-2 text-green-600 hover:bg-green-100 rounded-full"
@@ -800,7 +788,7 @@ const Sales: React.FC = () => {
                                                 <IconCoins className="h-5 w-5" />
                                               </button>
                                             )}
-                                            {!hasGlobalScope && (
+                                            {!hasGlobalScope && [OrderStatus.NEW, OrderStatus.PENDING_VALIDATION].includes(order.status) && (
                                               <button
                                                 onClick={() => setUpdatingStatusOrder(order)}
                                                 className="p-2 text-blue-600 hover:bg-blue-100 rounded-full"
@@ -837,13 +825,12 @@ const Sales: React.FC = () => {
                                             >
                                               <IconDocumentText className="h-5 w-5" />
                                             </button>
-                                          </div>
-                                        )}
+                                        </div>
                                       </td>
                                     </tr>
                                     {isExpanded && (
                                       <tr className="bg-slate-50">
-                                        <td colSpan={10} className="p-4">
+                                        <td colSpan={9} className="p-4">
                                           <div className="pl-10">
                                             <h4 className="font-semibold text-sm mb-3 text-slate-700">
                                               Détails de la commande

@@ -95,14 +95,14 @@ const ProductionCostModal: React.FC<Props> = ({
     const totalProductionCost = useMemo(() =>
         steps.reduce((sum, s) => {
             const h = parseFloat(s.estimatedTimeHours);
-            return sum + (isNaN(h) ? 0 : h * s.hourlyRateSnapshot);
+            return sum + (isNaN(h) ? 0 : Number((h * s.hourlyRateSnapshot).toFixed(2)));
         }, 0),
         [steps]
     );
 
     const marginVal = parseFloat(marginPercent);
     const finalPrice = !isNaN(marginVal) && totalProductionCost > 0
-        ? totalProductionCost * (1 + marginVal / 100)
+        ? Number((totalProductionCost * (1 + marginVal / 100)).toFixed(2))
         : 0;
 
     const fmt = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -116,13 +116,6 @@ const ProductionCostModal: React.FC<Props> = ({
             setError(t('production.costModal.invalidTimeError')); return;
         }
         if (isNaN(marginVal)) { setError(t('production.costModal.noMarginError')); return; }
-        if (commercialParams) {
-            const min = Number(commercialParams.minMarginPercent);
-            const max = Number(commercialParams.maxMarginPercent);
-            if (marginVal < min || marginVal > max) {
-                setError(t('production.costModal.marginRangeError', { min: String(min), max: String(max) })); return;
-            }
-        }
 
         const builtSteps: ProductionStep[] = steps.map((s, i) => {
             const h = parseFloat(s.estimatedTimeHours);
@@ -132,13 +125,13 @@ const ProductionCostModal: React.FC<Props> = ({
                 stepOrder: i + 1,
                 estimatedTimeHours: h,
                 hourlyRateSnapshot: s.hourlyRateSnapshot,
-                calculatedCost: h * s.hourlyRateSnapshot,
+                calculatedCost: Number((h * s.hourlyRateSnapshot).toFixed(2)),
             };
         });
 
         onConfirm({
             steps: builtSteps,
-            summary: { totalProductionCost, marginPercent: marginVal, finalPrice },
+            summary: { totalProductionCost: Number(totalProductionCost.toFixed(2)), marginPercent: marginVal, finalPrice },
         });
     };
 
@@ -234,8 +227,6 @@ const ProductionCostModal: React.FC<Props> = ({
                             <label className="text-sm text-slate-600 whitespace-nowrap">{t('production.costModal.margin')}</label>
                             <input
                                 type="number"
-                                min={minMargin ?? 0}
-                                max={maxMargin ?? 100}
                                 step="0.1"
                                 value={marginPercent}
                                 onChange={e => setMarginPercent(e.target.value)}

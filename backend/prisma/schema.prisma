@@ -874,8 +874,9 @@ model OrderItem {
   quantity          Int                         @map("quantity")
   unitPrice         Decimal                     @map("unit_price") @db.Decimal(15, 2)
   // Remise négociée sur cette ligne (montant, pas %) et total figé historiquement
-  // (unitPrice * quantity - discount) — jamais recalculés après coup (Chantier 4).
+  // (unitPrice * quantity - discount + assemblyPrice) — jamais recalculés après coup.
   discount          Decimal                     @default(0) @map("discount") @db.Decimal(15, 2)
+  assemblyPrice     Decimal?                    @map("assembly_price") @db.Decimal(15, 2)
   total             Decimal                     @map("total") @db.Decimal(15, 2)
   designFileName    String?                     @map("design_file_name") @db.VarChar(255)
   designFileUrl     String?                     @map("design_file_url")

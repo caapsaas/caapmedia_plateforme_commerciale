@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Order, CustomerPaymentMethod, TreasuryAccount, AccountType } from '../../types';
+import { Order, CustomerPaymentMethod } from '../../types';
 import { useI18n } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
-import { getTreasuryAccounts } from '../../services/apiFinance/apiTreasury';
+import { getOrderPaymentAccounts, PaymentAccount } from '../../services/apiE-commerce/apiorders';
 import IconCreditCard from '../icons/IconCreditCard';
 import IconMobilePayment from '../icons/IconMobilePayment';
 import IconCash from '../icons/IconCash';
@@ -46,10 +46,10 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
     const isBankingPayment = paymentMethod ? BANKING_METHODS.includes(paymentMethod) : false;
 
     // Comptes bancaires de la filiale (BANQUE uniquement)
-    const { data: bankAccounts = [] } = useQuery<TreasuryAccount[]>({
-        queryKey: ['treasury-accounts', subsidiary?.id],
-        queryFn: () => getTreasuryAccounts(subsidiary?.id),
-        enabled: isOpen && !!subsidiary,
+    const { data: bankAccounts = [] } = useQuery<PaymentAccount[]>({
+        queryKey: ['order-payment-accounts', subsidiary?.id],
+        queryFn: getOrderPaymentAccounts,
+        enabled: isOpen && isBankingPayment && !!subsidiary,
     });
 
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,7 +156,6 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
                                     >
                                         <option value="">-- Sélectionner un compte bancaire --</option>
                                         {bankAccounts
-                                            .filter(acc => acc.accountType === AccountType.BANQUE)
                                             .map(acc => (
                                                 <option key={acc.id} value={acc.id}>{acc.accountName}</option>
                                             ))}

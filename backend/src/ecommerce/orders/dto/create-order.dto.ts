@@ -9,9 +9,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
-  IsUUID,
   Min,
-  Max,
   ValidateNested,
 } from 'class-validator';
 import { OrderSource } from '@prisma/client';
@@ -30,7 +28,8 @@ class CreateProductOptionDto {
 
 // Étape de production soumise par le commercial pour une ligne de service.
 export class CreateProductionStepDto {
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   equipmentId: string;
 
   @IsString()
@@ -64,8 +63,6 @@ export class CreateProductionSummaryDto {
   totalProductionCost: number;
 
   @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  @Max(100)
   marginPercent: number;
 
   @IsNumber({ maxDecimalPlaces: 2 })

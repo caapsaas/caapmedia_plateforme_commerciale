@@ -2,6 +2,13 @@ import { api } from '.././api';
 import { CustomerPaymentMethod, OrderStatus, PaymentStatus, ProductionStatus, Order } from '../../types';
 import { PaginatedResponse } from '../../types/pagination.types';
 
+export interface PaymentAccount { id: string; accountName: string }
+
+export const getOrderPaymentAccounts = async (): Promise<PaymentAccount[]> => {
+    const { data } = await api.get('/ecommerce/orders/payment-accounts');
+    return data;
+};
+
 /**
  * DTO pour le filtrage des commandes, correspondant à FindAllOrdersDto du backend.
  */

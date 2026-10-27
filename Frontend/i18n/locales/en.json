@@ -1480,7 +1480,7 @@
     "commercialParams": {
       "title": "Global commercial parameters",
       "subtitle": "Set the allowed margin range for service quotes. Sales reps must enter a margin percentage within this range when creating an order.",
-      "notConfigured": "No parameters configured. Set the margins to activate the production cost module.",
+      "notConfigured": "No indicative margins configured. Cost calculations and orders remain available.",
       "minMargin": "Minimum margin (%)",
       "maxMargin": "Maximum margin (%)",
       "rangeHint": "Sales reps must enter a margin between {{min}}% and {{max}}%.",
@@ -1537,7 +1537,7 @@
       "hoursPlaceholder": "Hours",
       "totalCost": "Total production cost",
       "margin": "Margin (%) *",
-      "marginRange": "Allowed range: {{min}}% – {{max}}%",
+      "marginRange": "Indicative range: {{min}}% – {{max}}%",
       "finalPrice": "Final price (= line price)",
       "priceNote": "This amount will be applied as the unit price on the order line.",
       "confirmButton": "Confirm cost",

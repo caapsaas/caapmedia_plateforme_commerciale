@@ -15,7 +15,7 @@ const CommercialParamsManagement: React.FC = () => {
     const showMinField = !normalizedSearch || 'minimum min marge margin'.includes(normalizedSearch);
     const showMaxField = !normalizedSearch || 'maximum max marge margin'.includes(normalizedSearch);
 
-    const { data: params, isLoading } = useQuery<CommercialParams>({
+    const { data: params, isLoading } = useQuery<CommercialParams | null>({
         queryKey: ['commercial-params'],
         queryFn: getCommercialParams,
         retry: false,

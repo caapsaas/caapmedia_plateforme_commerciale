@@ -14,7 +14,8 @@ import { CreateOpportunityDto } from './dto/create-opportunity.dto';
 import { UpdateOpportunityDto } from './dto/update-opportunity.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { CurrentUser, Roles } from 'src/common/auth/role/role.decorator';
-import { type User, UserRole } from '@prisma/client';
+import { UserRole } from '@prisma/client';
+import type { JwtUser } from '../../common/auth/jwt/jwt-user.interface';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
@@ -32,7 +33,7 @@ export class OpportunitiesController {
   )
   create(
     @Body() createOpportunityDto: CreateOpportunityDto,
-    @CurrentUser() user: User,
+    @CurrentUser() user: JwtUser,
   ) {
     return this.opportunitiesService.create(createOpportunityDto, user);
   }
@@ -45,7 +46,7 @@ export class OpportunitiesController {
     UserRole.FINANCIAL_DIRECTOR,
   )
   findAll(
-    @CurrentUser() user: User,
+    @CurrentUser() user: JwtUser,
     @Query() paginationQuery: PaginationQueryDto,
   ) {
     return this.opportunitiesService.findAll(user, paginationQuery);
@@ -58,7 +59,7 @@ export class OpportunitiesController {
     UserRole.SECRETARY,
     UserRole.FINANCIAL_DIRECTOR,
   )
-  findOne(@Param('id') id: string, @CurrentUser() user: User) {
+  findOne(@Param('id') id: string, @CurrentUser() user: JwtUser) {
     return this.opportunitiesService.findOne(id, user);
   }
 
@@ -72,7 +73,7 @@ export class OpportunitiesController {
   update(
     @Param('id') id: string,
     @Body() updateOpportunityDto: UpdateOpportunityDto,
-    @CurrentUser() user: User,
+    @CurrentUser() user: JwtUser,
   ) {
     return this.opportunitiesService.update(id, updateOpportunityDto, user);
   }
@@ -84,7 +85,7 @@ export class OpportunitiesController {
     UserRole.SECRETARY,
     UserRole.FINANCIAL_DIRECTOR,
   )
-  remove(@Param('id') id: string, @CurrentUser() user: User) {
+  remove(@Param('id') id: string, @CurrentUser() user: JwtUser) {
     return this.opportunitiesService.remove(id, user);
   }
 }

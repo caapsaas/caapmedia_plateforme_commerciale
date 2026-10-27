@@ -19,19 +19,20 @@ const UNREAD_COUNT_QUERY_KEY = ['notifications', 'unread-count'];
  * automatiquement grâce à `withCredentials`) — pas de polling.
  */
 export function useNotifications() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const activeRole = user?.activeRole ?? user?.userRole;
   const queryClient = useQueryClient();
   const eventSourceRef = useRef<EventSource | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   const notificationsQuery = useQuery({
-    queryKey: NOTIFICATIONS_QUERY_KEY,
+    queryKey: [...NOTIFICATIONS_QUERY_KEY, 'dropdown', user?.id, activeRole],
     queryFn: () => getNotifications({ limit: 20 }),
     enabled: isAuthenticated,
   });
 
   const unreadCountQuery = useQuery({
-    queryKey: UNREAD_COUNT_QUERY_KEY,
+    queryKey: [...UNREAD_COUNT_QUERY_KEY, user?.id, activeRole],
     queryFn: getUnreadNotificationsCount,
     enabled: isAuthenticated,
   });
@@ -47,19 +48,18 @@ export function useNotifications() {
     const eventSource = new EventSource(getNotificationsSseUrl(), { withCredentials: true });
     eventSourceRef.current = eventSource;
 
-    eventSource.onopen = () => setIsConnected(true);
+    eventSource.onopen = () => {
+      setIsConnected(true);
+      // Also retrieves notifications missed during a disconnect or role switch.
+      void queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
+    };
     eventSource.onerror = () => setIsConnected(false);
 
     eventSource.addEventListener('notification', (event: MessageEvent<string>) => {
       const notification = JSON.parse(event.data) as AppNotification;
-      queryClient.setQueryData<{ data: AppNotification[] } | undefined>(
-        NOTIFICATIONS_QUERY_KEY,
-        (current) =>
-          current ? { ...current, data: [notification, ...current.data] } : current,
-      );
-      queryClient.setQueryData<{ count: number } | undefined>(UNREAD_COUNT_QUERY_KEY, (current) => ({
-        count: (current?.count ?? 0) + 1,
-      }));
+      if (notification.targetRole && notification.targetRole !== activeRole) return;
+      // Refresh dropdown, unread count and the paginated notification page.
+      void queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
     });
 
     return () => {
@@ -67,7 +67,7 @@ export function useNotifications() {
       eventSourceRef.current = null;
       setIsConnected(false);
     };
-  }, [isAuthenticated, queryClient]);
+  }, [isAuthenticated, user?.id, activeRole, queryClient]);
 
   const markAsRead = useCallback(
     async (id: string) => {

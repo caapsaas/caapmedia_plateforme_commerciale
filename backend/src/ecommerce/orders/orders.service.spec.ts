@@ -3,6 +3,7 @@ import { CustomerPaymentMethod } from '@prisma/client';
 import { OrdersService } from './orders.service';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { ProductSpecsService } from '../products/product-specs/product-specs.service';
+import { OrderNotificationsService } from '../../notifications/order-notifications.service';
 
 describe('OrdersService access control', () => {
   let service: OrdersService;
@@ -25,6 +26,7 @@ describe('OrdersService access control', () => {
     service = new OrdersService(
       prisma as unknown as PrismaService,
       {} as ProductSpecsService,
+      {} as OrderNotificationsService,
     );
   });
 

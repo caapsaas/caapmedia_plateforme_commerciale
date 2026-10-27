@@ -13,7 +13,7 @@ export class CommercialParamsController {
   constructor(private readonly service: CommercialParamsService) {}
 
   // Accessible à tous les rôles connectés : les commerciaux en ont besoin
-  // pour valider la marge côté frontend (avant soumission de la commande).
+  // pour afficher les marges indicatives côté frontend.
   @Get()
   @Roles(
     UserRole.SUPER_ADMIN,

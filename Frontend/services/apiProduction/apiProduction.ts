@@ -99,7 +99,7 @@ export const getConfiguredEquipments = async (subsidiaryId?: string): Promise<Eq
 
 // --- Commercial Params ---
 
-export const getCommercialParams = async (): Promise<CommercialParams> => {
+export const getCommercialParams = async (): Promise<CommercialParams | null> => {
     const { data } = await api.get('/production/commercial-params');
     return data;
 };
