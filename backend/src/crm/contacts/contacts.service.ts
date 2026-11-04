@@ -1,5 +1,6 @@
 import {
   Injectable,
+  BadRequestException,
   NotFoundException,
   ForbiddenException,
   ConflictException,
@@ -27,6 +28,14 @@ export class ContactsService {
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
   ) {}
+
+  private withoutPassword<T extends { passwordHash: string | null }>(
+    contact: T,
+  ): Omit<T, 'passwordHash'> {
+    const { passwordHash: _passwordHash, ...safeContact } = contact;
+    void _passwordHash;
+    return safeContact;
+  }
 
   async create(createContactDto: CreateContactDto, user: User) {
     // Le client est une entité globale (Chantier 6) : l'email est unique dans
@@ -84,7 +93,7 @@ export class ContactsService {
     );
 
     return {
-      ...newContact,
+      ...this.withoutPassword(newContact),
       tempPassword, // Retourner le mot de passe temporaire pour le développement
       message:
         'Contact créé avec succès. Un email avec les identifiants de connexion a été envoyé.',
@@ -96,7 +105,7 @@ export class ContactsService {
     paginationQuery: PaginationQueryDto,
     filterSubsidiaryId?: string,
     filterSalesRepId?: string,
-  ): Promise<PaginatedResult<Contact>> {
+  ): Promise<PaginatedResult<Omit<Contact, 'passwordHash'>>> {
     const isSuperAdmin = user.userRole === UserRole.SUPER_ADMIN;
     const scopeCtx = {
       subsidiaryId: user.subsidiaryId,
@@ -143,10 +152,11 @@ export class ContactsService {
       ];
     }
 
-    return paginate<Contact>(
+    return paginate<Omit<Contact, 'passwordHash'>>(
       this.prisma.contact,
       {
         where,
+        omit: { passwordHash: true },
         include: {
           salesRep: { select: { userName: true } },
           account: { select: { accountName: true } },
@@ -196,6 +206,7 @@ export class ContactsService {
   async findOne(id: string, user: User) {
     const contact = await this.prisma.contact.findUnique({
       where: { id },
+      omit: { passwordHash: true },
       include: {
         salesRep: { select: { userName: true, email: true } },
         account: true,
@@ -273,12 +284,16 @@ export class ContactsService {
     return this.prisma.contact.update({
       where: { id },
       data,
+      omit: { passwordHash: true },
     });
   }
 
   async remove(id: string, user: User) {
     await this.findOne(id, user); // Vérifie l'existence et les droits
-    return this.prisma.contact.delete({ where: { id } });
+    return this.prisma.contact.delete({
+      where: { id },
+      omit: { passwordHash: true },
+    });
   }
 
   // --- Client (Contact) Authentication & Portal ---
@@ -355,7 +370,7 @@ export class ContactsService {
 
     return {
       access_token: this.jwtService.sign(payload),
-      contact: contact,
+      contact: this.withoutPassword(contact),
     };
   }
 
@@ -391,6 +406,11 @@ export class ContactsService {
   async resetContactPassword(contactId: string, user: User) {
     // Vérifier que le contact existe et que l'utilisateur a les droits
     const contact = await this.findOne(contactId, user);
+    if (!contact.email) {
+      throw new BadRequestException(
+        'Renseignez un email avant d’activer ou réinitialiser l’accès au portail.',
+      );
+    }
 
     // Générer un nouveau mot de passe temporaire
     const tempPassword =
@@ -415,7 +435,7 @@ export class ContactsService {
     );
 
     return {
-      ...updatedContact,
+      ...this.withoutPassword(updatedContact),
       tempPassword, // Retourner le mot de passe temporaire pour le développement
       message:
         'Mot de passe réinitialisé avec succès. Un email avec les nouveaux identifiants a été envoyé.',
@@ -425,8 +445,17 @@ export class ContactsService {
   async enablePortalAccess(contactId: string, user: User) {
     // Vérifier que le contact existe et que l'utilisateur a les droits
     const contact = await this.findOne(contactId, user);
+    if (!contact.email) {
+      throw new BadRequestException(
+        'Renseignez un email avant d’activer ou réinitialiser l’accès au portail.',
+      );
+    }
 
-    if (contact.passwordHash) {
+    const credentials = await this.prisma.contact.findUnique({
+      where: { id: contactId },
+      select: { passwordHash: true },
+    });
+    if (credentials?.passwordHash) {
       throw new ConflictException(
         'Ce contact a déjà un accès au portail activé.',
       );
@@ -456,7 +485,7 @@ export class ContactsService {
     );
 
     return {
-      ...updatedContact,
+      ...this.withoutPassword(updatedContact),
       tempPassword,
       message:
         'Accès au portail activé avec succès. Un email avec les identifiants de connexion a été envoyé.',

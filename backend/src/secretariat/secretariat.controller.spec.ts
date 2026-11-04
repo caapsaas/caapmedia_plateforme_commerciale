@@ -1,3 +1,6 @@
+import type { Request } from 'express';
+import { MeetingReportsService } from './meeting-reports.service';
+import { LoggerService } from '../common/utils/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SecretariatController } from './secretariat.controller';
 import { SecretariatService } from './secretariat.service';
@@ -13,6 +16,12 @@ describe('SecretariatController', () => {
     subsidiaryId: 'sub-1',
   };
 
+  const mockRequest = { user: mockUser } as unknown as Request;
+  const mockScope = {
+    subsidiaryId: mockUser.subsidiaryId,
+    hasGlobalScope: false,
+  };
+
   const mockPaginationQuery = {
     page: 1,
     limit: 10,
@@ -22,6 +31,14 @@ describe('SecretariatController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SecretariatController],
       providers: [
+        {
+          provide: MeetingReportsService,
+          useValue: { complete: jest.fn(), upload: jest.fn() },
+        },
+        {
+          provide: LoggerService,
+          useValue: { log: jest.fn(), error: jest.fn(), warn: jest.fn() },
+        },
         {
           provide: SecretariatService,
           useValue: {
@@ -73,12 +90,12 @@ describe('SecretariatController', () => {
         .mockResolvedValue(mockResult);
 
       const result = await controller.getAllCompanyDocuments(
-        mockUser,
+        mockRequest,
         mockPaginationQuery,
       );
 
       expect(service.getAllCompanyDocuments).toHaveBeenCalledWith(
-        mockUser,
+        mockScope,
         mockPaginationQuery,
       );
       expect(result).toEqual(mockResult);
@@ -101,11 +118,14 @@ describe('SecretariatController', () => {
         .mockResolvedValue(mockResult);
 
       const query = { documentName: 'test', page: 1, limit: 10 };
-      const result = await controller.searchCompanyDocuments(query, mockUser);
+      const result = await controller.searchCompanyDocuments(
+        query,
+        mockRequest,
+      );
 
       expect(service.searchCompanyDocuments).toHaveBeenCalledWith(
         query,
-        mockUser,
+        mockScope,
       );
       expect(result).toEqual(mockResult);
     });
@@ -127,12 +147,12 @@ describe('SecretariatController', () => {
       jest.spyOn(service, 'getAllMeetings').mockResolvedValue(mockResult);
 
       const result = await controller.getAllMeetings(
-        mockUser,
+        mockRequest,
         mockPaginationQuery,
       );
 
       expect(service.getAllMeetings).toHaveBeenCalledWith(
-        mockUser,
+        mockScope,
         mockPaginationQuery,
       );
       expect(result).toEqual(mockResult);
@@ -153,9 +173,9 @@ describe('SecretariatController', () => {
       jest.spyOn(service, 'searchMeetings').mockResolvedValue(mockResult);
 
       const query = { title: 'test', page: 1, limit: 10 };
-      const result = await controller.searchMeetings(query, mockUser);
+      const result = await controller.searchMeetings(query, mockRequest);
 
-      expect(service.searchMeetings).toHaveBeenCalledWith(query, mockUser);
+      expect(service.searchMeetings).toHaveBeenCalledWith(query, mockScope);
       expect(result).toEqual(mockResult);
     });
 
@@ -219,7 +239,7 @@ describe('SecretariatController', () => {
       const result = await controller.addParticipantToMeeting(
         'mtg-1',
         'emp-1',
-        mockUser,
+        mockRequest,
       );
 
       expect(service.addParticipantToMeeting).toHaveBeenCalledWith(
@@ -239,7 +259,7 @@ describe('SecretariatController', () => {
       const result = await controller.removeParticipantFromMeeting(
         'mtg-1',
         'emp-1',
-        mockUser,
+        mockRequest,
       );
 
       expect(service.removeParticipantFromMeeting).toHaveBeenCalledWith(
@@ -269,12 +289,12 @@ describe('SecretariatController', () => {
         .mockResolvedValue(mockResult);
 
       const result = await controller.getAllSecretariatTasks(
-        mockUser,
+        mockRequest,
         mockPaginationQuery,
       );
 
       expect(service.getAllSecretariatTasks).toHaveBeenCalledWith(
-        mockUser,
+        mockScope,
         mockPaginationQuery,
       );
       expect(result).toEqual(mockResult);
@@ -297,11 +317,14 @@ describe('SecretariatController', () => {
         .mockResolvedValue(mockResult);
 
       const query = { title: 'test', page: 1, limit: 10 };
-      const result = await controller.searchSecretariatTasks(query, mockUser);
+      const result = await controller.searchSecretariatTasks(
+        query,
+        mockRequest,
+      );
 
       expect(service.searchSecretariatTasks).toHaveBeenCalledWith(
         query,
-        mockUser,
+        mockScope,
       );
       expect(result).toEqual(mockResult);
     });

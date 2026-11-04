@@ -44,7 +44,7 @@ export class TreasuryService {
   //                       TREASURY ACCOUNTS                           //
   // ================================================================= //
 
-  /** Types de compte auxquels un caissier peut être rattaché (un seul compte par caissier). */
+  /** Types de compte pouvant être gérés par un caissier. */
   private static readonly CASHIER_ASSIGNABLE_TYPES: AccountType[] = [
     AccountType.CASH_REGISTER,
     AccountType.EXPENSE_BOX,
@@ -53,7 +53,7 @@ export class TreasuryService {
   private async validateCashierAssignment(
     cashierId: string,
     accountType: AccountType,
-    excludeAccountId?: string,
+    subsidiaryId: string,
   ) {
     if (!TreasuryService.CASHIER_ASSIGNABLE_TYPES.includes(accountType)) {
       throw new BadRequestException(
@@ -80,16 +80,9 @@ export class TreasuryService {
         `L'utilisateur "${targetUser.userName}" n'a pas le rôle Caissier.`,
       );
     }
-
-    const existingAssignment = await this.prisma.treasuryAccount.findFirst({
-      where: {
-        cashierId,
-        ...(excludeAccountId ? { id: { not: excludeAccountId } } : {}),
-      },
-    });
-    if (existingAssignment) {
-      throw new ConflictException(
-        `Ce caissier est déjà assigné au compte "${existingAssignment.accountName}".`,
+    if (targetUser.subsidiaryId !== subsidiaryId) {
+      throw new BadRequestException(
+        "Un caissier ne peut être assigné qu'à une caisse de sa filiale.",
       );
     }
   }
@@ -192,7 +185,11 @@ export class TreasuryService {
     }
 
     if (dto.cashierId) {
-      await this.validateCashierAssignment(dto.cashierId, dto.accountType);
+      await this.validateCashierAssignment(
+        dto.cashierId,
+        dto.accountType,
+        targetSubsidiaryId,
+      );
     }
 
     const initialBalance = dto.initialBalance || 0;
@@ -300,7 +297,7 @@ export class TreasuryService {
   ) {
     checkRole(
       user,
-      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
+      [UserRole.ADMIN],
       'Permission denied to update treasury accounts.',
     );
     const account = await this.findOneAccount(id, user);
@@ -309,7 +306,7 @@ export class TreasuryService {
       await this.validateCashierAssignment(
         dto.cashierId,
         account.accountType,
-        id,
+        account.subsidiaryId,
       );
     }
 
@@ -319,12 +316,12 @@ export class TreasuryService {
   async deleteAccount(id: string, user: JwtUser) {
     checkRole(
       user,
-      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
+      [UserRole.ADMIN],
       'Permission denied to delete treasury accounts.',
     );
 
     const account = await this.prisma.treasuryAccount.findFirst({
-      where: { id, subsidiaryId: user.subsidiaryId },
+      where: { id },
       include: { _count: { select: { financialTransactions: true } } },
     });
 
@@ -333,6 +330,8 @@ export class TreasuryService {
         `Treasury account with ID "${id}" not found.`,
       );
     }
+
+    assertSubsidiaryAccess(account.subsidiaryId, resolveScopeContext(user));
 
     if (account._count.financialTransactions > 0) {
       throw new BadRequestException(
@@ -791,22 +790,17 @@ export class TreasuryService {
 
   /**
    * Utilisateurs éligibles comme caissier assigné (CASH_REGISTER/
-   * EXPENSE_BOX) — Configuration Trésorerie. Prends en compte le système multi-rôles
-   * (userRole, roles, additionalRoles). Exclut les caissiers déjà
-   * assignés à un autre compte (sauf si c'est le caissier du compte en cours d'édition).
+   * EXPENSE_BOX) — Configuration Trésorerie. Prend en compte le système multi-rôles
+   * (userRole, roles, additionalRoles). Un caissier peut être affecté à plusieurs
+   * comptes de sa filiale.
    * `subsidiaryId` permet à un ADMIN/SUPER_ADMIN de lister les caissiers d'une filiale.
    */
   async findEligibleCashiers(
     user: JwtUser,
     subsidiaryId?: string,
-    currentCashierId?: string,
   ) {
     const ctx = resolveScopeContext(user);
-    const targetSubsidiaryWhere = subsidiaryId
-      ? { subsidiaryId }
-      : ctx.hasGlobalScope
-        ? {}
-        : { subsidiaryId: user.subsidiaryId };
+    const targetSubsidiaryWhere = withSubsidiaryScope({}, ctx, subsidiaryId);
 
     const cashierRoleCondition = {
       OR: [
@@ -816,17 +810,10 @@ export class TreasuryService {
       ],
     };
 
-    const notAssignedCondition = {
-      OR: [
-        { cashierTreasuryAccounts: { none: {} } },
-        ...(currentCashierId ? [{ id: currentCashierId }] : []),
-      ],
-    };
-
     const cashiers = await this.prisma.user.findMany({
       where: {
         ...targetSubsidiaryWhere,
-        AND: [cashierRoleCondition, notAssignedCondition],
+        AND: [cashierRoleCondition],
       },
       select: {
         id: true,
@@ -952,13 +939,21 @@ export class TreasuryService {
 
     const transaction = await this.prisma.financialTransaction.findFirst({
       where: { id, subsidiaryId: user.subsidiaryId },
-      include: { treasuryAccount: true },
+      include: {
+        treasuryAccount: true,
+        needRequestPayment: { select: { id: true } },
+      },
     });
 
     if (!transaction) {
       throw new NotFoundException(`Transaction with ID "${id}" not found.`);
     }
 
+    if (transaction.needRequestPayment) {
+      throw new BadRequestException(
+        'Le règlement lié à une expression de besoin ne peut pas être supprimé.',
+      );
+    }
     return this.prisma.$transaction(async (tx) => {
       // Une transaction EN_ATTENTE n'a jamais impacté le solde (voir
       // createTransaction) — rien à réverser dans ce cas, seule une

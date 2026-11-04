@@ -1,4 +1,5 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { PartialType } from '@nestjs/mapped-types';
 
 export class CreateSupplierDto {
   @IsString()
@@ -22,4 +23,4 @@ export class CreateSupplierDto {
   address: string;
 }
 
-export class UpdateSupplierDto extends CreateSupplierDto {}
+export class UpdateSupplierDto extends PartialType(CreateSupplierDto) {}

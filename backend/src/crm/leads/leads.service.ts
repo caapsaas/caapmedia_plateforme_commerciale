@@ -83,29 +83,49 @@ export class LeadsService {
       throw new NotFoundException(`User with ID "${user.id}" not found.`);
     }
 
-    // Par défaut, une piste n'est pas assignée, sauf si un commercial la crée pour lui-même ou qu'un admin l'assigne.
+    // Lead.salesRepId référence Employee.id (et non User.id).
     let finalSalesRepId: string | null = null;
 
     if (fullUser.userRole === UserRole.ADMIN && createLeadDto.salesRepId) {
-      // Vérifier que l'utilisateur assigné comme commercial existe bien
-      const salesRepExists = await this.prisma.user.findUnique({
+      // Accepter l'identifiant employé ou, pour compatibilité, l'identifiant
+      // utilisateur envoyé par les anciens clients.
+      let salesRepEmployee = await this.prisma.employee.findUnique({
         where: { id: createLeadDto.salesRepId },
+        select: { id: true },
       });
-      if (!salesRepExists) {
+      if (!salesRepEmployee) {
+        const salesRepUser = await this.prisma.user.findUnique({
+          where: { id: createLeadDto.salesRepId },
+          select: { email: true },
+        });
+        if (salesRepUser) {
+          salesRepEmployee = await this.prisma.employee.findUnique({
+            where: { email: salesRepUser.email },
+            select: { id: true },
+          });
+        }
+      }
+      if (!salesRepEmployee) {
         throw new NotFoundException(
-          `Sales representative with ID "${createLeadDto.salesRepId}" not found.`,
+          `No employee record found for sales representative "${createLeadDto.salesRepId}".`,
         );
       }
-      finalSalesRepId = createLeadDto.salesRepId;
-    } else if (fullUser.userRole !== UserRole.ADMIN) {
-      // Si ce n'est pas un admin, la piste est assignée à l'utilisateur qui la crée (ex: un commercial).
-      finalSalesRepId = user.id;
+      finalSalesRepId = salesRepEmployee.id;
+    } else if (fullUser.userRole === UserRole.COMMERCIAL) {
+      // Un commercial n'est lié que si sa fiche employé correspond par email.
+      // Les Super Admins et les autres rôles restent non assignés.
+      const creatorEmployee = await this.prisma.employee.findUnique({
+        where: { email: fullUser.email },
+        select: { id: true },
+      });
+      finalSalesRepId = creatorEmployee?.id ?? null;
     }
 
     // Vérifier si une piste avec cet email existe déjà
-    const existingLead = await this.prisma.lead.findUnique({
-      where: { email: createLeadDto.email },
-    });
+    const email = createLeadDto.email?.trim() || null;
+    const existingLead = email
+      ? await this.prisma.lead.findUnique({ where: { email } })
+      : null;
 
     if (existingLead) {
       throw new ConflictException(
@@ -117,6 +137,8 @@ export class LeadsService {
     return this.prisma.lead.create({
       data: {
         ...createLeadDto, // Garde les autres champs du DTO
+        email,
+        phone: createLeadDto.phone?.trim() || null,
         subsidiaryId: fullUser.subsidiaryId,
         salesRepId: finalSalesRepId, // Applique le commercial correctement assigné
       },
@@ -196,9 +218,10 @@ export class LeadsService {
   async update(id: string, updateLeadDto: UpdateLeadDto) {
     const lead = await this.findOne(id);
 
-    if (updateLeadDto.email) {
+    const normalizedEmail = updateLeadDto.email?.trim() || null;
+    if (normalizedEmail) {
       const existingLead = await this.prisma.lead.findUnique({
-        where: { email: updateLeadDto.email },
+        where: { email: normalizedEmail },
       });
       if (existingLead && existingLead.id !== id) {
         throw new ConflictException(
@@ -209,7 +232,13 @@ export class LeadsService {
 
     return this.prisma.lead.update({
       where: { id },
-      data: updateLeadDto,
+      data: {
+        ...updateLeadDto,
+        ...(updateLeadDto.email !== undefined ? { email: normalizedEmail } : {}),
+        ...(updateLeadDto.phone !== undefined
+          ? { phone: updateLeadDto.phone?.trim() || null }
+          : {}),
+      },
     });
   }
 
@@ -235,6 +264,11 @@ export class LeadsService {
     if (!lead) throw new NotFoundException(`Lead with ID "${id}" not found.`);
     if (lead.status !== LeadStatus.QUALIFIED)
       throw new BadRequestException('Only qualified leads can be converted.');
+    if (!lead.email || !lead.phone) {
+      throw new BadRequestException(
+        'Ajoutez un courriel et un téléphone à cette piste avant de la convertir en contact.',
+      );
+    }
 
     const salesRepId = lead.salesRepId ?? fullUser.id;
 

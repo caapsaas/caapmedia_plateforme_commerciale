@@ -1,4 +1,8 @@
-import { NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CustomerPaymentMethod, OrderSource } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { OrdersService } from './orders.service';
@@ -13,6 +17,10 @@ describe('Order creation with repeated services', () => {
   const validateAgainstDefinition = jest.fn();
   const notifyCreated = jest.fn();
   const tx = {
+    contact: {
+      create: jest.fn().mockResolvedValue({ id: 'occasional' }),
+      findUnique: jest.fn().mockResolvedValue(null),
+    },
     order: { create },
     orderItemProductionSummary: { create: jest.fn() },
   };
@@ -104,7 +112,7 @@ describe('Order creation with repeated services', () => {
           ],
         },
       }) as unknown,
-      include: { orderItems: true },
+      include: { orderItems: { include: { product: true } } },
     });
   });
 
@@ -190,7 +198,7 @@ describe('Order creation with repeated services', () => {
             ],
           },
         }) as unknown,
-        include: { orderItems: true },
+        include: { orderItems: { include: { product: true } } },
       });
     },
   );
@@ -222,4 +230,166 @@ describe('Order creation with repeated services', () => {
       });
     },
   );
+  it('creates an occasional contact in the order transaction without an email or portal access', async () => {
+    await service.createBySalesRep(
+      {
+        ...draft,
+        customerId: undefined,
+        occasionalCustomer: {
+          name: 'Client de passage',
+          phone: '+237 699000000',
+        },
+      },
+      { id: 'staff', subsidiaryId: 'branch' },
+    );
+    expect(prisma.contact.findUniqueOrThrow).not.toHaveBeenCalled();
+    expect(tx.contact.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        contactName: 'Client de passage',
+        phone: '+237 699000000',
+        email: null,
+        isOccasional: true,
+        isVerified: false,
+        subsidiaryId: 'branch',
+        salesRepId: 'staff',
+      }) as unknown,
+    });
+    const data = (
+      tx.contact.create.mock.calls as unknown as [
+        { data: Record<string, unknown> },
+      ][]
+    )[0][0].data;
+    expect(data).not.toHaveProperty('passwordHash');
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          customerId: 'occasional',
+          customerName: 'Client de passage',
+          subsidiaryId: 'branch',
+        }) as unknown,
+      }),
+    );
+    expect(notifyCreated).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects ambiguous customer selection before creating any contact', async () => {
+    await expect(
+      service.createBySalesRep(
+        {
+          ...draft,
+          occasionalCustomer: { name: 'Client', phone: '699000000' },
+        },
+        { id: 'staff', subsidiaryId: 'branch' },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(tx.contact.create).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('requires either an existing or an occasional customer', async () => {
+    await expect(
+      service.createBySalesRep(
+        { ...draft, customerId: undefined },
+        { id: 'staff', subsidiaryId: 'branch' },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(tx.contact.create).not.toHaveBeenCalled();
+  });
+
+  it('requires a subsidiary for occasional orders', async () => {
+    await expect(
+      service.createBySalesRep(
+        {
+          ...draft,
+          customerId: undefined,
+          occasionalCustomer: { name: 'Client', phone: '699000000' },
+        },
+        { id: 'staff' },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(tx.contact.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects an existing email instead of duplicating or silently linking a customer', async () => {
+    tx.contact.findUnique.mockResolvedValueOnce({ id: 'existing' });
+    await expect(
+      service.createBySalesRep(
+        {
+          ...draft,
+          customerId: undefined,
+          occasionalCustomer: {
+            name: 'Client',
+            phone: '699000000',
+            email: 'client@example.com',
+          },
+        },
+        { id: 'staff', subsidiaryId: 'branch' },
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(tx.contact.create).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('rejects an invalid order before creating an occasional contact', async () => {
+    findMany.mockResolvedValueOnce([]);
+    await expect(
+      service.createBySalesRep(
+        {
+          ...draft,
+          customerId: undefined,
+          occasionalCustomer: { name: 'Client', phone: '699000000' },
+        },
+        { id: 'staff', subsidiaryId: 'branch' },
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(tx.contact.create).not.toHaveBeenCalled();
+  });
+  it('returns authoritative document amounts, product names and the chosen payment method after creation', async () => {
+    create.mockResolvedValueOnce({
+      id: 'order',
+      orderDate: new Date('2026-11-02T10:00:00Z'),
+      customerName: 'Client',
+      customerId: 'customer',
+      subtotal: new Decimal('2300.50'),
+      taxAmount: new Decimal('442.85'),
+      totalAmount: new Decimal('2743.35'),
+      paymentMethod: CustomerPaymentMethod.ORANGE_MONEY,
+      orderItems: [
+        {
+          id: 'line-a',
+          quantity: 2,
+          unitPrice: new Decimal('1200.25'),
+          discount: new Decimal('150'),
+          assemblyPrice: new Decimal('50'),
+          total: new Decimal('2300.50'),
+          product: { id: 'service', name: 'Impression couleur A3' },
+        },
+      ],
+    });
+    const result = await service.createBySalesRep(
+      {
+        ...draft,
+        items: [draft.items[0]],
+        paymentMethod: CustomerPaymentMethod.ORANGE_MONEY,
+      },
+      { id: 'staff', subsidiaryId: 'branch' },
+    );
+    expect(result.totalAmount).toBe(2743.35);
+    expect(result.paymentMethod).toBe(CustomerPaymentMethod.ORANGE_MONEY);
+    expect(result.orderItems).toEqual([
+      expect.objectContaining({
+        productName: 'Impression couleur A3',
+        unitPrice: 1200.25,
+        quantity: 2,
+        total: 2300.5,
+      }) as unknown,
+    ]);
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          paymentMethod: CustomerPaymentMethod.ORANGE_MONEY,
+        }) as unknown,
+      }),
+    );
+  });
 });

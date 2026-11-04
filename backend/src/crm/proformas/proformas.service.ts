@@ -1,3 +1,4 @@
+import { OrderNotificationsService } from '../../notifications/order-notifications.service';
 import {
   Injectable,
   NotFoundException,
@@ -32,10 +33,14 @@ const creatorSelect = {
   id: true,
   userName: true,
   email: true,
+  subsidiaryId: true,
 } satisfies Prisma.UserSelect;
 @Injectable()
 export class ProformasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orderNotifications: OrderNotificationsService,
+  ) {}
 
   async create(createProformaDto: CreateProformaDto, user: JwtUser) {
     const scope = resolveScopeContext(user);
@@ -362,7 +367,7 @@ export class ProformasService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const { result, order } = await this.prisma.$transaction(async (tx) => {
       const claimed = await tx.proforma.updateMany({
         where: withSubsidiaryScope(
           { id, status: proforma.status },
@@ -403,6 +408,10 @@ export class ProformasService {
           id: generateId(ID_PREFIXES.ORDER),
           customerName: proforma.clientName,
           customerId: contact.id,
+          salesRepId:
+            proforma.createdByUser?.subsidiaryId === proforma.subsidiaryId
+              ? proforma.createdBy
+              : null,
           subsidiaryId: proforma.subsidiaryId,
           opportunityId: proforma.opportunityId,
           subtotal: proforma.subtotal,
@@ -435,8 +444,10 @@ export class ProformasService {
         },
       });
 
-      return { ...updatedProforma, orderId: order.id };
+      return { result: { ...updatedProforma, orderId: order.id }, order };
     });
+    await this.orderNotifications.created(order);
+    return result;
   }
 
   async reject(id: string, user: JwtUser) {

@@ -117,7 +117,11 @@ describe('SecretariatService', () => {
       const file = { filename: 'test.pdf' } as Express.Multer.File;
 
       await expect(
-        service.createCompanyDocument(dto, mockUser, file),
+        service.createCompanyDocument(
+          dto,
+          { ...mockUser, subsidiaryId: '' },
+          file,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -181,7 +185,7 @@ describe('SecretariatService', () => {
       const mockDocument = {
         id: 'DOC_test123',
         ...dto,
-        fileUrl: '/public/uploads/secretariat/test.pdf',
+        fileUrl: '/api-caapmedia/private-documents/secretariat/test.pdf',
         uploadDate: new Date(),
       };
 
@@ -195,6 +199,13 @@ describe('SecretariatService', () => {
       const result = await service.createCompanyDocument(dto, mockAdmin, file);
 
       expect(result).toEqual(mockDocument);
+      expect(prismaService.companyDocument.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            fileUrl: '/api-caapmedia/private-documents/secretariat/test.pdf',
+          }),
+        }),
+      );
     });
   });
 

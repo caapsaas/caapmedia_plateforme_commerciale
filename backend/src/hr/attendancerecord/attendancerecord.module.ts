@@ -4,6 +4,7 @@ import { AttendanceRecordController } from './attendancerecord.controller';
 import { DynamicTokenService } from './services/dynamic-token.service';
 import { PointageController } from './controllers/pointage.controller';
 import { DynamicTokenController } from './controllers/dynamic-token.controller';
+import { AttendanceSecurityService } from './services/attendance-security.service';
 
 @Module({
   controllers: [
@@ -11,7 +12,11 @@ import { DynamicTokenController } from './controllers/dynamic-token.controller';
     PointageController,
     DynamicTokenController,
   ],
-  providers: [AttendanceRecordService, DynamicTokenService],
+  providers: [
+    AttendanceRecordService,
+    DynamicTokenService,
+    AttendanceSecurityService,
+  ],
   exports: [AttendanceRecordService, DynamicTokenService],
 })
 export class AttendancerecordModule {}

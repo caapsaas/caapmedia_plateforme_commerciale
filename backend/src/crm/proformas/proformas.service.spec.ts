@@ -1,3 +1,4 @@
+import { OrderNotificationsService } from '../../notifications/order-notifications.service';
 import {
   BadRequestException,
   ConflictException,
@@ -20,6 +21,7 @@ const local: JwtUser = {
 const globalUser: JwtUser = { ...local, roles: [UserRole.SUPER_ADMIN] };
 const record = {
   id: 'quote',
+  createdBy: 'seller',
   subsidiaryId: 'B',
   status: ProformaStatus.DRAFT,
   taxRate: new Decimal(19.25),
@@ -54,7 +56,11 @@ describe('Proforma subsidiary isolation', () => {
       callback(tx),
     ),
   };
-  const service = new ProformasService(prisma as unknown as PrismaService);
+  const notificationEvents = { created: jest.fn() };
+  const service = new ProformasService(
+    prisma as unknown as PrismaService,
+    notificationEvents as unknown as OrderNotificationsService,
+  );
   beforeEach(() => {
     jest.clearAllMocks();
     proforma.findUnique.mockImplementation(
@@ -96,7 +102,7 @@ describe('Proforma subsidiary isolation', () => {
     expect(proforma.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
         include: expect.objectContaining({
-          createdByUser: { select: { id: true, userName: true, email: true } },
+          createdByUser: { select: { id: true, userName: true, email: true, subsidiaryId: true } },
         }) as unknown,
       }),
     );
@@ -206,33 +212,44 @@ describe('Proforma subsidiary isolation', () => {
       }),
     );
   });
-  it('keeps the source subsidiary when a super administrator converts a foreign quote', async () => {
-    proforma.findUnique.mockResolvedValue({
-      ...record,
-      status: ProformaStatus.SENT,
-    });
-    tx.proforma.updateMany.mockResolvedValue({ count: 1 });
-    tx.contact.findUnique.mockResolvedValue({ id: 'customer' });
-    tx.taxRate.findFirstOrThrow.mockResolvedValue({ id: 'tax' });
-    tx.order.create.mockResolvedValue({ id: 'new-order' });
-    tx.proforma.findUniqueOrThrow.mockResolvedValue({
-      id: 'quote',
-      status: ProformaStatus.CONVERTED,
-    });
-    await expect(service.accept('quote', globalUser)).resolves.toEqual({
-      id: 'quote',
-      status: ProformaStatus.CONVERTED,
-      orderId: 'new-order',
-    });
-    expect(tx.order.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          subsidiaryId: 'B',
-          customerId: 'customer',
-        }) as unknown,
-      }),
-    );
-  });
+  it.each(['A', 'B'])(
+    'keeps the source subsidiary and scopes the creator from branch %s when converting a quote',
+    async (creatorBranch) => {
+      proforma.findUnique.mockResolvedValue({
+        ...record,
+        createdByUser: { id: 'seller', subsidiaryId: creatorBranch },
+        status: ProformaStatus.SENT,
+      });
+      tx.proforma.updateMany.mockResolvedValue({ count: 1 });
+      tx.contact.findUnique.mockResolvedValue({ id: 'customer' });
+      tx.taxRate.findFirstOrThrow.mockResolvedValue({ id: 'tax' });
+      tx.order.create.mockResolvedValue({ id: 'new-order' });
+      tx.proforma.findUniqueOrThrow.mockResolvedValue({
+        id: 'quote',
+        status: ProformaStatus.CONVERTED,
+      });
+      await expect(service.accept('quote', globalUser)).resolves.toEqual({
+        id: 'quote',
+        status: ProformaStatus.CONVERTED,
+        orderId: 'new-order',
+      });
+      expect(notificationEvents.created).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'new-order' }),
+      );
+      expect(
+        tx.proforma.findUniqueOrThrow.mock.invocationCallOrder[0],
+      ).toBeLessThan(notificationEvents.created.mock.invocationCallOrder[0]);
+      expect(tx.order.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            subsidiaryId: 'B',
+            customerId: 'customer',
+            salesRepId: creatorBranch === 'B' ? 'seller' : null,
+          }) as unknown,
+        }),
+      );
+    },
+  );
   it.each([
     ProformaStatus.CONVERTED,
     ProformaStatus.REJECTED,

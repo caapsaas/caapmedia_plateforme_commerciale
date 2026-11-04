@@ -1,3 +1,7 @@
+import {
+  PRIVATE_DOCUMENT_ROOT,
+  PRIVATE_DOCUMENT_PREFIX,
+} from './document-storage';
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import * as path from 'path';
@@ -5,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface FileUploadOptions {
   subfolder?: string;
+  privateSubsidiaryId?: string;
   maxSizeMb?: number;
   allowedMimes?: string[];
 }
@@ -51,9 +56,25 @@ export class FileUploadService {
       );
     }
 
+    if (
+      options.privateSubsidiaryId &&
+      !/^[a-zA-Z0-9_-]+$/.test(options.privateSubsidiaryId)
+    ) {
+      throw new BadRequestException('Invalid subsidiary');
+    }
+
     // Create directory if it doesn't exist
-    const uploadDir = path.join(this.publicPath, subfolder);
-    await fs.mkdir(uploadDir, { recursive: true });
+    const uploadDir = options.privateSubsidiaryId
+      ? path.join(
+          PRIVATE_DOCUMENT_ROOT,
+          'employee-documents',
+          options.privateSubsidiaryId,
+        )
+      : path.join(this.publicPath, subfolder);
+    await fs.mkdir(uploadDir, {
+      recursive: true,
+      mode: options.privateSubsidiaryId ? 0o700 : 0o755,
+    });
 
     // Generate unique filename
     const ext = path.extname(originalFilename);
@@ -61,10 +82,14 @@ export class FileUploadService {
     const filepath = path.join(uploadDir, filename);
 
     // Write file to disk
-    await fs.writeFile(filepath, buffer);
+    await fs.writeFile(filepath, buffer, {
+      mode: options.privateSubsidiaryId ? 0o600 : 0o644,
+    });
 
     // Return public URL
-    const url = `/public/${subfolder}/${filename}`;
+    const url = options.privateSubsidiaryId
+      ? `${PRIVATE_DOCUMENT_PREFIX}employee-documents/${options.privateSubsidiaryId}/${filename}`
+      : `/public/${subfolder}/${filename}`;
     return { url, filename };
   }
 

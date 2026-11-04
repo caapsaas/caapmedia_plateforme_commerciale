@@ -1,3 +1,5 @@
+import { PrivateDocumentsModule } from './common/private-documents/private-documents.module';
+import { NeedRequestsModule } from './purchase/need-requests/need-requests.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
@@ -47,6 +49,7 @@ import { ConfigurationModule } from './configuration/configuration.module';
     ]),
     ConfigModule.forRoot({ isGlobal: true, validate }), // Charge .env globalement, échoue au démarrage si invalide
     PrismaModule,
+    PrivateDocumentsModule,
     CommonModule,
     AuthModule,
     SubsidiariesModule,
@@ -63,6 +66,7 @@ import { ConfigurationModule } from './configuration/configuration.module';
     ProductsModule,
     FinanceModule,
     PurchaseModule,
+    NeedRequestsModule,
     AnalyticsModule,
     StatisticsModule,
     NewsletterModule,

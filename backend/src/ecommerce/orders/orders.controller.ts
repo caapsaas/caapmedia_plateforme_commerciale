@@ -1,3 +1,5 @@
+import type { JwtUser } from '../../common/auth/jwt/jwt-user.interface';
+import { OrderDesignUploadInterceptor } from './order-design-upload.interceptor';
 import {
   Body,
   Controller,
@@ -25,9 +27,6 @@ import {
 import { FindAllOrdersDto } from './dto/find-all-orders.dto';
 import { SetMetadata } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
-import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @Controller('ecommerce/orders')
@@ -41,20 +40,7 @@ export class OrdersController {
   @Post('by-salesrep')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
-  @UseInterceptors(
-    FileFieldsInterceptor([{ name: 'designFiles', maxCount: 10 }], {
-      storage: diskStorage({
-        destination: './public/order_item_img',
-        filename: (req, file, cb) => {
-          const randomName = Array(32)
-            .fill(null)
-            .map(() => Math.round(Math.random() * 16).toString(16))
-            .join('');
-          cb(null, `${randomName}${extname(file.originalname)}`);
-        },
-      }),
-    }),
-  )
+  @UseInterceptors(OrderDesignUploadInterceptor)
   createBySalesRep(
     @Body() createOrderDto: CreateOrderBySalesRepDto,
     @UploadedFiles() files: { designFiles?: Express.Multer.File[] },
@@ -63,7 +49,7 @@ export class OrdersController {
     return this.ordersService.createBySalesRep(
       createOrderDto,
       req.user,
-      files.designFiles,
+      files?.designFiles,
     );
   }
 
@@ -176,6 +162,19 @@ export class OrdersController {
     return this.ordersService.findPaymentAccounts(req.user);
   }
 
+  @Get('staff/:id')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.PRODUCTION_DIRECTOR,
+    UserRole.FINANCIAL_DIRECTOR,
+    UserRole.CAISSIER,
+  )
+  findStaffOrder(@Param('id') id: string, @Req() req: { user: JwtUser }) {
+    return this.ordersService.findOne(id, req.user);
+  }
+
   @Get(':id')
   @UseGuards(ContactJwtAuthGuard)
   findOne(@Param('id') id: string, @Req() req) {
@@ -202,7 +201,6 @@ export class OrdersController {
     UserRole.ADMIN,
     UserRole.COMMERCIAL,
     UserRole.PRODUCTION_DIRECTOR,
-    UserRole.FINANCIAL_DIRECTOR,
     UserRole.CAISSIER,
   )
   updateOrderStatus(
@@ -223,10 +221,7 @@ export class OrdersController {
    */
   @Patch('/production-status/:id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(
-    UserRole.ADMIN,
-    UserRole.PRODUCTION_DIRECTOR,
-  )
+  @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR)
   updateProductionStatus(
     @Param('id') id: string,
     @Body() updateProductionStatusDto: updateProductionStatusDto,

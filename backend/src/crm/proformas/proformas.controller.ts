@@ -18,6 +18,9 @@ import { CurrentUser, Roles } from '../../common/auth/role/role.decorator';
 import type { JwtUser } from '../../common/auth/jwt/jwt-user.interface';
 import { UserRole, ProformaStatus } from '@prisma/client';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
+import { Throttle } from '@nestjs/throttler';
+import { ProformaDeliveryService } from './proforma-delivery.service';
+import { SendProformaEmailDto } from './dto/send-proforma-email.dto';
 
 @Controller('crm/proformas')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -28,7 +31,26 @@ import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.d
   UserRole.FINANCIAL_DIRECTOR,
 )
 export class ProformasController {
-  constructor(private readonly proformasService: ProformasService) {}
+  constructor(
+    private readonly proformasService: ProformasService,
+    private readonly delivery: ProformaDeliveryService,
+  ) {}
+
+  @Post(':id/email')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  email(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtUser,
+    @Body() dto: SendProformaEmailDto,
+  ) {
+    return this.delivery.email(id, user, dto.expectedRecipient);
+  }
+
+  @Post(':id/whatsapp')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  whatsapp(@Param('id') id: string, @CurrentUser() user: JwtUser) {
+    return this.delivery.whatsapp(id, user);
+  }
 
   @Post()
   create(

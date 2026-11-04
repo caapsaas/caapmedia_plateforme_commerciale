@@ -1,3 +1,4 @@
+import { PrivateDocumentsModule } from '../../common/private-documents/private-documents.module';
 import { Module } from '@nestjs/common';
 import { EmployeeService } from './employee.service';
 import { EmployeeController } from './employee.controller';
@@ -5,7 +6,7 @@ import { CommonModule } from 'src/common/common.module';
 import { PayrollrecordModule } from '../payrollrecord/payrollrecord.module';
 
 @Module({
-  imports: [CommonModule, PayrollrecordModule],
+  imports: [CommonModule, PayrollrecordModule, PrivateDocumentsModule],
   controllers: [EmployeeController],
   providers: [EmployeeService], // Prisma global, mais listé pour clarté
   exports: [EmployeeService],

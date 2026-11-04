@@ -1,5 +1,12 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { OrderStatus, Prisma } from '@prisma/client';
+import {
+  OrderStatus,
+  PaymentStatus,
+  ProductionStatus,
+  Prisma,
+  UserRole,
+} from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 import { OrdersService } from './orders.service';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { ProductSpecsService } from '../products/product-specs/product-specs.service';
@@ -20,7 +27,13 @@ describe('Order cancellation after production', () => {
     {} as ProductSpecsService,
     { statusChanged } as unknown as OrderNotificationsService,
   );
-  const user = { subsidiaryId: 'branch' };
+  const user = { subsidiaryId: 'branch', activeRole: UserRole.ADMIN };
+  const details = {
+    productionStatus: ProductionStatus.PREPRESS,
+    paymentStatus: PaymentStatus.UNPAID,
+    amountPaid: new Decimal(0),
+    totalAmount: new Decimal(100),
+  };
 
   beforeEach(() => {
     jest.resetAllMocks();
@@ -37,7 +50,7 @@ describe('Order cancellation after production', () => {
   ])(
     'rejects cancellation and reverting %s to a pre-production state',
     async (status) => {
-      findUnique.mockResolvedValue({ id: 'order', status });
+      findUnique.mockResolvedValue({ id: 'order', status, ...details });
       for (const target of [
         OrderStatus.CANCELLED,
         OrderStatus.NEW,
@@ -55,7 +68,7 @@ describe('Order cancellation after production', () => {
   it.each([OrderStatus.NEW, OrderStatus.PENDING_VALIDATION])(
     'allows cancellation before production (%s)',
     async (status) => {
-      findUnique.mockResolvedValue({ id: 'order', status });
+      findUnique.mockResolvedValue({ id: 'order', status, ...details });
       update.mockResolvedValue({ id: 'order', status: OrderStatus.CANCELLED });
       await service.updateOrderStatus(
         'order',
@@ -64,7 +77,11 @@ describe('Order cancellation after production', () => {
       );
       expect(update).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'order', subsidiaryId: 'branch', status },
+          where: expect.objectContaining({
+            id: 'order',
+            subsidiaryId: 'branch',
+            status,
+          }) as unknown,
           data: { status: OrderStatus.CANCELLED },
         }),
       );
@@ -75,6 +92,8 @@ describe('Order cancellation after production', () => {
     findUnique.mockResolvedValue({
       id: 'order',
       status: OrderStatus.IN_PRODUCTION,
+      ...details,
+      productionStatus: ProductionStatus.READY_FOR_DELIVERY,
     });
     update.mockResolvedValue({
       id: 'order',
@@ -90,7 +109,10 @@ describe('Order cancellation after production', () => {
       expect.objectContaining({ status: OrderStatus.PENDING_DELIVERY }),
     );
     expect(statusChanged).toHaveBeenCalledWith(
-      { id: 'order', status: OrderStatus.IN_PRODUCTION },
+      expect.objectContaining({
+        id: 'order',
+        status: OrderStatus.IN_PRODUCTION,
+      }),
       OrderStatus.PENDING_DELIVERY,
       OrderStatus.IN_PRODUCTION,
     );
@@ -114,6 +136,7 @@ describe('Order cancellation after production', () => {
       findUnique.mockResolvedValue({
         id: 'order',
         status: OrderStatus.PENDING_VALIDATION,
+        ...details,
       });
       update.mockRejectedValue(
         new Prisma.PrismaClientKnownRequestError('State changed', {
@@ -132,11 +155,11 @@ describe('Order cancellation after production', () => {
       await expect(operation).rejects.toBeInstanceOf(ConflictException);
       expect(update).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: {
+          where: expect.objectContaining({
             id: 'order',
             subsidiaryId: 'branch',
             status: OrderStatus.PENDING_VALIDATION,
-          },
+          }) as unknown,
         }),
       );
     },

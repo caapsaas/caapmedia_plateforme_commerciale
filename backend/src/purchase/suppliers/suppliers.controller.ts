@@ -6,13 +6,12 @@ import {
   Patch,
   Param,
   Delete,
-  ParseUUIDPipe,
   UseGuards,
   Req,
   Query,
-  SetMetadata,
 } from '@nestjs/common';
 import { SuppliersService } from './suppliers.service';
+import { SupplierIdPipe } from './supplier-id.pipe';
 import {
   CreateSupplierDto,
   UpdateSupplierDto,
@@ -22,6 +21,7 @@ import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { Roles } from 'src/common/auth/role/role.decorator';
 import { UserRole } from '@prisma/client';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
+import type { ScopableUser } from 'src/common/utils/subsidiary-scope';
 
 @UseGuards(JwtAuthGuard, RoleGuard)
 @Controller('purchasing/suppliers')
@@ -34,7 +34,10 @@ export class SuppliersController {
    */
   @Post()
   @Roles(UserRole.ADMIN)
-  create(@Body() createSupplierDto: CreateSupplierDto, @Req() req) {
+  create(
+    @Body() createSupplierDto: CreateSupplierDto,
+    @Req() req: { user: ScopableUser },
+  ) {
     return this.suppliersService.create(createSupplierDto, req.user);
   }
 
@@ -46,7 +49,7 @@ export class SuppliersController {
   @Get()
   @Roles(UserRole.ADMIN)
   findAll(
-    @Req() req,
+    @Req() req: { user: ScopableUser },
     @Query() paginationQuery: PaginationQueryDto,
     @Query('subsidiaryId') subsidiaryId?: string,
   ) {
@@ -63,7 +66,10 @@ export class SuppliersController {
    */
   @Get(':id')
   @Roles(UserRole.ADMIN)
-  findOne(@Param('id', ParseUUIDPipe) id: string, @Req() req) {
+  findOne(
+    @Param('id', SupplierIdPipe) id: string,
+    @Req() req: { user: ScopableUser },
+  ) {
     return this.suppliersService.findOne(id, req.user);
   }
 
@@ -74,9 +80,9 @@ export class SuppliersController {
   @Patch(':id')
   @Roles(UserRole.ADMIN)
   update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', SupplierIdPipe) id: string,
     @Body() updateSupplierDto: UpdateSupplierDto,
-    @Req() req,
+    @Req() req: { user: ScopableUser },
   ) {
     return this.suppliersService.update(id, updateSupplierDto, req.user);
   }
@@ -87,7 +93,10 @@ export class SuppliersController {
    */
   @Delete(':id')
   @Roles(UserRole.ADMIN)
-  remove(@Param('id', ParseUUIDPipe) id: string, @Req() req) {
+  remove(
+    @Param('id', SupplierIdPipe) id: string,
+    @Req() req: { user: ScopableUser },
+  ) {
     return this.suppliersService.remove(id, req.user);
   }
 }

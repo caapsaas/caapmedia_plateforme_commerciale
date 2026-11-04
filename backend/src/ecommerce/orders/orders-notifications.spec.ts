@@ -4,6 +4,7 @@ import {
   OrderStatus,
   PaymentStatus,
   ProductionStatus,
+  UserRole,
 } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { OrdersService } from './orders.service';
@@ -12,7 +13,11 @@ import { ProductSpecsService } from '../products/product-specs/product-specs.ser
 import { OrderNotificationsService } from '../../notifications/order-notifications.service';
 
 describe('Order notification triggers', () => {
-  const user = { id: 'cashier', subsidiaryId: 'branch' };
+  const user = {
+    id: 'cashier',
+    subsidiaryId: 'branch',
+    activeRole: UserRole.PRODUCTION_DIRECTOR,
+  };
   const order = {
     id: 'order',
     subsidiaryId: 'branch',
@@ -27,7 +32,7 @@ describe('Order notification triggers', () => {
     let committed = false;
     const updated = {
       ...order,
-      status: OrderStatus.IN_PRODUCTION,
+      status: OrderStatus.PENDING_VALIDATION,
       amountPaid: new Decimal(25),
       paymentStatus: PaymentStatus.PARTIALLY_PAID,
     };
@@ -39,11 +44,13 @@ describe('Order notification triggers', () => {
         update: jest.fn().mockResolvedValue({
           ...order,
           productionStatus: ProductionStatus.READY_FOR_DELIVERY,
+          status: OrderStatus.PENDING_DELIVERY,
         }),
       },
       orderProductionHistory: { create: jest.fn() },
     };
     const prisma = {
+      order: tx.order,
       $transaction: jest.fn(
         async (callback: (transaction: typeof tx) => unknown) => {
           const result = await callback(tx);
@@ -68,8 +75,8 @@ describe('Order notification triggers', () => {
     return { service, tx, notifications };
   }
 
-  it('notifies payment and automatic entry into production after successful collection', async () => {
-    const { service, notifications } = setup();
+  it('notifies payment without starting production or changing order status', async () => {
+    const { service, notifications, tx } = setup();
     const result = await service.recordPayment(
       'order',
       { amount: 25, paymentMethod: CustomerPaymentMethod.CASH },
@@ -80,10 +87,19 @@ describe('Order notification triggers', () => {
       id: 'order',
       subsidiaryId: 'branch',
     });
-    expect(notifications.statusChanged).toHaveBeenCalledWith(
-      { id: 'order', subsidiaryId: 'branch' },
-      OrderStatus.IN_PRODUCTION,
-      OrderStatus.PENDING_VALIDATION,
+    expect(result.status).toBe(OrderStatus.PENDING_VALIDATION);
+    expect(notifications.statusChanged).not.toHaveBeenCalled();
+    const calls = tx.order.updateMany.mock.calls as unknown[][];
+    const data = calls[0][0] as {
+      data: Record<string, unknown>;
+      where: Record<string, unknown>;
+    };
+    expect(data.data).not.toHaveProperty('status');
+    expect(data.where).toEqual(
+      expect.objectContaining({
+        status: OrderStatus.PENDING_VALIDATION,
+        subsidiaryId: 'branch',
+      }),
     );
   });
 
@@ -103,17 +119,30 @@ describe('Order notification triggers', () => {
 
   it('announces readiness for delivery only after the production history is saved', async () => {
     const { service, tx, notifications } = setup();
-    jest
-      .spyOn(service, 'findOne')
-      .mockResolvedValue({ ...order } as unknown as Awaited<
-        ReturnType<OrdersService['findOne']>
-      >);
+    tx.order.findUnique.mockResolvedValue({
+      ...order,
+      status: OrderStatus.IN_PRODUCTION,
+    });
     await service.updateProductionStatus(
       'order',
       { productionStatus: ProductionStatus.READY_FOR_DELIVERY },
       user,
     );
     expect(tx.orderProductionHistory.create).toHaveBeenCalled();
+    expect(tx.order.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'order',
+          subsidiaryId: 'branch',
+          status: OrderStatus.IN_PRODUCTION,
+          productionStatus: ProductionStatus.FINISHING,
+        },
+        data: {
+          productionStatus: ProductionStatus.READY_FOR_DELIVERY,
+          status: OrderStatus.PENDING_DELIVERY,
+        },
+      }),
+    );
     expect(notifications.productionChanged).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'order', subsidiaryId: 'branch' }),
       ProductionStatus.READY_FOR_DELIVERY,
@@ -122,11 +151,10 @@ describe('Order notification triggers', () => {
 
   it('does not announce readiness when the production transaction rolls back', async () => {
     const { service, tx, notifications } = setup();
-    jest
-      .spyOn(service, 'findOne')
-      .mockResolvedValue({ ...order } as unknown as Awaited<
-        ReturnType<OrdersService['findOne']>
-      >);
+    tx.order.findUnique.mockResolvedValue({
+      ...order,
+      status: OrderStatus.IN_PRODUCTION,
+    });
     tx.orderProductionHistory.create.mockImplementation(() => {
       throw new Error('History write failed');
     });

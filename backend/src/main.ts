@@ -1,3 +1,4 @@
+import { PasswordRedactionInterceptor } from './common/auth/password-redaction.interceptor';
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -48,6 +49,8 @@ async function bootstrap() {
   });
 
   // Add global validation pipe
+  app.useGlobalInterceptors(new PasswordRedactionInterceptor());
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -64,6 +67,14 @@ async function bootstrap() {
         });
       },
     }),
+  );
+
+  // Legacy document paths must also stay blocked if files are restored from a backup.
+  app.use(
+    ['/public/employee-documents', '/public/uploads/secretariat'],
+    (_req, res) => {
+      res.status(404).end();
+    },
   );
 
   app.useStaticAssets(join(__dirname, '..', '..', 'public'), {

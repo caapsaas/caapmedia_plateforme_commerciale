@@ -28,6 +28,27 @@ import {
 } from '../../common/utils/subsidiary-scope';
 import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
 
+type AttendanceRecordWithLocation = {
+  arrivalLatitude: unknown;
+  arrivalLongitude: unknown;
+  departureLatitude: unknown;
+  departureLongitude: unknown;
+  accuracyMeters: unknown;
+  isGeolocationValid: unknown;
+};
+
+function hideLocation<T extends AttendanceRecordWithLocation>(record: T) {
+  const attendance = { ...record } as Partial<AttendanceRecordWithLocation> &
+    Record<string, unknown>;
+  delete attendance.arrivalLatitude;
+  delete attendance.arrivalLongitude;
+  delete attendance.departureLatitude;
+  delete attendance.departureLongitude;
+  delete attendance.accuracyMeters;
+  delete attendance.isGeolocationValid;
+  return attendance as Omit<T, keyof AttendanceRecordWithLocation>;
+}
+
 @Controller('hr/attendance-records')
 @UseGuards(JwtAuthGuard, RoleGuard)
 export class AttendanceRecordController {
@@ -40,7 +61,7 @@ export class AttendanceRecordController {
   // ------------------------------------------------------------------
   @Post()
   @Roles('HR_MANAGER', 'ADMIN', 'SUPER_ADMIN')
-  create(
+  async create(
     @Body() createAttendanceRecordDto: CreateAttendanceRecordDto,
     @Request() req,
   ) {
@@ -53,11 +74,12 @@ export class AttendanceRecordController {
     const ctx = resolveScopeContext(req.user);
     const subsidiaryId = resolveEffectiveSubsidiaryId(ctx);
 
-    return this.attendanceRecordService.create(
+    const record = await this.attendanceRecordService.create(
       createAttendanceRecordDto,
       createAttendanceRecordDto.employeeId,
       subsidiaryId,
     );
+    return hideLocation(record);
   }
 
   // ------------------------------------------------------------------
@@ -73,7 +95,11 @@ export class AttendanceRecordController {
 
     const ctx = resolveScopeContext(req.user);
     const subsidiaryId = resolveEffectiveSubsidiaryId(ctx, query.subsidiaryId);
-    return this.attendanceRecordService.findAll(subsidiaryId, paginationQuery);
+    const result = await this.attendanceRecordService.findAll(
+      subsidiaryId,
+      paginationQuery,
+    );
+    return { ...result, data: result.data.map(hideLocation) };
   }
 
   // ------------------------------------------------------------------
@@ -85,7 +111,7 @@ export class AttendanceRecordController {
     const ctx = resolveScopeContext(req.user);
     const record = await this.attendanceRecordService.findOne(id);
     assertSubsidiaryAccess(record.subsidiaryId, ctx);
-    return record;
+    return hideLocation(record);
   }
 
   // ------------------------------------------------------------------
@@ -101,7 +127,11 @@ export class AttendanceRecordController {
     const ctx = resolveScopeContext(req.user);
     const record = await this.attendanceRecordService.findOne(id);
     assertSubsidiaryAccess(record.subsidiaryId, ctx);
-    return this.attendanceRecordService.update(id, updateAttendanceRecordDto);
+    const updated = await this.attendanceRecordService.update(
+      id,
+      updateAttendanceRecordDto,
+    );
+    return hideLocation(updated);
   }
 
   // ------------------------------------------------------------------
@@ -113,6 +143,7 @@ export class AttendanceRecordController {
     const ctx = resolveScopeContext(req.user);
     const record = await this.attendanceRecordService.findOne(id);
     assertSubsidiaryAccess(record.subsidiaryId, ctx);
-    return this.attendanceRecordService.remove(id);
+    const deleted = await this.attendanceRecordService.remove(id);
+    return hideLocation(deleted);
   }
 }

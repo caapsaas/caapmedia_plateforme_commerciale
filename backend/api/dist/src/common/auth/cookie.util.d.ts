@@ -1,0 +1,10 @@
+import { Response } from 'express';
+export declare const ACCESS_TOKEN_COOKIE = "access_token";
+export declare const REFRESH_TOKEN_COOKIE = "refresh_token";
+export declare const CSRF_TOKEN_COOKIE = "csrf_token";
+export declare const CSRF_HEADER = "x-csrf-token";
+export declare const SESSION_HINT_COOKIE = "session_expires_at";
+export declare function setAuthCookies(res: Response, accessToken: string, refreshToken: string): void;
+export declare function setSessionHintCookie(res: Response): void;
+export declare function clearAuthCookies(res: Response): void;
+export declare function setCsrfCookie(res: Response): void;

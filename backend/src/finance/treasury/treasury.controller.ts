@@ -109,13 +109,8 @@ export class TreasuryController {
   findEligibleCashiers(
     @CurrentUser() user: JwtUser,
     @Query('subsidiaryId') subsidiaryId?: string,
-    @Query('currentCashierId') currentCashierId?: string,
   ) {
-    return this.treasuryService.findEligibleCashiers(
-      user,
-      subsidiaryId,
-      currentCashierId,
-    );
+    return this.treasuryService.findEligibleCashiers(user, subsidiaryId);
   }
 
   @Get('accounts/:id/transactions')

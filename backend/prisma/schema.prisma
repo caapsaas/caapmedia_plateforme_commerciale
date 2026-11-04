@@ -69,6 +69,7 @@ model Subsidiary {
   accountingJournalSequences    AccountingJournalSequence[]
   proformas                     Proforma[]
   payrollConfiguration          PayrollConfiguration?
+  needRequests                  NeedRequest[]
   counterparties                Counterparty[]
 
   payrollBonusTypes     PayrollBonusType[]
@@ -131,6 +132,9 @@ model User {
   equipementCostConfigs         EquipementCostConfig[]         @relation("EquipementCostConfigUpdatedBy")
   commercialParamsUpdates       CommercialParams[]             @relation("CommercialParamsUpdatedBy")
   proformas                     Proforma[]
+  paidNeedRequests              NeedRequestPayment[]
+  createdNeedRequests           NeedRequest[]                  @relation("NeedRequester")
+  reviewedNeedRequests          NeedRequest[]                  @relation("NeedReviewer")
   accountingAccessRequests      AccountingAccessRequest[]      @relation("AccountingAccessRequester")
   accountingAccessReviews       AccountingAccessRequest[]      @relation("AccountingAccessReviewer")
   cashierTreasuryAccounts       TreasuryAccount[]
@@ -560,6 +564,7 @@ model Employee {
   payrollCumulatives  PayrollCumulative[]         @relation("PayrollCumulatives")
   secretariatTasks    SecretariatTask[]
   dailyQrCodes        DailyQrCode[]
+  attendanceCredential AttendanceCredential?
   preHireTraining     PreHireTraining?
 
   @@index([subsidiaryId, lastName])
@@ -702,11 +707,12 @@ model Contact {
   id            String         @id @map("id")
   contactName   String         @map("contact_name") @db.VarChar(255)
   company       String         @map("company") @db.VarChar(255)
-  email         String         @unique @map("email") @db.VarChar(255)
+  email         String?        @unique @map("email") @db.VarChar(255)
   phone         String         @map("phone") @db.VarChar(255)
   since         DateTime       @map("since")
   address       String         @map("address")
   passwordHash  String?        @map("password_hash")
+  isOccasional  Boolean        @default(false) @map("is_occasional")
   isVerified    Boolean        @default(false) @map("is_verified")
   accountId     String?        @map("account_id")
   salesRepId    String?        @map("sales_rep_id")
@@ -1148,6 +1154,8 @@ model FinancialTransaction {
   destinationAccount       TreasuryAccount?         @relation("DestinationAccount", fields: [destinationAccountId], references: [id])
   counterparty             Counterparty?            @relation(fields: [counterpartyId], references: [id])
 
+  needRequestPayment NeedRequestPayment?
+
   @@index([subsidiaryId, transactionDate])
   @@index([financialTransactionType])
   @@index([treasuryAccountId])
@@ -1210,6 +1218,9 @@ model Meeting {
   minutes          String?
   minutesUpdatedBy String?              @map("minutes_updated_by")
   minutesUpdatedAt DateTime?            @map("minutes_updated_at")
+  completedAt      DateTime?            @map("completed_at")
+  minutesFileUrl   String?              @map("minutes_file_url")
+  minutesFileName  String?              @map("minutes_file_name")
   createdAt        DateTime             @default(now()) @map("created_at")
   createdBy        String?              @map("created_by")
   updatedAt        DateTime             @updatedAt @map("updated_at")
@@ -1287,9 +1298,45 @@ model Lead {
   id           String     @id @default(uuid()) @map("id")
   leadName     String     @map("lead_name") @db.VarChar(255)
   company      String     @db.VarChar(255)
-  email        String     @unique @db.VarChar(255)
-  phone        String     @db.VarChar(255)
+  email        String?    @unique @db.VarChar(255)
+  phone        String?    @db.VarChar(255)
   description  String?
+  externalReference       String? @map("external_reference")
+  zone                    String?
+  cityArea                String? @map("city_area")
+  sector                  String?
+  caapOffer               String? @map("caap_offer")
+  yearEndNeed             String? @map("year_end_need")
+  requestedService        String? @map("requested_service")
+  score                   String?
+  commercialPriority      String? @map("commercial_priority")
+  verification            String?
+  nextAction              String? @map("next_action")
+  commercialStatus        String? @map("commercial_status")
+  responsibleName         String? @map("responsible_name")
+  contactDate             String? @map("contact_date")
+  followUpDate            String? @map("follow_up_date")
+  followUpNotes           String? @map("follow_up_notes")
+  whatsappConfirmed       String? @map("whatsapp_confirmed")
+  observedFact            String? @map("observed_fact")
+  locationSource          String? @map("location_source")
+  contactSource           String? @map("contact_source")
+  signalDate              String? @map("signal_date")
+  signalSource            String? @map("signal_source")
+  documentaryConfidence   String? @map("documentary_confidence")
+  fitScore                String? @map("fit_score")
+  recentSignalScore       String? @map("recent_signal_score")
+  recurrenceScore         String? @map("recurrence_score")
+  accessibilityScore      String? @map("accessibility_score")
+  feasibilityScore        String? @map("feasibility_score")
+  caapOfferSource         String? @map("caap_offer_source")
+  consultationDate        String? @map("consultation_date")
+  country                 String?
+  prospectType            String? @map("prospect_type")
+  officialWebsite         String? @map("official_website")
+  reservesLogistics       String? @map("reserves_logistics")
+  linkedinPublic          String? @map("linkedin_public")
+  preparedMessage         String? @map("prepared_message")
   salesRepId   String?    @map("sales_rep_id")
   subsidiaryId String     @map("subsidiary_id")
   status       LeadStatus
@@ -2833,7 +2880,7 @@ model SubsidiaryQrCode {
   @@map("subsidiary_qr_codes")
 }
 
-// Token dynamique court (30s) pour le nouveau flux de pointage QR
+// Anciens tokens dynamiques conservés pour accepter les QR existants pendant la transition.
 model DynamicToken {
   id           String    @id @default(uuid())
   // Nullable : un token global (QR code imprime) n'est lie a aucune filiale
@@ -2849,4 +2896,66 @@ model DynamicToken {
   @@index([subsidiaryId, isUsed])
   @@index([expiresAt])
   @@map("dynamic_tokens")
+}
+
+// Separate from employee API responses; never expose PIN hashes.
+model AttendanceCredential {
+  employeeId     String    @id @map("employee_id")
+  pinHash        String    @map("pin_hash")
+  failedAttempts Int       @default(0) @map("failed_attempts")
+  lockedUntil    DateTime? @map("locked_until")
+  updatedBy      String    @map("updated_by")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  employee       Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("attendance_credentials")
+}
+
+enum NeedRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model NeedRequest {
+  id              String            @id @default(uuid())
+  title           String            @db.VarChar(200)
+  description     String            @db.Text
+  estimatedBudget Decimal?          @db.Decimal(15, 2)
+  desiredDate     DateTime?         @db.Date
+  status          NeedRequestStatus @default(PENDING)
+  rejectionReason String?           @db.Text
+  createdAt       DateTime          @default(now())
+  reviewedAt      DateTime?
+  subsidiaryId    String
+  requesterId     String
+  reviewerId      String?
+  subsidiary      Subsidiary        @relation(fields: [subsidiaryId], references: [id])
+  requester       User              @relation("NeedRequester", fields: [requesterId], references: [id])
+  reviewer        User?             @relation("NeedReviewer", fields: [reviewerId], references: [id])
+
+  payment NeedRequestPayment?
+
+  @@index([subsidiaryId, requesterId, createdAt])
+  @@index([status, createdAt])
+  @@map("need_requests")
+}
+
+model NeedRequestPayment {
+  id String @id @default(uuid())
+  needRequestId String @unique
+  financialTransactionId String @unique
+  amount Decimal @db.Decimal(15, 2)
+  currency String @db.VarChar(10)
+  beneficiary String @db.VarChar(255)
+  category ExpenseCategory
+  reference String? @db.VarChar(100)
+  paidAt DateTime
+  paidById String
+  createdAt DateTime @default(now())
+  needRequest NeedRequest @relation(fields: [needRequestId], references: [id], onDelete: Restrict)
+  financialTransaction FinancialTransaction @relation(fields: [financialTransactionId], references: [id], onDelete: Restrict)
+  paidBy User @relation(fields: [paidById], references: [id], onDelete: Restrict)
+
+  @@map("need_request_payments")
 }

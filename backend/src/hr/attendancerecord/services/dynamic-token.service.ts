@@ -1,124 +1,138 @@
 import {
   Injectable,
-  Logger,
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
-import { v4 as uuidv4 } from 'uuid';
+
+export const ATTENDANCE_QR_TTL_MS = 120000;
+type TokenReader = Pick<
+  Prisma.TransactionClient,
+  'dynamicToken' | 'subsidiaryQrCode'
+>;
 
 @Injectable()
 export class DynamicTokenService {
-  private readonly logger = new Logger(DynamicTokenService.name);
-
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Génère un nouveau token dynamique global
-   * Le token n'expire pas (pour QR code imprimé)
-   * Fonctionne pour tous les employés actifs, peu importe la filiale
-   */
-  async generateToken(subsidiaryId: string): Promise<{ token: string }> {
-    const token = uuidv4();
-    const now = new Date();
+  async getPermanentToken(subsidiaryId: string, regenerate = false) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`
+        SELECT id FROM subsidiaries WHERE id = ${subsidiaryId} FOR UPDATE
+      `;
+      const existing = await tx.subsidiaryQrCode.findUnique({
+        where: { subsidiaryId },
+      });
+      if (existing?.isActive && !regenerate)
+        return { token: existing.token, expiresAt: null };
 
-    // Marquer tous les anciens tokens comme inactifs
-    await this.prisma.dynamicToken.updateMany({
+      if (existing) {
+        await tx.dynamicToken.updateMany({
+          where: { token: existing.token, isUsed: false },
+          data: { isUsed: true, usedAt: new Date() },
+        });
+      }
+
+      // Keep the QR currently displayed/printed through the one-time transition
+      // from expiring dynamic tokens, then make it permanent.
+      const latestDynamic =
+        !existing && !regenerate
+          ? await tx.dynamicToken.findFirst({
+              where: { subsidiaryId },
+              orderBy: { createdAt: 'desc' },
+              select: { token: true },
+            })
+          : null;
+      const token = latestDynamic?.token ?? randomUUID();
+      const qr = await tx.subsidiaryQrCode.upsert({
+        where: { subsidiaryId },
+        create: { subsidiaryId, token, isActive: true },
+        update: { token, isActive: true },
+      });
+      return { token: qr.token, expiresAt: null };
+    });
+  }
+
+  private async issue(subsidiaryId: string, force: boolean) {
+    return this.prisma.$transaction(async (tx) => {
+      // Serialize rotation per site: concurrent displays cannot invalidate each other.
+      const site = await tx.$queryRaw<
+        { id: string }[]
+      >`SELECT id FROM subsidiaries WHERE id = ${subsidiaryId} FOR UPDATE`;
+      if (!site.length) throw new NotFoundException('Filiale introuvable.');
+      const now = new Date();
+      const active = await tx.dynamicToken.findFirst({
         where: {
           subsidiaryId,
-        isUsed: false,
-      },
-      data: {
-        isUsed: true,
-        usedAt: now,
-      },
+          isUsed: false,
+          expiresAt: {
+            gt: new Date(now.getTime() + 30000),
+            lte: new Date(now.getTime() + ATTENDANCE_QR_TTL_MS),
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (active && !force)
+        return { token: active.token, expiresAt: active.expiresAt };
+      await tx.dynamicToken.updateMany({
+        where: { subsidiaryId, isUsed: false },
+        data: { isUsed: true, usedAt: now },
+      });
+      const token = await tx.dynamicToken.create({
+        data: {
+          id: randomUUID(),
+          token: randomUUID(),
+          subsidiaryId,
+          expiresAt: new Date(now.getTime() + ATTENDANCE_QR_TTL_MS),
+          createdAt: now,
+        },
+      });
+      return { token: token.token, expiresAt: token.expiresAt };
     });
-
-    const dynamicToken = await this.prisma.dynamicToken.create({
-      data: {
-        id: uuidv4(),
-        subsidiaryId,
-        token,
-        createdAt: now,
-        expiresAt: new Date('2099-12-31'), // Date lointaine pour ne pas expirer
-        isUsed: false,
-      },
-    });
-
-    this.logger.log(`Generated global dynamic token`);
-
-    return {
-      token: dynamicToken.token,
-    };
   }
 
-  /**
-   * Valide un token dynamique global
-   * Vérifie que le token existe et n'a pas été utilisé
-   * Le token n'expire pas (pour QR code imprimé)
-   */
-  async validateToken(token: string): Promise<string> {
-    const dynamicToken = await this.prisma.dynamicToken.findUnique({
+  generateToken(subsidiaryId: string) {
+    return this.issue(subsidiaryId, true);
+  }
+  getActiveToken(subsidiaryId: string) {
+    return this.issue(subsidiaryId, false);
+  }
+
+  async validateToken(
+    token: string,
+    client: TokenReader = this.prisma,
+  ): Promise<string> {
+    const permanent = await client.subsidiaryQrCode.findUnique({
       where: { token },
+      select: { subsidiaryId: true, isActive: true },
     });
-
-    if (!dynamicToken) {
-      this.logger.warn(`Token not found in database: ${token}`);
-      // Log tous les tokens existants pour debug
-      throw new BadRequestException('Token invalide');
+    if (permanent?.isActive) return permanent.subsidiaryId;
+    if (permanent) {
+      throw new BadRequestException({
+        code: 'QR_REVOKED',
+        message:
+          'Ce QR a été remplacé. Utilisez le QR actuellement affiché dans les locaux.',
+      });
     }
 
-    this.logger.log(
-      `Token found: ${dynamicToken.id}, isUsed: ${dynamicToken.isUsed}, subsidiaryId: ${dynamicToken.subsidiaryId}`,
-    );
-
-    if (dynamicToken.isUsed) {
-      this.logger.warn(`Token already used: ${token}`);
-      throw new BadRequestException('Ce token a déjà été utilisé');
+    const record = await client.dynamicToken.findUnique({ where: { token } });
+    const now = Date.now();
+    if (
+      !record ||
+      record.isUsed ||
+      !record.subsidiaryId ||
+      record.expiresAt.getTime() <= now ||
+      record.expiresAt.getTime() - record.createdAt.getTime() >
+        ATTENDANCE_QR_TTL_MS
+    ) {
+      throw new BadRequestException({
+        code: 'QR_EXPIRED',
+        message:
+          'QR code invalide ou expiré. Scannez le code actuellement affiché sur place.',
+      });
     }
-    if (!dynamicToken.subsidiaryId) {
-      throw new BadRequestException('Ce QR code global doit être régénéré');
-    }
-    return dynamicToken.subsidiaryId;
-  }
-
-  /**
-   * Marque un token comme utilisé
-   */
-  async markTokenAsUsed(token: string): Promise<void> {
-    await this.prisma.dynamicToken.update({
-      where: { token },
-      data: {
-        isUsed: true,
-        usedAt: new Date(),
-      },
-    });
-
-    this.logger.log(`Marked token as used: ${token}`);
-  }
-
-  /**
-   * Récupère le token actif le plus récent (global)
-   * S'il n'existe pas, en génère un nouveau
-   */
-  async getActiveToken(subsidiaryId: string): Promise<{ token: string }> {
-    const activeToken = await this.prisma.dynamicToken.findFirst({
-      where: {
-        subsidiaryId,
-        isUsed: false,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
-    if (activeToken) {
-      return {
-        token: activeToken.token,
-      };
-    }
-
-    // Sinon, en générer un nouveau
-    return this.generateToken(subsidiaryId);
+    return record.subsidiaryId;
   }
 }

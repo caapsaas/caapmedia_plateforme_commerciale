@@ -13,7 +13,7 @@ describe('Order event recipients', () => {
   const service = new OrderNotificationsService({
     notifyUsersByRole,
   } as unknown as NotificationsService);
-  const order = { id: 'order', subsidiaryId: 'branch' };
+  const order = { id: 'order', subsidiaryId: 'branch', salesRepId: 'seller' };
   beforeEach(() => {
     jest.clearAllMocks();
     notifyUsersByRole.mockResolvedValue([]);
@@ -33,6 +33,7 @@ describe('Order event recipients', () => {
           type: NotificationType.NEW_ORDER,
           orderId: 'order',
         }),
+        ...(role === UserRole.COMMERCIAL ? ['seller'] : []),
       );
     }
   });
@@ -54,6 +55,7 @@ describe('Order event recipients', () => {
             subsidiaryId: 'branch',
           },
         }),
+        'seller',
       );
       expect(notifyUsersByRole).toHaveBeenCalledWith(
         'branch',
@@ -129,5 +131,36 @@ describe('Order event recipients', () => {
     } finally {
       errorLog.mockRestore();
     }
+  });
+
+  it('never broadcasts commercial updates when an order has no assigned seller', async () => {
+    await service.productionChanged(
+      { ...order, salesRepId: null },
+      ProductionStatus.PRINTING,
+    );
+    expect(
+      notifyUsersByRole.mock.calls.some(
+        (call) => call[1] === UserRole.COMMERCIAL,
+      ),
+    ).toBe(false);
+  });
+
+  it('announces validation explicitly and targets only the assigned commercial', async () => {
+    await service.statusChanged(
+      order,
+      OrderStatus.IN_PRODUCTION,
+      OrderStatus.PENDING_VALIDATION,
+    );
+    expect(notifyUsersByRole).toHaveBeenCalledWith(
+      'branch',
+      UserRole.COMMERCIAL,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          event: 'order.validated',
+          orderId: 'order',
+        }),
+      }),
+      'seller',
+    );
   });
 });

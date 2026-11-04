@@ -163,7 +163,7 @@ const CONFIGS: SubsidiarySeedConfig[] = [
         company: 'Societe Anonyme des Brasseries du Cameroun',
         email: 'contact@sabc-groupe.example.com',
         phone: '233420001',
-        address: 'Akwa, Douala',
+        address: 'Ange Raphael, Douala',
         since: '2022-01-10',
       },
       {

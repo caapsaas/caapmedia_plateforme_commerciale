@@ -6,7 +6,19 @@ import {
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateDirectSaleDto } from './dto/create-sale.dto';
 import { FindAllSalesDto, OrderPeriod } from './dto/find-all-sales.dto';
-import { CustomerPaymentMethod, ItemType, OrderSource, OrderStatus, PaymentStatus, ProductionStatus, Prisma, SaleStatus, TransactionStatus, TransactionType, UserRole } from '@prisma/client';
+import {
+  CustomerPaymentMethod,
+  ItemType,
+  OrderSource,
+  OrderStatus,
+  PaymentStatus,
+  ProductionStatus,
+  Prisma,
+  SaleStatus,
+  TransactionStatus,
+  TransactionType,
+  UserRole,
+} from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { ProductSpecsService } from '../products/product-specs/product-specs.service';
 import { OrderNotificationsService } from '../../notifications/order-notifications.service';
@@ -38,7 +50,14 @@ export class SalesService {
    * @param user L'utilisateur connecté (caissier / commercial)
    */
   async createDirectSale(createDirectSaleDto: CreateDirectSaleDto, user: any) {
-    const { items, paymentMethod, customerId, applyTax = true, bankAccountId, transactionReference } = createDirectSaleDto;
+    const {
+      items,
+      paymentMethod,
+      customerId,
+      applyTax = true,
+      bankAccountId,
+      transactionReference,
+    } = createDirectSaleDto;
 
     // Moyens de paiement nécessitant un compte bancaire et une validation par SUPER_ADMIN
     const BANKING_METHODS: CustomerPaymentMethod[] = [
@@ -61,196 +80,206 @@ export class SalesService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      // 1. Récupérer les données de référence (services du catalogue, Taxe, Client)
-      const productIds = items.map((item) => item.productId);
-      const [products, taxRate, customer] = await Promise.all([
-        tx.item.findMany({
-          where: { id: { in: productIds }, type: ItemType.SERVICE },
-        }),
-        tx.taxRate.findFirstOrThrow({ where: { isDefault: true } }),
-        tx.contact.findUnique({ where: { id: customerId } }),
-      ]);
-
-      if (!customer) {
-        throw new NotFoundException(
-          `Client avec l'ID ${customerId} non trouvé.`,
-        );
-      }
-
-      if (products.length !== productIds.length) {
-        throw new NotFoundException(
-          'Un ou plusieurs produits sont introuvables.',
-        );
-      }
-
-      const productMap = new Map(products.map((p) => [p.id, p]));
-
-      // Validation des spécifications techniques (Chantier 5)
-      const distinctProductIds = [...new Set<string>(productIds)];
-      const formDefinitionByProductId = new Map(
-        await Promise.all(
-          distinctProductIds.map(async (productId) => {
-            const definition =
-              await this.productSpecsService.getFormDefinition(productId);
-            return [productId, definition] as const;
+    return this.prisma
+      .$transaction(async (tx) => {
+        // 1. Récupérer les données de référence (services du catalogue, Taxe, Client)
+        const productIds = items.map((item) => item.productId);
+        const [products, taxRate, customer] = await Promise.all([
+          tx.item.findMany({
+            where: { id: { in: productIds }, type: ItemType.SERVICE },
           }),
-        ),
-      );
+          tx.taxRate.findFirstOrThrow({ where: { isDefault: true } }),
+          tx.contact.findUnique({ where: { id: customerId } }),
+        ]);
 
-      for (const item of items) {
-        const definition = formDefinitionByProductId.get(item.productId);
-        if (definition) {
-          this.productSpecsService.validateAgainstDefinition(
-            definition,
-            item.specValues,
-          );
-        }
-      }
-
-      // 2. Calculer les montants selon les règles métiers (Sous-total, Remise, Assemblage, TVA)
-      let subtotal = new Decimal(0);
-      const orderItemsData = items.map((item) => {
-        const product = productMap.get(item.productId);
-        if (!product) {
+        if (!customer) {
           throw new NotFoundException(
-            `Produit avec ID ${item.productId} non trouvé.`,
+            `Client avec l'ID ${customerId} non trouvé.`,
           );
         }
 
-        const unitPrice = new Decimal(item.unitPrice);
-        const discount = new Decimal(item.discount ?? 0);
-        const assemblyPrice =
-          item.assemblyPrice != null ? new Decimal(item.assemblyPrice) : null;
-        const total = unitPrice
-          .mul(item.quantity)
-          .sub(discount)
-          .add(assemblyPrice ?? 0);
+        if (products.length !== productIds.length) {
+          throw new NotFoundException(
+            'Un ou plusieurs produits sont introuvables.',
+          );
+        }
 
-        subtotal = subtotal.add(total);
+        const productMap = new Map(products.map((p) => [p.id, p]));
 
-        return {
-          productId: item.productId,
-          productName: product.name,
-          quantity: item.quantity,
-          unitPrice,
-          discount,
-          assemblyPrice,
-          total,
-          specValues: item.specValues as Prisma.InputJsonValue | undefined,
-          specSnapshot: formDefinitionByProductId.get(
-            item.productId,
-          ) as unknown as Prisma.InputJsonValue | undefined,
-        };
-      });
+        // Validation des spécifications techniques (Chantier 5)
+        const distinctProductIds = [...new Set<string>(productIds)];
+        const formDefinitionByProductId = new Map(
+          await Promise.all(
+            distinctProductIds.map(async (productId) => {
+              const definition =
+                await this.productSpecsService.getFormDefinition(productId);
+              return [productId, definition] as const;
+            }),
+          ),
+        );
 
-      const effectiveTaxRate = applyTax ? taxRate.rate : new Decimal(0);
-      const taxAmount = subtotal.mul(effectiveTaxRate);
-      const totalAmount = subtotal.add(taxAmount);
+        for (const item of items) {
+          const definition = formDefinitionByProductId.get(item.productId);
+          if (definition) {
+            this.productSpecsService.validateAgainstDefinition(
+              definition,
+              item.specValues,
+            );
+          }
+        }
 
-      // 3. Créer la commande réelle (Order) pour respecter le principe de vente de l'application
-      const newOrder = await tx.order.create({
-        data: {
-          id: generateId(ID_PREFIXES.ORDER),
-          customerName: customer.contactName,
-          paymentDueDate: new Date(),
-          source: OrderSource.MANUAL,
-          subtotal,
-          taxAmount,
-          totalAmount,
-          taxRateValue: effectiveTaxRate,
-          applyTax,
-          status: OrderStatus.PENDING_VALIDATION,
-          paymentMethod: paymentMethod,
-          productionStatus: ProductionStatus.PREPRESS,
-          paymentStatus: PaymentStatus.PAID,
-          amountPaid: totalAmount,
-          customerId,
-          subsidiaryId,
-          taxRateId: taxRate.id,
-          salesRepId,
-          orderItems: {
-            create: orderItemsData.map((item): Prisma.OrderItemUncheckedCreateWithoutOrderInput => ({
-              id: generateId(ID_PREFIXES.ORDERITEM),
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              discount: item.discount,
-              assemblyPrice: item.assemblyPrice,
-              total: item.total,
-              specValues: item.specValues,
-              specSnapshot: item.specSnapshot,
-              productId: item.productId,
-            })),
-          },
-        },
-      });
+        // 2. Calculer les montants selon les règles métiers (Sous-total, Remise, Assemblage, TVA)
+        let subtotal = new Decimal(0);
+        const orderItemsData = items.map((item) => {
+          const product = productMap.get(item.productId);
+          if (!product) {
+            throw new NotFoundException(
+              `Produit avec ID ${item.productId} non trouvé.`,
+            );
+          }
 
-      // 4. Créer les enregistrements de vente (Sale) liés à la commande
-      const salesToCreate: Prisma.SaleCreateManyInput[] = orderItemsData.map(
-        (item) => {
-          const itemTax = item.total.mul(effectiveTaxRate);
-          const itemTotalPrice = item.total.add(itemTax);
+          const unitPrice = new Decimal(item.unitPrice);
+          const discount = new Decimal(item.discount ?? 0);
+          const assemblyPrice =
+            item.assemblyPrice != null ? new Decimal(item.assemblyPrice) : null;
+          const total = unitPrice
+            .mul(item.quantity)
+            .sub(discount)
+            .add(assemblyPrice ?? 0);
+
+          subtotal = subtotal.add(total);
 
           return {
-            id: generateId(ID_PREFIXES.SALE),
-            productName: item.productName,
+            productId: item.productId,
+            productName: product.name,
             quantity: item.quantity,
-            totalPrice: itemTotalPrice,
-            saleDate: new Date(),
-            customerName: customer.contactName,
-            taxRate: effectiveTaxRate,
-            paymentMethod: paymentMethod,
-            customerId: customerId,
-            subsidiaryId: subsidiaryId,
-            salesRepId: salesRepId,
-            orderId: newOrder.id,
-            status: SaleStatus.PAID,
-            specValues: item.specValues,
-            specSnapshot: item.specSnapshot,
+            unitPrice,
+            discount,
+            assemblyPrice,
+            total,
+            specValues: item.specValues as Prisma.InputJsonValue | undefined,
+            specSnapshot: formDefinitionByProductId.get(
+              item.productId,
+            ) as unknown as Prisma.InputJsonValue | undefined,
           };
-        },
-      );
-
-      const result = await tx.sale.createMany({
-        data: salesToCreate,
-      });
-
-      // 5. Pour les paiements bancaires : créer une FinancialTransaction EN_ATTENTE de validation
-      if (isBankingPayment && bankAccountId) {
-        const bankAccount = await tx.treasuryAccount.findFirst({
-          where: { id: bankAccountId, subsidiaryId },
         });
-        if (!bankAccount) {
-          throw new NotFoundException(
-            `Compte bancaire ${bankAccountId} introuvable pour cette filiale.`,
-          );
-        }
 
-        await tx.financialTransaction.create({
+        const effectiveTaxRate = applyTax ? taxRate.rate : new Decimal(0);
+        const taxAmount = subtotal.mul(effectiveTaxRate);
+        const totalAmount = subtotal.add(taxAmount);
+
+        // 3. Créer la commande réelle (Order) pour respecter le principe de vente de l'application
+        const newOrder = await tx.order.create({
           data: {
-            transactionDate: new Date(),
-            description: `Encaissement ${paymentMethod} — Commande ${newOrder.id} — ${customer.contactName}`,
-            amount: totalAmount,
-            relatedDocumentId: newOrder.id,
+            id: generateId(ID_PREFIXES.ORDER),
+            customerName: customer.contactName,
+            paymentDueDate: new Date(),
+            source: OrderSource.MANUAL,
+            subtotal,
+            taxAmount,
+            totalAmount,
+            taxRateValue: effectiveTaxRate,
+            applyTax,
+            status: OrderStatus.PENDING_VALIDATION,
+            paymentMethod: paymentMethod,
+            productionStatus: ProductionStatus.PREPRESS,
+            paymentStatus: PaymentStatus.PAID,
+            amountPaid: totalAmount,
+            customerId,
             subsidiaryId,
-            financialTransactionType: TransactionType.RECETTE,
-            treasuryAccountId: bankAccountId,
-            status: TransactionStatus.EN_ATTENTE,
-            reference: transactionReference || null,
+            taxRateId: taxRate.id,
+            salesRepId,
+            productionHistory: {
+              create: {
+                id: generateId(ID_PREFIXES.ORDERPRODUCTIONHISTORY),
+                status: ProductionStatus.PREPRESS,
+              },
+            },
+            orderItems: {
+              create: orderItemsData.map(
+                (item): Prisma.OrderItemUncheckedCreateWithoutOrderInput => ({
+                  id: generateId(ID_PREFIXES.ORDERITEM),
+                  quantity: item.quantity,
+                  unitPrice: item.unitPrice,
+                  discount: item.discount,
+                  assemblyPrice: item.assemblyPrice,
+                  total: item.total,
+                  specValues: item.specValues,
+                  specSnapshot: item.specSnapshot,
+                  productId: item.productId,
+                }),
+              ),
+            },
           },
         });
-      }
 
-      return {
-        message: `${result.count} vente(s) enregistrée(s) avec succès (Commande ${newOrder.id}).`,
-        orderId: newOrder.id,
-      };
-    }).then(async (result) => {
-      const order = { id: result.orderId, subsidiaryId: user.subsidiaryId };
-      await this.orderNotifications.created(order);
-      await this.orderNotifications.paymentReceived(order);
-      return result;
-    });
+        // 4. Créer les enregistrements de vente (Sale) liés à la commande
+        const salesToCreate: Prisma.SaleCreateManyInput[] = orderItemsData.map(
+          (item) => {
+            const itemTax = item.total.mul(effectiveTaxRate);
+            const itemTotalPrice = item.total.add(itemTax);
+
+            return {
+              id: generateId(ID_PREFIXES.SALE),
+              productName: item.productName,
+              quantity: item.quantity,
+              totalPrice: itemTotalPrice,
+              saleDate: new Date(),
+              customerName: customer.contactName,
+              taxRate: effectiveTaxRate,
+              paymentMethod: paymentMethod,
+              customerId: customerId,
+              subsidiaryId: subsidiaryId,
+              salesRepId: salesRepId,
+              orderId: newOrder.id,
+              status: SaleStatus.PAID,
+              specValues: item.specValues,
+              specSnapshot: item.specSnapshot,
+            };
+          },
+        );
+
+        const result = await tx.sale.createMany({
+          data: salesToCreate,
+        });
+
+        // 5. Pour les paiements bancaires : créer une FinancialTransaction EN_ATTENTE de validation
+        if (isBankingPayment && bankAccountId) {
+          const bankAccount = await tx.treasuryAccount.findFirst({
+            where: { id: bankAccountId, subsidiaryId },
+          });
+          if (!bankAccount) {
+            throw new NotFoundException(
+              `Compte bancaire ${bankAccountId} introuvable pour cette filiale.`,
+            );
+          }
+
+          await tx.financialTransaction.create({
+            data: {
+              transactionDate: new Date(),
+              description: `Encaissement ${paymentMethod} — Commande ${newOrder.id} — ${customer.contactName}`,
+              amount: totalAmount,
+              relatedDocumentId: newOrder.id,
+              subsidiaryId,
+              financialTransactionType: TransactionType.RECETTE,
+              treasuryAccountId: bankAccountId,
+              status: TransactionStatus.EN_ATTENTE,
+              reference: transactionReference || null,
+            },
+          });
+        }
+
+        return {
+          message: `${result.count} vente(s) enregistrée(s) avec succès (Commande ${newOrder.id}).`,
+          orderId: newOrder.id,
+        };
+      })
+      .then(async (result) => {
+        const order = { id: result.orderId, subsidiaryId: user.subsidiaryId };
+        await this.orderNotifications.created(order);
+        await this.orderNotifications.paymentReceived(order);
+        return result;
+      });
   }
 
   /**

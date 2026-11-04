@@ -1,6 +1,10 @@
-import { Type } from 'class-transformer';
+import { plainToInstance, Transform, Type } from 'class-transformer';
 import {
   IsArray,
+  IsEmail,
+  Length,
+  Matches,
+  ValidateIf,
   IsBoolean,
   IsInt,
   IsNotEmpty,
@@ -132,11 +136,58 @@ class CreateOrderItemDto {
   productionSummary?: CreateProductionSummaryDto;
 }
 
+export class OccasionalOrderCustomerDto {
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsString()
+  @Length(1, 255)
+  name: string;
+
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsString()
+  @Length(7, 30)
+  @Matches(/^\+?[0-9 ()-]+$/)
+  phone: string;
+
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() || undefined : value,
+  )
+  @IsEmail()
+  @Length(1, 255)
+  email?: string;
+}
+
 export class CreateOrderBySalesRepDto {
+  @ValidateIf(
+    (dto: CreateOrderBySalesRepDto) =>
+      !dto.occasionalCustomer || dto.customerId !== undefined,
+  )
   @IsString()
   @IsNotEmpty()
-  customerId: string;
+  customerId?: string;
 
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => {
+    if (typeof value !== 'string') return value;
+    try {
+      return plainToInstance(
+        OccasionalOrderCustomerDto,
+        JSON.parse(value) as object,
+      );
+    } catch {
+      return value;
+    }
+  })
+  @IsObject()
+  @ValidateNested()
+  @Type(() => OccasionalOrderCustomerDto)
+  occasionalCustomer?: OccasionalOrderCustomerDto;
+
+  @ValidateIf((dto: CreateOrderBySalesRepDto) => !dto.occasionalCustomer)
   @IsString()
   @IsNotEmpty()
   customerName: string;

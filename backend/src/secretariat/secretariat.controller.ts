@@ -1,4 +1,11 @@
 import {
+  MeetingReportsService,
+  MEETING_REPORT_MAX_SIZE,
+  MEETING_REPORT_TYPES,
+} from './meeting-reports.service';
+import type { Request } from 'express';
+import { secretariatDestination } from '../common/utils/document-storage';
+import {
   Controller,
   Post,
   Body,
@@ -51,7 +58,10 @@ import {
 @Controller('secretariat')
 @UseGuards(JwtAuthGuard, RoleGuard, SubsidiaryGuard)
 export class SecretariatController {
-  constructor(private readonly secretariatService: SecretariatService) {}
+  constructor(
+    private readonly secretariatService: SecretariatService,
+    private readonly meetingReports: MeetingReportsService,
+  ) {}
 
   // Endpoints pour CompanyDocument
   @Roles(UserRole.SECRETARY, UserRole.ADMIN)
@@ -60,7 +70,7 @@ export class SecretariatController {
   @UseInterceptors(
     FileFieldsInterceptor([{ name: 'file', maxCount: 1 }], {
       storage: diskStorage({
-        destination: './public/uploads/secretariat', // Consistent path with orders module
+        destination: secretariatDestination, // Consistent path with orders module
         filename: (_req, file, cb) => {
           const randomName = Array(32)
             .fill(null)
@@ -107,7 +117,7 @@ export class SecretariatController {
     FileInterceptor('file', {
       // Permet la mise à jour optionnelle du fichier
       storage: diskStorage({
-        destination: './public/uploads/secretariat', // Consistent path
+        destination: secretariatDestination, // Consistent path
         filename: (_req, file, cb) => {
           const uniqueSuffix =
             Date.now() + '-' + Math.round(Math.random() * 1e9);
@@ -221,6 +231,43 @@ export class SecretariatController {
   async searchMeetings(@Query() query: SearchMeetingsDto, @Req() req) {
     const ctx = resolveScopeContext(req.user);
     return this.secretariatService.searchMeetings(query, ctx);
+  }
+
+  @Roles(UserRole.SECRETARY, UserRole.ADMIN)
+  @Post('meetings/:id/complete')
+  async completeMeeting(@Param('id') id: string, @Req() req: Request) {
+    return this.meetingReports.complete(id, req.user);
+  }
+
+  @Roles(UserRole.SECRETARY, UserRole.ADMIN)
+  @Post('meetings/:id/report')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        fileSize: MEETING_REPORT_MAX_SIZE,
+        files: 1,
+        fields: 0,
+        parts: 2,
+      },
+      fileFilter: (_req, file, callback) => {
+        const mime =
+          MEETING_REPORT_TYPES[extname(file.originalname).toLowerCase()];
+        if (!mime || mime !== file.mimetype) {
+          return callback(
+            new BadRequestException('Formats autorisés : PDF, DOC et DOCX.'),
+            false,
+          );
+        }
+        callback(null, true);
+      },
+    }),
+  )
+  async uploadMeetingReport(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Req() req: Request,
+  ) {
+    return this.meetingReports.upload(id, file, req.user);
   }
 
   // Nouveaux endpoints pour gérer les participants individuellement

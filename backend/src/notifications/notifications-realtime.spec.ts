@@ -133,4 +133,30 @@ describe('Notification persistence and realtime delivery', () => {
       }) as unknown,
     });
   });
+
+  it('scopes an assigned commercial recipient to both subsidiary and identity', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const service = new NotificationsService(
+      { user: { findMany } } as unknown as PrismaService,
+      new NotificationsSseService(),
+    );
+    await service.notifyUsersByRole(
+      'branch',
+      UserRole.COMMERCIAL,
+      {
+        title: 'Production',
+        message: 'Prête',
+        type: NotificationType.ORDER_STATUS,
+      },
+      'seller',
+    );
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'seller',
+          subsidiaryId: 'branch',
+        }),
+      }),
+    );
+  });
 });

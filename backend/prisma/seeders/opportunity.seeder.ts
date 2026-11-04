@@ -36,7 +36,7 @@ const SEED_DATA = [
     {
         subsidiaryEmail: 'contact.douala@caap.cm',
         salesRepEmail: 'jean.commercial@caap.cm',
-        account: { accountName: 'Kamga Technologies', industry: 'Tech', phone: '691234567', address: 'Akwa, Douala' },
+        account: { accountName: 'Kamga Technologies', industry: 'Tech', phone: '691234567', address: 'Ange Raphael, Douala' },
         contactEmail: 'michel.kamga@kamga-tech.com',
         opportunities: [
             { opportunityName: 'Déploiement logiciel ERP', opportunityValue: 5500000, stage: OpportunityStage.LOST, closeDate: '2026-04-30' },

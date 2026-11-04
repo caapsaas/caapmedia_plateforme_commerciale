@@ -57,28 +57,28 @@ async function seedEmployeeLeaveBalances() {
 
 async function main() {
   await runSubsidiarySeeder(prisma);
-  await seedEmployees(); // Employees after subsidiary
+ // await seedEmployees(); // Employees after subsidiary
   await runUserSeeder(prisma);
   await runProductSeeder(prisma);
   // Configure des specifications techniques (Chantier 5) sur quelques
   // services representatifs, apres runProductSeeder (dont depend les Item).
   await runProductSpecsSeeder(prisma);
-  await runContactSeeder(prisma);
+ // await runContactSeeder(prisma);
   await runEquipmentSeeder(prisma);
   await runTaxRateSeeder(prisma);
   //await runOrdersSeeder(prisma);
-  await runSupplierSeeder(prisma);
+ // await runSupplierSeeder(prisma);
   // Dettes fournisseurs = achats non payés : posées ici avec leurs bons de
   // commande (voir purchase-order.seeder.ts), jamais créées à la main.
   await runPurchaseOrderSeeder(prisma);
-  await seedTreasuryAccounts();
+ // await seedTreasuryAccounts();
   // Apres subsidiary/user/product/contact/tax_rate: cree les mouvements
   // (commandes) multi-filiales pour observer l'architecture SUPER_ADMIN
   // (vue consolidee) vs ADMIN de filiale (vue scopee), voir movements.seeder.ts.
-  await runMovementsSeeder(prisma);
+ // await runMovementsSeeder(prisma);
   // Apres contact/user/subsidiary: cree les comptes CRM et opportunites
   // multi-etapes pour alimenter l'entonnoir des ventes du tableau de bord CRM.
-  await runOpportunitySeeder(prisma);
+ // await runOpportunitySeeder(prisma);
   // Note: seedEmployeeLeaveBalances is already called inside seedEmployees()
 }
 

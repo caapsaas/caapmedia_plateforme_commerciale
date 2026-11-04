@@ -1,0 +1,84 @@
+import { RecurringExpenseService } from './recurring-expense.service';
+import type { JwtUser } from "../../common/auth/jwt/jwt-user.interface";
+import { CreateRecurringExpenseDto } from './dto/create-recurring-expense.dto';
+import { UpdateRecurringExpenseDto } from './dto/update-recurring-expense.dto';
+import { PaginationQueryDto } from "../../common/pagination/dto/pagination-query.dto";
+export declare class RecurringExpenseController {
+    private readonly recurringExpenseService;
+    constructor(recurringExpenseService: RecurringExpenseService);
+    create(createDto: CreateRecurringExpenseDto, user: JwtUser): Promise<{
+        description: string;
+        id: string;
+        subsidiaryId: string;
+        category: import("@prisma/client").$Enums.ExpenseCategory;
+        isActive: boolean;
+        updatedAt: Date;
+        amount: import("@prisma/client/runtime/library").Decimal;
+        createdAt: Date;
+        startDate: Date;
+        endDate: Date | null;
+        expenseRecordType: import("@prisma/client").$Enums.ExpenseType;
+        frequency: import("@prisma/client").$Enums.RecurringExpenseFrequency;
+        nextExecutionDate: Date;
+    }>;
+    findAll(user: JwtUser, paginationQuery: PaginationQueryDto): Promise<import("../../common/pagination/pagination").PaginatedResult<{
+        description: string;
+        id: string;
+        subsidiaryId: string;
+        category: import("@prisma/client").$Enums.ExpenseCategory;
+        isActive: boolean;
+        updatedAt: Date;
+        amount: import("@prisma/client/runtime/library").Decimal;
+        createdAt: Date;
+        startDate: Date;
+        endDate: Date | null;
+        expenseRecordType: import("@prisma/client").$Enums.ExpenseType;
+        frequency: import("@prisma/client").$Enums.RecurringExpenseFrequency;
+        nextExecutionDate: Date;
+    }>>;
+    findOne(id: string, user: JwtUser): Promise<{
+        description: string;
+        id: string;
+        subsidiaryId: string;
+        category: import("@prisma/client").$Enums.ExpenseCategory;
+        isActive: boolean;
+        updatedAt: Date;
+        amount: import("@prisma/client/runtime/library").Decimal;
+        createdAt: Date;
+        startDate: Date;
+        endDate: Date | null;
+        expenseRecordType: import("@prisma/client").$Enums.ExpenseType;
+        frequency: import("@prisma/client").$Enums.RecurringExpenseFrequency;
+        nextExecutionDate: Date;
+    }>;
+    update(id: string, updateDto: UpdateRecurringExpenseDto, user: JwtUser): Promise<{
+        description: string;
+        id: string;
+        subsidiaryId: string;
+        category: import("@prisma/client").$Enums.ExpenseCategory;
+        isActive: boolean;
+        updatedAt: Date;
+        amount: import("@prisma/client/runtime/library").Decimal;
+        createdAt: Date;
+        startDate: Date;
+        endDate: Date | null;
+        expenseRecordType: import("@prisma/client").$Enums.ExpenseType;
+        frequency: import("@prisma/client").$Enums.RecurringExpenseFrequency;
+        nextExecutionDate: Date;
+    }>;
+    remove(id: string, user: JwtUser): Promise<{
+        description: string;
+        id: string;
+        subsidiaryId: string;
+        category: import("@prisma/client").$Enums.ExpenseCategory;
+        isActive: boolean;
+        updatedAt: Date;
+        amount: import("@prisma/client/runtime/library").Decimal;
+        createdAt: Date;
+        startDate: Date;
+        endDate: Date | null;
+        expenseRecordType: import("@prisma/client").$Enums.ExpenseType;
+        frequency: import("@prisma/client").$Enums.RecurringExpenseFrequency;
+        nextExecutionDate: Date;
+    }>;
+}

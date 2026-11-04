@@ -9,10 +9,7 @@ import { ItemType } from '@prisma/client';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 import { FILE_UPLOAD_CONFIG } from 'src/common/constants/file-upload.const';
-import {
-  buildRelativeImagePath,
-  deleteImageFile,
-} from 'src/common/utils/image.util';
+import { ProductImageStorage } from './product-image-storage';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 import { paginate } from 'src/common/pagination/pagination';
 import type { Prisma } from '@prisma/client';
@@ -22,20 +19,20 @@ import type { Prisma } from '@prisma/client';
 // purchase/stock-items — ce service ne gère plus que les Item de type SERVICE.
 @Injectable()
 export class ProductsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly imageStorage: ProductImageStorage,
+  ) {}
 
   private includeAll = {
     productImages: true,
   };
 
   // Cette fonction convertit ces champs en nombres ou chaînes pour que le JSON renvoyé soit plus simple à manipuler côté client
-  private mapDecimals(product: any) {
-    if (!product) return null;
-
-    return {
-      ...product,
-      productImages: product.productImages,
-    };
+  private mapDecimals(
+    product: Prisma.ItemGetPayload<{ include: { productImages: true } }> | null,
+  ) {
+    return product;
   }
 
   /**
@@ -48,20 +45,19 @@ export class ProductsService {
     createProductDto: CreateProductDto,
     files: Express.Multer.File[],
   ) {
+    const { productImages: _ignored, ...productData } = createProductDto;
+    void _ignored;
+    const uploaded = await this.imageStorage.upload(files);
     const product = await this.prisma.item.create({
       data: {
         id: generateId(ID_PREFIXES.PRODUCT),
-        ...createProductDto,
+        ...productData,
         type: ItemType.SERVICE,
         productImages: files?.length
           ? {
-              create: files.map((file) => ({
+              create: uploaded.map((image) => ({
                 id: generateId(ID_PREFIXES.PRODUCTIMAGE),
-                imageName: file.originalname,
-                imageUrl: buildRelativeImagePath(
-                  FILE_UPLOAD_CONFIG.UPLOAD_DIRS.PRODUCTS,
-                  file.filename,
-                ),
+                ...image,
               })),
             }
           : undefined,
@@ -139,6 +135,28 @@ export class ProductsService {
     return products.map((p) => this.mapDecimals(p));
   }
 
+  async findPublicShare(id: string) {
+    const product = await this.prisma.item.findFirst({
+      where: {
+        id,
+        type: ItemType.SERVICE,
+        isActive: true,
+        isVisibleOnSite: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        productImages: {
+          select: { id: true, imageUrl: true },
+          orderBy: { id: 'asc' },
+        },
+      },
+    });
+    if (!product) throw new NotFoundException('Produit indisponible');
+    return product;
+  }
+
   async getFavorites(ids: string[]) {
     return this.prisma.item.findMany({
       where: {
@@ -178,6 +196,7 @@ export class ProductsService {
     files: Express.Multer.File[],
   ) {
     const { productImages, existingImages, ...productData } = updateProductDto;
+    void productImages;
 
     // Vérifie que le service existe
     const currentProduct = await this.findOne(id);
@@ -199,14 +218,6 @@ export class ProductsService {
       keptImageUrls.length + (files?.length || 0) >
       FILE_UPLOAD_CONFIG.LIMITS.MAX_FILES_PER_UPLOAD
     ) {
-      for (const file of files || []) {
-        await deleteImageFile(
-          buildRelativeImagePath(
-            FILE_UPLOAD_CONFIG.UPLOAD_DIRS.PRODUCTS,
-            file.filename,
-          ),
-        );
-      }
       throw new BadRequestException(FILE_UPLOAD_CONFIG.ERRORS.TOO_MANY_FILES);
     }
 
@@ -214,6 +225,7 @@ export class ProductsService {
       currentProduct.productImages as { id: string; imageUrl: string }[]
     ).filter((img) => !keptImageUrls.includes(img.imageUrl));
 
+    const uploaded = await this.imageStorage.upload(files);
     const product = await this.prisma.$transaction(async (tx) => {
       // Mise à jour des infos de base
       await tx.item.update({
@@ -230,13 +242,9 @@ export class ProductsService {
 
       // Ajoute les nouvelles images sans toucher à celles conservées
       if (files?.length) {
-        const newImageData = files.map((file) => ({
+        const newImageData = uploaded.map((image) => ({
           id: generateId(ID_PREFIXES.PRODUCTIMAGE),
-          imageName: file.originalname,
-          imageUrl: buildRelativeImagePath(
-            FILE_UPLOAD_CONFIG.UPLOAD_DIRS.PRODUCTS,
-            file.filename,
-          ),
+          ...image,
           productId: id,
         }));
 
@@ -250,9 +258,9 @@ export class ProductsService {
       });
     });
 
-    // Cleanup des fichiers physiques des images retirées, après succès de la transaction
+    // Conserve les originaux pour les liens publics déjà partagés.
     for (const image of imagesToRemove) {
-      await deleteImageFile(image.imageUrl);
+      this.imageStorage.retainDetached(image.imageUrl);
     }
 
     return this.mapDecimals(product);
@@ -275,9 +283,9 @@ export class ProductsService {
 
     await this.prisma.item.delete({ where: { id } });
 
-    // Cleanup des fichiers physiques après suppression en BD
+    // Conserve les originaux après suppression en base.
     for (const image of existingProduct.productImages) {
-      await deleteImageFile(image.imageUrl);
+      this.imageStorage.retainDetached(image.imageUrl);
     }
 
     return { success: true, id };

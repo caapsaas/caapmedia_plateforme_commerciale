@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "DebtStatus" ADD VALUE 'PARTIELLEMENT_PAYE';

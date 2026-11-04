@@ -12,7 +12,7 @@ export class PrismaService
 {
   constructor() {
     super({
-      log: ['query', 'info', 'warn', 'error'] as Prisma.LogLevel[], // Active les logs Prisma
+      log: ['warn', 'error'] as Prisma.LogLevel[],
     });
   }
 

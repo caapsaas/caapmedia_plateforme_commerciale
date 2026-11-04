@@ -1,3 +1,5 @@
+import { promises as fs } from 'fs';
+import { PrivateDocumentsService } from '../../common/private-documents/private-documents.service';
 import {
   Controller,
   Get,
@@ -53,6 +55,7 @@ export class EmployeeController {
     private readonly employeeService: EmployeeService,
     private readonly logger: LoggerService,
     private readonly fileUploadService: FileUploadService,
+    private readonly privateDocuments: PrivateDocumentsService,
   ) {}
 
   @Post()
@@ -61,7 +64,10 @@ export class EmployeeController {
   @ApiResponse({ status: 201, description: 'Employee successfully created.' })
   async create(@Body() createEmployeeDto: CreateEmployeeDto, @Request() req) {
     const ctx = resolveScopeContext(req.user);
-    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx);
+    // A creation always needs one subsidiary, including for global administrators.
+    const subsidiaryId =
+      resolveEffectiveSubsidiaryId(ctx, createEmployeeDto.subsidiaryId) ??
+      ctx.subsidiaryId;
     this.logger.log(`Creating employee in subsidiary ${subsidiaryId}`);
 
     // Log pour déboguer
@@ -154,9 +160,16 @@ export class EmployeeController {
 
   @Post('upload-documents')
   @Roles('ADMIN', 'HR_MANAGER')
-  @UseInterceptors(AnyFilesInterceptor())
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      limits: { fileSize: 10 * 1024 * 1024, files: 10, fields: 30, parts: 40 },
+    }),
+  )
   @ApiOperation({ summary: 'Upload documents (without employee link)' })
-  async uploadDocumentsGeneric(@UploadedFiles() files: Express.Multer.File[]) {
+  async uploadDocumentsGeneric(
+    @UploadedFiles() files: Express.Multer.File[],
+    @Request() req,
+  ) {
     if (!files || files.length === 0) {
       throw new BadRequestException('No files provided');
     }
@@ -171,7 +184,10 @@ export class EmployeeController {
       const { url } = await this.fileUploadService.uploadFile(
         file.buffer,
         file.originalname,
-        { subfolder: 'employee-documents' },
+        {
+          subfolder: 'employee-documents',
+          privateSubsidiaryId: req.user.subsidiaryId,
+        },
       );
       uploadedFiles.push({
         fieldname: file.fieldname,
@@ -186,12 +202,30 @@ export class EmployeeController {
   @Post('delete-document')
   @Roles('ADMIN', 'HR_MANAGER')
   @ApiOperation({ summary: 'Delete a document file' })
-  async deleteDocument(@Body() body: { url: string }) {
+  async deleteDocument(@Body() body: { url: string }, @Request() req) {
     if (!body.url) {
       throw new BadRequestException('Document URL is required');
     }
 
-    await this.fileUploadService.deleteFile(body.url);
+    const path = body.url
+      .replace(/^\/public\/employee-documents\//, 'employee-documents/')
+      .replace(/^\/api-caapmedia\/private-documents\//, '');
+    const segments = path.split('/');
+    if (
+      segments[0] !== 'employee-documents' ||
+      ![2, 3].includes(segments.length)
+    ) {
+      throw new BadRequestException('Invalid document URL');
+    }
+    const filename = segments[segments.length - 1];
+    const subsidiaryId = segments.length === 3 ? segments[1] : undefined;
+    const resolved = await this.privateDocuments.resolveFile(
+      'employee-documents',
+      filename,
+      subsidiaryId,
+      req.user,
+    );
+    await fs.unlink(resolved);
     return { success: true };
   }
 
@@ -201,7 +235,11 @@ export class EmployeeController {
 
   @Post(':id/upload-documents')
   @Roles('ADMIN', 'HR_MANAGER')
-  @UseInterceptors(AnyFilesInterceptor())
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      limits: { fileSize: 10 * 1024 * 1024, files: 10, fields: 30, parts: 40 },
+    }),
+  )
   @ApiOperation({ summary: 'Upload documents for an employee' })
   async uploadDocuments(
     @Param('id') id: string,
@@ -226,7 +264,10 @@ export class EmployeeController {
       const { url } = await this.fileUploadService.uploadFile(
         file.buffer,
         file.originalname,
-        { subfolder: 'employee-documents' },
+        {
+          subfolder: 'employee-documents',
+          privateSubsidiaryId: employee.subsidiaryId,
+        },
       );
       uploadedFiles.push({
         fieldname: file.fieldname,
@@ -247,7 +288,10 @@ export class EmployeeController {
     @Request() req,
   ) {
     const employee = await this.employeeService.findOne(id, false);
-    assertSubsidiaryAccess(employee.subsidiaryId, resolveScopeContext(req.user));
+    assertSubsidiaryAccess(
+      employee.subsidiaryId,
+      resolveScopeContext(req.user),
+    );
     return this.employeeService.addDocument(
       id,
       body.documentName,
@@ -266,7 +310,10 @@ export class EmployeeController {
     @Request() req,
   ) {
     const employee = await this.employeeService.findOne(id, false);
-    assertSubsidiaryAccess(employee.subsidiaryId, resolveScopeContext(req.user));
+    assertSubsidiaryAccess(
+      employee.subsidiaryId,
+      resolveScopeContext(req.user),
+    );
     return this.employeeService.addTraining(id, {
       ...body,
       trainingDate: new Date(body.trainingDate),
@@ -288,7 +335,10 @@ export class EmployeeController {
     @Request() req,
   ) {
     const employee = await this.employeeService.findOne(id, false);
-    assertSubsidiaryAccess(employee.subsidiaryId, resolveScopeContext(req.user));
+    assertSubsidiaryAccess(
+      employee.subsidiaryId,
+      resolveScopeContext(req.user),
+    );
     return this.employeeService.addPositionHistory(id, {
       ...body,
       startDate: new Date(body.startDate),
@@ -311,7 +361,10 @@ export class EmployeeController {
     @Request() req,
   ) {
     const employee = await this.employeeService.findOne(id, false);
-    assertSubsidiaryAccess(employee.subsidiaryId, resolveScopeContext(req.user));
+    assertSubsidiaryAccess(
+      employee.subsidiaryId,
+      resolveScopeContext(req.user),
+    );
     return this.employeeService.addPerformanceReview(id, {
       ...body,
       reviewDate: new Date(body.reviewDate),
@@ -327,7 +380,10 @@ export class EmployeeController {
     @Request() req,
   ) {
     const employee = await this.employeeService.findOne(id, false);
-    assertSubsidiaryAccess(employee.subsidiaryId, resolveScopeContext(req.user));
+    assertSubsidiaryAccess(
+      employee.subsidiaryId,
+      resolveScopeContext(req.user),
+    );
     return this.employeeService.addLeaveRecord(id, {
       ...body,
       startDate: new Date(body.startDate),
@@ -340,7 +396,10 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Get employee leave balances' })
   async getLeaveBalances(@Param('id') id: string, @Request() req) {
     const employee = await this.employeeService.findOne(id, false);
-    assertSubsidiaryAccess(employee.subsidiaryId, resolveScopeContext(req.user));
+    assertSubsidiaryAccess(
+      employee.subsidiaryId,
+      resolveScopeContext(req.user),
+    );
     return this.employeeService.getLeaveBalances(id);
   }
 
@@ -354,7 +413,10 @@ export class EmployeeController {
     @Request() req,
   ) {
     const employee = await this.employeeService.findOne(id, false);
-    assertSubsidiaryAccess(employee.subsidiaryId, resolveScopeContext(req.user));
+    assertSubsidiaryAccess(
+      employee.subsidiaryId,
+      resolveScopeContext(req.user),
+    );
     return this.employeeService.updateLeaveBalance(
       id,
       leaveType,
@@ -372,7 +434,10 @@ export class EmployeeController {
     @Request() req,
   ) {
     const employee = await this.employeeService.findOne(id, false);
-    assertSubsidiaryAccess(employee.subsidiaryId, resolveScopeContext(req.user));
+    assertSubsidiaryAccess(
+      employee.subsidiaryId,
+      resolveScopeContext(req.user),
+    );
     return this.employeeService.updateAllLeaveBalances(id, leaveBalance);
   }
 }

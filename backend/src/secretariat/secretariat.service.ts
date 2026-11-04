@@ -1,3 +1,4 @@
+import { getActiveRole, isSuperAdmin } from '../common/auth/role/role-identity';
 import {
   Injectable,
   NotFoundException,
@@ -24,6 +25,7 @@ import {
 import { PaginationQueryDto } from '../common/pagination/dto/pagination-query.dto';
 import { paginate } from '../common/pagination/pagination';
 import {
+  resolveScopeContext,
   withSubsidiaryScope,
   assertSubsidiaryAccess,
   SubsidiaryScopeContext,
@@ -104,22 +106,10 @@ export class SecretariatService {
       throw new NotFoundException('Subsidiary not found');
     }
 
-    // Un ADMIN peut créer pour n'importe quelle filiale, un SECRETARY uniquement pour la sienne.
-    if (
-      currentUser.role !== UserRole.ADMIN &&
-      subsidiary.id !== currentUser.subsidiaryId
-    ) {
-      this.logger.warn(
-        `User ${currentUser.id} (role: ${currentUser.role}) tried to create document for foreign subsidiary ${subsidiaryId}`,
-        'SecretariatService',
-      );
-      throw new ForbiddenException(
-        'Not authorized: this subsidiary does not belong to you',
-      );
-    }
+    assertSubsidiaryAccess(subsidiary.id, resolveScopeContext(currentUser));
 
     // Construire le fileUrl ici, similaire à orders.service.ts
-    const fileUrl = `/public/uploads/secretariat/${file.filename}`; // Assurez-vous que votre serveur sert ce chemin statiquement
+    const fileUrl = `/api-caapmedia/private-documents/secretariat/${file.filename}`; // Assurez-vous que votre serveur sert ce chemin statiquement
 
     // Créer le document (Prisma gérera subsidiaryId via data)
     const document = await this.prisma.companyDocument.create({
@@ -167,7 +157,10 @@ export class SecretariatService {
 
     // Vérifier les autorisations
     const allowedRoles: UserRole[] = [UserRole.SECRETARY, UserRole.ADMIN];
-    if (!allowedRoles.includes(currentUser.role)) {
+    if (
+      !isSuperAdmin(currentUser) &&
+      !allowedRoles.includes(getActiveRole(currentUser) as UserRole)
+    ) {
       this.logger.error(
         `User ${currentUser.id} is not authorized to update company document ${id}`,
         'SecretariatService',
@@ -176,16 +169,13 @@ export class SecretariatService {
         'Not authorized to update this company document',
       );
     }
-    const ctx = {
-      subsidiaryId: currentUser.subsidiaryId,
-      hasGlobalScope: currentUser.role === UserRole.ADMIN,
-    };
+    const ctx = resolveScopeContext(currentUser);
     assertSubsidiaryAccess(document.subsidiaryId, ctx);
 
     // Construire les données de mise à jour
     const updateData: Prisma.CompanyDocumentUpdateInput = { ...dto };
     if (file) {
-      updateData.fileUrl = `/public/uploads/secretariat/${file.filename}`; // Construire l'URL si un nouveau fichier est fourni
+      updateData.fileUrl = `/api-caapmedia/private-documents/secretariat/${file.filename}`; // Construire l'URL si un nouveau fichier est fourni
     }
 
     // Vérifier si des données de mise à jour sont fournies (dto + file)
@@ -223,7 +213,10 @@ export class SecretariatService {
 
     // Vérifier les autorisations
     const allowedRoles: UserRole[] = [UserRole.SECRETARY, UserRole.ADMIN];
-    if (!allowedRoles.includes(currentUser.role)) {
+    if (
+      !isSuperAdmin(currentUser) &&
+      !allowedRoles.includes(getActiveRole(currentUser) as UserRole)
+    ) {
       this.logger.error(
         `User ${currentUser.id} is not authorized to delete company document ${id}`,
         'SecretariatService',
@@ -232,10 +225,7 @@ export class SecretariatService {
         'Not authorized to delete this company document',
       );
     }
-    const ctx = {
-      subsidiaryId: currentUser.subsidiaryId,
-      hasGlobalScope: currentUser.role === UserRole.ADMIN,
-    };
+    const ctx = resolveScopeContext(currentUser);
     assertSubsidiaryAccess(document.subsidiaryId, ctx);
 
     // Supprimer le document
@@ -301,7 +291,10 @@ export class SecretariatService {
 
     // Vérifier les autorisations
     const allowedRoles: UserRole[] = [UserRole.SECRETARY, UserRole.ADMIN];
-    if (!allowedRoles.includes(currentUser.role)) {
+    if (
+      !isSuperAdmin(currentUser) &&
+      !allowedRoles.includes(getActiveRole(currentUser) as UserRole)
+    ) {
       this.logger.error(
         `User ${currentUser.id} is not authorized to archive company document ${id}`,
         'SecretariatService',
@@ -310,10 +303,7 @@ export class SecretariatService {
         'Not authorized to archive this company document',
       );
     }
-    const ctx = {
-      subsidiaryId: currentUser.subsidiaryId,
-      hasGlobalScope: currentUser.role === UserRole.ADMIN,
-    };
+    const ctx = resolveScopeContext(currentUser);
     assertSubsidiaryAccess(document.subsidiaryId, ctx);
 
     // Archiver le document

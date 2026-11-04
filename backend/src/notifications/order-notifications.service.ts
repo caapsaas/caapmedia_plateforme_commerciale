@@ -10,6 +10,7 @@ import { NotificationsService, NotifyPayload } from './notifications.service';
 interface OrderReference {
   id: string;
   subsidiaryId: string;
+  salesRepId?: string | null;
 }
 
 @Injectable()
@@ -24,17 +25,31 @@ export class OrderNotificationsService {
     payload: NotifyPayload,
   ) {
     const results = await Promise.allSettled(
-      [...new Set(roles)].map((role) =>
-        this.notifications.notifyUsersByRole(order.subsidiaryId, role, {
-          ...payload,
-          orderId: order.id,
-          data: {
-            ...payload.data,
+      [...new Set(roles)]
+        .filter((role) => role !== UserRole.COMMERCIAL || !!order.salesRepId)
+        .map((role) => {
+          const notification = {
+            ...payload,
             orderId: order.id,
-            subsidiaryId: order.subsidiaryId,
-          },
+            data: {
+              ...payload.data,
+              orderId: order.id,
+              subsidiaryId: order.subsidiaryId,
+            },
+          };
+          return role === UserRole.COMMERCIAL
+            ? this.notifications.notifyUsersByRole(
+                order.subsidiaryId,
+                role,
+                notification,
+                order.salesRepId,
+              )
+            : this.notifications.notifyUsersByRole(
+                order.subsidiaryId,
+                role,
+                notification,
+              );
         }),
-      ),
     );
     for (const result of results) {
       if (result.status === 'rejected') {
@@ -77,6 +92,11 @@ export class OrderNotificationsService {
     const isDelivery =
       status === OrderStatus.PENDING_DELIVERY ||
       status === OrderStatus.DELIVERED;
+    const validated =
+      status === OrderStatus.IN_PRODUCTION &&
+      (previousStatus === OrderStatus.NEW ||
+        previousStatus === OrderStatus.PENDING_VALIDATION);
+    const cancelled = status === OrderStatus.CANCELLED;
     return this.send(
       order,
       [
@@ -86,13 +106,23 @@ export class OrderNotificationsService {
         UserRole.CAISSIER,
       ],
       {
-        title: isDelivery
-          ? 'Livraison de commande'
-          : 'Statut de commande modifié',
+        title: validated
+          ? 'Commande validée pour la production'
+          : cancelled
+            ? 'Commande annulée avant production'
+            : isDelivery
+              ? 'Livraison de commande'
+              : 'Statut de commande modifié',
         message: `La commande ${order.id} est ${labels[status]}.`,
         type: NotificationType.ORDER_STATUS,
         data: {
-          event: isDelivery ? 'order.delivery' : 'order.status',
+          event: validated
+            ? 'order.validated'
+            : cancelled
+              ? 'order.cancelled'
+              : isDelivery
+                ? 'order.delivery'
+                : 'order.status',
           previousStatus,
           status,
         },
@@ -124,7 +154,13 @@ export class OrderNotificationsService {
             : 'Avancement de production',
         message: `Commande ${order.id} : ${labels[status]}.`,
         type: NotificationType.ORDER_STATUS,
-        data: { event: 'order.production', productionStatus: status },
+        data: {
+          event:
+            status === ProductionStatus.READY_FOR_DELIVERY
+              ? 'order.ready'
+              : 'order.production',
+          productionStatus: status,
+        },
       },
     );
   }

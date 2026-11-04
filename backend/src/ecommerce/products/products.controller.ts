@@ -1,3 +1,5 @@
+import type { Request, Response } from 'express';
+import { renderProductShare } from './product-share';
 import {
   BadRequestException,
   Body,
@@ -8,24 +10,21 @@ import {
   Patch,
   Post,
   Query,
+  Req,
+  Res,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import { memoryStorage } from 'multer';
 import { ProductsService } from './products.service';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { Roles } from 'src/common/auth/role/role.decorator';
 import { UserRole } from '@prisma/client';
-import { extname } from 'path';
 import { CreateProductDto, UpdateProductDto } from './dto/create-product.dto';
 import { FILE_UPLOAD_CONFIG } from 'src/common/constants/file-upload.const';
-import {
-  validateImageFile,
-  generateSecureFilename,
-} from 'src/common/utils/image.util';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 // Catalogue de services (Chantier 1) : donnée globale, pas de scope filiale.
@@ -43,18 +42,7 @@ export class ProductsController {
       'productImages',
       FILE_UPLOAD_CONFIG.LIMITS.MAX_FILES_PER_UPLOAD,
       {
-        storage: diskStorage({
-          destination: FILE_UPLOAD_CONFIG.UPLOAD_DIRS.PRODUCTS,
-          filename: (req, file, cb) => {
-            try {
-              validateImageFile(file);
-              const filename = generateSecureFilename(file, 'product');
-              cb(null, filename);
-            } catch (error) {
-              cb(error as Error, '');
-            }
-          },
-        }),
+        storage: memoryStorage(),
         limits: {
           fileSize: FILE_UPLOAD_CONFIG.LIMITS.MAX_FILE_SIZE,
         },
@@ -137,9 +125,28 @@ export class ProductsController {
   }
 
   /**
-   * Endpoint pour récupérer un service par son ID
-   * Exemple d'URL : /products/:id
+   * Page publique avec métadonnées lisibles par les robots WhatsApp.
    */
+  @Get(':id/share')
+  async share(
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const product = await this.productsService.findPublicShare(id);
+    const origin =
+      process.env.PUBLIC_BACKEND_URL || req.protocol + '://' + req.get('host');
+    return res
+      .type('html')
+      .set({
+        'Cache-Control': 'public, max-age=60',
+        'Content-Security-Policy':
+          "default-src 'none'; img-src https: http:; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'",
+        'Referrer-Policy': 'no-referrer',
+      })
+      .send(renderProductShare(product, origin));
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(
@@ -165,18 +172,7 @@ export class ProductsController {
       'productImages',
       FILE_UPLOAD_CONFIG.LIMITS.MAX_FILES_PER_UPLOAD,
       {
-        storage: diskStorage({
-          destination: FILE_UPLOAD_CONFIG.UPLOAD_DIRS.PRODUCTS,
-          filename: (req, file, cb) => {
-            try {
-              validateImageFile(file);
-              const filename = generateSecureFilename(file, 'product');
-              cb(null, filename);
-            } catch (error) {
-              cb(error as Error, '');
-            }
-          },
-        }),
+        storage: memoryStorage(),
         limits: {
           fileSize: FILE_UPLOAD_CONFIG.LIMITS.MAX_FILE_SIZE,
         },

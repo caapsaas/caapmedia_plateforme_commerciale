@@ -8,6 +8,7 @@ import {
   RecipientType,
   UserRole,
   Prisma,
+  Notification,
 } from '@prisma/client';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { generateId } from 'src/common/utils/generate-id.util';
@@ -32,9 +33,13 @@ export class NotificationsService {
     private readonly sse: NotificationsSseService,
   ) {}
 
-  /** Point d'entrée unique de création — toute notification staff passe par ici (persistance + push SSE). */
-  async notifyUser(userId: string, payload: NotifyPayload) {
-    const notification = await this.prisma.notification.create({
+  /** Persistence may join a business transaction; publish only after commit. */
+  createNotification(
+    userId: string,
+    payload: NotifyPayload,
+    client: Prisma.TransactionClient = this.prisma,
+  ) {
+    return client.notification.create({
       data: {
         id: generateId(ID_PREFIXES.NOTIFICATION),
         title: payload.title,
@@ -48,6 +53,15 @@ export class NotificationsService {
         targetRole: payload.targetRole,
       },
     });
+  }
+
+  publish(notification: Notification): void {
+    this.sse.push(notification.recipientId, notification);
+  }
+
+  /** Point d'entrée unique de création avec persistance puis push SSE. */
+  async notifyUser(userId: string, payload: NotifyPayload) {
+    const notification = await this.createNotification(userId, payload);
     this.sse.push(userId, notification);
     return notification;
   }
@@ -57,10 +71,12 @@ export class NotificationsService {
     subsidiaryId: string,
     role: UserRole,
     payload: NotifyPayload,
+    recipientId?: string,
   ) {
     const users = await this.prisma.user.findMany({
       where: {
         subsidiaryId,
+        ...(recipientId ? { id: recipientId } : {}),
         OR: [
           { userRole: role },
           { roles: { has: role } },

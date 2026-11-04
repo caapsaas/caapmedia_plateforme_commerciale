@@ -1,4 +1,9 @@
-import { CustomerPaymentMethod } from '@prisma/client';
+import {
+  CustomerPaymentMethod,
+  OrderStatus,
+  PaymentStatus,
+  ProductionStatus,
+} from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { SalesService } from './sales.service';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
@@ -68,6 +73,9 @@ describe('Direct sales assembly fees', () => {
         data: expect.objectContaining({
           subsidiaryId: 'branch',
           subtotal,
+          status: OrderStatus.PENDING_VALIDATION,
+          productionStatus: ProductionStatus.PREPRESS,
+          paymentStatus: PaymentStatus.PAID,
           totalAmount: total,
           orderItems: {
             create: [

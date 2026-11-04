@@ -1,3 +1,9 @@
+import { getActiveRole } from '../../common/auth/role/role-identity';
+import {
+  resolveScopeContext,
+  withSubsidiaryScope,
+} from '../../common/utils/subsidiary-scope';
+import type { JwtUser } from '../../common/auth/jwt/jwt-user.interface';
 import {
   BadRequestException,
   ConflictException,
@@ -25,6 +31,7 @@ import {
   CustomerPaymentMethod,
   TransactionType,
   TransactionStatus,
+  UserRole,
 } from '@prisma/client';
 import { FindAllOrdersDto, OrderPeriod } from './dto/find-all-orders.dto';
 import { paginate } from 'src/common/pagination/pagination';
@@ -40,7 +47,11 @@ import {
 import { Decimal } from '@prisma/client/runtime/library';
 import { ProductSpecsService } from '../products/product-specs/product-specs.service';
 import { OrderNotificationsService } from '../../notifications/order-notifications.service';
-import { assertOrderTransition, BEFORE_PRODUCTION, nextOrderStatusForProduction } from './order-workflow';
+import {
+  assertOrderTransition,
+  BEFORE_PRODUCTION,
+  nextOrderStatusForProduction,
+} from './order-workflow';
 
 // Allowlist shared by every order response, including raw Prisma responses.
 const orderCustomerSelect = {
@@ -89,6 +100,9 @@ export class OrdersService {
       status: order.status,
       productionStatus: order.productionStatus,
       paymentStatus: order.paymentStatus,
+      paymentMethod:
+        (order as { paymentMethod?: CustomerPaymentMethod | null })
+          .paymentMethod ?? null,
       productionHistory: order.productionHistory ?? [],
       orderItems: (order.orderItems ?? []).map((item: any) => ({
         id: item.id,
@@ -142,10 +156,33 @@ export class OrdersService {
       source,
       opportunityId,
       applyTax = true,
+      occasionalCustomer,
     } = createOrderDto;
+
+    if (Boolean(customerId?.trim()) === Boolean(occasionalCustomer)) {
+      throw new BadRequestException(
+        'Sélectionnez un client existant ou renseignez un client occasionnel.',
+      );
+    }
+    if (occasionalCustomer && opportunityId) {
+      throw new BadRequestException(
+        'Une opportunité existante nécessite un client existant.',
+      );
+    }
+    if (!user.subsidiaryId) {
+      throw new BadRequestException(
+        'Une filiale est requise pour créer une commande.',
+      );
+    }
 
     // Le corps d'un formulaire multipart est toujours en string, il faut parser les items.
     const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
+
+    if ((designFiles?.length ?? 0) > (parsedItems?.length ?? 0)) {
+      throw new BadRequestException(
+        'Un fichier de conception au maximum par article.',
+      );
+    }
 
     const { id: salesRepId, subsidiaryId: salesRepSubsidiaryId } = user;
 
@@ -167,12 +204,14 @@ export class OrdersService {
     const productIds = parsedItems.map((item) => item.productId);
     const distinctProductIds = [...new Set<string>(productIds)];
 
-    const [products, taxRate, customer] = await Promise.all([
+    const [products, taxRate] = await Promise.all([
       this.prisma.item.findMany({
         where: { id: { in: productIds }, type: ItemType.SERVICE },
       }),
       this.prisma.taxRate.findFirstOrThrow({ where: { isDefault: true } }),
-      this.prisma.contact.findUniqueOrThrow({ where: { id: customerId } }),
+      customerId
+        ? this.prisma.contact.findUniqueOrThrow({ where: { id: customerId } })
+        : Promise.resolve(null),
     ]);
 
     // Le client est une entité globale (Chantier 6) : il peut avoir été créé
@@ -251,10 +290,39 @@ export class OrdersService {
     const totalAmount = subtotal.add(taxAmount);
 
     const createdOrder = await this.prisma.$transaction(async (tx) => {
+      let effectiveCustomerId = customerId;
+      if (occasionalCustomer) {
+        if (occasionalCustomer.email) {
+          const existing = await tx.contact.findUnique({
+            where: { email: occasionalCustomer.email },
+          });
+          if (existing) {
+            throw new ConflictException(
+              'Un client utilise déjà cet email. Sélectionnez sa fiche existante.',
+            );
+          }
+        }
+        const contact = await tx.contact.create({
+          data: {
+            id: generateId(ID_PREFIXES.CONTACT),
+            contactName: occasionalCustomer.name,
+            phone: occasionalCustomer.phone,
+            email: occasionalCustomer.email ?? null,
+            company: '',
+            address: '',
+            since: new Date(),
+            subsidiaryId: salesRepSubsidiaryId,
+            salesRepId,
+            isOccasional: true,
+            isVerified: false,
+          },
+        });
+        effectiveCustomerId = contact.id;
+      }
       const newOrder = await tx.order.create({
         data: {
           id: generateId(ID_PREFIXES.ORDER),
-          customerName,
+          customerName: occasionalCustomer?.name ?? customerName,
           paymentDueDate: new Date(paymentDueDate),
           source,
           subtotal,
@@ -263,11 +331,11 @@ export class OrdersService {
           taxRateValue: effectiveTaxRate,
           applyTax,
           status: OrderStatus.PENDING_VALIDATION,
-          paymentMethod: null, // Le mode de paiement sera défini lors de l'encaissement.
+          paymentMethod: createOrderDto.paymentMethod,
           productionStatus: ProductionStatus.PREPRESS,
           paymentStatus: PaymentStatus.UNPAID,
           amountPaid: 0,
-          customerId,
+          customerId: effectiveCustomerId!,
           subsidiaryId: salesRepSubsidiaryId, // Filiale du commercial connecté
           taxRateId: taxRate.id,
           salesRepId,
@@ -314,7 +382,7 @@ export class OrdersService {
           },
         },
         include: {
-          orderItems: true,
+          orderItems: { include: { product: true } },
         },
       });
 
@@ -366,7 +434,7 @@ export class OrdersService {
       return newOrder;
     });
     await this.orderNotifications.created(createdOrder);
-    return createdOrder;
+    return this.mapOrderToResponse(createdOrder);
   }
 
   /**
@@ -496,9 +564,17 @@ export class OrdersService {
     return this.mapOrderToResponse(order);
   }
 
-  async findOne(id: string, user: any) {
+  async findOne(id: string, user: JwtUser) {
     const order = await this.prisma.order.findUnique({
-      where: { id, subsidiaryId: user.subsidiaryId },
+      where: withSubsidiaryScope(
+        {
+          id,
+          ...(getActiveRole(user) === UserRole.COMMERCIAL
+            ? { salesRepId: user.id }
+            : {}),
+        },
+        resolveScopeContext(user),
+      ),
       include: {
         orderItems: {
           include: {
@@ -545,15 +621,19 @@ export class OrdersService {
     }
 
     assertOrderTransition(order, updateDto.status, user);
-    if (order.status === updateDto.status) return this.mapOrderToResponse(order);
+    if (order.status === updateDto.status)
+      return this.mapOrderToResponse(order);
 
     return this.prisma
       .$transaction(async (tx) => {
         const updatedOrder = await tx.order.update({
           where: {
-            id, subsidiaryId: user.subsidiaryId, status: order.status,
+            id,
+            subsidiaryId: user.subsidiaryId,
+            status: order.status,
             productionStatus: order.productionStatus,
-            amountPaid: order.amountPaid, paymentStatus: order.paymentStatus,
+            amountPaid: order.amountPaid,
+            paymentStatus: order.paymentStatus,
           },
           data: { status: updateDto.status },
           include: this.orderFullInclude,
@@ -597,26 +677,42 @@ export class OrdersService {
     user: any,
   ) {
     if (!user.subsidiaryId) throw new ForbiddenException('Filiale requise.');
-    const order = await this.prisma.order.findUnique({ where: { id, subsidiaryId: user.subsidiaryId } });
+    const order = await this.prisma.order.findUnique({
+      where: { id, subsidiaryId: user.subsidiaryId },
+    });
     if (!order) throw new NotFoundException(`Commande "${id}" introuvable.`);
-    const nextStatus = nextOrderStatusForProduction(order, updateDto.productionStatus, user);
+    const nextStatus = nextOrderStatusForProduction(
+      order,
+      updateDto.productionStatus,
+      user,
+    );
 
-    const updated = await this.prisma.$transaction(async (tx) => {
-      const updateProduction = await tx.order.update({
-        where: { id, subsidiaryId: user.subsidiaryId, status: order.status, productionStatus: order.productionStatus },
-        data: { productionStatus: updateDto.productionStatus, status: nextStatus },
-      });
+    const updated = await this.prisma
+      .$transaction(async (tx) => {
+        const updateProduction = await tx.order.update({
+          where: {
+            id,
+            subsidiaryId: user.subsidiaryId,
+            status: order.status,
+            productionStatus: order.productionStatus,
+          },
+          data: {
+            productionStatus: updateDto.productionStatus,
+            status: nextStatus,
+          },
+        });
 
-      await tx.orderProductionHistory.create({
-        data: {
-          id: generateId(ID_PREFIXES.ORDERPRODUCTIONHISTORY),
-          orderId: id,
-          status: updateDto.productionStatus,
-        },
-      });
+        await tx.orderProductionHistory.create({
+          data: {
+            id: generateId(ID_PREFIXES.ORDERPRODUCTIONHISTORY),
+            orderId: id,
+            status: updateDto.productionStatus,
+          },
+        });
 
-      return updateProduction;
-    }).catch((error: unknown) => this.handleStatusConflict(error));
+        return updateProduction;
+      })
+      .catch((error: unknown) => this.handleStatusConflict(error));
     if (order.productionStatus !== updateDto.productionStatus) {
       await this.orderNotifications.productionChanged(
         updated,
@@ -936,7 +1032,11 @@ export class OrdersService {
 
       return this.mapOrderToResponse(finalOrder);
     });
-    const reference = { id, subsidiaryId: user.subsidiaryId };
+    const reference = {
+      id,
+      subsidiaryId: user.subsidiaryId,
+      ...(payment.salesRep?.id ? { salesRepId: payment.salesRep.id } : {}),
+    };
     await this.orderNotifications.paymentReceived(reference);
     return payment;
   }
@@ -966,7 +1066,11 @@ export class OrdersService {
   }
 
   async validateForProduction(id: string, user: any) {
-    return this.updateOrderStatus(id, { status: OrderStatus.IN_PRODUCTION }, user);
+    return this.updateOrderStatus(
+      id,
+      { status: OrderStatus.IN_PRODUCTION },
+      user,
+    );
   }
 
   async rejectByProductionDirector(id: string, user: any) {
