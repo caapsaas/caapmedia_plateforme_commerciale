@@ -15,7 +15,7 @@ const ViewSignatureModal: React.FC<ViewSignatureModalProps> = ({ isOpen, onClose
 
     return (
         <div 
-            className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4"
+            className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4"
             onClick={onClose}
             role="dialog"
         >

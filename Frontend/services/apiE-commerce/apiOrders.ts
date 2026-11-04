@@ -2,6 +2,12 @@ import { api } from '.././api';
 import { CustomerPaymentMethod, OrderStatus, PaymentStatus, ProductionStatus, Order } from '../../types';
 import { PaginatedResponse } from '../../types/pagination.types';
 
+export interface OccasionalOrderCustomer {
+    name: string;
+    phone: string;
+    email?: string;
+}
+
 export interface PaymentAccount { id: string; accountName: string }
 
 export const getOrderPaymentAccounts = async (): Promise<PaymentAccount[]> => {
@@ -45,7 +51,7 @@ export const createOrderBySalesRep = async (orderData: FormData) => {
  * @param orderData - Les données de la commande à créer.
  */
 export const createOrderBySalesRepJson = async (orderData: any) => {
-    const { data } = await api.post('/ecommerce/orders/by-salesrep/json', orderData, {
+    const { data } = await api.post<Order>('/ecommerce/orders/by-salesrep/json', orderData, {
         headers: {
             'Content-Type': 'application/json',
         },
@@ -182,3 +188,9 @@ export const rejectOrderByDirector = async (orderId: string) => {
     return data;
 };
     
+
+/** Staff-only detail route: tenant and commercial ownership are checked server-side. */
+export const getStaffOrderById = async (id: string): Promise<Order> => {
+  const { data } = await api.get(`/ecommerce/orders/staff/${encodeURIComponent(id)}`);
+  return data;
+};

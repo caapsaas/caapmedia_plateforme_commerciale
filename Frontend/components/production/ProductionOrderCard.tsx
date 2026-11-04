@@ -36,7 +36,7 @@ const ProductionOrderCard: React.FC<ProductionOrderCardProps> = ({ order, onDrag
             <p className="text-xs text-slate-500 mt-2 truncate" title={itemSummary}>
                 {itemSummary}
             </p>
-            {hasRole(WITHDRAW_ROLES) && (
+            {!readOnly && hasRole(WITHDRAW_ROLES) && (
                 <button
                     onClick={(e) => { e.stopPropagation(); onWithdrawMaterials(order.id); }}
                     className="mt-3 w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-semibold bg-slate-100 text-slate-600 rounded-md hover:bg-slate-200 transition-colors"

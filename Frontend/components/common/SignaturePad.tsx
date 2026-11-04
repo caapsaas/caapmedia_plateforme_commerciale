@@ -98,7 +98,7 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClose, title, cle
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose} role="dialog">
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose} role="dialog">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md flex flex-col" onClick={e => e.stopPropagation()}>
                 <div className="p-4 border-b">
                      <h3 className="text-lg font-bold text-slate-900">{title}</h3>

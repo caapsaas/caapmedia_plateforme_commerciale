@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+/* Shared translucent veil for modal overlays and native dialogs. */
+.modal-backdrop,
+.modal-dialog::backdrop {
+  background-color: rgb(15 23 42 / 25%);
+}

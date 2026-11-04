@@ -17,7 +17,7 @@ import { Plus, Edit, User, Briefcase, DollarSign, FileText, Umbrella } from '../
 interface EmployeeFormModalModernProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (employee: EmployeeFormData) => void;
+  onSave: (employee: EmployeeFormData) => Promise<void>;
   employee: Employee | null;
 }
 
@@ -96,6 +96,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
       setFormData({
         ...initialFormState,
         ...employee,
+        salaryInputMode: employee.salaryInputMode ?? 'BASE',
         birthDate: employee.birthDate ? new Date(employee.birthDate).toISOString().split('T')[0] : '',
         hireDate: employee.hireDate ? new Date(employee.hireDate).toISOString().split('T')[0] : '',
         bankName: employee.bankName || '',
@@ -149,7 +150,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
       case 'phone':
         return /^[+]?[0-9\s\-()]{7,20}$/.test(value) ? null : 'Invalid phone format';
       case 'targetNetSalary':
-        return value > 0 ? null : 'Net salary must be > 0';
+        return formData.salaryInputMode !== 'NET' || value > 0 ? null : 'Net salary must be > 0';
       case 'birthDate': {
         const age = new Date().getFullYear() - new Date(value).getFullYear();
         return age >= 16 ? null : 'Employee must be at least 16 years old';
@@ -166,7 +167,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
     const numericFields = ['bonus', 'numberDependents', 'targetNetSalary'];
     const actualValue = numericFields.includes(name) ? parseFloat(value) || 0 : value;
 
-    setFormData((prev: any) => ({ ...prev, [name]: actualValue }));
+    setFormData((prev: any) => ({ ...prev, [name]: actualValue, ...(name === 'targetNetSalary' ? { salaryInputMode: 'NET' } : {}) }));
 
     const error = validateField(name, actualValue);
     if (error) {
@@ -192,7 +193,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
     setFormData((prev: any) => ({ ...prev, leaveRecords }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -207,6 +208,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      setActiveTab(newErrors.targetNetSalary ? 'salary' : newErrors.hireDate ? 'professional' : 'personal');
       setIsLoading(false);
       return;
     }
@@ -215,7 +217,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
       // Ensure data persistence by explicitly including all nested objects
       const dataToSave = {
         ...formData,
-        salaryInputMode: 'NET' as const,
+        salaryInputMode: formData.salaryInputMode,
         bankName: formData.bankName || '',
         bankAccountNumber: formData.bankAccountNumber || '',
         documents: {
@@ -236,7 +238,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
         leaveRecords: Array.isArray(formData.leaveRecords) ? formData.leaveRecords : [],
       };
 
-      onSave(dataToSave);
+      await onSave(dataToSave);
     } catch (error) {
       console.error('Error saving employee:', error);
     } finally {
@@ -274,7 +276,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4 overflow-y-auto">
       <Card className="w-full max-w-4xl my-8">
         <CardHeader gradient>
           <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
@@ -315,7 +317,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                   <FormInput
                     label={t('configuration.form.firstName')}
                     name="firstName"
-                    value={formData.firstName}
+                    value={formData.firstName ?? ''}
                     onChange={handleChange}
                     error={errors.firstName}
                     required
@@ -323,7 +325,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                   <FormInput
                     label={t('configuration.form.lastName')}
                     name="lastName"
-                    value={formData.lastName}
+                    value={formData.lastName ?? ''}
                     onChange={handleChange}
                     error={errors.lastName}
                     required
@@ -335,7 +337,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                     label={t('configuration.form.birthDate')}
                     name="birthDate"
                     type="date"
-                    value={formData.birthDate}
+                    value={formData.birthDate ?? ''}
                     onChange={handleChange}
                     error={errors.birthDate}
                     required
@@ -343,7 +345,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                   <FormSelect
                     label={t('configuration.form.gender')}
                     name="gender"
-                    value={formData.gender}
+                    value={formData.gender ?? ''}
                     onChange={handleChange}
                     required
                     options={Object.entries(Gender).map(([, v]) => ({
@@ -357,7 +359,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                   label={t('configuration.form.email')}
                   name="email"
                   type="email"
-                  value={formData.email}
+                  value={formData.email ?? ''}
                   onChange={handleChange}
                   error={errors.email}
                   required
@@ -367,7 +369,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                   label={t('configuration.form.phone')}
                   name="phone"
                   type="tel"
-                  value={formData.phone}
+                  value={formData.phone ?? ''}
                   onChange={handleChange}
                   error={errors.phone}
                   required
@@ -377,13 +379,13 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                   <FormInput
                     label={t('configuration.form.nationality')}
                     name="nationality"
-                    value={formData.nationality}
+                    value={formData.nationality ?? ''}
                     onChange={handleChange}
                   />
                   <FormInput
                     label={t('configuration.form.ssn')}
                     name="socialSecurityNumber"
-                    value={formData.socialSecurityNumber}
+                    value={formData.socialSecurityNumber ?? ''}
                     onChange={handleChange}
                   />
                 </div>
@@ -391,7 +393,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                 <FormInput
                   label={t('configuration.form.address')}
                   name="address"
-                  value={formData.address}
+                  value={formData.address ?? ''}
                   onChange={handleChange}
                 />
 
@@ -399,7 +401,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                   <FormSelect
                     label={t('hr.maritalStatus')}
                     name="situationMatrimony"
-                    value={formData.situationMatrimony}
+                    value={formData.situationMatrimony ?? ''}
                     onChange={handleChange}
                     options={[
                       { value: 'SINGLE', label: t('hr.maritalStatusOptions.SINGLE') },
@@ -412,7 +414,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                     label={t('hr.numberDependents')}
                     name="numberDependents"
                     type="number"
-                    value={formData.numberDependents}
+                    value={formData.numberDependents ?? ''}
                     onChange={handleChange}
                     helperText={t('hr.dependentsHelperText')}
                   />
@@ -427,14 +429,14 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                   <FormInput
                     label={t('configuration.form.position')}
                     name="positions"
-                    value={formData.positions}
+                    value={formData.positions ?? ''}
                     onChange={handleChange}
                     required
                   />
                   <FormInput
                     label={t('configuration.form.department')}
                     name="department"
-                    value={formData.department}
+                    value={formData.department ?? ''}
                     onChange={handleChange}
                     required
                   />
@@ -445,7 +447,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                     label={t('configuration.form.hireDate')}
                     name="hireDate"
                     type="date"
-                    value={formData.hireDate}
+                    value={formData.hireDate ?? ''}
                     onChange={handleChange}
                     error={errors.hireDate}
                     required
@@ -453,7 +455,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                   <FormSelect
                     label={t('configuration.form.contractType')}
                     name="contractType"
-                    value={formData.contractType}
+                    value={formData.contractType ?? ''}
                     onChange={handleChange}
                     required
                     options={Object.entries(ContractType).map(([, v]) => ({
@@ -467,7 +469,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                   <FormSelect
                     label={t('configuration.form.employeeStatus')}
                     name="status"
-                    value={formData.status}
+                    value={formData.status ?? ''}
                     onChange={handleChange}
                     required
                     options={Object.entries(EmployeeStatus).map(([, v]) => ({
@@ -478,7 +480,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                   <FormInput
                     label={t('configuration.form.workLocation')}
                     name="workLocation"
-                    value={formData.workLocation}
+                    value={formData.workLocation ?? ''}
                     onChange={handleChange}
                   />
                 </div>
@@ -493,17 +495,17 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                     label={t('hr.form.salarySection.targetNetSalary') || 'Salaire net souhaité'}
                     name="targetNetSalary"
                     type="number"
-                    value={formData.targetNetSalary}
+                    value={formData.targetNetSalary ?? ''}
                     onChange={handleChange}
                     error={errors.targetNetSalary}
                     helperText={t('hr.form.salarySection.targetNetSalaryHelper') || 'Salaire net souhaité mensuel (FCFA)'}
-                    required
+                    required={formData.salaryInputMode === 'NET'}
                   />
                   <FormInput
                     label={t('hr.form.salarySection.bonus')}
                     name="bonus"
                     type="number"
-                    value={formData.bonus}
+                    value={formData.bonus ?? ''}
                     onChange={handleChange}
                     helperText={t('hr.form.salarySection.bonusHelper')}
                   />
@@ -604,7 +606,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                 <FormSelect
                   label={t('hr.form.salarySection.paymentMethod')}
                   name="paymentMethod"
-                  value={formData.paymentMethod}
+                  value={formData.paymentMethod ?? ''}
                   onChange={handleChange}
                   error={errors.paymentMethod}
                   required
@@ -626,7 +628,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                           <FormSelect
                             label={t('hr.bankName')}
                             name="bankName"
-                            value={formData.bankName}
+                            value={formData.bankName ?? ''}
                             onChange={handleChange}
                             options={[
                               { value: '', label: '-- Sélectionner une banque --' },
@@ -641,7 +643,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                         <FormInput
                           label={treasuryAccounts.length > 0 ? t('hr.bankName') + " (texte libre)" : t('hr.bankName')}
                           name="bankName"
-                          value={formData.bankName}
+                          value={formData.bankName ?? ''}
                           onChange={handleChange}
                           placeholder="Ou entrez le nom de la banque"
                           helperText={treasuryAccounts.length > 0 ? "Valeur personnalisée ou autre banque" : ""}
@@ -651,7 +653,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                       <FormInput
                         label={t('hr.bankAccountNumber')}
                         name="bankAccountNumber"
-                        value={formData.bankAccountNumber}
+                        value={formData.bankAccountNumber ?? ''}
                         onChange={handleChange}
                         placeholder="RIB/IBAN"
                         required={formData.paymentMethod === PaymentMethod.BANK_TRANSFER}

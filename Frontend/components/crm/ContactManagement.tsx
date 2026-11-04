@@ -15,6 +15,7 @@ import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
 import Pagination from '../common/Pagination';
 import { LockIcon, MailIcon } from 'lucide-react';
+import ExcelImportButton from './ExcelImportButton';
 
 const CONTACTS_PAGE_SIZE = 10;
 
@@ -129,10 +130,31 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
         <div className="bg-white p-6 rounded-xl shadow-md">
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-semibold text-slate-800">{t('crm.contacts.title')}</h3>
-                <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
-                    <IconPlus className="h-4 w-4" />
-                    <span>{t('crm.contacts.add')}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                    <ExcelImportButton
+                        title="contacts"
+                        columns={[
+                            { key: 'contactName', label: 'Nom', required: true },
+                            { key: 'company', label: 'Entreprise' },
+                            { key: 'email', label: 'Email', required: true },
+                            { key: 'phone', label: 'Téléphone' },
+                            { key: 'address', label: 'Adresse', required: true },
+                            { key: 'status', label: 'Statut', defaultValue: ContactStatus.PROSPECT },
+                        ]}
+                        onImport={async rows => {
+                            for (const row of rows) await onSave({
+                                contactName: String(row.contactName), company: String(row.company || ''),
+                                email: String(row.email), phone: String(row.phone || ''), address: String(row.address),
+                                since: new Date().toISOString().slice(0, 10), isVerified: true,
+                                status: (String(row.status) as ContactStatus) || ContactStatus.PROSPECT, salesRepId: '',
+                            });
+                        }}
+                    />
+                    <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
+                        <IconPlus className="h-4 w-4" />
+                        <span>{t('crm.contacts.add')}</span>
+                    </button>
+                </div>
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-slate-500">

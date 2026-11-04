@@ -91,7 +91,7 @@ const CommercialParamsManagement: React.FC = () => {
                         {showMinField && <div>
                             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
                                 {t('production.commercialParams.minMargin')}
-                            </label>
+                             <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                             <div className="relative">
                                 <input
                                     type="number"
@@ -110,7 +110,7 @@ const CommercialParamsManagement: React.FC = () => {
                         {showMaxField && <div>
                             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
                                 {t('production.commercialParams.maxMargin')}
-                            </label>
+                             <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                             <div className="relative">
                                 <input
                                     type="number"

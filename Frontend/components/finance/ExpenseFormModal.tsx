@@ -103,7 +103,7 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({ isOpen, onClose, on
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
                 <form onSubmit={handleSubmit}>
                     <div className="p-6">
@@ -112,18 +112,18 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({ isOpen, onClose, on
                         </h3>
                         <div className="mt-4 space-y-4">
                             <div>
-                                <label htmlFor="description" className="block text-sm font-medium text-slate-700">{t('expenses.table.description')}</label>
+                                <label htmlFor="description" className="block text-sm font-medium text-slate-700">{t('expenses.table.description')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input type="text" name="description" id="description" value={formData.description} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="category" className="block text-sm font-medium text-slate-700">{t('expenses.table.category')}</label>
+                                    <label htmlFor="category" className="block text-sm font-medium text-slate-700">{t('expenses.table.category')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                     <select name="category" id="category" value={formData.category} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                         {Object.values(ExpenseCategory).map(cat => <option key={cat} value={cat}>{t(`expenses.categories.${cat}`)}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label htmlFor="type" className="block text-sm font-medium text-slate-700">{t('expenses.table.type')}</label>
+                                    <label htmlFor="type" className="block text-sm font-medium text-slate-700">{t('expenses.table.type')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                     <select name="type" id="type" value={formData.type} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                         {Object.values(ExpenseType).map(tVal => <option key={tVal} value={tVal}>{t(`expenses.types.${tVal}`)}</option>)}
                                     </select>
@@ -133,7 +133,7 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({ isOpen, onClose, on
                             {/* Champ période pour les salaires */}
                             {isSalaryCategory && (
                                 <div>
-                                    <label htmlFor="period" className="block text-sm font-medium text-slate-700">Période</label>
+                                    <label htmlFor="period" className="block text-sm font-medium text-slate-700">Période <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                     <input type="month" name="period" id="period" value={formData.period} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
                             )}
@@ -143,7 +143,7 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({ isOpen, onClose, on
                                     <label htmlFor="amount" className="block text-sm font-medium text-slate-700 flex items-center gap-2">
                                         {t('expenses.table.amount')}
                                         {isSalaryCategory && isLoadingCharges && <span className="text-xs text-blue-600">⏳ Chargement...</span>}
-                                    </label>
+                                     <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                     <input
                                         type="number"
                                         step="any"
@@ -160,7 +160,7 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({ isOpen, onClose, on
                                     )}
                                 </div>
                                 <div>
-                                    <label htmlFor="date" className="block text-sm font-medium text-slate-700">{t('expenses.table.date')}</label>
+                                    <label htmlFor="date" className="block text-sm font-medium text-slate-700">{t('expenses.table.date')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                     <input type="date" name="date" id="date" value={formData.date} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
                             </div>

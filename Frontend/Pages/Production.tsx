@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { useOrderNotificationSelection } from '../hooks/useOrderNotificationSelection';
+import React, { useEffect, useState } from 'react';
 import { useI18n } from '../i18n';
 import { OrderStatus, ProductionStatus, Order, UserRole, Subsidiary } from '../types';
 import ProductionOrderCard from '../components/production/ProductionOrderCard';
@@ -9,6 +10,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getOrders, updateProductionStatus } from '../services/apiE-commerce/apiOrders';
 import { getSubsidiaries } from '../services/apiCommon/apiSubsidiaries';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { canManageProduction, canAdvanceProduction, isKanbanOrder } from '../utils/orderWorkflow';
 
 type Tab = 'validation' | 'kanban';
 
@@ -16,14 +19,25 @@ const Production: React.FC = () => {
     const { t } = useI18n();
     const { subsidiary, user } = useAuth();
     const queryClient = useQueryClient();
+    const toast = useToast();
     const [activeTab, setActiveTab] = useState<Tab>('validation');
     const [draggedOverColumn, setDraggedOverColumn] = useState<ProductionStatus | null>(null);
     const [withdrawOrderId, setWithdrawOrderId] = useState<string | null>(null);
+    const notificationSelection = useOrderNotificationSelection('/dashboard/production');
     const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
     const [kanbanSubsidiaryFilter, setKanbanSubsidiaryFilter] = useState<string>('');
 
+    useEffect(() => {
+        if (notificationSelection.order) {
+            const order = notificationSelection.order;
+            setDetailsOrder(order);
+            setActiveTab(order.status === OrderStatus.NEW || order.status === OrderStatus.PENDING_VALIDATION ? 'validation' : 'kanban');
+        }
+    }, [notificationSelection.order]);
+
     const activeRole = user?.activeRole ?? user?.userRole;
     const isSuperAdmin = activeRole === UserRole.SUPER_ADMIN;
+    const canEditProduction = canManageProduction(activeRole);
     const isProductionDirector =
         activeRole === UserRole.PRODUCTION_DIRECTOR ||
         activeRole === UserRole.ADMIN ||
@@ -41,17 +55,16 @@ const Production: React.FC = () => {
         queryKey,
         queryFn: () => getOrders(isSuperAdmin ? { subsidiaryId: kanbanSubsidiaryFilter || undefined } : undefined),
         enabled: isSuperAdmin || !!subsidiary,
-        select: (orders) => orders.filter(o =>
-            (o.status === OrderStatus.IN_PRODUCTION || o.status === OrderStatus.NEW) &&
-            o.productionStatus !== ProductionStatus.READY_FOR_DELIVERY
-        ),
+        select: (orders) => orders.filter(isKanbanOrder),
     });
 
-    const { mutate: updateStatusMutation } = useMutation({
+    const { mutate: updateStatusMutation, isPending: updateStatusPending } = useMutation({
         mutationFn: updateProductionStatus,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKey });
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
         },
+        onError: () => toast.error(t('order.workflowError')),
     });
 
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>, orderId: string) => {
@@ -62,7 +75,13 @@ const Production: React.FC = () => {
         e.preventDefault();
         const orderId = e.dataTransfer.getData('orderId');
         const order = productionOrders.find(o => o.id === orderId);
+        if (!canEditProduction || updateStatusPending) return;
         if (order && order.productionStatus !== newStatus) {
+            if (!canAdvanceProduction(order, newStatus, activeRole)) {
+                toast.warning(t('production.sequenceError'));
+                setDraggedOverColumn(null);
+                return;
+            }
             updateStatusMutation({ orderId, productionStatus: newStatus });
         }
         setDraggedOverColumn(null);
@@ -117,6 +136,8 @@ const Production: React.FC = () => {
                 )}
             </div>
 
+            <p className="text-sm text-slate-500">{t(activeTab === 'validation' && isProductionDirector ? 'production.validationHelp' : 'production.kanbanHelp')}</p>
+
             {/* Vue Validation */}
             {(activeTab === 'validation' && isProductionDirector) && (
                 <ProductionValidationView />
@@ -164,9 +185,9 @@ const Production: React.FC = () => {
                             {productionColumns.map(status => (
                                 <div
                                     key={status}
-                                    onDrop={isSuperAdmin ? undefined : (e) => handleDrop(e, status)}
-                                    onDragOver={isSuperAdmin ? undefined : (e) => handleDragOver(e, status)}
-                                    onDragLeave={isSuperAdmin ? undefined : handleDragLeave}
+                                    onDrop={!canEditProduction ? undefined : (e) => handleDrop(e, status)}
+                                    onDragOver={!canEditProduction ? undefined : (e) => handleDragOver(e, status)}
+                                    onDragLeave={!canEditProduction ? undefined : handleDragLeave}
                                     className={`w-80 bg-slate-100 rounded-lg flex-shrink-0 flex flex-col transition-colors duration-300 ${
                                         !isSuperAdmin && draggedOverColumn === status ? 'bg-slate-200' : ''
                                     }`}
@@ -189,7 +210,7 @@ const Production: React.FC = () => {
                                                     onDragStart={(e) => handleDragStart(e, order.id)}
                                                     onWithdrawMaterials={setWithdrawOrderId}
                                                     onViewDetails={setDetailsOrder}
-                                                    readOnly={isSuperAdmin}
+                                                    readOnly={!canEditProduction || order.status !== OrderStatus.IN_PRODUCTION || updateStatusPending}
                                                 />
                                             ))}
                                     </div>
@@ -210,7 +231,7 @@ const Production: React.FC = () => {
 
             <ProductionOrderDetailsModal
                 isOpen={!!detailsOrder}
-                onClose={() => setDetailsOrder(null)}
+                onClose={() => { setDetailsOrder(null); notificationSelection.close(); }}
                 order={detailsOrder}
             />
         </div>

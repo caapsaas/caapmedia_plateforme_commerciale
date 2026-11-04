@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Product, Contact, Order, CustomerPaymentMethod, TaxRate, TreasuryAccount, AccountType, ProductOptions } from '../../types';
+import { Product, Contact, Order, CustomerPaymentMethod, TaxRate, ProductOptions } from '../../types';
 import IconCreditCard from '../icons/IconCreditCard';
 import IconMobilePayment from '../icons/IconMobilePayment';
 import IconCash from '../icons/IconCash';
@@ -37,12 +37,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getServicesCatalog } from '../../services/apiE-commerce/apiProducts';
 import { getContacts, createContactByEmployee, ContactCreationData } from '../../services/apiCrm/apicontacts';
 import EmptyState from '../ui/EmptyState';
-import { getOrders, recordOrderPayment, FindAllOrdersDto } from '../../services/apiE-commerce/apiOrders';
+import { getOrders, recordOrderPayment, FindAllOrdersDto, getOrderPaymentAccounts, PaymentAccount } from '../../services/apiE-commerce/apiOrders';
 import { createDirectSale, CreateDirectSaleDto } from '../../services/apiE-commerce/apiSales';
 import { getTaxes } from '../../services/apiE-commerce/apitaxes';
 import { LazyLoadImage } from 'react-lazy-load-image-component';
 import 'react-lazy-load-image-component/src/effects/blur.css';
-import { getTreasuryAccounts } from '../../services/apiFinance/apiTreasury';
 import { getImageUrl } from '../../utils/imageUtils';
 import { useAuth } from '../../context/AuthContext';
 
@@ -116,7 +115,7 @@ const Caisse: React.FC = () => {
     });
 
     const { mutate: recordPaymentMutate, isPending: isRecordingPayment } = useMutation({
-        mutationFn: (data: { orderId: string; amount: number; paymentMethod: CustomerPaymentMethod }) => recordOrderPayment(data),
+        mutationFn: (data: { orderId: string; amount: number; paymentMethod: CustomerPaymentMethod; bankAccountId?: string; transactionReference?: string }) => recordOrderPayment(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['orders'] });
             queryClient.invalidateQueries({ queryKey: ['sales'] });
@@ -174,10 +173,10 @@ const Caisse: React.FC = () => {
     const isBankingPayment = selectedPaymentMethod ? BANKING_METHODS.includes(selectedPaymentMethod) : false;
 
     // Comptes bancaires de la filiale (BANQUE uniquement)
-    const { data: bankAccounts = [] } = useQuery<TreasuryAccount[]>({
-        queryKey: ['treasury-accounts', subsidiary?.id],
-        queryFn: () => getTreasuryAccounts(subsidiary?.id),
-        enabled: !!subsidiary,
+    const { data: bankAccounts = [] } = useQuery<PaymentAccount[]>({
+        queryKey: ['order-payment-accounts', subsidiary?.id],
+        queryFn: getOrderPaymentAccounts,
+        enabled: !!subsidiary && isBankingPayment,
     });
 
     // Calculs financiers respectant les principes métiers Ventes (Sous-total, TVA, Total TTC)
@@ -320,7 +319,7 @@ const Caisse: React.FC = () => {
         const amount = parseFloat(paymentAmount);
         const remainingBalance = loadedOrder.totalAmount - loadedOrder.amountPaid;
         if (amount > 0 && amount <= remainingBalance) {
-            recordPaymentMutate({ orderId: loadedOrder.id, amount, paymentMethod: selectedPaymentMethod });
+            recordPaymentMutate({ orderId: loadedOrder.id, amount, paymentMethod: selectedPaymentMethod, bankAccountId: selectedBankAccountId || undefined, transactionReference: transactionReference || undefined });
         }
     };
     
@@ -610,7 +609,6 @@ const Caisse: React.FC = () => {
                                             >
                                                 <option value="">-- Sélectionner un compte --</option>
                                                 {bankAccounts
-                                                    .filter(acc => acc.accountType === AccountType.BANQUE)
                                                     .map(acc => (
                                                         <option key={acc.id} value={acc.id}>{acc.accountName}</option>
                                                     ))}

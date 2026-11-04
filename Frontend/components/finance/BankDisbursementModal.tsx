@@ -77,7 +77,7 @@ const BankDisbursementModal: React.FC<BankDisbursementModalProps> = ({ isOpen, o
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b bg-gradient-to-r from-[#c6e911]/15 to-white">
           <h3 className="text-lg font-bold text-slate-800">{t('bankDisbursement.title')}</h3>
@@ -86,7 +86,7 @@ const BankDisbursementModal: React.FC<BankDisbursementModalProps> = ({ isOpen, o
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700">{t('bankDisbursement.sourceAccount')}</label>
+            <label className="block text-sm font-medium text-slate-700">{t('bankDisbursement.sourceAccount')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
             <select value={sourceAccountId} onChange={(e) => setSourceAccountId(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border bg-white">
               <option value="">{t('bankDisbursement.selectBank')}</option>
               {bankAccounts.map((acc) => (
@@ -99,7 +99,7 @@ const BankDisbursementModal: React.FC<BankDisbursementModalProps> = ({ isOpen, o
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">{t('bankDisbursement.operationType')}</label>
+            <label className="block text-sm font-medium text-slate-700">{t('bankDisbursement.operationType')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
             <select value={treasuryType} onChange={(e) => setTreasuryType(e.target.value as TreasuryTransactionType)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border bg-white">
               <option value={TreasuryTransactionType.SALARY_PAYMENT}>{t('bankDisbursement.salaryPayment')}</option>
               <option value={TreasuryTransactionType.BONUS_PAYMENT}>{t('bankDisbursement.bonusPayment')}</option>
@@ -108,17 +108,17 @@ const BankDisbursementModal: React.FC<BankDisbursementModalProps> = ({ isOpen, o
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700">{t('bankDisbursement.amount')}</label>
+              <label className="block text-sm font-medium text-slate-700">{t('bankDisbursement.amount')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
               <input type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.date')}</label>
+              <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.date')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
               <input type="date" value={transactionDate} onChange={(e) => setTransactionDate(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border" />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">{t('bankDisbursement.description')}</label>
+            <label className="block text-sm font-medium text-slate-700">{t('bankDisbursement.description')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
             <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border" placeholder={t('bankDisbursement.descriptionPlaceholder')} />
           </div>
 

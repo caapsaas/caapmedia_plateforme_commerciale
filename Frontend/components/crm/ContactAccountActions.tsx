@@ -115,7 +115,7 @@ const ContactAccountActions: React.FC<ContactAccountActionsProps> = ({
                                         <code className="text-xs bg-green-100 px-2 py-1 rounded">{contact.email}</code>
                                         <button
                                             type="button"
-                                            onClick={() => copyToClipboard(contact.email)}
+                                            onClick={() => copyToClipboard(contact.email ?? '')}
                                             className="ml-2 text-green-600 hover:text-green-800"
                                         >
                                             <MailIcon className="w-4 h-4" />

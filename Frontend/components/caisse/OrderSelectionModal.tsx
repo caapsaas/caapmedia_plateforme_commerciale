@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Order, PaymentStatus, Contact } from '../../types';
+import { Order, OrderStatus, PaymentStatus, Contact } from '../../types';
 import { useI18n } from '../../i18n';
 import EmptyState from '../ui/EmptyState';
 
@@ -23,7 +23,7 @@ const OrderSelectionModal: React.FC<OrderSelectionModalProps> = ({ isOpen, onClo
     const [searchTerm, setSearchTerm] = useState('');
 
     const searchableOrders = useMemo(() => {
-        return orders.filter(order => order.paymentStatus !== PaymentStatus.PAID);
+        return orders.filter(order => order.paymentStatus !== PaymentStatus.PAID && order.status !== OrderStatus.CANCELLED);
     }, [orders]);
 
     const filteredOrders = useMemo(() => {
@@ -44,7 +44,7 @@ const OrderSelectionModal: React.FC<OrderSelectionModalProps> = ({ isOpen, onClo
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl" onClick={e => e.stopPropagation()}>
                 <div className="p-6 border-b">
                     <h3 className="text-lg font-bold text-slate-900">{t('cashRegister.orderSelectionModal.title')}</h3>

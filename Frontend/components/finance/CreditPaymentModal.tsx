@@ -66,7 +66,7 @@ const CreditPaymentModal: React.FC<CreditPaymentModalProps> = ({ isOpen, onClose
     );
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl" onClick={e => e.stopPropagation()}>
                 <form onSubmit={handleSubmit}>
                     <div className="p-6 border-b">
@@ -95,7 +95,7 @@ const CreditPaymentModal: React.FC<CreditPaymentModalProps> = ({ isOpen, onClose
                         ) : (
                             <>
                                 <div>
-                                    <label htmlFor="orderId" className="block text-sm font-medium text-slate-700">Commande à encaisser</label>
+                                    <label htmlFor="orderId" className="block text-sm font-medium text-slate-700">Commande à encaisser <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                     <select id="orderId" value={selectedOrderId} onChange={(e) => { const orderId = e.target.value; setSelectedOrderId(orderId); const order = unpaidOrders.find((o: Order) => o.id === orderId); if (order) { setAmount(order.totalAmount - order.amountPaid); } }} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" required>
                                         {unpaidOrders.map((order: Order) => (
                                             <option key={order.id} value={order.id}>
@@ -107,12 +107,12 @@ const CreditPaymentModal: React.FC<CreditPaymentModalProps> = ({ isOpen, onClose
                                 {selectedOrderId && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <label htmlFor="amount" className="block text-sm font-medium text-slate-700">Montant à encaisser</label>
+                                            <label htmlFor="amount" className="block text-sm font-medium text-slate-700">Montant à encaisser <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                             <input type="number" id="amount" value={amount} onChange={(e) => setAmount(parseFloat(e.target.value))} max={remainingBalance} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" required />
                                             <p className="text-xs text-slate-500 mt-1">Solde restant sur cette commande : {formatCurrency(remainingBalance)}</p>
                                         </div>
                                         <div>
-                                            <label htmlFor="paymentMethod" className="block text-sm font-medium text-slate-700">Moyen de paiement</label>
+                                            <label htmlFor="paymentMethod" className="block text-sm font-medium text-slate-700">Moyen de paiement <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                             <select id="paymentMethod" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as CustomerPaymentMethod)} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" required>
                                                 {paymentMethods.map(method => (<option key={method} value={method}>{t(`payment.${method}`)}</option>))}
                                             </select>

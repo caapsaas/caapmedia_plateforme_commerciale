@@ -65,7 +65,7 @@ const AttendanceActionModal: React.FC<AttendanceActionModalProps> = ({ isOpen, o
 
     return (
         <>
-            <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+            <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
                 <div className="bg-white rounded-lg shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
                     <form onSubmit={handleSubmit}>
                         <div className="p-6">
@@ -75,19 +75,19 @@ const AttendanceActionModal: React.FC<AttendanceActionModalProps> = ({ isOpen, o
                             <div className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label htmlFor="employeeId" className="block text-sm font-medium text-slate-700">{t('hr.attendance.employee')}</label>
+                                        <label htmlFor="employeeId" className="block text-sm font-medium text-slate-700">{t('hr.attendance.employee')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                         <select name="employeeId" id="employeeId" value={selectedEmployeeId} onChange={e => setSelectedEmployeeId(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                             <option value="" disabled>Select an employee</option>
                                             {employees.map(emp => <option key={emp.id} value={emp.id}>{`${emp.firstName} ${emp.lastName}`}</option>)}
                                         </select>
                                     </div>
                                     <div>
-                                        <label htmlFor="attendanceDate" className="block text-sm font-medium text-slate-700">{t('hr.attendance.date')}</label>
+                                        <label htmlFor="attendanceDate" className="block text-sm font-medium text-slate-700">{t('hr.attendance.date')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                         <input type="date" name="attendanceDate" id="attendanceDate" value={date} onChange={e => setDate(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                     </div>
                                 </div>
                                 <div>
-                                    <label htmlFor="status" className="block text-sm font-medium text-slate-700">{t('hr.attendance.status')}</label>
+                                    <label htmlFor="status" className="block text-sm font-medium text-slate-700">{t('hr.attendance.status')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                     <select name="status" id="status" value={status} onChange={e => setStatus(e.target.value as AttendanceStatus)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                         <option value="PRESENT">{t('hr.attendance.status_PRESENT')}</option>
                                         <option value="ABSENT_JUSTIFIED">{t('hr.attendance.status_ABSENT_JUSTIFIED')}</option>

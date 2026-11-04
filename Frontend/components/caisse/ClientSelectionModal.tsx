@@ -47,7 +47,7 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({ isOpen, onC
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
                 <div className="flex border-b">
                     <button onClick={() => setActiveTab('select')} className={`flex-1 py-3 font-semibold text-center ${activeTab === 'select' ? 'text-[#c6e911] border-b-2 border-[#c6e911]' : 'text-slate-500'}`}>{t('cashRegister.clientSection.selectTab')}</button>
@@ -74,7 +74,7 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({ isOpen, onC
                 ) : (
                     <form onSubmit={handleCreateSubmit} className="p-6 space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
+                            <label className="block text-sm font-medium text-slate-700">{t('configuration.form.name')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                             <input type="text" name="contactName" value={newClientData.contactName} onChange={handleNewClientChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"/>
                         </div>
                         <div>
@@ -82,7 +82,7 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({ isOpen, onC
                             <input type="text" name="company" value={newClientData.company} onChange={handleNewClientChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"/>
                         </div>
                          <div>
-                            <label className="block text-sm font-medium text-slate-700">{t('configuration.form.email')}</label>
+                            <label className="block text-sm font-medium text-slate-700">{t('configuration.form.email')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                             <input type="email" name="email" value={newClientData.email} onChange={handleNewClientChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"/>
                         </div>
                          <div>
@@ -90,7 +90,7 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({ isOpen, onC
                             <input type="tel" name="phone" value={newClientData.phone} onChange={handleNewClientChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"/>
                         </div>
                          <div>
-                            <label className="block text-sm font-medium text-slate-700">{t('configuration.form.address')}</label>
+                            <label className="block text-sm font-medium text-slate-700">{t('configuration.form.address')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                             <input type="text" name="address" value={newClientData.address} onChange={handleNewClientChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"/>
                         </div>
                         <button type="submit" className="w-full py-3 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f]">{t('createAndSelect')}</button>

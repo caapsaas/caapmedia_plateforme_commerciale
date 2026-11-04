@@ -10,6 +10,7 @@ import TaxManagement from '../components/configuration/TaxManagement';
 import TreasuryAccountManagement from '../components/configuration/TreasuryAccountManagement';
 import BankManagement from '../components/configuration/BankManagement';
 import EquipmentCostManagement from '../components/configuration/EquipmentCostManagement';
+import Equipements from './Equipements';
 import CommercialParamsManagement from '../components/configuration/CommercialParamsManagement';
 import ProductionWorkflowManagement from '../components/configuration/ProductionWorkflowManagement';
 import PayrollScaleManagement from '../components/configuration/PayrollScaleManagement';
@@ -19,7 +20,7 @@ import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
 import CrmListSkeleton from '../components/ui/CrmListSkeleton';
 
-type ConfigGroup = 'catalogue' | 'users' | 'suppliers' | 'clients' | 'taxes' | 'treasury' | 'production' | 'payroll' | 'subsidiaries';
+type ConfigGroup = 'catalogue' | 'users' | 'suppliers' | 'clients' | 'taxes' | 'treasury' | 'equipment' | 'production' | 'payroll' | 'subsidiaries';
 type CatalogueSub = 'products' | 'units' | 'services' | 'referenceLists';
 type ProductionSub = 'equipmentCosts' | 'commercialParams' | 'productionWorkflows';
 type TreasurySub = 'accounts' | 'banks';
@@ -55,6 +56,8 @@ const Configuration: React.FC = () => {
     const [treasurySub, setTreasurySub] = useState<TreasurySub>('accounts');
 
     const isSuperAdmin = user?.userRole === UserRole.SUPER_ADMIN || user?.additionalRoles?.includes(UserRole.SUPER_ADMIN) === true;
+    const equipmentRoles = [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR, UserRole.FINANCIAL_DIRECTOR];
+    const canManageEquipment = !!user && equipmentRoles.includes(user.activeRole ?? user.userRole);
 
     const renderActiveView = () => {
         if (!subsidiary && !(isSuperAdmin && activeGroup === 'subsidiaries')) return <CrmListSkeleton columns={5} />;
@@ -72,6 +75,7 @@ const Configuration: React.FC = () => {
             case 'suppliers': return <SupplierManagement />;
             case 'clients':   return <ClientManagement />;
             case 'taxes':     return <TaxManagement />;
+            case 'equipment': return canManageEquipment ? <Equipements /> : null;
             case 'treasury':
                 switch (treasurySub) {
                     case 'accounts': return <TreasuryAccountManagement subsidiary={subsidiary} />;
@@ -112,6 +116,7 @@ const Configuration: React.FC = () => {
                             <TabButton label={t('configuration.clientManagement')}{...group('clients')} />
                             <TabButton label={t('configuration.taxes')}          {...group('taxes')} />
                             <TabButton label={t('configuration.treasury')}       {...group('treasury')} />
+                            {canManageEquipment && <TabButton label={t('sidebar.equipements')} {...group('equipment')} />}
                             <TabButton label={t('hr.payroll.title')}             {...group('payroll')} />
                             {isSuperAdmin && (
                                 <>

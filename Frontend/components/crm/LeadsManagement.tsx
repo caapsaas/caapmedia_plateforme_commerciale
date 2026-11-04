@@ -12,6 +12,7 @@ import ConfirmationModal from '../common/ConfirmationModal';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
 import Pagination from '../common/Pagination';
+import ExcelImportButton from './ExcelImportButton';
 
 const LEADS_PAGE_SIZE = 10;
 
@@ -19,7 +20,7 @@ interface LeadsManagementProps {
     subsidiaryId: string;
     filterSubsidiaryId?: string;
     filterSalesRepId?: string;
-    onSave: (data: Omit<Lead, 'id' | 'subsidiaryId'> & { id?: string }) => void;
+    onSave: (data: Omit<Lead, 'id' | 'subsidiaryId'> & { id?: string }) => Promise<unknown>;
     onDelete: (id: string) => void;
     onConvertLead: (leadId: string) => void;
 }
@@ -112,10 +113,76 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({
         <div className="bg-white p-6 rounded-xl shadow-md">
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-semibold text-slate-800">{t('crm.leads.title')}</h3>
-                <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
-                    <IconPlus className="h-4 w-4" />
-                    <span>{t('crm.leads.add')}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                    <ExcelImportButton
+                        title="pistes"
+                        columns={[
+                            { key: 'externalReference', label: 'ID prospect', aliases: ['ID'] },
+                            { key: 'leadName', label: 'Nom', aliases: ['Entreprise'], required: true },
+                            { key: 'company', label: 'Entreprise', required: true },
+                            { key: 'email', label: 'Email', aliases: ['Courriel public'], validate: value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) },
+                            { key: 'phone', label: 'Téléphone', aliases: ['Téléphone public'] },
+                            { key: 'zone', label: 'Zone' },
+                            { key: 'cityArea', label: 'Ville / quartier' },
+                            { key: 'sector', label: 'Secteur' },
+                            { key: 'caapOffer', label: 'Offre CaapMedia' },
+                            { key: 'yearEndNeed', label: 'Besoin fin d’année (hypothèse)' },
+                            { key: 'requestedService', label: 'Service à demander' },
+                            { key: 'score', label: 'Score /100' },
+                            { key: 'commercialPriority', label: 'Priorité' },
+                            { key: 'verification', label: 'Vérification' },
+                            { key: 'nextAction', label: 'Prochaine action' },
+                            { key: 'commercialStatus', label: 'Statut commercial', aliases: ['Statut commercial'] },
+                            { key: 'responsibleName', label: 'Responsable' },
+                            { key: 'contactDate', label: 'Date contact' },
+                            { key: 'followUpDate', label: 'Date relance' },
+                            { key: 'followUpNotes', label: 'Notes de suivi' },
+                            { key: 'whatsappConfirmed', label: 'WhatsApp confirmé' },
+                            { key: 'observedFact', label: 'Fait public observé' },
+                            { key: 'locationSource', label: 'Source implantation' },
+                            { key: 'contactSource', label: 'Source contact' },
+                            { key: 'signalDate', label: 'Date événement / signal' },
+                            { key: 'signalSource', label: 'Source signal' },
+                            { key: 'documentaryConfidence', label: 'Confiance documentaire' },
+                            { key: 'fitScore', label: 'Adéquation /30' },
+                            { key: 'recentSignalScore', label: 'Signal récent /20' },
+                            { key: 'recurrenceScore', label: 'Récurrence /20' },
+                            { key: 'accessibilityScore', label: 'Accessibilité /20' },
+                            { key: 'feasibilityScore', label: 'Faisabilité /10' },
+                            { key: 'caapOfferSource', label: 'Source offre CaapMedia' },
+                            { key: 'consultationDate', label: 'Consultation' },
+                            { key: 'country', label: 'Pays' },
+                            { key: 'prospectType', label: 'Type de prospect' },
+                            { key: 'officialWebsite', label: 'Site officiel' },
+                            { key: 'reservesLogistics', label: 'Réserves et logistique' },
+                            { key: 'linkedinPublic', label: 'LinkedIn public' },
+                            { key: 'preparedMessage', label: 'Message préparé' },
+                            { key: 'status', label: 'Statut', aliases: ['Statut CRM'], defaultValue: LeadStatus.NEW, exactHeaderOnly: true },
+                        ]}
+                        onImport={async rows => {
+                            let imported = 0;
+                            let failed = 0;
+                            for (const row of rows) {
+                                try {
+                                    await onSave({
+                                        ...row,
+                                        email: String(row.email ?? '').trim() || null,
+                                        phone: String(row.phone ?? '').trim() || null,
+                                    } as Omit<Lead, 'id' | 'subsidiaryId'>);
+                                    imported++;
+                                } catch {
+                                    // Continuer l'import, par exemple quand une piste a déjà été créée lors d'une tentative précédente.
+                                    failed++;
+                                }
+                            }
+                            return { imported, failed };
+                        }}
+                    />
+                    <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
+                        <IconPlus className="h-4 w-4" />
+                        <span>{t('crm.leads.add')}</span>
+                    </button>
+                </div>
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-slate-500">
@@ -142,8 +209,8 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({
                             <tr key={lead.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{lead.leadName}</td>
                                 <td className="px-6 py-4">{lead.company}</td>
-                                <td className="px-6 py-4">{lead.email}</td>
-                                <td className="px-6 py-4">{lead.phone}</td>
+                                <td className="px-6 py-4">{lead.email || '—'}</td>
+                                <td className="px-6 py-4">{lead.phone || '—'}</td>
                                 <td className="px-6 py-4">
                                     <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(lead.status)}`}>
                                         {t(`crm.leads.status_${lead.status}`)}

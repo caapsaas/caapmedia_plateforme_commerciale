@@ -185,7 +185,7 @@ const CashRemittanceManagement: React.FC = () => {
       </div>
 
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={() => setShowCreateModal(false)}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={() => setShowCreateModal(false)}>
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
               <h3 className="text-lg font-bold text-slate-900">{t('cashRemittance.new')}</h3>
@@ -248,7 +248,7 @@ const CashRemittanceManagement: React.FC = () => {
       )}
 
       {receivingRemittance && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={() => setReceivingRemittance(null)}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={() => setReceivingRemittance(null)}>
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
               <h3 className="text-lg font-bold text-slate-900">

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TreasuryAccount, Subsidiary, UserRole } from '../../types/models';
 import { useAuth } from '../../context/AuthContext';
-import { useHasRole } from '../../hooks/useHasRole';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -18,7 +17,6 @@ interface TreasuryAccountManagementProps {
 const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ subsidiary }) => {
   const { t } = useI18n();
   const { user } = useAuth();
-  const { hasRole } = useHasRole();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -44,7 +42,9 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
   );
 
   // Vérifier les permissions
-  const canManage = hasRole([UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR]);
+  // Le SUPER_ADMIN garde son accès global ; sinon, seul le rôle actif ADMIN
+  // peut modifier ou supprimer un compte.
+  const canManage = isSuperAdmin || (user?.activeRole ?? user?.userRole) === UserRole.ADMIN;
 
   useEffect(() => {
     loadAccounts();

@@ -294,7 +294,7 @@ const Maintenance: React.FC = () => {
                                                 <div>
                                                     <label className="block text-xs font-semibold text-slate-500 mb-1">
                                                         {t('maintenance.form.maintenanceDate')}
-                                                    </label>
+                                                     <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                                     <input
                                                         type="date"
                                                         value={form.maintenanceDate}
@@ -306,7 +306,7 @@ const Maintenance: React.FC = () => {
                                                 <div>
                                                     <label className="block text-xs font-semibold text-slate-500 mb-1">
                                                         {t('maintenance.form.technician')}
-                                                    </label>
+                                                     <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                                     <input
                                                         type="text"
                                                         value={form.technician}
@@ -320,7 +320,7 @@ const Maintenance: React.FC = () => {
                                             <div>
                                                 <label className="block text-xs font-semibold text-slate-500 mb-1">
                                                     {t('maintenance.form.description')}
-                                                </label>
+                                                 <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                                 <textarea
                                                     value={form.description}
                                                     onChange={e => setForm(p => ({ ...p, description: e.target.value }))}

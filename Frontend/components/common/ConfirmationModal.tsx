@@ -31,7 +31,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
     return (
         <div
-            className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4 backdrop-blur-sm"
+            className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4"
             onClick={onClose}
             role="dialog"
             aria-modal="true"

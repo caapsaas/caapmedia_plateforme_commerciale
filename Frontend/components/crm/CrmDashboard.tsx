@@ -17,6 +17,7 @@ interface CrmDashboardProps {
     crmTasks: CrmTask[];
     opportunities: Opportunity[];
     onUpdateTaskStatus: (taskId: string, status: CrmTaskStatus) => void;
+    readOnly?: boolean;
 }
 
 // `task.dueDate` était affiché brut (ISO) au lieu d'une date localisée.
@@ -40,6 +41,7 @@ const CrmDashboard: React.FC<CrmDashboardProps> = ({
     crmTasks,
     opportunities,
     onUpdateTaskStatus,
+    readOnly = false,
 }) => {
     const { t, formatCurrency, language } = useI18n();
 
@@ -166,12 +168,14 @@ const CrmDashboard: React.FC<CrmDashboardProps> = ({
                                             {contactMap.get(task.contactId) ?? '—'} · {fmtDate(task.dueDate, language)}
                                         </p>
                                     </div>
-                                    <button
-                                        onClick={() => onUpdateTaskStatus(task.id, CrmTaskStatus.DONE)}
-                                        className="shrink-0 text-xs font-semibold text-green-600 hover:underline"
-                                    >
-                                        {t('crm.tasks.complete')}
-                                    </button>
+                                    {!readOnly && (
+                                        <button
+                                            onClick={() => onUpdateTaskStatus(task.id, CrmTaskStatus.DONE)}
+                                            className="shrink-0 text-xs font-semibold text-green-600 hover:underline"
+                                        >
+                                            {t('crm.tasks.complete')}
+                                        </button>
+                                    )}
                                 </li>
                             ))}
                         </ul>

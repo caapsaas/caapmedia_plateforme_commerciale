@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Order, CustomerPaymentMethod } from '../../types';
 import { useI18n } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
-import { getOrderPaymentAccounts, PaymentAccount } from '../../services/apiE-commerce/apiorders';
+import { getOrderPaymentAccounts, PaymentAccount } from '../../services/apiE-commerce/apiOrders';
 import IconCreditCard from '../icons/IconCreditCard';
 import IconMobilePayment from '../icons/IconMobilePayment';
 import IconCash from '../icons/IconCash';
@@ -87,7 +87,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
                 <form onSubmit={handleSubmit} className="flex flex-col max-h-[90vh]">
                     <div className="px-6 py-4 border-b shrink-0">
@@ -108,7 +108,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, onClose
                             <span className="text-red-600">{formatCurrency(remainingBalance)}</span>
                         </div>
                         <div>
-                            <label htmlFor="amount" className="block text-xs font-medium text-slate-700">{t('sales.recordPaymentModal.amountToRecord')}</label>
+                            <label htmlFor="amount" className="block text-xs font-medium text-slate-700">{t('sales.recordPaymentModal.amountToRecord')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                             <input 
                                 type="number" 
                                 id="amount" 

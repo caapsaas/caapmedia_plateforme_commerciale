@@ -55,7 +55,7 @@ const SmigUpdateModal: React.FC<SmigUpdateModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <form onSubmit={handleSubmit}>
           <div className="p-6">
@@ -74,7 +74,7 @@ const SmigUpdateModal: React.FC<SmigUpdateModalProps> = ({
               <div>
                 <label htmlFor="minWage" className="block text-sm font-medium text-slate-700">
                   {t('hr.payroll.form.minWage')} (FCFA)
-                </label>
+                 <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                 <input
                   type="number"
                   id="minWage"
@@ -91,7 +91,7 @@ const SmigUpdateModal: React.FC<SmigUpdateModalProps> = ({
               <div>
                 <label htmlFor="effectiveDate" className="block text-sm font-medium text-slate-700">
                   {t('hr.payroll.form.effectiveDate')}
-                </label>
+                 <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                 <input
                   type="date"
                   id="effectiveDate"

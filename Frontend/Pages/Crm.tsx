@@ -46,6 +46,8 @@ const Crm: React.FC = () => {
     }
 
     const effectiveRole = user.activeRole ?? user.userRole;
+    const isFinancialDirector = effectiveRole === UserRole.FINANCIAL_DIRECTOR;
+    const visibleTab: CrmView = isFinancialDirector ? 'dashboard' : activeTab;
     const hasGlobalScope = effectiveRole === UserRole.SUPER_ADMIN;
     const canFilterByCommercial =
         effectiveRole === UserRole.SUPER_ADMIN ||
@@ -114,7 +116,7 @@ const Crm: React.FC = () => {
         },
     });
     const { mutate: onDeleteContact } = useMutation({ mutationFn: deleteContact, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('contacts') }) });
-    const { mutate: onSaveLead } = useMutation({ mutationFn: saveLead, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('leads') }) });
+    const { mutateAsync: onSaveLead } = useMutation({ mutationFn: saveLead, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('leads') }) });
     const { mutate: onDeleteLead } = useMutation({ mutationFn: deleteLead, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('leads') }) });
     const { mutate: onConvertLead } = useMutation({ mutationFn: convertLead, onSuccess: invalidateCrmQueries });
     const { mutate: onSaveAccount } = useMutation({ mutationFn: saveAccount, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('accounts') }) });
@@ -184,7 +186,7 @@ const Crm: React.FC = () => {
         const baseProps = { subsidiary, user };
 
         if (isLoading) {
-            switch (activeTab) {
+            switch (visibleTab) {
                 case 'dashboard':
                     return <CrmDashboardSkeleton />;
                 case 'pipeline':
@@ -204,9 +206,9 @@ const Crm: React.FC = () => {
             }
         }
 
-        switch (activeTab) {
+        switch (visibleTab) {
             case 'dashboard':
-                return <CrmDashboard {...baseProps} {...userFilteredData} onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })} />;
+                return <CrmDashboard {...baseProps} {...userFilteredData} onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })} readOnly={isFinancialDirector} />;
             case 'leads':
                 return <LeadsManagement
                     {...baseProps}
@@ -272,7 +274,7 @@ const Crm: React.FC = () => {
                     onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })}
                 />;
             default:
-                return <CrmDashboard {...baseProps} {...userFilteredData} onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })} />;
+                return <CrmDashboard {...baseProps} {...userFilteredData} onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })} readOnly={isFinancialDirector} />;
         }
     };
 
@@ -341,12 +343,14 @@ const Crm: React.FC = () => {
                     {/* Onglets */}
                     <div className="flex items-center flex-wrap gap-2 p-1 bg-slate-200 rounded-lg self-start sm:self-auto">
                         <TabButton view="dashboard" label={t('crm.tabs.dashboard')} />
-                        <TabButton view="leads" label={t('crm.tabs.leads')} />
-                        <TabButton view="accounts" label={t('crm.tabs.accounts')} />
-                        <TabButton view="contacts" label={t('crm.tabs.contacts')} />
-                        <TabButton view="contracts" label={t('crm.tabs.contracts')} />
-                        <TabButton view="pipeline" label={t('crm.tabs.pipeline')} />
-                        <TabButton view="activities" label={t('crm.tabs.tasks')} />
+                        {!isFinancialDirector && <>
+                            <TabButton view="leads" label={t('crm.tabs.leads')} />
+                            <TabButton view="accounts" label={t('crm.tabs.accounts')} />
+                            <TabButton view="contacts" label={t('crm.tabs.contacts')} />
+                            <TabButton view="contracts" label={t('crm.tabs.contracts')} />
+                            <TabButton view="pipeline" label={t('crm.tabs.pipeline')} />
+                            <TabButton view="activities" label={t('crm.tabs.tasks')} />
+                        </>}
                     </div>
                 </div>
             </div>

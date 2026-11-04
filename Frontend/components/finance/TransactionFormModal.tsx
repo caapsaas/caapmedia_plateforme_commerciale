@@ -85,19 +85,19 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onC
     const title = transactionType === 'RECETTE' ? t('treasury.modal.addIncome') : t('treasury.modal.addExpense');
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
                 <form onSubmit={handleSubmit}>
                     <div className="p-6">
                         <h3 className="text-lg font-bold text-slate-800">{title}</h3>
                         <div className="mt-4 space-y-4">
                             <div>
-                                <label htmlFor="description" className="block text-sm font-medium text-slate-700">{t('treasury.description')}</label>
+                                <label htmlFor="description" className="block text-sm font-medium text-slate-700">{t('treasury.description')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input type="text" name="description" id="description" value={formData.description} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="amount" className="block text-sm font-medium text-slate-700">{t('treasury.amount')}</label>
+                                    <label htmlFor="amount" className="block text-sm font-medium text-slate-700">{t('treasury.amount')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                     <input 
                                     type="number" 
                                     step="0.01" 
@@ -112,7 +112,7 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onC
                                 />
                                 </div>
                                 <div>
-                                    <label htmlFor="transactionDate" className="block text-sm font-medium text-slate-700">{t('treasury.date')}</label>
+                                    <label htmlFor="transactionDate" className="block text-sm font-medium text-slate-700">{t('treasury.date')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                     <input type="date" name="transactionDate" id="transactionDate" value={formData.transactionDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />
                                 </div>
                             </div>
@@ -143,7 +143,7 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onC
                                 </div>
                             </div>
                             <div>
-                                <label htmlFor="treasuryAccountId" className="block text-sm font-medium text-slate-700">{t('treasury.account')}</label>
+                                <label htmlFor="treasuryAccountId" className="block text-sm font-medium text-slate-700">{t('treasury.account')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                     <select name="treasuryAccountId" id="treasuryAccountId" value={formData.treasuryAccountId} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm " disabled={isLoadingAccounts || accounts.length === 0}>
                                         {isLoadingAccounts ? (
                                             <option>{t('common.loading')}</option>

@@ -125,7 +125,7 @@ const PriceCalculatorModal: React.FC<PriceCalculatorModalProps> = ({ isOpen, onC
     const activeImageUrl = hasImages && product.productImages ? getImageUrl(product.productImages[activeImageIndex].imageUrl) : 'https://via.placeholder.com/400x300?text=Image+Indisponible';
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="p-4 border-b flex justify-between items-center flex-shrink-0">

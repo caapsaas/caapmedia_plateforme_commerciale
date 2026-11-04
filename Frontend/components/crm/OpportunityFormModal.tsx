@@ -108,7 +108,7 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
 
     return (
         <div
-            className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4"
+            className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4"
             onClick={onClose}
         >
             <div
@@ -126,7 +126,7 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
                             <div>
                                 <label htmlFor="opportunityName" className="block text-sm font-medium text-slate-700">
                                     {t('crm.opportunity.form.name')}
-                                </label>
+                                 <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input
                                     type="text"
                                     name="opportunityName"
@@ -160,7 +160,7 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
                             <div>
                                 <label htmlFor="opportunityValue" className="block text-sm font-medium text-slate-700">
                                     {t('crm.opportunity.form.value')}
-                                </label>
+                                 <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input
                                     type="number"
                                     name="opportunityValue"
@@ -175,7 +175,7 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
                             <div>
                                 <label htmlFor="stage" className="block text-sm font-medium text-slate-700">
                                     {t('crm.opportunity.form.stage')}
-                                </label>
+                                 <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <select
                                     name="stage"
                                     id="stage"
@@ -218,7 +218,7 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
                             <div>
                                 <label htmlFor="closeDate" className="block text-sm font-medium text-slate-700">
                                     {t('crm.opportunity.form.closeDate')}
-                                </label>
+                                 <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input
                                     type="date"
                                     name="closeDate"

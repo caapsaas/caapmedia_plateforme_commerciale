@@ -75,7 +75,7 @@ const RecurringExpenseModal: React.FC<RecurringExpenseModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
         <form onSubmit={handleSubmit}>
           <div className="p-6">
@@ -83,7 +83,7 @@ const RecurringExpenseModal: React.FC<RecurringExpenseModalProps> = ({
 
             <div className="mt-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700">{t('recurringExpenses.modal.description')}</label>
+                <label className="block text-sm font-medium text-slate-700">{t('recurringExpenses.modal.description')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                 <input
                   type="text"
                   value={description}
@@ -95,7 +95,7 @@ const RecurringExpenseModal: React.FC<RecurringExpenseModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">{t('recurringExpenses.modal.amount')}</label>
+                  <label className="block text-sm font-medium text-slate-700">{t('recurringExpenses.modal.amount')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                   <input
                     type="number"
                     step="0.01"
@@ -107,7 +107,7 @@ const RecurringExpenseModal: React.FC<RecurringExpenseModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">{t('recurringExpenses.modal.frequency')}</label>
+                  <label className="block text-sm font-medium text-slate-700">{t('recurringExpenses.modal.frequency')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                   <select
                     value={frequency}
                     onChange={(e) => setFrequency(e.target.value as RecurringExpenseFrequency)}
@@ -123,7 +123,7 @@ const RecurringExpenseModal: React.FC<RecurringExpenseModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">{t('recurringExpenses.modal.category')}</label>
+                  <label className="block text-sm font-medium text-slate-700">{t('recurringExpenses.modal.category')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
@@ -136,7 +136,7 @@ const RecurringExpenseModal: React.FC<RecurringExpenseModalProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">{t('recurringExpenses.modal.type')}</label>
+                  <label className="block text-sm font-medium text-slate-700">{t('recurringExpenses.modal.type')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                   <select
                     value={expenseRecordType}
                     onChange={(e) => setExpenseRecordType(e.target.value as ExpenseType)}
@@ -152,7 +152,7 @@ const RecurringExpenseModal: React.FC<RecurringExpenseModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">{t('recurringExpenses.modal.startDate')}</label>
+                  <label className="block text-sm font-medium text-slate-700">{t('recurringExpenses.modal.startDate')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                   <input
                     type="date"
                     value={startDate}

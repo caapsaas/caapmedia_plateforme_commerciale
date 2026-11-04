@@ -1,0 +1,17 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Ces routes sont réservées au backend ; préserver son routage/proxy.
+  RewriteRule ^(?:api-caapmedia|public)(?:/|$) - [L]
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+  # Un asset manquant doit rester une 404, pas recevoir index.html.
+  RewriteRule ^assets/ - [L]
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+  <Files "index.html">
+    Header set Cache-Control "no-cache"
+  </Files>
+</IfModule>

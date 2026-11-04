@@ -170,7 +170,7 @@ const Immobilisations: React.FC = () => {
 
       {/* Create Modal */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
             <div className="px-6 py-4 border-b border-slate-200">
               <h3 className="text-lg font-semibold text-slate-800">Nouvelle immobilisation</h3>
@@ -253,7 +253,7 @@ const Immobilisations: React.FC = () => {
 
       {/* Dispose Modal */}
       {disposeTarget && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
             <div className="px-6 py-4 border-b border-slate-200">
               <h3 className="text-lg font-semibold text-slate-800">Céder "{disposeTarget.fixedAssetsName}"</h3>

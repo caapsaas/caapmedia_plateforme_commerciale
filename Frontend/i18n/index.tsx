@@ -1,3 +1,5 @@
+import needsFr from './locales/fr.json';
+import needsEn from './locales/en.json';
 import React, { createContext, useState, useContext, useCallback } from 'react';
 
 // To bypass module resolution issues with JSON files in some environments,
@@ -98,7 +100,7 @@ const frTranslations = {
     "realisations": "Réalisations",
     "contact": "Contact",
     "contactUs": "Contactez-nous",
-    "address": "Akwa, Douala, Cameroun",
+    "address": "Ange Raphael, Douala, Cameroun",
     "phone": "+237 6 75 86 43 54 & +237 6 73 42 35 04",
     "email": "contact@caapmedia.com",
     "copyright": "© 2024 CaapMedia. Tous droits réservés."
@@ -3093,7 +3095,7 @@ const enTranslations: Translations = {
     "realisations": "Achievements",
     "contact": "Contact",
     "contactUs": "Contact Us",
-    "address": "Akwa, Douala, Cameroon",
+    "address": "Ange Raphael, Douala, Cameroon",
     "phone": "+237 6 75 86 43 54 & +237 6 73 42 35 04",
     "email": "contact.douala@caap.cm",
     "copyright": "© 2024 CaapMedia. All rights reserved."
@@ -6000,6 +6002,13 @@ const translations: { [key: string]: Translations } = {
 // la migration progressive de toutes les vues vers une structure unifiée.
 const additionalTranslations: Record<string, Record<string, any>> = {
   "fr": {
+    "publicPages": {
+      "navigation": "Navigation principale", "shop": "Boutique", "about": "À propos", "company": "Notre entreprise", "requestContact": "Parlons de votre projet",
+      "aboutContent": { "title": "Donner vie à vos idées, de la création à l’impression.", "intro": "CaapMedia accompagne les entreprises, les organisations et les particuliers dans leurs projets de communication visuelle et d’impression.", "cta": "Découvrir notre entreprise", "storyTitle": "Une expertise au service de votre image", "story": "Née à Douala en 2016 et département de Caap-Groupe SARL, CaapMedia réunit conseil, création graphique et production pour aider chaque client à mieux présenter son activité.", "visualAlt": "Vue de dessus d’outils et de supports de création", "visualCaption": "Un univers visuel autour de la communication et des supports imprimés.", "expertiseTitle": "De l’idée au support fini", "expertise": "Impression numérique et offset, sérigraphie, broderie, grands formats et supports de communication : nous vous aidons à choisir la solution adaptée à votre besoin, votre public et vos délais.", "projectsLink": "Voir nos réalisations", "regionalTitle": "Un partenaire à Douala, au service de vos projets partout au Cameroun", "regional": "Nous accueillons nos clients dans nos locaux à Douala et accompagnons également les organisations qui souhaitent échanger et commander à distance.", "contactCta": "Échanger avec notre équipe" },
+      "companyContent": { "title": "Une entreprise de communication et d’impression ancrée à Douala.", "intro": "Rencontrez l’équipe CaapMedia à Ange Raphael pour parler de vos besoins, découvrir nos prestations et préparer votre prochain projet.", "visitCta": "Préparer une visite", "imageAlt": "Identité visuelle CaapMedia", "imageCaption": "CaapMedia, département de Caap-Groupe SARL.", "premisesGalleryTitle": "Les locaux CaapMedia", "premisesGalleryIntro": "Quelques images de notre espace de travail et de notre équipe.", "premisesPhoto": "Photo des locaux à ajouter", "workshopPhoto": "Photo de l’atelier à ajouter", "teamPhoto": "Photo de l’équipe à ajouter", "productionTitle": "Des capacités de production", "production": "Nous réalisons des supports imprimés et personnalisés pour les besoins de communication des entreprises, institutions et particuliers.", "servicesTitle": "Un accompagnement complet", "services": "Conseil, création graphique, impression et finitions : nos prestations couvrent les principales étapes de votre projet de communication.", "reachTitle": "À Douala et à distance", "reach": "Notre équipe vous reçoit à Douala et échange avec des clients dans l’ensemble du Cameroun pour organiser les projets et leur livraison.", "visitLabel": "Nous rendre visite", "visitNote": "Ange Raphael, Douala, Cameroun. Contactez-nous pour préparer votre passage.", "directions": "Ouvrir l’itinéraire dans Google Maps" },
+      "contactContent": { "title": "Parlons de votre projet", "intro": "Décrivez votre besoin dans le formulaire. Notre équipe pourra vous répondre et vous orienter vers la solution adaptée.", "visitTitle": "Nous rencontrer à Douala", "visitNote": "Appelez-nous ou écrivez-nous si vous souhaitez préparer une visite de nos locaux.", "directions": "Obtenir l’itinéraire", "alsoReachUs": "Vous pouvez aussi nous joindre par téléphone ou e-mail" }
+      ,"photoSlots": { "realizationsTitle": "Quelques réalisations", "realizationsIntro": "Ajoutez ici les photos de projets réalisés par CaapMedia.", "realizationOne": "Photo de réalisation à ajouter", "realizationTwo": "Photo de réalisation à ajouter", "realizationThree": "Photo de réalisation à ajouter", "realizationFour": "Photo de réalisation à ajouter", "realizationFive": "Photo de réalisation à ajouter", "realizationSix": "Photo de réalisation à ajouter" }
+    },
     "sidebar": {
       "adminView": "Vue Admin"
     },
@@ -6291,6 +6300,13 @@ const additionalTranslations: Record<string, Record<string, any>> = {
     }
   },
   "en": {
+    "publicPages": {
+      "navigation": "Main navigation", "shop": "Shop", "about": "About us", "company": "Our company", "requestContact": "Discuss your project",
+      "aboutContent": { "title": "Bringing your ideas to life, from design to print.", "intro": "CaapMedia supports businesses, organizations and individuals with visual communication and printing projects.", "cta": "Discover our company", "storyTitle": "Expertise that serves your brand", "story": "Founded in Douala in 2016 as a department of Caap-Groupe SARL, CaapMedia brings consulting, graphic design and production together to help clients present their business clearly.", "visualAlt": "Overhead view of creative tools and materials", "visualCaption": "A visual world of communication and print materials.", "expertiseTitle": "From idea to finished product", "expertise": "Digital and offset printing, screen printing, embroidery, large format and communication materials: we help you choose a solution suited to your needs, audience and schedule.", "projectsLink": "Explore our work", "regionalTitle": "Based in Douala, serving projects across Cameroon", "regional": "We welcome clients at our Douala premises and also support organizations that want to discuss and order remotely.", "contactCta": "Talk to our team" },
+      "companyContent": { "title": "A communications and printing company rooted in Douala.", "intro": "Meet the CaapMedia team in Ange Raphael to discuss your needs, discover our services and plan your next project.", "visitCta": "Plan a visit", "imageAlt": "CaapMedia visual identity", "imageCaption": "CaapMedia, a department of Caap-Groupe SARL.", "premisesGalleryTitle": "CaapMedia premises", "premisesGalleryIntro": "A few views of our workspace and team.", "premisesPhoto": "Add a photo of the premises", "workshopPhoto": "Add a photo of the workshop", "teamPhoto": "Add a photo of the team", "productionTitle": "Production capabilities", "production": "We produce printed and customized materials for the communication needs of businesses, institutions and individuals.", "servicesTitle": "End-to-end support", "services": "Consulting, graphic design, printing and finishing: our services cover the main stages of your communication project.", "reachTitle": "In Douala and remotely", "reach": "Our team welcomes clients in Douala and works with customers across Cameroon to coordinate projects and delivery.", "visitLabel": "Visit us", "visitNote": "Ange Raphael, Douala, Cameroon. Contact us to plan your visit.", "directions": "Open directions in Google Maps" },
+      "contactContent": { "title": "Let’s discuss your project", "intro": "Describe what you need in the form. Our team can get back to you and help find the right solution.", "visitTitle": "Meet us in Douala", "visitNote": "Call or email us if you would like to arrange a visit to our premises.", "directions": "Get directions", "alsoReachUs": "You can also reach us by phone or email" }
+      ,"photoSlots": { "realizationsTitle": "A selection of our work", "realizationsIntro": "Add photos of projects completed by CaapMedia here.", "realizationOne": "Add a project photo", "realizationTwo": "Add a project photo", "realizationThree": "Add a project photo", "realizationFour": "Add a project photo", "realizationFive": "Add a project photo", "realizationSix": "Add a project photo" }
+    },
     "sidebar": {
       "adminView": "Admin View"
     },
@@ -6619,6 +6635,7 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({ children }) => {
     };
     let value: any = lookup(translations[language] || translations['fr']);
     if (value === undefined) value = lookup(additionalTranslations[language] || additionalTranslations['fr']);
+    if (value === undefined) value = lookup(language === 'en' ? needsEn : needsFr);
     if (value === undefined) return key; // Key not found
     if (value && typeof value === 'object' && typeof value.default === 'string') {
       value = value.default;

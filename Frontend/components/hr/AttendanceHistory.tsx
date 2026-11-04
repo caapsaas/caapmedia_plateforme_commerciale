@@ -14,8 +14,6 @@ interface AttendanceRecord {
   arrivalTime: string | null;
   departureTime: string | null;
   status: 'PRESENT' | 'ABSENT' | 'LEFT' | 'LEFT_OUTSIDE_GEOFENCE' | 'LATE';
-  isGeolocationValid: boolean;
-  accuracyMeters?: number | null;
   qrCodeToken?: string | null;
 }
 
@@ -29,7 +27,6 @@ const STATUS_OPTIONS = [
   { value: 'LATE', label: 'En retard' },
   { value: 'LEFT', label: 'Parti' },
   { value: 'ABSENT', label: 'Absent' },
-  { value: 'LEFT_OUTSIDE_GEOFENCE', label: 'Parti (hors zone)' },
 ] as const;
 
 const AttendanceHistory: React.FC<AttendanceHistoryProps> = () => {
@@ -168,8 +165,8 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = () => {
         );
       case 'LEFT_OUTSIDE_GEOFENCE':
         return (
-          <span className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-xs font-semibold">
-            Parti (hors zone)
+          <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold">
+            Parti
           </span>
         );
       default:
@@ -341,14 +338,11 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = () => {
                 <th className="px-6 py-4 text-left font-semibold text-slate-700">
                   Statut
                 </th>
-                <th className="px-6 py-4 text-left font-semibold text-slate-700">
-                  GPS
-                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
               {historyLoading ? (
-                <TableSkeleton rows={10} columns={7} />
+                <TableSkeleton rows={10} columns={6} />
               ) : filteredRecords.length > 0 ? (
                 filteredRecords.map((record) => (
                   <tr
@@ -386,21 +380,11 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = () => {
                       )}
                     </td>
                     <td className="px-6 py-4">{renderStatus(record.status)}</td>
-                    <td className="px-6 py-4">
-                      {record.isGeolocationValid &&
-                      record.accuracyMeters != null ? (
-                        <span className="text-slate-600 text-xs">
-                          ±{Math.round(record.accuracyMeters)}m
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 text-xs">—</span>
-                      )}
-                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={6}>
                     <EmptyState
                       icon="inbox"
                       title={

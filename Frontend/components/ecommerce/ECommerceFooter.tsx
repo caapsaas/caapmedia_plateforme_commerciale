@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from '@tanstack/react-router';
 import { useI18n } from '../../i18n';
 import { PRODUCT_HIERARCHY } from '../../constants';
 import IconMapPin from '../icons/IconMapPin';
@@ -65,26 +66,23 @@ const ECommerceFooter: React.FC<ECommerceFooterProps> = ({ onNavigateToRealisati
                     <div>
                         <h3 className="font-bold text-white uppercase mb-4">{t('footer.usefulLinks')}</h3>
                          <ul className="space-y-2 text-sm">
-                            <li><button onClick={handleRealisationsClick} disabled={!onNavigateToRealisations} className="hover:text-[#c6e911] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">{t('footer.about')}</button></li>
-                            <li><button onClick={handleRealisationsClick} disabled={!onNavigateToRealisations} className="hover:text-[#c6e911] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">{t('footer.realisations')}</button></li>
-                            <li>
-                                <button onClick={onContactClick} className="hover:text-[#c6e911] transition-colors text-left">
-                                    {t('footer.contact')}
-                                </button>
-                            </li>
+                            <li><Link to="/a-propos" className="hover:text-[#c6e911] transition-colors">{t('footer.about')}</Link></li>
+                            <li><Link to="/entreprise" className="hover:text-[#c6e911] transition-colors">{t('publicPages.company')}</Link></li>
+                            <li><Link to="/realisations" className="hover:text-[#c6e911] transition-colors">{t('footer.realisations')}</Link></li>
+                            <li><Link to="/contact" className="hover:text-[#c6e911] transition-colors">{t('footer.contact')}</Link></li>
                         </ul>
                     </div>
 
                     {/* Column 4: Contact */}
                     <div>
-                        <button onClick={onContactClick} className="font-bold text-white uppercase mb-4 hover:text-[#c6e911] transition-colors text-left">
+                        <Link to="/contact" className="inline-block font-bold text-white uppercase mb-4 hover:text-[#c6e911] transition-colors text-left">
                             {t('footer.contactUs')}
-                        </button>
+                        </Link>
                         <ul className="space-y-3 text-sm">
                             <li className="flex items-start gap-3">
                                 <IconMapPin className="h-5 w-5 mt-0.5 text-[#c6e911] flex-shrink-0" />
                                 <a 
-                                    href="https://www.google.com/maps/search/?api=1&query=4.046204,9.706662" 
+                                    href="https://www.google.com/maps/search/?api=1&query=Ange+Raphael%2C+Douala%2C+Cameroun" 
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="hover:text-[#c6e911] transition-colors"

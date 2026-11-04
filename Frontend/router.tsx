@@ -1,3 +1,4 @@
+import NeedRequests from './Pages/NeedRequests';
 import React from 'react';
 import { createRouter, createRoute, createRootRoute, Outlet, redirect, createRootRouteWithContext } from '@tanstack/react-router';
 import App from './App'; // Nous allons refactorer App.tsx pour qu'il devienne notre layout
@@ -8,6 +9,9 @@ import ResetPasswordPage from './Pages/ResetPasswordPage';
 import PointagePage from './Pages/PointagePage';
 import ECommercePage from './components/ecommerce/ECommercePage';
 import RealisationsPage from './components/ecommerce/RealisationsPage';
+import AboutPage from './components/ecommerce/AboutPage';
+import CompanyPage from './components/ecommerce/CompanyPage';
+import ContactPage from './components/ecommerce/ContactPage';
 import CustomerAccountPage from './components/customer/CustomerAccountPage';
 import AttendanceCards from './components/hr/AttendanceCards';
 import AttendanceHistory from './components/hr/AttendanceHistory';
@@ -88,6 +92,10 @@ const realisationsRoute = createRoute({
   path: '/realisations',
   component: RealisationsPage,
 });
+
+const aboutRoute = createRoute({ getParentRoute: () => rootRoute, path: '/a-propos', component: AboutPage });
+const companyRoute = createRoute({ getParentRoute: () => rootRoute, path: '/entreprise', component: CompanyPage });
+const contactRoute = createRoute({ getParentRoute: () => rootRoute, path: '/contact', component: ContactPage });
 
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -205,6 +213,7 @@ const dashboardIndexRoute = createRoute({
   },
 });
 
+const needRequestsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/need-requests', component: NeedRequests });
 const salesRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/sales', component: Sales });
 const crmRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/crm', component: Crm });
 const stockRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/stock', component: Stock });
@@ -296,6 +305,9 @@ const notificationsRoute = createRoute({ getParentRoute: () => dashboardRoute, p
 const routeTree = rootRoute.addChildren([
   indexRoute,
   realisationsRoute,
+  aboutRoute,
+  companyRoute,
+  contactRoute,
   loginRoute,
   resetPasswordRoute,
   pointageRoute,
@@ -303,6 +315,7 @@ const routeTree = rootRoute.addChildren([
   dashboardRoute.addChildren([
     dashboardIndexRoute,
     salesRoute,
+    needRequestsRoute,
     crmRoute,
     stockRoute,
     purchasingRoute,

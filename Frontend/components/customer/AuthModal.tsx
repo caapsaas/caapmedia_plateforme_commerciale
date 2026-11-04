@@ -108,7 +108,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegis
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md relative" onClick={e => e.stopPropagation()}>
                 <button
                     onClick={onClose}
@@ -130,11 +130,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegis
                     <form onSubmit={handleLoginSubmit} className="p-6 space-y-4">
                         <h3 className="text-xl font-bold text-center">{t('customerAccount.loginTitle')}</h3>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700">{t('customerAccount.email')}</label>
+                            <label className="block text-sm font-medium text-slate-700">{t('customerAccount.email')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                             <input type="email" name="email" value={loginData.email} onChange={handleLoginChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"/>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700">{t('customerAccount.password')}</label>
+                            <label className="block text-sm font-medium text-slate-700">{t('customerAccount.password')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                             <PasswordInput name="password" value={loginData.password} onChange={handleLoginChange} required autoComplete="current-password" className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"/>
                         </div>
                         <div className="text-right text-sm">
@@ -154,31 +154,31 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegis
                     <form onSubmit={handleSignupSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                         <h3 className="text-xl font-bold text-center">{t('customerAccount.signupTitle')}</h3>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700">{t('customerAccount.name')}</label> 
+                            <label className="block text-sm font-medium text-slate-700">{t('customerAccount.name')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label> 
                             <input type="text" name="contactName" value={signupData.contactName} onChange={handleSignupChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"/>
                         </div>
                          <div>
-                            <label className="block text-sm font-medium text-slate-700">{t('configuration.form.company')}</label>
+                            <label className="block text-sm font-medium text-slate-700">{t('configuration.form.company')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                             <input type="text" name="company" value={signupData.company} onChange={handleSignupChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"/>
                         </div>
                          <div>
-                            <label className="block text-sm font-medium text-slate-700">{t('customerAccount.email')}</label>
+                            <label className="block text-sm font-medium text-slate-700">{t('customerAccount.email')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                             <input type="email" name="email" value={signupData.email} onChange={handleSignupChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"/>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700">{t('configuration.form.phone')}</label>
+                            <label className="block text-sm font-medium text-slate-700">{t('configuration.form.phone')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                             <input type="tel" name="phone" value={signupData.phone} onChange={handleSignupChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"/>
                         </div>
                          <div>
-                            <label className="block text-sm font-medium text-slate-700">{t('customerAccount.address')}</label>
+                            <label className="block text-sm font-medium text-slate-700">{t('customerAccount.address')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                             <input type="text" name="address" value={signupData.address} onChange={handleSignupChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"/>
                         </div>
                          <div>
-                            <label className="block text-sm font-medium text-slate-700">{t('customerAccount.password')}</label>
+                            <label className="block text-sm font-medium text-slate-700">{t('customerAccount.password')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                             <PasswordInput name="password" value={signupData.password} onChange={handleSignupChange} required autoComplete="new-password" className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"/>
                         </div>
                          <div>
-                            <label className="block text-sm font-medium text-slate-700">{t('customerAccount.confirmPassword')}</label>
+                            <label className="block text-sm font-medium text-slate-700">{t('customerAccount.confirmPassword')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                             <PasswordInput id="confirmPassword" required autoComplete="new-password" className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"/>
                         </div>
                         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
@@ -196,7 +196,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onRegis
                             <>
                                 <p className="text-sm text-slate-600 text-center">{t('forgotPassword.instruction')}</p>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700">{t('customerAccount.email')}</label>
+                                    <label className="block text-sm font-medium text-slate-700">{t('customerAccount.email')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                     <input type="email" name="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"/>
                                 </div>
                                 <button type="submit" className="w-full py-3 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f]">{t('forgotPassword.sendLink')}</button>

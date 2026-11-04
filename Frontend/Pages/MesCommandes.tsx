@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Order, OrderStatus, Product, Contact } from '../types';
 import { useI18n } from '../i18n';
-import NewOrder from './NewOrder';
+import NewOrder, { NewOrderDraft } from './NewOrder';
 import BonDeLivraison from './BonDeLivraison';
 import IconDocumentText from '../components/icons/IconDocumentText';
 import SelectFilter from '../components/filters/SelectFilter';
@@ -67,6 +67,7 @@ const MesCommandes: React.FC = () => {
         mutationFn: createOrderBySalesRepJson,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['customerOrders'] });
+            queryClient.invalidateQueries({ queryKey: ['contacts'] });
             setActiveTab('history');
         },
     });
@@ -91,10 +92,11 @@ const MesCommandes: React.FC = () => {
 
     const productOptions = products.map(p => ({ value: p.id, label: p.name }));
 
-    const handlePlaceOrder = async (newOrderData: Omit<Order, 'id' | 'subsidiaryId'>) => {
+    const handlePlaceOrder = async (newOrderData: NewOrderDraft) => {
         // Préparer les données selon la structure attendue par CreateOrderBySalesRepDto
         const orderPayload = {
-            customerId: newOrderData.customerId,
+            customerId: newOrderData.occasionalCustomer ? undefined : newOrderData.customerId,
+            occasionalCustomer: newOrderData.occasionalCustomer,
             customerName: newOrderData.customerName,
             paymentDueDate: newOrderData.paymentDueDate,
             paymentMethod: newOrderData.paymentMethod || 'PAY_ON_DELIVERY',

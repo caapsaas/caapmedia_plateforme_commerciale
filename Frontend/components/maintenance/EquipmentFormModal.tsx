@@ -70,7 +70,7 @@ const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({
 
     return (
         <div
-            className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4"
+            className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4"
             onClick={onClose}
         >
             <div

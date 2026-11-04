@@ -31,7 +31,7 @@ const SupplierFormModal: React.FC<SupplierFormModalProps> = ({ supplier, onClose
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4" onClick={onClose}>
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
                 <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
                     <h3 className="text-lg font-bold text-slate-800">
@@ -66,7 +66,7 @@ const Field: React.FC<{
     type?: string; required?: boolean;
 }> = ({ label, value, onChange, type = 'text', required }) => (
     <div>
-        <label className="block text-xs font-semibold text-slate-500 mb-1">{label}</label>
+        <label className="block text-xs font-semibold text-slate-500 mb-1">{label} {required && <span className="text-red-600 ml-1" aria-hidden="true">*</span>}</label>
         <input
             type={type} value={value} onChange={onChange} required={required}
             className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#c6e911]"

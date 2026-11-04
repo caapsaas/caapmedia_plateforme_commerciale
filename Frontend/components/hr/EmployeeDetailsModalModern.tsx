@@ -1,3 +1,4 @@
+import PrivateDocumentLink from '../common/PrivateDocumentLink';
 import React, { useState, useEffect } from 'react';
 import { Employee } from '../../types';
 import { useI18n } from '../../i18n';
@@ -141,7 +142,7 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
   const yearsOfService = calculateYearsOfService(employeeData.hireDate);
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4 overflow-y-auto backdrop-blur-sm">
+    <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4 overflow-y-auto">
       <Card className="w-full max-w-4xl my-8 shadow-2xl transform transition-all animate-in fade-in zoom-in-95 rounded-3xl overflow-hidden">
         {/* Header with Summary */}
         <div className="bg-gradient-to-br from-[#c6e911] via-[#b8dd0a] to-[#adc40f] px-6 py-6 text-slate-900 relative overflow-hidden">
@@ -488,14 +489,14 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
                       </div>
                     </div>
                     {employeeData.documents.contract.url && (
-                      <a
+                      <PrivateDocumentLink
                         href={employeeData.documents.contract.url}
                         download={employeeData.documents.contract.name}
                         className="ml-2 p-2 text-blue-600 hover:bg-blue-100 rounded transition-colors flex-shrink-0"
                         title={t('hr.documents.download')}
                       >
                         <Download size={18} />
-                      </a>
+                      </PrivateDocumentLink>
                     )}
                   </div>
                 )}
@@ -513,14 +514,14 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
                       </div>
                     </div>
                     {employeeData.documents.idCard.url && (
-                      <a
+                      <PrivateDocumentLink
                         href={employeeData.documents.idCard.url}
                         download={employeeData.documents.idCard.name}
                         className="ml-2 p-2 text-purple-600 hover:bg-purple-100 rounded transition-colors flex-shrink-0"
                         title="Télécharger"
                       >
                         <Download size={18} />
-                      </a>
+                      </PrivateDocumentLink>
                     )}
                   </div>
                 )}
@@ -538,14 +539,14 @@ const EmployeeDetailsModalModern: React.FC<EmployeeDetailsModalModernProps> = ({
                       </div>
                     </div>
                     {employeeData.documents.workPermit.url && (
-                      <a
+                      <PrivateDocumentLink
                         href={employeeData.documents.workPermit.url}
                         download={employeeData.documents.workPermit.name}
                         className="ml-2 p-2 text-green-600 hover:bg-green-100 rounded transition-colors flex-shrink-0"
                         title="Télécharger"
                       >
                         <Download size={18} />
-                      </a>
+                      </PrivateDocumentLink>
                     )}
                   </div>
                 )}

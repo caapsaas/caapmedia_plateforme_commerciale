@@ -485,7 +485,7 @@ export interface Order {
   date: string;
   customerName: string;
   customerId: string;
-  customer?: { id: string; contactName: string; email?: string; phone?: string };
+  customer?: { id: string; contactName: string; email?: string | null; phone?: string };
   salesRep?: { id: string; firstName?: string; lastName?: string; fullName?: string; email?: string };
   subsidiary?: { subsidiaryName: string };
   // Le backend (OrdersService.mapOrderToResponse) renvoie TOUJOURS
@@ -531,7 +531,8 @@ export interface Contact {
   id: string;
   contactName: string;
   company: string;
-  email: string;
+  email: string | null;
+  isOccasional?: boolean;
   phone: string;
   since: string;
   subsidiaryId: string;
@@ -1209,12 +1210,48 @@ export interface Lead {
     id: string;
     leadName: string;
     company: string;
-    email: string;
-    phone: string;
+      email: string | null;
+      phone: string | null;
     status: LeadStatus;
     subsidiaryId: string;
     salesRepId?: string;
     description?: string;
+    externalReference?: string;
+    zone?: string;
+    cityArea?: string;
+    sector?: string;
+    caapOffer?: string;
+    yearEndNeed?: string;
+    requestedService?: string;
+    score?: string;
+    commercialPriority?: string;
+    verification?: string;
+    nextAction?: string;
+    commercialStatus?: string;
+    responsibleName?: string;
+    contactDate?: string;
+    followUpDate?: string;
+    followUpNotes?: string;
+    whatsappConfirmed?: string;
+    observedFact?: string;
+    locationSource?: string;
+    contactSource?: string;
+    signalDate?: string;
+    signalSource?: string;
+    documentaryConfidence?: string;
+    fitScore?: string;
+    recentSignalScore?: string;
+    recurrenceScore?: string;
+    accessibilityScore?: string;
+    feasibilityScore?: string;
+    caapOfferSource?: string;
+    consultationDate?: string;
+    country?: string;
+    prospectType?: string;
+    officialWebsite?: string;
+    reservesLogistics?: string;
+    linkedinPublic?: string;
+    preparedMessage?: string;
 }
 
 export interface Account {
@@ -1389,6 +1426,9 @@ export interface Meeting {
   meetingLocation?: string;
   agenda?: string;
   minutes?: string;
+  completedAt?: string | null;
+  minutesFileUrl?: string | null;
+  minutesFileName?: string | null;
   subsidiaryId: string;
   participants?: MeetingParticipant[];
   subsidiary?: Subsidiary;

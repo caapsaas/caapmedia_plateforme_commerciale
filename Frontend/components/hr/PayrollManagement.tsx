@@ -563,7 +563,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
 
       {/* Modale de confirmation régénération */}
       {showRegenerateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
             <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4 text-white">
               <h2 className="text-lg font-bold">⚠️ Régénérer les fiches de paie</h2>
@@ -617,7 +617,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
         totalAllCharges += chargesData.bonusCharges?.netBonusesTotal || 0;
 
         return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4">
           <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
             {/* En-tête avec gradient vert */}
             <div className="border-b border-slate-100 bg-white px-6 py-5 text-slate-900 sm:px-8">

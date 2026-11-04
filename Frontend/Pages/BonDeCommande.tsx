@@ -9,6 +9,7 @@ import DocumentFooter from '../components/common/DocumentFooter';
 import DocumentWatermark from '../components/common/DocumentWatermark';
 import { printElementAsPdf, exportElementToPdf } from '../utils/pdfExporter';
 import { amountToWordsFcfa } from '../utils/amountToWords';
+import { getOrderDocumentData, getOrderPaymentLabelKey } from '../utils/orderDocuments';
 
 
 interface BonDeCommandeProps {
@@ -22,13 +23,7 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
     const bcContentRef = React.useRef<HTMLDivElement>(null);
     const [isBusy, setIsBusy] = React.useState(false);
 
-    // Le backend renvoie toujours `orderItems` (jamais `items`, malgré le
-    // type frontend Order.items) avec un productName/unitPrice à plat sur
-    // chaque ligne — pas de order.product imbriqué. Sans ce fallback, le
-    // tableau restait vide (le vrai bug derrière "rien ne s'affiche").
-    const billableItems: any[] = (order as any).orderItems?.length
-        ? (order as any).orderItems
-        : (order.items ?? []);
+    const documentData = getOrderDocumentData(order);
 
     const handlePrint = async () => {
         if (!bcContentRef.current || isBusy) return;
@@ -73,7 +68,7 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
                 <div className="text-right">
                     <div className="space-y-2 text-sm">
                         <p className="text-slate-700 font-semibold">{t('bonDeCommande.orderNum')}: <span className="font-bold text-base text-[#c6e911]">{order.id}</span></p>
-                        <p className="text-slate-600">{t('bonDeCommande.date')}: <span className="font-semibold text-slate-800">{formatDate(order.date)}</span></p>
+                        <p className="text-slate-600">{t('bonDeCommande.date')}: <span className="font-semibold text-slate-800">{formatDate(documentData.date)}</span></p>
                         <p className="text-slate-600 mt-3 text-xs font-semibold">
                             {order.status === 'PENDING_VALIDATION' ? (
                                 <span className="text-yellow-600 bg-yellow-50 px-2 py-1 rounded">⏳ En attente</span>
@@ -93,7 +88,7 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
                 </div>
                 <div>
                     <h5 className="font-semibold text-slate-600 uppercase text-xs tracking-wide mb-3 border-b pb-2">{t('bonDeCommande.paymentMethod')}</h5>
-                    <p className="font-semibold text-slate-800">{order.paymentMethod || 'N/A'}</p>
+                    <p className="font-semibold text-slate-800">{t(getOrderPaymentLabelKey(order.paymentMethod))}</p>
                     {order.paymentDueDate && (
                         <p className="text-slate-600 text-sm mt-3">
                             <span className="font-semibold">{t('bonDeCommande.dueDate')}:</span> {formatDate(order.paymentDueDate)}
@@ -111,22 +106,17 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
                     { label: t('bonDeCommande.unitPrice'), key: 'unitPrice', align: 'right', formatter: (v) => formatCurrency(v) },
                     { label: t('bonDeCommande.totalPrice'), key: 'total', align: 'right', formatter: (v) => formatCurrency(v) }
                 ]}
-                data={billableItems.map((item: any) => ({
-                    productName: item.productName || item.product?.name || '—',
-                    quantity: item.quantity || 0,
-                    unitPrice: item.unitPrice ?? item.price ?? 0,
-                    total: (item.unitPrice ?? item.price ?? 0) * (item.quantity || 0)
-                }))}
+                data={documentData.items}
                 totalRow={{
                     label: t('bonDeCommande.total'),
-                    value: formatCurrency(order.totalAmount),
+                    value: formatCurrency(documentData.totalAmount),
                     isHighlighted: true
                 }}
                 emptyMessage={t('bonDeCommande.noData')}
             />
 
             <p className="text-sm text-slate-600 italic mb-8">
-                {t('bonDeCommande.amountInWords', { amount: amountToWordsFcfa(order.totalAmount) })}
+                {t('bonDeCommande.amountInWords', { amount: amountToWordsFcfa(documentData.totalAmount) })}
             </p>
 
             {/* Footer */}
@@ -140,7 +130,7 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
 
     return (
         <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center p-4"
+            className="fixed inset-0 modal-backdrop z-40 flex justify-center items-center p-4"
             role="dialog"
             aria-modal="true"
             aria-labelledby="bc-title"

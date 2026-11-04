@@ -109,7 +109,7 @@ const SecuritySettings: React.FC = () => {
               <code className="text-sm bg-slate-100 px-2 py-1 rounded break-all">{setupData.secret}</code>
             </div>
             <div>
-              <label htmlFor="confirm-code" className="block text-sm font-medium text-slate-700">{t('security.twoFactor.confirmCodeLabel')}</label>
+              <label htmlFor="confirm-code" className="block text-sm font-medium text-slate-700">{t('security.twoFactor.confirmCodeLabel')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
               <input
                 id="confirm-code"
                 type="text"
@@ -161,7 +161,7 @@ const SecuritySettings: React.FC = () => {
             ) : (
               <form onSubmit={handleDisable} className="space-y-4">
                 <div>
-                  <label htmlFor="disable-password" className="block text-sm font-medium text-slate-700">{t('login.passwordLabel')}</label>
+                  <label htmlFor="disable-password" className="block text-sm font-medium text-slate-700">{t('login.passwordLabel')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                   <PasswordInput
                     id="disable-password"
                     autoComplete="current-password"
@@ -173,7 +173,7 @@ const SecuritySettings: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="disable-code" className="block text-sm font-medium text-slate-700">{t('security.twoFactor.confirmCodeLabel')}</label>
+                  <label htmlFor="disable-code" className="block text-sm font-medium text-slate-700">{t('security.twoFactor.confirmCodeLabel')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                   <input
                     id="disable-code"
                     type="text"

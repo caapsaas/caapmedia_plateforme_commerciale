@@ -135,7 +135,7 @@ const PayrollDetailsModal: React.FC<PayrollDetailsModalProps> = ({
       `}</style>
 
       <div
-        className="print-modal-overlay fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4"
+        className="print-modal-overlay fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4"
         onClick={onClose}
         role="dialog"
         aria-modal="true"

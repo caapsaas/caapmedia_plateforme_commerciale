@@ -1,3 +1,4 @@
+import ShareProformaModal from './ShareProformaModal';
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '../../i18n';
@@ -6,7 +7,6 @@ import {
   getProformasPaginated,
   getProformaStatusCounts,
   deleteProforma,
-  sendProforma,
   acceptProforma,
   rejectProforma,
   Proforma,
@@ -41,6 +41,7 @@ const ProformasManagement: React.FC = () => {
   const toast = useToast();
   const queryClient = useQueryClient();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [sharingProforma, setSharingProforma] = useState<Proforma | null>(null);
   const [selectedProforma, setSelectedProforma] = useState<Proforma | null>(null);
   const [deletingProforma, setDeletingProforma] = useState<Proforma | null>(null);
   const [viewingProforma, setViewingProforma] = useState<Proforma | null>(null);
@@ -78,13 +79,6 @@ const ProformasManagement: React.FC = () => {
     onSuccess: () => {
       invalidateProformas();
       setDeletingProforma(null);
-    },
-  });
-
-  const sendMutation = useMutation({
-    mutationFn: sendProforma,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['proformas'] });
     },
   });
 
@@ -242,7 +236,7 @@ const ProformasManagement: React.FC = () => {
                           <IconEdit className="h-5 w-5" />
                         </button>
                         <button
-                          onClick={() => sendMutation.mutate(proforma.id)}
+                          onClick={() => setSharingProforma(proforma)}
                           className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-100 rounded-full transition-colors"
                           title={t('proforma.actions.send')}
                         >
@@ -253,7 +247,7 @@ const ProformasManagement: React.FC = () => {
                     {(proforma.status === 'SENT' || proforma.status === 'VIEWED') && (
                       <>
                         <button
-                          onClick={() => sendMutation.mutate(proforma.id)}
+                          onClick={() => setSharingProforma(proforma)}
                           className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors"
                           title={t('proforma.actions.resend')}
                         >
@@ -308,6 +302,7 @@ const ProformasManagement: React.FC = () => {
         />
       )}
 
+      {sharingProforma && <ShareProformaModal key={sharingProforma.id} proforma={sharingProforma} onClose={() => setSharingProforma(null)} />}
       <ProformaTemplateModal
         isOpen={!!viewingProforma}
         onClose={() => setViewingProforma(null)}

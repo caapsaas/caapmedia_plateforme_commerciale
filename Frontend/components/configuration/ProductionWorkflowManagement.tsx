@@ -233,7 +233,7 @@ const ProductionWorkflowManagement: React.FC = () => {
             {/* Modal création/édition */}
             {showForm && (
                 <div
-                    className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+                    className="fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4"
                     onClick={closeForm}
                 >
                     <div

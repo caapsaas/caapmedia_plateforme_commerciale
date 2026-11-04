@@ -7,9 +7,10 @@ import IconCancelX from '../icons/IconCancelX';
 interface ContactModalProps {
     isOpen: boolean;
     onClose: () => void;
+    variant?: 'modal' | 'page';
 }
 
-const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
+const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, variant = 'modal' }) => {
     const { t } = useI18n();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
@@ -80,19 +81,19 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={onClose}>
+        <div className={variant === 'page' ? 'w-full' : 'fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4 animate-fadeIn'} onClick={variant === 'modal' ? onClose : undefined}>
             <div 
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative overflow-hidden flex flex-col max-h-[90vh] animate-slideIn" 
+                className={`bg-white rounded-2xl shadow-xl w-full ${variant === 'modal' ? 'max-w-lg max-h-[90vh] animate-slideIn' : 'max-w-2xl'} relative overflow-hidden flex flex-col`} 
                 onClick={e => e.stopPropagation()}
             >
                 {/* Close Button */}
-                <button 
+                {variant === 'modal' && <button 
                     onClick={onClose} 
                     className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200 transition-colors z-10"
                     aria-label={t('common.close')}
                 >
                     <IconCancelX className="h-5 w-5" />
-                </button>
+                </button>}
 
                 {/* Header */}
                 <div className="p-8 pb-4 border-b border-slate-100 text-center bg-slate-50/50">

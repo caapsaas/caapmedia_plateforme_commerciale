@@ -1,8 +1,9 @@
 import React from 'react';
 import { useI18n } from '../../i18n';
-import IconArrowLeft from '../icons/IconArrowLeft';
 import ECommerceFooter from './ECommerceFooter';
 import { useNavigate } from '@tanstack/react-router';
+import PublicSiteHeader from './PublicSiteHeader';
+import PhotoPlaceholder from './PhotoPlaceholder';
 
 const services = [
     {
@@ -62,14 +63,7 @@ const RealisationsPage: React.FC = () => {
 
     return (
         <div className="bg-slate-50 min-h-screen flex flex-col">
-            <header className="bg-white shadow-sm sticky top-0 z-30">
-                <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-                    <button onClick={() => navigate({ to: '/' })} className="p-2 rounded-full hover:bg-slate-100 transition-colors">
-                        <IconArrowLeft className="h-6 w-6 text-slate-700" />
-                    </button>
-                    <h1 className="text-2xl font-bold text-slate-800">Nos Réalisations & Prestations</h1>
-                </div>
-            </header>
+            <PublicSiteHeader />
 
             <main className="container mx-auto px-4 py-12 flex-grow">
                 {/* A Propos Section */}
@@ -77,8 +71,18 @@ const RealisationsPage: React.FC = () => {
                     <h2 className="text-3xl font-extrabold text-slate-800">À Propos de Nous</h2>
                     <div className="mt-4 max-w-3xl mx-auto">
                         <p className="text-slate-600 text-lg">
-                            Département de Caap-Groupe Sarl, CaapMedia est spécialisé dans la communication et l'impression tous supports au coeur de la ville de Douala - Akwa.
+                            Département de Caap-Groupe Sarl, CaapMedia est spécialisé dans la communication et l'impression tous supports au coeur de Douala, à Ange Raphael.
                         </p>
+                    </div>
+                </section>
+
+                <section className="mb-16" aria-labelledby="realizations-gallery-title">
+                    <h2 id="realizations-gallery-title" className="text-3xl font-extrabold text-slate-800 text-center">{t('publicPages.photoSlots.realizationsTitle')}</h2>
+                    <p className="mx-auto mt-3 max-w-2xl text-center text-slate-600">{t('publicPages.photoSlots.realizationsIntro')}</p>
+                    <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                        {['realizationOne', 'realizationTwo', 'realizationThree', 'realizationFour', 'realizationFive', 'realizationSix'].map(key => (
+                            <PhotoPlaceholder key={key} label={t(`publicPages.photoSlots.${key}`)} className="aspect-[4/3]" />
+                        ))}
                     </div>
                 </section>
                 

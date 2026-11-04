@@ -183,7 +183,7 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
   const selectedSource = safes.find((a) => a.id === sourceAccountId);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b bg-gradient-to-r from-[#c6e911]/15 to-white">
           <h3 className="text-lg font-bold text-slate-800">{t('safeDisbursement.title')}</h3>
@@ -192,7 +192,7 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.sourceSafe')}</label>
+            <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.sourceSafe')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
             <select
               value={sourceAccountId}
               onChange={(e) => setSourceAccountId(e.target.value)}
@@ -212,7 +212,7 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.operationType')}</label>
+            <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.operationType')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
             <select
               value={treasuryType}
               onChange={(e) => {
@@ -239,7 +239,7 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
 
           {treasuryType === TreasuryTransactionType.BANK_WITHDRAWAL && (
             <div>
-              <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.destinationBank')}</label>
+              <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.destinationBank')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
               <select value={destinationAccountId} onChange={(e) => setDestinationAccountId(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border bg-white">
                 <option value="">{t('safeDisbursement.selectBank')}</option>
                 {bankAccounts.map((acc) => (
@@ -251,7 +251,7 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
 
           {treasuryType === TreasuryTransactionType.CASH_REFILL && (
             <div>
-              <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.destinationExpenseBox')}</label>
+              <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.destinationExpenseBox')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
               <select value={destinationAccountId} onChange={(e) => setDestinationAccountId(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border bg-white">
                 <option value="">{t('safeDisbursement.selectExpenseBox')}</option>
                 {expenseBoxes.map((acc) => (
@@ -308,7 +308,7 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.amount')}</label>
+              <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.amount')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
               <input
                 type="number"
                 step="0.01"
@@ -321,13 +321,13 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.date')}</label>
+              <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.date')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
               <input type="date" value={transactionDate} onChange={(e) => setTransactionDate(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border" />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.description')}</label>
+            <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.description')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
             <input
               type="text"
               value={description}

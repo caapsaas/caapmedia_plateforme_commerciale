@@ -139,7 +139,7 @@ const ProductionCostModal: React.FC<Props> = ({
     const maxMargin = commercialParams ? Number(commercialParams.maxMarginPercent) : null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="p-6 border-b border-slate-200">

@@ -164,7 +164,7 @@ const AccountingAccessAdmin: React.FC = () => {
 
       {/* Approve Modal */}
       {approveTarget && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
             <div className="px-6 py-4 border-b border-slate-200">
               <h3 className="text-lg font-semibold text-slate-800">Approuver l'accès de {approveTarget.user?.userName}</h3>
@@ -205,7 +205,7 @@ const AccountingAccessAdmin: React.FC = () => {
 
       {/* Reject Modal */}
       {rejectTarget && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
             <div className="px-6 py-4 border-b border-slate-200">
               <h3 className="text-lg font-semibold text-slate-800">Refuser la demande de {rejectTarget.user?.userName}</h3>

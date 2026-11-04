@@ -75,7 +75,7 @@ const TreasuryStatementModal: React.FC<TreasuryStatementModalProps> = ({ isOpen,
   if (!isOpen || !account || !subsidiary) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={handleClose}>
+    <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={handleClose}>
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b flex justify-between items-center">
           <div>

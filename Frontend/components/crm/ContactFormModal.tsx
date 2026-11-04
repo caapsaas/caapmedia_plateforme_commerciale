@@ -32,7 +32,7 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({ isOpen, onClose, on
     useEffect(() => {
         if (contact) {
             const { id, subsidiaryId, ...editableData } = contact;
-            setFormData(editableData);
+            setFormData({ ...editableData, email: editableData.email ?? '' });
         } else {
             setFormData(initialFormState);
         }
@@ -51,7 +51,7 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({ isOpen, onClose, on
             // Si le résultat contient un mot de passe temporaire, c'est qu'un compte a été créé
             if (result && result.tempPassword) {
                 setCreatedAccountInfo({
-                    email: formData.email,
+                    email: formData.email ?? '',
                     tempPassword: result.tempPassword,
                     message: result.message || 'Compte créé avec succès'
                 });
@@ -69,7 +69,7 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({ isOpen, onClose, on
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <form onSubmit={handleSubmit}>
                     <div className="p-6">
@@ -137,7 +137,7 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({ isOpen, onClose, on
 
                         <div className="mt-4 space-y-4 max-h-[50vh] overflow-y-auto pr-2">
                             <div>
-                                <label htmlFor="contactName" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
+                                <label htmlFor="contactName" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input type="text" name="contactName" id="contactName" value={formData.contactName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
@@ -145,9 +145,9 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({ isOpen, onClose, on
                                 <input type="text" name="company" id="company" value={formData.company} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-slate-700">{t('configuration.form.email')}</label>
+                                <label htmlFor="email" className="block text-sm font-medium text-slate-700">{t('configuration.form.email')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <div className="relative">
-                                    <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm pr-8" />
+                                    <input type="email" name="email" id="email" value={formData.email ?? ''} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm pr-8" />
                                     <MailIcon className="absolute right-2 top-2.5 w-4 h-4 text-slate-400" />
                                 </div>
                             </div>
@@ -156,7 +156,7 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({ isOpen, onClose, on
                                 <input type="tel" name="phone" id="phone" value={formData.phone} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
-                                <label htmlFor="address" className="block text-sm font-medium text-slate-700">{t('configuration.form.address')}</label>
+                                <label htmlFor="address" className="block text-sm font-medium text-slate-700">{t('configuration.form.address')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input type="text" name="address" id="address" value={formData.address} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>

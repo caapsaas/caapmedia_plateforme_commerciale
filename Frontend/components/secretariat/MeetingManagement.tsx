@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Subsidiary, Meeting, Employee } from '../../types';
 import { useI18n } from '../../i18n';
 import IconPlus from '../icons/IconPlus';
@@ -30,6 +30,7 @@ interface MeetingManagementProps {
 
 const MeetingManagement: React.FC<MeetingManagementProps> = ({ subsidiary, employees, onSave, onDelete }) => {
     const { t } = useI18n();
+    const queryClient = useQueryClient();
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
     const [viewingMeeting, setViewingMeeting] = useState<Meeting | null>(null);
@@ -256,6 +257,10 @@ const formatTime = (isoString?: string | Date) => {
                     isOpen={!!viewingMeeting}
                     onClose={handleCloseModals}
                     onSaveMinutes={handleSaveMinutes}
+                    onMeetingUpdated={(updated) => {
+                        setViewingMeeting(current => current?.id === updated.id ? { ...current, ...updated } : current);
+                        void queryClient.invalidateQueries({ queryKey: ['meetings', subsidiary.id] });
+                    }}
                     meeting={viewingMeeting}
                     employees={employees}
                 />

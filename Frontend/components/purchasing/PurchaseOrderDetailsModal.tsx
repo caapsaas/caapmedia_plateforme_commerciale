@@ -107,7 +107,7 @@ const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps> = ({ i
     );
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center">
+        <div className="fixed inset-0 modal-backdrop z-40 flex justify-center items-center">
             {/* Hors-écran (voir BonDeCommande.tsx) — évite l'affichage "en double" derrière la modale. */}
             <div className="fixed top-0 left-[-9999px] bg-white">
                 <div ref={contentRef}>

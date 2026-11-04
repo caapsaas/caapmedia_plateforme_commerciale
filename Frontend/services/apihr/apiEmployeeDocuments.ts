@@ -1,3 +1,4 @@
+import { privateDocumentUrl } from '../privateDocuments';
 import { api } from '../api';
 
 interface UploadedFile {
@@ -45,6 +46,5 @@ export const deleteEmployeeDocument = async (url: string): Promise<void> => {
 
 export const getUploadedFileUrl = (url: string | null | undefined): string | null => {
   if (!url) return null;
-  if (url.startsWith('http')) return url;
-  return `${window.location.origin}${url}`;
+  return privateDocumentUrl(url);
 };

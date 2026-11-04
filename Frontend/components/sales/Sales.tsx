@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useRef } from "react";
+import { useOrderNotificationSelection } from '../../hooks/useOrderNotificationSelection';
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   Order,
   OrderItem,
@@ -7,7 +8,6 @@ import {
   Product,
   Contact,
   CustomerPaymentMethod,
-  TopSellingProduct,
 } from "../../types";
 import { useI18n } from "../../i18n";
 import { useToast } from "../../context/ToastContext";
@@ -28,19 +28,22 @@ import IconEdit from "../icons/IconEdit";
 import IconChevronDown from "../icons/IconChevronDown";
 import IconCheckCircle from "../icons/IconCheckCircle";
 import IconExclamationTriangle from "../icons/IconExclamationTriangle";
-import NewOrder from "../../Pages/NewOrder";
+import NewOrder, { NewOrderDraft } from "../../Pages/NewOrder";
 import EmptyState from "../ui/EmptyState";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getOrders,
   recordOrderPayment,
   updateOrderStatus,
+  validateOrderForProduction,
   createOrderBySalesRepJson,
   FindAllOrdersDto,
   getTopSellingProducts,
+  TopSellingProduct,
 } from "../../services/apiE-commerce/apiOrders";
 import { getServicesCatalog } from "../../services/apiE-commerce/apiProducts";
 import { getContacts } from "../../services/apiCrm/apicontacts";
+import { allowedOrderTransitions, canManageProduction, isBeforeProduction } from '../../utils/orderWorkflow';
 import { getAllUsers } from "../../services/apiCommon/apiUserAuth";
 import { getSubsidiaries } from "../../services/apiCommon/apiSubsidiaries";
 import { useAuth } from "../../context/AuthContext";
@@ -51,7 +54,8 @@ import { UserRole } from "../../types";
 // les champs calculés côté client) sans risque de race condition (voir ref
 // lastOrderDataRef ci-dessous).
 type SalesRepOrderPayload = {
-  customerId: string;
+  customerId?: string;
+  occasionalCustomer?: NewOrderDraft['occasionalCustomer'];
   customerName: string;
   paymentDueDate: string;
   paymentMethod: CustomerPaymentMethod;
@@ -254,6 +258,7 @@ const Sales: React.FC = () => {
     }) => recordOrderPayment(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
       toast.success(
         "Paiement enregistré!",
         "Le paiement a été enregistré avec succès.",
@@ -272,6 +277,8 @@ const Sales: React.FC = () => {
       updateOrderStatus(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ['productionOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['pendingValidationOrders'] });
       toast.success(
         "Statut mis à jour!",
         "Le statut de la commande a été mis à jour avec succès.",
@@ -283,6 +290,15 @@ const Sales: React.FC = () => {
         "Une erreur est survenue lors de la mise à jour du statut.",
       );
     },
+  });
+
+  const { mutate: validateOrderMutate, isPending: isValidatingOrder } = useMutation({
+    mutationFn: validateOrderForProduction,
+    onSuccess: () => {
+      for (const key of ['orders', 'productionOrders', 'pendingValidationOrders']) void queryClient.invalidateQueries({ queryKey: [key] });
+      toast.success(t('order.validationSuccess'));
+    },
+    onError: () => toast.error(t('order.workflowError')),
   });
 
   const { mutateAsync: createOrderMutate } = useMutation({
@@ -312,7 +328,7 @@ const Sales: React.FC = () => {
   });
 
   const handlePlaceOrder = async (
-    newOrderData: Omit<Order, "id" | "subsidiaryId">,
+    newOrderData: NewOrderDraft,
   ) => {
     const itemsForJson = newOrderData.items.map((item: OrderItem) => {
       // Convertir les options en tableau d'objets {optionType, optionValue}
@@ -342,7 +358,8 @@ const Sales: React.FC = () => {
 
     // Créer l'objet de commande pour l'endpoint JSON
     const orderData: SalesRepOrderPayload = {
-      customerId: newOrderData.customerId,
+      customerId: newOrderData.occasionalCustomer ? undefined : newOrderData.customerId,
+      occasionalCustomer: newOrderData.occasionalCustomer,
       customerName: newOrderData.customerName,
       paymentDueDate: newOrderData.paymentDueDate,
       paymentMethod: newOrderData.paymentMethod,
@@ -371,7 +388,11 @@ const Sales: React.FC = () => {
   // Détail complet (infos générales, résumé financier, options/specs/fichier
   // BAT/workflow production par ligne) — distinct du simple dépliage de ligne
   // (expandedOrderId), qui ne montre que la liste d'articles.
+  const notificationSelection = useOrderNotificationSelection('/dashboard/sales');
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
+  useEffect(() => {
+    if (notificationSelection.order) setDetailsOrder(notificationSelection.order);
+  }, [notificationSelection.order]);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
   // State for UI toggles
@@ -757,6 +778,7 @@ const Sales: React.FC = () => {
                                           <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getOrderStatusClass(order.status)}`}>
                                             {t(`order.status_${order.status}`)}
                                           </span>
+                                          {order.status === OrderStatus.IN_PRODUCTION && <span className="text-xs text-slate-500">{t(`production.status_${order.productionStatus}`)}</span>}
                                           {hasStatusIssue && (
                                             <span title={t("sales.statusIssue")}>
                                               <IconExclamationTriangle className="h-5 w-5 text-orange-500" />
@@ -769,14 +791,15 @@ const Sales: React.FC = () => {
                                         onClick={(e) => e.stopPropagation()}
                                       >
                                         <div className="flex justify-center items-center space-x-1">
-                                        {!hasGlobalScope && order.status === OrderStatus.PENDING_VALIDATION && (
+                                        {canManageProduction(effectiveRole) && isBeforeProduction(order.status) && (
                                           <button
-                                            onClick={() => updateOrderStatusMutate({ orderId: order.id, status: OrderStatus.IN_PRODUCTION })}
-                                            className="flex items-center mx-auto space-x-2 px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-md hover:bg-green-600 transition-colors"
+                                            onClick={() => validateOrderMutate(order.id)}
+                                            disabled={isValidatingOrder}
+                                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-600 hover:bg-green-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 disabled:cursor-wait disabled:opacity-50 transition-colors"
                                             title={t("sales.validateForProduction")}
+                                            aria-label={t("sales.validateForProduction")}
                                           >
                                             <IconCheckCircle className="h-4 w-4" />
-                                            <span>{t("sales.validateForProduction")}</span>
                                           </button>
                                         )}
                                             {canRecordPayment && order.status !== OrderStatus.CANCELLED && order.paymentStatus !== PaymentStatus.PAID && (
@@ -788,13 +811,15 @@ const Sales: React.FC = () => {
                                                 <IconCoins className="h-5 w-5" />
                                               </button>
                                             )}
-                                            {!hasGlobalScope && [OrderStatus.NEW, OrderStatus.PENDING_VALIDATION].includes(order.status) && (
+                                            {allowedOrderTransitions(order, effectiveRole).some(status => status !== OrderStatus.IN_PRODUCTION) && (
                                               <button
                                                 onClick={() => setUpdatingStatusOrder(order)}
                                                 className="p-2 text-blue-600 hover:bg-blue-100 rounded-full"
-                                                title={t("order.updateStatus")}
+                                                title={t(order.status === OrderStatus.PENDING_DELIVERY ? 'order.confirmDelivery' : order.status === OrderStatus.DELIVERED ? 'order.closeOrder' : 'order.updateStatus')}
                                               >
                                                 <IconEdit className="h-5 w-5" />
+                                                {order.status === OrderStatus.PENDING_DELIVERY && <span className="text-xs">{t('order.confirmDelivery')}</span>}
+                                                {order.status === OrderStatus.DELIVERED && <span className="text-xs">{t('order.closeOrder')}</span>}
                                               </button>
                                             )}
                                             <button
@@ -991,7 +1016,7 @@ const Sales: React.FC = () => {
       {detailsOrder && (
         <OrderDetailsPanel
           order={detailsOrder}
-          onClose={() => setDetailsOrder(null)}
+          onClose={() => { setDetailsOrder(null); notificationSelection.close(); }}
         />
       )}
     </div>

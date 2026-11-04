@@ -501,7 +501,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
 
       {/* Modal création / édition */}
       {(showCreateModal || showEditModal) && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={closeModal}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4" onClick={closeModal}>
           <div
             className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
             onClick={e => e.stopPropagation()}

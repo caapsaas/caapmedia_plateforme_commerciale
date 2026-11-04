@@ -48,7 +48,7 @@ const ImageZoomModal: React.FC<ImageZoomModalProps> = ({ isOpen, onClose, images
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex flex-col" role="dialog" aria-modal="true" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex flex-col" role="dialog" aria-modal="true" onClick={onClose}>
             <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-white/20 rounded-full text-white hover:bg-white/40 transition-colors z-20" aria-label="Close">
                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>

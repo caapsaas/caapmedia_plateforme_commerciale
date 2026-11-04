@@ -139,6 +139,21 @@ export const deleteMeeting = async (id: string): Promise<{ message: string }> =>
   return data;
 };
 
+/** Mark an already started meeting as completed before attaching its report. */
+export const completeMeeting = async (id: string): Promise<Meeting> => {
+  const { data } = await api.post<Meeting>(`/secretariat/meetings/${id}/complete`);
+  return data;
+};
+
+export const uploadMeetingReport = async (id: string, file: File): Promise<Meeting> => {
+  const form = new FormData();
+  form.append('file', file);
+  const { data } = await api.post<Meeting>(`/secretariat/meetings/${id}/report`, form, {
+    headers: { 'Content-Type': undefined },
+  });
+  return data;
+};
+
 // --- Secretariat Tasks ---
 
 /**

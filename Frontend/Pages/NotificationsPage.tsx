@@ -1,3 +1,6 @@
+import { getOrderNotificationTarget } from '../utils/orderNotifications';
+import { getNeedRequestNotificationId } from '../utils/needRequestNotifications';
+import { useNavigate } from '@tanstack/react-router';
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCheck } from 'lucide-react';
@@ -21,6 +24,7 @@ const PAGE_SIZE = 15;
 // que gmo (groupe "Outils" du sidebar).
 const NotificationsPage: React.FC = () => {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<NotificationFilter>('all');
@@ -40,9 +44,17 @@ const NotificationsPage: React.FC = () => {
     ]);
 
   const handleMarkAsRead = async (notification: AppNotification) => {
-    if (notification.read) return;
-    await markNotificationAsRead(notification.id);
-    await invalidate();
+    if (!notification.read) {
+      await markNotificationAsRead(notification.id);
+      await invalidate();
+    }
+    const requestId = getNeedRequestNotificationId(notification);
+    if (requestId) {
+      void navigate({ to: '/dashboard/need-requests', hash: requestId });
+    } else {
+      const target = getOrderNotificationTarget(notification, user?.activeRole ?? user?.userRole);
+      if (target) void navigate(target);
+    }
   };
 
   const handleMarkAllAsRead = async () => {

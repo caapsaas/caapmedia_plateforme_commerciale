@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { MapPin, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { api } from '../services/api';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -12,76 +12,15 @@ interface PointageResponse {
   duration?: string;
 }
 
-interface Employee {
-  id: string;
-  firstName: string;
-  lastName: string;
-  subsidiaryId: string;
-}
-
-interface EmployeesResponse {
-  success: boolean;
-  employees: Employee[];
-}
-
 export const PointagePage: React.FC = () => {
   const token = new URLSearchParams(window.location.search).get('t') || '';
   const queryClient = useQueryClient();
 
   const [matricule, setMatricule] = useState('');
-  const [gpsLocation, setGpsLocation] = useState<GeolocationCoordinates | null>(null);
+  const [action, setAction] = useState<'arrival' | 'departure'>('arrival');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<PointageResponse | null>(null);
-  const [locationLoading, setLocationLoading] = useState(true);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [employeesLoading, setEmployeesLoading] = useState(false);
-
-  // Debug: Log token on mount
-  useEffect(() => {
-    console.log('PointagePage mounted with token:', token);
-  }, [token]);
-
-  // Fetch employees when token is available
-  useEffect(() => {
-    if (!token) return;
-
-    const fetchEmployees = async () => {
-      try {
-        setEmployeesLoading(true);
-        const response = await api.get<EmployeesResponse>(`/pointage/employees?token=${token}`);
-        setEmployees(response.data.employees);
-        console.log('Employees loaded:', response.data.employees);
-      } catch (err: any) {
-        console.error('Failed to fetch employees:', err);
-        setError('Erreur lors du chargement des employés');
-      } finally {
-        setEmployeesLoading(false);
-      }
-    };
-
-    fetchEmployees();
-  }, [token]);
-
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      setLocationLoading(false);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setGpsLocation(position.coords);
-        setLocationLoading(false);
-      },
-      (error) => {
-        console.error('Geolocation error:', error);
-        // Allow pointage without GPS
-        setLocationLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 30000 } // Increased to 30 seconds
-    );
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,18 +35,11 @@ export const PointagePage: React.FC = () => {
     }
 
     try {
-      const payload: any = {
+      const payload = {
         token,
         matricule,
+        action,
       };
-
-      if (gpsLocation) {
-        payload.latitude = gpsLocation.latitude;
-        payload.longitude = gpsLocation.longitude;
-        payload.accuracy = gpsLocation.accuracy;
-      }
-
-      console.log('Submitting pointage with payload:', payload);
       const response = await api.post<PointageResponse>('/pointage', payload);
       setSuccess(response.data);
       setMatricule('');
@@ -115,20 +47,18 @@ export const PointagePage: React.FC = () => {
       // Invalidate attendance records cache to refresh history
       queryClient.invalidateQueries({ queryKey: ['attendance-records'] });
     } catch (err: any) {
-      console.error('Pointage error:', err);
-      console.error('Error response:', err.response?.data);
-      const errorMessage = err.response?.data?.message || 'Erreur lors du pointage';
-      const errorDetails = err.response?.data;
-      // Provide more user-friendly error messages
-      if (errorMessage === 'Token invalide') {
-        setError('Le QR code a expiré. Veuillez scanner un nouveau QR code.');
-      } else if (errorMessage === 'Ce token a expiré') {
-        setError('Le QR code a expiré. Veuillez scanner un nouveau QR code.');
-      } else if (errorMessage === 'Employé non trouvé ou inactif') {
-        setError(`Employé non trouvé ou inactif. Vérifiez que votre matricule est correct et que vous êtes actif dans cette filiale.`);
-      } else {
-        setError(`${errorMessage}${errorDetails ? ` (${JSON.stringify(errorDetails)})` : ''}`);
-      }
+      const responseData = err.response?.data;
+      const responseMessage = responseData?.message;
+      const code = responseData?.code ?? responseMessage?.code;
+      const knownErrors: Record<string, string> = {
+        QR_EXPIRED: 'Ce lien QR temporaire a expiré. Scannez le QR permanent affiché dans les locaux.',
+        QR_REVOKED: 'Ce QR a été remplacé. Scannez le nouveau QR affiché dans les locaux.',
+        ALREADY_CHECKED_IN: 'Votre arrivée est déjà enregistrée aujourd’hui.',
+        INVALID_DEPARTURE: 'Une arrivée doit être enregistrée avant le départ.',
+      };
+      setError(knownErrors[code] || (err.response?.status === 400 || err.response?.status === 403
+        ? 'Pointage non autorisé. Vérifiez vos informations ou contactez les RH.'
+        : `Échec du pointage (HTTP ${err.response?.status ?? 'inconnu'}). Vérifiez le matricule et réessayez.`));
     } finally {
       setLoading(false);
     }
@@ -164,26 +94,6 @@ export const PointagePage: React.FC = () => {
           <p className="text-slate-600">Entrez vos informations pour pointer</p>
         </div>
 
-        {/* Location Status */}
-        <div className="bg-slate-50 rounded-xl p-4 mb-6">
-          <div className="flex items-center gap-3">
-            <MapPin className="w-5 h-5 text-slate-600" />
-            <div className="flex-1">
-              {locationLoading ? (
-                <p className="text-sm text-slate-600">Localisation en cours...</p>
-              ) : gpsLocation ? (
-                <p className="text-sm text-green-600 font-medium">
-                  Position GPS activée (±{Math.round(gpsLocation.accuracy)}m)
-                </p>
-              ) : (
-                <p className="text-sm text-orange-600 font-medium">
-                  Position GPS non disponible
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 mb-6">
@@ -191,14 +101,6 @@ export const PointagePage: React.FC = () => {
               <XCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
               <p className="text-red-800 text-sm font-medium">{error}</p>
             </div>
-            {error.includes('expiré') && (
-              <button
-                onClick={() => window.location.reload()}
-                className="mt-2 text-red-600 underline hover:text-red-800 text-sm"
-              >
-                Scanner un nouveau QR code
-              </button>
-            )}
           </div>
         )}
 
@@ -225,7 +127,7 @@ export const PointagePage: React.FC = () => {
           <div>
             <label htmlFor="matricule" className="block text-sm font-medium text-slate-700 mb-2">
              Entrez votre Matricule Employé
-            </label>
+             <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
             <input
               id="matricule"
               type="text"
@@ -239,7 +141,21 @@ export const PointagePage: React.FC = () => {
             />
           </div>
 
-    
+          <div>
+            <label htmlFor="action" className="block text-sm font-medium text-slate-700 mb-2">
+              Type de pointage
+            </label>
+            <select
+              id="action"
+              value={action}
+              onChange={(e) => setAction(e.target.value as 'arrival' | 'departure')}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#c6e911] focus:border-transparent"
+              disabled={loading}
+            >
+              <option value="arrival">Arrivée</option>
+              <option value="departure">Départ</option>
+            </select>
+          </div>
 
           <button
             type="submit"

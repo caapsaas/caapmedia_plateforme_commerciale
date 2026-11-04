@@ -6,7 +6,7 @@ const MUTATING_METHODS = new Set(['post', 'put', 'patch', 'delete']);
 
 // Routes qui servent a OBTENIR une session: elles ne peuvent pas etre
 // reparees par un refresh (ce serait circulaire pour /auth/refresh lui-meme).
-const AUTH_BOOTSTRAP_ROUTES = ['/auth/login', '/auth/refresh', '/auth/register', '/auth/2fa'];
+const AUTH_BOOTSTRAP_ROUTES = ['/auth/login', '/auth/refresh', '/auth/register', '/auth/2fa', '/pointage'];
 
 function isAuthBootstrap(url: string | undefined): boolean {
   return !!url && AUTH_BOOTSTRAP_ROUTES.some((route) => url.includes(route));

@@ -38,7 +38,7 @@ const MaintenanceLogModal: React.FC<MaintenanceLogModalProps> = ({ isOpen, onClo
     if (!isOpen) return null;
     
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                 <div className="p-6 border-b">
                     <h3 className="text-lg font-bold text-slate-900">{t('maintenance.modal.logTitle', { name: equipment.equipmentName })}</h3>
@@ -57,19 +57,19 @@ const MaintenanceLogModal: React.FC<MaintenanceLogModalProps> = ({ isOpen, onClo
                     {showAddForm ? (
                         <form onSubmit={handleAddSubmit} className="space-y-4 p-4 bg-slate-50 rounded-lg">
                             <div>
-                                <label htmlFor="maintenanceDate" className="block text-sm font-medium text-slate-700">{t('maintenance.form.maintenanceDate')}</label>
+                                <label htmlFor="maintenanceDate" className="block text-sm font-medium text-slate-700">{t('maintenance.form.maintenanceDate')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input type="date" name="maintenanceDate" value={newLog.maintenanceDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />
                             </div>
                              <div>
-                                <label htmlFor="technician" className="block text-sm font-medium text-slate-700">{t('maintenance.form.technician')}</label>
+                                <label htmlFor="technician" className="block text-sm font-medium text-slate-700">{t('maintenance.form.technician')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input type="text" name="technician" value={newLog.technician} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />
                             </div>
                              <div>
-                                <label htmlFor="description" className="block text-sm font-medium text-slate-700">{t('maintenance.form.description')}</label>
+                                <label htmlFor="description" className="block text-sm font-medium text-slate-700">{t('maintenance.form.description')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <textarea name="description" value={newLog.description} onChange={handleChange} required rows={3} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"></textarea>
                             </div>
                              <div>
-                                <label htmlFor="maintenanceCost" className="block text-sm font-medium text-slate-700">{t('maintenance.form.cost')}</label>
+                                <label htmlFor="maintenanceCost" className="block text-sm font-medium text-slate-700">{t('maintenance.form.cost')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input type="number" name="maintenanceCost" value={newLog.maintenanceCost} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />
                             </div>
                             <div className="flex justify-end gap-2">

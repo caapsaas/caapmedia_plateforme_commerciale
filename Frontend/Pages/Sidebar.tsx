@@ -186,6 +186,7 @@ const Sidebar: React.FC = () => {
             groupIcon: <IconCrm className="h-5 w-5" />,
             items: [
               { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-5 w-5" /> },
+              ...(activeRole === UserRole.SUPER_ADMIN ? [{ to: '/dashboard/need-requests', label: t('needs.title'), icon: <IconClipboardList className="h-5 w-5" /> }] : []),
               { to: '/dashboard/proforma', label: t('sidebar.proforma'), icon: <IconDocumentText className="h-5 w-5" /> },
               { to: '/dashboard/sales', label: t('sidebar.orders'), icon: <IconSales className="h-5 w-5" /> },
               { to: '/dashboard/production', label: t('sidebar.production'), icon: <IconFactory className="h-5 w-5" /> },
@@ -280,6 +281,7 @@ const Sidebar: React.FC = () => {
             groupIcon: <IconCrm className="h-5 w-5" />,
             items: [
               { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-5 w-5" /> },
+              { to: '/dashboard/need-requests', label: t('needs.title'), icon: <IconClipboardList className="h-5 w-5" /> },
               { to: '/dashboard/proforma', label: t('sidebar.proforma'), icon: <IconDocumentText className="h-5 w-5" /> },
               { to: '/dashboard/sales', label: t('sidebar.orders'), icon: <IconSales className="h-5 w-5" /> },
             ],
@@ -497,7 +499,7 @@ const Sidebar: React.FC = () => {
       {/* Overlay mobile */}
       {isSidebarOpen && (
         <div
-          className="no-print fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden"
+          className="no-print fixed inset-0 modal-backdrop z-30 md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}

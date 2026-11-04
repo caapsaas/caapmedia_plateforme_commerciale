@@ -8,9 +8,7 @@ interface AttendanceCardsProps {
 const AttendanceCards: React.FC<AttendanceCardsProps> = ({ subsidiary }) => {
   return (
     <div className="space-y-6">
-
-      <DynamicQrDisplay />
-   
+      <DynamicQrDisplay key={subsidiary.id} />
     </div>
   );
 };

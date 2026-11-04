@@ -1,3 +1,4 @@
+import PrivateDocumentLink from '../common/PrivateDocumentLink';
 import React from 'react';
 import { Download } from '../ui/Icons';
 import { t } from 'i18next';
@@ -29,14 +30,14 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ labelKey, document, Icon, b
         </div>
       </div>
       {url && (
-        <a
+        <PrivateDocumentLink
           href={url}
           download={name}
           className="ml-2 p-2 text-blue-600 hover:bg-blue-100 rounded transition-colors flex-shrink-0"
           title={t('hr.documents.download')}
         >
           <Download size={18} />
-        </a>
+        </PrivateDocumentLink>
       )}
     </div>
   );

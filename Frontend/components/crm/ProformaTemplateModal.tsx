@@ -1,9 +1,8 @@
+import ShareProformaModal from './ShareProformaModal';
 import React, { useRef, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
-import { useToast } from '../../context/ToastContext';
-import { Proforma, sendProforma } from '../../services/apiCrm/apiProformas';
+import { Proforma } from '../../services/apiCrm/apiProformas';
 import { printElementAsPdf, exportElementToPdf } from '../../utils/pdfExporter';
 import { amountToWordsFcfa } from '../../utils/amountToWords';
 import DocumentHeader from '../common/DocumentHeader';
@@ -23,22 +22,10 @@ interface ProformaTemplateModalProps {
 const ProformaTemplateModal: React.FC<ProformaTemplateModalProps> = ({ isOpen, onClose, proforma }) => {
   const { t, formatCurrency, language } = useI18n();
   const { subsidiary } = useAuth();
-  const toast = useToast();
-  const queryClient = useQueryClient();
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
-
-  const { mutate: send, isPending: isSending } = useMutation({
-    mutationFn: (id: string) => sendProforma(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['proformas'] });
-      toast.success(t('proforma.template.sentSuccess'), t('proforma.template.sentSuccessMessage'));
-    },
-    onError: (error: any) => {
-      toast.error(t('proforma.template.sentError'), error?.response?.data?.message || t('proforma.template.sentErrorMessage'));
-    },
-  });
 
   if (!isOpen || !proforma || !subsidiary) return null;
 
@@ -68,7 +55,7 @@ const ProformaTemplateModal: React.FC<ProformaTemplateModalProps> = ({ isOpen, o
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b flex justify-between items-center">
           <h3 className="text-xl font-bold text-slate-800">Proforma {proforma.proformaNumber}</h3>
@@ -157,13 +144,12 @@ const ProformaTemplateModal: React.FC<ProformaTemplateModalProps> = ({ isOpen, o
         </div>
 
         <div className="p-4 bg-slate-50 border-t flex flex-wrap justify-end items-center gap-3">
-          {(proforma.status === 'DRAFT') && (
+          {(['DRAFT', 'SENT', 'VIEWED'].includes(proforma.status)) && (
             <button
-              onClick={() => send(proforma.id)}
-              disabled={isSending}
+              onClick={() => setIsShareOpen(true)}
               className="px-4 py-2 bg-[#c6e911] text-slate-800 font-semibold rounded-md hover:bg-[#adc40f] transition-colors disabled:opacity-50"
             >
-              {isSending ? t('proforma.template.sending') : t('proforma.template.markSent')}
+              {t('proforma.sharing.title')}
             </button>
           )}
           <button
@@ -187,6 +173,7 @@ const ProformaTemplateModal: React.FC<ProformaTemplateModalProps> = ({ isOpen, o
           </button>
         </div>
       </div>
+      {isShareOpen && <ShareProformaModal key={proforma.id} proforma={proforma} onClose={() => setIsShareOpen(false)} />}
     </div>
   );
 };

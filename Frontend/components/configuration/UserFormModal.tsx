@@ -139,7 +139,7 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
     const secondaryRoles = ASSIGNABLE_ROLES.filter(r => r !== formData.userRole && r !== UserRole.PRE_HIRE_MANAGER);
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <form onSubmit={handleSubmit}>
                     <div className="p-6">
@@ -148,11 +148,11 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
                         </h3>
                         <div className="mt-4 space-y-4">
                             <div>
-                                <label htmlFor="userName" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
+                                <label htmlFor="userName" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input type="text" name="userName" id="userName" value={formData.userName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-slate-700">{t('configuration.form.email')}</label>
+                                <label htmlFor="email" className="block text-sm font-medium text-slate-700">{t('configuration.form.email')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -215,11 +215,11 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
                                 <>
                                     <hr className="my-2"/>
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700">{user ? 'Nouveau mot de passe' : 'Mot de passe'}</label>
+                                        <label className="block text-sm font-medium text-slate-700">{user ? 'Nouveau mot de passe' : 'Mot de passe'} {!user && <span className="text-red-600 ml-1" aria-hidden="true">*</span>}</label>
                                         <PasswordInput value={password} onChange={e => setPassword(e.target.value)} required={!user} autoComplete="new-password" className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700">Confirmer le mot de passe</label>
+                                        <label className="block text-sm font-medium text-slate-700">Confirmer le mot de passe {!user && <span className="text-red-600 ml-1" aria-hidden="true">*</span>}</label>
                                         <PasswordInput value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required={!user} autoComplete="new-password" className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                     </div>
                                 </>

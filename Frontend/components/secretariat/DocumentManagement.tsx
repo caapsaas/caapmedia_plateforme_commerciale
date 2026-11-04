@@ -17,7 +17,7 @@ import IconPdf from '../icons/IconPdf';
 import EmptyState from '../ui/EmptyState';
 import TableSkeleton from '../ui/TableSkeleton';
 import Pagination from '../common/Pagination';
-import { getImageUrl } from '../../utils/imageUtils';
+import { downloadPrivateDocument } from '../../services/privateDocuments';
 import { getCompanyDocuments, getCompanyDocumentsPaginated } from '../../services/apisecretariat/apiSecretariat';
 
 const DOCUMENTS_PAGE_SIZE = 10;
@@ -156,46 +156,14 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, onS
         }
     };
 
-    const handleDownloadDocument = (doc: CompanyDocument) => {
+    const handleDownloadDocument = async (doc: CompanyDocument) => {
         try {
-            const downloadUrl = getImageUrl(doc.fileUrl);
-            if (!downloadUrl) {
-                toast.error('Erreur de téléchargement', 'L\'URL du document n\'est pas disponible.');
-                return;
-            }
-            
-            // Vérifier si l'URL se termine par une extension de fichier valide
-            const validExtensions = ['.pdf', '.doc', '.docx', '.xlsx', '.xls', '.jpg', '.png', '.txt'];
-            const hasValidExtension = validExtensions.some(ext => doc.fileUrl.toLowerCase().endsWith(ext));
-            
-            if (!hasValidExtension) {
-                toast.error('Erreur de téléchargement', 'Le type de fichier n\'est pas supporté.');
-                return;
-            }
-            
-            // Créer un lien temporaire pour le téléchargement
-            const link = document.createElement('a');
-            link.href = downloadUrl;
-            link.target = '_blank';
-            
-            // Utiliser le nom du document avec l'extension correcte pour le téléchargement
-            const fileExtension = doc.fileUrl.split('.').pop();
-            const downloadName = doc.documentName.includes(`.${fileExtension}`) 
-                ? doc.documentName 
-                : `${doc.documentName}.${fileExtension}`;
-            
-            link.download = downloadName;
-            link.rel = 'noopener noreferrer';
-            
-            // Déclencher le téléchargement
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            toast.success('Téléchargement démarré', `Le document "${doc.documentName}" est en cours de téléchargement.`);
-        } catch (error) {
-            console.error('Erreur de téléchargement:', error);
-            toast.error('Erreur de téléchargement', 'Une erreur est survenue lors du téléchargement du document.');
+            const extension = doc.fileUrl.split('.').pop();
+            const name = extension && !doc.documentName.endsWith(`.${extension}`)
+                ? `${doc.documentName}.${extension}` : doc.documentName;
+            await downloadPrivateDocument(doc.fileUrl, name);
+        } catch {
+            toast.error(t('common.error'), t('secretariat.documents.downloadError'));
         }
     };
 

@@ -119,7 +119,7 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({ isOpen, onClose
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl" onClick={e => e.stopPropagation()}>
                 <div className="p-6 border-b">
                     <h3 className="text-lg font-bold text-slate-900">Importer des produits depuis un CSV</h3>

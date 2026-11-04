@@ -2,10 +2,6 @@ import { GoogleGenAI } from "@google/genai";
 
 const API_KEY = process.env.API_KEY;
 
-if (!API_KEY) {
-  console.warn("La clé API de Google Gemini n'est pas définie. Les fonctionnalités IA seront désactivées.");
-}
-
 const ai = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
 
 const getMarketingPrompt = (lang: string, productInfo: string): string => {

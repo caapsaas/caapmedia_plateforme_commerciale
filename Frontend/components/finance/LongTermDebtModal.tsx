@@ -76,7 +76,7 @@ const LongTermDebtModal: React.FC<LongTermDebtModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <form onSubmit={handleSubmit}>
           <div className="p-6">
@@ -89,7 +89,7 @@ const LongTermDebtModal: React.FC<LongTermDebtModalProps> = ({
                 <>
                   <p className="text-sm text-slate-500">{debtToEdit!.debtsName}</p>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">{t('supplierDebts.longTerm.currentBalance')}</label>
+                    <label className="block text-sm font-medium text-slate-700">{t('supplierDebts.longTerm.currentBalance')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                     <input
                       type="number"
                       step="0.01"
@@ -104,7 +104,7 @@ const LongTermDebtModal: React.FC<LongTermDebtModalProps> = ({
               ) : (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">{t('supplierDebts.longTerm.name')}</label>
+                    <label className="block text-sm font-medium text-slate-700">{t('supplierDebts.longTerm.name')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                     <input
                       type="text"
                       value={debtsName}
@@ -116,7 +116,7 @@ const LongTermDebtModal: React.FC<LongTermDebtModalProps> = ({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700">{t('supplierDebts.longTerm.initialAmount')}</label>
+                      <label className="block text-sm font-medium text-slate-700">{t('supplierDebts.longTerm.initialAmount')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                       <input
                         type="number"
                         step="0.01"
@@ -128,7 +128,7 @@ const LongTermDebtModal: React.FC<LongTermDebtModalProps> = ({
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700">{t('supplierDebts.longTerm.interestRate')} (%)</label>
+                      <label className="block text-sm font-medium text-slate-700">{t('supplierDebts.longTerm.interestRate')} (%) <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                       <input
                         type="number"
                         step="0.01"
@@ -142,7 +142,7 @@ const LongTermDebtModal: React.FC<LongTermDebtModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">{t('supplierDebts.longTerm.maturityDate')}</label>
+                    <label className="block text-sm font-medium text-slate-700">{t('supplierDebts.longTerm.maturityDate')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                     <input
                       type="date"
                       value={maturityDate}

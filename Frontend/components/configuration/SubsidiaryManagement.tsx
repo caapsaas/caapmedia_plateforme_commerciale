@@ -149,7 +149,7 @@ const SubsidiaryManagement: React.FC = () => {
         </table>
       </div>
 
-      {formOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={closeForm}>
+      {formOpen && <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4" onClick={closeForm}>
         <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white shadow-xl" onClick={(event) => event.stopPropagation()}>
           <form onSubmit={handleSubmit}>
             <div className="border-b p-6"><h3 className="text-xl font-bold text-slate-800">{editing ? 'Modifier la filiale' : 'Créer une filiale'}</h3></div>
@@ -157,8 +157,8 @@ const SubsidiaryManagement: React.FC = () => {
               {([
                 ['subsidiaryName', 'Nom de la filiale'], ['email', 'Email'], ['phone', 'Téléphone'], ['address', 'Adresse'],
                 ['ifu', 'IFU'], ['rccm', 'RCCM'], ['bankName', 'Banque'], ['accountNumber', 'Compte bancaire'], ['swiftCode', 'Code SWIFT'],
-              ] as const).map(([key, label]) => <label key={key} className="text-sm font-medium text-slate-700">{label}<input required type={key === 'email' ? 'email' : 'text'} value={form[key]} onChange={(event) => setField(key, event.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label>)}
-              <label className="text-sm font-medium text-slate-700">Capital social (FCFA)<input required min="0" type="number" value={form.shareCapital} onChange={(event) => setField('shareCapital', Number(event.target.value))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label>
+              ] as const).map(([key, label]) => <label key={key} className="text-sm font-medium text-slate-700">{label}<input required type={key === 'email' ? 'email' : 'text'} value={form[key]} onChange={(event) => setField(key, event.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /> <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>)}
+              <label className="text-sm font-medium text-slate-700">Capital social (FCFA)<input required min="0" type="number" value={form.shareCapital} onChange={(event) => setField('shareCapital', Number(event.target.value))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /> <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
               <label className="text-sm font-medium text-slate-700">Taux IS (%)<input required min="0" max="100" step="0.01" type="number" value={form.taxRate * 100} onChange={(event) => setField('taxRate', Number(event.target.value) / 100)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label>
               <label className="flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" checked={form.isHeadquarter} onChange={(event) => setField('isHeadquarter', event.target.checked)} />Cette filiale est le siège</label>
               <label className="text-sm font-medium text-slate-700">Logo (PNG ou JPEG, 5 Mo max)<input type="file" accept="image/png,image/jpeg" onChange={(event) => setLogo(event.target.files?.[0] || null)} className="mt-1 block w-full text-sm" /></label>

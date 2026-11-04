@@ -209,7 +209,7 @@ const InventoryAdjustmentForm: React.FC<InventoryAdjustmentFormProps> = ({ subsi
                                     <label className="block text-xs font-semibold text-slate-500 mb-1.5">
                                         {t('stockMovements.inventory.countedStock')}
                                         {unit && <span className="ml-1 text-slate-400">({unit.symbol ?? unit.name})</span>}
-                                    </label>
+                                     <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                     <input
                                         type="number"
                                         min="0"

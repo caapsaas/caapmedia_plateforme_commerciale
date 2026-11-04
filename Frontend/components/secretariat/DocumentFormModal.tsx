@@ -68,7 +68,7 @@ const DocumentFormModal: React.FC<DocumentFormModalProps> = ({ isOpen, onClose, 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
                 <form onSubmit={handleSubmit}>
                     <div className="p-6">
@@ -77,18 +77,18 @@ const DocumentFormModal: React.FC<DocumentFormModalProps> = ({ isOpen, onClose, 
                         </h3>
                         <div className="mt-4 space-y-4">
                             <div>
-                                <label htmlFor="documentName" className="block text-sm font-medium text-slate-700">{t('secretariat.documents.table.name')}</label>
+                                <label htmlFor="documentName" className="block text-sm font-medium text-slate-700">{t('secretariat.documents.table.name')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input type="text" name="documentName" id="documentName" value={formData.documentName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="category" className="block text-sm font-medium text-slate-700">{t('secretariat.documents.table.category')}</label>
+                                    <label htmlFor="category" className="block text-sm font-medium text-slate-700">{t('secretariat.documents.table.category')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                     <select name="category" id="category" value={formData.category} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                         {Object.values(DocumentCategory).map(cat => <option key={cat} value={cat}>{t(`secretariat.documents.categories.${cat}`)}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label htmlFor="status" className="block text-sm font-medium text-slate-700">{t('secretariat.documents.table.status')}</label>
+                                    <label htmlFor="status" className="block text-sm font-medium text-slate-700">{t('secretariat.documents.table.status')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                     <select name="status" id="status" value={formData.status} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                         {Object.values(DocumentStatus).map(s => <option key={s} value={s}>{t(`secretariat.documents.statuses.${s}`)}</option>)}
                                     </select>

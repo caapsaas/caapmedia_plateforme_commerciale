@@ -386,7 +386,7 @@ const AddItemMultiStepModal: React.FC<Props> = ({
     const sliderTranslate = step === 2 ? 'translateX(-50%)' : 'translateX(0%)';
 
     return (
-        <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4">
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl">
 
                 {/* Header — statique */}

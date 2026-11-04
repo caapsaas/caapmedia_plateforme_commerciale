@@ -301,7 +301,7 @@ const ChartOfAccounts: React.FC = () => {
 
       {/* Create/Edit modal */}
       {isAccountModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
             <div className="border-b border-slate-200 px-6 py-4 flex items-center justify-between">
               <h2 className="text-xl font-bold text-slate-800">{accountToEdit ? 'Modifier le compte' : 'Nouveau compte comptable'}</h2>
@@ -311,7 +311,7 @@ const ChartOfAccounts: React.FC = () => {
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">N° de compte</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">N° de compte <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                 <input
                   type="text" required value={form.accountNumber}
                   onChange={(e) => setForm((f) => ({ ...f, accountNumber: e.target.value }))}
@@ -320,7 +320,7 @@ const ChartOfAccounts: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Intitulé</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Intitulé <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                 <input
                   type="text" required value={form.accountName}
                   onChange={(e) => setForm((f) => ({ ...f, accountName: e.target.value }))}
@@ -330,7 +330,7 @@ const ChartOfAccounts: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">Type</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Type <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                   <select
                     required value={form.accountType}
                     onChange={(e) => setForm((f) => ({ ...f, accountType: e.target.value as AccountingAccountType }))}
@@ -342,7 +342,7 @@ const ChartOfAccounts: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">Classe</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Classe <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                   <select
                     required value={form.class}
                     onChange={(e) => setForm((f) => ({ ...f, class: parseInt(e.target.value, 10) }))}

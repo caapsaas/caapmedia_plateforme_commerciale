@@ -47,7 +47,7 @@ const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, onClose, 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
                 <div className="p-6 border-b flex justify-between items-center">
                     <h2 className="text-xl font-bold text-slate-800">{isSuccess ? t('quoteRequest.successTitle') : t('quoteRequest.title')}</h2>
@@ -67,26 +67,26 @@ const QuoteRequestModal: React.FC<QuoteRequestModalProps> = ({ isOpen, onClose, 
                             <p className="text-sm text-slate-600">{t('quoteRequest.subtitle')}</p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="name" className="block text-sm font-medium text-slate-700">{t('quoteRequest.name')}</label>
+                                    <label htmlFor="name" className="block text-sm font-medium text-slate-700">{t('quoteRequest.name')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                     <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]" />
                                 </div>
                                 <div>
-                                    <label htmlFor="company" className="block text-sm font-medium text-slate-700">{t('quoteRequest.company')}</label>
+                                    <label htmlFor="company" className="block text-sm font-medium text-slate-700">{t('quoteRequest.company')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                     <input type="text" name="company" id="company" value={formData.company} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]" />
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="email" className="block text-sm font-medium text-slate-700">{t('quoteRequest.email')}</label>
+                                    <label htmlFor="email" className="block text-sm font-medium text-slate-700">{t('quoteRequest.email')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                     <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]" />
                                 </div>
                                 <div>
-                                    <label htmlFor="phone" className="block text-sm font-medium text-slate-700">{t('quoteRequest.phone')}</label>
+                                    <label htmlFor="phone" className="block text-sm font-medium text-slate-700">{t('quoteRequest.phone')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                     <input type="tel" name="phone" id="phone" value={formData.phone} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]" />
                                 </div>
                             </div>
                             <div>
-                                <label htmlFor="description" className="block text-sm font-medium text-slate-700">{t('quoteRequest.projectDescription')}</label>
+                                <label htmlFor="description" className="block text-sm font-medium text-slate-700">{t('quoteRequest.projectDescription')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <textarea name="description" id="description" value={formData.description} onChange={handleChange} rows={4} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"></textarea>
                             </div>
                             {submitError && <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">{submitError}</p>}

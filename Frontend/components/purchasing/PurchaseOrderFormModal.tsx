@@ -85,7 +85,7 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl" onClick={e => e.stopPropagation()}>
                 <form onSubmit={handleSubmit}>
                     <div className="p-6 border-b">
@@ -107,7 +107,7 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
                                 />
                             </div>
                             <div>
-                                <label htmlFor="paymentTerms" className="block text-sm font-medium text-slate-700">{t('purchasing.form.paymentTerms')}</label>
+                                <label htmlFor="paymentTerms" className="block text-sm font-medium text-slate-700">{t('purchasing.form.paymentTerms')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <select id="paymentTerms" value={paymentTerms} onChange={e => setPaymentTerms(e.target.value as PaymentTerms)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                     <option value={PaymentTerms.IMMEDIATE}>{t('purchasing.terms_IMMEDIATE')}</option>
                                     <option value={PaymentTerms.CREDIT}>{t('purchasing.terms_CREDIT')}</option>
@@ -115,11 +115,11 @@ const PurchaseOrderFormModal: React.FC<PurchaseOrderFormModalProps> = ({ isOpen,
                                 </select>
                             </div>
                             <div>
-                                <label htmlFor="orderDate" className="block text-sm font-medium text-slate-700">{t('purchasing.form.orderDate')}</label>
+                                <label htmlFor="orderDate" className="block text-sm font-medium text-slate-700">{t('purchasing.form.orderDate')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input type="date" id="orderDate" value={orderDate} onChange={e => setOrderDate(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
-                                <label htmlFor="expectedDeliveryDate" className="block text-sm font-medium text-slate-700">{t('purchasing.form.deliveryDate')}</label>
+                                <label htmlFor="expectedDeliveryDate" className="block text-sm font-medium text-slate-700">{t('purchasing.form.deliveryDate')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input type="date" id="expectedDeliveryDate" value={expectedDeliveryDate} onChange={e => setExpectedDeliveryDate(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                         </div>

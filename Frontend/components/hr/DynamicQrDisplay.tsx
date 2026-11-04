@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { RefreshCw, MapPin, Download, Printer } from 'lucide-react';
-import html2canvas from 'html2canvas';
-import { getCurrentDynamicToken, generateDynamicToken } from '../../services/apihr/apiAttendance';
+import { qrCodeToJpeg } from '../../utils/qrCodeExport';
+import { getAttendanceQr, replaceAttendanceQr } from '../../services/apihr/apiAttendance';
 
 interface DynamicQrData {
   token: string;
@@ -13,12 +13,13 @@ export const DynamicQrDisplay: React.FC = () => {
   const [qrData, setQrData] = useState<DynamicQrData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
 
   const fetchQrData = async () => {
     try {
       setLoading(true);
-      const data = await getCurrentDynamicToken();
+      const data = await getAttendanceQr();
       setQrData(data);
       setError(null);
     } catch (err: any) {
@@ -28,10 +29,11 @@ export const DynamicQrDisplay: React.FC = () => {
     }
   };
 
-  const generateNewToken = async () => {
+  const replaceQrCode = async () => {
+    if (!window.confirm('Remplacer le QR permanent ? Le code déjà imprimé cessera de fonctionner et devra être réimprimé.')) return;
     try {
       setLoading(true);
-      const data = await generateDynamicToken();
+      const data = await replaceAttendanceQr();
       setQrData(data);
       setError(null);
     } catch (err: any) {
@@ -42,20 +44,19 @@ export const DynamicQrDisplay: React.FC = () => {
   };
 
   const downloadQRCode = async () => {
-    if (qrRef.current) {
+    const svg = qrRef.current?.querySelector('svg');
+    if (svg && !isDownloading) {
+      setIsDownloading(true);
       try {
-        const canvas = await html2canvas(qrRef.current, {
-          scale: 2,
-          backgroundColor: '#ffffff',
-        });
-
-        const image = canvas.toDataURL('image/jpeg', 1.0);
+        const image = await qrCodeToJpeg(svg);
         const link = document.createElement('a');
         link.href = image;
         link.download = `qr_pointage_${new Date().toISOString().split('T')[0]}.jpg`;
         link.click();
       } catch (error) {
         console.error('Erreur lors de la génération du QR code:', error);
+      } finally {
+        setIsDownloading(false);
       }
     }
   };
@@ -144,11 +145,11 @@ export const DynamicQrDisplay: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-xl font-bold text-slate-800">QR Code de Pointage</h3>
         <button
-          onClick={generateNewToken}
+          onClick={replaceQrCode}
           className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
-          Régénérer
+          Remplacer le QR
         </button>
       </div>
 
@@ -167,15 +168,17 @@ export const DynamicQrDisplay: React.FC = () => {
           )}
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
+        <div className="flex items-center gap-2 text-sm text-slate-500 mb-3">
           <MapPin className="w-4 h-4" />
-          <p>Les employés scannent ce QR pour pointer</p>
+          <p>QR permanent : il reste valide jusqu’à son remplacement manuel.</p>
         </div>
+        <p className="text-xs text-slate-500 text-center mb-6">Gardez le QR affiché dans les locaux. Chaque demande de pointage est vérifiée par le système.</p>
 
         <div className="flex justify-center gap-4">
           <button
             onClick={downloadQRCode}
-            className="bg-[#c6e911] hover:bg-[#b0cc0f] text-slate-800 font-semibold py-3 px-6 rounded-lg shadow transition-colors flex items-center gap-2"
+            disabled={!qrData || isDownloading}
+            className="bg-[#c6e911] hover:bg-[#b0cc0f] text-slate-800 font-semibold py-3 px-6 rounded-lg shadow transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download className="w-5 h-5" />
             Télécharger
@@ -194,9 +197,9 @@ export const DynamicQrDisplay: React.FC = () => {
         <h4 className="font-semibold text-slate-800 mb-2">Instructions :</h4>
         <ol className="text-sm text-slate-600 space-y-1 list-decimal list-inside">
           <li>L'employé scanne le QR code avec son téléphone</li>
-          <li>Il sélectionne son nom dans la liste</li>
-          <li>Il partage sa position GPS</li>
-          <li>Le système enregistre automatiquement le pointage</li>
+          <li>Il saisit son matricule et choisit arrivée ou départ</li>
+          <li>Il autorise les vérifications nécessaires sur son appareil</li>
+          <li>Le système valide la demande avant l’enregistrement</li>
         </ol>
       </div>
     </div>

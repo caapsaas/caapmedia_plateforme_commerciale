@@ -82,36 +82,33 @@ export const deleteAttendanceRecord = async (
 };
 
 // ============================================================
-// Nouveau flux QR Code dynamique (tokens courts)
+// QR de pointage permanent par filiale.
 // ============================================================
 
 /**
- * Récupère le token dynamique actif pour la filiale.
+ * Récupère le QR permanent de la filiale.
  */
-export const getCurrentDynamicToken = async () => {
-  const { data } = await api.get('/hr/dynamic-token/current');
+export const getAttendanceQr = async (subsidiaryId?: string) => {
+  const { data } = await api.get<{ token: string; qrUrl: string; expiresAt: null }>('/hr/dynamic-token/current', { params: { subsidiaryId } });
   return data;
 };
 
 /**
- * Génère un nouveau token dynamique.
+ * Remplace le QR permanent de la filiale, ce qui révoque l’ancien.
  */
-export const generateDynamicToken = async () => {
-  const { data } = await api.get('/hr/dynamic-token/generate');
+export const replaceAttendanceQr = async (subsidiaryId?: string) => {
+  const { data } = await api.post<{ token: string; qrUrl: string; expiresAt: null }>('/hr/dynamic-token/generate', {}, { params: { subsidiaryId } });
   return data;
 };
 
 /**
- * Effectue un pointage via le nouveau système (matricule + PIN + géoloc).
+ * Effectue un pointage via le système QR, matricule et géolocalisation.
  */
 export const pointage = async (payload: {
   token: string;
   matricule: string;
-  pinCode: string;
-  latitude?: number;
-  longitude?: number;
-  accuracy?: number;
-
+  action: 'arrival' | 'departure';
 }) => {
   const { data } = await api.post('/pointage', payload);
+  return data;
 }

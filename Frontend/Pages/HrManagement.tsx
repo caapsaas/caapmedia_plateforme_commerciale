@@ -67,7 +67,7 @@ const HrManagement: React.FC = () => {
         return completeEmployee;
     };
 
-    const { mutate: onSaveEmployee } = useMutation({
+    const { mutateAsync: onSaveEmployee } = useMutation({
         mutationFn: saveEmployeeWithCompleteData,
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['employees', effectiveSubsidiaryId] }),
     });

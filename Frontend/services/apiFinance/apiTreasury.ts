@@ -196,17 +196,15 @@ export interface CashierOption {
 
 /**
  * Utilisateurs éligibles comme caissier assigné (Configuration Trésorerie —
- * comptes CASH_REGISTER/EXPENSE_BOX), déjà exclus des caissiers assignés
- * ailleurs. `subsidiaryId` permet à un ADMIN/SUPER_ADMIN de lister les
+ * comptes CASH_REGISTER/EXPENSE_BOX). Un caissier peut gérer plusieurs comptes
+ * dans sa filiale. `subsidiaryId` permet à un ADMIN/SUPER_ADMIN de lister les
  * caissiers d'une filiale.
  */
 export const getEligibleCashiers = async (
   subsidiaryId?: string,
-  currentCashierId?: string,
 ): Promise<CashierOption[]> => {
   const params: Record<string, string> = {};
   if (subsidiaryId) params.subsidiaryId = subsidiaryId;
-  if (currentCashierId) params.currentCashierId = currentCashierId;
 
   const { data } = await api.get<CashierOption[]>('/finance/treasury/cashiers', {
     params,

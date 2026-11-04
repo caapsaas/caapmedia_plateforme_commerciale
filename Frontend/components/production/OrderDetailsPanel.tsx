@@ -4,6 +4,7 @@ import {
     FormDefinition, ProductSpecification, SpecFieldType, ResolvedOption,
 } from '../../types';
 import ConfirmationModal from '../common/ConfirmationModal';
+import { useI18n } from '../../i18n';
 import { BACKEND_ORIGIN as BACKEND_BASE } from '../../services/apiConfig';
 
 // ─── Formatters ────────────────────────────────────────────────────────────
@@ -275,6 +276,7 @@ export interface OrderDetailsPanelProps {
 const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({
     order, onClose, onValidate, onReject, isValidating = false, isRejecting = false, canValidate = false, isClosing = false,
 }) => {
+    const { t } = useI18n();
     const [confirmReject, setConfirmReject] = useState(false);
     const [entered, setEntered] = useState(false);
     const orderDate = order.orderDate ?? order.date;
@@ -292,7 +294,7 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({
 
     return (
         <div
-            className={`fixed inset-0 z-50 flex justify-end bg-black/60 transition-opacity duration-300 ease-in-out ${isOut ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+            className={`fixed inset-0 z-50 flex justify-end modal-backdrop transition-opacity duration-300 ease-in-out ${isOut ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             onClick={onClose}
         >
             <div
@@ -324,6 +326,7 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({
                             <Row label="Commercial" value={salesRepName} />
                             <Row label="Date commande" value={fmtDate(orderDate)} />
                             <Row label="Échéance paiement" value={fmtDate(order.paymentDueDate)} />
+                            <Row label={t('order.productionStage')} value={t(`production.status_${order.productionStatus}`)} />
                         </div>
                     </div>
 
@@ -470,7 +473,8 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({
                                 <button
                                     type="button"
                                     onClick={() => setConfirmReject(true)}
-                                    disabled={isRejecting || isValidating}
+                                    disabled={isRejecting || isValidating || Number(order.amountPaid) > 0}
+                                    title={Number(order.amountPaid) > 0 ? t('order.cancellationPaymentBlocked') : undefined}
                                     className="px-5 py-2.5 rounded-lg border-2 border-red-300 text-red-600 text-sm font-semibold hover:bg-red-50 disabled:opacity-50 transition-colors"
                                 >
                                     {isRejecting ? 'Rejet en cours…' : 'Rejeter'}

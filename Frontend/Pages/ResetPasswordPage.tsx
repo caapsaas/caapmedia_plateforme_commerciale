@@ -41,10 +41,10 @@ const ResetPasswordPage: React.FC = () => {
         <p className="text-sm text-slate-600">{t('resetPassword.instruction')}</p>
         <label className="block text-sm font-medium text-slate-700">{t('resetPassword.newPassword')}
           <PasswordInput autoComplete="new-password" required minLength={10} value={password} onChange={e => setPassword(e.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#c6e911]" />
-        </label>
+         <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
         <label className="block text-sm font-medium text-slate-700">{t('resetPassword.confirmPassword')}
           <PasswordInput autoComplete="new-password" required minLength={10} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#c6e911]" />
-        </label>
+         <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
         {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
         <button type="submit" disabled={isSubmitting} className="w-full rounded-md bg-[#c6e911] px-4 py-3 font-semibold text-slate-800 disabled:opacity-60">{isSubmitting ? t('resetPassword.saving') : t('resetPassword.submit')}</button>
         <Link to="/login" className="block text-center text-sm font-medium text-slate-600 hover:text-slate-900">{t('resetPassword.backToLogin')}</Link>

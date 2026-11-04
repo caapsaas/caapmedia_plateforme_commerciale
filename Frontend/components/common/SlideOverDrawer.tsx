@@ -15,7 +15,7 @@ const SlideOverDrawer: React.FC<SlideOverDrawerProps> = ({ isOpen, onClose, titl
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-[999]" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-[999]" onClick={onClose}>
             <div
                 className="fixed right-0 top-0 h-full w-full max-w-lg bg-white shadow-xl flex flex-col"
                 onClick={e => e.stopPropagation()}

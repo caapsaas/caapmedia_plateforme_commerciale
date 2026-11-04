@@ -31,7 +31,7 @@ const EMPLOYEES_PAGE_SIZE = 10;
 interface EmployeeDatabaseModernProps {
   subsidiary: Subsidiary;
   subsidiaryFilterId?: string;
-  onSave: UseMutateFunction<Employee, Error, Partial<Employee>, unknown>;
+  onSave: (employee: Partial<Employee>) => Promise<Employee>;
   onDelete: UseMutateFunction<Employee, Error, string, unknown>;
 }
 
@@ -205,13 +205,14 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
       // Save the employee with documents
       // Add ID if editing existing employee
       const saveData = editingEmployee ? { ...processedData, id: editingEmployee.id } : processedData;
-      onSave(saveData);
+      await onSave(saveData);
       toast.success(t('common.success'), t('hr.employee.saved'));
       setIsFormModalOpen(false);
       setEditingEmployee(null);
     } catch (error) {
       console.error('Error saving employee:', error);
       toast.error(t('common.error'), t('hr.employee.saveFailed'));
+      throw error;
     }
   };
 

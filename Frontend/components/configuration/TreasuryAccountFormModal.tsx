@@ -80,8 +80,8 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
   // Caissiers éligibles (Configuration Trésorerie — assignation compte↔caissier).
   // Scopés à la filiale cible du compte (choisie par un ADMIN/SUPER_ADMIN, sinon la sienne).
   const { data: cashiers = [] } = useQuery<CashierOption[]>({
-    queryKey: ['eligibleCashiers', formData.subsidiaryId, account?.cashierId],
-    queryFn: () => getEligibleCashiers(formData.subsidiaryId, account?.cashierId),
+    queryKey: ['eligibleCashiers', formData.subsidiaryId],
+    queryFn: () => getEligibleCashiers(formData.subsidiaryId),
     enabled: isCashierOwned,
   });
 
@@ -176,7 +176,7 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 modal-backdrop overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
       <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="bg-gradient-to-r from-[#c6e911] to-[#a8d814] px-6 py-4 border-b border-gray-200">

@@ -7,7 +7,7 @@ import IconDelete from '../icons/IconDelete';
 import IconMinus from '../icons/IconMinus';
 import IconPlus from '../icons/IconPlus';
 import { getImageUrl } from '../../utils/imageUtils';
-import { buildWhatsAppLink } from '../../utils/whatsapp';
+import { buildWhatsAppLink, getProductShareUrl } from '../../utils/whatsapp';
 import { LazyLoadImage } from 'react-lazy-load-image-component';
 import 'react-lazy-load-image-component/src/effects/blur.css';
 
@@ -44,7 +44,7 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ cartItems, onClose, onUpdat
 
     const handleWhatsAppOrder = () => {
         const message = cartItems.map(item =>
-            `• ${item.quantity} x ${item.product.name}${formatOptions(item.options) ? ` (${formatOptions(item.options)})` : ''}`
+            `• ${item.quantity} x ${item.product.name}${formatOptions(item.options) ? ` (${formatOptions(item.options)})` : ''}\n${getProductShareUrl(item.product.id)}`
         ).join('\n');
 
         const fullMessage = `Bonjour, je souhaite obtenir un devis pour les produits suivants :\n\n${message}\n\nMerci de m'indiquer les prix et délais. J'enverrai ce message pour confirmer ma demande.`;
@@ -53,7 +53,7 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ cartItems, onClose, onUpdat
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-[999]" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-[999]" onClick={onClose}>
             <div 
                 className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-xl flex flex-col"
                 onClick={e => e.stopPropagation()}
@@ -123,7 +123,7 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ cartItems, onClose, onUpdat
                                     <div className="flex flex-col items-end">
                                         <button
                                             onClick={() => {
-                                                const message = `Bonjour, je souhaite obtenir un devis pour ${item.quantity} x ${item.product.name}${formatOptions(item.options) ? ` (${formatOptions(item.options)})` : ''}. Merci de m'indiquer les prix et délais.`;
+                                                const message = `Bonjour, je souhaite obtenir un devis pour ${item.quantity} x ${item.product.name}${formatOptions(item.options) ? ` (${formatOptions(item.options)})` : ''}. Merci de m'indiquer les prix et délais.\n\n${getProductShareUrl(item.product.id)}`;
                                                 window.open(buildWhatsAppLink(message), '_blank');
                                                 toast.info('WhatsApp est ouvert', 'Envoyez le message pour transmettre votre demande de devis.');
                                             }}

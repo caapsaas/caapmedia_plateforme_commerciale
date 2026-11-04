@@ -42,6 +42,7 @@ const SupplierManagement: React.FC = () => {
             supplierData.id ? updateSupplier(supplierData.id, supplierData) : createSupplier(supplierData),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+            queryClient.invalidateQueries({ queryKey: ['suppliers-list'] });
             const action = variables.id ? 'modifié' : 'ajouté';
             toast.success('Fournisseur sauvegardé!', `Le fournisseur a été ${action} avec succès.`);
             handleCloseModals();
@@ -51,10 +52,11 @@ const SupplierManagement: React.FC = () => {
         }
     });
 
-    const { mutate: deleteSupplierMutate } = useMutation({
+    const { mutate: deleteSupplierMutate, isPending: isDeletingSupplier } = useMutation({
         mutationFn: deleteSupplier,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+            // Supplier deletion also changes purchases, debts, stock and finance.
+            queryClient.invalidateQueries();
             toast.success('Fournisseur supprimé!', 'Le fournisseur a été supprimé avec succès.');
             handleCloseModals();
         },
@@ -83,7 +85,7 @@ const SupplierManagement: React.FC = () => {
         saveSupplierMutate(supplierData);
     };
     const handleDeleteSupplier = () => {
-        if (deletingSupplier) {
+        if (deletingSupplier && !isDeletingSupplier) {
             deleteSupplierMutate(deletingSupplier.id);
         }
     };
@@ -160,10 +162,12 @@ const SupplierManagement: React.FC = () => {
             {deletingSupplier && (
                  <ConfirmationModal
                     isOpen={!!deletingSupplier}
-                    onClose={handleCloseModals}
+                    onClose={() => { if (!isDeletingSupplier) handleCloseModals(); }}
                     onConfirm={handleDeleteSupplier}
                     title={t('configuration.modal.deleteSupplierTitle')}
-                    message={t('configuration.modal.deleteConfirmMessage', {itemName: deletingSupplier.supplierName})}
+                    message={t('configuration.modal.deleteSupplierCascadeMessage', {itemName: deletingSupplier.supplierName})}
+                    isDangerous
+                    isLoading={isDeletingSupplier}
                 />
             )}
         </div>

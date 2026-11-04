@@ -8,7 +8,6 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import IconCheckCircle from '../icons/IconCheckCircle';
 import IconCancelX from '../icons/IconCancelX';
-import IconMapPin from '../icons/IconMapPin';
 import IconUserClock from '../icons/IconUserClock';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
@@ -38,8 +37,6 @@ interface AttendanceRecord {
   arrivalTime: string | null;
   departureTime: string | null;
   status: 'PRESENT' | 'ABSENT' | 'LEFT' | 'LEFT_OUTSIDE_GEOFENCE' | 'LATE';
-  isGeolocationValid: boolean;
-  accuracyMeters?: number;
 }
 
 interface AttendanceQRComponentProps {
@@ -52,8 +49,6 @@ interface CheckInResponse {
   message: string;
   employeeName: string;
   status: string;
-  distance?: string;
-  accuracy?: string;
   duration?: string;
   record?: AttendanceRecord;
 }
@@ -62,7 +57,6 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const [currentLocation, setCurrentLocation] = useState<GeolocationCoordinates | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [scannerActive, setScannerActive] = useState(false);
@@ -109,7 +103,7 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
   });
 
   const checkInMutation = useMutation({
-    mutationFn: async (dto: { qrToken: string; latitude?: number; longitude?: number; accuracy?: number }) => {
+    mutationFn: async (dto: { qrToken: string }) => {
       const response = await api.post<CheckInResponse>('/hr/attendance-checkin/check-in', dto);
       return response.data;
     },
@@ -132,28 +126,6 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
       }
     }
   });
-
-  useEffect(() => {
-    // Do not automatically require geolocation; keep it optional.
-    if (!navigator.geolocation) {
-      setErrorMessage('Géolocalisation non disponible');
-      return;
-    }
-
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        setCurrentLocation(position.coords);
-        setErrorMessage(null);
-      },
-      (error) => {
-        // Keep silent: user may refuse — we still allow scanning without coords
-        setCurrentLocation(null);
-      },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
-    );
-
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
 
   const startScanner = async () => {
     if (scanCooldown) return; // Prevent starting while cooldown is active
@@ -206,8 +178,7 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
         if (code) {
           if (scanCooldown) return; // client-side protection
           scanningRef.current = false;
-          // Passe currentLocation seulement si disponible
-          handleCheckIn(code.data, currentLocation || undefined);
+          handleCheckIn(code.data);
           stopScanner();
           return;
         }
@@ -219,18 +190,11 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
     }
   };
 
-  const handleCheckIn = async (qrToken: string, coords?: GeolocationCoordinates) => {
+  const handleCheckIn = async (qrToken: string) => {
     if (scanCooldown) return; // protect against double submissions
 
     try {
-      const dto: any = { qrToken };
-      if (coords) {
-        dto.latitude = coords.latitude;
-        dto.longitude = coords.longitude;
-        dto.accuracy = coords.accuracy;
-      }
-
-      const response = await checkInMutation.mutateAsync(dto);
+      const response = await checkInMutation.mutateAsync({ qrToken });
 
       // backend returns { type: 'check-in'|'check-out', message, record, ... }
       if (response.type === 'check-in') {
@@ -251,7 +215,7 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
 
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error: any) {
-      setErrorMessage(error.response?.data?.message || "Erreur lors de l'enregistrement");
+      setErrorMessage('Pointage impossible. Vérifiez vos informations ou contactez les RH.');
       setTimeout(() => setErrorMessage(null), 3000);
     }
   };
@@ -300,7 +264,7 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
 
       {/* Scanner Modal */}
       {scannerActive && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-lg max-w-md w-full">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
@@ -328,38 +292,6 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
           </div>
         </div>
       )}
-
-      {/* Location Status */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="bg-purple-100 p-2 rounded-lg">
-            <IconMapPin className="w-5 h-5 text-purple-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-slate-800">Position Actuelle</h3>
-        </div>
-
-        {currentLocation ? (
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-slate-50 p-3 rounded-lg">
-              <p className="text-xs text-slate-600 font-semibold mb-1">Latitude</p>
-              <p className="text-sm font-mono text-slate-800">{currentLocation.latitude.toFixed(4)}°</p>
-            </div>
-            <div className="bg-slate-50 p-3 rounded-lg">
-              <p className="text-xs text-slate-600 font-semibold mb-1">Longitude</p>
-              <p className="text-sm font-mono text-slate-800">{currentLocation.longitude.toFixed(4)}°</p>
-            </div>
-            <div className="bg-slate-50 p-3 rounded-lg">
-              <p className="text-xs text-slate-600 font-semibold mb-1">Précision</p>
-              <p className="text-sm font-mono text-slate-800">±{Math.round(currentLocation.accuracy)}m</p>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-8 text-slate-500">
-            <div className="animate-pulse w-12 h-12 border-4 border-purple-300 border-t-purple-600 rounded-full mx-auto"></div>
-            <p className="mt-3">Localisation en cours...</p>
-          </div>
-        )}
-      </div>
 
       {/* Employees Grid */}
       <div>
@@ -472,12 +404,11 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
                   <th className="px-6 py-4 text-left font-semibold text-slate-700">Arrivée</th>
                   <th className="px-6 py-4 text-left font-semibold text-slate-700">Départ</th>
                   <th className="px-6 py-4 text-left font-semibold text-slate-700">Statut</th>
-                  <th className="px-6 py-4 text-left font-semibold text-slate-700">GPS</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {historyLoading ? (
-                  <TableSkeleton rows={10} columns={6} />
+                  <TableSkeleton rows={10} columns={5} />
                 ) : attendanceHistory && attendanceHistory.length > 0 ? (
                   attendanceHistory.map((record: AttendanceRecord) => (
                     <tr key={record.id} className="hover:bg-slate-50 transition-colors">
@@ -517,23 +448,16 @@ export const AttendanceQRComponent: React.FC<AttendanceQRComponentProps> = ({ su
                           </span>
                         )}
                         {record.status === 'LEFT_OUTSIDE_GEOFENCE' && (
-                          <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-semibold">
-                            Parti - hors zone
+                          <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold">
+                            Parti
                           </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        {record.isGeolocationValid ? (
-                          <span className="text-green-600 font-semibold">✓ ±{record.accuracyMeters}m</span>
-                        ) : (
-                          <span className="text-red-600 font-semibold">✕ Non validée</span>
                         )}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6}>
+                    <td colSpan={5}>
                       <EmptyState icon="inbox" title="Aucun enregistrement pour ce mois" />
                     </td>
                   </tr>

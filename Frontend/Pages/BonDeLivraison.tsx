@@ -121,7 +121,7 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
 
     return (
         <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center p-4"
+            className="fixed inset-0 modal-backdrop z-40 flex justify-center items-center p-4"
             role="dialog"
             aria-modal="true"
             aria-labelledby="bl-title"

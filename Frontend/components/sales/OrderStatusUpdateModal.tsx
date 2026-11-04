@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Order, OrderStatus } from '../../types';
 import { useI18n } from '../../i18n';
+import { useAuth } from '../../context/AuthContext';
+import { allowedOrderTransitions } from '../../utils/orderWorkflow';
 
 interface OrderStatusUpdateModalProps {
     isOpen: boolean;
@@ -11,15 +13,16 @@ interface OrderStatusUpdateModalProps {
 
 const OrderStatusUpdateModal: React.FC<OrderStatusUpdateModalProps> = ({ isOpen, onClose, order, onUpdateStatus }) => {
     const { t } = useI18n();
-    const canChangeStatus = [OrderStatus.NEW, OrderStatus.PENDING_VALIDATION].includes(order.status);
-    const allowedStatuses = canChangeStatus ? [OrderStatus.IN_PRODUCTION, OrderStatus.CANCELLED] : [];
-    const [newStatus, setNewStatus] = useState<OrderStatus>(OrderStatus.IN_PRODUCTION);
+    const { user } = useAuth();
+    const role = user?.activeRole ?? user?.userRole;
+    const allowedStatuses: OrderStatus[] = allowedOrderTransitions(order, role).filter(status => status !== OrderStatus.IN_PRODUCTION);
+    const [newStatus, setNewStatus] = useState<OrderStatus>(order.status);
 
     useEffect(() => {
         if (isOpen) {
-            setNewStatus(OrderStatus.IN_PRODUCTION);
+            setNewStatus(allowedOrderTransitions(order, role).find(status => status !== OrderStatus.IN_PRODUCTION) ?? order.status);
         }
-    }, [isOpen, order]);
+    }, [isOpen, order, role]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -28,10 +31,10 @@ const OrderStatusUpdateModal: React.FC<OrderStatusUpdateModalProps> = ({ isOpen,
         onClose();
     };
 
-    if (!isOpen || !canChangeStatus) return null;
+    if (!isOpen || allowedStatuses.length === 0) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
                 <form onSubmit={handleSubmit}>
                     <div className="p-6 border-b">

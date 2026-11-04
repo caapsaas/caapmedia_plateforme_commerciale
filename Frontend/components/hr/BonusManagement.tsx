@@ -375,7 +375,7 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ subsidiary }) => {
 
       {/* Modale Attribuer un Bonus */}
       {showAddBonusModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
             <div className="px-6 py-4">
               <h2 className="text-xl font-bold text-slate-800">Attribuer un bonus</h2>

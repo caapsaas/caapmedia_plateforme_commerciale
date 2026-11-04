@@ -74,7 +74,7 @@ const ExpenseBoxDisbursementModal: React.FC<ExpenseBoxDisbursementModalProps> = 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b bg-gradient-to-r from-[#c6e911]/15 to-white">
           <h3 className="text-lg font-bold text-slate-800">{t('expenseBoxDisbursement.title')}</h3>
@@ -92,7 +92,7 @@ const ExpenseBoxDisbursementModal: React.FC<ExpenseBoxDisbursementModalProps> = 
           )}
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">{t('expenseBoxDisbursement.operationType')}</label>
+            <label className="block text-sm font-medium text-slate-700">{t('expenseBoxDisbursement.operationType')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
             <select value={treasuryType} onChange={(e) => setTreasuryType(e.target.value as TreasuryTransactionType)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border bg-white">
               {OPERATION_TYPES.map((type) => (
                 <option key={type} value={type}>{t(`expenseBoxDisbursement.types.${type}`)}</option>
@@ -102,17 +102,17 @@ const ExpenseBoxDisbursementModal: React.FC<ExpenseBoxDisbursementModalProps> = 
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.amount')}</label>
+              <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.amount')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
               <input type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.date')}</label>
+              <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.date')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
               <input type="date" value={transactionDate} onChange={(e) => setTransactionDate(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border" />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">{t('expenseBoxDisbursement.description')}</label>
+            <label className="block text-sm font-medium text-slate-700">{t('expenseBoxDisbursement.description')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
             <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border" placeholder={t('expenseBoxDisbursement.descriptionPlaceholder')} />
           </div>
 

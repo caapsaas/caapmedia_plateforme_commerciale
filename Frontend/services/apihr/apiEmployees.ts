@@ -107,6 +107,9 @@ export const saveEmployee = async (employeeData: EmployeeSaveData): Promise<Empl
 
         // Informations de paie
         baseSalary: employeeData.baseSalary,
+        salaryInputMode: employeeData.salaryInputMode,
+        targetNetSalary: employeeData.targetNetSalary,
+        indemnities: employeeData.indemnities,
         bonus: employeeData.bonus,
         benefits: employeeData.benefits,
         lastSalaryAdjustmentDate: formatDateToString(employeeData.lastSalaryAdjustmentDate || undefined),

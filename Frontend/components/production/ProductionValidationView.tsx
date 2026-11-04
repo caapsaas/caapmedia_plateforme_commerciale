@@ -62,6 +62,7 @@ const ProductionValidationView: React.FC = () => {
     const invalidate = () => {
         queryClient.invalidateQueries({ queryKey: ['pendingValidationOrders'] });
         queryClient.invalidateQueries({ queryKey: ['productionOrders'] });
+        queryClient.invalidateQueries({ queryKey: ['orders'] });
     };
 
     const { mutate: validate, isPending: isValidating } = useMutation({

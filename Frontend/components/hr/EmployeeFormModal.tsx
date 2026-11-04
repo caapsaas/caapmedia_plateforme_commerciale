@@ -1,3 +1,4 @@
+import PrivateDocumentLink from '../common/PrivateDocumentLink';
 import React, { useState, useEffect } from 'react';
 import { Employee, Gender, ContractType, EmployeeStatus, PaymentMethod, EmployeeFormData, LeaveRecord } from '../../types';
 import { useI18n } from '../../i18n';
@@ -256,7 +257,7 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
         );
 
         return (
-            <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+            <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
                 <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-x-auto" onClick={e => e.stopPropagation()}>
                     <form onSubmit={handleSubmit}>
                         <div className="p-6 border-b">
@@ -279,17 +280,17 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <label htmlFor="firstName" className="block text-sm font-medium text-slate-700">{t('configuration.form.firstName')}</label>
+                                            <label htmlFor="firstName" className="block text-sm font-medium text-slate-700">{t('configuration.form.firstName')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                             <input type="text" name="firstName" id="firstName" value={formData.firstName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                         <div>
-                                            <label htmlFor="lastName" className="block text-sm font-medium text-slate-700">{t('configuration.form.lastName')}</label>
+                                            <label htmlFor="lastName" className="block text-sm font-medium text-slate-700">{t('configuration.form.lastName')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                             <input type="text" name="lastName" id="lastName" value={formData.lastName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <label htmlFor="birthDate" className="block text-sm font-medium text-slate-700">{t('configuration.form.birthDate')}</label>
+                                            <label htmlFor="birthDate" className="block text-sm font-medium text-slate-700">{t('configuration.form.birthDate')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                             <input type="date" name="birthDate" id="birthDate" value={formData.birthDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                         <div>
@@ -309,7 +310,7 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                             <input type="tel" name="phone" id="phone" value={formData.phone} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                         <div>
-                                            <label htmlFor="email" className="block text-sm font-medium text-slate-700">{t('configuration.form.email')}</label>
+                                            <label htmlFor="email" className="block text-sm font-medium text-slate-700">{t('configuration.form.email')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                             <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                     </div>
@@ -329,17 +330,17 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <label htmlFor="positions" className="block text-sm font-medium text-slate-700">{t('configuration.form.position')}</label>
+                                            <label htmlFor="positions" className="block text-sm font-medium text-slate-700">{t('configuration.form.position')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                             <input type="text" name="positions" id="positions" value={formData.positions} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                         <div>
-                                            <label htmlFor="department" className="block text-sm font-medium text-slate-700">{t('configuration.form.department')}</label>
+                                            <label htmlFor="department" className="block text-sm font-medium text-slate-700">{t('configuration.form.department')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                             <input type="text" name="department" id="department" value={formData.department} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <label htmlFor="hireDate" className="block text-sm font-medium text-slate-700">{t('configuration.form.hireDate')}</label>
+                                            <label htmlFor="hireDate" className="block text-sm font-medium text-slate-700">{t('configuration.form.hireDate')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                             <input type="date" name="hireDate" id="hireDate" value={formData.hireDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                         <div>
@@ -365,7 +366,7 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <label htmlFor="baseSalary" className="block text-sm font-medium text-slate-700">{t('configuration.form.baseSalary')}</label>
+                                            <label htmlFor="baseSalary" className="block text-sm font-medium text-slate-700">{t('configuration.form.baseSalary')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                             <input type="number" name="baseSalary" id="baseSalary" value={formData.baseSalary} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                         </div>
                                         <div>
@@ -480,9 +481,9 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
                                                 <label className="block text-sm font-medium text-slate-700">{t('hr.documents.file')}</label>
                                                 {doc.url && (
                                                     <div className="mb-2">
-                                                        <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:text-blue-800 underline">
+                                                        <PrivateDocumentLink href={doc.url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:text-blue-800 underline">
                                                             Voir le document existant
-                                                        </a>
+                                                        </PrivateDocumentLink>
                                                     </div>
                                                 )}
                                                 <input
@@ -601,7 +602,7 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ isOpen, onClose, 
     } catch (renderError) {
         console.error('Error rendering EmployeeFormModal:', renderError);
         return (
-            <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
+            <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4">
                 <div className="bg-white rounded-lg shadow-xl p-6 max-w-md">
                     <h3 className="text-lg font-bold text-red-600 mb-2">Erreur de chargement</h3>
                     <p className="text-slate-600 mb-4">Une erreur est survenue lors du chargement du formulaire. Veuillez réessayer.</p>

@@ -101,8 +101,8 @@ const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClo
     setSelectedLeadId(leadId ?? '');
     if (lead) {
       setClientName(lead.leadName);
-      setClientEmail(lead.email);
-      setClientPhone(lead.phone);
+      setClientEmail(lead.email ?? '');
+      setClientPhone(lead.phone ?? '');
       setClientCompany(lead.company);
     }
   };
@@ -188,7 +188,7 @@ const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClo
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white">
           <h2 className="text-xl font-bold text-slate-800">

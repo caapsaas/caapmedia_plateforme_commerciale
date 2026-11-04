@@ -23,11 +23,17 @@ import EmptyState from '../components/ui/EmptyState';
 import { LazyLoadImage } from 'react-lazy-load-image-component';
 import 'react-lazy-load-image-component/src/effects/blur.css';
 
+import type { OccasionalOrderCustomer } from '../services/apiE-commerce/apiOrders';
+
+export type NewOrderDraft = Omit<Order, 'id' | 'subsidiaryId'> & {
+    occasionalCustomer?: OccasionalOrderCustomer;
+};
+
 interface NewOrderProps {
     subsidiary: Subsidiary;
     products: Product[];
     selectedCustomer?: Contact;
-    onOrderPlaced: (newOrder: Omit<Order, 'id' | 'subsidiaryId'>) => Promise<void>;
+    onOrderPlaced: (newOrder: NewOrderDraft) => Promise<void>;
 }
 
 type CartItem = {
@@ -64,6 +70,8 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
         schema: FormDefinition | null;
     } | null>(null);
 
+    const [customerMode, setCustomerMode] = useState<'existing' | 'occasional'>('existing');
+    const [occasionalCustomer, setOccasionalCustomer] = useState({ name: '', phone: '', email: '' });
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>(selectedCustomer?.id || '');
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CustomerPaymentMethod>(CustomerPaymentMethod.PAY_ON_DELIVERY);
     const [applyTax, setApplyTax] = useState(true);
@@ -71,7 +79,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
     const [externalCustomer, setExternalCustomer] = useState<GlobalContactSearchResult | null>(null);
 
     useEffect(() => {
-        if (selectedCustomer) setSelectedCustomerId(selectedCustomer.id);
+        if (selectedCustomer) { setSelectedCustomerId(selectedCustomer.id); setCustomerMode('existing'); }
     }, [selectedCustomer]);
 
     const filteredProducts = useMemo(() =>
@@ -94,7 +102,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
     const { data: globalSearchResults = [] } = useQuery<GlobalContactSearchResult[]>({
         queryKey: ['contacts-global-search', globalSearchTerm],
         queryFn: () => searchContactsGlobal(globalSearchTerm),
-        enabled: globalSearchTerm.trim().length >= 2,
+        enabled: customerMode === 'existing' && globalSearchTerm.trim().length >= 2,
     });
 
     // Données nécessaires pour ProductionCostModal — chargées une fois au montage
@@ -227,7 +235,12 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
         if (submittingRef.current || cart.length === 0 || orderPlaced) return;
         const customer = clients.find(c => c.id === selectedCustomerId)
             || (externalCustomer?.id === selectedCustomerId ? externalCustomer : null);
-        if (!customer) return;
+        const isOccasional = !selectedCustomer && customerMode === 'occasional';
+        if (!isOccasional && !customer) return;
+        if (isOccasional && (!occasionalCustomer.name.trim() || !/^\+?[0-9 ()-]{7,30}$/.test(occasionalCustomer.phone.trim()) || (occasionalCustomer.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(occasionalCustomer.email.trim())))) {
+            setSubmitError(t('newOrder.occasionalInvalid'));
+            return;
+        }
 
         const paymentDueDate = new Date();
         paymentDueDate.setDate(paymentDueDate.getDate() + 30);
@@ -246,8 +259,13 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
         const newOrderData = {
             orderId: `ORD-${Date.now()}`,
             date: new Date().toISOString().split('T')[0],
-            customerId: customer.id,
-            customerName: customer.contactName,
+            customerId: isOccasional ? '' : customer!.id,
+            customerName: isOccasional ? occasionalCustomer.name.trim() : customer!.contactName,
+            occasionalCustomer: isOccasional ? {
+                name: occasionalCustomer.name.trim(),
+                phone: occasionalCustomer.phone.trim(),
+                email: occasionalCustomer.email.trim() || undefined,
+            } : undefined,
             items: buildItems(),
             orderItems: buildItems(),
             subtotal,
@@ -288,13 +306,15 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
         const timer = window.setTimeout(() => {
             setOrderPlaced(false);
             setSelectedCustomerId(selectedCustomer?.id || '');
+            setOccasionalCustomer({ name: '', phone: '', email: '' });
+            setCustomerMode('existing');
         }, 4000);
         return () => window.clearTimeout(timer);
     }, [orderPlaced, selectedCustomer?.id]);
 
     const clientOptions = useMemo(() =>
-        clients.map(c => ({ value: c.id, label: `${c.contactName} (${c.company || 'N/A'})` })),
-        [clients]
+        clients.map(c => ({ value: c.id, label: `${c.contactName}${c.isOccasional ? ' · ' + t('newOrder.occasionalCustomer') : ''} (${c.company || 'N/A'})` })),
+        [clients, t]
     );
 
     return (
@@ -377,6 +397,30 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
             <div className="col-span-12 lg:col-span-5 bg-white p-6 rounded-xl shadow-md flex flex-col">
                 {!selectedCustomer && (
                     <div className="mb-4 space-y-2">
+                        <label className="block text-sm font-medium text-slate-700">
+                            {t('newOrder.customerType')}
+                            <select value={customerMode} onChange={e => { setCustomerMode(e.target.value as 'existing' | 'occasional'); setSubmitError(''); }} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 bg-white">
+                                <option value="existing">{t('newOrder.existingCustomer')}</option>
+                                <option value="occasional">{t('newOrder.occasionalCustomer')}</option>
+                            </select>
+                        </label>
+                        {customerMode === 'occasional' ? (
+                            <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                                <p className="text-xs text-slate-600">{t('newOrder.occasionalHint')}</p>
+                                <label className="block text-sm font-medium text-slate-700">
+                                    {t('newOrder.occasionalName')}
+                                    <input type="text" value={occasionalCustomer.name} onChange={e => setOccasionalCustomer(prev => ({ ...prev, name: e.target.value }))} maxLength={255} required className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 bg-white" />
+                                 <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
+                                <label className="block text-sm font-medium text-slate-700">
+                                    {t('newOrder.occasionalPhone')}
+                                    <input type="tel" value={occasionalCustomer.phone} onChange={e => setOccasionalCustomer(prev => ({ ...prev, phone: e.target.value }))} maxLength={30} required className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 bg-white" />
+                                 <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
+                                <label className="block text-sm font-medium text-slate-700">
+                                    {t('newOrder.occasionalEmail')}
+                                    <input type="email" value={occasionalCustomer.email} onChange={e => setOccasionalCustomer(prev => ({ ...prev, email: e.target.value }))} maxLength={255} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 bg-white" />
+                                </label>
+                            </div>
+                        ) : (<>
                         {externalCustomer && selectedCustomerId === externalCustomer.id ? (
                             <div className="p-3 bg-blue-50 border border-blue-200 rounded-md flex items-center justify-between">
                                 <div>
@@ -426,6 +470,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                                 </ul>
                             )}
                         </div>
+                        </>)}
                     </div>
                 )}
 
@@ -547,7 +592,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                     <button
                         type="button"
                         onClick={handleSubmitOrder}
-                        disabled={isSubmitting || cart.length === 0 || orderPlaced || !selectedCustomerId}
+                        disabled={isSubmitting || cart.length === 0 || orderPlaced || (customerMode === 'existing' && !selectedCustomerId)}
                         className="w-full text-center px-4 py-3 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                     >
                         {t(isSubmitting ? 'common.saving' : 'newOrder.submitOrder')}

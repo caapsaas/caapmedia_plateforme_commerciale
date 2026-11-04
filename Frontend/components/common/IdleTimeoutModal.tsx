@@ -37,7 +37,7 @@ const IdleTimeoutModal: React.FC<IdleTimeoutModalProps> = ({ isOpen, onLogout, o
     }
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center" role="dialog" aria-modal="true">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 text-center">
                 <h3 className="text-xl font-bold text-slate-800">{t('idleModal.title')}</h3>
                 <p className="mt-4 text-slate-600">

@@ -1,3 +1,5 @@
+import { API_BASE_URL } from '../services/apiConfig';
+
 // Numéro WhatsApp commercial utilisé pour toutes les commandes initiées
 // depuis la vitrine publique (fiche produit, panier) — voir ShoppingCart.tsx :
 // pas de checkout backend, la commande part toujours en conversation WhatsApp.
@@ -7,3 +9,7 @@ export const buildWhatsAppLink = (message: string, phoneNumber: string = WHATSAP
     const cleanPhone = phoneNumber.replace(/[\s\-()]/g, '');
     return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 };
+
+/** Public server-rendered page with metadata readable by WhatsApp. */
+export const getProductShareUrl = (productId: string): string =>
+    API_BASE_URL + '/products/' + encodeURIComponent(productId) + '/share';

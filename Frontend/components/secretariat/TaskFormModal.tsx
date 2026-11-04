@@ -69,7 +69,7 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({ isOpen, onClose, onSave, 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
                 <form onSubmit={handleSubmit}>
                     <div className="p-6">
@@ -78,7 +78,7 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({ isOpen, onClose, onSave, 
                         </h3>
                         <div className="mt-4 space-y-4">
                             <div>
-                                <label htmlFor="title" className="block text-sm font-medium text-slate-700">{t('secretariat.tasks.table.title')}</label>
+                                <label htmlFor="title" className="block text-sm font-medium text-slate-700">{t('secretariat.tasks.table.title')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input type="text" name="title" id="title" value={formData.title} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                              <div>
@@ -94,12 +94,12 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({ isOpen, onClose, onSave, 
                                     </select>
                                 </div>
                                 <div>
-                                    <label htmlFor="dueDate" className="block text-sm font-medium text-slate-700">{t('secretariat.tasks.table.dueDate')}</label>
+                                    <label htmlFor="dueDate" className="block text-sm font-medium text-slate-700">{t('secretariat.tasks.table.dueDate')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                     <input type="date" name="dueDate" id="dueDate" value={formData.dueDate} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
                             </div>
                             <div>
-                                <label htmlFor="status" className="block text-sm font-medium text-slate-700">{t('secretariat.tasks.table.status')}</label>
+                                <label htmlFor="status" className="block text-sm font-medium text-slate-700">{t('secretariat.tasks.table.status')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <select name="status" id="status" value={formData.status} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                     {Object.values(SecretariatTaskStatus).map(s => <option key={s} value={s}>{t(`secretariat.tasks.statuses.${s}`)}</option>)}
                                 </select>

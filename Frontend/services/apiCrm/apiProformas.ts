@@ -115,3 +115,19 @@ export const deleteProforma = async (id: string): Promise<any> => {
   const { data } = await api.delete(`/crm/proformas/${id}`);
   return data;
 };
+
+export interface WhatsAppProformaShare {
+  phone: string;
+  message: string;
+  downloadUrl: string;
+  whatsappUrl: string;
+  expiresAt: string;
+}
+
+export const sendProformaEmail = async (id: string, expectedRecipient: string): Promise<{ success: boolean; recipient: string }> => {
+  return (await api.post(`/crm/proformas/${id}/email`, { expectedRecipient })).data;
+};
+
+export const prepareProformaWhatsApp = async (id: string): Promise<WhatsAppProformaShare> => {
+  return (await api.post(`/crm/proformas/${id}/whatsapp`)).data;
+};

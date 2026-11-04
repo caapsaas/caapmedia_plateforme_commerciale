@@ -28,7 +28,7 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ isOpen, onClose, onSa
             setFormData({
                 contactName: client.contactName,
                 company: client.company,
-                email: client.email,
+                email: client.email ?? '',
                 phone: client.phone,
                 since: client.since,
                 address: client.address,
@@ -57,7 +57,7 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ isOpen, onClose, onSa
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
                 <form onSubmit={handleSubmit}>
                     <div className="p-6">
@@ -66,7 +66,7 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ isOpen, onClose, onSa
                         </h3>
                         <div className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                             <div>
-                                <label htmlFor="contactName" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')}</label>
+                                <label htmlFor="contactName" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input type="text" name="contactName" id="contactName" value={formData.contactName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
@@ -74,7 +74,7 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ isOpen, onClose, onSa
                                 <input type="text" name="company" id="company" value={formData.company} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-slate-700">{t('configuration.form.email')}</label>
+                                <label htmlFor="email" className="block text-sm font-medium text-slate-700">{t('configuration.form.email')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
@@ -82,11 +82,11 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ isOpen, onClose, onSa
                                 <input type="tel" name="phone" id="phone" value={formData.phone} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
-                                <label htmlFor="address" className="block text-sm font-medium text-slate-700">{t('configuration.form.address')}</label>
+                                <label htmlFor="address" className="block text-sm font-medium text-slate-700">{t('configuration.form.address')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input type="text" name="address" id="address" value={formData.address} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                             <div>
-                                <label htmlFor="since" className="block text-sm font-medium text-slate-700">{t('configuration.form.since')}</label>
+                                <label htmlFor="since" className="block text-sm font-medium text-slate-700">{t('configuration.form.since')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input type="date" name="since" id="since" value={formData.since} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
                              <div className="flex items-center">

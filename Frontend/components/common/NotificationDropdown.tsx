@@ -1,6 +1,9 @@
+import { getOrderNotificationTarget } from '../../utils/orderNotifications';
+import { useAuth } from '../../context/AuthContext';
+import { getNeedRequestNotificationId } from '../../utils/needRequestNotifications';
 import React, { useEffect, useRef, useState } from 'react';
 import { Bell } from 'lucide-react';
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useI18n } from '../../i18n';
 import { useNotifications } from '../../hooks/useNotifications';
 import { AppNotification } from '../../types';
@@ -8,6 +11,8 @@ import { getNotificationDisplay } from '../../utils/notificationDisplay';
 
 const NotificationDropdown: React.FC = () => {
   const { t } = useI18n();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const formatRelativeTime = (isoDate: string): string => {
     const diffMs = Date.now() - new Date(isoDate).getTime();
@@ -38,6 +43,13 @@ const NotificationDropdown: React.FC = () => {
       markAsRead(notification.id);
     }
     setIsOpen(false);
+    const requestId = getNeedRequestNotificationId(notification);
+    if (requestId) {
+      void navigate({ to: '/dashboard/need-requests', hash: requestId });
+    } else {
+      const target = getOrderNotificationTarget(notification, user?.activeRole ?? user?.userRole);
+      if (target) void navigate(target);
+    }
   };
 
   return (

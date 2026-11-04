@@ -34,6 +34,7 @@ const ECommerceHeader: React.FC<ECommerceHeaderProps> = (props) => {
     const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
     const [isGuestMenuOpen, setIsGuestMenuOpen] = useState(false);
     const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+    const [isCompanyMenuOpen, setIsCompanyMenuOpen] = useState(false);
 
     const handleCategoryClick = (mainCategory: string, subCategory?: string) => {
         if (subCategory) {
@@ -49,6 +50,13 @@ const ECommerceHeader: React.FC<ECommerceHeaderProps> = (props) => {
         setIsCategoryMenuOpen(false);
     };
 
+    const companyLinks = [
+        ['/realisations', t('footer.realisations')],
+        ['/a-propos', t('publicPages.about')],
+        ['/entreprise', t('publicPages.company')],
+        ['/contact', t('footer.contact')],
+    ] as const;
+
     const CategoryMenu = () => {
         const [isClosing, setIsClosing] = useState(false);
 
@@ -63,7 +71,7 @@ const ECommerceHeader: React.FC<ECommerceHeaderProps> = (props) => {
         return (
             <div className="fixed inset-0 z-40">
                 <div 
-                    className={`fixed inset-0 bg-black bg-opacity-60 ${isClosing ? 'category-menu-overlay closing' : 'category-menu-overlay'}`}
+                    className={`fixed inset-0 modal-backdrop ${isClosing ? 'category-menu-overlay closing' : 'category-menu-overlay'}`}
                     onClick={closeMenu}
                 ></div>
                 
@@ -124,6 +132,27 @@ const ECommerceHeader: React.FC<ECommerceHeaderProps> = (props) => {
                             className="w-full pl-11 pr-4 py-2.5 border border-slate-300 rounded-full bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
                         />
                     </div>
+                </div>
+                <div className="relative mr-1">
+                    <button
+                        type="button"
+                        onClick={() => setIsCompanyMenuOpen(open => !open)}
+                        className="flex items-center gap-1 rounded-full px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-950"
+                        aria-haspopup="true"
+                        aria-expanded={isCompanyMenuOpen}
+                    >
+                        {t('publicPages.company')}
+                        <svg className={`h-4 w-4 transition-transform ${isCompanyMenuOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M5.22 7.22a.75.75 0 0 1 1.06 0L10 10.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" /></svg>
+                    </button>
+                    {isCompanyMenuOpen && (
+                        <nav aria-label={t('publicPages.navigation')} className="absolute right-0 top-full z-40 mt-2 w-56 overflow-hidden rounded-xl border border-slate-100 bg-white py-2 shadow-xl">
+                            {companyLinks.map(([to, label]) => (
+                                <Link key={to} to={to} onClick={() => setIsCompanyMenuOpen(false)} className="block px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950">
+                                    {label}
+                                </Link>
+                            ))}
+                        </nav>
+                    )}
                 </div>
                 <div className="flex items-center gap-2 sm:gap-4">
                      <button

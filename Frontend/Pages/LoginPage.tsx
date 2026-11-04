@@ -141,7 +141,7 @@ const handleTwoFactorSubmit = async (e: React.FormEvent) => {
   };
 
   const ForgotPasswordModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
+    <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
         <form onSubmit={handleForgotPasswordSubmit}>
           <div className="p-6">
@@ -155,7 +155,7 @@ const handleTwoFactorSubmit = async (e: React.FormEvent) => {
                 <>
                   <p className="text-sm text-slate-600">{t('forgotPassword.instruction')}</p>
                   <div>
-                    <label htmlFor="reset-email" className="block text-sm font-medium text-slate-700">{t('login.emailLabel')}</label>
+                    <label htmlFor="reset-email" className="block text-sm font-medium text-slate-700">{t('login.emailLabel')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                     <div className="mt-1 relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <IconAtSymbol className="h-5 w-5 text-gray-400" />
@@ -193,7 +193,7 @@ const handleTwoFactorSubmit = async (e: React.FormEvent) => {
       <div>
         <label htmlFor="two-factor-code" className="block text-sm font-medium text-slate-700">
           {useRecoveryCode ? t('login.twoFactor.recoveryCodeLabel') : t('login.twoFactor.codeLabel')}
-        </label>
+         <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
         <div className="mt-1 relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <IconLock className="h-5 w-5 text-gray-400" />
@@ -304,7 +304,7 @@ const handleTwoFactorSubmit = async (e: React.FormEvent) => {
             </div> */}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700">{t('login.emailLabel')}</label>
+              <label htmlFor="email" className="block text-sm font-medium text-slate-700">{t('login.emailLabel')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <IconAtSymbol className="h-5 w-5 text-gray-400" />
@@ -326,7 +326,7 @@ const handleTwoFactorSubmit = async (e: React.FormEvent) => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700">{t('login.passwordLabel')}</label>
+              <label htmlFor="password" className="block text-sm font-medium text-slate-700">{t('login.passwordLabel')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <IconLock className="h-5 w-5 text-gray-400" />
