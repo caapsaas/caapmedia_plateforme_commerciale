@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { IncomeStatementDto } from './dto/income-statement.dto';
+import { endOfDateInput } from '../../common/utils/date-period.util';
 
 @Injectable()
 export class IncomestatementService {
@@ -130,7 +131,7 @@ export class IncomestatementService {
 
     const range: { gte?: Date; lte?: Date } = {};
     if (startDate) range.gte = new Date(startDate);
-    if (endDate) range.lte = new Date(endDate);
+    if (endDate) range.lte = endOfDateInput(endDate);
     return range;
   }
 

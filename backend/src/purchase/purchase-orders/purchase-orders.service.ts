@@ -17,13 +17,13 @@ import {
   User,
 } from '@prisma/client';
 import { paginate } from 'src/common/pagination/pagination';
+import { endOfDateInput, lastCalendarDays, startOfDateInput } from 'src/common/utils/date-period.util';
 import { Decimal } from '@prisma/client/runtime/library';
 import {
   FindAllPurchaseOrdersDto,
   OrderPeriod,
 } from './dto/find-all-purchase-orders.dto';
 import {
-  sub,
   startOfMonth,
   endOfMonth,
   startOfYear,
@@ -217,11 +217,11 @@ export class PurchaseOrdersService {
           lte: endOfMonth(lastMonth),
         };
       } else if (period === OrderPeriod.LAST_7_DAYS)
-        dateFilter = { gte: sub(now, { days: 7 }) };
+        dateFilter = lastCalendarDays(now, 7);
       else if (period === OrderPeriod.LAST_30_DAYS)
-        dateFilter = { gte: sub(now, { days: 30 }) };
+        dateFilter = lastCalendarDays(now, 30);
       else if (period === OrderPeriod.LAST_90_DAYS)
-        dateFilter = { gte: sub(now, { days: 90 }) };
+        dateFilter = lastCalendarDays(now, 90);
       else if (period === OrderPeriod.THIS_YEAR)
         dateFilter = { gte: startOfYear(now), lte: endOfYear(now) };
       else if (period === OrderPeriod.CUSTOM) {
@@ -229,7 +229,7 @@ export class PurchaseOrdersService {
           throw new BadRequestException(
             'Pour une période personnalisée, les dates de début et de fin sont requises.',
           );
-        dateFilter = { gte: new Date(startDate), lte: new Date(endDate) };
+        dateFilter = { gte: startOfDateInput(startDate), lte: endOfDateInput(endDate) };
       }
       where.orderDate = dateFilter;
     }

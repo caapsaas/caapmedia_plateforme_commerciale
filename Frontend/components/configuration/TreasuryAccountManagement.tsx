@@ -169,12 +169,8 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
           subsidiaryId: accountData.subsidiaryId,
         };
         const newAccount = await createTreasuryAccount(createData);
-        // Un compte Banque est toujours rattaché au siège côté backend : s'il
-        // a été créé depuis la vue d'une autre filiale, il n'appartient pas à
-        // la liste actuellement affichée — recharger plutôt que d'ajouter
-        // localement, pour ne pas afficher un compte qui n'est pas vraiment
-        // dans cette filiale. Idem si l'ADMIN/SUPER_ADMIN a choisi une autre
-        // filiale que celle affichée.
+        // Le backend peut rattacher le compte à une autre filiale que celle
+        // affichée quand ADMIN/SUPER_ADMIN en a sélectionné une autre.
         if (newAccount.subsidiaryId === subsidiary.id) {
           setAccounts([...accounts, newAccount]);
         } else {

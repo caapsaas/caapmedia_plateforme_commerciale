@@ -16,6 +16,7 @@ import {
   AccountType,
 } from '@prisma/client';
 import { CreateTreasuryAccountDto } from './dto/create-treasury-account.dto';
+import { endOfDateInput } from 'src/common/utils/date-period.util';
 import { CreateFinancialTransactionDto } from './dto/create-financial-transaction.dto';
 import { UpdateTreasuryAccountDto } from './dto/update-treasury-account.dto';
 import { UpdateTransactionStatusDto } from './dto/update-transaction-status.dto';
@@ -94,55 +95,46 @@ export class TreasuryService {
       'Permission denied to create treasury accounts.',
     );
 
-    // Comptes Banque et Coffre-fort : trésorerie centralisée au siège, comme
-    // gmo — « le super admin gère le coffre et les banques » (seul lui peut
-    // ensuite y décaisser, voir createDisbursement). Un compte Banque
-    // référence en plus une banque physique (tiers global, Configuration).
-    let targetSubsidiaryId: string;
-    if (
-      dto.accountType === AccountType.BANQUE ||
-      dto.accountType === AccountType.SAFE
-    ) {
-      if (dto.accountType === AccountType.BANQUE && !dto.bankId) {
-        throw new BadRequestException(
-          'La banque est requise pour un compte de type Banque.',
-        );
-      }
-      if (dto.accountType === AccountType.BANQUE) {
-        const bank = await this.prisma.bank.findUnique({
-          where: { id: dto.bankId },
-        });
-        if (!bank) {
-          throw new NotFoundException(
-            `Banque avec l'ID "${dto.bankId}" introuvable.`,
-          );
-        }
-      }
-      const headquarter = await this.prisma.subsidiary.findFirst({
-        where: { isHeadquarter: true },
-      });
-      if (!headquarter) {
-        throw new NotFoundException(
-          'Impossible de trouver la filiale siège pour rattacher ce compte.',
-        );
-      }
-      targetSubsidiaryId = headquarter.id;
-    } else {
-      // ADMIN/SUPER_ADMIN peuvent créer un compte pour n'importe quelle
-      // filiale ; les autres rôles restent forcés sur la leur.
-      const isSuperAdmin = (user.roles ?? [user.role]).includes(
-        UserRole.SUPER_ADMIN,
+    // Tous les comptes sont rattachés à la filiale choisie. ADMIN et
+    // SUPER_ADMIN peuvent en choisir une autre ; le Directeur Financier reste
+    // limité à sa filiale. Une banque physique reste globale et est référencée
+    // par bankId, indépendamment de la filiale du compte bancaire.
+    const isSuperAdmin = (user.roles ?? [user.role]).includes(
+      UserRole.SUPER_ADMIN,
+    );
+    const activeRole = user.activeRole ?? user.role;
+    let targetSubsidiaryId = user.subsidiaryId;
+    if (isSuperAdmin || activeRole === UserRole.ADMIN) {
+      targetSubsidiaryId = dto.subsidiaryId || user.subsidiaryId;
+    } else if (dto.subsidiaryId && dto.subsidiaryId !== user.subsidiaryId) {
+      throw new ForbiddenException(
+        "Vous n'êtes pas autorisé à créer un compte pour une autre filiale.",
       );
-      const activeRole = user.activeRole ?? user.role;
-      if (isSuperAdmin || activeRole === UserRole.ADMIN) {
-        targetSubsidiaryId = dto.subsidiaryId || user.subsidiaryId;
-      } else {
-        if (dto.subsidiaryId && dto.subsidiaryId !== user.subsidiaryId) {
-          throw new ForbiddenException(
-            "Vous n'êtes pas autorisé à créer un compte pour une autre filiale.",
-          );
-        }
-        targetSubsidiaryId = user.subsidiaryId;
+    }
+
+    const targetSubsidiary = await this.prisma.subsidiary.findUnique({
+      where: { id: targetSubsidiaryId },
+      select: { id: true },
+    });
+    if (!targetSubsidiary) {
+      throw new NotFoundException(
+        `Filiale avec l'ID "${targetSubsidiaryId}" introuvable.`,
+      );
+    }
+
+    if (dto.accountType === AccountType.BANQUE && !dto.bankId) {
+      throw new BadRequestException(
+        'La banque est requise pour un compte de type Banque.',
+      );
+    }
+    if (dto.accountType === AccountType.BANQUE) {
+      const bank = await this.prisma.bank.findUnique({
+        where: { id: dto.bankId },
+      });
+      if (!bank) {
+        throw new NotFoundException(
+          `Banque avec l'ID "${dto.bankId}" introuvable.`,
+        );
       }
     }
 
@@ -590,6 +582,12 @@ export class TreasuryService {
   ];
 
   async createDisbursement(dto: CreateDisbursementDto, user: JwtUser) {
+    if (dto.treasuryType === TreasuryTransactionType.SUPPLIER_PAYMENT) {
+      throw new BadRequestException(
+        'Un paiement fournisseur doit être rattaché à une dette fournisseur existante.',
+      );
+    }
+
     const isTransfer = !!dto.destinationAccountId;
     const isTransferType = TreasuryService.TRANSFER_TREASURY_TYPES.includes(
       dto.treasuryType,
@@ -609,10 +607,8 @@ export class TreasuryService {
     const isPending = dto.status === TransactionStatus.EN_ATTENTE;
 
     return this.prisma.$transaction(async (tx) => {
-      // Pas de filtre subsidiaryId ici : Coffre-fort et Banque sont
-      // centralisés au siège (voir createAccount), un SUPER_ADMIN doit
-      // pouvoir y accéder même si sa propre filiale n'est pas le siège.
-      // L'autorisation par type de compte ci-dessous fait le vrai contrôle.
+      // Recherche globale nécessaire aux virements entre filiales et aux
+      // comptes centraux. L'autorisation par type de compte fait le contrôle.
       const sourceAccount = await tx.treasuryAccount.findFirst({
         where: { id: dto.sourceAccountId },
       });
@@ -673,8 +669,8 @@ export class TreasuryService {
 
       let destinationAccount: typeof sourceAccount | null = null;
       if (isTransfer) {
-        // Idem : pas de filtre subsidiaryId (ex. coffre siège → caisse
-        // dépense d'une filiale précise, choisie par le SUPER_ADMIN).
+        // Idem : pas de filtre subsidiaryId pour autoriser les transferts
+        // inter-filiales choisis explicitement par le SUPER_ADMIN.
         destinationAccount = await tx.treasuryAccount.findFirst({
           where: { id: dto.destinationAccountId },
         });
@@ -911,7 +907,7 @@ export class TreasuryService {
     if (startDate || endDate) {
       where.transactionDate = {
         ...(startDate ? { gte: new Date(startDate) } : {}),
-        ...(endDate ? { lte: new Date(endDate) } : {}),
+        ...(endDate ? { lte: endOfDateInput(endDate) } : {}),
       };
     }
 

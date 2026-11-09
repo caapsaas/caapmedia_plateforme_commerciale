@@ -27,8 +27,7 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
   const { t } = useI18n();
   const { user } = useAuth();
   const activeRole = user?.activeRole ?? user?.userRole;
-  // ADMIN/SUPER_ADMIN peuvent créer un compte (hors Banque, toujours siège)
-  // pour n'importe quelle filiale — même règle que gmo.
+  // ADMIN/SUPER_ADMIN peuvent créer un compte pour la filiale sélectionnée.
   const canChooseSubsidiary = activeRole === UserRole.ADMIN || activeRole === UserRole.SUPER_ADMIN;
 
   const [formData, setFormData] = useState({
@@ -99,11 +98,11 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
     enabled: isBank,
   });
 
-  // Filiales — sélecteur ADMIN/SUPER_ADMIN pour les comptes non-Banque.
+  // Filiales — sélecteur ADMIN/SUPER_ADMIN pour tous les types de compte.
   const { data: subsidiaries = [] } = useQuery<Subsidiary[]>({
     queryKey: ['subsidiaries-list'],
     queryFn: getSubsidiaries,
-    enabled: canChooseSubsidiary && !isBank && !account,
+    enabled: canChooseSubsidiary && !account,
   });
 
   const validateForm = () => {
@@ -141,9 +140,7 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
         balance: parseFloat(formData.balance),
         currency: formData.currency,
         accountType: formData.accountType,
-        // Un compte Banque est toujours rattaché au siège côté backend, quel
-        // que soit ce champ — envoyé quand même pour les autres types
-        // (ADMIN/SUPER_ADMIN uniquement, ignoré sinon).
+        // La filiale sélectionnée est appliquée par le backend à tous les types.
         subsidiaryId: formData.subsidiaryId,
         cashierId: isCashierOwned ? formData.cashierId || undefined : undefined,
         accountCode: formData.accountCode || undefined,
@@ -266,8 +263,8 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
               </select>
             </div>
 
-            {/* Filiale — comptes non-Banque, ADMIN/SUPER_ADMIN uniquement, à la création */}
-            {!isBank && canChooseSubsidiary && !account && (
+            {/* Filiale — ADMIN/SUPER_ADMIN peuvent cibler toute filiale à la création */}
+            {canChooseSubsidiary && !account && (
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">{t('treasuryAccounts.form.subsidiary')}</label>
                 <select
@@ -378,11 +375,9 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">
                 <span className="font-medium">{t('treasuryAccounts.form.subsidiary')}:</span>{' '}
-                {isBank
-                  ? t('configuration.bank.headquarterOnly')
-                  : (!canChooseSubsidiary || account)
-                    ? subsidiary.name
-                    : (subsidiaries.find((s) => s.id === formData.subsidiaryId)?.subsidiaryName || subsidiary.name)}
+                {canChooseSubsidiary && !account
+                  ? (subsidiaries.find((s) => s.id === formData.subsidiaryId)?.subsidiaryName || subsidiary.name)
+                  : subsidiary.name}
               </p>
             </div>
           </form>

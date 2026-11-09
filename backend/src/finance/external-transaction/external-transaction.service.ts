@@ -9,6 +9,7 @@ import { CreateExternalTransactionDto } from './dto/create-external-transaction.
 import { UpdateExternalTransactionDto } from './dto/update-external-transaction.dto';
 import { FindExternalTransactionsDto } from './dto/find-external-transactions.dto';
 import { paginate } from '../../common/pagination/pagination';
+import { endOfDateInput } from '../../common/utils/date-period.util';
 import {
   ExternalTransactionStatus,
   ExternalTransactionType,
@@ -196,7 +197,7 @@ export class ExternalTransactionService {
         where.transactionDate.gte = new Date(query.startDate);
       }
       if (query.endDate) {
-        where.transactionDate.lte = new Date(query.endDate);
+        where.transactionDate.lte = endOfDateInput(query.endDate);
       }
     }
 

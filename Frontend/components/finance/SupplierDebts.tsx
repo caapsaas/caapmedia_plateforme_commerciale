@@ -34,7 +34,7 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
     const { t, formatCurrency, language } = useI18n();
     const { user } = useAuth();
     // Le paiement d'une dette fournisseur prélève le Coffre-fort/la Banque
-    // (comptes centralisés au siège) : réservé au SUPER_ADMIN, comme tout
+    // (comptes autorisés au rôle super-admin) : réservé au SUPER_ADMIN, comme tout
     // décaissement SAFE/BANQUE (voir Pages/Disbursement.tsx). Les autres
     // rôles voient la liste mais ne peuvent pas payer.
     // activeRole prime sur userRole (apercu de role SUPER_ADMIN, voir Purchasing.tsx pour le meme correctif).
@@ -193,6 +193,7 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
                 isOpen={!!debtToPay}
                 onClose={() => setDebtToPay(null)}
                 debtId={debtToPay?.id ?? null}
+                subsidiaryId={debtToPay?.subsidiaryId ?? ''}
                 supplierName={debtToPay?.supplierName ?? ''}
                 reference={debtToPay?.invoiceId ?? ''}
                 totalAmount={debtToPay?.purchaseOrder?.totalAmount ?? debtToPay?.amount ?? 0}

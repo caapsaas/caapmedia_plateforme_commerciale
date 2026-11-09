@@ -4,6 +4,7 @@ import {
     PurchaseOrder, PurchaseOrderStatus, PaymentStatus,
     Subsidiary, Supplier, UserRole,
 } from '../../types/models';
+import { getPresetPeriodDates } from '../../utils/datePeriods';
 import { useAuth } from '../../context/AuthContext';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
@@ -66,42 +67,7 @@ const PAY_STATUS_CLASS: Record<PaymentStatus, string> = {
 const initialFilterState: FindAllPurchaseOrdersDto = { period: 'all_time' };
 
 const getPeriodDates = (period?: OrderPeriod) => {
-    const now = new Date();
-    const formatDate = (date: Date) => date.toISOString().split('T')[0];
-
-    switch (period) {
-        case 'last_7_days': {
-            const start = new Date();
-            start.setDate(now.getDate() - 7);
-            return { startDate: formatDate(start), endDate: formatDate(now) };
-        }
-        case 'last_30_days': {
-            const start = new Date();
-            start.setDate(now.getDate() - 30);
-            return { startDate: formatDate(start), endDate: formatDate(now) };
-        }
-        case 'last_90_days': {
-            const start = new Date();
-            start.setDate(now.getDate() - 90);
-            return { startDate: formatDate(start), endDate: formatDate(now) };
-        }
-        case 'this_month': {
-            const start = new Date(now.getFullYear(), now.getMonth(), 1);
-            return { startDate: formatDate(start), endDate: formatDate(now) };
-        }
-        case 'last_month': {
-            const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            const end = new Date(now.getFullYear(), now.getMonth(), 0);
-            return { startDate: formatDate(start), endDate: formatDate(end) };
-        }
-        case 'this_year': {
-            const start = new Date(now.getFullYear(), 0, 1);
-            return { startDate: formatDate(start), endDate: formatDate(now) };
-        }
-        case 'custom':
-        default:
-            return { startDate: '', endDate: '' };
-    }
+    return getPresetPeriodDates(period || 'all_time');
 };
 
 // ─── Composant principal ──────────────────────────────────────────────────────
@@ -634,6 +600,7 @@ const Purchasing: React.FC = () => {
                 <PaySupplierDebtModal
                     isOpen onClose={closeModal}
                     debtId={selectedPO.supplierDebts?.[0]?.id ?? null}
+                    subsidiaryId={selectedPO.subsidiaryId}
                     supplierName={selectedPO.supplierName}
                     reference={selectedPO.id}
                     totalAmount={selectedPO.totalAmount}

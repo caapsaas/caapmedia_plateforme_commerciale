@@ -1337,6 +1337,9 @@ const frTranslations = {
     "selectExpenseBox": "-- Sélectionner une caisse dépense --",
     "beneficiarySupplier": "Fournisseur bénéficiaire",
     "selectSupplier": "-- Sélectionner un fournisseur --",
+    "supplierDebt": "Dette fournisseur",
+    "selectSupplierDebt": "-- Sélectionner une dette fournisseur --",
+    "noSupplierDebt": "Aucune dette impayée pour cette filiale.",
     "month": "Mois",
     "year": "Année",
     "months": {
@@ -4860,6 +4863,9 @@ const enTranslations: Translations = {
     "selectExpenseBox": "-- Select an expense box --",
     "beneficiarySupplier": "Beneficiary supplier",
     "selectSupplier": "-- Select a supplier --",
+    "supplierDebt": "Supplier debt",
+    "selectSupplierDebt": "-- Select a supplier debt --",
+    "noSupplierDebt": "No unpaid supplier debts for this subsidiary.",
     "month": "Month",
     "year": "Year",
     "months": {

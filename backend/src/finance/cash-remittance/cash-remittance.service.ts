@@ -35,10 +35,8 @@ const REMITTANCE_INCLUDE = {
 /**
  * Remise de caisse : la caisse (CASH_REGISTER) ne fait l'objet d'aucun
  * décaissement direct (voir TreasuryService.createDisbursement), seulement
- * de remises vers le coffre-fort (SAFE) du siège — trésorerie centralisée,
- * comme gmo (Backend_GMO/src/cash_transfer/cash_transfer.service.ts). Le
- * Directeur Financier DE LA FILIALE DE LA CAISSE (pas celle du coffre)
- * réceptionne et confirme le comptage réel.
+ * de remises vers le coffre-fort (SAFE) de sa filiale. Le Directeur Financier
+ * de cette filiale réceptionne et confirme le comptage réel.
  */
 @Injectable()
 export class CashRemittanceService {
@@ -78,22 +76,15 @@ export class CashRemittanceService {
         );
       }
 
-      const headquarter = await tx.subsidiary.findFirst({
-        where: { isHeadquarter: true },
-      });
-      if (!headquarter) {
-        throw new NotFoundException("Le siège n'a pas été configuré.");
-      }
-
       const destinationSafe = await tx.treasuryAccount.findFirst({
         where: {
-          subsidiaryId: headquarter.id,
+          subsidiaryId: sourceAccount.subsidiaryId,
           accountType: AccountType.SAFE,
         },
       });
       if (!destinationSafe) {
         throw new NotFoundException(
-          "Aucun compte de type Coffre-fort n'a été trouvé pour le siège.",
+          "Aucun compte de type Coffre-fort n'a été trouvé pour cette filiale.",
         );
       }
 
@@ -162,8 +153,7 @@ export class CashRemittanceService {
         );
       }
 
-      // Le DF ne réceptionne que les remises DE SA PROPRE filiale (celle de
-      // la caisse source), pas celle du coffre destinataire (toujours siège).
+      // Le DF ne réceptionne que les remises de sa filiale source.
       assertSubsidiaryAccess(
         remittance.subsidiaryId,
         resolveScopeContext(user),

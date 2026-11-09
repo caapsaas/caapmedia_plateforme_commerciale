@@ -35,9 +35,9 @@ import {
 } from '@prisma/client';
 import { FindAllOrdersDto, OrderPeriod } from './dto/find-all-orders.dto';
 import { paginate } from 'src/common/pagination/pagination';
+import { endOfDateInput, lastCalendarDays, startOfDateInput } from 'src/common/utils/date-period.util';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 import {
-  sub,
   startOfMonth,
   endOfMonth,
   startOfYear,
@@ -499,11 +499,11 @@ export class OrdersService {
           lte: endOfMonth(lastMonth),
         };
       } else if (period === OrderPeriod.LAST_7_DAYS) {
-        dateFilter = { gte: sub(now, { days: 7 }) };
+        dateFilter = lastCalendarDays(now, 7);
       } else if (period === OrderPeriod.LAST_30_DAYS) {
-        dateFilter = { gte: sub(now, { days: 30 }) };
+        dateFilter = lastCalendarDays(now, 30);
       } else if (period === OrderPeriod.LAST_90_DAYS) {
-        dateFilter = { gte: sub(now, { days: 90 }) };
+        dateFilter = lastCalendarDays(now, 90);
       } else if (period === OrderPeriod.THIS_YEAR) {
         dateFilter = { gte: startOfYear(now), lte: endOfYear(now) };
       } else if (period === OrderPeriod.CUSTOM) {
@@ -524,7 +524,7 @@ export class OrdersService {
           );
         }
 
-        dateFilter = { gte: parsedStartDate, lte: parsedEndDate };
+        dateFilter = { gte: startOfDateInput(startDate), lte: endOfDateInput(endDate) };
       }
       where.orderDate = dateFilter;
     }

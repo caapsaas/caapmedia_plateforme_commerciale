@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { Prisma, StockMovementType } from '@prisma/client';
+import { endOfDateInput } from 'src/common/utils/date-period.util';
 import {
   CreateStockMovementDto,
   FindStockMovementsDto,
@@ -51,7 +52,7 @@ export class StockMovementsService {
             ? {
                 createdAt: {
                   ...(query.startDate && { gte: new Date(query.startDate) }),
-                  ...(query.endDate && { lte: new Date(query.endDate) }),
+                  ...(query.endDate && { lte: endOfDateInput(query.endDate) }),
                 },
               }
             : {}),

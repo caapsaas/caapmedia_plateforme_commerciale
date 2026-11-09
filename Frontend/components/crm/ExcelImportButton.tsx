@@ -103,23 +103,32 @@ function ExcelImportButton({ columns, onImport, title }: ExcelImportButtonProps)
                 if (column.exactHeaderOnly) return names.includes(normalizedHeader);
                 return names.some(name => normalizedHeader === name || (normalizedHeader.length >= 5 && name.includes(normalizedHeader)) || (name.length >= 5 && normalizedHeader.includes(name)));
             };
-            const headerCandidates = matrix.map((row, index) => ({
-                index,
-                score: columns.filter(column => column.required && row.some(cell => matchHeader(String(cell ?? ''), column))).length,
-            }));
-            const bestHeader = headerCandidates.reduce((best, candidate) => candidate.score > best.score ? candidate : best, { index: -1, score: 0 });
-            const headerRow = bestHeader.score >= Math.min(2, columns.filter(column => column.required).length) ? bestHeader.index : -1;
+            const headerCandidates = matrix.map((row, index) => {
+                const recognizedCells = row.reduce((count, cell) => count + Number(columns.some(column => matchHeader(String(cell ?? ''), column))), 0);
+                const requiredMatches = columns.filter(column => column.required && row.some(cell => matchHeader(String(cell ?? ''), column))).length;
+                return { index, score: recognizedCells, requiredMatches };
+            });
+            const bestHeader = headerCandidates.reduce((best, candidate) => candidate.score > best.score ? candidate : best, { index: -1, score: 0, requiredMatches: 0 });
+            // One coincidental word in a title or data row must never be enough to
+            // classify it as the header. Require several recognized column labels.
+            const headerRow = bestHeader.score >= Math.min(3, columns.length) && bestHeader.requiredMatches > 0 ? bestHeader.index : -1;
             if (headerRow < 0) {
                 const detectedRows = matrix.slice(0, 15).map((row, index) => `${index + 1}: ${row.filter(Boolean).map(String).join(' | ')}`).filter(row => !row.endsWith(': '));
                 throw new Error(`En-têtes introuvables. Colonnes attendues : ${columns.filter(column => column.required).map(column => column.aliases?.[0] || column.label).join(', ')}. Lignes lues : ${detectedRows.join(' — ') || 'aucune cellule lisible'}.`);
             }
             const headers = matrix[headerRow].map(normalize);
             const indexes = columns.map(column => {
-                const exact = headers.findIndex(header => aliases(column).includes(header));
-                return exact >= 0 || column.exactHeaderOnly ? exact : headers.findIndex(header => aliases(column).some(alias => alias.length >= 5 && header.includes(alias)));
+                // Prefer the canonical label/key over secondary aliases. In particular,
+                // « Nom » and « Entreprise » must map to their distinct CRM fields even
+                // when the spreadsheet lists « Entreprise » first.
+                const exact = aliases(column).map(alias => headers.indexOf(alias)).find(index => index >= 0) ?? -1;
+                return exact >= 0 || column.exactHeaderOnly ? exact : headers.findIndex(header => aliases(column).some(alias =>
+                    alias.length >= 4 && header.length >= 4 && (header.includes(alias) || alias.includes(header))
+                ));
             });
             const missing = columns.filter((column, index) => column.required && indexes[index] < 0);
             if (missing.length) throw new Error(`Colonnes obligatoires non reconnues : ${missing.map(column => column.aliases?.[0] || column.label).join(', ')}. En-têtes détectés : ${matrix[headerRow].filter(Boolean).join(', ')}.`);
+            const mappedColumns = indexes.filter(index => index >= 0).length;
             const rows = matrix.slice(headerRow + 1).map(row => {
                 const item: Record<string, unknown> = {};
                 columns.forEach((column, index) => {
@@ -137,6 +146,15 @@ function ExcelImportButton({ columns, onImport, title }: ExcelImportButtonProps)
                     if (column.valueMap && value) value = column.valueMap[normalize(value)] ?? column.defaultValue ?? value;
                     item[column.key] = value || column.defaultValue || '';
                 });
+                // Les fichiers de prospection ont souvent une seule colonne « Entreprise ».
+                // Le modèle CRM exige aussi un nom de piste : réutiliser cette valeur évite
+                // de rejeter un fichier utile ou de créer une piste sans nom.
+                if (columns.some(column => column.key === 'leadName') && columns.some(column => column.key === 'company')) {
+                    const leadName = String(item.leadName ?? '').trim();
+                    const company = String(item.company ?? '').trim();
+                    if (!leadName && company) item.leadName = company;
+                    if (!company && leadName) item.company = leadName;
+                }
                 return item;
             }).filter(row => columns.some(column => String(row[column.key] ?? '').trim()));
             if (!rows.length) throw new Error('Aucune ligne de données trouvée.');
@@ -146,7 +164,7 @@ function ExcelImportButton({ columns, onImport, title }: ExcelImportButtonProps)
             }));
             const skipped = rows.length - validRows.length;
             if (!validRows.length) throw new Error('Aucune ligne exploitable : vérifiez les champs obligatoires.');
-            const summary = `${validRows.length} ${title.toLocaleLowerCase()} seront traitées${skipped ? ` ; ${skipped} ligne(s) seront ignorées car un champ obligatoire est manquant ou invalide` : ''}. Continuer ?`;
+            const summary = `${validRows.length} ${title.toLocaleLowerCase()} seront traitées. ${mappedColumns} champ(s) CRM reconnus sur ${columns.length}${skipped ? ` ; ${skipped} ligne(s) seront ignorées car un champ obligatoire est manquant ou invalide` : ''}. Continuer ?`;
             if (!window.confirm(summary)) return;
             const result = await onImport(validRows);
             const imported = result?.imported ?? validRows.length;

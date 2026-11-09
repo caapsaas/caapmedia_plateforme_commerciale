@@ -10,6 +10,7 @@ interface PaySupplierDebtModalProps {
   isOpen: boolean;
   onClose: () => void;
   debtId: string | null;
+  subsidiaryId: string;
   supplierName: string;
   reference: string;
   totalAmount: number;
@@ -25,7 +26,7 @@ interface PaySupplierDebtModalProps {
  * la dette fournisseur qui lui est liée (DebtsService.paySupplierDebt),
  * donc un seul écran de paiement, pas deux qui divergent.
  *
- * Prélèvement exclusivement Coffre-fort/Banque (centralisés au siège),
+ * Prélèvement exclusivement Coffre-fort/Banque,
  * réservé au SUPER_ADMIN — comptes chargés globalement puis filtrés ici.
  * Paiement partiel supporté (montant modifiable, plafonné au solde restant).
  */
@@ -33,6 +34,7 @@ const PaySupplierDebtModal: React.FC<PaySupplierDebtModalProps> = ({
   isOpen,
   onClose,
   debtId,
+  subsidiaryId,
   supplierName,
   reference,
   totalAmount,
@@ -61,8 +63,8 @@ const PaySupplierDebtModal: React.FC<PaySupplierDebtModalProps> = ({
     enabled: isOpen,
   });
   const accounts = useMemo(
-    () => allAccounts.filter((a) => a.accountType === AccountType.SAFE || a.accountType === AccountType.BANQUE),
-    [allAccounts],
+    () => allAccounts.filter((a) => (a.accountType === AccountType.SAFE || a.accountType === AccountType.BANQUE) && a.subsidiaryId === subsidiaryId),
+    [allAccounts, subsidiaryId],
   );
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {

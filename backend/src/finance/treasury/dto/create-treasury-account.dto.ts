@@ -46,8 +46,8 @@ export class CreateTreasuryAccountDto {
   @IsOptional()
   bankId?: string;
 
-  // Filiale cible (comptes non-BANQUE uniquement) — ignoré si l'utilisateur
-  // n'est pas ADMIN/SUPER_ADMIN, qui restent forcés sur leur propre filiale.
+  // Filiale cible — sélectionnable par ADMIN/SUPER_ADMIN ; les autres rôles
+  // sont forcés sur leur propre filiale par le service.
   @IsString()
   @IsOptional()
   subsidiaryId?: string;

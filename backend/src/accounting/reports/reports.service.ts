@@ -10,6 +10,7 @@ import {
 } from 'src/common/utils/subsidiary-scope';
 import { AccountingBalanceService } from '../shared/accounting-balance.service';
 import { ACCOUNTING_GLOBAL_SCOPE_ROLES } from '../shared/accounting-scope-roles.const';
+import { endOfDateInput, startOfDateInput } from 'src/common/utils/date-period.util';
 
 @Injectable()
 export class ReportsService {
@@ -52,17 +53,17 @@ export class ReportsService {
     startDate?: string,
     endDate?: string,
   ): { startDate: Date; endDate: Date } {
-    const requestedStart = startDate
-      ? new Date(startDate)
-      : fiscalYear.startDate;
-    const requestedEnd = endDate ? new Date(endDate) : fiscalYear.endDate;
+    const fiscalYearStart = startOfDateInput(fiscalYear.startDate.toISOString().slice(0, 10));
+    const fiscalYearEnd = endOfDateInput(fiscalYear.endDate.toISOString().slice(0, 10));
+    const requestedStart = startDate ? startOfDateInput(startDate) : fiscalYearStart;
+    const requestedEnd = endDate ? endOfDateInput(endDate) : fiscalYearEnd;
     return {
       startDate:
-        requestedStart < fiscalYear.startDate
-          ? fiscalYear.startDate
+        requestedStart < fiscalYearStart
+          ? fiscalYearStart
           : requestedStart,
       endDate:
-        requestedEnd > fiscalYear.endDate ? fiscalYear.endDate : requestedEnd,
+        requestedEnd > fiscalYearEnd ? fiscalYearEnd : requestedEnd,
     };
   }
 

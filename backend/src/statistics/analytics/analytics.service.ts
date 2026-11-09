@@ -3,7 +3,6 @@ import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { PeriodFilterDto, PeriodFilter } from './dto/period-filter.dto';
 import { Prisma, User } from '@prisma/client';
 import {
-  sub,
   startOfMonth,
   endOfMonth,
   startOfYear,
@@ -15,6 +14,7 @@ import {
   resolveScopeContext,
 } from 'src/common/utils/subsidiary-scope';
 import { UserRole } from '@prisma/client';
+import { endOfDateInput, lastCalendarDays, startOfDateInput } from 'src/common/utils/date-period.util';
 
 @Injectable()
 export class AnalyticsService {
@@ -43,13 +43,13 @@ export class AnalyticsService {
         };
         break;
       case PeriodFilter.LAST_7_DAYS:
-        dateFilter = { gte: sub(now, { days: 7 }) };
+        dateFilter = lastCalendarDays(now, 7);
         break;
       case PeriodFilter.LAST_30_DAYS:
-        dateFilter = { gte: sub(now, { days: 30 }) };
+        dateFilter = lastCalendarDays(now, 30);
         break;
       case PeriodFilter.LAST_90_DAYS:
-        dateFilter = { gte: sub(now, { days: 90 }) };
+        dateFilter = lastCalendarDays(now, 90);
         break;
       case PeriodFilter.THIS_YEAR:
         dateFilter = { gte: startOfYear(now), lte: endOfYear(now) };
@@ -60,7 +60,7 @@ export class AnalyticsService {
             'Pour une période personnalisée, les dates de début et de fin sont requises.',
           );
         }
-        dateFilter = { gte: new Date(startDate), lte: new Date(endDate) };
+        dateFilter = { gte: startOfDateInput(startDate), lte: endOfDateInput(endDate) };
         break;
       case PeriodFilter.ALL_TIME:
       default:

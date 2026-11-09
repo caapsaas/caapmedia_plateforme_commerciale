@@ -17,6 +17,7 @@ import SelectFilter from '../filters/SelectFilter';
 import { saveExpense, deleteExpense } from '../../services/apiFinance/apiExpense';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
+import { getPresetPeriodDates, toLocalDateKey } from '../../utils/datePeriods';
 
 interface ExpenseManagementProps {
     subsidiary: Subsidiary;
@@ -50,27 +51,10 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
         }
 
         if (period !== 'all_time') {
-            const now = new Date();
-            let startPeriodDate = new Date();
-            let endPeriodDate = new Date(now);
-
-            if (period === 'custom' && startDate && endDate) {
-                startPeriodDate = new Date(startDate);
-                endPeriodDate = new Date(endDate);
-                endPeriodDate.setHours(23, 59, 59, 999);
-            } else {
-                startPeriodDate.setHours(0, 0, 0, 0);
-                switch (period) {
-                    case 'seven_days': startPeriodDate.setDate(now.getDate() - 6); break;
-                    case 'thirty_days': startPeriodDate.setDate(now.getDate() - 29); break;
-                    case 'ninety_days': startPeriodDate.setDate(now.getDate() - 89); break;
-                    case 'year': startPeriodDate = new Date(now.getFullYear(), 0, 1); break;
-                }
-            }
-            
+            const range = period === 'custom' ? { startDate, endDate } : getPresetPeriodDates(period);
             filtered = filtered.filter(e => {
-                const expenseDate = new Date(e.date);
-                return expenseDate >= startPeriodDate && expenseDate <= endPeriodDate;
+                const expenseDate = toLocalDateKey(new Date(e.date));
+                return (!range.startDate || expenseDate >= range.startDate) && (!range.endDate || expenseDate <= range.endDate);
             });
         }
         
@@ -203,7 +187,7 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
                         <SelectFilter name="category" label={t('expenses.filter.category')} value={category} onChange={e => setCategory(e.target.value)} options={Object.values(ExpenseCategory).map(c => ({value: c, label: t(`expenses.categories.${c}`)}))} placeholder={t('expenses.filter.allCategories')} />
                         <SelectFilter name="type" label={t('expenses.filter.type')} value={type} onChange={e => setType(e.target.value)} options={Object.values(ExpenseType).map(c => ({value: c, label: t(`expenses.types.${c}`)}))} placeholder={t('expenses.filter.allTypes')} />
                         <div className="lg:col-span-2">
-                             <PeriodFilter period={period} onPeriodChange={e => setPeriod(e.target.value)} startDate={startDate} onStartDateChange={e => setStartDate(e.target.value)} endDate={endDate} onEndDateChange={e => setEndDate(e.target.value)} />
+                             <PeriodFilter period={period} onPeriodChange={e => { const next = e.target.value; setPeriod(next); if (next !== 'custom') { setStartDate(''); setEndDate(''); } }} startDate={startDate} onStartDateChange={e => setStartDate(e.target.value)} endDate={endDate} onEndDateChange={e => setEndDate(e.target.value)} />
                         </div>
                     </div>
                 </div>

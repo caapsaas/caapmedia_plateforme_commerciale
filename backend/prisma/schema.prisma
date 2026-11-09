@@ -1054,9 +1054,8 @@ enum BankType {
 
 // Banque physique (institution) — distincte du compte de trésorerie
 // (TreasuryAccount.accountType = BANQUE) qui la référence. Une banque n'est
-// jamais rattachée à une filiale : les comptes bancaires sont centralisés au
-// siège (voir TreasuryService.createAccount), la banque elle-même est un
-// tiers global, comme sur gmo (Backend_GMO/prisma/schema.prisma::Bank).
+// jamais rattachée à une filiale : les comptes bancaires référencent cette
+// institution globale, tandis que chaque compte bancaire appartient à une filiale.
 model Bank {
   id       String            @id @default(uuid())
   name     String            @unique
@@ -1076,10 +1075,8 @@ enum CashRemittanceStatus {
 }
 
 // Remise de caisse : un caissier déclare le contenu de sa caisse (CASH_REGISTER)
-// à remettre, toujours vers le coffre-fort (SAFE) du siège (trésorerie
-// centralisée, comme gmo) ; le Directeur Financier DE LA FILIALE DE LA CAISSE
-// (subsidiaryId ci-dessous = filiale de la caisse source, pas celle du coffre)
-// réceptionne et confirme le comptage réel — un écart (discrepancy) est
+// à remettre, vers le coffre-fort (SAFE) de sa filiale ; le Directeur
+// Financier de cette filiale réceptionne et confirme le comptage réel — un écart (discrepancy) est
 // enregistré si le montant compté diffère du montant déclaré.
 model CashRemittance {
   id                   String               @id @default(uuid())
@@ -1092,8 +1089,8 @@ model CashRemittance {
   notes                String?
   sourceCashRegisterId String               @map("source_cash_register_id")
   destinationSafeId    String               @map("destination_safe_id")
-  // Filiale de la caisse source (pas celle du coffre destinataire) — c'est
-  // elle qui détermine quel Directeur Financier peut réceptionner.
+  // Filiale commune à la caisse source et au coffre destinataire — elle
+  // détermine quel Directeur Financier peut réceptionner.
   subsidiaryId         String               @map("subsidiary_id")
   createdByUserId      String               @map("created_by_user_id")
   receivedByUserId     String?              @map("received_by_user_id")

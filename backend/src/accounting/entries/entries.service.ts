@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { JournalEntryStatus, Prisma } from '@prisma/client';
+import { endOfDateInput } from 'src/common/utils/date-period.util';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 import {
   resolveScopeContext,
@@ -81,7 +82,7 @@ export class EntriesService {
           ? {
               entryDate: {
                 ...(startDate ? { gte: new Date(startDate) } : {}),
-                ...(endDate ? { lte: new Date(endDate) } : {}),
+                ...(endDate ? { lte: endOfDateInput(endDate) } : {}),
               },
             }
           : {}),

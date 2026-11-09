@@ -141,6 +141,11 @@ export class DebtsService {
         "Le paiement d'une dette fournisseur ne peut se faire que depuis le coffre-fort ou une banque.",
       );
     }
+    if (account.subsidiaryId !== debt.subsidiaryId) {
+      throw new BadRequestException(
+        'Le compte de trésorerie et la dette fournisseur doivent appartenir à la même filiale.',
+      );
+    }
 
     const paymentAmount = dto.amount
       ? new Prisma.Decimal(dto.amount)

@@ -5,8 +5,8 @@ import {
   PeriodFilter,
 } from '../analytics/dto/period-filter.dto';
 import { Prisma, User, OpportunityStage } from '@prisma/client';
+import { endOfDateInput, lastCalendarDays, startOfDateInput } from 'src/common/utils/date-period.util';
 import {
-  sub,
   startOfMonth,
   endOfMonth,
   startOfYear,
@@ -43,13 +43,13 @@ export class FinancesStatsService {
         };
         break;
       case PeriodFilter.LAST_7_DAYS:
-        dateFilter = { gte: sub(now, { days: 7 }) };
+        dateFilter = lastCalendarDays(now, 7);
         break;
       case PeriodFilter.LAST_30_DAYS:
-        dateFilter = { gte: sub(now, { days: 30 }) };
+        dateFilter = lastCalendarDays(now, 30);
         break;
       case PeriodFilter.LAST_90_DAYS:
-        dateFilter = { gte: sub(now, { days: 90 }) };
+        dateFilter = lastCalendarDays(now, 90);
         break;
       case PeriodFilter.THIS_YEAR:
         dateFilter = { gte: startOfYear(now), lte: endOfYear(now) };
@@ -60,7 +60,7 @@ export class FinancesStatsService {
             'Pour une période personnalisée, les dates de début et de fin sont requises.',
           );
         }
-        dateFilter = { gte: new Date(startDate), lte: new Date(endDate) };
+        dateFilter = { gte: startOfDateInput(startDate), lte: endOfDateInput(endDate) };
         break;
       case PeriodFilter.ALL_TIME:
       default:

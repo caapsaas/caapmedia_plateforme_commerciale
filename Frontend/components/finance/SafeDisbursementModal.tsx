@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AccountType, CounterpartyType, TreasuryAccount, TreasuryTransactionType } from '../../types';
+import { AccountType, CounterpartyType, SupplierDebt, TreasuryAccount, TreasuryTransactionType } from '../../types';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import { getTreasuryAccounts, getCounterparties, createDisbursement } from '../../services/apiFinance/apiTreasury';
-import { getSuppliers } from '../../services/apiPurchasing/apiSupplier';
+import { getSupplierDebts, paySupplierDebt } from '../../services/apiFinance/apiDebts';
 import { getSubsidiaries } from '../../services/apiCommon/apiSubsidiaries';
 import {
   getIrppDetail,
@@ -42,7 +42,7 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
   const [sourceAccountId, setSourceAccountId] = useState('');
   const [treasuryType, setTreasuryType] = useState<TreasuryTransactionType>(TreasuryTransactionType.SUPPLIER_PAYMENT);
   const [destinationAccountId, setDestinationAccountId] = useState('');
-  const [supplierCounterpartyId, setSupplierCounterpartyId] = useState('');
+  const [supplierDebtId, setSupplierDebtId] = useState('');
   const [taxSubsidiaryId, setTaxSubsidiaryId] = useState('');
   const [taxMonth, setTaxMonth] = useState(new Date().getMonth() + 1);
   const [taxYear, setTaxYear] = useState(new Date().getFullYear());
@@ -59,7 +59,7 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
     setSourceAccountId('');
     setTreasuryType(TreasuryTransactionType.SUPPLIER_PAYMENT);
     setDestinationAccountId('');
-    setSupplierCounterpartyId('');
+    setSupplierDebtId('');
     setTaxSubsidiaryId('');
     setTaxMonth(new Date().getMonth() + 1);
     setTaxYear(new Date().getFullYear());
@@ -73,9 +73,8 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
     if (isOpen) resetForm();
   }, [isOpen]);
 
-  // Pas de filtre filiale : le coffre-fort et les banques sont centralisés
-  // au siège, mais la caisse dépense destination d'une alimentation peut
-  // appartenir à n'importe quelle filiale — le SUPER_ADMIN a une vue globale.
+  // Le SUPER_ADMIN a une vue globale pour choisir un compte source ou
+  // destination situé dans n'importe quelle filiale.
   const { data: accounts = [] } = useQuery<TreasuryAccount[]>({
     queryKey: ['treasuryAccounts', 'all'],
     queryFn: () => getTreasuryAccounts(),
@@ -88,9 +87,9 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
     enabled: isOpen,
   });
 
-  const { data: suppliers = [] } = useQuery({
-    queryKey: ['suppliers'],
-    queryFn: getSuppliers,
+  const { data: supplierDebts = [] } = useQuery<SupplierDebt[]>({
+    queryKey: ['supplierDebts'],
+    queryFn: getSupplierDebts,
     enabled: isOpen && isSupplierPayment,
   });
 
@@ -103,6 +102,9 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
   const safes = useMemo(() => accounts.filter((a) => a.accountType === AccountType.SAFE), [accounts]);
   const bankAccounts = useMemo(() => accounts.filter((a) => a.accountType === AccountType.BANQUE), [accounts]);
   const expenseBoxes = useMemo(() => accounts.filter((a) => a.accountType === AccountType.EXPENSE_BOX), [accounts]);
+  const selectedSource = safes.find((a) => a.id === sourceAccountId);
+  const payableDebts = supplierDebts.filter((debt) => debt.status !== 'PAYER' && (!selectedSource || debt.subsidiaryId === selectedSource.subsidiaryId));
+  const selectedDebt = payableDebts.find((debt) => debt.id === supplierDebtId);
 
   const taxPeriodParams = { month: taxMonth, year: taxYear, subsidiaryId: taxSubsidiaryId || undefined };
 
@@ -148,8 +150,9 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
   }, [treasuryType, irppDetail, cnpsDetail, cfcFneDetail, vatDetail, taxMonth, taxYear]);
 
   const { mutate: submit, isPending } = useMutation({
-    mutationFn: () =>
-      createDisbursement({
+    mutationFn: () => isSupplierPayment && selectedDebt
+      ? paySupplierDebt(selectedDebt.id, { paymentDate: transactionDate, treasuryAccountId: sourceAccountId, amount: parseFloat(amount) || 0 })
+      : createDisbursement({
         transactionDate,
         description,
         amount: parseFloat(amount) || 0,
@@ -157,12 +160,13 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
         destinationAccountId: isTransfer ? destinationAccountId : undefined,
         treasuryType,
         reference: reference || undefined,
-        counterpartyId: isSupplierPayment ? supplierCounterpartyId || undefined : isTaxPeriodType ? taxCounterparties[0]?.id : undefined,
-        newCounterpartyName: isSupplierPayment && !supplierCounterpartyId ? undefined : undefined,
+        counterpartyId: isTaxPeriodType ? taxCounterparties[0]?.id : undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['treasuryAccounts'] });
       queryClient.invalidateQueries({ queryKey: ['financialTransactions'] });
+      queryClient.invalidateQueries({ queryKey: ['supplierDebts'] });
+      queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
       toast('success', t('safeDisbursement.success'));
       onClose();
     },
@@ -174,13 +178,12 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!sourceAccountId || !amount || parseFloat(amount) <= 0 || !description) return;
+    if (isSupplierPayment && (!selectedDebt || parseFloat(amount) > Number(selectedDebt.amount))) return;
     if (isTransfer && !destinationAccountId) return;
     submit();
   };
 
   if (!isOpen) return null;
-
-  const selectedSource = safes.find((a) => a.id === sourceAccountId);
 
   return (
     <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={onClose}>
@@ -263,11 +266,11 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
 
           {isSupplierPayment && (
             <div>
-              <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.beneficiarySupplier')}</label>
-              <select value={supplierCounterpartyId} onChange={(e) => setSupplierCounterpartyId(e.target.value)} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border bg-white">
-                <option value="">{t('safeDisbursement.selectSupplier')}</option>
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>{s.supplierName}</option>
+              <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.supplierDebt')}</label>
+              <select value={supplierDebtId} onChange={(e) => { const id = e.target.value; setSupplierDebtId(id); const debt = payableDebts.find((item) => item.id === id); if (debt) setAmount(String(debt.amount)); }} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border bg-white">
+                <option value="">{payableDebts.length ? t('safeDisbursement.selectSupplierDebt') : t('safeDisbursement.noSupplierDebt')}</option>
+                {payableDebts.map((debt) => (
+                  <option key={debt.id} value={debt.id}>{debt.supplierName} — {debt.invoiceId} — {formatCurrency(Number(debt.amount))}</option>
                 ))}
               </select>
             </div>
@@ -347,7 +350,7 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
             <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors">
               {t('common.cancel')}
             </button>
-            <button type="submit" disabled={isPending} className="px-4 py-2 bg-[#231F20] text-white rounded-md hover:bg-slate-700 transition-colors disabled:opacity-50">
+            <button type="submit" disabled={isPending || (isSupplierPayment && !selectedDebt)} className="px-4 py-2 bg-[#231F20] text-white rounded-md hover:bg-slate-700 transition-colors disabled:opacity-50">
               {isPending ? t('safeDisbursement.submitting') : t('safeDisbursement.submit')}
             </button>
           </div>

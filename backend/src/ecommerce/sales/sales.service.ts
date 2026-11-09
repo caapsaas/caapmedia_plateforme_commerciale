@@ -6,6 +6,7 @@ import {
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateDirectSaleDto } from './dto/create-sale.dto';
 import { FindAllSalesDto, OrderPeriod } from './dto/find-all-sales.dto';
+import { endOfDateInput, lastCalendarDays, startOfDateInput } from 'src/common/utils/date-period.util';
 import {
   CustomerPaymentMethod,
   ItemType,
@@ -26,7 +27,6 @@ import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 import { paginate } from 'src/common/pagination/pagination';
 import {
-  sub,
   startOfMonth,
   endOfMonth,
   startOfYear,
@@ -332,9 +332,9 @@ export class SalesService {
           lte: endOfMonth(lastMonth),
         };
       } else if (period === OrderPeriod.LAST_7_DAYS) {
-        dateFilter = { gte: sub(now, { days: 7 }) };
+        dateFilter = lastCalendarDays(now, 7);
       } else if (period === OrderPeriod.LAST_30_DAYS) {
-        dateFilter = { gte: sub(now, { days: 30 }) };
+        dateFilter = lastCalendarDays(now, 30);
       } else if (period === OrderPeriod.THIS_YEAR) {
         dateFilter = { gte: startOfYear(now), lte: endOfYear(now) };
       } else if (period === OrderPeriod.CUSTOM) {
@@ -343,7 +343,7 @@ export class SalesService {
             'Pour une période personnalisée, les dates de début et de fin sont requises.',
           );
         }
-        dateFilter = { gte: new Date(startDate), lte: new Date(endDate) };
+        dateFilter = { gte: startOfDateInput(startDate), lte: endOfDateInput(endDate) };
       }
       where.saleDate = dateFilter;
     }

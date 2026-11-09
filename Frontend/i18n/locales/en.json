@@ -3047,6 +3047,9 @@
     "recordPayment": "Record Payment"
   },
   "treasury": {
+    "treasuryStatus": {
+      "VALIDE": "Validated"
+    },
     "recentTransactions": "Recent Transactions",
     "addExpense": "Add Expense",
     "addIncome": "Add Income",
@@ -3149,6 +3152,9 @@
     "selectExpenseBox": "-- Select an expense box --",
     "beneficiarySupplier": "Beneficiary supplier",
     "selectSupplier": "-- Select a supplier --",
+    "supplierDebt": "Supplier debt",
+    "selectSupplierDebt": "-- Select a supplier debt --",
+    "noSupplierDebt": "No unpaid supplier debts for this subsidiary.",
     "month": "Month",
     "year": "Year",
     "months": {

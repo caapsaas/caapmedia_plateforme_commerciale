@@ -11,6 +11,7 @@ import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 import { paginate } from 'src/common/pagination/pagination';
 import { FindPrefinancementTransactionsDto } from './dto/find-prefinancement-transactions.dto';
+import { endOfDateInput } from 'src/common/utils/date-period.util';
 @Injectable()
 export class PrefinancementService {
   constructor(
@@ -135,7 +136,7 @@ export class PrefinancementService {
         where.date.gte = new Date(filters.startDate);
       }
       if (filters.endDate) {
-        where.date.lte = new Date(filters.endDate);
+        where.date.lte = endOfDateInput(filters.endDate);
       }
     }
 

@@ -48,6 +48,7 @@ import { getAllUsers } from "../../services/apiCommon/apiUserAuth";
 import { getSubsidiaries } from "../../services/apiCommon/apiSubsidiaries";
 import { useAuth } from "../../context/AuthContext";
 import { UserRole } from "../../types";
+import { getPresetPeriodDates } from "../../utils/datePeriods";
 
 // Payload envoyé à POST /ecommerce/orders/by-salesrep/json — mis en cache le
 // temps de la requête pour enrichir la réponse API (qui ne renvoie pas tous
@@ -76,79 +77,7 @@ const parseDate = (dateStr: string | undefined): Date | null => {
 };
 
 const getPeriodDates = (period: FindAllOrdersDto["period"]) => {
-  const now = new Date();
-
-  const formatDate = (date: Date) => {
-    return date.toISOString().split("T")[0];
-  };
-
-  switch (period) {
-    case "last_7_days": {
-      const start = new Date();
-      start.setDate(now.getDate() - 7);
-
-      return {
-        startDate: formatDate(start),
-        endDate: formatDate(now),
-      };
-    }
-
-    case "last_30_days": {
-      const start = new Date();
-      start.setDate(now.getDate() - 30);
-
-      return {
-        startDate: formatDate(start),
-        endDate: formatDate(now),
-      };
-    }
-
-    case "last_90_days": {
-      const start = new Date();
-      start.setDate(now.getDate() - 90);
-
-      return {
-        startDate: formatDate(start),
-        endDate: formatDate(now),
-      };
-    }
-
-    case "this_month": {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-
-      return {
-        startDate: formatDate(start),
-        endDate: formatDate(now),
-      };
-    }
-
-    case "last_month": {
-      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-
-      const end = new Date(now.getFullYear(), now.getMonth(), 0);
-
-      return {
-        startDate: formatDate(start),
-        endDate: formatDate(end),
-      };
-    }
-
-    case "this_year": {
-      const start = new Date(now.getFullYear(), 0, 1);
-
-      return {
-        startDate: formatDate(start),
-        endDate: formatDate(now),
-      };
-    }
-
-    case "custom":
-    default:
-      return {
-        startDate: "",
-        endDate: "",
-      };
-  }
+  return getPresetPeriodDates(period || 'all_time');
 };
 
 const Sales: React.FC = () => {

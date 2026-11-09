@@ -21,7 +21,7 @@ const STATUS_STYLES: Record<CashRemittanceStatus, string> = {
 };
 
 // Remise de caisse : le caissier déclare le contenu de sa caisse à remettre
-// (toujours vers le coffre-fort du siège, résolu côté backend) ; le
+// (vers le coffre-fort de sa filiale, résolu côté backend) ; le
 // Directeur Financier de sa filiale réceptionne et confirme le comptage —
 // même logique que gmo (CashRemittanceManagement.tsx), sans la capture de
 // signature manuscrite (hors périmètre de cette parité).

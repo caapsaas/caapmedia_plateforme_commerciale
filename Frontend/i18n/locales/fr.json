@@ -3047,6 +3047,9 @@
     "recordPayment": "Encaisser"
   },
   "treasury": {
+    "treasuryStatus": {
+      "VALIDE": "Validé"
+    },
     "recentTransactions": "Transactions Récentes",
     "addExpense": "Ajouter Dépense",
     "addIncome": "Ajouter Recette",
@@ -3149,6 +3152,9 @@
     "selectExpenseBox": "-- Sélectionner une caisse dépense --",
     "beneficiarySupplier": "Fournisseur bénéficiaire",
     "selectSupplier": "-- Sélectionner un fournisseur --",
+    "supplierDebt": "Dette fournisseur",
+    "selectSupplierDebt": "-- Sélectionner une dette fournisseur --",
+    "noSupplierDebt": "Aucune dette impayée pour cette filiale.",
     "month": "Mois",
     "year": "Année",
     "months": {
