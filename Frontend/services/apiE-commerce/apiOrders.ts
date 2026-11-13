@@ -8,7 +8,15 @@ export interface OccasionalOrderCustomer {
     email?: string;
 }
 
-export interface PaymentAccount { id: string; accountName: string }
+export const getFixedOrderPaymentMethod = (method?: CustomerPaymentMethod | null) =>
+    method && method !== CustomerPaymentMethod.PAY_ON_DELIVERY && method !== CustomerPaymentMethod.CUSTOMER_CREDIT
+        ? method
+        : null;
+
+export const getOrderOutstandingAmount = (order: Order) =>
+    Math.round((order.totalAmount - order.amountPaid) * 100) / 100;
+
+export interface PaymentAccount { id: string; accountName: string; accountType: string }
 
 export const getOrderPaymentAccounts = async (): Promise<PaymentAccount[]> => {
     const { data } = await api.get('/ecommerce/orders/payment-accounts');
@@ -128,6 +136,7 @@ export interface RecordOrderPaymentPayload {
   amount: number;
   paymentMethod: CustomerPaymentMethod;
   bankAccountId?: string;
+  cashRegisterId?: string;
   transactionReference?: string;
 }
 

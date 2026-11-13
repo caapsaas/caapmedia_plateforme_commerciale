@@ -43,7 +43,7 @@ const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps> = ({ i
         <div className="relative w-[210mm] p-8 bg-white mx-auto">
             <DocumentWatermark />
 
-            <DocumentHeader subsidiary={subsidiary} />
+            <DocumentHeader subsidiary={subsidiary} usePublicContact />
 
             <div className="flex justify-between items-start mb-8 mt-4">
                 <div>

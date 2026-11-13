@@ -1,4 +1,16 @@
 {
+  "crmJourney": {
+    "saveContactError": "The contact could not be saved.",
+    "linkedAccount": "Linked CRM account",
+    "chooseAccount": "Search for an account (optional)",
+    "accountName": "CRM account · {{name}}",
+    "noAccount": "No linked CRM account",
+    "convertTitle": "Convert lead",
+    "convertConfirm": "Create the contact {{contact}}, link them to the {{account}} account, and open an opportunity in the pipeline?",
+    "convertSuccess": "The contact and opportunity are available in the CRM.",
+    "convertError": "The lead could not be converted.",
+    "guide": "Qualify a lead, convert it to a contact, and track the opportunity in the pipeline. Record the contract separately in the Contracts tab by selecting the customer contact."
+  },
   "attendanceSecurity": {
     "title": "Secure attendance",
     "subtitle": "Employee ID and presence on site are required.",
@@ -1981,6 +1993,11 @@
     "paymentInfo": "Payment Information"
   },
   "cashRegister": {
+    "amountAboveBalance": "The entered amount exceeds the outstanding balance.",
+    "bankAccount": "Bank account",
+    "selectBankAccount": "Select a bank account",
+    "cashAccount": "Cash register",
+    "selectCashAccount": "Select a cash register",
     "clientSection": {
       "selectAdd": "Select or Add",
       "title": "Client",
@@ -2630,8 +2647,8 @@
     "contact": "Contact",
     "contactUs": "Contact Us",
     "address": "Ange Raphael, Douala, Cameroon",
-    "phone": "+237 6 75 86 43 54 & +237 6 73 42 35 04",
-    "email": "contact.douala@caap.cm",
+    "phone": "+237 671 89 01 84",
+    "email": "contact@caapmedia.com",
     "copyright": "© 2024 CaapMedia. All rights reserved."
   },
   "publicPages": {
@@ -2663,9 +2680,11 @@
       "imageCaption": "CaapMedia, a department of Caap-Groupe SARL.",
       "premisesGalleryTitle": "CaapMedia premises",
       "premisesGalleryIntro": "A few views of our workspace and team.",
-      "premisesPhoto": "Add a photo of the premises",
-      "workshopPhoto": "Add a photo of the workshop",
-      "teamPhoto": "Add a photo of the team",
+      "premisesPhoto": "Interior view of the CaapMedia workshop",
+      "workshopPhoto": "Printing machines in the CaapMedia workshop",
+      "teamPhoto": "CaapMedia team member at the office",
+      "cuttingMachinePhoto": "Guillotine cutter in the finishing workshop",
+      "printingPressPhoto": "CaapMedia offset printing press",
       "productionTitle": "Production capabilities",
       "production": "We produce printed and customized materials for the communication needs of businesses, institutions and individuals.",
       "servicesTitle": "End-to-end support",
@@ -2687,12 +2706,12 @@
     "photoSlots": {
       "realizationsTitle": "A selection of our work",
       "realizationsIntro": "Add photos of projects completed by CaapMedia here.",
-      "realizationOne": "Add a project photo",
-      "realizationTwo": "Add a project photo",
-      "realizationThree": "Add a project photo",
-      "realizationFour": "Add a project photo",
-      "realizationFive": "Add a project photo",
-      "realizationSix": "Add a project photo"
+      "realizationOne": "Custom printed calendar",
+      "realizationTwo": "Custom promotional pens",
+      "realizationThree": "Custom fabric tote bag",
+      "realizationFour": "Personalized mugs",
+      "realizationFive": "Promotional roll-up banner",
+      "realizationSix": "Textile event backdrop"
     }
   },
   "financialHistory": {
@@ -3248,7 +3267,7 @@
       "notes": "Notes",
       "declaredByAgent": "Amount declared by the cashier",
       "receivedAmount": "Actually received amount (count)",
-      "discrepancyWarning": "Discrepancy detected: {{amount}}",
+      "discrepancyWarning": "Discrepancy detected: {{amount}}. Correct the amount before validation.",
       "receptionNotes": "Reception notes"
     },
     "submit": "Submit remittance",
@@ -3564,7 +3583,7 @@
   },
   "needs": {
     "title": "Needs requests",
-    "adminIntro": "Review sales representatives’ needs and approve or reject requests.",
+    "adminIntro": "View sales representatives’ needs and track request status.",
     "commercialIntro": "Submit your needs to the super-admin and track their progress.",
     "new": "New needs request",
     "subject": "Subject",

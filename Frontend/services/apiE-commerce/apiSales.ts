@@ -19,6 +19,7 @@ export interface CreateDirectSaleDto {
     customerId: string;
     applyTax?: boolean;
     bankAccountId?: string;        // Compte bancaire (obligatoire si BANK_TRANSFER / CARD / CHECK)
+    cashRegisterId?: string;
     transactionReference?: string; // Référence de transaction (n° chèque, ref virement, etc.)
 }
 

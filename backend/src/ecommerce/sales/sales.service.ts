@@ -1,3 +1,4 @@
+import { creditCashRegister } from '../credit-cash-register';
 import {
   Injectable,
   NotFoundException,
@@ -6,7 +7,11 @@ import {
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateDirectSaleDto } from './dto/create-sale.dto';
 import { FindAllSalesDto, OrderPeriod } from './dto/find-all-sales.dto';
-import { endOfDateInput, lastCalendarDays, startOfDateInput } from 'src/common/utils/date-period.util';
+import {
+  endOfDateInput,
+  lastCalendarDays,
+  startOfDateInput,
+} from 'src/common/utils/date-period.util';
 import {
   CustomerPaymentMethod,
   ItemType,
@@ -56,6 +61,7 @@ export class SalesService {
       customerId,
       applyTax = true,
       bankAccountId,
+      cashRegisterId,
       transactionReference,
     } = createDirectSaleDto;
 
@@ -66,6 +72,11 @@ export class SalesService {
       CustomerPaymentMethod.CHECK,
     ];
     const isBankingPayment = BANKING_METHODS.includes(paymentMethod);
+    if (paymentMethod === CustomerPaymentMethod.CASH && !cashRegisterId) {
+      throw new BadRequestException(
+        'Une caisse doit être sélectionnée pour un paiement en espèces.',
+      );
+    }
 
     if (isBankingPayment && !bankAccountId) {
       throw new BadRequestException(
@@ -243,10 +254,20 @@ export class SalesService {
           data: salesToCreate,
         });
 
+        if (paymentMethod === CustomerPaymentMethod.CASH && cashRegisterId) {
+          await creditCashRegister(
+            tx,
+            user,
+            cashRegisterId,
+            newOrder.id,
+            totalAmount,
+          );
+        }
+
         // 5. Pour les paiements bancaires : créer une FinancialTransaction EN_ATTENTE de validation
         if (isBankingPayment && bankAccountId) {
           const bankAccount = await tx.treasuryAccount.findFirst({
-            where: { id: bankAccountId, subsidiaryId },
+            where: { id: bankAccountId, subsidiaryId, accountType: 'BANQUE' },
           });
           if (!bankAccount) {
             throw new NotFoundException(
@@ -343,7 +364,10 @@ export class SalesService {
             'Pour une période personnalisée, les dates de début et de fin sont requises.',
           );
         }
-        dateFilter = { gte: startOfDateInput(startDate), lte: endOfDateInput(endDate) };
+        dateFilter = {
+          gte: startOfDateInput(startDate),
+          lte: endOfDateInput(endDate),
+        };
       }
       where.saleDate = dateFilter;
     }

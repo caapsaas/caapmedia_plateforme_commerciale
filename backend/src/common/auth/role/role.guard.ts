@@ -7,6 +7,9 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UserRole } from '@prisma/client';
+import type { Request } from 'express';
+import type { JwtUser } from '../jwt/jwt-user.interface';
+import { SUPER_ADMIN_READ_ONLY_KEY } from './role.decorator';
 import { getActiveRole, isSuperAdmin } from './role-identity';
 
 @Injectable()
@@ -16,11 +19,25 @@ export class RoleGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest();
+    const request = context
+      .switchToHttp()
+      .getRequest<Request & { user?: JwtUser }>();
     const url = request.url;
     const method = request.method;
 
     this.logger.debug(`RoleGuard checking: ${method} ${url}`, 'RoleGuard');
+
+    const user = request.user;
+    if (
+      user &&
+      isSuperAdmin(user) &&
+      method !== 'GET' &&
+      method !== 'HEAD' &&
+      method !== 'OPTIONS' &&
+      this.reflector.get<boolean>(SUPER_ADMIN_READ_ONLY_KEY, context.getClass())
+    ) {
+      throw new ForbiddenException('Super-admin access is read-only');
+    }
 
     const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(
       'roles',
@@ -40,8 +57,6 @@ export class RoleGuard implements CanActivate {
       return true;
     }
 
-    const user = request.user;
-
     if (!user) {
       this.logger.error(
         `No user found in request for ${method} ${url}`,
@@ -50,7 +65,7 @@ export class RoleGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
-    // SUPER_ADMIN bypasse tout check de role: l'ajouter a la main a chaque
+    // Pour les routes restantes, SUPER_ADMIN bypasse le check de role: l'ajouter a la main a chaque
     // @Roles(...)/@SetMetadata('roles', ...) de l'app serait fragile (c'est
     // exactement l'oubli qui a laisse finances-stats/* sans guard, cf. audit
     // Doc/architecture-multi-filiale-auth-rbac.md section 1.1/4.2).

@@ -15,6 +15,7 @@ import Pagination from '../common/Pagination';
 const ACCOUNTS_PAGE_SIZE = 10;
 
 interface AccountManagementProps {
+    readOnly?: boolean;
     subsidiaryId: string;
     filterSubsidiaryId?: string;
     filterSalesRepId?: string;
@@ -23,6 +24,7 @@ interface AccountManagementProps {
 }
 
 const AccountManagement: React.FC<AccountManagementProps> = ({
+    readOnly = false,
     subsidiaryId,
     filterSubsidiaryId,
     filterSalesRepId,
@@ -88,10 +90,12 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
         <div className="bg-white p-6 rounded-xl shadow-md">
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-semibold text-slate-800">{t('crm.accounts.title')}</h3>
-                <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
-                    <IconPlus className="h-4 w-4" />
-                    <span>{t('crm.accounts.add')}</span>
-                </button>
+                {!readOnly && (
+                    <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
+                        <IconPlus className="h-4 w-4" />
+                        <span>{t('crm.accounts.add')}</span>
+                    </button>
+                )}
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-slate-500">
@@ -120,12 +124,16 @@ const AccountManagement: React.FC<AccountManagementProps> = ({
                                 <td className="px-6 py-4">{account.phone}</td>
                                 <td className="px-6 py-4">{account.address}</td>
                                 <td className="px-6 py-4 text-center space-x-1">
-                                    <button onClick={() => handleOpenEditModal(account)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
-                                        <IconEdit className="h-5 w-5" />
-                                    </button>
-                                    <button onClick={() => handleOpenDeleteModal(account)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" aria-label={t('common.delete')}>
-                                        <IconDelete className="h-5 w-5" />
-                                    </button>
+                                    {!readOnly && (
+                                        <button onClick={() => handleOpenEditModal(account)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
+                                            <IconEdit className="h-5 w-5" />
+                                        </button>
+                                    )}
+                                    {!readOnly && (
+                                        <button onClick={() => handleOpenDeleteModal(account)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" aria-label={t('common.delete')}>
+                                            <IconDelete className="h-5 w-5" />
+                                        </button>
+                                    )}
                                 </td>
                             </tr>
                         ))}

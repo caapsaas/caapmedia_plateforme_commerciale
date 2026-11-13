@@ -1,3 +1,4 @@
+import { creditCashRegister } from '../credit-cash-register';
 import { getActiveRole } from '../../common/auth/role/role-identity';
 import {
   resolveScopeContext,
@@ -35,7 +36,11 @@ import {
 } from '@prisma/client';
 import { FindAllOrdersDto, OrderPeriod } from './dto/find-all-orders.dto';
 import { paginate } from 'src/common/pagination/pagination';
-import { endOfDateInput, lastCalendarDays, startOfDateInput } from 'src/common/utils/date-period.util';
+import {
+  endOfDateInput,
+  lastCalendarDays,
+  startOfDateInput,
+} from 'src/common/utils/date-period.util';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 import {
   startOfMonth,
@@ -524,7 +529,10 @@ export class OrdersService {
           );
         }
 
-        dateFilter = { gte: startOfDateInput(startDate), lte: endOfDateInput(endDate) };
+        dateFilter = {
+          gte: startOfDateInput(startDate),
+          lte: endOfDateInput(endDate),
+        };
       }
       where.orderDate = dateFilter;
     }
@@ -849,15 +857,21 @@ export class OrdersService {
    * @param user Utilisateur connecté
    * @returns La commande mise à jour avec le solde
    */
-  async findPaymentAccounts(user: { subsidiaryId?: string }) {
+  async findPaymentAccounts(user: { id: string; subsidiaryId?: string }) {
     if (!user.subsidiaryId) {
       throw new ForbiddenException(
         'Filiale requise pour enregistrer un paiement.',
       );
     }
     return this.prisma.treasuryAccount.findMany({
-      where: { subsidiaryId: user.subsidiaryId, accountType: 'BANQUE' },
-      select: { id: true, accountName: true },
+      where: {
+        subsidiaryId: user.subsidiaryId,
+        OR: [
+          { accountType: 'BANQUE' },
+          { accountType: 'CASH_REGISTER', cashierId: user.id },
+        ],
+      },
+      select: { id: true, accountName: true, accountType: true },
       orderBy: { accountName: 'asc' },
     });
   }
@@ -867,22 +881,24 @@ export class OrdersService {
     recordPaymentDto: RecordPaymentDto,
     user: any,
   ) {
-    const { amount, paymentMethod, bankAccountId, transactionReference } =
-      recordPaymentDto;
+    const {
+      amount,
+      paymentMethod: requestedPaymentMethod,
+      bankAccountId,
+      cashRegisterId,
+      transactionReference,
+    } = recordPaymentDto;
 
-    const BANKING_METHODS: CustomerPaymentMethod[] = [
-      CustomerPaymentMethod.BANK_TRANSFER,
-      CustomerPaymentMethod.CARD,
-      CustomerPaymentMethod.CHECK,
-    ];
-    const isBankingPayment = BANKING_METHODS.includes(paymentMethod);
-
-    if (isBankingPayment && !bankAccountId) {
+    const paymentAmount = new Decimal(amount);
+    if (
+      !paymentAmount.isFinite() ||
+      paymentAmount.lt('0.01') ||
+      paymentAmount.decimalPlaces() > 2
+    ) {
       throw new BadRequestException(
-        'Un compte bancaire doit être sélectionné pour ce mode de paiement.',
+        'Le montant doit être positif et comporter au plus deux décimales.',
       );
     }
-    const paymentAmount = new Decimal(amount);
 
     const payment = await this.prisma.$transaction(async (tx) => {
       // Fail closed: a staff identity must carry a subsidiary scope.
@@ -911,6 +927,48 @@ export class OrdersService {
         );
       }
 
+      const orderMethod = order.paymentMethod;
+      const isDeferredMethod =
+        orderMethod === CustomerPaymentMethod.PAY_ON_DELIVERY ||
+        orderMethod === CustomerPaymentMethod.CUSTOMER_CREDIT;
+      if (
+        orderMethod &&
+        !isDeferredMethod &&
+        requestedPaymentMethod !== orderMethod
+      ) {
+        throw new BadRequestException(
+          'Le mode de paiement doit correspondre à celui de la commande.',
+        );
+      }
+
+      const paymentMethod =
+        orderMethod && !isDeferredMethod ? orderMethod : requestedPaymentMethod;
+      if (
+        paymentMethod === CustomerPaymentMethod.PAY_ON_DELIVERY ||
+        paymentMethod === CustomerPaymentMethod.CUSTOMER_CREDIT
+      ) {
+        throw new BadRequestException(
+          'Veuillez choisir le mode de règlement effectif.',
+        );
+      }
+
+      const BANKING_METHODS: CustomerPaymentMethod[] = [
+        CustomerPaymentMethod.BANK_TRANSFER,
+        CustomerPaymentMethod.CARD,
+        CustomerPaymentMethod.CHECK,
+      ];
+      const isBankingPayment = BANKING_METHODS.includes(paymentMethod);
+      if (paymentMethod === CustomerPaymentMethod.CASH && !cashRegisterId) {
+        throw new BadRequestException(
+          'Une caisse doit être sélectionnée pour un paiement en espèces.',
+        );
+      }
+
+      if (isBankingPayment && !bankAccountId) {
+        throw new BadRequestException(
+          'Un compte bancaire doit être sélectionné pour ce mode de paiement.',
+        );
+      }
       // 2. Valider le paiement
       const newAmountPaid = order.amountPaid.add(paymentAmount);
       if (newAmountPaid.greaterThan(order.totalAmount)) {
@@ -931,12 +989,13 @@ export class OrdersService {
           subsidiaryId: user.subsidiaryId,
           status: order.status,
           amountPaid: order.amountPaid, // Vérifier que amountPaid n'a pas changé
+          paymentMethod: orderMethod,
           paymentStatus: order.paymentStatus, // Vérifier que paymentStatus n'a pas changé
         },
         data: {
           amountPaid: newAmountPaid,
           paymentStatus: newPaymentStatus,
-          paymentMethod: paymentMethod,
+          paymentMethod: orderMethod ?? paymentMethod,
         },
       });
 
@@ -944,6 +1003,16 @@ export class OrdersService {
       if (updateCount.count === 0) {
         throw new ConflictException(
           'Cette commande a été modifiée entre-temps. Veuillez réessayer.',
+        );
+      }
+
+      if (paymentMethod === CustomerPaymentMethod.CASH && cashRegisterId) {
+        await creditCashRegister(
+          tx,
+          user,
+          cashRegisterId,
+          order.id,
+          paymentAmount,
         );
       }
 
@@ -1006,7 +1075,7 @@ export class OrdersService {
             customerName: updatedOrder.customer.contactName,
             taxRate: updatedOrder.taxRateValue,
             // Utilise le mode de paiement de la commande ou celui de l'encaissement
-            paymentMethod: updatedOrder.paymentMethod || paymentMethod,
+            paymentMethod,
             customerId: updatedOrder.customerId,
             subsidiaryId: updatedOrder.subsidiaryId,
             salesRepId: updatedOrder.salesRepId,

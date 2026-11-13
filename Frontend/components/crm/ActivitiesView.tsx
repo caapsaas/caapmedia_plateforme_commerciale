@@ -11,6 +11,7 @@ import IconChatBubbleLeftRight from '../icons/IconChatBubbleLeftRight';
 import EmptyState from '../ui/EmptyState';
 
 interface ActivitiesViewProps {
+    readOnly?: boolean;
     contacts: Contact[];
     interactions: Interaction[];
     crmTasks: CrmTask[];
@@ -34,7 +35,7 @@ const fmtDate = (date?: string | null, language = 'fr') => {
     return isNaN(d.getTime()) ? '—' : d.toLocaleDateString(language);
 };
 
-const ActivitiesView: React.FC<ActivitiesViewProps> = ({ contacts, interactions, crmTasks, onSaveTask, onUpdateTaskStatus }) => {
+const ActivitiesView: React.FC<ActivitiesViewProps> = ({ readOnly = false, contacts, interactions, crmTasks, onSaveTask, onUpdateTaskStatus }) => {
     const { t, language } = useI18n();
 
     const TASK_TITLE_KEYS = [
@@ -121,7 +122,7 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({ contacts, interactions,
 
     return (
         <div className="space-y-6">
-            <div className="bg-white p-6 rounded-xl shadow-md">
+            {!readOnly && <div className="bg-white p-6 rounded-xl shadow-md">
                 <form onSubmit={handleNewTaskSubmit} className="space-y-3">
                     <h3 className="text-lg font-semibold text-slate-800">{t('crm.activities.addTask')}</h3>
                     {/* Remplacer Flexbox par Grid pour un meilleur contrôle du responsive */}
@@ -147,7 +148,7 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({ contacts, interactions,
                         </button>
                     </div>
                 </form>
-            </div>
+            </div>}
             
             <div className="bg-white p-6 rounded-xl shadow-md">
                  <div className="flex justify-between items-center mb-4">
@@ -177,7 +178,7 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({ contacts, interactions,
                              {sortedTasks.map(task => (
                                 <tr key={task.id} className="border-b hover:bg-slate-50">
                                     <td className="px-6 py-4">
-                                        <input type="checkbox" checked={task.status === CrmTaskStatus.DONE} onChange={() => onUpdateTaskStatus(task.id, task.status === CrmTaskStatus.DONE ? CrmTaskStatus.TODO : CrmTaskStatus.DONE)} className="h-5 w-5 rounded text-[#c6e911] focus:ring-[#adc40f]"/>
+                                        <input type="checkbox" disabled={readOnly} checked={task.status === CrmTaskStatus.DONE} onChange={() => onUpdateTaskStatus(task.id, task.status === CrmTaskStatus.DONE ? CrmTaskStatus.TODO : CrmTaskStatus.DONE)} className="h-5 w-5 rounded text-[#c6e911] focus:ring-[#adc40f]"/>
                                     </td>
                                     <td className="px-6 py-4">
                                         <p className={`font-semibold ${task.status === CrmTaskStatus.DONE ? 'line-through text-slate-500' : ''}`}>{task.title}</p>

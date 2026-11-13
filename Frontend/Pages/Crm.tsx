@@ -1,3 +1,5 @@
+import { isSuperAdmin as hasSuperAdminRole } from '../utils/isSuperAdmin';
+import { isAxiosError } from 'axios';
 import React, { useState, useMemo } from 'react';
 import { Contact, Opportunity, Interaction, CrmTask, User, Lead, Account, Contract, Product } from '../types';
 import { UserRole } from '../types';
@@ -48,7 +50,7 @@ const Crm: React.FC = () => {
     const effectiveRole = user.activeRole ?? user.userRole;
     const isFinancialDirector = effectiveRole === UserRole.FINANCIAL_DIRECTOR;
     const visibleTab: CrmView = isFinancialDirector ? 'dashboard' : activeTab;
-    const hasGlobalScope = effectiveRole === UserRole.SUPER_ADMIN;
+    const hasGlobalScope = hasSuperAdminRole(user);
     const canFilterByCommercial =
         effectiveRole === UserRole.SUPER_ADMIN ||
         effectiveRole === UserRole.ADMIN ||
@@ -111,14 +113,26 @@ const Crm: React.FC = () => {
                     `${existingContact.contactName} existe déjà (filiale ${existingContact.subsidiary?.subsidiaryName}). Utilisez la recherche globale lors de la création d'une commande pour le rattacher.`,
                 );
             } else {
-                toast.error('Erreur', 'Une erreur est survenue lors de la sauvegarde du client.');
+                const message = isAxiosError<{ message?: unknown }>(error) ? error.response?.data.message : undefined;
+                toast.error(t('common.error'), typeof message === 'string' ? message : t('crmJourney.saveContactError'));
             }
         },
     });
     const { mutate: onDeleteContact } = useMutation({ mutationFn: deleteContact, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('contacts') }) });
     const { mutateAsync: onSaveLead } = useMutation({ mutationFn: saveLead, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('leads') }) });
     const { mutate: onDeleteLead } = useMutation({ mutationFn: deleteLead, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('leads') }) });
-    const { mutate: onConvertLead } = useMutation({ mutationFn: convertLead, onSuccess: invalidateCrmQueries });
+    const { mutate: onConvertLead } = useMutation({
+        mutationFn: convertLead,
+        onSuccess: () => {
+            invalidateCrmQueries();
+            setActiveTab('contacts');
+            toast.success(t('crmJourney.convertTitle'), t('crmJourney.convertSuccess'));
+        },
+        onError: (error: unknown) => {
+            const message = isAxiosError<{ message?: unknown }>(error) ? error.response?.data.message : undefined;
+            toast.error(t('crmJourney.convertTitle'), typeof message === 'string' ? message : t('crmJourney.convertError'));
+        },
+    });
     const { mutate: onSaveAccount } = useMutation({ mutationFn: saveAccount, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('accounts') }) });
     const { mutate: onDeleteAccount } = useMutation({ mutationFn: deleteAccount, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('accounts') }) });
     const { mutate: onSaveContract } = useMutation({ mutationFn: saveContract, onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('contracts') }) });
@@ -135,7 +149,7 @@ const Crm: React.FC = () => {
         const isFullAccess =
             effectiveRole === UserRole.ADMIN ||
             effectiveRole === UserRole.FINANCIAL_DIRECTOR ||
-            effectiveRole === UserRole.SUPER_ADMIN;
+            hasGlobalScope;
 
         const bySubsidiary = <T extends { subsidiaryId: string }>(items: T[]) =>
             selectedSubsidiaryId ? items.filter(i => i.subsidiaryId === selectedSubsidiaryId) : items;
@@ -179,7 +193,7 @@ const Crm: React.FC = () => {
             crmTasks: crmTasks.filter(t => t.userId === user.id),
             contracts: contracts.filter(c => c.subsidiaryId === subsidiary.id),
         };
-    }, [contacts, opportunities, leads, accounts, contracts, crmTasks, interactions, user, subsidiary.id, effectiveRole, selectedSubsidiaryId, selectedSalesRepId]);
+    }, [contacts, opportunities, leads, accounts, contracts, crmTasks, interactions, user, subsidiary.id, effectiveRole, hasGlobalScope, selectedSubsidiaryId, selectedSalesRepId]);
 
     // --- Rendu de la vue active ---
     const renderActiveView = () => {
@@ -208,10 +222,11 @@ const Crm: React.FC = () => {
 
         switch (visibleTab) {
             case 'dashboard':
-                return <CrmDashboard {...baseProps} {...userFilteredData} onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })} readOnly={isFinancialDirector} />;
+                return <CrmDashboard {...baseProps} {...userFilteredData} onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })} readOnly={isFinancialDirector || hasGlobalScope} />;
             case 'leads':
                 return <LeadsManagement
                     {...baseProps}
+                    readOnly={hasGlobalScope}
                     subsidiaryId={subsidiary.id}
                     filterSubsidiaryId={selectedSubsidiaryId || undefined}
                     filterSalesRepId={selectedSalesRepId || undefined}
@@ -222,6 +237,7 @@ const Crm: React.FC = () => {
             case 'accounts':
                 return <AccountManagement
                     {...baseProps}
+                    readOnly={hasGlobalScope}
                     subsidiaryId={subsidiary.id}
                     filterSubsidiaryId={selectedSubsidiaryId || undefined}
                     filterSalesRepId={selectedSalesRepId || undefined}
@@ -231,6 +247,7 @@ const Crm: React.FC = () => {
             case 'contacts':
                 return <ContactManagement
                     {...baseProps}
+                    readOnly={hasGlobalScope}
                     subsidiaryId={subsidiary.id}
                     filterSubsidiaryId={selectedSubsidiaryId || undefined}
                     filterSalesRepId={selectedSalesRepId || undefined}
@@ -245,6 +262,7 @@ const Crm: React.FC = () => {
             case 'contracts':
                 return <ContractManagement
                     {...baseProps}
+                    readOnly={hasGlobalScope}
                     subsidiaryId={subsidiary.id}
                     filterSubsidiaryId={selectedSubsidiaryId || undefined}
                     contacts={contacts}
@@ -254,6 +272,7 @@ const Crm: React.FC = () => {
             case 'pipeline':
                 return <OpportunityPipeline
                     {...baseProps}
+                    readOnly={hasGlobalScope}
                     opportunities={userFilteredData.opportunities}
                     clients={userFilteredData.contacts}
                     allClients={contacts}
@@ -267,6 +286,7 @@ const Crm: React.FC = () => {
                 />;
             case 'activities':
                 return <ActivitiesView
+                    readOnly={hasGlobalScope}
                     contacts={userFilteredData.contacts}
                     interactions={userFilteredData.interactions}
                     crmTasks={userFilteredData.crmTasks}
@@ -274,7 +294,7 @@ const Crm: React.FC = () => {
                     onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })}
                 />;
             default:
-                return <CrmDashboard {...baseProps} {...userFilteredData} onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })} readOnly={isFinancialDirector} />;
+                return <CrmDashboard {...baseProps} {...userFilteredData} onUpdateTaskStatus={(taskId, status) => onUpdateTaskStatus({ taskId, status })} readOnly={isFinancialDirector || hasGlobalScope} />;
         }
     };
 
@@ -295,6 +315,7 @@ const Crm: React.FC = () => {
 
     return (
         <div className="space-y-6">
+            <p className="text-sm text-slate-600">{t('crmJourney.guide')}</p>
             <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
                 <h2 className="text-3xl font-bold text-slate-800">{t('crm.title')}</h2>
 

@@ -7,7 +7,7 @@ import IconDocumentText from '../icons/IconDocumentText';
 interface OpportunityCardProps {
     opportunity: Opportunity;
     clientName: string;
-    onDragStart: (e: React.DragEvent<HTMLDivElement>) => void;
+    onDragStart?: (e: React.DragEvent<HTMLDivElement>) => void;
     onClick: () => void;
 }
 
@@ -27,7 +27,7 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({ opportunity, clientNa
 
     return (
         <div
-            draggable
+            draggable={!!onDragStart}
             onDragStart={onDragStart}
             onClick={onClick}
             className="bg-white rounded-md shadow p-4 border-l-4 border-[#c6e911] cursor-pointer hover:shadow-lg transition-shadow"

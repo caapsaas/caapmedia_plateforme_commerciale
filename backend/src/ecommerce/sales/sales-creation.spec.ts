@@ -15,6 +15,13 @@ describe('Direct sales assembly fees', () => {
     'preserves assembly fee %s in the order and sale amounts',
     async (assemblyPrice) => {
       const tx = {
+        treasuryAccount: {
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+          findUniqueOrThrow: jest
+            .fn()
+            .mockResolvedValue({ balance: new Decimal(500) }),
+        },
+        financialTransaction: { create: jest.fn() },
         item: {
           findMany: jest
             .fn()
@@ -54,6 +61,7 @@ describe('Direct sales assembly fees', () => {
         {
           customerId: 'customer',
           paymentMethod: CustomerPaymentMethod.CASH,
+          cashRegisterId: 'register',
           items: [
             {
               productId: 'service',

@@ -13,12 +13,17 @@ import { OpportunitiesService } from './opportunities.service';
 import { CreateOpportunityDto } from './dto/create-opportunity.dto';
 import { UpdateOpportunityDto } from './dto/update-opportunity.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
-import { CurrentUser, Roles } from 'src/common/auth/role/role.decorator';
+import {
+  CurrentUser,
+  Roles,
+  SuperAdminReadOnly,
+} from 'src/common/auth/role/role.decorator';
 import { UserRole } from '@prisma/client';
 import type { JwtUser } from '../../common/auth/jwt/jwt-user.interface';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
+@SuperAdminReadOnly()
 @Controller('crm/opportunities')
 @UseGuards(JwtAuthGuard, RoleGuard)
 export class OpportunitiesController {

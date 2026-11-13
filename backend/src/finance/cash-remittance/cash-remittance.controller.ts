@@ -24,6 +24,11 @@ export class CashRemittanceController {
     return this.cashRemittanceService.create(dto, user);
   }
 
+  @Get('source-accounts')
+  findSourceAccounts(@CurrentUser() user: JwtUser) {
+    return this.cashRemittanceService.findSourceAccounts(user);
+  }
+
   @Get()
   findAll(@CurrentUser() user: JwtUser) {
     return this.cashRemittanceService.findAll(user);

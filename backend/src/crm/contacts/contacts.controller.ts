@@ -16,7 +16,11 @@ import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
-import { CurrentUser, Roles } from 'src/common/auth/role/role.decorator';
+import {
+  CurrentUser,
+  Roles,
+  SuperAdminReadOnly,
+} from 'src/common/auth/role/role.decorator';
 import type { User } from '@prisma/client';
 import { UserRole } from '@prisma/client';
 import { RegisterContactDto } from './dto/register-contact.dto';
@@ -24,6 +28,7 @@ import { ContactLoginDto } from './dto/contact-login.dto';
 import { ContactJwtAuthGuard } from 'src/common/auth/jwt/contact-jwt.guard';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
+@SuperAdminReadOnly()
 @Controller('crm/contacts')
 export class ContactsController {
   constructor(private readonly contactsService: ContactsService) {}

@@ -14,7 +14,11 @@ import { CreateProformaDto } from './dto/create-proforma.dto';
 import { UpdateProformaDto } from './dto/update-proforma.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { RoleGuard } from '../../common/auth/role/role.guard';
-import { CurrentUser, Roles } from '../../common/auth/role/role.decorator';
+import {
+  CurrentUser,
+  Roles,
+  SuperAdminReadOnly,
+} from '../../common/auth/role/role.decorator';
 import type { JwtUser } from '../../common/auth/jwt/jwt-user.interface';
 import { UserRole, ProformaStatus } from '@prisma/client';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
@@ -22,6 +26,7 @@ import { Throttle } from '@nestjs/throttler';
 import { ProformaDeliveryService } from './proforma-delivery.service';
 import { SendProformaEmailDto } from './dto/send-proforma-email.dto';
 
+@SuperAdminReadOnly()
 @Controller('crm/proformas')
 @UseGuards(JwtAuthGuard, RoleGuard)
 @Roles(

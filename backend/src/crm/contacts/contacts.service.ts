@@ -37,12 +37,25 @@ export class ContactsService {
     return safeContact;
   }
 
-  async create(createContactDto: CreateContactDto, user: User) {
+  async create(
+    createContactDto: CreateContactDto,
+    user: User,
+    transaction?: Prisma.TransactionClient,
+  ) {
+    const db = transaction ?? this.prisma;
+    if (createContactDto.accountId) {
+      await this.assertAccountInSubsidiary(
+        db,
+        createContactDto.accountId,
+        user.subsidiaryId,
+      );
+    }
+
     // Le client est une entité globale (Chantier 6) : l'email est unique dans
     // toute l'entreprise, pas seulement dans la filiale courante. Si le client
     // existe déjà (potentiellement dans une autre filiale), on ne le recrée pas
     // en doublon — on renvoie ses infos pour proposer un rattachement direct.
-    const existingContact = await this.prisma.contact.findUnique({
+    const existingContact = await db.contact.findUnique({
       where: { email: createContactDto.email },
       select: {
         id: true,
@@ -68,7 +81,7 @@ export class ContactsService {
       Math.random().toString(36).slice(-8);
     const passwordHash = await bcrypt.hash(tempPassword, 10);
 
-    const newContact = await this.prisma.contact.create({
+    const newContact = await db.contact.create({
       data: {
         id: generateId(ID_PREFIXES.CONTACT),
         ...createContactDto,
@@ -85,12 +98,9 @@ export class ContactsService {
       },
     });
 
-    // Envoyer un email avec les identifiants de connexion
-    this.emailService.sendWelcomeEmail(
-      createContactDto.email,
-      tempPassword,
-      createContactDto.contactName,
-    );
+    if (!transaction) {
+      this.sendWelcomeEmail(createContactDto, tempPassword);
+    }
 
     return {
       ...this.withoutPassword(newContact),
@@ -98,6 +108,30 @@ export class ContactsService {
       message:
         'Contact créé avec succès. Un email avec les identifiants de connexion a été envoyé.',
     };
+  }
+
+  sendWelcomeEmail(contact: CreateContactDto, tempPassword: string) {
+    void this.emailService.sendWelcomeEmail(
+      contact.email,
+      tempPassword,
+      contact.contactName,
+    );
+  }
+
+  private async assertAccountInSubsidiary(
+    db: Prisma.TransactionClient,
+    id: string,
+    subsidiaryId: string,
+  ) {
+    const account = await db.account.findUnique({
+      where: { id, subsidiaryId },
+      select: { id: true },
+    });
+    if (!account) {
+      throw new ForbiddenException(
+        'Le compte doit appartenir à la filiale du contact.',
+      );
+    }
   }
 
   async findAll(
@@ -233,7 +267,7 @@ export class ContactsService {
 
   async update(id: string, updateContactDto: UpdateContactDto, user: User) {
     // 1. Vérifier l'existence et les droits d'accès au contact.
-    await this.findOne(id, user);
+    const contact = await this.findOne(id, user);
 
     // 2. Séparer les clés relationnelles et les champs non modifiables des autres données.
     const {
@@ -269,7 +303,23 @@ export class ContactsService {
       data.since = new Date(data.since);
     }
 
-    if (accountId !== undefined) {
+    if (accountId !== undefined && (accountId || null) !== contact.accountId) {
+      if (accountId) {
+        await this.assertAccountInSubsidiary(
+          this.prisma,
+          accountId as string,
+          user.subsidiaryId,
+        );
+      }
+      const opportunity = await this.prisma.opportunity.findFirst({
+        where: { contactId: id },
+        select: { id: true },
+      });
+      if (opportunity) {
+        throw new ConflictException(
+          'Ce contact est déjà lié à une opportunité. Son compte ne peut pas être modifié.',
+        );
+      }
       data.account = accountId
         ? { connect: { id: accountId } }
         : { disconnect: true };

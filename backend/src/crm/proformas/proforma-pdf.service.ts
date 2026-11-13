@@ -66,10 +66,7 @@ export class ProformaPdfService {
           .fontSize(9)
           .fillColor('#475569')
           .text(clean(quote.subsidiary.address), { width });
-        doc.text(
-          `${clean(quote.subsidiary.phone)} | ${clean(quote.subsidiary.email)}`,
-          { width },
-        );
+        doc.text('+237 671 89 01 84 | contact@caapmedia.com', { width });
         doc.moveDown(1.5);
         doc
           .font('Helvetica-Bold')

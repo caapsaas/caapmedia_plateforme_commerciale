@@ -1,3 +1,4 @@
+import { isSuperAdmin } from '../utils/isSuperAdmin';
 import React, { useState, useMemo, useEffect } from 'react';
 import { Order, OrderStatus, Product, Contact } from '../types';
 import { useI18n } from '../i18n';
@@ -27,6 +28,7 @@ const MesCommandes: React.FC = () => {
     const { user: currentUser, subsidiary } = useAuth();
     const queryClient = useQueryClient();
 
+    const readOnly = isSuperAdmin(currentUser);
     const [activeTab, setActiveTab] = useState<'history' | 'new'>('history');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [isBlModalOpen, setIsBlModalOpen] = useState(false);
@@ -163,11 +165,11 @@ const MesCommandes: React.FC = () => {
                 <h2 className="text-3xl font-bold text-slate-800">{t('myOrders.title')}</h2>
                 <div className="flex items-center space-x-2 p-1 bg-slate-200 rounded-lg self-start sm:self-center">
                     <TabButton view="history" label={t('myOrders.historyTab')} />
-                    <TabButton view="new" label={t('myOrders.newOrderTab')} />
+                    {!readOnly && <TabButton view="new" label={t('myOrders.newOrderTab')} />}
                 </div>
             </div>
 
-            {activeTab === 'history' && (
+            {(readOnly || activeTab === 'history') && (
                 <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 space-y-4">
                      <div className="p-4 bg-slate-50 rounded-lg">
                         <div className="flex flex-wrap gap-4 items-end">
@@ -244,7 +246,7 @@ const MesCommandes: React.FC = () => {
                     </div>
                 </div>
             )}
-            {activeTab === 'new' && currentCustomer && (
+            {!readOnly && activeTab === 'new' && currentCustomer && (
                 isLoadingProducts ? (
                     <CrmListSkeleton columns={4} />
                 ) : (

@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CashRemittance, CashRemittanceStatus, UserRole, TreasuryAccount, AccountType } from '../../types';
+import { CashRemittance, CashRemittanceStatus, UserRole } from '../../types';
 import { useI18n } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import {
   getCashRemittances,
+  getRemittanceSourceAccounts,
   createCashRemittance,
   receiveCashRemittance,
 } from '../../services/apiFinance/apiCashRemittance';
-import { getTreasuryAccounts } from '../../services/apiFinance/apiTreasury';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
 
@@ -34,7 +34,8 @@ const CashRemittanceManagement: React.FC = () => {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [receivingRemittance, setReceivingRemittance] = useState<CashRemittance | null>(null);
-  const [declaredAmount, setDeclaredAmount] = useState('');
+  const [sourceCashRegisterId, setSourceCashRegisterId] = useState('');
+  const [selectedReceiptIds, setSelectedReceiptIds] = useState<string[]>([]);
   const [receivedAmount, setReceivedAmount] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -43,15 +44,25 @@ const CashRemittanceManagement: React.FC = () => {
     queryFn: getCashRemittances,
   });
 
-  const { data: accounts = [] } = useQuery<TreasuryAccount[]>({
-    queryKey: ['treasury-accounts', user?.subsidiaryId],
-    queryFn: () => getTreasuryAccounts(user?.subsidiaryId),
-    enabled: !!user,
+  const { data: assignedCashRegisters = [], isFetching: isLoadingAccounts, isError: hasAccountsError } = useQuery({
+    queryKey: ['treasury-accounts', 'remittance-sources', user?.subsidiaryId, user?.id],
+    queryFn: getRemittanceSourceAccounts,
+    enabled: showCreateModal && activeRole === UserRole.CAISSIER,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: showCreateModal && activeRole === UserRole.CAISSIER ? 5000 : false,
   });
 
-  const myCashRegister = React.useMemo(
-    () => accounts.find((a) => a.accountType === AccountType.CASH_REGISTER && a.cashierId === user?.id),
-    [accounts, user?.id],
+  const myCashRegister = assignedCashRegisters.length === 1
+    ? assignedCashRegisters[0]
+    : assignedCashRegisters.find((account) => account.id === sourceCashRegisterId);
+
+  const selectedReceipts = (myCashRegister?.availableReceipts ?? []).filter((receipt) =>
+    selectedReceiptIds.includes(receipt.receiptId),
+  );
+  const declaredAmount = selectedReceipts.reduce(
+    (total, receipt) => total + Number(receipt.amount),
+    0,
   );
 
   const onError = (error: any) => {
@@ -59,7 +70,8 @@ const CashRemittanceManagement: React.FC = () => {
   };
 
   const resetForm = () => {
-    setDeclaredAmount('');
+    setSourceCashRegisterId('');
+    setSelectedReceiptIds([]);
     setReceivedAmount('');
     setNotes('');
   };
@@ -67,13 +79,16 @@ const CashRemittanceManagement: React.FC = () => {
   const { mutate: submitCreate, isPending: isCreating } = useMutation({
     mutationFn: () =>
       createCashRemittance({
-        declaredAmount: parseFloat(declaredAmount) || 0,
+        sourceCashRegisterId: myCashRegister?.id,
+        declaredAmount,
+        receiptIds: selectedReceipts.map((receipt) => receipt.receiptId),
         remittanceDate: new Date().toISOString(),
         notes: notes || undefined,
       }),
     onSuccess: () => {
       toast('success', t('cashRemittance.createSuccess'));
       queryClient.invalidateQueries({ queryKey: ['cashRemittances'] });
+      queryClient.invalidateQueries({ queryKey: ['treasury-accounts', 'remittance-sources'] });
       setShowCreateModal(false);
       resetForm();
     },
@@ -86,9 +101,17 @@ const CashRemittanceManagement: React.FC = () => {
         receivedAmount: parseFloat(receivedAmount) || 0,
         notes: notes || undefined,
       }),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast('success', t('cashRemittance.receiveSuccess'));
-      queryClient.invalidateQueries({ queryKey: ['cashRemittances'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['cashRemittances'] }),
+        queryClient.invalidateQueries({ queryKey: ['treasury-accounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['treasury-accounts', 'remittance-sources'] }),
+        queryClient.invalidateQueries({ queryKey: ['treasuryAccounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['treasuryStatement'] }),
+        queryClient.invalidateQueries({ queryKey: ['accountTransactions'] }),
+        queryClient.invalidateQueries({ queryKey: ['financialTransactions'] }),
+      ]);
       setReceivingRemittance(null);
       resetForm();
     },
@@ -126,6 +149,7 @@ const CashRemittanceManagement: React.FC = () => {
               <th className="px-4 py-3">{t('cashRemittance.table.date')}</th>
               <th className="px-4 py-3">{t('cashRemittance.table.cashier')}</th>
               <th className="px-4 py-3">Caisse</th>
+              <th className="px-4 py-3">Commandes incluses</th>
               <th className="px-4 py-3 text-right">{t('cashRemittance.table.declared')}</th>
               <th className="px-4 py-3 text-right">{t('cashRemittance.table.received')}</th>
               <th className="px-4 py-3 text-center">{t('cashRemittance.table.status')}</th>
@@ -134,10 +158,10 @@ const CashRemittanceManagement: React.FC = () => {
           </thead>
           <tbody>
             {isLoading ? (
-              <TableSkeleton rows={5} columns={8} />
+              <TableSkeleton rows={5} columns={9} />
             ) : remittances.length === 0 ? (
               <tr>
-                <td colSpan={8}>
+                <td colSpan={9}>
                   <EmptyState icon="finance" title={t('cashRemittance.noData')} />
                 </td>
               </tr>
@@ -151,6 +175,27 @@ const CashRemittanceManagement: React.FC = () => {
                     <span className="bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold px-2 py-1 rounded">
                       {r.sourceCashRegister?.accountName || 'Caisse'}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {r.receipts?.length ? (
+                      <div className="space-y-1">
+                        {r.receipts.map(({ financialTransaction: receipt }) => (
+                          <div key={receipt.id} className="text-xs text-slate-700">
+                            <span className="font-medium">{receipt.relatedDocumentId || receipt.id}</span>
+                            <span className="block text-slate-500">{formatCurrency(receipt.amount)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : r.orders?.length ? (
+                      <div className="space-y-1">
+                        {r.orders.map(({ order }) => (
+                          <div key={order.id} className="text-xs text-slate-700">
+                            <span className="font-medium">{order.id}</span>
+                            <span className="block text-slate-500">{order.customerName}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : '—'}
                   </td>
                   <td className="px-4 py-3 text-right font-medium">{formatCurrency(r.declaredAmount)}</td>
                   <td className="px-4 py-3 text-right">
@@ -190,7 +235,29 @@ const CashRemittanceManagement: React.FC = () => {
             <div className="p-6">
               <h3 className="text-lg font-bold text-slate-900">{t('cashRemittance.new')}</h3>
               <div className="mt-4 space-y-4">
-                {myCashRegister ? (
+                {assignedCashRegisters.length > 1 && (
+                  <label className="block text-sm font-medium text-slate-700">
+                    {t('cashRegister.cashAccount')}
+                    <select
+                      className="mt-1 w-full rounded-md border border-slate-300 p-2"
+                      value={sourceCashRegisterId}
+                      onChange={(event) => {
+                        setSourceCashRegisterId(event.target.value);
+                        setSelectedOrderIds([]);
+                      }}
+                    >
+                      <option value="">{t('cashRegister.selectCashAccount')}</option>
+                      {assignedCashRegisters.map((account) => (
+                        <option key={account.id} value={account.id}>{account.accountName}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                {isLoadingAccounts ? (
+                  <p className="text-sm text-slate-600">{t('common.loading')}</p>
+                ) : hasAccountsError ? (
+                  <p role="alert" className="text-sm text-red-700">{t('common.error')}</p>
+                ) : myCashRegister ? (
                   <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-1">
                     <div className="flex justify-between text-xs text-slate-600">
                       <span>Caisse d'origine :</span>
@@ -200,24 +267,55 @@ const CashRemittanceManagement: React.FC = () => {
                       <span>Solde disponible en caisse :</span>
                       <span className="font-bold text-green-700">{formatCurrency(myCashRegister.balance)}</span>
                     </div>
+                    <div className="flex justify-between text-xs text-slate-600">
+                      <span>Encaissements du jour encore disponibles :</span>
+                      <span className="font-bold text-slate-800">{formatCurrency(myCashRegister.dailyCollectedAmount)}</span>
+                    </div>
                   </div>
-                ) : (
+                ) : assignedCashRegisters.length === 0 && (
                   <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
                     ⚠️ <strong>Aucune caisse de vente ne vous est assignée.</strong><br />
                     Veuillez contacter un administrateur pour vous attribuer une caisse dans <em>Configuration &gt; Trésorerie</em>.
                   </div>
                 )}
+                {myCashRegister && (
+                  <div>
+                    <p className="block text-sm font-medium text-slate-700 mb-2">Sélectionnez les commandes de cette remise</p>
+                    <div className="max-h-48 overflow-y-auto rounded-md border border-slate-200 divide-y divide-slate-100">
+                      {myCashRegister.availableReceipts.length === 0 ? (
+                        <p className="p-3 text-sm text-slate-500">Aucun encaissement reçu aujourd’hui n’est disponible pour une nouvelle remise.</p>
+                      ) : myCashRegister.availableReceipts.map((receipt) => (
+                        <label key={receipt.receiptId} className="flex items-center gap-3 p-3 text-sm hover:bg-slate-50 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedReceiptIds.includes(receipt.receiptId)}
+                            onChange={(event) => setSelectedReceiptIds((current) =>
+                              event.target.checked
+                                ? [...current, receipt.receiptId]
+                                : current.filter((id) => id !== receipt.receiptId),
+                            )}
+                            className="rounded border-slate-300 text-lime-600 focus:ring-lime-500"
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block font-medium text-slate-800">{receipt.orderId}</span>
+                            <span className="block text-xs text-slate-500">{receipt.customerName}</span>
+                          </span>
+                          <span className="font-semibold text-slate-700">{formatCurrency(receipt.amount)}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">{t('cashRemittance.form.declaredAmount')}</label>
+                  <label className="block text-sm font-medium text-slate-700">Montant à déclarer (commandes sélectionnées)</label>
                   <input
                     type="number"
                     min="0"
-                    max={myCashRegister?.balance || 0}
                     step="0.01"
-                    value={declaredAmount}
-                    onChange={(e) => setDeclaredAmount(e.target.value)}
+                    value={declaredAmount.toFixed(2)}
+                    readOnly
                     disabled={!myCashRegister}
-                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] disabled:bg-slate-100"
+                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border bg-slate-50 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -237,7 +335,7 @@ const CashRemittanceManagement: React.FC = () => {
               </button>
               <button
                 onClick={() => submitCreate()}
-                disabled={isCreating || !declaredAmount || !myCashRegister}
+                disabled={isCreating || isLoadingAccounts || hasAccountsError || selectedReceipts.length === 0 || !myCashRegister}
                 className="px-4 py-2 bg-[#c6e911] text-slate-800 font-bold rounded-md hover:bg-[#adc40f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isCreating ? t('common.saving') : t('cashRemittance.submit')}
@@ -299,7 +397,12 @@ const CashRemittanceManagement: React.FC = () => {
               </button>
               <button
                 onClick={() => submitReceive()}
-                disabled={isReceiving || !receivedAmount}
+                disabled={
+                  isReceiving ||
+                  !receivedAmount ||
+                  Math.round(Number(receivedAmount) * 100) !==
+                    Math.round(receivingRemittance.declaredAmount * 100)
+                }
                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
               >
                 {isReceiving ? t('common.saving') : t('cashRemittance.confirmReceive')}

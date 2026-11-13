@@ -114,7 +114,11 @@ export class ContractsService {
 
     // 3. Construire l'objet de données pour la mise à jour Prisma.
     const data: Prisma.ContractUpdateInput = { ...otherData };
-    if (clientId) data.client = { connect: { id: clientId } };
+    if (clientId) {
+      data.client = {
+        connect: { id: clientId as string, subsidiaryId: user.subsidiaryId },
+      };
+    }
     if (startDate) data.startDate = new Date(startDate);
     if (endDate) data.endDate = new Date(endDate);
 

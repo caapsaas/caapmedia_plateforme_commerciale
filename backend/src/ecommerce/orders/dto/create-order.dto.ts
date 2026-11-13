@@ -237,6 +237,10 @@ export class RecordPaymentDto {
 
   @IsOptional()
   @IsString()
+  cashRegisterId?: string;
+
+  @IsOptional()
+  @IsString()
   transactionReference?: string;
 }
 

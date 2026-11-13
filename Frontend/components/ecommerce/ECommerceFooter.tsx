@@ -92,7 +92,7 @@ const ECommerceFooter: React.FC<ECommerceFooterProps> = ({ onNavigateToRealisati
                             </li>
                              <li className="flex items-center gap-3">
                                 <IconPhone className="h-5 w-5 text-[#c6e911] flex-shrink-0" />
-                                <a href={`tel:${t('footer.phone')}`} className="hover:text-[#c6e911]">{t('footer.phone')}</a>
+                                <a href={`tel:${t('footer.phone').replace(/\s/g, '')}`} className="hover:text-[#c6e911]">{t('footer.phone')}</a>
                             </li>
                              <li className="flex items-center gap-3">
                                 <IconMail className="h-5 w-5 text-[#c6e911] flex-shrink-0" />

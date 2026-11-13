@@ -55,23 +55,29 @@ describe('Order payment permissions', () => {
     );
   });
 
-  it('only exposes bank identifiers and names from the user subsidiary', async () => {
+  it('exposes bank accounts and assigned registers from the user subsidiary', async () => {
     const findMany = jest.fn().mockResolvedValue([]);
     const service = new OrdersService(
       { treasuryAccount: { findMany } } as unknown as PrismaService,
       {} as ProductSpecsService,
       {} as OrderNotificationsService,
     );
-    await service.findPaymentAccounts({ subsidiaryId: 'branch' });
+    await service.findPaymentAccounts({ id: 'staff', subsidiaryId: 'branch' });
     expect(findMany).toHaveBeenCalledWith({
-      where: { subsidiaryId: 'branch', accountType: 'BANQUE' },
-      select: { id: true, accountName: true },
+      where: {
+        subsidiaryId: 'branch',
+        OR: [
+          { accountType: 'BANQUE' },
+          { accountType: 'CASH_REGISTER', cashierId: 'staff' },
+        ],
+      },
+      select: { id: true, accountName: true, accountType: true },
       orderBy: { accountName: 'asc' },
     });
     findMany.mockClear();
-    await expect(service.findPaymentAccounts({})).rejects.toBeInstanceOf(
-      ForbiddenException,
-    );
+    await expect(
+      service.findPaymentAccounts({ id: 'staff' }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
     expect(findMany).not.toHaveBeenCalled();
   });
 });

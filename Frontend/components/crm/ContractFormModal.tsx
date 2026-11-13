@@ -70,7 +70,7 @@ const ContractFormModal: React.FC<ContractFormModalProps> = ({ isOpen, onClose, 
                                 <label htmlFor="clientId" className="block text-sm font-medium text-slate-700">{t('crm.contracts.table.client')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <select name="clientId" id="clientId" value={formData.clientId} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm">
                                     <option value="" disabled>Select a client</option>
-                                    {contacts.map(c => <option key={c.id} value={c.id}>{c.contactName}</option>)}
+                                    {contacts.map(c => <option key={c.id} value={c.id}>{[c.contactName, c.account?.accountName || c.company].filter(Boolean).join(' — ')}</option>)}
                                 </select>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

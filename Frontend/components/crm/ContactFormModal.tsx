@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Contact, ContactStatus } from '../../types';
+import { AsyncSelect } from '../ui/AsyncSelect';
+import { getAccountsPaginated } from '../../services/apiCrm/apiCrm';
+import { useAuth } from '../../context/AuthContext';
 import { useI18n } from '../../i18n';
 import { EyeIcon, EyeOffIcon, MailIcon, LockIcon, CheckCircleIcon } from 'lucide-react';
 
@@ -13,6 +16,10 @@ interface ContactFormModalProps {
 
 const ContactFormModal: React.FC<ContactFormModalProps> = ({ isOpen, onClose, onSave, contact, isCreating = false }) => {
     const { t } = useI18n();
+    const { user } = useAuth();
+    const currentAccount = useMemo(() => contact?.accountId && contact.account
+        ? [{ id: contact.accountId, accountName: contact.account.accountName }]
+        : [], [contact]);
     const [showPassword, setShowPassword] = useState(false);
     const [createdAccountInfo, setCreatedAccountInfo] = useState<{ email: string; tempPassword: string; message: string } | null>(null);
     
@@ -140,6 +147,17 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({ isOpen, onClose, on
                                 <label htmlFor="contactName" className="block text-sm font-medium text-slate-700">{t('configuration.form.name')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
                                 <input type="text" name="contactName" id="contactName" value={formData.contactName} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                             </div>
+                            <AsyncSelect
+                                queryKey={`crm-contact-accounts-${user?.id}-${user?.activeRole ?? user?.userRole}`}
+                                fetcher={getAccountsPaginated}
+                                getOptionLabel={account => account.accountName}
+                                getOptionValue={account => account.id}
+                                value={formData.accountId}
+                                defaultOptions={currentAccount}
+                                onChange={id => setFormData(prev => ({ ...prev, accountId: id ?? '' }))}
+                                label={t('crmJourney.linkedAccount')}
+                                placeholder={t('crmJourney.chooseAccount')}
+                            />
                             <div>
                                 <label htmlFor="company" className="block text-sm font-medium text-slate-700">{t('configuration.form.company')}</label>
                                 <input type="text" name="company" id="company" value={formData.company} onChange={handleChange} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />

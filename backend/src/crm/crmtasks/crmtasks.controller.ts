@@ -15,11 +15,16 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
-import { CurrentUser, Roles } from 'src/common/auth/role/role.decorator';
+import {
+  CurrentUser,
+  Roles,
+  SuperAdminReadOnly,
+} from 'src/common/auth/role/role.decorator';
 import { type User, UserRole } from '@prisma/client';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
+@SuperAdminReadOnly()
 @Controller('crm/tasks')
 @UseGuards(JwtAuthGuard, RoleGuard)
 export class CrmtasksController {

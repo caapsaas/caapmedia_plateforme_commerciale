@@ -1,4 +1,3 @@
-import NeedRequestPaymentPanel from "../components/purchasing/NeedRequestPaymentPanel";
 import React, { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
@@ -7,7 +6,6 @@ import {
   ArrowDownUp,
   ArrowRight,
   BellRing,
-  Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -27,7 +25,6 @@ import { UserRole } from "../types";
 import {
   createNeedRequest,
   getNeedRequests,
-  reviewNeedRequest,
   NeedStatus,
 } from "../services/apiPurchasing/apiNeedRequests";
 import NeedRequestDialog from "../components/purchasing/NeedRequestDialog";
@@ -77,14 +74,11 @@ export default function NeedRequests() {
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [rejecting, setRejecting] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [budget, setBudget] = useState("");
   const [date, setDate] = useState("");
-  const [reason, setReason] = useState("");
   const [notice, setNotice] = useState("");
-  const [paymentBusy, setPaymentBusy] = useState(false);
   const closeDetails = () => {
     setSelectedId(null);
     if (hash)
@@ -103,7 +97,6 @@ export default function NeedRequests() {
   useEffect(() => {
     if (hash) {
       setSelectedId(hash.replace(/^#/, ""));
-      setRejecting(false);
     }
   }, [hash]);
   const errorText = (error: unknown) => {
@@ -124,24 +117,6 @@ export default function NeedRequests() {
       setShowForm(false);
       setNotice(t("needs.submitted"));
       setPage(1);
-      void client.invalidateQueries({ queryKey: ["need-requests"] });
-    },
-  });
-  const review = useMutation({
-    mutationFn: ({
-      id,
-      status,
-      reason,
-    }: {
-      id: string;
-      status: "APPROVED" | "REJECTED";
-      reason?: string;
-    }) => reviewNeedRequest(id, status, reason),
-    onSuccess: () => {
-      closeDetails();
-      setRejecting(false);
-      setReason("");
-      setNotice(t("needs.reviewed"));
       void client.invalidateQueries({ queryKey: ["need-requests"] });
     },
   });
@@ -186,9 +161,6 @@ export default function NeedRequests() {
     setShowForm(true);
   };
   const openDetails = (id: string) => {
-    review.reset();
-    setRejecting(false);
-    setReason("");
     setSelectedId(id);
   };
   const badge = (status: NeedStatus) => {
@@ -482,13 +454,7 @@ export default function NeedRequests() {
                         onClick={() => openDetails(item.id)}
                         className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-lime-300 hover:bg-lime-50"
                       >
-                        {t(
-                          admin && item.status === "APPROVED" && !item.payment
-                            ? "needs.pay"
-                            : admin && item.status === "PENDING"
-                              ? "needs.examine"
-                              : "needs.details",
-                        )}
+                        {t("needs.details")}
                         <ArrowRight className="h-3.5 w-3.5" />
                       </button>
                     </td>
@@ -643,7 +609,6 @@ export default function NeedRequests() {
         <NeedRequestDialog
           title={selected.title}
           subtitle={t("needs.requestDetails")}
-          busy={review.isPending || paymentBusy}
           onClose={closeDetails}
         >
           <div className="space-y-6 px-6 py-6 sm:px-8">
@@ -778,119 +743,11 @@ export default function NeedRequests() {
                 </dl>
               </section>
             )}
-            {admin && selected.status === "APPROVED" && !selected.payment && (
-              <NeedRequestPaymentPanel
-                key={selected.id}
-                request={selected}
-                onBusyChange={setPaymentBusy}
-                onPaid={() => setNotice(t("needs.paymentSuccess"))}
-              />
-            )}
-            {review.error && (
-              <p
-                role="alert"
-                className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700"
-              >
-                {errorText(review.error)}
-              </p>
-            )}
-            {admin && selected.status === "PENDING" && rejecting && (
-              <form
-                id="reject-need-form"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  setNotice("");
-                  review.mutate({
-                    id: selected.id,
-                    status: "REJECTED",
-                    reason: reason.trim(),
-                  });
-                }}
-              >
-                <label className="block text-sm font-semibold text-slate-700">
-                  {t("needs.reason")} <span className="text-rose-500">*</span>
-                  <textarea
-                    autoFocus
-                    className={`${input} mt-2`}
-                    rows={3}
-                    required
-                    maxLength={2000}
-                    value={reason}
-                    placeholder={t("needs.reasonPlaceholder")}
-                    onChange={(event) => setReason(event.target.value)}
-                  />
-                </label>
-              </form>
-            )}
           </div>
           <footer className="flex flex-wrap justify-end gap-3 border-t border-slate-100 bg-slate-50/50 px-6 py-4 sm:px-8">
-            {admin && selected.status === "PENDING" ? (
-              rejecting ? (
-                <>
-                  <button
-                    className={secondary}
-                    disabled={review.isPending}
-                    onClick={() => {
-                      setRejecting(false);
-                      review.reset();
-                    }}
-                  >
-                    {t("needs.cancel")}
-                  </button>
-                  <button
-                    form="reject-need-form"
-                    type="submit"
-                    className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-rose-700 disabled:opacity-50"
-                    disabled={review.isPending || !reason.trim()}
-                  >
-                    {review.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <XCircle className="h-4 w-4" />
-                    )}
-                    {t("needs.confirmReject")}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    className={secondary}
-                    disabled={review.isPending}
-                    onClick={() => {
-                      setRejecting(true);
-                      setReason("");
-                      review.reset();
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                    {t("needs.reject")}
-                  </button>
-                  <button
-                    className={primary}
-                    disabled={review.isPending}
-                    onClick={() => {
-                      setNotice("");
-                      review.mutate({ id: selected.id, status: "APPROVED" });
-                    }}
-                  >
-                    {review.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Check className="h-4 w-4" />
-                    )}
-                    {t("needs.approve")}
-                  </button>
-                </>
-              )
-            ) : (
-              <button
-                className={secondary}
-                disabled={paymentBusy}
-                onClick={closeDetails}
-              >
-                {t("needs.close")}
-              </button>
-            )}
+            <button className={secondary} onClick={closeDetails}>
+              {t("needs.close")}
+            </button>
           </footer>
         </NeedRequestDialog>
       )}

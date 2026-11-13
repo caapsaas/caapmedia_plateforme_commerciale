@@ -68,7 +68,7 @@ const ProformaTemplateModal: React.FC<ProformaTemplateModalProps> = ({ isOpen, o
           {/* Largeur/padding A4 fixes (w-[210mm] p-8), identiques sur les 6 documents. */}
           <div ref={printRef} className="relative w-[210mm] p-8 bg-white mx-auto">
             <DocumentWatermark />
-            <DocumentHeader subsidiary={subsidiary} />
+            <DocumentHeader subsidiary={subsidiary} usePublicContact />
 
             <div className="flex justify-between items-start mb-8">
               <div>

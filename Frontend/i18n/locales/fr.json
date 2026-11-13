@@ -1,4 +1,16 @@
 {
+  "crmJourney": {
+    "saveContactError": "Impossible d’enregistrer le contact.",
+    "linkedAccount": "Compte CRM rattaché",
+    "chooseAccount": "Rechercher un compte (facultatif)",
+    "accountName": "Compte CRM · {{name}}",
+    "noAccount": "Aucun compte CRM rattaché",
+    "convertTitle": "Convertir la piste",
+    "convertConfirm": "Créer le contact {{contact}}, le rattacher au compte {{account}} et ouvrir une opportunité dans le pipeline ?",
+    "convertSuccess": "Le contact et son opportunité sont disponibles dans le CRM.",
+    "convertError": "La piste n’a pas pu être convertie.",
+    "guide": "Qualifiez une piste, convertissez-la en contact et suivez l’opportunité dans le pipeline. Saisissez ensuite le contrat dans l’onglet Contrats en sélectionnant le contact client."
+  },
   "attendanceSecurity": {
     "title": "Pointage sécurisé",
     "subtitle": "Matricule et présence sur place obligatoires.",
@@ -1981,6 +1993,11 @@
     "paymentInfo": "Informations de paiement"
   },
   "cashRegister": {
+    "amountAboveBalance": "Le montant saisi dépasse le solde restant.",
+    "bankAccount": "Compte bancaire",
+    "selectBankAccount": "Sélectionner un compte bancaire",
+    "cashAccount": "Caisse",
+    "selectCashAccount": "Sélectionner une caisse",
     "clientSection": {
       "selectAdd": "Sélectionner / Ajouter un client",
       "title": "Client",
@@ -2630,7 +2647,7 @@
     "contact": "Contact",
     "contactUs": "Contactez-nous",
     "address": "Ange Raphael, Douala, Cameroun",
-    "phone": "+237 6 75 86 43 54 & +237 6 73 42 35 04",
+    "phone": "+237 671 89 01 84",
     "email": "contact@caapmedia.com",
     "copyright": "© 2024 CaapMedia. Tous droits réservés."
   },
@@ -2663,9 +2680,11 @@
       "imageCaption": "CaapMedia, département de Caap-Groupe SARL.",
       "premisesGalleryTitle": "Les locaux CaapMedia",
       "premisesGalleryIntro": "Quelques images de notre espace de travail et de notre équipe.",
-      "premisesPhoto": "Photo des locaux à ajouter",
-      "workshopPhoto": "Photo de l’atelier à ajouter",
-      "teamPhoto": "Photo de l’équipe à ajouter",
+      "premisesPhoto": "Vue intérieure de l’atelier CaapMedia",
+      "workshopPhoto": "Machines d’impression dans l’atelier CaapMedia",
+      "teamPhoto": "Membre de l’équipe CaapMedia au bureau",
+      "cuttingMachinePhoto": "Massicot de finition dans l’atelier",
+      "printingPressPhoto": "Presse d’impression offset CaapMedia",
       "productionTitle": "Des capacités de production",
       "production": "Nous réalisons des supports imprimés et personnalisés pour les besoins de communication des entreprises, institutions et particuliers.",
       "servicesTitle": "Un accompagnement complet",
@@ -2687,12 +2706,12 @@
     "photoSlots": {
       "realizationsTitle": "Quelques réalisations",
       "realizationsIntro": "Ajoutez ici les photos de projets réalisés par CaapMedia.",
-      "realizationOne": "Photo de réalisation à ajouter",
-      "realizationTwo": "Photo de réalisation à ajouter",
-      "realizationThree": "Photo de réalisation à ajouter",
-      "realizationFour": "Photo de réalisation à ajouter",
-      "realizationFive": "Photo de réalisation à ajouter",
-      "realizationSix": "Photo de réalisation à ajouter"
+      "realizationOne": "Calendrier personnalisé imprimé",
+      "realizationTwo": "Stylos publicitaires personnalisés",
+      "realizationThree": "Sac en tissu personnalisé",
+      "realizationFour": "Mugs personnalisés",
+      "realizationFive": "Roll-up publicitaire et kakemono",
+      "realizationSix": "Backdrop textile pour événement"
     }
   },
   "financialHistory": {
@@ -3248,7 +3267,7 @@
       "notes": "Notes",
       "declaredByAgent": "Montant déclaré par le caissier",
       "receivedAmount": "Montant réellement reçu (comptage)",
-      "discrepancyWarning": "Écart détecté : {{amount}}",
+      "discrepancyWarning": "Écart détecté : {{amount}}. Corrigez le montant avant validation.",
       "receptionNotes": "Notes de réception"
     },
     "submit": "Valider la remise",
@@ -3564,7 +3583,7 @@
   },
   "needs": {
     "title": "Expressions de besoin",
-    "adminIntro": "Consultez les besoins des commerciaux et validez ou rejetez les demandes.",
+    "adminIntro": "Consultez les besoins des commerciaux et suivez le statut des demandes.",
     "commercialIntro": "Soumettez vos besoins au super-admin et suivez leur traitement.",
     "new": "Nouvelle expression de besoin",
     "subject": "Objet du besoin",

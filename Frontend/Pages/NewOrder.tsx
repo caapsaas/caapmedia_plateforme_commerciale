@@ -73,7 +73,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
     const [customerMode, setCustomerMode] = useState<'existing' | 'occasional'>('existing');
     const [occasionalCustomer, setOccasionalCustomer] = useState({ name: '', phone: '', email: '' });
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>(selectedCustomer?.id || '');
-    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CustomerPaymentMethod>(CustomerPaymentMethod.PAY_ON_DELIVERY);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CustomerPaymentMethod | ''>('');
     const [applyTax, setApplyTax] = useState(true);
     const [globalSearchTerm, setGlobalSearchTerm] = useState('');
     const [externalCustomer, setExternalCustomer] = useState<GlobalContactSearchResult | null>(null);
@@ -232,6 +232,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
     const totalAmount = useMemo(() => subtotal + taxAmount, [subtotal, taxAmount]);
 
     const handleSubmitOrder = async () => {
+        if (!selectedPaymentMethod) return;
         if (submittingRef.current || cart.length === 0 || orderPlaced) return;
         const customer = clients.find(c => c.id === selectedCustomerId)
             || (externalCustomer?.id === selectedCustomerId ? externalCustomer : null);
@@ -578,7 +579,11 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                             onChange={(e) => setSelectedPaymentMethod(e.target.value as CustomerPaymentMethod)}
                             className="w-full p-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#c6e911]"
                         >
+                            <option value="" disabled>{t('payment.chooseMethod')}</option>
                             <option value={CustomerPaymentMethod.PAY_ON_DELIVERY}>{t('newOrder.paymentMethod_PAY_ON_DELIVERY')}</option>
+                            <option value={CustomerPaymentMethod.CASH}>{t('payment.CASH')}</option>
+                            <option value={CustomerPaymentMethod.BANK_TRANSFER}>{t('payment.BANK_TRANSFER')}</option>
+                            <option value={CustomerPaymentMethod.CHECK}>{t('payment.CHECK')}</option>
                             <option value={CustomerPaymentMethod.CARD}>{t('newOrder.paymentMethod_CARD')}</option>
                             <option value={CustomerPaymentMethod.ORANGE_MONEY}>{t('newOrder.paymentMethod_ORANGE_MONEY')}</option>
                             <option value={CustomerPaymentMethod.WAVE}>{t('newOrder.paymentMethod_WAVE')}</option>
@@ -592,7 +597,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                     <button
                         type="button"
                         onClick={handleSubmitOrder}
-                        disabled={isSubmitting || cart.length === 0 || orderPlaced || (customerMode === 'existing' && !selectedCustomerId)}
+                        disabled={isSubmitting || !selectedPaymentMethod || cart.length === 0 || orderPlaced || (customerMode === 'existing' && !selectedCustomerId)}
                         className="w-full text-center px-4 py-3 bg-[#c6e911] text-slate-800 font-bold rounded-lg hover:bg-[#adc40f] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                     >
                         {t(isSubmitting ? 'common.saving' : 'newOrder.submitOrder')}

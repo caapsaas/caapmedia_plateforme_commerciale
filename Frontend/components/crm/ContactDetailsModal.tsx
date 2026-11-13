@@ -11,7 +11,7 @@ interface ContactDetailsModalProps {
     interactions: Interaction[];
     tasks: CrmTask[];
     contracts: Contract[];
-    onLogInteraction: (data: Omit<Interaction, 'id' | 'date' | 'userId'>) => void;
+    onLogInteraction?: (data: Omit<Interaction, 'id' | 'date' | 'userId'>) => void;
 }
 
 type DetailsView = 'info' | 'interactions' | 'opportunities' | 'tasks' | 'contracts';
@@ -39,7 +39,7 @@ const ContactDetailsModal: React.FC<ContactDetailsModalProps> = ({
     if (!isOpen) return null;
 
     const handleSaveInteraction = (data: { type: InteractionType; notes: string; }) => {
-        onLogInteraction({ ...data, contactId: client.id });
+        onLogInteraction?.({ ...data, contactId: client.id });
     };
 
     const TabButton: React.FC<{ view: DetailsView; label: string; count?: number }> = ({ view, label, count }) => (
@@ -61,7 +61,7 @@ const ContactDetailsModal: React.FC<ContactDetailsModalProps> = ({
             case 'interactions':
                 return (
                     <div className="space-y-4">
-                        <InteractionForm onSave={handleSaveInteraction} />
+                        {onLogInteraction && <InteractionForm onSave={handleSaveInteraction} />}
                         <h4 className="font-semibold text-slate-700 pt-4 border-t">{t('crm.dashboard.recentActivity')}</h4>
                         <div className="space-y-3">
                         {interactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(interaction => (

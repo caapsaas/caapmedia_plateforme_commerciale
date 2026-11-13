@@ -63,6 +63,10 @@ export class CreateDirectSaleDto {
 
   @IsOptional()
   @IsString()
+  cashRegisterId?: string;
+
+  @IsOptional()
+  @IsString()
   transactionReference?: string;
 
   @IsOptional()

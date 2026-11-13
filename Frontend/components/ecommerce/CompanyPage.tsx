@@ -3,7 +3,19 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { useI18n } from '../../i18n';
 import ECommerceFooter from './ECommerceFooter';
 import PublicSiteHeader from './PublicSiteHeader';
-import PhotoPlaceholder from './PhotoPlaceholder';
+
+const companyPhotos = [
+  { src: '/realisations/equipe-caapmedia.jpeg', alt: 'teamPhoto' },
+  { src: '/realisations/atelier-impression.jpeg', alt: 'workshopPhoto' },
+  { src: '/realisations/machine-decoupe.jpeg', alt: 'cuttingMachinePhoto' },
+  { src: '/realisations/atelier-vue-interieure.jpeg', alt: 'premisesPhoto' },
+  { src: '/realisations/presse-impression.jpeg', alt: 'printingPressPhoto' },
+  { src: '/realisations/atelier-lamination.jpeg', alt: 'workshopPhoto' },
+  { src: '/realisations/atelier-impression-vue-large.jpeg', alt: 'premisesPhoto' },
+  { src: '/realisations/atelier-machine-finition.jpeg', alt: 'workshopPhoto' },
+  { src: '/realisations/presse-offset.jpeg', alt: 'printingPressPhoto' },
+  { src: '/realisations/machine-impression-detail.jpeg', alt: 'cuttingMachinePhoto' },
+];
 
 const CompanyPage: React.FC = () => {
   const { t } = useI18n();
@@ -20,13 +32,28 @@ const CompanyPage: React.FC = () => {
           <p className="mt-6 text-lg leading-8 text-slate-600">{tPage('intro')}</p>
           <Link to="/contact" className="mt-8 inline-flex rounded-full bg-[#c6e911] px-6 py-3 font-bold text-slate-900">{tPage('visitCta')}</Link>
         </div>
-        <PhotoPlaceholder label={tPage('premisesPhoto')} className="aspect-[4/3] rounded-3xl" />
+        <figure className="overflow-hidden rounded-3xl shadow-xl">
+          <img
+            src="/realisations/atelier-impression.jpeg"
+            alt={tPage('workshopPhoto')}
+            className="aspect-[4/3] w-full object-cover"
+          />
+        </figure>
       </section>
       <section className="container mx-auto max-w-6xl px-4 pb-14">
         <h2 className="text-2xl font-bold text-slate-900">{tPage('premisesGalleryTitle')}</h2>
         <p className="mt-2 max-w-2xl text-slate-600">{tPage('premisesGalleryIntro')}</p>
         <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {['premisesPhoto', 'workshopPhoto', 'teamPhoto'].map(item => <PhotoPlaceholder key={item} label={tPage(item)} className="aspect-[4/3]" />)}
+          {companyPhotos.map(({ src, alt }) => (
+            <figure key={src} className="group overflow-hidden rounded-2xl bg-slate-100 shadow-sm">
+              <img
+                src={src}
+                alt={tPage(alt)}
+                loading="lazy"
+                className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+            </figure>
+          ))}
         </div>
       </section>
       <section className="bg-[#231F20] px-4 py-16 text-white">

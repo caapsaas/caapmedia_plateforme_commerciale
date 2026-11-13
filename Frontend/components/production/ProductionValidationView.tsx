@@ -1,3 +1,4 @@
+import { isSuperAdmin as hasSuperAdminRole } from '../../utils/isSuperAdmin';
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Order, UserRole, Subsidiary } from '../../types';
@@ -37,14 +38,14 @@ const ProductionValidationView: React.FC = () => {
 
     const activeRole = user?.activeRole ?? user?.userRole;
     // Super Admin : vue consolidée toutes filiales, lecture seule
-    const isSuperAdmin = activeRole === UserRole.SUPER_ADMIN;
+    const isSuperAdmin = hasSuperAdminRole(user);
     const canSeeValidation =
         activeRole === UserRole.PRODUCTION_DIRECTOR ||
         activeRole === UserRole.ADMIN ||
-        activeRole === UserRole.SUPER_ADMIN;
-    const canValidate =
-        activeRole === UserRole.PRODUCTION_DIRECTOR ||
-        activeRole === UserRole.ADMIN;
+        isSuperAdmin;
+    const canValidate = !isSuperAdmin && (
+        activeRole === UserRole.PRODUCTION_DIRECTOR || activeRole === UserRole.ADMIN
+    );
 
     const { data: subsidiaries = [] } = useQuery<Subsidiary[]>({
         queryKey: ['subsidiaries-list'],

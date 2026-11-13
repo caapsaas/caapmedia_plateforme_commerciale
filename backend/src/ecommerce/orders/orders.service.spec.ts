@@ -131,6 +131,7 @@ describe('OrdersService access control', () => {
         {
           amount: 100,
           paymentMethod: CustomerPaymentMethod.CASH,
+          cashRegisterId: 'register',
         },
         { subsidiaryId: 'branch' },
       ),
@@ -150,6 +151,7 @@ describe('OrdersService access control', () => {
         {
           amount: 100,
           paymentMethod: CustomerPaymentMethod.CASH,
+          cashRegisterId: 'register',
         },
         {},
       ),

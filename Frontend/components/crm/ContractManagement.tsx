@@ -15,6 +15,7 @@ import Pagination from '../common/Pagination';
 const CONTRACTS_PAGE_SIZE = 10;
 
 interface ContractManagementProps {
+    readOnly?: boolean;
     subsidiaryId: string;
     filterSubsidiaryId?: string;
     contacts: Contact[];
@@ -23,6 +24,7 @@ interface ContractManagementProps {
 }
 
 const ContractManagement: React.FC<ContractManagementProps> = ({
+    readOnly = false,
     subsidiaryId,
     filterSubsidiaryId,
     contacts,
@@ -111,10 +113,12 @@ const ContractManagement: React.FC<ContractManagementProps> = ({
         <div className="bg-white p-6 rounded-xl shadow-md">
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-semibold text-slate-800">{t('crm.contracts.title')}</h3>
-                <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
-                    <IconPlus className="h-4 w-4" />
-                    <span>{t('crm.contracts.add')}</span>
-                </button>
+                {!readOnly && (
+                    <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
+                        <IconPlus className="h-4 w-4" />
+                        <span>{t('crm.contracts.add')}</span>
+                    </button>
+                )}
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-slate-500">
@@ -151,12 +155,16 @@ const ContractManagement: React.FC<ContractManagementProps> = ({
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-center space-x-1">
-                                    <button onClick={() => handleOpenEditModal(contract)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
-                                        <IconEdit className="h-5 w-5" />
-                                    </button>
-                                    <button onClick={() => handleOpenDeleteModal(contract)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" aria-label={t('common.delete')}>
-                                        <IconDelete className="h-5 w-5" />
-                                    </button>
+                                    {!readOnly && (
+                                        <button onClick={() => handleOpenEditModal(contract)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
+                                            <IconEdit className="h-5 w-5" />
+                                        </button>
+                                    )}
+                                    {!readOnly && (
+                                        <button onClick={() => handleOpenDeleteModal(contract)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" aria-label={t('common.delete')}>
+                                            <IconDelete className="h-5 w-5" />
+                                        </button>
+                                    )}
                                 </td>
                             </tr>
                         ))}

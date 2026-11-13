@@ -48,7 +48,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, order, subsidiary, 
         <div className="relative w-[210mm] p-8 bg-white text-sm mx-auto">
             <DocumentWatermark />
 
-            <DocumentHeader subsidiary={subsidiary} showFiscalInfo />
+            <DocumentHeader subsidiary={subsidiary} usePublicContact showFiscalInfo />
 
             <div className="flex justify-between items-start mb-10 mt-4">
                 <div className="p-4 bg-slate-50 rounded-lg max-w-xs">

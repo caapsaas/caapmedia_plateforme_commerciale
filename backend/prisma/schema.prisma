@@ -540,32 +540,32 @@ model Employee {
   categoryCodeCNPS    String  @default("B") @map("category_code_cnps") @db.VarChar(1)
   taxIdNTif           String? @map("tax_id_ntif") @db.VarChar(15)
 
-  subsidiaryId        String                      @map("subsidiary_id")
-  managerId           String?                     @map("manager_id")
-  gender              Gender                      @map("gender")
-  contractType        ContractType                @map("contract_type")
-  status              EmployeeStatus              @map("status")
-  paymentMethod       PaymentMethod               @map("payment_method")
-  absenceRecords      AbsenceRecord[]
-  attendanceRecords   AttendanceRecord[]
-  documents           EmployeeDocument[]
-  leaveRecords        EmployeeLeaveRecord[]
-  leaveBalances       EmployeeLeaveBalance[]
-  performanceReviews  EmployeePerformanceReview[]
-  positionHistory     EmployeePositionHistory[]
-  trainings           EmployeeTraining[]
-  manager             Employee?                   @relation("EmployeeManager", fields: [managerId], references: [id])
-  subordinates        Employee[]                  @relation("EmployeeManager")
-  subsidiary          Subsidiary                  @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-  leads               Lead[]
-  meetingParticipants MeetingParticipant[]
-  payrollRecords      PayrollRecord[]
-  payrollBonuses      PayrollBonus[]
-  payrollCumulatives  PayrollCumulative[]         @relation("PayrollCumulatives")
-  secretariatTasks    SecretariatTask[]
-  dailyQrCodes        DailyQrCode[]
+  subsidiaryId         String                      @map("subsidiary_id")
+  managerId            String?                     @map("manager_id")
+  gender               Gender                      @map("gender")
+  contractType         ContractType                @map("contract_type")
+  status               EmployeeStatus              @map("status")
+  paymentMethod        PaymentMethod               @map("payment_method")
+  absenceRecords       AbsenceRecord[]
+  attendanceRecords    AttendanceRecord[]
+  documents            EmployeeDocument[]
+  leaveRecords         EmployeeLeaveRecord[]
+  leaveBalances        EmployeeLeaveBalance[]
+  performanceReviews   EmployeePerformanceReview[]
+  positionHistory      EmployeePositionHistory[]
+  trainings            EmployeeTraining[]
+  manager              Employee?                   @relation("EmployeeManager", fields: [managerId], references: [id])
+  subordinates         Employee[]                  @relation("EmployeeManager")
+  subsidiary           Subsidiary                  @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  leads                Lead[]
+  meetingParticipants  MeetingParticipant[]
+  payrollRecords       PayrollRecord[]
+  payrollBonuses       PayrollBonus[]
+  payrollCumulatives   PayrollCumulative[]         @relation("PayrollCumulatives")
+  secretariatTasks     SecretariatTask[]
+  dailyQrCodes         DailyQrCode[]
   attendanceCredential AttendanceCredential?
-  preHireTraining     PreHireTraining?
+  preHireTraining      PreHireTraining?
 
   @@index([subsidiaryId, lastName])
   @@index([status])
@@ -608,29 +608,29 @@ model EmployeeTraining {
 }
 
 model PreHireTraining {
-  id             String                @id @default(uuid()) @db.Text
-  firstName      String                @map("first_name") @db.VarChar(100)
-  lastName       String                @map("last_name") @db.VarChar(100)
-  email          String?               @db.VarChar(150)
-  phone          String                @db.VarChar(30)
-  targetPosition String                @map("target_position") @db.VarChar(150)
-  department     String?               @db.VarChar(100)
-  mentorName     String?               @map("mentor_name") @db.VarChar(200)
-  startDate      DateTime              @map("start_date") @db.Date
-  plannedEndDate DateTime?             @map("planned_end_date") @db.Date
-  status         PreHireTrainingStatus @default(PLANNED)
-  progress       Int                   @default(0)
-  acquiredClients   Int                 @default(0) @map("acquired_clients")
-  acquiredProspects Int                 @default(0) @map("acquired_prospects")
-  evaluation     String?               @db.Text
-  outcome        String?               @db.Text
-  notes          String?               @db.Text
-  subsidiaryId   String                @map("subsidiary_id")
-  createdAt      DateTime              @default(now()) @map("created_at")
-  updatedAt      DateTime              @updatedAt @map("updated_at")
-  subsidiary     Subsidiary            @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-  employeeId     String?               @unique @map("employee_id") @db.Text
-  employee       Employee?             @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  id                String                @id @default(uuid()) @db.Text
+  firstName         String                @map("first_name") @db.VarChar(100)
+  lastName          String                @map("last_name") @db.VarChar(100)
+  email             String?               @db.VarChar(150)
+  phone             String                @db.VarChar(30)
+  targetPosition    String                @map("target_position") @db.VarChar(150)
+  department        String?               @db.VarChar(100)
+  mentorName        String?               @map("mentor_name") @db.VarChar(200)
+  startDate         DateTime              @map("start_date") @db.Date
+  plannedEndDate    DateTime?             @map("planned_end_date") @db.Date
+  status            PreHireTrainingStatus @default(PLANNED)
+  progress          Int                   @default(0)
+  acquiredClients   Int                   @default(0) @map("acquired_clients")
+  acquiredProspects Int                   @default(0) @map("acquired_prospects")
+  evaluation        String?               @db.Text
+  outcome           String?               @db.Text
+  notes             String?               @db.Text
+  subsidiaryId      String                @map("subsidiary_id")
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+  subsidiary        Subsidiary            @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  employeeId        String?               @unique @map("employee_id") @db.Text
+  employee          Employee?             @relation(fields: [employeeId], references: [id], onDelete: SetNull)
 
   @@index([subsidiaryId, status])
   @@index([subsidiaryId, lastName, firstName])
@@ -825,39 +825,40 @@ model OrderGroup {
 }
 
 model Order {
-  id                String                   @id @map("id")
-  orderDate         DateTime                 @default(now()) @map("order_date")
-  customerName      String                   @map("customer_name") @db.VarChar(255)
-  subtotal          Decimal                  @default(0) @map("subtotal") @db.Decimal(15, 2)
-  taxAmount         Decimal                  @default(0) @map("tax_amount") @db.Decimal(15, 2)
-  totalAmount       Decimal                  @default(0) @map("total_amount") @db.Decimal(15, 2)
-  taxRateValue      Decimal                  @map("tax_rate_value") @db.Decimal(5, 2)
-  applyTax          Boolean                  @default(true) @map("apply_tax")
-  amountPaid        Decimal                  @default(0) @map("amount_paid") @db.Decimal(15, 2)
-  paymentDueDate    DateTime                 @map("payment_due_date")
-  customerId        String                   @map("customer_id")
-  subsidiaryId      String                   @map("subsidiary_id")
-  taxRateId         String                   @map("tax_rate_id")
-  salesRepId        String?                  @map("sales_rep_id")
-  opportunityId     String?                  @map("opportunity_id")
-  status            OrderStatus              @map("status")
-  productionStatus  ProductionStatus         @map("production_status")
-  paymentStatus     PaymentStatus            @map("payment_status")
-  source            OrderSource              @map("source")
-  groupId           String?                  @map("group_id")
-  paymentMethod     CustomerPaymentMethod?   @map("payment_method")
-  orderItems        OrderItem[]
-  productionHistory OrderProductionHistory[]
-  customer          Contact                  @relation(fields: [customerId], references: [id])
-  orderGroup        OrderGroup?              @relation(fields: [groupId], references: [id])
-  opportunity       Opportunity?             @relation(fields: [opportunityId], references: [id])
-  salesRep          User?                    @relation(fields: [salesRepId], references: [id])
-  subsidiary        Subsidiary               @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-  taxRate           TaxRate                  @relation(fields: [taxRateId], references: [id])
-  sales             Sale[]
+  id                   String                   @id @map("id")
+  orderDate            DateTime                 @default(now()) @map("order_date")
+  customerName         String                   @map("customer_name") @db.VarChar(255)
+  subtotal             Decimal                  @default(0) @map("subtotal") @db.Decimal(15, 2)
+  taxAmount            Decimal                  @default(0) @map("tax_amount") @db.Decimal(15, 2)
+  totalAmount          Decimal                  @default(0) @map("total_amount") @db.Decimal(15, 2)
+  taxRateValue         Decimal                  @map("tax_rate_value") @db.Decimal(5, 2)
+  applyTax             Boolean                  @default(true) @map("apply_tax")
+  amountPaid           Decimal                  @default(0) @map("amount_paid") @db.Decimal(15, 2)
+  paymentDueDate       DateTime                 @map("payment_due_date")
+  customerId           String                   @map("customer_id")
+  subsidiaryId         String                   @map("subsidiary_id")
+  taxRateId            String                   @map("tax_rate_id")
+  salesRepId           String?                  @map("sales_rep_id")
+  opportunityId        String?                  @map("opportunity_id")
+  status               OrderStatus              @map("status")
+  productionStatus     ProductionStatus         @map("production_status")
+  paymentStatus        PaymentStatus            @map("payment_status")
+  source               OrderSource              @map("source")
+  groupId              String?                  @map("group_id")
+  paymentMethod        CustomerPaymentMethod?   @map("payment_method")
+  orderItems           OrderItem[]
+  productionHistory    OrderProductionHistory[]
+  customer             Contact                  @relation(fields: [customerId], references: [id])
+  orderGroup           OrderGroup?              @relation(fields: [groupId], references: [id])
+  opportunity          Opportunity?             @relation(fields: [opportunityId], references: [id])
+  salesRep             User?                    @relation(fields: [salesRepId], references: [id])
+  subsidiary           Subsidiary               @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  taxRate              TaxRate                  @relation(fields: [taxRateId], references: [id])
+  sales                Sale[]
+  cashRemittanceOrders CashRemittanceOrder[]
   // Sorties de stock liées à cette commande (Chantier 3, "Prélever les
   // matières") — traçabilité facultative uniquement, jamais un calcul.
-  stockMovements    StockMovement[]
+  stockMovements       StockMovement[]
 
   @@index([subsidiaryId, customerId, orderDate(sort: Desc)])
   @@index([subsidiaryId, status])
@@ -1097,15 +1098,44 @@ model CashRemittance {
   createdAt            DateTime             @default(now()) @map("created_at")
   updatedAt            DateTime             @updatedAt @map("updated_at")
 
-  sourceCashRegister TreasuryAccount @relation("CashRemittanceSource", fields: [sourceCashRegisterId], references: [id])
-  destinationSafe    TreasuryAccount @relation("CashRemittanceDestination", fields: [destinationSafeId], references: [id])
-  subsidiary         Subsidiary      @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
-  createdByUser      User            @relation("CashRemittanceCreatedBy", fields: [createdByUserId], references: [id])
-  receivedByUser     User?           @relation("CashRemittanceReceivedBy", fields: [receivedByUserId], references: [id])
+  sourceCashRegister TreasuryAccount       @relation("CashRemittanceSource", fields: [sourceCashRegisterId], references: [id])
+  destinationSafe    TreasuryAccount       @relation("CashRemittanceDestination", fields: [destinationSafeId], references: [id])
+  subsidiary         Subsidiary            @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  createdByUser      User                  @relation("CashRemittanceCreatedBy", fields: [createdByUserId], references: [id])
+  receivedByUser     User?                 @relation("CashRemittanceReceivedBy", fields: [receivedByUserId], references: [id])
+  orders             CashRemittanceOrder[]
+  receipts           CashRemittanceReceipt[]
 
   @@index([subsidiaryId, status])
   @@index([sourceCashRegisterId])
   @@map("cash_remittances")
+}
+
+// Une commande ne peut être affectée qu'à une seule remise de caisse, ce qui
+// empêche de déclarer deux fois le même encaissement.
+model CashRemittanceOrder {
+  cashRemittanceId String         @map("cash_remittance_id") @db.Text
+  orderId          String         @unique @map("order_id") @db.Text
+  cashRemittance   CashRemittance @relation(fields: [cashRemittanceId], references: [id], onDelete: Cascade)
+  order            Order          @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@id([cashRemittanceId, orderId])
+  @@index([cashRemittanceId])
+  @@map("cash_remittance_orders")
+}
+
+// Chaque encaissement espèces peut être affecté une seule fois à une remise.
+// Le lien porte sur le reçu financier, pas sur la commande : une commande
+// réglée en plusieurs fois peut ainsi être remise au fil des encaissements.
+model CashRemittanceReceipt {
+  cashRemittanceId      String              @map("cash_remittance_id") @db.Text
+  financialTransactionId String             @unique @map("financial_transaction_id") @db.Text
+  cashRemittance        CashRemittance      @relation(fields: [cashRemittanceId], references: [id], onDelete: Cascade)
+  financialTransaction  FinancialTransaction @relation(fields: [financialTransactionId], references: [id], onDelete: Restrict)
+
+  @@id([cashRemittanceId, financialTransactionId])
+  @@index([cashRemittanceId])
+  @@map("cash_remittance_receipts")
 }
 
 model Counterparty {
@@ -1152,6 +1182,7 @@ model FinancialTransaction {
   counterparty             Counterparty?            @relation(fields: [counterpartyId], references: [id])
 
   needRequestPayment NeedRequestPayment?
+  cashRemittanceReceipts CashRemittanceReceipt[]
 
   @@index([subsidiaryId, transactionDate])
   @@index([financialTransactionType])
@@ -1292,54 +1323,54 @@ model CrmTask {
 }
 
 model Lead {
-  id           String     @id @default(uuid()) @map("id")
-  leadName     String     @map("lead_name") @db.VarChar(255)
-  company      String     @db.VarChar(255)
-  email        String?    @unique @db.VarChar(255)
-  phone        String?    @db.VarChar(255)
-  description  String?
-  externalReference       String? @map("external_reference")
-  zone                    String?
-  cityArea                String? @map("city_area")
-  sector                  String?
-  caapOffer               String? @map("caap_offer")
-  yearEndNeed             String? @map("year_end_need")
-  requestedService        String? @map("requested_service")
-  score                   String?
-  commercialPriority      String? @map("commercial_priority")
-  verification            String?
-  nextAction              String? @map("next_action")
-  commercialStatus        String? @map("commercial_status")
-  responsibleName         String? @map("responsible_name")
-  contactDate             String? @map("contact_date")
-  followUpDate            String? @map("follow_up_date")
-  followUpNotes           String? @map("follow_up_notes")
-  whatsappConfirmed       String? @map("whatsapp_confirmed")
-  observedFact            String? @map("observed_fact")
-  locationSource          String? @map("location_source")
-  contactSource           String? @map("contact_source")
-  signalDate              String? @map("signal_date")
-  signalSource            String? @map("signal_source")
-  documentaryConfidence   String? @map("documentary_confidence")
-  fitScore                String? @map("fit_score")
-  recentSignalScore       String? @map("recent_signal_score")
-  recurrenceScore         String? @map("recurrence_score")
-  accessibilityScore      String? @map("accessibility_score")
-  feasibilityScore        String? @map("feasibility_score")
-  caapOfferSource         String? @map("caap_offer_source")
-  consultationDate        String? @map("consultation_date")
-  country                 String?
-  prospectType            String? @map("prospect_type")
-  officialWebsite         String? @map("official_website")
-  reservesLogistics       String? @map("reserves_logistics")
-  linkedinPublic          String? @map("linkedin_public")
-  preparedMessage         String? @map("prepared_message")
-  salesRepId   String?    @map("sales_rep_id")
-  subsidiaryId String     @map("subsidiary_id")
-  status       LeadStatus
-  salesRep     Employee?  @relation(fields: [salesRepId], references: [id])
-  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id])
-  proformas    Proforma[]
+  id                    String     @id @default(uuid()) @map("id")
+  leadName              String     @map("lead_name") @db.VarChar(255)
+  company               String     @db.VarChar(255)
+  email                 String?    @unique @db.VarChar(255)
+  phone                 String?    @db.VarChar(255)
+  description           String?
+  externalReference     String?    @map("external_reference")
+  zone                  String?
+  cityArea              String?    @map("city_area")
+  sector                String?
+  caapOffer             String?    @map("caap_offer")
+  yearEndNeed           String?    @map("year_end_need")
+  requestedService      String?    @map("requested_service")
+  score                 String?
+  commercialPriority    String?    @map("commercial_priority")
+  verification          String?
+  nextAction            String?    @map("next_action")
+  commercialStatus      String?    @map("commercial_status")
+  responsibleName       String?    @map("responsible_name")
+  contactDate           String?    @map("contact_date")
+  followUpDate          String?    @map("follow_up_date")
+  followUpNotes         String?    @map("follow_up_notes")
+  whatsappConfirmed     String?    @map("whatsapp_confirmed")
+  observedFact          String?    @map("observed_fact")
+  locationSource        String?    @map("location_source")
+  contactSource         String?    @map("contact_source")
+  signalDate            String?    @map("signal_date")
+  signalSource          String?    @map("signal_source")
+  documentaryConfidence String?    @map("documentary_confidence")
+  fitScore              String?    @map("fit_score")
+  recentSignalScore     String?    @map("recent_signal_score")
+  recurrenceScore       String?    @map("recurrence_score")
+  accessibilityScore    String?    @map("accessibility_score")
+  feasibilityScore      String?    @map("feasibility_score")
+  caapOfferSource       String?    @map("caap_offer_source")
+  consultationDate      String?    @map("consultation_date")
+  country               String?
+  prospectType          String?    @map("prospect_type")
+  officialWebsite       String?    @map("official_website")
+  reservesLogistics     String?    @map("reserves_logistics")
+  linkedinPublic        String?    @map("linkedin_public")
+  preparedMessage       String?    @map("prepared_message")
+  salesRepId            String?    @map("sales_rep_id")
+  subsidiaryId          String     @map("subsidiary_id")
+  status                LeadStatus
+  salesRep              Employee?  @relation(fields: [salesRepId], references: [id])
+  subsidiary            Subsidiary @relation(fields: [subsidiaryId], references: [id])
+  proformas             Proforma[]
 
   @@index([subsidiaryId, leadName])
   @@index([status])
@@ -2939,20 +2970,20 @@ model NeedRequest {
 }
 
 model NeedRequestPayment {
-  id String @id @default(uuid())
-  needRequestId String @unique
-  financialTransactionId String @unique
-  amount Decimal @db.Decimal(15, 2)
-  currency String @db.VarChar(10)
-  beneficiary String @db.VarChar(255)
-  category ExpenseCategory
-  reference String? @db.VarChar(100)
-  paidAt DateTime
-  paidById String
-  createdAt DateTime @default(now())
-  needRequest NeedRequest @relation(fields: [needRequestId], references: [id], onDelete: Restrict)
-  financialTransaction FinancialTransaction @relation(fields: [financialTransactionId], references: [id], onDelete: Restrict)
-  paidBy User @relation(fields: [paidById], references: [id], onDelete: Restrict)
+  id                     String               @id @default(uuid())
+  needRequestId          String               @unique
+  financialTransactionId String               @unique
+  amount                 Decimal              @db.Decimal(15, 2)
+  currency               String               @db.VarChar(10)
+  beneficiary            String               @db.VarChar(255)
+  category               ExpenseCategory
+  reference              String?              @db.VarChar(100)
+  paidAt                 DateTime
+  paidById               String
+  createdAt              DateTime             @default(now())
+  needRequest            NeedRequest          @relation(fields: [needRequestId], references: [id], onDelete: Restrict)
+  financialTransaction   FinancialTransaction @relation(fields: [financialTransactionId], references: [id], onDelete: Restrict)
+  paidBy                 User                 @relation(fields: [paidById], references: [id], onDelete: Restrict)
 
   @@map("need_request_payments")
 }

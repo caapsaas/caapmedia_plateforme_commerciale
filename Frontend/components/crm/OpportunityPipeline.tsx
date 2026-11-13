@@ -8,6 +8,7 @@ import OpportunityFormModal from './OpportunityFormModal';
 import EmptyState from '../ui/EmptyState';
 
 interface OpportunityPipelineProps {
+    readOnly?: boolean;
     subsidiary: Subsidiary;
     currentUser: User;
     clients: Contact[];
@@ -26,10 +27,10 @@ const Column: React.FC<{
   opportunities: Opportunity[];
   clients: Contact[];
   products: Product[];
-  onDrop: (e: React.DragEvent<HTMLDivElement>, stage: OpportunityStage) => void;
-  onDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
-  onDragLeave: (e: React.DragEvent<HTMLDivElement>) => void;
-  onDragStart: (e: React.DragEvent<HTMLDivElement>, oppId: string) => void;
+  onDrop?: (e: React.DragEvent<HTMLDivElement>, stage: OpportunityStage) => void;
+  onDragOver?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragLeave?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragStart?: (e: React.DragEvent<HTMLDivElement>, oppId: string) => void;
   onCardClick: (opp: Opportunity) => void;
 }> = ({ stage, opportunities, clients, onDrop, onDragOver, onDragLeave, onDragStart, onCardClick }) => {
     const { t, formatCurrency } = useI18n();
@@ -38,7 +39,7 @@ const Column: React.FC<{
     return (
         <div 
             className="w-72 bg-slate-100 rounded-lg flex-shrink-0 flex flex-col transition-colors duration-300"
-            onDrop={(e) => onDrop(e, stage)}
+            onDrop={onDrop && ((e) => onDrop(e, stage))}
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
         >
@@ -54,7 +55,7 @@ const Column: React.FC<{
                         key={opp.id}
                         opportunity={opp}
                         clientName={clients.find(c => c.id === opp.contactId)?.contactName || 'N/A'}
-                        onDragStart={(e) => onDragStart(e, opp.id)}
+                        onDragStart={onDragStart && ((e) => onDragStart(e, opp.id))}
                         onClick={() => onCardClick(opp)}
                     />
                 ))}
@@ -64,6 +65,7 @@ const Column: React.FC<{
 };
 
 const OpportunityPipeline: React.FC<OpportunityPipelineProps> = ({
+    readOnly = false,
     opportunities = [],
     allProducts = [],
     allClients = [],
@@ -171,13 +173,13 @@ const OpportunityPipeline: React.FC<OpportunityPipelineProps> = ({
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-slate-800">{t('crm.tabs.pipeline')}</h2>
-                <button
+                {!readOnly && <button
                     onClick={handleOpenAddModal}
                     className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors"
                 >
                     <IconPlus className="h-4 w-4" />
                     <span>{t('crm.pipeline.addOpportunity')}</span>
-                </button>
+                </button>}
             </div>
             <div className="flex space-x-4 overflow-x-auto pb-4">
                 {pipelineStages.map(stage => (
@@ -187,10 +189,10 @@ const OpportunityPipeline: React.FC<OpportunityPipelineProps> = ({
                         opportunities={opportunities.filter(o => o.stage === stage)}
                         clients={allClients}
                         products={allProducts} 
-                        onDrop={handleDrop}
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        onDragStart={handleDragStart}
+                        onDrop={readOnly ? undefined : handleDrop}
+                        onDragOver={readOnly ? undefined : handleDragOver}
+                        onDragLeave={readOnly ? undefined : handleDragLeave}
+                        onDragStart={readOnly ? undefined : handleDragStart}
                         onCardClick={handleOpenEditModal}
                     />
                 ))}
@@ -198,6 +200,7 @@ const OpportunityPipeline: React.FC<OpportunityPipelineProps> = ({
 
             {isModalOpen && (
                 <OpportunityFormModal
+                    readOnly={readOnly}
                     isOpen={isModalOpen}
                     onClose={() => setIsModalOpen(false)}
                     onSave={handleSave}

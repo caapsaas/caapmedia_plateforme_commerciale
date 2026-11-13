@@ -37,7 +37,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getServicesCatalog } from '../../services/apiE-commerce/apiProducts';
 import { getContacts, createContactByEmployee, ContactCreationData } from '../../services/apiCrm/apicontacts';
 import EmptyState from '../ui/EmptyState';
-import { getOrders, recordOrderPayment, FindAllOrdersDto, getOrderPaymentAccounts, PaymentAccount } from '../../services/apiE-commerce/apiOrders';
+import { getOrders, recordOrderPayment, FindAllOrdersDto, getOrderPaymentAccounts, getFixedOrderPaymentMethod, getOrderOutstandingAmount, PaymentAccount } from '../../services/apiE-commerce/apiOrders';
 import { createDirectSale, CreateDirectSaleDto } from '../../services/apiE-commerce/apiSales';
 import { getTaxes } from '../../services/apiE-commerce/apitaxes';
 import { LazyLoadImage } from 'react-lazy-load-image-component';
@@ -48,7 +48,7 @@ import { useAuth } from '../../context/AuthContext';
 type CaisseMode = 'new_sale' | 'payment';
 
 const Caisse: React.FC = () => {
-    const { subsidiary } = useAuth();
+    const { subsidiary, user } = useAuth();
     const { t, formatCurrency } = useI18n();
     const toast = useToast();
     const queryClient = useQueryClient();
@@ -115,8 +115,9 @@ const Caisse: React.FC = () => {
     });
 
     const { mutate: recordPaymentMutate, isPending: isRecordingPayment } = useMutation({
-        mutationFn: (data: { orderId: string; amount: number; paymentMethod: CustomerPaymentMethod; bankAccountId?: string; transactionReference?: string }) => recordOrderPayment(data),
+        mutationFn: (data: { orderId: string; amount: number; paymentMethod: CustomerPaymentMethod; bankAccountId?: string; cashRegisterId?: string; transactionReference?: string }) => recordOrderPayment(data),
         onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['treasury-accounts'] });
             queryClient.invalidateQueries({ queryKey: ['orders'] });
             queryClient.invalidateQueries({ queryKey: ['sales'] });
             setOperationSuccess(true);
@@ -127,6 +128,7 @@ const Caisse: React.FC = () => {
     const { mutate: createDirectSaleMutate, isPending: isCheckingOut } = useMutation({
         mutationFn: (data: CreateDirectSaleDto) => createDirectSale(data),
         onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['treasury-accounts'] });
             queryClient.invalidateQueries({ queryKey: ['orders'] });
             queryClient.invalidateQueries({ queryKey: ['sales'] });
             setOperationSuccess(true);
@@ -159,24 +161,33 @@ const Caisse: React.FC = () => {
 
     // Memoized data
     const filteredProducts = useMemo(() => products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())), [products, searchTerm]);
-    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CustomerPaymentMethod | null>(null);
+    const [chosenPaymentMethod, setSelectedPaymentMethod] = useState<CustomerPaymentMethod | null>(null);
     // Paiements bancaires : compte + référence de transaction
     const [selectedBankAccountId, setSelectedBankAccountId] = useState<string>('');
     const [transactionReference, setTransactionReference] = useState<string>('');
 
     // Moyens de paiement bancaires nécessitant compte + référence + validation SUPER_ADMIN
+    const fixedPaymentMethod = mode === 'payment' ? getFixedOrderPaymentMethod(loadedOrder?.paymentMethod) : null;
+    const selectedPaymentMethod = fixedPaymentMethod ?? chosenPaymentMethod;
+    const remainingBalance = loadedOrder ? getOrderOutstandingAmount(loadedOrder) : 0;
+    const amountToCollect = Number(paymentAmount);
+    const isPaymentAmountValid = amountToCollect >= 0.01 && amountToCollect <= remainingBalance
+        && Number(amountToCollect.toFixed(2)) === amountToCollect;
+
     const BANKING_METHODS: CustomerPaymentMethod[] = [
         CustomerPaymentMethod.BANK_TRANSFER,
         CustomerPaymentMethod.CARD,
         CustomerPaymentMethod.CHECK,
     ];
     const isBankingPayment = selectedPaymentMethod ? BANKING_METHODS.includes(selectedPaymentMethod) : false;
+    const isCashPayment = selectedPaymentMethod === CustomerPaymentMethod.CASH;
+    const requiresAccount = isBankingPayment || isCashPayment;
 
     // Comptes bancaires de la filiale (BANQUE uniquement)
     const { data: bankAccounts = [] } = useQuery<PaymentAccount[]>({
-        queryKey: ['order-payment-accounts', subsidiary?.id],
+        queryKey: ['order-payment-accounts', subsidiary?.id, user?.id],
         queryFn: getOrderPaymentAccounts,
-        enabled: !!subsidiary && isBankingPayment,
+        enabled: !!subsidiary && requiresAccount,
     });
 
     // Calculs financiers respectant les principes métiers Ventes (Sous-total, TVA, Total TTC)
@@ -276,8 +287,8 @@ const Caisse: React.FC = () => {
     
     const handleCheckout = () => {
         if (isCheckingOut || cart.length === 0 || !selectedPaymentMethod || !selectedContact) return;
-        if (isBankingPayment && !selectedBankAccountId) {
-            toast.error('Compte bancaire requis', 'Veuillez sélectionner un compte bancaire pour ce mode de paiement.');
+        if (requiresAccount && !selectedBankAccountId) {
+            toast.error(t(isCashPayment ? 'cashRegister.selectCashAccount' : 'cashRegister.selectBankAccount'));
             return;
         }
         
@@ -295,6 +306,7 @@ const Caisse: React.FC = () => {
             paymentMethod: selectedPaymentMethod,
             applyTax,
             bankAccountId: isBankingPayment ? selectedBankAccountId : undefined,
+            cashRegisterId: isCashPayment ? selectedBankAccountId : undefined,
             transactionReference: isBankingPayment && transactionReference ? transactionReference : undefined,
         };
 
@@ -305,8 +317,10 @@ const Caisse: React.FC = () => {
     const handleOrderSelected = (order: Order) => {
         setLoadedOrder(order);
         setMode('payment');
-        const remaining = order.totalAmount - order.amountPaid;
-        setPaymentAmount(String(remaining));
+        setPaymentAmount(String(getOrderOutstandingAmount(order)));
+        setSelectedPaymentMethod(null);
+        setSelectedBankAccountId('');
+        setTransactionReference('');
         setIsOrderSelectionModalOpen(false);
         // Reset new sale states
         setCart([]);
@@ -315,12 +329,8 @@ const Caisse: React.FC = () => {
     };
 
     const handleRecordPayment = () => {
-        if (isRecordingPayment || !loadedOrder || !paymentAmount || !selectedPaymentMethod) return;
-        const amount = parseFloat(paymentAmount);
-        const remainingBalance = loadedOrder.totalAmount - loadedOrder.amountPaid;
-        if (amount > 0 && amount <= remainingBalance) {
-            recordPaymentMutate({ orderId: loadedOrder.id, amount, paymentMethod: selectedPaymentMethod, bankAccountId: selectedBankAccountId || undefined, transactionReference: transactionReference || undefined });
-        }
+        if (isRecordingPayment || !loadedOrder || !isPaymentAmountValid || !selectedPaymentMethod || (requiresAccount && !selectedBankAccountId)) return;
+        recordPaymentMutate({ orderId: loadedOrder.id, amount: amountToCollect, paymentMethod: selectedPaymentMethod, bankAccountId: isBankingPayment ? selectedBankAccountId : undefined, cashRegisterId: isCashPayment ? selectedBankAccountId : undefined, transactionReference: transactionReference || undefined });
     };
     
     // --- MODE SWITCHING & GENERAL LOGIC ---
@@ -589,32 +599,34 @@ const Caisse: React.FC = () => {
                                 </div>
                             ) : loadedOrder && (
                                 <div className="space-y-2 text-sm">
-                                    <div className="flex justify-between"><span>{t('cashRegister.loadedOrder.total')}</span><span className="font-semibold">{formatCurrency(loadedOrder.totalAmount)}</span></div>
-                                    <div className="flex justify-between"><span>{t('cashRegister.loadedOrder.paid')}</span><span className="font-semibold text-green-600">{formatCurrency(loadedOrder.amountPaid)}</span></div>
-                                    <div className="flex justify-between font-bold"><span>{t('cashRegister.loadedOrder.remaining')}</span><span className="text-red-600">{formatCurrency(loadedOrder.totalAmount - loadedOrder.amountPaid)}</span></div>
-                                    <div className="pt-2"><label htmlFor="paymentAmount" className="block text-sm font-medium text-slate-700">{t('cashRegister.loadedOrder.amountToPay')}</label><input type="number" id="paymentAmount" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} max={loadedOrder.totalAmount - loadedOrder.amountPaid} min="0" className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" /></div>
+                                    <div className="flex justify-between"><span>{t('cashRegister.loadedOrder.total')}</span><span className="font-semibold">{formatCurrency(loadedOrder.totalAmount, 2)}</span></div>
+                                    <div className="flex justify-between"><span>{t('cashRegister.loadedOrder.paid')}</span><span className="font-semibold text-green-600">{formatCurrency(loadedOrder.amountPaid, 2)}</span></div>
+                                    <div className="flex justify-between font-bold"><span>{t('cashRegister.loadedOrder.remaining')}</span><span className="text-red-600">{formatCurrency(remainingBalance, 2)}</span></div>
+                                    <div className="pt-2"><label htmlFor="paymentAmount" className="block text-sm font-medium text-slate-700">{t('cashRegister.loadedOrder.amountToPay')}</label><input type="number" id="paymentAmount" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} max={remainingBalance} min="0.01" step="0.01" className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" />{amountToCollect > remainingBalance && <p className="mt-1 text-xs text-red-600">{t('cashRegister.amountAboveBalance')}</p>}</div>
                                 </div>
                             )}
                             <div>
                                 <p className="font-semibold text-xs mb-1.5">{t('cashRegister.paymentMethod')}</p>
-                                <div className="grid grid-cols-3 gap-1.5">{paymentMethods.map(method => <button key={method.id} onClick={() => { setSelectedPaymentMethod(method.id as CustomerPaymentMethod); setSelectedBankAccountId(''); setTransactionReference(''); }} className={`flex flex-col items-center justify-center text-center space-y-1 p-1.5 rounded-lg border transition-all h-16 ${selectedPaymentMethod === method.id ? 'border-[#c6e911] bg-[#c6e911]/10 font-bold' : 'border-slate-200 bg-white hover:border-slate-300'}`}>{method.icon}<span className="text-[11px] font-medium leading-tight">{method.label}</span></button>)}</div>
-                                {isBankingPayment && (
+                                {fixedPaymentMethod ? <p className="text-sm">{t(`payment.${fixedPaymentMethod}`)}</p> : <div className="grid grid-cols-3 gap-1.5">{paymentMethods.map(method => <button key={method.id} onClick={() => { setSelectedPaymentMethod(method.id as CustomerPaymentMethod); setSelectedBankAccountId(''); setTransactionReference(''); }} className={`flex flex-col items-center justify-center text-center space-y-1 p-1.5 rounded-lg border transition-all h-16 ${selectedPaymentMethod === method.id ? 'border-[#c6e911] bg-[#c6e911]/10 font-bold' : 'border-slate-200 bg-white hover:border-slate-300'}`}>{method.icon}<span className="text-[11px] font-medium leading-tight">{method.label}</span></button>)}</div>}
+                                {requiresAccount && (
                                     <div className="mt-2.5 space-y-2">
                                         <div>
-                                            <label className="block text-xs font-semibold text-slate-700 mb-1">Compte bancaire <span className="text-red-500">*</span></label>
+                                            <label className="block text-xs font-semibold text-slate-700 mb-1">{isCashPayment ? t('cashRegister.cashAccount') : t('cashRegister.bankAccount')} <span className="text-red-500">*</span></label>
                                             <select
                                                 value={selectedBankAccountId}
                                                 onChange={e => setSelectedBankAccountId(e.target.value)}
                                                 className="w-full text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#c6e911] focus:border-transparent"
                                             >
-                                                <option value="">-- Sélectionner un compte --</option>
+                                                <option value="">{isCashPayment ? t('cashRegister.selectCashAccount') : t('cashRegister.selectBankAccount')}</option>
                                                 {bankAccounts
+                                                    .filter(acc => acc.accountType === (isCashPayment ? 'CASH_REGISTER' : 'BANQUE'))
                                                     .map(acc => (
                                                         <option key={acc.id} value={acc.id}>{acc.accountName}</option>
                                                     ))}
                                             </select>
                                         </div>
-                                        <div>
+                                        {isBankingPayment && <>
+<div>
                                             <label className="block text-xs font-semibold text-slate-700 mb-1">Référence de transaction</label>
                                             <input
                                                 type="text"
@@ -627,10 +639,11 @@ const Caisse: React.FC = () => {
                                         <p className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
                                             ⚠️ Cette transaction sera créée en attente de validation par le Super Admin.
                                         </p>
+</>}
                                     </div>
                                 )}
                             </div>
-                            <button onClick={mode === 'new_sale' ? handleCheckout : handleRecordPayment} disabled={(mode === 'new_sale' && (cart.length === 0 || !selectedPaymentMethod || !selectedContact || (isBankingPayment && !selectedBankAccountId))) || (mode === 'payment' && (!paymentAmount || parseFloat(paymentAmount) <= 0 || !selectedPaymentMethod))} className="w-full text-center px-4 py-2.5 bg-[#c6e911] text-slate-800 font-bold text-sm rounded-lg hover:bg-[#adc40f] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">{t('cashRegister.checkoutButton')}</button>
+                            <button onClick={mode === 'new_sale' ? handleCheckout : handleRecordPayment} disabled={isCheckingOut || isRecordingPayment || (mode === 'new_sale' && (cart.length === 0 || !selectedPaymentMethod || !selectedContact || (requiresAccount && !selectedBankAccountId))) || (mode === 'payment' && (!isPaymentAmountValid || !selectedPaymentMethod || (requiresAccount && !selectedBankAccountId)))} className="w-full text-center px-4 py-2.5 bg-[#c6e911] text-slate-800 font-bold text-sm rounded-lg hover:bg-[#adc40f] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">{t('cashRegister.checkoutButton')}</button>
                         </div>
                     </>
                     )}

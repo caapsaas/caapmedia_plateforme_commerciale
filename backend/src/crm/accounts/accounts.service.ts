@@ -60,7 +60,11 @@ export class AccountsService {
       data: {
         id: generateId(ID_PREFIXES.ACCOUNT),
         ...createAccountDto,
-        subsidiaryId: subsidiaryId,
+        subsidiaryId,
+        salesRepId:
+          user.userRole === UserRole.COMMERCIAL
+            ? user.id
+            : createAccountDto.salesRepId,
       },
     });
   }

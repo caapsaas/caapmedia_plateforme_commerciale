@@ -16,11 +16,16 @@ import { CreateLeadDto } from './dto/create-lead.dto';
 import { PublicQuoteRequestDto } from './dto/public-quote-request.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
-import { CurrentUser, Roles } from '../../common/auth/role/role.decorator';
+import {
+  CurrentUser,
+  Roles,
+  SuperAdminReadOnly,
+} from '../../common/auth/role/role.decorator';
 import { type User, UserRole } from '@prisma/client';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
+@SuperAdminReadOnly()
 @Controller('crm/leads')
 export class LeadsController {
   constructor(private readonly leadsService: LeadsService) {}

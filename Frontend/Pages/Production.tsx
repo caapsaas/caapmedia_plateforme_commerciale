@@ -1,3 +1,4 @@
+import { isSuperAdmin as hasSuperAdminRole } from '../utils/isSuperAdmin';
 import { useOrderNotificationSelection } from '../hooks/useOrderNotificationSelection';
 import React, { useEffect, useState } from 'react';
 import { useI18n } from '../i18n';
@@ -36,12 +37,12 @@ const Production: React.FC = () => {
     }, [notificationSelection.order]);
 
     const activeRole = user?.activeRole ?? user?.userRole;
-    const isSuperAdmin = activeRole === UserRole.SUPER_ADMIN;
-    const canEditProduction = canManageProduction(activeRole);
+    const isSuperAdmin = hasSuperAdminRole(user);
+    const canEditProduction = !isSuperAdmin && canManageProduction(activeRole);
     const isProductionDirector =
         activeRole === UserRole.PRODUCTION_DIRECTOR ||
         activeRole === UserRole.ADMIN ||
-        activeRole === UserRole.SUPER_ADMIN;
+        isSuperAdmin;
 
     const { data: subsidiaries = [] } = useQuery<Subsidiary[]>({
         queryKey: ['subsidiaries-list'],

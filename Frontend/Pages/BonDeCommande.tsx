@@ -62,7 +62,7 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
         <div className="relative w-[210mm] p-8 bg-white mx-auto">
             <DocumentWatermark />
             {/* Header */}
-            <DocumentHeader subsidiary={subsidiary} />
+            <DocumentHeader subsidiary={subsidiary} usePublicContact />
             <div className="flex justify-between items-start mb-8">
                 <h2 className="font-bold text-2xl text-slate-800 uppercase">{t('bonDeCommande.title')}</h2>
                 <div className="text-right">

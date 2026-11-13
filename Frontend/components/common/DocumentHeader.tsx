@@ -3,6 +3,7 @@ import { Subsidiary } from '../../types';
 
 interface DocumentHeaderProps {
     subsidiary: Subsidiary;
+    usePublicContact?: boolean;
     // Affiche IFU/RCCM (identifiants fiscaux) — requis sur les factures,
     // pas nécessaire sur un bon de livraison/d'entrée.
     showFiscalInfo?: boolean;
@@ -27,7 +28,9 @@ const LOGO_SRC = '/CaapMedia.png';
  * N°...) ne sont pas placés à côté de ce composant mais EN DESSOUS, pleine
  * largeur — même agencement que gmo (HeaderGMO puis InvoiceHeader séparément).
  */
-const DocumentHeader: React.FC<DocumentHeaderProps> = ({ subsidiary, showFiscalInfo = false }) => {
+const DocumentHeader: React.FC<DocumentHeaderProps> = ({ subsidiary, showFiscalInfo = false, usePublicContact = false }) => {
+    const phone = usePublicContact ? '+237 671 89 01 84' : subsidiary.phone;
+    const email = usePublicContact ? 'contact@caapmedia.com' : subsidiary.email;
     return (
         <div className="flex items-stretch gap-6 pb-6 mb-6 border-b border-slate-200 min-h-[7rem]">
             <div className="w-1/3 flex items-center justify-center">
@@ -38,12 +41,8 @@ const DocumentHeader: React.FC<DocumentHeaderProps> = ({ subsidiary, showFiscalI
                 <p className="font-bold text-base text-slate-900">{subsidiary.name}</p>
                 {subsidiary.address && <p>{subsidiary.address}</p>}
                 <div className="flex flex-wrap gap-x-4 mt-1">
-                    {subsidiary.phone && (
-                        <p><span className="font-semibold">Tél :</span> {subsidiary.phone}</p>
-                    )}
-                    {subsidiary.email && (
-                        <p><span className="font-semibold">Email :</span> {subsidiary.email}</p>
-                    )}
+                    {phone && <p><span className="font-semibold">Tél :</span> {phone}</p>}
+                    {email && <p><span className="font-semibold">Email :</span> {email}</p>}
                 </div>
                 {showFiscalInfo && (subsidiary.ifu || subsidiary.rccm) && (
                     <div className="flex flex-wrap gap-x-4 mt-1 text-xs text-slate-500">

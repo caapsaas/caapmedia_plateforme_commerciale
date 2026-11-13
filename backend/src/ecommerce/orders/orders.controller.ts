@@ -17,7 +17,7 @@ import { OrdersService } from './orders.service';
 import { ContactJwtAuthGuard } from 'src/common/auth/jwt/contact-jwt.guard';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
-import { Roles } from 'src/common/auth/role/role.decorator';
+import { Roles, SuperAdminReadOnly } from 'src/common/auth/role/role.decorator';
 import {
   CreateOrderBySalesRepDto,
   RecordPaymentDto,
@@ -29,6 +29,7 @@ import { SetMetadata } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
+@SuperAdminReadOnly()
 @Controller('ecommerce/orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
@@ -158,7 +159,7 @@ export class OrdersController {
   @Get('payment-accounts')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.CAISSIER)
-  findPaymentAccounts(@Req() req: { user: { subsidiaryId: string } }) {
+  findPaymentAccounts(@Req() req: { user: JwtUser }) {
     return this.ordersService.findPaymentAccounts(req.user);
   }
 

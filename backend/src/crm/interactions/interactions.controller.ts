@@ -14,13 +14,17 @@ import { InteractionsService } from './interactions.service';
 import { CreateInteractionDto } from './dto/create-interaction.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { UpdateInteractionDto } from './dto/update-interaction.dto';
-import { Roles } from 'src/common/auth/role/role.decorator';
+import {
+  CurrentUser,
+  Roles,
+  SuperAdminReadOnly,
+} from 'src/common/auth/role/role.decorator';
 import { UserRole } from '@prisma/client';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
-import { CurrentUser } from 'src/common/auth/role/role.decorator';
 import type { User } from '@prisma/client';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
+@SuperAdminReadOnly()
 @Controller('crm/interactions')
 @UseGuards(JwtAuthGuard, RoleGuard)
 export class InteractionsController {

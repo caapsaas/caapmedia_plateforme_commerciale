@@ -542,6 +542,7 @@ export interface Contact {
   status?: ContactStatus;
   isVerified: boolean;
   accountId?: string;
+  account?: { accountName: string } | null;
 }
 
 export type Client = Contact;
@@ -769,6 +770,14 @@ export interface CashRemittance {
   receivedByUser?: { userName: string } | null;
   sourceCashRegister?: TreasuryAccount;
   destinationSafe?: TreasuryAccount;
+  orders?: { orderId: string; order: { id: string; customerName: string } }[];
+  receipts?: {
+    financialTransaction: {
+      id: string;
+      relatedDocumentId: string | null;
+      amount: number;
+    };
+  }[];
 }
 
 export enum DebtStatus {

@@ -14,12 +14,17 @@ import { AccountsService } from './accounts.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
-import { CurrentUser, Roles } from 'src/common/auth/role/role.decorator';
+import {
+  CurrentUser,
+  Roles,
+  SuperAdminReadOnly,
+} from 'src/common/auth/role/role.decorator';
 import type { User } from '@prisma/client';
 import { UserRole } from '@prisma/client';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 //import { ApiTags } from '@nestjs/swagger';
 
+@SuperAdminReadOnly()
 @Controller('crm/accounts')
 export class AccountsController {
   constructor(private readonly accountsService: AccountsService) {}

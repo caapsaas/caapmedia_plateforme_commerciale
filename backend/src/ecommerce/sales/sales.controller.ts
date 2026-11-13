@@ -11,11 +11,12 @@ import {
 import { SalesService } from './sales.service';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
-import { Roles } from 'src/common/auth/role/role.decorator';
+import { Roles, SuperAdminReadOnly } from 'src/common/auth/role/role.decorator';
 import { UserRole } from '@prisma/client';
 import { CreateDirectSaleDto } from './dto/create-sale.dto';
 import { FindAllSalesDto } from './dto/find-all-sales.dto';
 
+@SuperAdminReadOnly()
 @Controller('ecommerce/sales')
 export class SalesController {
   constructor(private readonly salesService: SalesService) {}

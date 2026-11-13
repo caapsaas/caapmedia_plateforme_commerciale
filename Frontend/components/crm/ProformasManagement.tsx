@@ -1,4 +1,6 @@
+import { isSuperAdmin as hasSuperAdminRole } from '../../utils/isSuperAdmin';
 import ShareProformaModal from './ShareProformaModal';
+import { useAuth } from '../../context/AuthContext';
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '../../i18n';
@@ -37,6 +39,8 @@ const TAB_TO_STATUS: Record<ProformaTab, ProformaStatus | undefined> = {
 };
 
 const ProformasManagement: React.FC = () => {
+  const { user } = useAuth();
+  const readOnly = hasSuperAdminRole(user);
   const { t, formatCurrency, language } = useI18n();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -139,13 +143,15 @@ const ProformasManagement: React.FC = () => {
     <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
         <h3 className="text-xl font-semibold text-slate-800">{t('proforma.title')}</h3>
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors"
-        >
-          <IconPlus className="h-4 w-4" />
-          <span>{t('proforma.create')}</span>
-        </button>
+        {!readOnly && (
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors"
+          >
+            <IconPlus className="h-4 w-4" />
+            <span>{t('proforma.create')}</span>
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -226,7 +232,7 @@ const ProformasManagement: React.FC = () => {
                     >
                       <IconEye className="h-5 w-5" />
                     </button>
-                    {proforma.status === 'DRAFT' && (
+                    {!readOnly && proforma.status === 'DRAFT' && (
                       <>
                         <button
                           onClick={() => setSelectedProforma(proforma)}
@@ -244,7 +250,7 @@ const ProformasManagement: React.FC = () => {
                         </button>
                       </>
                     )}
-                    {(proforma.status === 'SENT' || proforma.status === 'VIEWED') && (
+                    {!readOnly && (proforma.status === 'SENT' || proforma.status === 'VIEWED') && (
                       <>
                         <button
                           onClick={() => setSharingProforma(proforma)}
@@ -269,7 +275,7 @@ const ProformasManagement: React.FC = () => {
                         </button>
                       </>
                     )}
-                    {proforma.status === 'DRAFT' && (
+                    {!readOnly && proforma.status === 'DRAFT' && (
                       <button
                         onClick={() => setDeletingProforma(proforma)}
                         className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors"

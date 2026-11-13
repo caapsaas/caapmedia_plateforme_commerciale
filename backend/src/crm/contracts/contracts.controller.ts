@@ -14,13 +14,17 @@ import { ContractsService } from './contracts.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
-import { Roles } from 'src/common/auth/role/role.decorator';
+import {
+  CurrentUser,
+  Roles,
+  SuperAdminReadOnly,
+} from 'src/common/auth/role/role.decorator';
 import { UserRole } from '@prisma/client';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
-import { CurrentUser } from 'src/common/auth/role/role.decorator';
 import type { User } from '@prisma/client';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
+@SuperAdminReadOnly()
 @Controller('crm/contracts')
 @UseGuards(JwtAuthGuard, RoleGuard)
 export class ContractsController {

@@ -20,6 +20,7 @@ import ExcelImportButton from './ExcelImportButton';
 const CONTACTS_PAGE_SIZE = 10;
 
 interface ContactManagementProps {
+    readOnly?: boolean;
     subsidiaryId: string;
     filterSubsidiaryId?: string;
     filterSalesRepId?: string;
@@ -35,6 +36,7 @@ interface ContactManagementProps {
 }
 
 const ContactManagement: React.FC<ContactManagementProps> = ({
+    readOnly = false,
     subsidiaryId,
     filterSubsidiaryId,
     filterSalesRepId,
@@ -131,7 +133,7 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-semibold text-slate-800">{t('crm.contacts.title')}</h3>
                 <div className="flex items-center gap-2">
-                    <ExcelImportButton
+                    {!readOnly && <ExcelImportButton
                         title="contacts"
                         columns={[
                             { key: 'contactName', label: 'Nom', required: true },
@@ -149,11 +151,13 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
                                 status: (String(row.status) as ContactStatus) || ContactStatus.PROSPECT, salesRepId: '',
                             });
                         }}
-                    />
-                    <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
-                        <IconPlus className="h-4 w-4" />
-                        <span>{t('crm.contacts.add')}</span>
-                    </button>
+                    />}
+                    {!readOnly && (
+                        <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
+                            <IconPlus className="h-4 w-4" />
+                            <span>{t('crm.contacts.add')}</span>
+                        </button>
+                    )}
                 </div>
             </div>
             <div className="overflow-x-auto">
@@ -184,7 +188,14 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
                             return (
                                 <tr key={client.id} className="bg-white border-b hover:bg-slate-50">
                                     <td className="px-6 py-4 font-semibold">{client.contactName}</td>
-                                    <td className="px-6 py-4">{client.company}</td>
+                                    <td className="px-6 py-4">
+                                        <div>{client.company || '—'}</div>
+                                        <div className="text-xs text-slate-500">
+                                            {client.account
+                                                ? t('crmJourney.accountName', { name: client.account.accountName })
+                                                : t('crmJourney.noAccount')}
+                                        </div>
+                                    </td>
                                     <td className="px-6 py-4">{client.email}</td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClass(client.status)}`}>
@@ -211,7 +222,7 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
                                         <button onClick={() => setSelectedClient(client)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.view')}>
                                             <IconEye className="h-5 w-5" />
                                         </button>
-                                        {(onResetPassword || onEnablePortal) && (
+                                        {!readOnly && (onResetPassword || onEnablePortal) && (
                                             <button 
                                                 onClick={() => handleOpenAccountActions(client)} 
                                                 className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-100 rounded-full transition-colors" 
@@ -220,12 +231,16 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
                                                 <LockIcon className="h-5 w-5" />
                                             </button>
                                         )}
-                                        <button onClick={() => handleOpenEditModal(client)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
-                                            <IconEdit className="h-5 w-5" />
-                                        </button>
-                                        <button onClick={() => handleOpenDeleteModal(client)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" aria-label={t('common.delete')}>
-                                            <IconDelete className="h-5 w-5" />
-                                        </button>
+                                        {!readOnly && (
+                                            <button onClick={() => handleOpenEditModal(client)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
+                                                <IconEdit className="h-5 w-5" />
+                                            </button>
+                                        )}
+                                        {!readOnly && (
+                                            <button onClick={() => handleOpenDeleteModal(client)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" aria-label={t('common.delete')}>
+                                                <IconDelete className="h-5 w-5" />
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             )
@@ -243,7 +258,7 @@ const ContactManagement: React.FC<ContactManagementProps> = ({
                     interactions={interactions.filter(i => i.contactId === selectedClient.id)}
                     tasks={crmTasks.filter(t => t.contactId === selectedClient.id)}
                     contracts={contracts.filter(c => c.clientId === selectedClient.id)}
-                    onLogInteraction={onLogInteraction}
+                    onLogInteraction={readOnly ? undefined : onLogInteraction}
                 />
             )}
             {isFormModalOpen && (

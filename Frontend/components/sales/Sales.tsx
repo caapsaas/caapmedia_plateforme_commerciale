@@ -1,3 +1,4 @@
+import { isSuperAdmin as hasSuperAdminRole } from '../../utils/isSuperAdmin';
 import { useOrderNotificationSelection } from '../../hooks/useOrderNotificationSelection';
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
@@ -90,8 +91,8 @@ const Sales: React.FC = () => {
   const lastOrderDataRef = useRef<SalesRepOrderPayload | null>(null);
 
   const effectiveRole = user?.activeRole ?? user?.userRole;
-  const hasGlobalScope = effectiveRole === UserRole.SUPER_ADMIN;
-  const canRecordPayment = effectiveRole === UserRole.ADMIN || effectiveRole === UserRole.COMMERCIAL || effectiveRole === UserRole.CAISSIER;
+  const hasGlobalScope = hasSuperAdminRole(user);
+  const canRecordPayment = !hasGlobalScope && (effectiveRole === UserRole.ADMIN || effectiveRole === UserRole.COMMERCIAL || effectiveRole === UserRole.CAISSIER);
   const canFilterByCommercial =
     effectiveRole === UserRole.SUPER_ADMIN ||
     effectiveRole === UserRole.ADMIN ||
@@ -183,9 +184,11 @@ const Sales: React.FC = () => {
       amount: number;
       paymentMethod: CustomerPaymentMethod;
       bankAccountId?: string;
+      cashRegisterId?: string;
       transactionReference?: string;
     }) => recordOrderPayment(payload),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['treasury-accounts'] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       toast.success(
@@ -720,7 +723,7 @@ const Sales: React.FC = () => {
                                         onClick={(e) => e.stopPropagation()}
                                       >
                                         <div className="flex justify-center items-center space-x-1">
-                                        {canManageProduction(effectiveRole) && isBeforeProduction(order.status) && (
+                                        {!hasGlobalScope && canManageProduction(effectiveRole) && isBeforeProduction(order.status) && (
                                           <button
                                             onClick={() => validateOrderMutate(order.id)}
                                             disabled={isValidatingOrder}
@@ -740,7 +743,7 @@ const Sales: React.FC = () => {
                                                 <IconCoins className="h-5 w-5" />
                                               </button>
                                             )}
-                                            {allowedOrderTransitions(order, effectiveRole).some(status => status !== OrderStatus.IN_PRODUCTION) && (
+                                            {!hasGlobalScope && allowedOrderTransitions(order, effectiveRole).some(status => status !== OrderStatus.IN_PRODUCTION) && (
                                               <button
                                                 onClick={() => setUpdatingStatusOrder(order)}
                                                 className="p-2 text-blue-600 hover:bg-blue-100 rounded-full"
@@ -904,8 +907,8 @@ const Sales: React.FC = () => {
           isOpen={!!payingOrder}
           onClose={() => setPayingOrder(null)}
           order={payingOrder}
-          onRecordPayment={(orderId, amount, paymentMethod, bankAccountId, transactionReference) =>
-            recordPaymentMutate({ orderId, amount, paymentMethod, bankAccountId, transactionReference })
+          onRecordPayment={(orderId, amount, paymentMethod, bankAccountId, transactionReference, cashRegisterId) =>
+            recordPaymentMutate({ orderId, amount, paymentMethod, bankAccountId, transactionReference, cashRegisterId })
           }
         />
       )}

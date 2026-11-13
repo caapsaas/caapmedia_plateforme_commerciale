@@ -3,7 +3,15 @@ import { useI18n } from '../../i18n';
 import ECommerceFooter from './ECommerceFooter';
 import { useNavigate } from '@tanstack/react-router';
 import PublicSiteHeader from './PublicSiteHeader';
-import PhotoPlaceholder from './PhotoPlaceholder';
+
+const realizationPhotos = [
+    { src: '/realisations/calendrier-personnalise.jpg', alt: 'realizationOne' },
+    { src: '/realisations/stylos-publicitaires.jpg', alt: 'realizationTwo' },
+    { src: '/realisations/sac-tissu-personnalise.jpg', alt: 'realizationThree' },
+    { src: '/realisations/mug-personnalise.jpg', alt: 'realizationFour' },
+    { src: '/realisations/roll-up-kakemono.jpg', alt: 'realizationFive' },
+    { src: '/realisations/backdrop-textile.jpg', alt: 'realizationSix' },
+];
 
 const services = [
     {
@@ -80,8 +88,15 @@ const RealisationsPage: React.FC = () => {
                     <h2 id="realizations-gallery-title" className="text-3xl font-extrabold text-slate-800 text-center">{t('publicPages.photoSlots.realizationsTitle')}</h2>
                     <p className="mx-auto mt-3 max-w-2xl text-center text-slate-600">{t('publicPages.photoSlots.realizationsIntro')}</p>
                     <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                        {['realizationOne', 'realizationTwo', 'realizationThree', 'realizationFour', 'realizationFive', 'realizationSix'].map(key => (
-                            <PhotoPlaceholder key={key} label={t(`publicPages.photoSlots.${key}`)} className="aspect-[4/3]" />
+                        {realizationPhotos.map(({ src, alt }) => (
+                            <figure key={src} className="group overflow-hidden rounded-2xl bg-white shadow-sm">
+                                <img
+                                    src={src}
+                                    alt={t(`publicPages.photoSlots.${alt}`)}
+                                    loading="lazy"
+                                    className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                />
+                            </figure>
                         ))}
                     </div>
                 </section>

@@ -1,6 +1,7 @@
+import { useAuth } from '../../context/AuthContext';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getOrders, recordOrderPayment } from '../../services/apiE-commerce/apiOrders';
+import { getOrders, recordOrderPayment, getOrderPaymentAccounts, getFixedOrderPaymentMethod, getOrderOutstandingAmount } from '../../services/apiE-commerce/apiOrders';
 import { useI18n } from '../../i18n';
 import { CreditAccount, CustomerPaymentMethod, Order } from '../../types';
 import EmptyState from '../ui/EmptyState';
@@ -13,6 +14,7 @@ interface CreditPaymentModalProps {
 
 const CreditPaymentModal: React.FC<CreditPaymentModalProps> = ({ isOpen, onClose, account }) => {
     const { t, formatCurrency } = useI18n();
+    const { user, subsidiary } = useAuth();
     const queryClient = useQueryClient();
 
     const customerId = (account as any).contactId;
@@ -27,22 +29,36 @@ const CreditPaymentModal: React.FC<CreditPaymentModalProps> = ({ isOpen, onClose
 
     const [selectedOrderId, setSelectedOrderId] = useState<string>('');
     const [amount, setAmount] = useState<number>(0);
-    const [paymentMethod, setPaymentMethod] = useState<CustomerPaymentMethod>(CustomerPaymentMethod.CARD);
+    const [chosenPaymentMethod, setPaymentMethod] = useState<CustomerPaymentMethod>(CustomerPaymentMethod.CARD);
+
+    const [accountId, setAccountId] = useState('');
+    const selectedOrder = useMemo(() => unpaidOrders.find((o: Order) => o.id === selectedOrderId), [unpaidOrders, selectedOrderId]);
+    const remainingBalance = selectedOrder ? getOrderOutstandingAmount(selectedOrder) : 0;
+
+    const fixedPaymentMethod = getFixedOrderPaymentMethod(selectedOrder?.paymentMethod);
+    const paymentMethod = fixedPaymentMethod ?? chosenPaymentMethod;
+    const isAmountValid = amount >= 0.01 && amount <= remainingBalance && Number(amount.toFixed(2)) === amount;
+    const isCashPayment = paymentMethod === CustomerPaymentMethod.CASH;
+    const isBankingPayment = [CustomerPaymentMethod.CARD, CustomerPaymentMethod.BANK_TRANSFER, CustomerPaymentMethod.CHECK].includes(paymentMethod);
+    const requiresAccount = isCashPayment || isBankingPayment;
+    const { data: paymentAccounts = [] } = useQuery({
+        queryKey: ['order-payment-accounts', subsidiary?.id, user?.id],
+        queryFn: getOrderPaymentAccounts,
+        enabled: isOpen && requiresAccount && !!user,
+    });
 
     useEffect(() => {
         if (unpaidOrders.length > 0 && !selectedOrderId) {
             const firstOrder = unpaidOrders[0];
             setSelectedOrderId(firstOrder.id);
-            setAmount(firstOrder.totalAmount - firstOrder.amountPaid);
+            setAmount(getOrderOutstandingAmount(firstOrder));
         }
     }, [unpaidOrders, selectedOrderId]);
-
-    const selectedOrder = useMemo(() => unpaidOrders.find((o: Order) => o.id === selectedOrderId), [unpaidOrders, selectedOrderId]);
-    const remainingBalance = selectedOrder ? selectedOrder.totalAmount - selectedOrder.amountPaid : 0;
 
     const { mutate: processPayment, isPending: isProcessing } = useMutation({
         mutationFn: recordOrderPayment,
         onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['treasury-accounts'] });
             queryClient.invalidateQueries({ queryKey: ['customerOrdersForPayment', customerId] });
             queryClient.invalidateQueries({ queryKey: ['credit'] });
             queryClient.invalidateQueries({ queryKey: ['totalReceivables'] });
@@ -55,8 +71,14 @@ const CreditPaymentModal: React.FC<CreditPaymentModalProps> = ({ isOpen, onClose
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedOrderId || amount <= 0) return;
-        processPayment({ orderId: selectedOrderId, amount, paymentMethod });
+        if (!selectedOrderId || !isAmountValid || (requiresAccount && !accountId)) return;
+        processPayment({
+            orderId: selectedOrderId,
+            amount,
+            paymentMethod,
+            cashRegisterId: isCashPayment ? accountId : undefined,
+            bankAccountId: isBankingPayment ? accountId : undefined,
+        });
     };
 
     if (!isOpen) return null;
@@ -96,7 +118,7 @@ const CreditPaymentModal: React.FC<CreditPaymentModalProps> = ({ isOpen, onClose
                             <>
                                 <div>
                                     <label htmlFor="orderId" className="block text-sm font-medium text-slate-700">Commande à encaisser <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
-                                    <select id="orderId" value={selectedOrderId} onChange={(e) => { const orderId = e.target.value; setSelectedOrderId(orderId); const order = unpaidOrders.find((o: Order) => o.id === orderId); if (order) { setAmount(order.totalAmount - order.amountPaid); } }} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" required>
+                                    <select id="orderId" value={selectedOrderId} onChange={(e) => { const orderId = e.target.value; setSelectedOrderId(orderId); setAccountId(''); const order = unpaidOrders.find((o: Order) => o.id === orderId); if (order) { setAmount(getOrderOutstandingAmount(order)); } }} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" required>
                                         {unpaidOrders.map((order: Order) => (
                                             <option key={order.id} value={order.id}>
                                                 Commande {order.id.substring(0, 8)} du {new Date(order.date).toLocaleDateString()} - Solde: {formatCurrency(order.totalAmount - order.amountPaid)}
@@ -108,15 +130,27 @@ const CreditPaymentModal: React.FC<CreditPaymentModalProps> = ({ isOpen, onClose
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label htmlFor="amount" className="block text-sm font-medium text-slate-700">Montant à encaisser <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
-                                            <input type="number" id="amount" value={amount} onChange={(e) => setAmount(parseFloat(e.target.value))} max={remainingBalance} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" required />
-                                            <p className="text-xs text-slate-500 mt-1">Solde restant sur cette commande : {formatCurrency(remainingBalance)}</p>
+                                            <input type="number" id="amount" value={amount} onChange={(e) => setAmount(parseFloat(e.target.value))} max={remainingBalance} min="0.01" step="0.01" className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" required />
+                            {amount > remainingBalance && <p className="mt-1 text-xs text-red-600">{t('cashRegister.amountAboveBalance')}</p>}
+                                            <p className="text-xs text-slate-500 mt-1">Solde restant sur cette commande : {formatCurrency(remainingBalance, 2)}</p>
                                         </div>
                                         <div>
                                             <label htmlFor="paymentMethod" className="block text-sm font-medium text-slate-700">Moyen de paiement <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
-                                            <select id="paymentMethod" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as CustomerPaymentMethod)} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" required>
+                                            {fixedPaymentMethod ? <p>{t(`payment.${fixedPaymentMethod}`)}</p> : <select id="paymentMethod" value={paymentMethod} onChange={(e) => { setPaymentMethod(e.target.value as CustomerPaymentMethod); setAccountId(''); }} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" required>
                                                 {paymentMethods.map(method => (<option key={method} value={method}>{t(`payment.${method}`)}</option>))}
-                                            </select>
+                                            </select>}
                                         </div>
+                                        {requiresAccount && (
+                                            <label className="block text-sm font-medium text-slate-700">
+                                                {isCashPayment ? t('cashRegister.cashAccount') : t('cashRegister.bankAccount')}
+                                                <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className="mt-1 block w-full border-slate-300 rounded-md shadow-sm" required>
+                                                    <option value="">{isCashPayment ? t('cashRegister.selectCashAccount') : t('cashRegister.selectBankAccount')}</option>
+                                                    {paymentAccounts.filter((account) => account.accountType === (isCashPayment ? 'CASH_REGISTER' : 'BANQUE')).map((account) => (
+                                                        <option key={account.id} value={account.id}>{account.accountName}</option>
+                                                    ))}
+                                                </select>
+                                            </label>
+                                        )}
                                     </div>
                                 )}
                             </>
@@ -124,7 +158,7 @@ const CreditPaymentModal: React.FC<CreditPaymentModalProps> = ({ isOpen, onClose
                     </div>
                     <div className="px-6 py-4 bg-slate-50 flex justify-end space-x-3 rounded-b-lg">
                         <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">{t('common.cancel')}</button>
-                        <button type="submit" disabled={isProcessing || !selectedOrderId || amount <= 0} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-slate-400">
+                        <button type="submit" disabled={isProcessing || !selectedOrderId || !isAmountValid || (requiresAccount && !accountId)} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-slate-400">
                             {isProcessing ? t('common.loading') : t('credit.recordPayment')}
                         </button>
                     </div>

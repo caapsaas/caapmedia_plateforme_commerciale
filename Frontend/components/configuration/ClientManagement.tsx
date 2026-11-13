@@ -1,3 +1,4 @@
+import { isSuperAdmin } from '../../utils/isSuperAdmin';
 import React, { useState } from 'react';
 import IconPlus from '../icons/IconPlus';
 import IconEdit from '../icons/IconEdit';
@@ -18,7 +19,8 @@ import CrmListSkeleton from '../ui/CrmListSkeleton';
 const ClientManagement: React.FC = () => {
     const { t } = useI18n();
     const toast = useToast();
-    const { subsidiary } = useAuth();
+    const { subsidiary, user } = useAuth();
+    const readOnly = isSuperAdmin(user);
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingContact, setEditingContact] = useState<Contact | null>(null);
@@ -100,10 +102,12 @@ const ClientManagement: React.FC = () => {
         <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-semibold text-slate-800">{t('configuration.clientManagement')}</h3>
-                <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
-                    <IconPlus className="h-4 w-4" />
-                    <span>{t('configuration.addClient')}</span>
-                </button>
+                {!readOnly && (
+                    <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
+                        <IconPlus className="h-4 w-4" />
+                        <span>{t('configuration.addClient')}</span>
+                    </button>
+                )}
             </div>
             <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('common.search')} aria-label={t('common.search')} className="mb-4 w-full rounded-md border border-slate-300 px-4 py-2 text-sm md:max-w-sm" />
             <div className="overflow-x-auto">
@@ -135,12 +139,16 @@ const ClientManagement: React.FC = () => {
                                 <td className="px-6 py-4">{contact.email}</td>
                                 <td className="px-6 py-4">{contact.phone}</td>
                                 <td className="px-6 py-4 text-center space-x-2">
-                                    <button onClick={() => handleOpenEditModal(contact)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
-                                        <IconEdit className="h-5 w-5" />
-                                    </button>
-                                    <button onClick={() => handleOpenDeleteModal(contact)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" aria-label={t('common.delete')}>
-                                        <IconDelete className="h-5 w-5" />
-                                    </button>
+                                    {!readOnly && (
+                                        <button onClick={() => handleOpenEditModal(contact)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
+                                            <IconEdit className="h-5 w-5" />
+                                        </button>
+                                    )}
+                                    {!readOnly && (
+                                        <button onClick={() => handleOpenDeleteModal(contact)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" aria-label={t('common.delete')}>
+                                            <IconDelete className="h-5 w-5" />
+                                        </button>
+                                    )}
                                 </td>
                             </tr>
                         ))}

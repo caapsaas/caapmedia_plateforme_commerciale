@@ -37,6 +37,13 @@ describe('Order notification triggers', () => {
       paymentStatus: PaymentStatus.PARTIALLY_PAID,
     };
     const tx = {
+      treasuryAccount: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        findUniqueOrThrow: jest
+          .fn()
+          .mockResolvedValue({ balance: new Decimal(500) }),
+      },
+      financialTransaction: { create: jest.fn() },
       order: {
         findUnique: jest.fn().mockResolvedValue(order),
         findUniqueOrThrow: jest.fn().mockResolvedValue(updated),
@@ -79,10 +86,30 @@ describe('Order notification triggers', () => {
     const { service, notifications, tx } = setup();
     const result = await service.recordPayment(
       'order',
-      { amount: 25, paymentMethod: CustomerPaymentMethod.CASH },
+      {
+        amount: 25,
+        paymentMethod: CustomerPaymentMethod.CASH,
+        cashRegisterId: 'register',
+      },
       user,
     );
     expect(result.amountPaid).toBe(25);
+    expect(tx.treasuryAccount.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'register',
+        subsidiaryId: 'branch',
+        cashierId: user.id,
+        accountType: 'CASH_REGISTER',
+      },
+      data: { balance: { increment: new Decimal(25) } },
+    });
+    expect(tx.financialTransaction.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        treasuryAccountId: 'register',
+        relatedDocumentId: 'order',
+        status: 'VALIDE',
+      }),
+    });
     expect(notifications.paymentReceived).toHaveBeenCalledWith({
       id: 'order',
       subsidiaryId: 'branch',
@@ -103,13 +130,92 @@ describe('Order notification triggers', () => {
     );
   });
 
+  it('rejects a payment method different from the one set on the order', async () => {
+    const { service, tx } = setup();
+    tx.order.findUnique.mockResolvedValue({
+      ...order,
+      paymentMethod: CustomerPaymentMethod.CASH,
+    });
+    await expect(
+      service.recordPayment(
+        'order',
+        {
+          amount: 25,
+          paymentMethod: CustomerPaymentMethod.CARD,
+          bankAccountId: 'bank',
+        },
+        user,
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(tx.order.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects a cash payment above the outstanding balance after a partial payment', async () => {
+    const { service, tx } = setup();
+    tx.order.findUnique.mockResolvedValue({
+      ...order,
+      amountPaid: new Decimal(75),
+      paymentMethod: CustomerPaymentMethod.CASH,
+    });
+    await expect(
+      service.recordPayment(
+        'order',
+        {
+          amount: 25.01,
+          paymentMethod: CustomerPaymentMethod.CASH,
+          cashRegisterId: 'register',
+        },
+        user,
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(tx.order.updateMany).not.toHaveBeenCalled();
+    expect(tx.treasuryAccount.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects cash payments without a selected register before updating the order', async () => {
+    const { service, tx } = setup();
+    await expect(
+      service.recordPayment(
+        'order',
+        {
+          amount: 25,
+          paymentMethod: CustomerPaymentMethod.CASH,
+        },
+        user,
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(tx.order.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects a register outside the cashier scope without creating a receipt', async () => {
+    const { service, tx, notifications } = setup();
+    tx.treasuryAccount.updateMany.mockResolvedValue({ count: 0 });
+    await expect(
+      service.recordPayment(
+        'order',
+        {
+          amount: 25,
+          paymentMethod: CustomerPaymentMethod.CASH,
+          cashRegisterId: 'foreign-register',
+        },
+        user,
+      ),
+    ).rejects.toMatchObject({ status: 404 });
+    expect(tx.financialTransaction.create).not.toHaveBeenCalled();
+    expect(notifications.paymentReceived).not.toHaveBeenCalled();
+  });
+
   it('does not announce a payment rejected by the concurrent-update guard', async () => {
     const { service, tx, notifications } = setup();
     tx.order.updateMany.mockResolvedValue({ count: 0 });
     await expect(
       service.recordPayment(
         'order',
-        { amount: 25, paymentMethod: CustomerPaymentMethod.CASH },
+        {
+          amount: 25,
+          paymentMethod: CustomerPaymentMethod.CASH,
+          cashRegisterId: 'register',
+        },
         user,
       ),
     ).rejects.toBeInstanceOf(ConflictException);

@@ -1,3 +1,5 @@
+import { RoleGuard } from '../../common/auth/role/role.guard';
+import { SuperAdminReadOnly } from '../../common/auth/role/role.decorator';
 import { PayNeedRequestDto } from './dto/pay-need-request.dto';
 import {
   Body,
@@ -18,8 +20,9 @@ import {
 } from './dto/need-request.dto';
 import { NeedRequestsService } from './need-requests.service';
 
+@SuperAdminReadOnly()
 @Controller('purchasing/need-requests')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RoleGuard)
 export class NeedRequestsController {
   constructor(private readonly service: NeedRequestsService) {}
   @Get()

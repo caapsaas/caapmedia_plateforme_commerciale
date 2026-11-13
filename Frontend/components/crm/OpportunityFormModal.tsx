@@ -5,6 +5,7 @@ import { getContactsPaginated } from '../../services/apiCrm/apiCrm';
 import { AsyncSelect } from '../ui/AsyncSelect';
 
 interface OpportunityFormModalProps {
+    readOnly?: boolean;
     isOpen: boolean;
     onClose: () => void;
     onSave: (data: Omit<Opportunity, 'id' | 'subsidiaryId' | 'userId' | 'products'> & {
@@ -24,6 +25,7 @@ interface OpportunityFormModalProps {
 const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
     isOpen,
     onClose,
+    readOnly = false,
     onSave,
     opportunity,
     subsidiaryId,
@@ -115,14 +117,14 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
                 className="bg-white rounded-lg shadow-xl w-full max-w-lg"
                 onClick={e => e.stopPropagation()}
             >
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={readOnly ? (event) => event.preventDefault() : handleSubmit}>
                     <div className="p-6">
                         <h3 className="text-lg font-bold text-slate-900">
-                            {opportunity
+                            {readOnly ? t('common.view') : opportunity
                                 ? t('crm.opportunity.modal.editTitle')
                                 : t('crm.opportunity.modal.addTitle')}
                         </h3>
-                        <div className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                        <fieldset disabled={readOnly} className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                             <div>
                                 <label htmlFor="opportunityName" className="block text-sm font-medium text-slate-700">
                                     {t('crm.opportunity.form.name')}
@@ -229,7 +231,7 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
                                     className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911]"
                                 />
                             </div>
-                        </div>
+                        </fieldset>
                     </div>
 
                     <div className="px-6 py-4 bg-slate-50 flex justify-end space-x-3 rounded-b-lg">
@@ -240,12 +242,12 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
                         >
                             {t('common.cancel')}
                         </button>
-                        <button
+                        {!readOnly && <button
                             type="submit"
                             className="px-4 py-2 bg-[#c6e911] text-slate-800 rounded-md hover:bg-[#adc40f] transition-colors"
                         >
                             {t('common.save')}
-                        </button>
+                        </button>}
                     </div>
                 </form>
             </div>

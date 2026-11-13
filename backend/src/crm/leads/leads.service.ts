@@ -15,11 +15,9 @@ import {
   LeadStatus,
   OpportunityStage,
   OpportunitySource,
-  Account,
   UserRole,
   Prisma,
 } from '@prisma/client';
-import { AccountsService } from '../accounts/accounts.service';
 import { ContactsService } from '../contacts/contacts.service';
 import { CreateContactDto } from '../contacts/dto/create-contact.dto';
 import { generateId } from 'src/common/utils/generate-id.util';
@@ -33,7 +31,6 @@ import type { Lead } from '@prisma/client';
 export class LeadsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly accountsService: AccountsService,
     private readonly contactsService: ContactsService, // Injecter ContactsService
   ) {}
 
@@ -169,7 +166,12 @@ export class LeadsService {
     } else {
       const privilegedRoles: UserRole[] = [UserRole.ADMIN, UserRole.SECRETARY];
       if (!privilegedRoles.includes(user.userRole)) {
-        where.OR = [{ salesRepId: user.id }, { salesRepId: null }];
+        const employee = await this.prisma.employee.findUnique({
+          where: { email: user.email },
+          select: { id: true },
+        });
+        where.OR = [{ salesRepId: null }];
+        if (employee) where.OR.push({ salesRepId: employee.id });
       }
     }
 
@@ -234,7 +236,9 @@ export class LeadsService {
       where: { id },
       data: {
         ...updateLeadDto,
-        ...(updateLeadDto.email !== undefined ? { email: normalizedEmail } : {}),
+        ...(updateLeadDto.email !== undefined
+          ? { email: normalizedEmail }
+          : {}),
         ...(updateLeadDto.phone !== undefined
           ? { phone: updateLeadDto.phone?.trim() || null }
           : {}),
@@ -262,6 +266,22 @@ export class LeadsService {
     if (!fullUser)
       throw new NotFoundException(`User with ID "${user.id}" not found.`);
     if (!lead) throw new NotFoundException(`Lead with ID "${id}" not found.`);
+    if (lead.subsidiaryId !== fullUser.subsidiaryId) {
+      throw new ForbiddenException(
+        'Cette piste appartient à une autre filiale.',
+      );
+    }
+    if (fullUser.userRole === UserRole.COMMERCIAL && lead.salesRepId) {
+      const employee = await this.prisma.employee.findUnique({
+        where: { email: fullUser.email },
+        select: { id: true },
+      });
+      if (employee?.id !== lead.salesRepId) {
+        throw new ForbiddenException(
+          'Cette piste est attribuée à un autre commercial.',
+        );
+      }
+    }
     if (lead.status !== LeadStatus.QUALIFIED)
       throw new BadRequestException('Only qualified leads can be converted.');
     if (!lead.email || !lead.phone) {
@@ -270,51 +290,36 @@ export class LeadsService {
       );
     }
 
-    const salesRepId = lead.salesRepId ?? fullUser.id;
+    const accountName = lead.company.trim() || lead.leadName;
 
-    return this.prisma.$transaction(async (tx) => {
-      // 1. Créer le compte
-      let account: Account;
-      try {
-        account = await this.accountsService.create(
-          {
-            accountName: lead.leadName,
-            industry: lead.company,
-            phone: lead.phone,
-            address: 'Unknown',
-            subsidiaryId: fullUser.subsidiaryId,
-            salesRepId: lead.salesRepId ?? undefined, // Convertit null en undefined
-          },
-          user,
-        ); // On peut passer l'objet user directement
-      } catch (error) {
-        if (error instanceof ConflictException) {
-          const existingAccount = await tx.account.findFirst({
-            where: {
-              accountName: lead.leadName,
-              subsidiaryId: fullUser.subsidiaryId,
-            },
-          });
-          if (!existingAccount)
-            throw new NotFoundException(
-              `Failed to find existing account for company "${lead.company}" after conflict.`,
-            );
-          account = existingAccount;
-        } else {
-          throw error;
-        }
-      }
+    const subsidiaryId = fullUser.subsidiaryId;
+    const contactDto: CreateContactDto = {
+      contactName: lead.leadName,
+      company: lead.company,
+      email: lead.email,
+      phone: lead.phone,
+      address: 'Unknown',
+    };
 
-      // 2. Créer le contact
-      const contactDto: CreateContactDto = {
-        contactName: lead.leadName,
-        company: lead.company,
-        email: lead.email,
-        phone: lead.phone,
-        address: 'Unknown',
-        accountId: account.id,
-      };
-      const contact = await this.contactsService.create(contactDto, fullUser);
+    const result = await this.prisma.$transaction(async (tx) => {
+      const account = await tx.account.upsert({
+        where: { accountName_subsidiaryId: { accountName, subsidiaryId } },
+        update: {},
+        create: {
+          id: generateId(ID_PREFIXES.ACCOUNT),
+          accountName,
+          industry: lead.sector?.trim() || 'Non renseigné',
+          phone: contactDto.phone,
+          address: 'Unknown',
+          subsidiaryId,
+          salesRepId: fullUser.id,
+        },
+      });
+      const contact = await this.contactsService.create(
+        { ...contactDto, accountId: account.id },
+        fullUser,
+        tx,
+      );
 
       // 3. Créer l'opportunité
       const opportunity = await tx.opportunity.create({
@@ -342,5 +347,10 @@ export class LeadsService {
         opportunity,
       };
     });
+    this.contactsService.sendWelcomeEmail(
+      contactDto,
+      result.contact.tempPassword,
+    );
+    return result;
   }
 }
