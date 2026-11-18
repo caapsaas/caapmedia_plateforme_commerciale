@@ -16,6 +16,8 @@ import EmptyState from '../ui/EmptyState';
 // ailleurs (Sales.tsx "Voir détails", Production.tsx) — plus de duplication
 // des formatters/sections specs+workflow production ici.
 import OrderDetailsPanel, { fmtMoney, fmtDate } from './OrderDetailsPanel';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 // ─── Vue principale ─────────────────────────────────────────────────────────
 
@@ -59,6 +61,7 @@ const ProductionValidationView: React.FC = () => {
         enabled: canSeeValidation,
         refetchInterval: 30_000,
     });
+    const { pageItems: pageOrders, meta: ordersMeta, setPage } = useClientPagination(orders);
 
     const invalidate = () => {
         queryClient.invalidateQueries({ queryKey: ['pendingValidationOrders'] });
@@ -167,7 +170,7 @@ const ProductionValidationView: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {orders.map(order => {
+                                {pageOrders.map(order => {
                                     const orderDate = order.orderDate ?? order.date;
                                     const totalQty = (order.orderItems ?? []).reduce((acc, i) => acc + i.quantity, 0);
                                     const hasNegativeMargin = (order.orderItems ?? []).some(i =>
@@ -227,6 +230,7 @@ const ProductionValidationView: React.FC = () => {
                                 })}
                             </tbody>
                         </table>
+                        <Pagination meta={ordersMeta} onPageChange={setPage} />
                     </div>
                 </div>
             )}

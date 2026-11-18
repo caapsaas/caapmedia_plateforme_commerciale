@@ -32,10 +32,10 @@ export interface Proforma {
   clientPhone: string;
   clientCompany?: string;
   items: any[];
-  subtotal: number;
-  taxRate: number;
-  taxAmount: number;
-  totalAmount: number;
+  subtotal: number | string;
+  taxRate: number | string;
+  taxAmount: number | string;
+  totalAmount: number | string;
   status: ProformaStatus;
   validityDate: string;
   notes?: string;
@@ -118,6 +118,7 @@ export const deleteProforma = async (id: string): Promise<any> => {
 
 export interface WhatsAppProformaShare {
   phone: string;
+  caption: string;
   message: string;
   downloadUrl: string;
   whatsappUrl: string;

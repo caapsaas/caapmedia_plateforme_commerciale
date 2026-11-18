@@ -1,6 +1,7 @@
+import { isSuperAdmin as hasSuperAdminRole } from '../utils/isSuperAdmin';
 import React, { useState, useMemo } from 'react';
 import { categoryToKeyMap, rangeToKeyMap } from '../constants';
-import { StockItem, Subsidiary, UserRole } from '../types/models';
+import { StockItem, Subsidiary } from '../types/models';
 import { StockItemFormData } from '../types/forms';
 import { useI18n } from '../i18n';
 import { exportToCsv } from '../utils/csvExporter';
@@ -21,6 +22,8 @@ import { useAuth } from '../context/AuthContext';
 import StockMovementsJournal from '../components/purchasing/StockMovementsJournal';
 import InventoryAdjustmentForm from '../components/purchasing/InventoryAdjustmentForm';
 import { useToast } from '../context/ToastContext';
+import Pagination from '../components/common/Pagination';
+import { useClientPagination } from '../hooks/useClientPagination';
 
 type StockView = 'levels' | 'movements' | 'inventory';
 
@@ -42,8 +45,7 @@ const Stock: React.FC = () => {
     const queryClient = useQueryClient();
     const { subsidiary, user } = useAuth();
 
-    // activeRole prime sur userRole (apercu de role SUPER_ADMIN, voir Purchasing.tsx pour le meme correctif).
-    const isSuperAdmin = (user?.activeRole ?? user?.userRole) === UserRole.SUPER_ADMIN;
+    const isSuperAdmin = hasSuperAdminRole(user);
 
     const [activeTab, setActiveTab] = useState<StockView>('levels');
     const [subsidiaryFilter, setSubsidiaryFilter] = useState<string>('');
@@ -93,6 +95,7 @@ const Stock: React.FC = () => {
             (item.sku && item.sku.toLowerCase().includes(term))
         );
     }, [items, searchTerm]);
+    const { pageItems: pageFilteredItems, meta: stockMeta, setPage } = useClientPagination(filteredItems);
 
     const totalValue = useMemo(() => filteredItems.reduce((s, i) => s + i.stock * (i.costPrice ?? 0), 0), [filteredItems]);
     const lowStockCount = useMemo(() => filteredItems.filter(isLowStock).length, [filteredItems]);
@@ -159,11 +162,11 @@ const Stock: React.FC = () => {
 
             {/* Onglet Mouvements */}
             {activeTab === 'movements' && (
-                <StockMovementsJournal subsidiaryId={effectiveSid} />
+                <StockMovementsJournal subsidiaryId={effectiveSid} readOnly={isSuperAdmin} />
             )}
 
             {/* Onglet Inventaire */}
-            {activeTab === 'inventory' && (
+            {!isSuperAdmin && activeTab === 'inventory' && (
                 <InventoryAdjustmentForm subsidiaryId={effectiveSid} />
             )}
 
@@ -282,7 +285,7 @@ const Stock: React.FC = () => {
                                                         )}
                                                     </td>
                                                 </tr>
-                                            ) : filteredItems.map(item => {
+                                            ) : pageFilteredItems.map(item => {
                                                 const low = isLowStock(item);
                                                 const unit = item.baseUnit;
                                                 return (
@@ -326,12 +329,13 @@ const Stock: React.FC = () => {
                                         </tbody>
                                     </table>
                                 </div>
+                                <Pagination meta={stockMeta} onPageChange={setPage} />
                             </div>
                         </>
                     )}
 
             {/* Modals */}
-            {isAddModalOpen && (
+            {!isSuperAdmin && isAddModalOpen && (
                 <StockItemFormModal
                     isOpen={isAddModalOpen}
                     onClose={() => setIsAddModalOpen(false)}
@@ -340,7 +344,7 @@ const Stock: React.FC = () => {
                 />
             )}
 
-            {itemToDelete && (
+            {!isSuperAdmin && itemToDelete && (
                 <ConfirmationModal
                     isOpen
                     onClose={() => setItemToDelete(null)}

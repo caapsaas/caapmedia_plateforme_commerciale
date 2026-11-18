@@ -14,6 +14,8 @@ import { getContacts, saveContact, deleteContact } from '../../services/apiCrm/a
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
 import CrmListSkeleton from '../ui/CrmListSkeleton';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 
 const ClientManagement: React.FC = () => {
@@ -37,6 +39,7 @@ const ClientManagement: React.FC = () => {
         [contact.contactName, contact.company, contact.email, contact.phone, contact.id]
             .some((value) => value?.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())),
     );
+    const { pageItems: pageContacts, meta: contactsMeta, setPage } = useClientPagination(filteredContacts);
 
     const { mutate: onSave } = useMutation<Contact, Error, Omit<Contact, 'id'> & { id?: string }>({ 
         mutationFn: saveContact, 
@@ -131,7 +134,7 @@ const ClientManagement: React.FC = () => {
                                     <EmptyState icon="inbox" title={t('configuration.clientManagement')} description={t('common.notAvailable')} />
                                 </td>
                             </tr>
-                        ) : filteredContacts.map((contact) => (
+                        ) : pageContacts.map((contact) => (
                             <tr key={contact.id} className="bg-white border-b hover:bg-slate-50">
                                 <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{contact.id}</th>
                                 <td className="px-6 py-4 font-semibold">{contact.contactName}</td>
@@ -155,6 +158,7 @@ const ClientManagement: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+            <Pagination meta={contactsMeta} onPageChange={setPage} />
              {isModalOpen && (
                 <ClientFormModal
                     isOpen={isModalOpen}

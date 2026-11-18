@@ -1,4 +1,30 @@
 {
+  "cashierReceipts": {
+    "title": "My daily receipts",
+    "subtitle": "Track receipts recorded under your account.",
+    "adminTitle": "Daily receipts",
+    "adminSubtitle": "Consolidated view of receipts recorded by cashiers.",
+    "date": "Day",
+    "refresh": "Refresh",
+    "todayTotal": "Total amount collected today",
+    "operationsToday": "Receipts recorded today",
+    "activity": "Collection activity",
+    "activityHint": "Amount distribution by time of day",
+    "liveUpdate": "Automatically refreshes every 30 seconds",
+    "latestFirst": "Most recent operations first",
+    "emptyHint": "Today’s receipts will appear here.",
+    "receipt": "Receipt",
+    "total": "Total collected",
+    "count": "Number of receipts",
+    "details": "Receipt details",
+    "time": "Time",
+    "description": "Description",
+    "account": "Credited account",
+    "status": "Status",
+    "amount": "Amount",
+    "empty": "No receipts for this day.",
+    "error": "Could not load your receipts. Please try again."
+  },
   "crmJourney": {
     "saveContactError": "The contact could not be saved.",
     "linkedAccount": "Linked CRM account",
@@ -505,6 +531,7 @@
       "DIMENSIONS": "Dimensions (Width x Height)"
     },
     "valuesModal": {
+      "optional": "optional",
       "title": "Technical specifications — {{productName}}",
       "subtitle": "Fill in this line's specifications before adding it to the cart.",
       "cancel": "Cancel",
@@ -724,6 +751,35 @@
       "confirm": "Are you sure?"
     },
     "employee": {
+      "validation": {
+        "required": "This field is required.",
+        "maxLength": "Enter no more than {{max}} characters.",
+        "email": "Enter a valid email address.",
+        "phone": "Enter a valid phone number containing at least 7 digits.",
+        "selection": "Select a valid option.",
+        "date": "Enter a valid date.",
+        "age": "The employee must be at least 16 years old.",
+        "hireDate": "The hire date must be after the birth date.",
+        "dependents": "Enter a whole number between 0 and 2,147,483,647.",
+        "amount": "Enter a non-negative amount within the allowed range.",
+        "netSalary": "The target net salary must be greater than zero.",
+        "invalidIndemnity": "Select an allowance type and enter an amount greater than zero.",
+        "pendingIndemnity": "Add or clear the pending allowance before saving.",
+        "reviewFields": "Review the highlighted fields before saving.",
+        "saveFailed": "The employee could not be saved. Try again.",
+        "uploadFailed": "The documents could not be uploaded. Try again.",
+        "duplicateEmail": "An employee already uses this email address.",
+        "invalidData": "Some values were rejected. Review the form.",
+        "invalidField": "Check the value of this field.",
+        "invalidRelations": "Check that the subsidiary and any assigned manager exist.",
+        "sessionExpired": "Your session has expired. Sign in again to save.",
+        "forbidden": "You do not have permission to save this employee.",
+        "network": "The server could not be reached. Check your connection and try again.",
+        "baseSalary": "Base salary.",
+        "documents": "Documents.",
+        "leaveBalance": "Leave balance.",
+        "leaveRecords": "Leave history."
+      },
       "deleteFailed": "Could not delete the employee.",
       "deleted": "Employee deleted successfully.",
       "detailsLoadFailed": "Could not load employee details.",
@@ -1466,6 +1522,7 @@
       "accountName": "Account Name",
       "accountNamePlaceholder": "Ex: Main BNP Account",
       "balance": "Initial Balance",
+      "expenseBoxOpeningBalance": "The expense box starts at zero and is funded from the safe.",
       "currency": "Currency",
       "accountType": "Account Type",
       "subsidiary": "Subsidiary"
@@ -1492,6 +1549,7 @@
     },
     "success": {
       "created": "Treasury account created successfully",
+      "bankCreatedPending": "Bank account created. The opening deposit is awaiting approval by another super-admin.",
       "updated": "Treasury account updated successfully",
       "deleted": "Treasury account deleted successfully",
       "createdElsewhere": "Bank account created successfully for the headquarter subsidiary"
@@ -2823,6 +2881,9 @@
     "status": "Status",
     "backToShop": "Back to Shop"
   },
+  "payment": {
+    "BANK_TRANSFER": "Bank transfer"
+  },
   "paymentMethods": {
     "BANK_TRANSFER": "Bank Transfer",
     "CHECK": "Check",
@@ -3067,7 +3128,9 @@
   },
   "treasury": {
     "treasuryStatus": {
-      "VALIDE": "Validated"
+      "VALIDE": "Validated",
+      "EN_ATTENTE": "Awaiting approval",
+      "ANNULE": "Cancelled"
     },
     "recentTransactions": "Recent Transactions",
     "addExpense": "Add Expense",
@@ -3147,6 +3210,11 @@
     "accessDenied": "The Disbursement module (Safe / Banks) is restricted to the super administrator."
   },
   "safeDisbursement": {
+    "expensePayment": "Expense payment",
+    "expenseSearch": "Search expenses",
+    "selectExpense": "Select an expense to pay",
+    "noExpenses": "No expenses awaiting payment",
+    "expenseCurrency": "Select a safe in XOF to pay this expense.",
     "title": "Disbursement — Safe",
     "subtitle": "Centralized treasury: the headquarter safe.",
     "sourceSafe": "Source safe",
@@ -3154,6 +3222,7 @@
     "insufficientBalance": "Insufficient balance ({{balance}} available).",
     "operationType": "Operation type",
     "types": {
+      "INFLOW": "Cash receipt",
       "SUPPLIER_PAYMENT": "Supplier payment",
       "BANK_WITHDRAWAL": "Withdrawal to a bank",
       "CASH_REFILL": "Expense box refill",
@@ -3193,6 +3262,8 @@
     "subsidiary": "Subsidiary",
     "allSubsidiaries": "All subsidiaries (consolidated)",
     "taxHint": "The amount is automatically computed from the Tax & Payroll Transparency module for the chosen period.",
+    "loadingPayroll": "Loading payroll summary…",
+    "noPayroll": "No payroll for this payment method and period.",
     "amount": "Amount",
     "date": "Date",
     "description": "Description",
@@ -3200,7 +3271,9 @@
     "submitting": "Processing...",
     "submit": "Confirm disbursement",
     "success": "Disbursement recorded successfully",
+    "bankPending": "Bank transfer submitted; it awaits approval from another super-admin.",
     "descriptions": {
+      "salary": "Net salaries {{method}} — {{period}}",
       "irpp": "IRPP payment {{month}}/{{year}}",
       "cnps": "CNPS payment {{month}}/{{year}}",
       "cfcFne": "CFC & FNE payment {{month}}/{{year}}",
@@ -3215,13 +3288,16 @@
     "balance": "Balance:",
     "operationType": "Operation type",
     "salaryPayment": "Salary payment",
+    "salaryDescription": "Net salaries {{method}} — {{month}}",
+    "loadingPayroll": "Loading payroll summary…",
+    "noPayroll": "No payroll for this payment method and period.",
     "bonusPayment": "Bonus payment",
     "amount": "Amount",
     "description": "Description",
     "descriptionPlaceholder": "Ex: January salaries transfer",
     "submitting": "Processing...",
-    "submit": "Confirm disbursement",
-    "successMessage": "Bank disbursement recorded successfully"
+    "submit": "Submit for approval",
+    "successMessage": "Bank operation submitted; it awaits approval from another super-admin."
   },
   "expenseBoxDisbursement": {
     "title": "Expense box",
@@ -3481,10 +3557,10 @@
       "validity": "Valid until",
       "item": "Item",
       "qty": "Qty",
-      "unitPrice": "Unit Price",
-      "total": "Total",
-      "subtotal": "Subtotal",
-      "tax": "Tax",
+      "unitPrice": "Unit price incl. tax",
+      "total": "Total incl. tax",
+      "subtotal": "Subtotal excl. tax",
+      "tax": "Included tax",
       "amountInWords": "This proforma invoice is set at the sum of: {{amount}}.",
       "notes": "Notes / Terms",
       "footerMessage": "This document is a proforma invoice and does not constitute a final invoice.",
@@ -3505,7 +3581,11 @@
       "emailSuccess": "Email handed to the mail server.",
       "missingEmail": "Customer email address missing.",
       "missingPhone": "Customer phone number missing.",
-      "whatsappHint": "A temporary PDF link will be prepared. You will confirm sending the message in WhatsApp.",
+      "whatsappHint": "Share the PDF file directly to WhatsApp when your device supports it. Otherwise, download the PDF and attach it in the WhatsApp chat.",
+      "sharePdfWhatsApp": "Share PDF on WhatsApp",
+      "downloadPdf": "Download PDF",
+      "pdfDownloadError": "The PDF could not be downloaded. Please try again.",
+      "pdfShareUnsupported": "File sharing is not available on this device. Download the PDF and attach it in WhatsApp.",
       "prepareWhatsApp": "Prepare WhatsApp message",
       "openWhatsApp": "Open WhatsApp",
       "confirmWhatsApp": "I sent the message",
@@ -3603,7 +3683,7 @@
     "empty": "No needs requests.",
     "retry": "Retry",
     "error": "An error occurred. Please try again.",
-    "forbidden": "Access restricted to sales representatives and super-admins.",
+    "forbidden": "Access restricted to sales representatives, financial directors, and super-admins.",
     "reviewBy": "Reviewed by",
     "reason": "Rejection reason",
     "approve": "Approve",
@@ -3644,7 +3724,7 @@
     "unpaid": "Awaiting payment",
     "pay": "Pay",
     "payTitle": "Pay from the expense cash box",
-    "payHint": "Payment exclusively uses the expense cash box of this request’s branch. The super-admin confirms the actual amount to pay.",
+    "payHint": "After the super-admin approves the request, the financial director pays it from the branch expense cash box.",
     "paymentSource": "Expense cash box",
     "availableBalance": "Available balance",
     "payAmount": "Actual payment amount",
@@ -3655,6 +3735,9 @@
     "insufficientBalance": "Insufficient balance: replenish the expense cash box before paying this request.",
     "payConfirmHint": "Confirming immediately debits this cash box and marks the request as paid.",
     "confirmPayment": "Confirm payment",
+    "selectPayable": "Select an approved request",
+    "noPayable": "No requests awaiting payment in this subsidiary",
+    "paymentSuccess": "Request paid.",
     "paying": "Processing payment…",
     "paymentSuccess": "Payment has been recorded from the expense cash box. The sales representative has been notified.",
     "paidBy": "Paid by",

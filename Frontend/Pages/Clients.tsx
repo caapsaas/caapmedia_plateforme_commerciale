@@ -1,3 +1,5 @@
+import Pagination from '../components/common/Pagination';
+import { useClientPagination } from '../hooks/useClientPagination';
 import React, { useState } from 'react';
 import { Contact, Subsidiary } from '../types';
 import IconPlus from '../components/icons/IconPlus';
@@ -101,6 +103,8 @@ const Clients: React.FC = () => {
         exportToPdf(t('clients.listTitle'), headers, contacts, 'clients');
     };
 
+    const { pageItems, meta, setPage } = useClientPagination(contacts);
+
     return (
         <div className="space-y-6">
             <h2 className="text-3xl font-bold text-slate-800">{t('clients.title')}</h2>
@@ -148,7 +152,7 @@ const Clients: React.FC = () => {
                                         <EmptyState icon="inbox" title={t('clients.listTitle')} description={t('common.notAvailable')} />
                                     </td>
                                 </tr>
-                            ) : contacts.map((contact) => (
+                            ) : pageItems.map((contact) => (
                                 <tr key={contact.id} className="bg-white border-b hover:bg-slate-50">
                                     <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{contact.id}</th>
                                     <td className="px-6 py-4">{contact.contactName}</td>
@@ -168,6 +172,7 @@ const Clients: React.FC = () => {
                             ))}
                         </tbody>
                     </table>
+                    <Pagination meta={meta} onPageChange={setPage} />
                 </div>
             </div>
 

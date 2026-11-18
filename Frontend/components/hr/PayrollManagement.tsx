@@ -19,6 +19,8 @@ import SearchBar from './SearchBar';
 import { getPayrollRecordsGlobal, accumulateCharges } from '../../services/apihr/apiPayroll';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 interface ProcessPayrollResponse {
   count: number;
@@ -182,6 +184,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
       return matchesSearch && matchesPeriod;
     });
   }, [currentPayrolls, searchTerm, selectedPeriod]);
+  const { pageItems: pagePayrolls, meta: payrollsMeta, setPage } = useClientPagination(filteredPayrolls);
 
   // Résumé financier
   const summary = useMemo(() => {
@@ -481,7 +484,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
                 </td>
               </tr>
             ) : (
-              filteredPayrolls.map((record) => (
+              pagePayrolls.map((record) => (
                 <tr
                   key={record.id}
                   className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50/70"
@@ -558,6 +561,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
             )}
           </tbody>
         </table>
+        <Pagination meta={payrollsMeta} onPageChange={setPage} />
        </div>
       </div>
 

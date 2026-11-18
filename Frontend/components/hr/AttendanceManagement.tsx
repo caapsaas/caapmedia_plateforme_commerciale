@@ -15,6 +15,8 @@ import { UseMutateFunction } from '@tanstack/react-query';
 import SignaturePad from '../common/SignaturePad';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 interface AttendanceManagementProps {
     subsidiary: Subsidiary;
@@ -32,6 +34,7 @@ const fmtDate = (date?: string | null, language = 'fr') => {
 };
 
 const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary, employees, attendances, isLoading = false, onSave }) => {
+    const { pageItems: pageAttendances, meta: attendancesMeta, setPage } = useClientPagination(attendances);
     const { t, language } = useI18n();
     const toast = useToast();
     const [viewingSignature, setViewingSignature] = useState<{name: string, signature: string} | null>(null);
@@ -303,7 +306,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary,
                                     <EmptyState icon="inbox" title={t('hr.attendance.title')} />
                                 </td>
                             </tr>
-                        ) : attendances.map((record) => (
+                        ) : pageAttendances.map((record) => (
                             <tr key={record.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{record.employeeName}</td>
                                 <td className="px-6 py-4">{fmtDate(record.attendanceDate, language)}</td>
@@ -330,6 +333,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ subsidiary,
                     </tbody>
                 </table>
             </div>
+            <Pagination meta={attendancesMeta} onPageChange={setPage} />
 
             {signingEmployee && (
                 <SignaturePad

@@ -3,7 +3,6 @@ import { ExternalFinancialTransaction, ExternalTransactionType, ExternalTransact
 import { getExternalTransactions, createExternalTransaction, updateExternalTransaction, validateExternalTransaction, cancelExternalTransaction, deleteExternalTransaction, getExternalTransactionStatistics, ExternalTransactionFilters, ExternalTransactionStatistics, CreateExternalTransactionData } from '../../services/apiFinance/apiExternalTransactions';
 import { getPrefinancementAccount, getPrefinancementStatistics } from '../../services/apiFinance/apiPrefinancement';
 import { useAuth } from '../../context/AuthContext';
-import { useHasRole } from '../../hooks/useHasRole';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import { exportToCSV, formatAmount, calculateTotals } from '../../utils/exportUtils';
@@ -11,6 +10,8 @@ import EmptyState from '../ui/EmptyState';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 declare module 'jspdf' {
   interface jsPDF {
@@ -31,24 +32,13 @@ const STATUS_STYLES: Record<ExternalTransactionStatus, string> = {
 const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary }) => {
   const { t } = useI18n();
   const { user } = useAuth();
-  const { hasRole } = useHasRole();
+  const activeRole = user?.activeRole ?? user?.userRole;
   const { toast } = useToast();
 
-  const canCreate  = hasRole([UserRole.SUPER_ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.ADMIN]);
-  const canValidate = hasRole([UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR]);
-
-  if (!canCreate && !canValidate) {
-    return (
-      <div className="p-6 text-center">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
-          <h3 className="text-base font-semibold text-amber-800 mb-1">{t('common.accessDenied')}</h3>
-          <p className="text-sm text-amber-700">{t('externalTransactions.accessDenied')}</p>
-        </div>
-      </div>
-    );
-  }
+  const canManage = activeRole === UserRole.SUPER_ADMIN || activeRole === UserRole.ADMIN || activeRole === UserRole.FINANCIAL_DIRECTOR;
 
   const [transactions, setTransactions] = useState<ExternalFinancialTransaction[]>([]);
+  const { pageItems: pageTransactions, meta: transactionsMeta, setPage } = useClientPagination(transactions);
   const [statistics, setStatistics] = useState<ExternalTransactionStatistics | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -69,7 +59,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
   const [customTransactionType, setCustomTransactionType] = useState('');
   const [fileUpload, setFileUpload] = useState<File | null>(null);
 
-  useEffect(() => { loadData(); }, [subsidiary.id, filters]);
+  useEffect(() => { if (canManage) loadData(); }, [subsidiary.id, filters, canManage]);
 
   const loadData = async () => {
     try {
@@ -274,6 +264,17 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
     resetForm();
   };
 
+  if (!canManage) {
+    return (
+      <div className="p-6 text-center">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
+          <h3 className="text-base font-semibold text-amber-800 mb-1">{t('common.accessDenied')}</h3>
+          <p className="text-sm text-amber-700">{t('externalTransactions.accessDenied')}</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -373,7 +374,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {canCreate && (
+            {canManage && (
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-lg hover:bg-[#adc40f] transition-colors"
@@ -424,7 +425,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {transactions.map(tx => (
+              {pageTransactions.map(tx => (
                 <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap">
                     {new Date(tx.transactionDate).toLocaleDateString('fr-FR')}
@@ -453,7 +454,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-1">
-                      {tx.status === ExternalTransactionStatus.DRAFT && canValidate && (
+                      {tx.status === ExternalTransactionStatus.DRAFT && canManage && (
                         <>
                           <button
                             onClick={() => handleValidate(tx.id)}
@@ -475,7 +476,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
                           </button>
                         </>
                       )}
-                      {hasRole([UserRole.ADMIN]) && (
+                      {activeRole === UserRole.ADMIN && (
                         <button
                           onClick={() => tx.status === ExternalTransactionStatus.DRAFT ? handleDelete(tx.id) : handleAdminDelete(tx.id)}
                           className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -492,6 +493,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
               ))}
             </tbody>
           </table>
+          <Pagination meta={transactionsMeta} onPageChange={setPage} />
         </div>
 
         {transactions.length === 0 && (

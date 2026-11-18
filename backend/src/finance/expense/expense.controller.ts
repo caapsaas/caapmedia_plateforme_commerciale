@@ -16,6 +16,7 @@ import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
+import { PayExpenseDto } from './dto/pay-expense.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('finance/expenses')
@@ -34,8 +35,26 @@ export class ExpensesController {
   findAll(
     @CurrentUser() user: JwtUser,
     @Query() paginationQuery: PaginationQueryDto,
+    @Query('subsidiaryId') subsidiaryId?: string,
   ) {
-    return this.expensesService.findAll(user, paginationQuery);
+    return this.expensesService.findAll(user, paginationQuery, subsidiaryId);
+  }
+
+  @Get('payable')
+  findPayable(
+    @CurrentUser() user: JwtUser,
+    @Query() pagination: PaginationQueryDto,
+  ) {
+    return this.expensesService.findPayable(user, pagination);
+  }
+
+  @Post(':id/pay')
+  pay(
+    @Param('id') id: string,
+    @Body() dto: PayExpenseDto,
+    @CurrentUser() user: JwtUser,
+  ) {
+    return this.expensesService.pay(id, dto, user);
   }
 
   @Get(':id')

@@ -1,3 +1,5 @@
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import React, { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Calendar, Download, Printer } from 'lucide-react';
@@ -78,6 +80,8 @@ const BalanceGenerale: React.FC<BalanceGeneraleProps> = ({ fiscalPeriods }) => {
     }
   };
 
+  const { pageItems, meta, setPage } = useClientPagination(lines);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -150,7 +154,7 @@ const BalanceGenerale: React.FC<BalanceGeneraleProps> = ({ fiscalPeriods }) => {
               {isLoading ? (
                 <TableSkeleton rows={8} columns={6} />
               ) : lines.length > 0 ? (
-                lines.map((line) => (
+                pageItems.map((line) => (
                   <tr key={line.accountNumber} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-4 py-2.5 text-sm font-mono font-semibold text-slate-800">{line.accountNumber}</td>
                     <td className="px-4 py-2.5 text-sm text-slate-700">{line.accountName}</td>
@@ -178,6 +182,7 @@ const BalanceGenerale: React.FC<BalanceGeneraleProps> = ({ fiscalPeriods }) => {
           </table>
         )}
       </div>
+        <Pagination meta={meta} onPageChange={setPage} />
 
       {/* Hidden print template */}
       {subsidiary && (

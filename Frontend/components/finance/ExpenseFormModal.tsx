@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ExpenseRecord, ExpenseCategory, ExpenseType } from '../../types';
 import { useI18n } from '../../i18n';
-import { accumulateCharges } from '../../services/apihr/apiPayroll';
+import { getPayrollPaymentSummary } from '../../services/apihr/apiPayroll';
 
 interface ExpenseFormModalProps {
     isOpen: boolean;
@@ -42,7 +42,7 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({ isOpen, onClose, on
     // Récupérer les charges accumulées
     const { data: chargesData, isLoading: isLoadingCharges } = useQuery({
         queryKey: ['accumulatedCharges', formData.period],
-        queryFn: () => accumulateCharges(formData.period),
+            queryFn: () => getPayrollPaymentSummary(formData.period),
         enabled: !!formData.period && isSalaryCategory,
     });
 
@@ -50,7 +50,7 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({ isOpen, onClose, on
     useEffect(() => {
         if (isSalaryCategory && chargesData && !expense) {
             const paymentMethod = PAYMENT_METHOD_MAP[formData.category as ExpenseCategory];
-            const salaryData = chargesData.salaryDeductions?.byPaymentMethod?.[paymentMethod];
+            const salaryData = chargesData.byPaymentMethod?.[paymentMethod];
 
             if (salaryData) {
                 setFormData(prev => ({

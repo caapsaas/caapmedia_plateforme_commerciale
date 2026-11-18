@@ -1,5 +1,5 @@
 import { creditCashRegister } from '../credit-cash-register';
-import { getActiveRole } from '../../common/auth/role/role-identity';
+import { getActiveRole, isSuperAdmin } from '../../common/auth/role/role-identity';
 import {
   resolveScopeContext,
   withSubsidiaryScope,
@@ -876,6 +876,34 @@ export class OrdersService {
     });
   }
 
+  async getCashierDailyReceipts(user: JwtUser, date = new Date().toISOString().slice(0, 10)) {
+    const superAdminView = isSuperAdmin(user);
+    if (!user.id || (!user.subsidiaryId && !superAdminView)) throw new ForbiddenException('Filiale requise.');
+    const start = new Date(`${date}T00:00:00.000Z`);
+    if (Number.isNaN(start.getTime()) || start.toISOString().slice(0, 10) !== date) throw new BadRequestException('Date invalide.');
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + 1);
+    const cashierIds = superAdminView
+      ? (await this.prisma.user.findMany({
+          where: { OR: [{ userRole: UserRole.CAISSIER }, { additionalRoles: { has: UserRole.CAISSIER } }] },
+          select: { id: true },
+        })).map((cashier) => cashier.id)
+      : [user.id];
+    const transactions = await this.prisma.financialTransaction.findMany({
+      where: {
+        createdByUserId: { in: cashierIds },
+        ...(superAdminView ? {} : { subsidiaryId: user.subsidiaryId }),
+        financialTransactionType: TransactionType.RECETTE,
+        transactionDate: { gte: start, lt: end },
+        treasuryAccount: { accountType: { in: ['CASH_REGISTER', 'BANQUE'] } },
+      },
+      select: { id: true, transactionDate: true, description: true, amount: true, status: true, treasuryAccount: { select: { accountName: true, accountType: true } } },
+      orderBy: { transactionDate: 'desc' },
+    });
+    const total = transactions.reduce((sum, transaction) => sum + Number(transaction.amount), 0);
+    return { date, total, count: transactions.length, transactions };
+  }
+
   async recordPayment(
     id: string,
     recordPaymentDto: RecordPaymentDto,
@@ -1041,6 +1069,7 @@ export class OrdersService {
             financialTransactionType: TransactionType.RECETTE,
             treasuryAccountId: bankAccountId,
             status: TransactionStatus.EN_ATTENTE,
+            createdByUserId: user.id,
             reference: transactionReference || null,
           },
         });

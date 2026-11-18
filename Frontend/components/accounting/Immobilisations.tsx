@@ -1,3 +1,5 @@
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../context/ToastContext';
@@ -81,6 +83,8 @@ const Immobilisations: React.FC = () => {
 
   const netBookValue = (asset: FixedAsset) => asset.acquisitionCost - asset.cumulativeAmortization;
 
+  const { pageItems, meta, setPage } = useClientPagination(assets);
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -137,7 +141,7 @@ const Immobilisations: React.FC = () => {
               ) : assets.length === 0 ? (
                 <tr><td colSpan={8}><EmptyState icon="finance" title="Aucune immobilisation." /></td></tr>
               ) : (
-                assets.map((asset) => (
+                pageItems.map((asset) => (
                   <tr key={asset.id} className={`hover:bg-slate-50 ${asset.status === 'DISPOSED' ? 'opacity-50' : ''}`}>
                     <td className="px-4 py-3 text-sm font-medium text-slate-800">{asset.fixedAssetsName}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{new Date(asset.acquisitionDate).toLocaleDateString('fr-FR')}</td>
@@ -165,6 +169,7 @@ const Immobilisations: React.FC = () => {
               )}
             </tbody>
           </table>
+          <Pagination meta={meta} onPageChange={setPage} />
         </div>
       </div>
 

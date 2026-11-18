@@ -15,6 +15,8 @@ import { getContacts } from '../services/apiCrm/apicontacts';
 import TableSkeleton from '../components/ui/TableSkeleton';
 import CrmListSkeleton from '../components/ui/CrmListSkeleton';
 import EmptyState from '../components/ui/EmptyState';
+import Pagination from '../components/common/Pagination';
+import { useClientPagination } from '../hooks/useClientPagination';
 
 // `order.date` était affiché brut (ISO) au lieu d'une date localisée.
 const fmtDate = (date?: string | null, language = 'fr') => {
@@ -58,6 +60,7 @@ const MesCommandes: React.FC = () => {
         queryFn: () => getOrders(filters),
         enabled: !!filters.customerId, // La requête ne se lance que si nous avons un ID client
     });
+    const { pageItems: pageClientOrders, meta: clientOrdersMeta, setPage } = useClientPagination(filteredClientOrders);
 
     const { data: products = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
         queryKey: ['services-catalog'],
@@ -214,7 +217,7 @@ const MesCommandes: React.FC = () => {
                                 {isLoading ? (
                                     <TableSkeleton rows={5} columns={5} />
                                 ) : filteredClientOrders.length > 0 ? (
-                                    filteredClientOrders.map((order) => (
+                                    pageClientOrders.map((order) => (
                                         <tr key={order.id} className="bg-white border-b hover:bg-slate-50">
                                             <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{order.id}</th>
                                             <td className="px-6 py-4">{fmtDate(order.date, language)}</td>
@@ -244,6 +247,7 @@ const MesCommandes: React.FC = () => {
                             </tbody>
                         </table>
                     </div>
+                    <Pagination meta={clientOrdersMeta} onPageChange={setPage} />
                 </div>
             )}
             {!readOnly && activeTab === 'new' && currentCustomer && (

@@ -160,30 +160,22 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
 
         // Upload files and replace File objects with URLs
         if (filesToUpload.length > 0) {
-          try {
-            const uploadResponse = await uploadEmployeeDocuments(filesToUpload);
+          const uploadResponse = await uploadEmployeeDocuments(filesToUpload);
 
-            // Map uploaded URLs back to documents
-            for (const uploaded of uploadResponse.uploadedFiles) {
-              if (uploaded.fieldname === 'contract' && hasFileObject(documents.contract)) {
-                documents.contract = { name: documents.contract.name, url: uploaded.url };
-              } else if (uploaded.fieldname === 'idCard' && hasFileObject(documents.idCard)) {
-                documents.idCard = { name: documents.idCard.name, url: uploaded.url };
-              } else if (uploaded.fieldname === 'workPermit' && hasFileObject(documents.workPermit)) {
-                documents.workPermit = { name: documents.workPermit.name, url: uploaded.url };
-              } else if (uploaded.fieldname.startsWith('diplomas_')) {
-                const index = parseInt(uploaded.fieldname.split('_')[1]);
-                if (hasFileObject(documents.diplomas[index])) {
-                  documents.diplomas[index] = { name: documents.diplomas[index].name, url: uploaded.url };
-                }
+          // Map uploaded URLs back to documents
+          for (const uploaded of uploadResponse.uploadedFiles) {
+            if (uploaded.fieldname === 'contract' && hasFileObject(documents.contract)) {
+              documents.contract = { name: documents.contract.name, url: uploaded.url };
+            } else if (uploaded.fieldname === 'idCard' && hasFileObject(documents.idCard)) {
+              documents.idCard = { name: documents.idCard.name, url: uploaded.url };
+            } else if (uploaded.fieldname === 'workPermit' && hasFileObject(documents.workPermit)) {
+              documents.workPermit = { name: documents.workPermit.name, url: uploaded.url };
+            } else if (uploaded.fieldname.startsWith('diplomas_')) {
+              const index = parseInt(uploaded.fieldname.split('_')[1]);
+              if (hasFileObject(documents.diplomas[index])) {
+                documents.diplomas[index] = { name: documents.diplomas[index].name, url: uploaded.url };
               }
             }
-
-            toast.success(t('common.success'), `${filesToUpload.length} fichier(s) uploadé(s) avec succès`);
-          } catch (uploadError) {
-            console.error('Error uploading files:', uploadError);
-            toast.error(t('common.error'), 'Erreur lors de l\'upload des fichiers');
-            throw uploadError;
           }
         }
 
@@ -211,7 +203,6 @@ const EmployeeDatabaseModern: React.FC<EmployeeDatabaseModernProps> = ({
       setEditingEmployee(null);
     } catch (error) {
       console.error('Error saving employee:', error);
-      toast.error(t('common.error'), t('hr.employee.saveFailed'));
       throw error;
     }
   };

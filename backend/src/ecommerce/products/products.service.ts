@@ -100,19 +100,34 @@ export class ProductsService {
     };
   }
 
-  async findMany(page: number, category?: string) {
-    const TAKE = 9; // on prend 9 pour détecter s'il y a une suite
-    const where = {
+  async findMany(
+    page: number,
+    category?: string | string[],
+    pageSize = 8,
+    search?: string,
+  ) {
+    const where: Prisma.ItemWhereInput = {
       type: ItemType.SERVICE,
       isActive: true,
       isVisibleOnSite: true,
-      ...(category ? { category } : {}),
+      ...(category
+        ? { category: Array.isArray(category) ? { in: category } : category }
+        : {}),
+      ...(search
+        ? {
+            OR: [
+              { category: { contains: search, mode: 'insensitive' } },
+              { name: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
     };
 
     const products = await this.prisma.item.findMany({
       where,
-      skip: (page - 1) * 8, // on saute par 8
-      take: TAKE,
+      skip: (page - 1) * pageSize,
+      take: pageSize + 1,
+      orderBy: { id: 'asc' },
       include: this.includeAll,
     });
     return products.map((p) => this.mapDecimals(p));

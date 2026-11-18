@@ -1,4 +1,3 @@
-import { PartialType } from '@nestjs/swagger';
 import {
   IsOptional,
   IsEnum,
@@ -7,7 +6,6 @@ import {
   IsDateString,
 } from 'class-validator';
 import {
-  ExternalTransactionStatus,
   ExternalTransactionType,
   ExternalTransactionCategory,
   PaymentMethod,
@@ -45,8 +43,4 @@ export class UpdateExternalTransactionDto {
   @IsOptional()
   @IsString()
   relatedDocumentUrl?: string;
-
-  @IsOptional()
-  @IsEnum(ExternalTransactionStatus)
-  status?: ExternalTransactionStatus;
 }

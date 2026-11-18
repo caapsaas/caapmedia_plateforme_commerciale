@@ -3,7 +3,6 @@ import { Subsidiary, UserRole } from '../../types';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
-import { useHasRole } from '../../hooks/useHasRole';
 import { exportToCsv } from '../../utils/csvExporter';
 import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
@@ -42,12 +41,14 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsidiary }) => {
     const { t, formatCurrency } = useI18n();
     const toast = useToast();
     const { user } = useAuth();
-    const { hasRole } = useHasRole();
+    const activeRole = user?.activeRole ?? user?.userRole;
     const queryClient = useQueryClient();
     const [showAddForm, setShowAddForm] = useState(false);
     const [filter, setFilter] = useState<'ALL' | 'CREDIT' | 'DEBIT'>('ALL');
@@ -66,8 +67,8 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
     });
 
     // Permissions
-    const canAddPrefinancement = hasRole([UserRole.FINANCIAL_DIRECTOR, UserRole.ADMIN]);
-    const canManagePrefinancement = hasRole([UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR]);
+    const canAddPrefinancement = activeRole === UserRole.FINANCIAL_DIRECTOR || activeRole === UserRole.ADMIN;
+    const canManagePrefinancement = canAddPrefinancement;
 
     // État pour la boîte de dialogue de confirmation
     const [confirmDialog, setConfirmDialog] = useState<{
@@ -336,6 +337,7 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
             return matchesFilter && matchesSearch;
         });
     }, [transactions, filter, searchTerm]);
+    const { pageItems: pageTransactions, meta: transactionsMeta, setPage } = useClientPagination(filteredTransactions);
 
     const totalCredits = useMemo(() => {
         if (!transactions) return 0;
@@ -602,7 +604,7 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
                         <tbody>
                             {isLoading ? (
                                 <TableSkeleton rows={6} columns={8} />
-                            ) : filteredTransactions.map((transaction) => (
+                            ) : pageTransactions.map((transaction) => (
                                 <tr key={transaction.id} className="bg-white border-b hover:bg-slate-50">
                                     <td className="px-6 py-4">{new Date(transaction.date).toLocaleDateString('fr-FR')}</td>
                                     <td className="px-6 py-4 font-medium text-slate-800">{transaction.referenceNumber || '-'}</td>
@@ -679,6 +681,7 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
                             ))}
                         </tbody>
                     </table>
+                        <Pagination meta={transactionsMeta} onPageChange={setPage} />
                     </div>
                 )}
                 

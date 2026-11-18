@@ -103,7 +103,7 @@ export class ProformaPdfService {
           const y = doc.y;
           doc.rect(48, y, width, 26).fill('#eef2e0');
           doc.font('Helvetica-Bold').fontSize(9).fillColor('#172033');
-          ['Désignation', 'Qté', 'Prix unitaire', 'Total'].forEach((label, i) =>
+            ['Désignation', 'Qté', 'Prix unitaire TTC', 'Total TTC'].forEach((label, i) =>
             doc.text(label, xs[i] + 6, y + 8, {
               width: widths[i] - 12,
               align: i > 1 ? 'right' : i === 1 ? 'center' : 'left',
@@ -163,7 +163,7 @@ export class ProformaPdfService {
         for (const [label, value, bold] of [
           ['Sous-total HT', money(quote.subtotal), false],
           [
-            `TVA (${quote.taxRate.toString()} %)`,
+            `TVA incluse (${quote.taxRate.toString()} %)`,
             money(quote.taxAmount),
             false,
           ],
@@ -179,17 +179,38 @@ export class ProformaPdfService {
           doc.y = y + (bold ? 28 : 22);
         }
         if (quote.notes) {
-          ensure(50);
-          doc.moveDown(1);
+          const noteText = clean(quote.notes);
+          doc.font('Helvetica-Bold').fontSize(9);
+          const labelHeight = doc.heightOfString('NOTES ET CONDITIONS', {
+            width: width - 28,
+          });
+          doc.font('Helvetica').fontSize(9);
+          const noteHeight = doc.heightOfString(noteText, {
+            width: width - 28,
+            lineGap: 3,
+          });
+          const boxHeight = 25 + labelHeight + noteHeight;
+          ensure(boxHeight + 12);
+          const x = 48;
+          const y = doc.y + 4;
+          doc.roundedRect(x, y, width, boxHeight, 4).fill('#f7fae9');
+          doc.rect(x, y, 4, boxHeight).fill('#c6e911');
           doc
             .font('Helvetica-Bold')
-            .fontSize(10)
-            .text('Notes et conditions', 48, doc.y, { width });
+            .fontSize(9)
+            .fillColor('#64748b')
+            .text('NOTES ET CONDITIONS', x + 14, y + 9, {
+              width: width - 28,
+            });
           doc
             .font('Helvetica')
             .fontSize(9)
-            .fillColor('#475569')
-            .text(clean(quote.notes), { width, lineGap: 3 });
+            .fillColor('#334155')
+            .text(noteText, x + 14, y + 12 + labelHeight, {
+              width: width - 28,
+              lineGap: 3,
+            });
+          doc.y = y + boxHeight + 12;
         }
         const pages = doc.bufferedPageRange();
         for (let page = 0; page < pages.count; page++) {

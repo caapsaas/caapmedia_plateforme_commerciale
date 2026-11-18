@@ -28,6 +28,7 @@ import Crm from './Pages/Crm';
 import Stock from './Pages/Stock';
 import Purchasing from './components/purchasing/Purchasing';
 import Caisse from './components/caisse/Caisse';
+import CashierReceipts from './Pages/CashierReceipts';
 import MesCommandes from './Pages/MesCommandes';
 import Finance from './Pages/Finance';
 import Accounting from './Pages/Accounting';
@@ -218,7 +219,26 @@ const salesRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/s
 const crmRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/crm', component: Crm });
 const stockRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/stock', component: Stock });
 const purchasingRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/purchasing', component: Purchasing });
-const caisseRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/caisse', component: Caisse });
+const caisseRoute = createRoute({
+  getParentRoute: () => dashboardRoute,
+  path: '/caisse',
+  component: Caisse,
+  beforeLoad: ({ context }) => {
+    const role = context.auth.authLive.current.activeRole;
+    if (role !== UserRole.CAISSIER) {
+      throw redirect({ to: getDefaultViewForRole(role) });
+    }
+  },
+});
+const cashierReceiptsRoute = createRoute({
+  getParentRoute: () => dashboardRoute,
+  path: '/cashier-receipts',
+  component: CashierReceipts,
+  beforeLoad: ({ context }) => {
+    const role = context.auth.authLive.current.activeRole;
+    if (role !== UserRole.CAISSIER && role !== UserRole.SUPER_ADMIN) throw redirect({ to: getDefaultViewForRole(role) });
+  },
+});
 const maintenanceRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/maintenance', component: Maintenance });
 const equipementsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/equipements', component: Equipements });
 const mesCommandesRoute = createRoute({
@@ -320,6 +340,7 @@ const routeTree = rootRoute.addChildren([
     stockRoute,
     purchasingRoute,
     caisseRoute,
+    cashierReceiptsRoute,
     mesCommandesRoute,
     financeRoute,
     accountingRoute,

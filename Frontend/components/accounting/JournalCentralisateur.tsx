@@ -1,3 +1,5 @@
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import React, { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { BookOpen, Calendar, ChevronDown, ChevronRight, Download, Printer } from 'lucide-react';
@@ -101,6 +103,8 @@ const JournalCentralisateur: React.FC<JournalCentralisateurProps> = ({ fiscalPer
     }
   };
 
+  const { pageItems, meta, setPage } = useClientPagination(journals);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -180,7 +184,7 @@ const JournalCentralisateur: React.FC<JournalCentralisateurProps> = ({ fiscalPer
           </div>
 
           <div className="space-y-3">
-            {journals.map((group) => {
+            {pageItems.map((group) => {
               const code = group.journal?.code ?? 'JOD';
               const isExpanded = expandedJournal === code;
               return (
@@ -238,6 +242,7 @@ const JournalCentralisateur: React.FC<JournalCentralisateurProps> = ({ fiscalPer
               );
             })}
           </div>
+          <Pagination meta={meta} onPageChange={setPage} />
 
           <div className="bg-slate-800 text-white rounded-xl p-4 flex justify-between items-center">
             <span className="flex items-center gap-2 font-bold text-sm uppercase"><BookOpen className="w-4 h-4" /> Totaux généraux</span>

@@ -194,9 +194,11 @@ export class ProformaDeliveryService {
       );
     }
     const downloadUrl = `${base.replace(/\/+$/, '')}/proforma-share/${token}`;
-    const message = `Bonjour ${quote.clientName},\nVoici votre facture proforma n° ${quote.proformaNumber} (${money(quote.totalAmount)}).\nTélécharger le PDF : ${downloadUrl}\n\n${quote.subsidiary.subsidiaryName}`;
+    const caption = `Bonjour ${quote.clientName},\nVoici votre facture proforma n° ${quote.proformaNumber} (${money(quote.totalAmount)}).\n\n${quote.subsidiary.subsidiaryName}`;
+    const message = `${caption}\nTélécharger le PDF : ${downloadUrl}`;
     return {
       phone,
+      caption,
       message,
       downloadUrl,
       whatsappUrl: `https://wa.me/${phone}?text=${encodeURIComponent(message)}`,

@@ -222,7 +222,7 @@ const Production: React.FC = () => {
                 </>
             )}
 
-            {withdrawOrderId && (
+            {canEditProduction && withdrawOrderId && (
                 <WithdrawMaterialsModal
                     isOpen={!!withdrawOrderId}
                     onClose={() => setWithdrawOrderId(null)}

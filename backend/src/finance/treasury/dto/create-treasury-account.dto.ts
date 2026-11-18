@@ -4,24 +4,28 @@ import {
   IsNumber,
   IsEnum,
   IsOptional,
+  Min,
+  Max,
 } from 'class-validator';
 import { AccountType } from '@prisma/client';
 
 export class CreateTreasuryAccountDto {
-  @IsString()
-  @IsNotEmpty()
+  @IsString({ message: 'Le nom du compte doit être du texte.' })
+  @IsNotEmpty({ message: 'Le nom du compte est obligatoire.' })
   accountName: string;
 
-  @IsNumber()
-  @IsNotEmpty()
+  @IsNumber({}, { message: 'Le solde initial doit être un montant valide.' })
+  @Min(0, { message: 'Le solde initial ne peut pas être négatif.' })
+  @Max(9_999_999_999_999.99, { message: 'Le solde initial dépasse le montant maximal autorisé.' })
+  @IsNotEmpty({ message: 'Le solde initial est obligatoire.' })
   initialBalance: number;
 
-  @IsString()
-  @IsNotEmpty()
+  @IsString({ message: 'La devise doit être du texte.' })
+  @IsNotEmpty({ message: 'La devise est obligatoire.' })
   currency: string;
 
-  @IsEnum(AccountType)
-  @IsNotEmpty()
+  @IsEnum(AccountType, { message: 'Sélectionnez un type de compte de trésorerie valide.' })
+  @IsNotEmpty({ message: 'Le type de compte est obligatoire.' })
   accountType: AccountType;
 
   // Comptes CASH_REGISTER/EXPENSE_BOX : caissier responsable (Phase B/C).

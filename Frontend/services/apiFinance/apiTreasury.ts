@@ -271,10 +271,13 @@ export const deleteTransaction = async (id: string): Promise<FinancialTransactio
  * Déclenche l'application du débit/crédit sur le compte et la journalisation comptable.
  * @param id - L'ID de la transaction à valider.
  */
-export const validateTransaction = async (id: string): Promise<FinancialTransaction> => {
+export const validateTransaction = async (
+  id: string,
+  status: TransactionStatus = TransactionStatus.VALIDATED,
+): Promise<FinancialTransaction> => {
   const { data } = await api.patch<FinancialTransaction>(
     `/finance/treasury/transaction/${id}/status`,
-    { status: 'VALIDE' },
+    { status },
   );
   return data;
 };

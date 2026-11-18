@@ -13,7 +13,7 @@ import {
 import { StockItemsService } from './stock-items.service';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
-import { Roles } from 'src/common/auth/role/role.decorator';
+import { Roles, SuperAdminReadOnly } from 'src/common/auth/role/role.decorator';
 import { UserRole } from '@prisma/client';
 import {
   CreatePackagingUnitDto,
@@ -24,6 +24,7 @@ import {
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 
 @Controller('purchase/stock-items')
+@SuperAdminReadOnly()
 @UseGuards(JwtAuthGuard, RoleGuard)
 @Roles(
   UserRole.ADMIN,

@@ -15,6 +15,8 @@ import { getTaxes, createTax, updateTax, deleteTax } from '../../services/apiE-c
 import { updateSubsidiary } from '../../services/apiCommon/apiSubsidiaries';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 const TaxManagement: React.FC = () => {
     const { t } = useI18n();
@@ -50,6 +52,7 @@ const TaxManagement: React.FC = () => {
             String(value ?? '').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
         ),
     );
+    const { pageItems: pageTaxRates, meta: taxMeta, setPage } = useClientPagination(filteredTaxRates);
 
     const { mutate: saveTaxMutate } = useMutation({
         mutationFn: (taxData: Omit<TaxRate, 'id'> & { id?: string }) => 
@@ -162,7 +165,7 @@ const TaxManagement: React.FC = () => {
                                     <EmptyState icon="inbox" title={t('configuration.taxManagement')} description={t('common.notAvailable')} />
                                 </td>
                             </tr>
-                        ) : filteredTaxRates.map((tax) => (
+                        ) : pageTaxRates.map((tax) => (
                             <tr key={tax.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{tax.taxRatesName}</td>
                                 <td className="px-6 py-4">{(tax.rate * 100).toFixed(2)}%</td>
@@ -176,6 +179,7 @@ const TaxManagement: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+            <Pagination meta={taxMeta} onPageChange={setPage} />
             </div>
 
             {isModalOpen && (

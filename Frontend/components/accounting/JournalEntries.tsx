@@ -19,6 +19,8 @@ import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
 import SubsidiaryFilter from '../filters/SubsidiaryFilter';
 import { AsyncSelect } from '../ui/AsyncSelect';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 const STATUS_LABELS: Record<JournalEntryStatus, string> = {
   DRAFT: 'Brouillon',
@@ -154,6 +156,7 @@ const JournalEntries: React.FC<JournalEntriesProps> = ({ fiscalPeriods }) => {
     () => entries.filter((e) => e.description.toLowerCase().includes(searchTerm.toLowerCase()) || e.sequentialNumber?.toLowerCase().includes(searchTerm.toLowerCase())),
     [entries, searchTerm],
   );
+  const { pageItems: pageEntries, meta: entriesMeta, setPage } = useClientPagination(filteredEntries);
 
   const fmt = (n: number) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0 }).format(n);
 
@@ -308,7 +311,7 @@ const JournalEntries: React.FC<JournalEntriesProps> = ({ fiscalPeriods }) => {
             {isLoading ? (
               <TableSkeleton rows={8} columns={7} />
             ) : filteredEntries.length > 0 ? (
-              filteredEntries.map((entry) => {
+              pageEntries.map((entry) => {
                 const amount = entry.lines.reduce((s, l) => s + Number(l.debitAmount), 0);
                 return (
                   <tr key={entry.id} className="hover:bg-slate-50 transition-colors">
@@ -363,6 +366,7 @@ const JournalEntries: React.FC<JournalEntriesProps> = ({ fiscalPeriods }) => {
             )}
           </tbody>
         </table>
+        <Pagination meta={entriesMeta} onPageChange={setPage} />
       </div>
 
       {/* Confirm Modal */}

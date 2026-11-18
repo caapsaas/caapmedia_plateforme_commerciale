@@ -411,7 +411,7 @@ export class ProductSpecsService {
       const value = values[spec.technicalKey];
       const isEmpty = value === undefined || value === null || value === '';
 
-      if (spec.required && isEmpty) {
+      if (spec.required && spec.type !== SpecFieldType.UPLOAD && isEmpty) {
         errors.push(`Le champ "${spec.name}" est obligatoire.`);
         continue;
       }

@@ -12,11 +12,19 @@ export function checkRole(
   // acces omniscient ne doit pas dependre du role qu'il a switche pour
   // preview), meme logique que RoleGuard.
   if (isSuperAdmin(user)) return;
+  checkActiveRole(user, allowedRoles, message);
+}
+
+export function checkActiveRole(
+  user: JwtUser,
+  allowedRoles: UserRole[],
+  message: string,
+): void {
   // Sinon, autorisation basee UNIQUEMENT sur activeRole - voir le commentaire
   // dans role.guard.ts pour le detail du changement (avant: OR sur tous les
   // roles de l'utilisateur, meme non actifs).
   const activeRole = getActiveRole(user);
-  if (!allowedRoles.includes(activeRole)) {
+  if (!activeRole || !allowedRoles.includes(activeRole)) {
     throw new ForbiddenException(message);
   }
 }

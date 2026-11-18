@@ -32,7 +32,7 @@ export default function NeedRequestPaymentPanel({
   onPaid,
 }: {
   request: NeedRequest;
-  onBusyChange: (busy: boolean) => void;
+  onBusyChange?: (busy: boolean) => void;
   onPaid: () => void;
 }) {
   const { t, language } = useI18n();
@@ -79,8 +79,11 @@ export default function NeedRequestPaymentPanel({
       for (const key of [
         "need-requests",
         "need-payment-account",
+        "payable-need-requests",
         "treasuryAccounts",
         "financialTransactions",
+        "accountTransactions",
+        "treasuryStatement",
         "notifications",
         "analytics",
       ])
@@ -93,8 +96,8 @@ export default function NeedRequestPaymentPanel({
     },
   });
   useEffect(() => {
-    onBusyChange(pay.isPending);
-    return () => onBusyChange(false);
+    onBusyChange?.(pay.isPending);
+    return () => onBusyChange?.(false);
   }, [pay.isPending, onBusyChange]);
   const insufficient =
     !!account.data && Number(amount) > Number(account.data.balance);
@@ -105,10 +108,6 @@ export default function NeedRequestPaymentPanel({
     }).format(value);
   return (
     <section className="rounded-2xl border border-lime-200 bg-lime-50/30 p-4">
-      <h3 className="flex items-center gap-2 font-bold text-slate-800">
-        <Wallet className="h-5 w-5 text-lime-700" />
-        {t("needs.payTitle")}
-      </h3>
       <p className="mt-2 text-xs leading-relaxed text-slate-500">
         {t("needs.payHint")}
       </p>

@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { Order, OrderStatus, PaymentStatus, Contact } from '../../types';
 import { useI18n } from '../../i18n';
 import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 interface OrderSelectionModalProps {
     isOpen: boolean;
@@ -40,6 +42,7 @@ const OrderSelectionModal: React.FC<OrderSelectionModalProps> = ({ isOpen, onClo
             );
         });
     }, [searchableOrders, contacts, searchTerm]);
+    const { pageItems: pageOrders, meta: ordersMeta, setPage } = useClientPagination(filteredOrders);
 
     if (!isOpen) return null;
 
@@ -71,7 +74,7 @@ const OrderSelectionModal: React.FC<OrderSelectionModalProps> = ({ isOpen, onClo
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200">
-                                {filteredOrders.map(order => (
+                                {pageOrders.map(order => (
                                     <tr key={order.id} onClick={() => onOrderSelect(order)} className="hover:bg-slate-100 cursor-pointer">
                                         <td className="px-4 py-3 font-semibold">{order.id}</td>
                                         <td className="px-4 py-3">{order.customerName}</td>
@@ -83,6 +86,7 @@ const OrderSelectionModal: React.FC<OrderSelectionModalProps> = ({ isOpen, onClo
                         </table>
                         )}
                     </div>
+                    <Pagination meta={ordersMeta} onPageChange={setPage} />
                 </div>
             </div>
         </div>

@@ -1,4 +1,30 @@
 {
+  "cashierReceipts": {
+    "title": "Mes recettes journalières",
+    "subtitle": "Suivi des encaissements enregistrés avec votre compte.",
+    "adminTitle": "Recettes journalières",
+    "adminSubtitle": "Vue consolidée des encaissements enregistrés par les caissiers.",
+    "date": "Journée",
+    "refresh": "Actualiser",
+    "todayTotal": "Montant total encaissé aujourd’hui",
+    "operationsToday": "Encaissements enregistrés aujourd’hui",
+    "activity": "Rythme des encaissements",
+    "activityHint": "Répartition des montants par tranche horaire",
+    "liveUpdate": "Actualisation automatique toutes les 30 secondes",
+    "latestFirst": "Les opérations les plus récentes en premier",
+    "emptyHint": "Les encaissements du jour apparaîtront ici.",
+    "receipt": "Encaissement",
+    "total": "Total encaissé",
+    "count": "Nombre d’encaissements",
+    "details": "Détail des encaissements",
+    "time": "Heure",
+    "description": "Description",
+    "account": "Compte crédité",
+    "status": "Statut",
+    "amount": "Montant",
+    "empty": "Aucun encaissement pour cette journée.",
+    "error": "Impossible de charger vos recettes. Réessayez."
+  },
   "crmJourney": {
     "saveContactError": "Impossible d’enregistrer le contact.",
     "linkedAccount": "Compte CRM rattaché",
@@ -505,6 +531,7 @@
       "DIMENSIONS": "Dimensions (Largeur x Hauteur)"
     },
     "valuesModal": {
+      "optional": "facultatif",
       "title": "Spécifications techniques — {{productName}}",
       "subtitle": "Remplissez les spécifications de cette ligne avant de l'ajouter au panier.",
       "cancel": "Annuler",
@@ -724,6 +751,35 @@
       "confirm": "Êtes-vous sûr ?"
     },
     "employee": {
+      "validation": {
+        "required": "Ce champ est obligatoire.",
+        "maxLength": "Ce champ doit contenir au maximum {{max}} caractères.",
+        "email": "Saisissez une adresse e-mail valide.",
+        "phone": "Saisissez un numéro de téléphone valide contenant au moins 7 chiffres.",
+        "selection": "Sélectionnez une valeur valide.",
+        "date": "Saisissez une date valide.",
+        "age": "La personne doit avoir au moins 16 ans.",
+        "hireDate": "La date d’embauche doit être postérieure à la date de naissance.",
+        "dependents": "Saisissez un nombre entier positif ou nul, inférieur à 2 147 483 648.",
+        "amount": "Saisissez un montant positif ou nul dans la limite autorisée.",
+        "netSalary": "Le salaire net souhaité doit être supérieur à zéro.",
+        "invalidIndemnity": "Sélectionnez un type d’indemnité et saisissez un montant supérieur à zéro.",
+        "pendingIndemnity": "Ajoutez l’indemnité en cours ou effacez sa saisie avant d’enregistrer.",
+        "reviewFields": "Vérifiez les champs signalés avant d’enregistrer.",
+        "saveFailed": "L’enregistrement de l’employé a échoué. Réessayez.",
+        "uploadFailed": "L’envoi des documents a échoué. Réessayez.",
+        "duplicateEmail": "Cette adresse e-mail est déjà utilisée par un employé.",
+        "invalidData": "Certaines données ont été refusées. Vérifiez le formulaire.",
+        "invalidField": "Vérifiez la valeur de ce champ.",
+        "invalidRelations": "Vérifiez que la filiale et le responsable associé, le cas échéant, existent.",
+        "sessionExpired": "Votre session a expiré. Reconnectez-vous pour enregistrer.",
+        "forbidden": "Vous n’avez pas l’autorisation d’enregistrer cet employé.",
+        "network": "Connexion au serveur impossible. Vérifiez votre connexion et réessayez.",
+        "baseSalary": "Salaire de base.",
+        "documents": "Documents.",
+        "leaveBalance": "Solde de congés.",
+        "leaveRecords": "Historique des congés."
+      },
       "deleteFailed": "Impossible de supprimer l'employé.",
       "deleted": "Employé supprimé avec succès.",
       "detailsLoadFailed": "Impossible de charger les détails de l'employé.",
@@ -1466,6 +1522,7 @@
       "accountName": "Nom du compte",
       "accountNamePlaceholder": "Ex: Compte principal BNP",
       "balance": "Solde initial",
+      "expenseBoxOpeningBalance": "La caisse dépense démarre à zéro et s’alimente depuis le coffre-fort.",
       "currency": "Devise",
       "accountType": "Type de compte",
       "subsidiary": "Filiale"
@@ -1492,6 +1549,7 @@
     },
     "success": {
       "created": "Compte de trésorerie créé avec succès",
+      "bankCreatedPending": "Compte bancaire créé. L’encaissement du solde initial est en attente d’approbation par un autre super-admin.",
       "updated": "Compte de trésorerie mis à jour avec succès",
       "deleted": "Compte de trésorerie supprimé avec succès",
       "createdElsewhere": "Compte bancaire créé avec succès pour la filiale siège"
@@ -2823,6 +2881,9 @@
     "status": "Statut",
     "backToShop": "Retour à la boutique"
   },
+  "payment": {
+    "BANK_TRANSFER": "Virement bancaire"
+  },
   "paymentMethods": {
     "BANK_TRANSFER": "Virement bancaire",
     "CHECK": "Chèque",
@@ -3067,7 +3128,9 @@
   },
   "treasury": {
     "treasuryStatus": {
-      "VALIDE": "Validé"
+      "VALIDE": "Validé",
+      "EN_ATTENTE": "En attente d’approbation",
+      "ANNULE": "Annulé"
     },
     "recentTransactions": "Transactions Récentes",
     "addExpense": "Ajouter Dépense",
@@ -3147,6 +3210,11 @@
     "accessDenied": "Le module Décaissement (Coffre-fort / Banques) est réservé au super-administrateur."
   },
   "safeDisbursement": {
+    "expensePayment": "Paiement d’une charge",
+    "expenseSearch": "Rechercher une charge",
+    "selectExpense": "Sélectionner une charge à régler",
+    "noExpenses": "Aucune charge à régler",
+    "expenseCurrency": "Sélectionnez un coffre-fort en XOF pour régler cette charge.",
     "title": "Décaissement — Coffre-fort",
     "subtitle": "Trésorerie centralisée : le coffre-fort du siège.",
     "sourceSafe": "Coffre-fort source",
@@ -3154,6 +3222,7 @@
     "insufficientBalance": "Solde insuffisant ({{balance}} disponible).",
     "operationType": "Type d'opération",
     "types": {
+      "INFLOW": "Encaissement",
       "SUPPLIER_PAYMENT": "Paiement fournisseur",
       "BANK_WITHDRAWAL": "Retrait vers une banque",
       "CASH_REFILL": "Alimentation caisse dépense",
@@ -3193,6 +3262,8 @@
     "subsidiary": "Filiale",
     "allSubsidiaries": "Toutes les filiales (consolidé)",
     "taxHint": "Le montant est calculé automatiquement à partir du module Fiscalité & Paie pour la période choisie.",
+    "loadingPayroll": "Chargement du résumé de paie…",
+    "noPayroll": "Aucune paie pour ce moyen de paiement et cette période.",
     "amount": "Montant",
     "date": "Date",
     "description": "Description",
@@ -3200,7 +3271,9 @@
     "submitting": "Traitement...",
     "submit": "Valider le décaissement",
     "success": "Décaissement enregistré avec succès",
+    "bankPending": "Virement bancaire soumis ; il attend l’approbation d’un autre super-admin.",
     "descriptions": {
+      "salary": "Salaires nets {{method}} — {{period}}",
       "irpp": "Versement IRPP {{month}}/{{year}}",
       "cnps": "Versement CNPS {{month}}/{{year}}",
       "cfcFne": "Versement CFC & FNE {{month}}/{{year}}",
@@ -3215,13 +3288,16 @@
     "balance": "Solde :",
     "operationType": "Type d'opération",
     "salaryPayment": "Paiement de salaires",
+    "salaryDescription": "Salaires nets {{method}} — {{month}}",
+    "loadingPayroll": "Chargement du résumé de paie…",
+    "noPayroll": "Aucune paie pour ce moyen de paiement sur cette période.",
     "bonusPayment": "Paiement de primes",
     "amount": "Montant",
     "description": "Description",
     "descriptionPlaceholder": "Ex : Virement salaires janvier",
     "submitting": "Traitement...",
-    "submit": "Valider le décaissement",
-    "successMessage": "Décaissement bancaire enregistré avec succès"
+    "submit": "Soumettre pour approbation",
+    "successMessage": "Opération bancaire soumise ; elle attend l’approbation d’un autre super-admin."
   },
   "expenseBoxDisbursement": {
     "title": "Caisse dépense",
@@ -3481,10 +3557,10 @@
       "validity": "Validité",
       "item": "Article",
       "qty": "Qté",
-      "unitPrice": "Prix Unitaire",
-      "total": "Total",
-      "subtotal": "Sous-total",
-      "tax": "TVA",
+      "unitPrice": "Prix unitaire TTC",
+      "total": "Total TTC",
+      "subtotal": "Sous-total HT",
+      "tax": "TVA incluse",
       "amountInWords": "Arrêté la présente facture proforma à la somme de : {{amount}}.",
       "notes": "Notes / Conditions",
       "footerMessage": "Ce document est une facture proforma et ne constitue pas une facture définitive.",
@@ -3505,7 +3581,11 @@
       "emailSuccess": "E-mail transmis au serveur de messagerie.",
       "missingEmail": "Adresse e-mail du client manquante.",
       "missingPhone": "Numéro du client manquant.",
-      "whatsappHint": "Un lien temporaire vers le PDF sera préparé. Vous validerez l’envoi du message dans WhatsApp.",
+      "whatsappHint": "Partagez directement le fichier PDF vers WhatsApp lorsque votre appareil le permet. Sinon, téléchargez le PDF puis joignez-le dans la conversation WhatsApp.",
+      "sharePdfWhatsApp": "Partager le PDF sur WhatsApp",
+      "downloadPdf": "Télécharger le PDF",
+      "pdfDownloadError": "Le PDF n’a pas pu être téléchargé. Réessayez.",
+      "pdfShareUnsupported": "Le partage de fichier n’est pas disponible sur cet appareil. Téléchargez le PDF puis joignez-le dans WhatsApp.",
       "prepareWhatsApp": "Préparer le message WhatsApp",
       "openWhatsApp": "Ouvrir WhatsApp",
       "confirmWhatsApp": "J’ai envoyé le message",
@@ -3603,7 +3683,7 @@
     "empty": "Aucune expression de besoin.",
     "retry": "Réessayer",
     "error": "Une erreur est survenue. Veuillez réessayer.",
-    "forbidden": "Accès réservé au commercial et au super-admin.",
+    "forbidden": "Accès réservé au commercial, au directeur financier et au super-admin.",
     "reviewBy": "Décision de",
     "reason": "Motif du rejet",
     "approve": "Valider",
@@ -3644,7 +3724,7 @@
     "unpaid": "À régler",
     "pay": "Régler",
     "payTitle": "Règlement depuis la caisse de dépense",
-    "payHint": "Le règlement utilise exclusivement la caisse de dépense de la filiale de cette demande. Le super-admin confirme le montant réel à payer.",
+    "payHint": "Après validation du super-admin, le directeur financier règle la demande depuis la caisse de dépense de sa filiale.",
     "paymentSource": "Caisse de dépense",
     "availableBalance": "Solde disponible",
     "payAmount": "Montant réel à payer",
@@ -3654,6 +3734,9 @@
     "payReference": "Référence (facultative)",
     "insufficientBalance": "Solde insuffisant : alimentez la caisse de dépense avant de régler cette demande.",
     "payConfirmHint": "La confirmation débite immédiatement cette caisse et marque la demande comme réglée.",
+    "selectPayable": "Sélectionner une expression de besoin validée",
+    "noPayable": "Aucune expression de besoin à régler dans cette filiale",
+    "paymentSuccess": "Expression de besoin réglée.",
     "confirmPayment": "Confirmer le règlement",
     "paying": "Règlement en cours…",
     "paymentSuccess": "Le règlement a été enregistré depuis la caisse de dépense. Le commercial a été notifié.",

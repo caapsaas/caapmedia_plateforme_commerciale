@@ -21,7 +21,7 @@ interface TreasuryAccountsAndTransactionsProps {
   endDate?: string;
 }
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 10;
 
 // Double sous-onglet "Comptes" / "Transactions" par type de compte de
 // trésorerie, pour l'onglet Analyse (Analytics.tsx) — même structure que

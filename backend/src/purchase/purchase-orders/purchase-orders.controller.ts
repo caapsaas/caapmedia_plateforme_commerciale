@@ -18,13 +18,14 @@ import {
 } from './dto/create-purchase-order.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
-import { Roles } from 'src/common/auth/role/role.decorator';
+import { Roles, SuperAdminReadOnly } from 'src/common/auth/role/role.decorator';
 import { UserRole } from '@prisma/client';
 import { FindAllPurchaseOrdersDto } from './dto/find-all-purchase-orders.dto';
 import { ReceiveItemsDto } from './dto/receive-items.dto';
 
 @UseGuards(JwtAuthGuard, RoleGuard)
 @Controller('purchasing/purchase-orders')
+@SuperAdminReadOnly()
 export class PurchaseOrdersController {
   constructor(private readonly purchaseOrdersService: PurchaseOrdersService) {}
 

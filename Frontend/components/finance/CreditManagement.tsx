@@ -23,6 +23,8 @@ import CreditDetailsModal from './CreditDetailsModal';
 import CreditPaymentModal from './CreditPaymentModal';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 interface CreditManagementProps {
     subsidiary: Subsidiary;
@@ -111,6 +113,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
             (credit.companyName && credit.companyName.toLowerCase().includes(lowercasedTerm))
         );
     }, [transformedCredits, searchTerm]);
+    const { pageItems: pageCredits, meta: creditsMeta, setPage } = useClientPagination(filteredCredits);
 
     // Calcul du total des dettes clients à partir des commandes filtrées
     const totalCustomerDebts = useMemo(() => {
@@ -267,7 +270,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
                             {isLoading ? (
                                 <TableSkeleton rows={5} columns={5} />
                             ) : filteredCredits.length > 0 ? (
-                                filteredCredits.map((account) => (
+                                pageCredits.map((account) => (
                                     <tr key={`credit-${account.id}-${account.clientName}`} className="bg-white border-b hover:bg-slate-50">
                                         <td className="px-6 py-4 font-medium text-slate-900">{account.clientName}</td>
                                         <td className="px-6 py-4">{account.companyName}</td>
@@ -294,6 +297,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
                         </tbody>
                     </table>
                 </div>
+                <Pagination meta={creditsMeta} onPageChange={setPage} />
             </div>
             {isDetailsModalOpen && selectedAccount && (
                 <CreditDetailsModal 
@@ -302,7 +306,7 @@ const CreditManagement: React.FC<CreditManagementProps> = ({ subsidiary }) => {
                     account={selectedAccount} 
                 />
             )}
-            {isPaymentModalOpen && selectedAccount && (
+            {canRecordPayment && isPaymentModalOpen && selectedAccount && (
                 <CreditPaymentModal 
                     isOpen={isPaymentModalOpen} 
                     onClose={() => setIsPaymentModalOpen(false)} 

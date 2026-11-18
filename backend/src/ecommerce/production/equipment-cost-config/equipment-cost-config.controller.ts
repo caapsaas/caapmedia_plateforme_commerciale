@@ -46,11 +46,15 @@ export class EquipmentCostConfigController {
     UserRole.SUPER_ADMIN,
     UserRole.ADMIN,
     UserRole.COMMERCIAL,
+    UserRole.CAISSIER,
     UserRole.PRODUCTION_DIRECTOR,
     UserRole.FINANCIAL_DIRECTOR,
   )
-  findConfigured(@Query('subsidiaryId') subsidiaryId: string | undefined) {
-    return this.service.findConfigured(subsidiaryId);
+  findConfigured(
+    @Query('subsidiaryId') subsidiaryId: string | undefined,
+    @CurrentUser() user: JwtUser,
+  ) {
+    return this.service.findConfigured(subsidiaryId, user);
   }
 
   @Get(':equipmentId')

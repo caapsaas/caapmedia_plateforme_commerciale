@@ -23,6 +23,8 @@ export interface CreateNeedRequest {
 }
 export const getNeedRequests = async (): Promise<NeedRequest[]> =>
   (await api.get("/purchasing/need-requests")).data;
+export const getPayableNeedRequests = async (subsidiaryId: string): Promise<NeedRequest[]> =>
+  (await api.get("/purchasing/need-requests/payable", { params: { subsidiaryId } })).data;
 export const createNeedRequest = async (
   data: CreateNeedRequest,
 ): Promise<NeedRequest> =>

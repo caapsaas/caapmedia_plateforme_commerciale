@@ -4,8 +4,9 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class FindExternalTransactionsDto extends PaginationQueryDto {
   @ApiPropertyOptional({ description: 'ID de la filiale' })
+  @IsOptional()
   @IsString()
-  subsidiaryId: string;
+  subsidiaryId?: string;
 
   @ApiPropertyOptional({ description: 'Filtrer par type de transaction' })
   @IsOptional()

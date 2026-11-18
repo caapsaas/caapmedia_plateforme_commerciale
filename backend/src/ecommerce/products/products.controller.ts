@@ -108,10 +108,17 @@ export class ProductsController {
   @Get('get-all-products')
   findAllProducts(
     @Query('page') page: string,
-    @Query('category') category?: string,
+    @Query('category') category?: string | string[],
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
   ) {
-    const pageNumber = parseInt(page) || 1;
-    return this.productsService.findMany(pageNumber, category);
+    const pageNumber = Math.max(1, parseInt(page, 10) || 1);
+    return this.productsService.findMany(
+      pageNumber,
+      category,
+      limit === '10' ? 10 : 8,
+      typeof search === 'string' ? search.trim() : undefined,
+    );
   }
 
   @Get('search-products')

@@ -1,3 +1,5 @@
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import React, { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Calendar, ChevronDown, ChevronRight, Download, Printer } from 'lucide-react';
@@ -102,6 +104,8 @@ const GrandLivre: React.FC<GrandLivreProps> = ({ fiscalPeriods }) => {
     }
   };
 
+  const { pageItems, meta, setPage } = useClientPagination(accounts);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -193,7 +197,7 @@ const GrandLivre: React.FC<GrandLivreProps> = ({ fiscalPeriods }) => {
           </div>
 
           <div className="space-y-2">
-            {accounts.map((entry) => {
+            {pageItems.map((entry) => {
               const isExpanded = !!selectedAccountNumber || expandedAccount === entry.account.accountNumber;
               return (
                 <div key={entry.account.accountNumber} className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden">
@@ -260,6 +264,7 @@ const GrandLivre: React.FC<GrandLivreProps> = ({ fiscalPeriods }) => {
               );
             })}
           </div>
+          <Pagination meta={meta} onPageChange={setPage} />
         </>
       )}
 

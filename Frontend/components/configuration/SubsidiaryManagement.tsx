@@ -8,6 +8,8 @@ import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
 import ConfirmationModal from '../common/ConfirmationModal';
 import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import TableSkeleton from '../ui/TableSkeleton';
 import ConfigurationSearch from './ConfigurationSearch';
 import { getImageUrl } from '../../utils/imageUtils';
@@ -61,6 +63,7 @@ const SubsidiaryManagement: React.FC = () => {
     return subsidiaries.filter((item) => [item.subsidiaryName, item.email, item.address, item.phone, item.ifu, item.rccm]
       .some((value) => value?.toLocaleLowerCase().includes(term)));
   }, [subsidiaries, search]);
+  const { pageItems: pageSubsidiaries, meta: subsidiariesMeta, setPage } = useClientPagination(filtered);
 
   const closeForm = () => {
     setFormOpen(false); setEditing(null); setLogo(null); setFormError(''); setForm(EMPTY_FORM);
@@ -137,7 +140,7 @@ const SubsidiaryManagement: React.FC = () => {
         <table className="w-full text-left text-sm text-slate-600">
           <thead className="bg-slate-50 text-xs uppercase text-slate-700"><tr><th className="px-4 py-3">Logo</th><th className="px-4 py-3">Filiale</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Téléphone</th><th className="px-4 py-3">Ville / adresse</th><th className="px-4 py-3 text-center">Actions</th></tr></thead>
           <tbody>
-            {isLoading ? <TableSkeleton rows={5} columns={6} /> : filtered.length === 0 ? <tr><td colSpan={6}><EmptyState icon="inbox" title="Aucune filiale" description={search ? 'Aucun résultat pour cette recherche.' : 'Créez la première filiale.'} /></td></tr> : filtered.map((item) => (
+            {isLoading ? <TableSkeleton rows={5} columns={6} /> : filtered.length === 0 ? <tr><td colSpan={6}><EmptyState icon="inbox" title="Aucune filiale" description={search ? 'Aucun résultat pour cette recherche.' : 'Créez la première filiale.'} /></td></tr> : pageSubsidiaries.map((item) => (
               <tr key={item.id} className="border-b hover:bg-slate-50">
                 <td className="px-4 py-3"><div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded border bg-slate-50">{item.logoSvg ? <img src={getImageUrl(item.logoSvg)} alt={`Logo ${item.subsidiaryName}`} className="h-full w-full object-contain" /> : <span className="text-xs text-slate-400">—</span>}</div></td>
                 <td className="px-4 py-3 font-semibold text-slate-800">{item.subsidiaryName || item.name}{item.isHeadquarter && <span className="ml-2 rounded bg-slate-100 px-2 py-1 text-xs">Siège</span>}</td>
@@ -148,6 +151,7 @@ const SubsidiaryManagement: React.FC = () => {
           </tbody>
         </table>
       </div>
+      <Pagination meta={subsidiariesMeta} onPageChange={setPage} />
 
       {formOpen && <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop p-4" onClick={closeForm}>
         <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white shadow-xl" onClick={(event) => event.stopPropagation()}>

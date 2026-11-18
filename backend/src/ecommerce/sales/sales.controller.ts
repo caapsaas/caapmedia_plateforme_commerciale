@@ -6,7 +6,6 @@ import {
   Query,
   Req,
   UseGuards,
-  SetMetadata,
 } from '@nestjs/common';
 import { SalesService } from './sales.service';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
@@ -23,11 +22,11 @@ export class SalesController {
 
   /**
    * Endpoint pour créer une vente directe (au comptoir)
-   * Accessible par les caissiers, admins, et directeurs financiers.
+   * Accessible avec le rôle actif Caissier.
    */
   @Post('direct')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.CAISSIER, UserRole.ADMIN)
+  @Roles(UserRole.CAISSIER)
   createDirectSale(
     @Body() createDirectSaleDto: CreateDirectSaleDto,
     @Req() req,

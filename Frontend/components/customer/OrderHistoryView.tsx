@@ -1,3 +1,5 @@
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import React from 'react';
 import { OrderStatus, OrderGroup } from '../../types';
 import { useI18n } from '../../i18n';
@@ -24,6 +26,8 @@ const OrderHistoryView: React.FC<OrderHistoryViewProps> = ({ orders }) => {
         return t(`order.status_${status}`);
     };
 
+    const { pageItems, meta, setPage } = useClientPagination(orders);
+
     return (
         <div>
             <h2 className="text-xl font-bold mb-4">{t('customerAccount.myOrders')}</h2>
@@ -41,7 +45,7 @@ const OrderHistoryView: React.FC<OrderHistoryViewProps> = ({ orders }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {orders.map(order => (
+                        {pageItems.map(order => (
                             <tr key={order.orders[0].id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{order.orders[0].id}</td>
                                 <td className="px-6 py-4">{new Date(order.createdAt).toLocaleDateString()}</td>
@@ -57,6 +61,7 @@ const OrderHistoryView: React.FC<OrderHistoryViewProps> = ({ orders }) => {
                 </table>
                 )}
             </div>
+              <Pagination meta={meta} onPageChange={setPage} />
         </div>
     );
 };

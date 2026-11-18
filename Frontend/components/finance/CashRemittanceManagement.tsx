@@ -12,6 +12,8 @@ import {
 } from '../../services/apiFinance/apiCashRemittance';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 const STATUS_STYLES: Record<CashRemittanceStatus, string> = {
   [CashRemittanceStatus.SUBMITTED]: 'bg-blue-100 text-blue-800',
@@ -43,6 +45,7 @@ const CashRemittanceManagement: React.FC = () => {
     queryKey: ['cashRemittances'],
     queryFn: getCashRemittances,
   });
+  const { pageItems: pageRemittances, meta: remittancesMeta, setPage } = useClientPagination(remittances);
 
   const { data: assignedCashRegisters = [], isFetching: isLoadingAccounts, isError: hasAccountsError } = useQuery({
     queryKey: ['treasury-accounts', 'remittance-sources', user?.subsidiaryId, user?.id],
@@ -166,7 +169,7 @@ const CashRemittanceManagement: React.FC = () => {
                 </td>
               </tr>
             ) : (
-              remittances.map((r) => (
+              pageRemittances.map((r) => (
                 <tr key={r.id} className="bg-white border-b hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium text-slate-900">{r.reference}</td>
                   <td className="px-4 py-3">{new Date(r.remittanceDate).toLocaleDateString()}</td>
@@ -228,6 +231,7 @@ const CashRemittanceManagement: React.FC = () => {
           </tbody>
         </table>
       </div>
+      {!isLoading && <Pagination meta={remittancesMeta} onPageChange={setPage} />}
 
       {showCreateModal && (
         <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={() => setShowCreateModal(false)}>

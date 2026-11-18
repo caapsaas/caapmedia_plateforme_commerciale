@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Subsidiary, Employee } from '../types';
+import { Employee, UserRole } from '../types';
 import { useI18n } from '../i18n';
-import { useAppContext } from '../context/AppContext';
+import { isSuperAdmin } from '../utils/isSuperAdmin';
 import DocumentManagement from '../components/secretariat/DocumentManagement';
 import MeetingManagement from '../components/secretariat/MeetingManagement';
 import TaskManagement from '../components/secretariat/TaskManagement';
@@ -26,14 +26,12 @@ type SecretariatView = 'documents' | 'meetings' | 'tasks';
 const Secretariat: React.FC = () => {
     const { t } = useI18n();
     const queryClient = useQueryClient();
-    const { subsidiary } = useAuth();
+    const { subsidiary, user } = useAuth();
+    const role = user?.activeRole ?? user?.userRole;
+    const canEdit = !isSuperAdmin(user) && (role === UserRole.ADMIN || role === UserRole.SECRETARY);
     const [activeTab, setActiveTab] = useState<SecretariatView>('documents');
 
-    if (!subsidiary) {
-        return <CrmListSkeleton columns={5} />;
-    }
-
-    const queryKey = (key: string) => [key, subsidiary.id];
+    const queryKey = (key: string) => [key, subsidiary?.id];
 
     // --- Data Fetching ---
     // documents/meetings/tasks sont désormais chargés (et paginés) directement
@@ -41,7 +39,8 @@ const Secretariat: React.FC = () => {
     // pour les selects participant/assigné dans MeetingManagement/TaskManagement.
     const { data: employees = [], isLoading: isLoadingEmployees } = useQuery<Employee[]>({
         queryKey: queryKey('employees'),
-        queryFn: () => getEmployees()
+        queryFn: () => getEmployees(),
+        enabled: !!subsidiary,
     });
 
     // --- Mutations ---
@@ -70,6 +69,8 @@ const Secretariat: React.FC = () => {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey('secretariatTasks') })
     });
 
+    if (!subsidiary) return <CrmListSkeleton columns={5} />;
+
     const renderActiveView = () => {
         if (isLoadingEmployees) {
             return <CrmListSkeleton columns={5} />;
@@ -79,12 +80,14 @@ const Secretariat: React.FC = () => {
             case 'documents':
                 return <DocumentManagement
                             subsidiary={subsidiary}
+                            canEdit={canEdit}
                             onSave={onSaveDocument}
                             onDelete={onDeleteDocument}
                         />;
             case 'meetings':
                 return <MeetingManagement
                             subsidiary={subsidiary}
+                            canEdit={canEdit}
                             employees={employees}
                             onSave={onSaveMeeting}
                             onDelete={onDeleteMeeting}
@@ -92,6 +95,7 @@ const Secretariat: React.FC = () => {
             case 'tasks':
                 return <TaskManagement
                             subsidiary={subsidiary}
+                            canEdit={canEdit}
                             employees={employees}
                             onSave={onSaveTask}
                             onDelete={onDeleteTask}
@@ -99,6 +103,7 @@ const Secretariat: React.FC = () => {
             default:
                 return <DocumentManagement
                             subsidiary={subsidiary}
+                            canEdit={canEdit}
                             onSave={onSaveDocument}
                             onDelete={onDeleteDocument}
                         />;

@@ -7,10 +7,11 @@ import { PaginatedResponse, PaginationParams } from '../../types/pagination.type
  * Récupère la page du catalogue de services visible sur le site vitrine
  * (donnée globale, filtrée isActive/isVisibleOnSite côté backend).
  */
-export const getProducts = async (page: number, category?: string) => {
-    let url = `/products/get-all-products?page=${page}`;
-    if (category) url += `&category=${encodeURIComponent(category)}`;
-    const { data } = await api.get(url);
+export const getProducts = async (page: number, categories: string[], search: string) => {
+    const params = new URLSearchParams({ page: String(page), limit: '10' });
+    if (search) params.set('search', search);
+    categories.forEach((category) => params.append('category', category));
+    const { data } = await api.get<Product[]>('/products/get-all-products', { params });
     return data;
 };
 

@@ -15,6 +15,8 @@ import { getContacts } from '../services/apiCrm/apicontacts';
 import TableSkeleton from '../components/ui/TableSkeleton';
 import CrmListSkeleton from '../components/ui/CrmListSkeleton';
 import EmptyState from '../components/ui/EmptyState';
+import Pagination from '../components/common/Pagination';
+import { useClientPagination } from '../hooks/useClientPagination';
 
 const Transaction: React.FC = () => {
     const { t, formatCurrency } = useI18n();
@@ -35,6 +37,7 @@ const Transaction: React.FC = () => {
         queryFn: () => getSales(filters),
         enabled: !!subsidiary,
     });
+    const { pageItems: pageSales, meta: salesMeta, setPage } = useClientPagination(sales);
 
     const { data: products = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
         queryKey: ['products', subsidiary?.id],
@@ -78,7 +81,7 @@ const Transaction: React.FC = () => {
                             {isLoading ? (
                                 <TableSkeleton rows={7} columns={7} />
                             ) : sales.length > 0 ? (
-                                sales.map((sale) => (
+                                pageSales.map((sale) => (
                                     <tr key={sale.id} className="bg-white border-b hover:bg-slate-50">
                                         <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{sale.id}</th>
                                         <td className="px-6 py-4">{sale.customerName}</td>
@@ -103,6 +106,7 @@ const Transaction: React.FC = () => {
                             )}
                         </tbody>
                     </table>
+                    <Pagination meta={salesMeta} onPageChange={setPage} />
                 </div>
             </div>
         </div>

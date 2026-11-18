@@ -137,12 +137,15 @@ const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClo
   };
 
   const calculateTotal = () => {
-    const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-    const taxAmount = (subtotal * taxRate) / 100;
+    const total = Math.round(items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0) * 100) / 100;
+    const taxAmount = taxRate > 0
+      ? Math.round((total * taxRate) / (100 + taxRate) * 100) / 100
+      : 0;
+    const subtotal = total - taxAmount;
     return {
       subtotal,
       taxAmount,
-      total: subtotal + taxAmount,
+      total,
     };
   };
 
@@ -317,7 +320,7 @@ const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClo
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Prix Unitaire (FCFA)
+                        Prix Unitaire TTC (FCFA)
                       </label>
                       <input
                         type="number"
@@ -347,8 +350,8 @@ const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClo
                         <tr className="border-b">
                           <th className="text-left py-2">Produit</th>
                           <th className="text-right py-2">Qty</th>
-                          <th className="text-right py-2">Prix Unit</th>
-                          <th className="text-right py-2">Total</th>
+                          <th className="text-right py-2">Prix Unit. TTC</th>
+                          <th className="text-right py-2">Total TTC</th>
                           <th className="text-center py-2">Action</th>
                         </tr>
                       </thead>
@@ -430,15 +433,15 @@ const CreateProformaModal: React.FC<CreateProformaModalProps> = ({ isOpen, onClo
             {selectedLeadId && items.length > 0 && (
               <div className="bg-slate-50 p-4 rounded-lg space-y-2">
                 <div className="flex justify-between">
-                  <span>Sous-total :</span>
+                  <span>Sous-total HT :</span>
                   <span className="font-semibold">{subtotal.toLocaleString()} FCFA</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>TVA ({taxRate}%) :</span>
+                  <span>TVA incluse ({taxRate}%) :</span>
                   <span className="font-semibold">{taxAmount.toLocaleString()} FCFA</span>
                 </div>
                 <div className="border-t pt-2 flex justify-between text-lg">
-                  <span className="font-bold">Total :</span>
+                  <span className="font-bold">Total TTC :</span>
                   <span className="font-bold text-[#c6e911]">{total.toLocaleString()} FCFA</span>
                 </div>
               </div>

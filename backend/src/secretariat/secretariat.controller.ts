@@ -33,7 +33,7 @@ import { SecretariatService } from './secretariat.service';
 import { JwtAuthGuard } from '../../src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from '../common/auth/role/role.guard';
 import { SubsidiaryGuard } from '../common/auth/subsidiary/subsidiary.guard';
-import { Roles } from '../common/auth/role/role.decorator';
+import { Roles, SuperAdminReadOnly } from '../common/auth/role/role.decorator';
 import { SetMetadata } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { CreateCompanyDocumentDto } from './dto/create-company-document.dto';
@@ -56,6 +56,7 @@ import {
 } from '../common/utils/subsidiary-scope';
 
 @Controller('secretariat')
+@SuperAdminReadOnly()
 @UseGuards(JwtAuthGuard, RoleGuard, SubsidiaryGuard)
 export class SecretariatController {
   constructor(

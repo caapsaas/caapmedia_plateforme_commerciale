@@ -1,4 +1,7 @@
+import { useAuth } from '../../context/AuthContext';
+import { UserRole } from '../../types';
 import React, { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Subsidiary, ExpenseRecord, ExpenseCategory, ExpenseType } from '../../types';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
@@ -18,6 +21,8 @@ import { saveExpense, deleteExpense } from '../../services/apiFinance/apiExpense
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
 import { getPresetPeriodDates, toLocalDateKey } from '../../utils/datePeriods';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 interface ExpenseManagementProps {
     subsidiary: Subsidiary;
@@ -26,9 +31,13 @@ interface ExpenseManagementProps {
 }
 
 const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expenseRecords: allExpenseRecords, isLoading = false }) => {
+    const { user } = useAuth();
+    const activeRole = user?.activeRole ?? user?.userRole;
+    const canManage = activeRole === UserRole.ADMIN || activeRole === UserRole.FINANCIAL_DIRECTOR;
     const { t, formatCurrency } = useI18n();
     const toast = useToast();
-    const [expenses, setExpenses] = useState(allExpenseRecords.filter(e => e.subsidiaryId === subsidiary.id));
+    const queryClient = useQueryClient();
+    const expenses = useMemo(() => allExpenseRecords.filter(e => e.subsidiaryId === subsidiary.id), [allExpenseRecords, subsidiary.id]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingExpense, setEditingExpense] = useState<ExpenseRecord | null>(null);
     const [deletingExpense, setDeletingExpense] = useState<ExpenseRecord | null>(null);
@@ -60,6 +69,7 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
         
         return filtered;
     }, [expenses, category, type, period, startDate, endDate]);
+    const { pageItems: pageExpenses, meta: expensesMeta, setPage } = useClientPagination(filteredExpenses);
 
     const totalExpenses = useMemo(() => filteredExpenses.reduce((acc, exp) => acc + Number(exp.amount), 0), [filteredExpenses]);
 
@@ -85,14 +95,14 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
     const handleSaveExpense = async (data: Omit<ExpenseRecord, 'id' | 'subsidiaryId'>) => {
         try {
             if (editingExpense) {
-                const updatedExpense = await saveExpense({ ...data, id: editingExpense.id });
-                setExpenses(prev => prev.map(e => e.id === editingExpense.id ? updatedExpense : e));
+                await saveExpense({ ...data, id: editingExpense.id });
                 toast.success('Dépense modifiée!', 'La dépense a été modifiée avec succès.');
             } else {
-                const newExpense = await saveExpense(data);
-                setExpenses(prev => [newExpense, ...prev]);
+                await saveExpense(data);
                 toast.success('Dépense ajoutée!', 'La dépense a été ajoutée avec succès.');
             }
+            void queryClient.invalidateQueries({ queryKey: ['expenseRecords'] });
+            void queryClient.invalidateQueries({ queryKey: ['payableExpenses'] });
             handleCloseModals();
         } catch (error) {
             toast.error('Erreur de sauvegarde', 'Une erreur est survenue lors de la sauvegarde de la dépense.');
@@ -103,7 +113,8 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
         try {
             if (deletingExpense) {
                 await deleteExpense(deletingExpense.id);
-                setExpenses(prev => prev.filter(e => e.id !== deletingExpense.id));
+                void queryClient.invalidateQueries({ queryKey: ['expenseRecords'] });
+                void queryClient.invalidateQueries({ queryKey: ['payableExpenses'] });
                 toast.success('Dépense supprimée!', 'La dépense a été supprimée avec succès.');
                 handleCloseModals();
             }
@@ -166,10 +177,10 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                     <h3 className="text-xl font-semibold text-slate-800">{t('expenses.title')}</h3>
                     <div className="flex items-center flex-wrap gap-2 no-print self-start md:self-center">
-                        <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
+                        {canManage && (<button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
                             <IconPlus className="h-4 w-4" />
                             <span>{t('expenses.addExpense')}</span>
-                        </button>
+                        </button>)}
                         <button onClick={handlePrint} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
                             <IconPrint className="h-4 w-4" />
                         </button>
@@ -201,28 +212,39 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
                                 <th scope="col" className="px-6 py-3">{t('expenses.table.category')}</th>
                                 <th scope="col" className="px-6 py-3">{t('expenses.table.type')}</th>
                                 <th scope="col" className="px-6 py-3 text-right">{t('expenses.table.amount')}</th>
+                                <th scope="col" className="px-6 py-3">{t('needs.paymentStatus')}</th>
                                 <th scope="col" className="px-6 py-3 text-center no-print">{t('common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {isLoading ? (
-                                <TableSkeleton rows={8} columns={6} />
+                                <TableSkeleton rows={8} columns={7} />
                             ) : filteredExpenses.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6}>
+                                    <td colSpan={7}>
                                         <EmptyState icon="finance" title={t('expenses.title')} description={t('common.notAvailable')} />
                                     </td>
                                 </tr>
-                            ) : filteredExpenses.map((exp) => (
+                            ) : pageExpenses.map((exp) => (
                                 <tr key={exp.id} className="bg-white border-b hover:bg-slate-50">
                                     <td className="px-6 py-4">{exp.date ? new Date(exp.date).toLocaleDateString('fr-FR') : ''}</td>
                                     <td className="px-6 py-4 font-medium">{exp.description}</td>
                                     <td className="px-6 py-4">{t(`expenses.categories.${exp.category || 'OTHER'}`)}</td>
                                     <td className="px-6 py-4">{t(`expenses.types.${exp.type || 'VARIABLE'}`)}</td>
                                     <td className="px-6 py-4 text-right font-semibold">{formatCurrency(Number(exp.amount))}</td>
+                                    <td className="px-6 py-4">
+                                        {exp.paymentTransaction ? (
+                                            <>
+                                                <span className="font-semibold text-green-700">{t('needs.paid')}</span>
+                                                <div className="text-xs">{exp.paymentTransaction.treasuryAccount.accountName}</div>
+                                            </>
+                                        ) : t('needs.unpaid')}
+                                    </td>
                                     <td className="px-6 py-4 text-center space-x-1 no-print">
+                                        {canManage && !exp.paymentTransaction && <>
                                         <button onClick={() => handleOpenEditModal(exp)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors"><IconEdit className="h-5 w-5" /></button>
                                         <button onClick={() => handleOpenDeleteModal(exp)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors"><IconDelete className="h-5 w-5" /></button>
+                                        </>}
                                     </td>
                                 </tr>
                             ))}
@@ -231,11 +253,13 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
                             <tr className="font-bold bg-slate-50">
                                 <td colSpan={4} className="px-6 py-3 text-right">{t('expenses.totalExpenses')}</td>
                                 <td className="px-6 py-3 text-right">{formatCurrency(totalExpenses)}</td>
+                                <td />
                                 <td className="px-6 py-3 no-print"></td>
                             </tr>
                         </tfoot>
                     </table>
                 </div>
+                <Pagination meta={expensesMeta} onPageChange={setPage} />
             </div>
 
             {isModalOpen && <ExpenseFormModal isOpen={isModalOpen} onClose={handleCloseModals} onSave={handleSaveExpense} expense={editingExpense} />}

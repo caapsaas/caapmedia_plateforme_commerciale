@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Contact, ContactStatus } from '../../types';
 import { useI18n } from '../../i18n';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 interface ClientSelectionModalProps {
     isOpen: boolean;
@@ -28,6 +30,7 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({ isOpen, onC
             (client.company && client.company.toLowerCase().includes(searchTerm.toLowerCase()))
         );
     }, [clients, searchTerm]);
+    const { pageItems: pageClients, meta: clientsMeta, setPage } = useClientPagination(filteredClients);
     
     const handleNewClientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setNewClientData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -63,13 +66,14 @@ const ClientSelectionModal: React.FC<ClientSelectionModalProps> = ({ isOpen, onC
                             className="w-full px-4 py-2 border border-slate-300 rounded-md mb-4"
                         />
                         <ul className="max-h-60 overflow-y-auto divide-y divide-slate-200">
-                            {filteredClients.map(client => (
+                            {pageClients.map(client => (
                                 <li key={client.id} onClick={() => onClientSelect(client)} className="p-3 hover:bg-slate-100 cursor-pointer">
                                     <p className="font-semibold">{client.contactName}</p>
                                     <p className="text-sm text-slate-500">{client.company}</p>
                                 </li>
                             ))}
                         </ul>
+                        <Pagination meta={clientsMeta} onPageChange={setPage} />
                     </div>
                 ) : (
                     <form onSubmit={handleCreateSubmit} className="p-6 space-y-4">

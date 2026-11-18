@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TreasuryAccount, Subsidiary, UserRole } from '../../types/models';
+import { TreasuryAccount, Subsidiary, UserRole, AccountType } from '../../types/models';
 import { useAuth } from '../../context/AuthContext';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
@@ -9,6 +9,8 @@ import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
 import { getTreasuryAccounts, createTreasuryAccount, updateTreasuryAccount, deleteTreasuryAccount, TreasuryAccountCreationData, TreasuryAccountUpdateData } from '../../services/apiFinance/apiTreasury';
 import { getSubsidiaries } from '../../services/apiCommon/apiSubsidiaries';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 interface TreasuryAccountManagementProps {
   subsidiary: Subsidiary;
@@ -40,6 +42,7 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
     [account.accountName, account.accountCode, account.accountType, account.currency, account.subsidiary?.subsidiaryName]
       .some((value) => String(value ?? '').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())),
   );
+  const { pageItems: pageAccounts, meta: accountsMeta, setPage } = useClientPagination(filteredAccounts);
 
   // Vérifier les permissions
   // Le SUPER_ADMIN garde son accès global ; sinon, seul le rôle actif ADMIN
@@ -169,6 +172,8 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
           subsidiaryId: accountData.subsidiaryId,
         };
         const newAccount = await createTreasuryAccount(createData);
+        queryClient.invalidateQueries({ queryKey: ['treasuryAccounts'] });
+        queryClient.invalidateQueries({ queryKey: ['financialTransactions'] });
         // Le backend peut rattacher le compte à une autre filiale que celle
         // affichée quand ADMIN/SUPER_ADMIN en a sélectionné une autre.
         if (newAccount.subsidiaryId === subsidiary.id) {
@@ -184,17 +189,31 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
           queryClient.invalidateQueries({ queryKey: ['prefinancementStatistics', subsidiary.id] });
         }
 
+        const isBankOpeningPending =
+          accountData.accountType === AccountType.BANQUE && accountData.balance > 0;
         toast(
           'success',
-          newAccount.subsidiaryId === subsidiary.id
-            ? t('treasuryAccounts.success.created')
-            : t('treasuryAccounts.success.createdElsewhere'),
+          isBankOpeningPending
+            ? t('treasuryAccounts.success.bankCreatedPending')
+            : newAccount.subsidiaryId === subsidiary.id
+              ? t('treasuryAccounts.success.created')
+              : t('treasuryAccounts.success.createdElsewhere'),
         );
       }
       handleModalClose();
-    } catch (error) {
-      // L'erreur est déjà gérée dans les fonctions API, mais on peut ajouter un traitement supplémentaire si nécessaire
-      console.error('Error saving account:', error);
+    } catch (error: any) {
+      const serverMessage = error?.response?.data?.message;
+      const message = Array.isArray(serverMessage)
+        ? serverMessage
+            .map((item) => String(item).replace(/^initialBalance\s*:/i, 'Solde initial :'))
+            .join('\n')
+        : typeof serverMessage === 'string'
+          ? serverMessage
+          : error?.message;
+      toast(
+        'error',
+        message || t(editingAccount ? 'treasuryAccounts.error.update' : 'treasuryAccounts.error.create'),
+      );
     }
   };
 
@@ -323,7 +342,7 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <TableSkeleton rows={5} columns={6} />
-              ) : filteredAccounts.map((account) => (
+              ) : pageAccounts.map((account) => (
                 <tr key={account.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {account.accountName}
@@ -381,6 +400,7 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
             </tbody>
           </table>
         </div>
+        <Pagination meta={accountsMeta} onPageChange={setPage} />
         
         {!loading && accounts.length === 0 && (
           <EmptyState icon="finance" title={t('treasuryAccounts.noData')} />

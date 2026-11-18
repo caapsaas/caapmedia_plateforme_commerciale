@@ -31,6 +31,13 @@ describe('Cash-box-only need payments', () => {
     activeRole: UserRole.COMMERCIAL,
     roles: [UserRole.COMMERCIAL],
   };
+  const director: JwtUser = {
+    ...commercial,
+    id: 'director',
+    role: UserRole.FINANCIAL_DIRECTOR,
+    activeRole: UserRole.FINANCIAL_DIRECTOR,
+    roles: [UserRole.FINANCIAL_DIRECTOR],
+  };
   const dto: PayNeedRequestDto = {
     amount: 12500.5,
     beneficiary: 'Prestataire',
@@ -95,22 +102,46 @@ describe('Cash-box-only need payments', () => {
       recipientId: 'commercial',
     });
   });
-  it('denies payments and balance access to a commercial or financial director', async () => {
-    for (const identity of [
-      commercial,
-      { ...commercial, activeRole: UserRole.FINANCIAL_DIRECTOR },
-    ]) {
-      await expect(service.pay(identity, 'need', dto)).rejects.toThrow(
-        ForbiddenException,
-      );
-      await expect(service.paymentAccount(identity, 'need')).rejects.toThrow(
-        ForbiddenException,
-      );
-    }
+  it('denies payments and balance access to a commercial', async () => {
+    await expect(service.pay(commercial, 'need', dto)).rejects.toThrow(
+      ForbiddenException,
+    );
+    await expect(service.paymentAccount(commercial, 'need')).rejects.toThrow(
+      ForbiddenException,
+    );
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
+
+  it('denies the super-admin payment access', async () => {
+    await expect(service.pay(admin, 'need', dto)).rejects.toThrow(
+      ForbiddenException,
+    );
+    await expect(service.paymentAccount(admin, 'need')).rejects.toThrow(ForbiddenException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('lets a financial director pay an approved request only in their branch', async () => {
+    const otherBranch = { ...director, subsidiaryId: 'other-branch' };
+    await expect(service.paymentAccount(otherBranch, 'need')).rejects.toThrow(
+      ForbiddenException,
+    );
+    await expect(service.pay(otherBranch, 'need', dto)).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(prisma.treasuryAccount.updateMany).not.toHaveBeenCalled();
+
+    const requestDirector = { ...director, subsidiaryId: request.subsidiaryId };
+    await expect(
+      service.paymentAccount(requestDirector, 'need'),
+    ).resolves.toEqual(account);
+    await expect(
+      service.pay(requestDirector, 'need', dto),
+    ).resolves.toMatchObject({
+      payment: { id: 'payment' },
+    });
+  });
   it('resolves only the expense box of the request branch, not the admin branch', async () => {
-    await service.pay(admin, 'need', dto);
+    await service.pay({ ...director, subsidiaryId: request.subsidiaryId }, 'need', dto);
     expect(prisma.treasuryAccount.findMany).toHaveBeenCalledWith({
       where: { subsidiaryId: 'branch-b', accountType: 'EXPENSE_BOX' },
       take: 2,
@@ -133,7 +164,7 @@ describe('Cash-box-only need payments', () => {
     'refuses a %s request before touching funds',
     async (status) => {
       prisma.needRequest.findUnique.mockResolvedValue({ ...request, status });
-      await expect(service.pay(admin, 'need', dto)).rejects.toThrow(
+      await expect(service.pay({ ...director, subsidiaryId: request.subsidiaryId }, 'need', dto)).rejects.toThrow(
         BadRequestException,
       );
       expect(prisma.treasuryAccount.updateMany).not.toHaveBeenCalled();
@@ -141,7 +172,7 @@ describe('Cash-box-only need payments', () => {
   );
   it('refuses an unknown request', async () => {
     prisma.needRequest.findUnique.mockResolvedValue(null);
-    await expect(service.pay(admin, 'missing', dto)).rejects.toThrow(
+    await expect(service.pay({ ...director, subsidiaryId: request.subsidiaryId }, 'missing', dto)).rejects.toThrow(
       NotFoundException,
     );
   });
@@ -150,7 +181,7 @@ describe('Cash-box-only need payments', () => {
       ...request,
       payment: { id: 'existing' },
     });
-    await expect(service.pay(admin, 'need', dto)).rejects.toThrow(
+    await expect(service.pay({ ...director, subsidiaryId: request.subsidiaryId }, 'need', dto)).rejects.toThrow(
       ConflictException,
     );
     expect(prisma.treasuryAccount.updateMany).not.toHaveBeenCalled();
@@ -162,13 +193,13 @@ describe('Cash-box-only need payments', () => {
     'refuses missing or ambiguous cash-box configuration',
     async ({ accounts }) => {
       prisma.treasuryAccount.findMany.mockResolvedValue(accounts);
-      await expect(service.pay(admin, 'need', dto)).rejects.toThrow();
+      await expect(service.pay({ ...director, subsidiaryId: request.subsidiaryId }, 'need', dto)).rejects.toThrow();
       expect(prisma.treasuryAccount.updateMany).not.toHaveBeenCalled();
     },
   );
   it('refuses an insufficient balance without recording a payment', async () => {
     prisma.treasuryAccount.updateMany.mockResolvedValue({ count: 0 });
-    await expect(service.pay(admin, 'need', dto)).rejects.toThrow(
+    await expect(service.pay({ ...director, subsidiaryId: request.subsidiaryId }, 'need', dto)).rejects.toThrow(
       BadRequestException,
     );
     expect(prisma.financialTransaction.create).not.toHaveBeenCalled();
@@ -176,7 +207,7 @@ describe('Cash-box-only need payments', () => {
     expect(notifications.publish).not.toHaveBeenCalled();
   });
   it('records one validated cash-box expense, linked payment, accounting event and notification', async () => {
-    await service.pay(admin, 'need', dto);
+    await service.pay({ ...director, subsidiaryId: request.subsidiaryId }, 'need', dto);
     const transactionData = (
       prisma.financialTransaction.create.mock.calls as unknown as Array<
         [
@@ -210,14 +241,14 @@ describe('Cash-box-only need payments', () => {
       needRequestId: 'need',
       financialTransactionId: 'transaction',
       beneficiary: 'Prestataire',
-      paidById: 'admin',
+      paidById: 'director',
       currency: 'XOF',
     });
     expect(accounting.enqueue).toHaveBeenCalledWith(prisma, {
       eventType: 'TREASURY_EXPENSE',
       subsidiaryId: 'branch-b',
       payload: {
-        userId: 'admin',
+        userId: 'director',
         operationDate: new Date('2026-10-27').toISOString(),
         amount: 12500.5,
         description: 'Règlement campagne',
@@ -247,12 +278,12 @@ describe('Cash-box-only need payments', () => {
         return result;
       },
     );
-    await service.pay(admin, 'need', dto);
+    await service.pay({ ...director, subsidiaryId: request.subsidiaryId }, 'need', dto);
     expect(notifications.publish).toHaveBeenCalledTimes(1);
   });
   it('propagates persistence errors without sending a notification', async () => {
     accounting.enqueue.mockRejectedValue(new Error('outbox unavailable'));
-    await expect(service.pay(admin, 'need', dto)).rejects.toThrow(
+    await expect(service.pay({ ...director, subsidiaryId: request.subsidiaryId }, 'need', dto)).rejects.toThrow(
       'outbox unavailable',
     );
     expect(notifications.publish).not.toHaveBeenCalled();
@@ -264,7 +295,7 @@ describe('Cash-box-only need payments', () => {
         clientVersion: '6',
       }),
     );
-    await service.pay(admin, 'need', dto);
+    await service.pay({ ...director, subsidiaryId: request.subsidiaryId }, 'need', dto);
     expect(prisma.$transaction).toHaveBeenCalledTimes(2);
     expect(notifications.publish).toHaveBeenCalledTimes(1);
     prisma.$transaction.mockRejectedValue(
@@ -273,7 +304,7 @@ describe('Cash-box-only need payments', () => {
         clientVersion: '6',
       }),
     );
-    await expect(service.pay(admin, 'need', dto)).rejects.toThrow(
+    await expect(service.pay({ ...director, subsidiaryId: request.subsidiaryId }, 'need', dto)).rejects.toThrow(
       ConflictException,
     );
   });
@@ -284,7 +315,7 @@ describe('Cash-box-only need payments', () => {
         clientVersion: '6',
       }),
     );
-    await expect(service.pay(admin, 'need', dto)).rejects.toThrow(
+    await expect(service.pay({ ...director, subsidiaryId: request.subsidiaryId }, 'need', dto)).rejects.toThrow(
       ConflictException,
     );
     expect(prisma.$transaction).toHaveBeenCalledTimes(3);

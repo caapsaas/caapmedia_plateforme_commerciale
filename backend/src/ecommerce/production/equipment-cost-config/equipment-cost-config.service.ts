@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { UpsertEquipmentCostDto } from './dto/upsert-equipment-cost.dto';
 import { Prisma, UserRole } from '@prisma/client';
@@ -92,10 +92,18 @@ export class EquipmentCostConfigService {
   }
 
   // Retourne uniquement les équipements avec un coût configuré (usage workflows).
-  async findConfigured(subsidiaryId?: string) {
+  async findConfigured(subsidiaryId?: string, user?: JwtUser) {
+    const isCashier =
+      (user?.activeRole ?? user?.role ?? user?.userRole) === UserRole.CAISSIER;
+    if (isCashier && !user?.subsidiaryId) {
+      throw new ForbiddenException('Filiale requise pour consulter les machines.');
+    }
+    // Un caissier ne consulte que les machines opérationnelles de sa filiale,
+    // même si un subsidiaryId différent est fourni dans la requête.
+    const scopedSubsidiaryId = isCashier ? user.subsidiaryId : subsidiaryId;
     const equipments = await this.prisma.equipment.findMany({
       where: {
-        ...(subsidiaryId ? { subsidiaryId } : {}),
+        ...(scopedSubsidiaryId ? { subsidiaryId: scopedSubsidiaryId } : {}),
         costConfig: { isNot: null },
         status: 'OPERATIONAL',
       },

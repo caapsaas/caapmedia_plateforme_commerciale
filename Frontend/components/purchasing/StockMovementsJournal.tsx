@@ -7,6 +7,8 @@ import { useHasRole } from '../../hooks/useHasRole';
 import IconPlus from '../icons/IconPlus';
 import ManualStockMovementModal from './ManualStockMovementModal';
 import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 const IN_TYPES = new Set<StockMovementType>([
     StockMovementType.PURCHASE_RECEIPT,
@@ -19,9 +21,10 @@ const MANUAL_MOVEMENT_ROLES = [UserRole.ADMIN, UserRole.PURCHASING_MANAGER];
 
 interface StockMovementsJournalProps {
     subsidiaryId?: string;
+    readOnly: boolean;
 }
 
-const StockMovementsJournal: React.FC<StockMovementsJournalProps> = ({ subsidiaryId }) => {
+const StockMovementsJournal: React.FC<StockMovementsJournalProps> = ({ subsidiaryId, readOnly }) => {
     const { t } = useI18n();
     const { hasRole } = useHasRole();
     const [typeFilter, setTypeFilter] = useState<StockMovementType | ''>('');
@@ -34,6 +37,7 @@ const StockMovementsJournal: React.FC<StockMovementsJournalProps> = ({ subsidiar
             ...(subsidiaryId ? { subsidiaryId } : {}),
         }),
     });
+    const { pageItems: pageMovements, meta: movementsMeta, setPage } = useClientPagination(movements);
 
     return (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -50,7 +54,7 @@ const StockMovementsJournal: React.FC<StockMovementsJournalProps> = ({ subsidiar
                             <option key={type} value={type}>{t(`stockMovements.types.${type}`)}</option>
                         ))}
                     </select>
-                    {hasRole(MANUAL_MOVEMENT_ROLES) && (
+                    {!readOnly && hasRole(MANUAL_MOVEMENT_ROLES) && (
                         <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-bold rounded-lg hover:bg-[#adc40f] transition-colors">
                             <IconPlus className="h-4 w-4" />
                             <span>{t('stockMovements.manual.newMovement')}</span>
@@ -90,7 +94,7 @@ const StockMovementsJournal: React.FC<StockMovementsJournalProps> = ({ subsidiar
                                     />
                                 </td>
                             </tr>
-                        ) : movements.map(movement => {
+                        ) : pageMovements.map(movement => {
                             const isIn = IN_TYPES.has(movement.type);
                             return (
                                 <tr key={movement.id} className="hover:bg-slate-50 transition-colors">
@@ -113,9 +117,10 @@ const StockMovementsJournal: React.FC<StockMovementsJournalProps> = ({ subsidiar
                         })}
                     </tbody>
                 </table>
+                <Pagination meta={movementsMeta} onPageChange={setPage} />
             </div>
 
-            <ManualStockMovementModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+            <ManualStockMovementModal isOpen={!readOnly && isModalOpen} onClose={() => setIsModalOpen(false)} />
         </div>
     );
 };

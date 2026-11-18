@@ -17,6 +17,7 @@ export type OutboxEventType =
   | 'SALE_PAID'
   // Dépenses
   | 'EXPENSE_RECORD'
+  | 'EXPENSE_RECORD_PAYMENT'
   // Tiers
   | 'SUPPLIER_DEBT_PAYMENT'
   // Financement

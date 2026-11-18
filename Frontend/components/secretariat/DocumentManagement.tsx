@@ -24,11 +24,12 @@ const DOCUMENTS_PAGE_SIZE = 10;
 
 interface DocumentManagementProps {
     subsidiary: Subsidiary;
+    canEdit: boolean;
     onSave: (data: FormData) => void;
     onDelete: (id: string) => void;
 }
 
-const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, onSave, onDelete }) => {
+const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, canEdit, onSave, onDelete }) => {
     const { t } = useI18n();
     const toast = useToast();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -172,10 +173,10 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, onS
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-semibold text-slate-800">{t('secretariat.documents.title')}</h3>
                 <div className="flex items-center space-x-2 no-print">
-                    <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
+                    {canEdit && (<button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
                         <IconPlus className="h-4 w-4" />
                         <span>{t('secretariat.documents.add')}</span>
-                    </button>
+                    </button>)}
                     <button onClick={handlePrint} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
                         <IconPrint className="h-4 w-4" />
                         <span>{t('common.print')}</span>
@@ -233,12 +234,12 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, onS
                                     <button onClick={() => handleDownloadDocument(doc)} className="p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-100 rounded-full transition-colors" aria-label={t('hr.absences.table.download')}>
                                         <IconDownload className="h-5 w-5" />
                                     </button>
-                                    <button onClick={() => handleOpenEditModal(doc)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
+                                    {canEdit && (<button onClick={() => handleOpenEditModal(doc)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
                                         <IconEdit className="h-5 w-5" />
-                                    </button>
-                                    <button onClick={() => handleOpenDeleteModal(doc)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" aria-label={t('common.delete')}>
+                                    </button>)}
+                                    {canEdit && (<button onClick={() => handleOpenDeleteModal(doc)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" aria-label={t('common.delete')}>
                                         <IconDelete className="h-5 w-5" />
-                                    </button>
+                                    </button>)}
                                 </td>
                             </tr>
                         ))}
@@ -247,7 +248,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, onS
             </div>
             {meta && <Pagination meta={meta} onPageChange={setPage} />}
 
-            {isModalOpen && (
+            {canEdit && isModalOpen && (
                 <DocumentFormModal
                     isOpen={isModalOpen}
                     onClose={handleCloseModals}
@@ -256,7 +257,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ subsidiary, onS
                 />
             )}
 
-            {deletingDocument && (
+            {canEdit && deletingDocument && (
                 <ConfirmationModal
                     isOpen={!!deletingDocument}
                     onClose={handleCloseModals}

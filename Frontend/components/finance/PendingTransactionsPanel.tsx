@@ -1,7 +1,9 @@
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getFinancialTransactions, validateTransaction } from '../../services/apiFinance/apiTreasury';
-import { FinancialTransaction, TransactionStatus } from '../../types';
+import { AccountType, FinancialTransaction, TransactionStatus } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
@@ -10,8 +12,8 @@ import { useToast } from '../../context/ToastContext';
  *
  * Affiche les transactions EN_ATTENTE issues des paiements bancaires
  * (Virement, Carte, Chèque) enregistrés à la Caisse.
- * Permet au SUPER_ADMIN de valider (PATCH status → VALIDE) chaque transaction,
- * ce qui applique le débit/crédit sur le compte bancaire et génère l'écriture comptable.
+ * Un SUPER_ADMIN différent de l’auteur peut valider ou annuler l’opération.
+ * La validation applique le mouvement et génère l’écriture comptable.
  */
 const PendingTransactionsPanel: React.FC<{ subsidiaryId?: string }> = ({ subsidiaryId }) => {
     const { user } = useAuth();
@@ -26,13 +28,22 @@ const PendingTransactionsPanel: React.FC<{ subsidiaryId?: string }> = ({ subsidi
     });
 
     const pendingTransactions = allTransactions.filter(
-        (tx) => tx.status === TransactionStatus.PENDING,
+        (tx) =>
+            tx.status === TransactionStatus.PENDING &&
+            (tx.treasuryAccount?.accountType === AccountType.BANQUE ||
+                tx.destinationAccount?.accountType === AccountType.BANQUE ||
+                (tx.treasuryAccount?.accountType === AccountType.SAFE && tx.destinationAccountId)),
     );
 
     const { mutate: validate, isPending: isValidating } = useMutation({
-        mutationFn: (id: string) => validateTransaction(id),
-        onSuccess: (_, id) => {
-            toast.success('Transaction validée', 'Le solde du compte a été mis à jour et l\'écriture comptable générée.');
+        mutationFn: ({ id, status }: { id: string; status: TransactionStatus }) => validateTransaction(id, status),
+        onSuccess: (_, { status }) => {
+            toast.success(
+                status === TransactionStatus.CANCELLED ? 'Opération annulée' : 'Transaction validée',
+                status === TransactionStatus.CANCELLED
+                    ? 'L’opération a été annulée sans modifier le solde bancaire.'
+                    : 'Le compte a été mis à jour et l’écriture comptable générée.',
+            );
             queryClient.invalidateQueries({ queryKey: ['financial-transactions'] });
             setConfirmId(null);
         },
@@ -50,6 +61,8 @@ const PendingTransactionsPanel: React.FC<{ subsidiaryId?: string }> = ({ subsidi
             day: '2-digit', month: '2-digit', year: 'numeric',
             hour: '2-digit', minute: '2-digit',
         });
+
+    const { pageItems, meta, setPage } = useClientPagination(pendingTransactions);
 
     if (isLoading) {
         return (
@@ -97,7 +110,15 @@ const PendingTransactionsPanel: React.FC<{ subsidiaryId?: string }> = ({ subsidi
                 </div>
             ) : (
                 <div className="divide-y divide-slate-50">
-                    {pendingTransactions.map((tx) => (
+                    {pageItems.map((tx) => {
+                        const isOpeningBalanceReceipt =
+                            tx.description === 'Solde initial' &&
+                            tx.reference === `INIT-${tx.treasuryAccountId}`;
+                        const isBankOperation = tx.treasuryAccount?.accountType === AccountType.BANQUE ||
+                            tx.destinationAccount?.accountType === AccountType.BANQUE;
+                        const selfApprovalBlocked =
+                            isBankOperation && tx.createdByUserId === user?.id && !isOpeningBalanceReceipt;
+                        return (
                         <div key={tx.id} className="px-5 py-3.5 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
                             <div className="min-w-0 flex-1">
                                 <p className="text-sm font-semibold text-slate-800 truncate">{tx.description}</p>
@@ -115,7 +136,22 @@ const PendingTransactionsPanel: React.FC<{ subsidiaryId?: string }> = ({ subsidi
                                     )}
                                     {tx.treasuryAccount && (
                                         <span className="text-xs text-slate-400">
-                                            → {tx.treasuryAccount.accountName}
+                                            Source : {tx.treasuryAccount.accountName}
+                                        </span>
+                                    )}
+                                    {tx.destinationAccount && (
+                                        <span className="text-xs text-slate-400">
+                                            Destination : {tx.destinationAccount.accountName}
+                                        </span>
+                                    )}
+                                    {tx.counterparty && (
+                                        <span className="text-xs text-slate-400">
+                                            Bénéficiaire : {tx.counterparty.name}
+                                        </span>
+                                    )}
+                                    {selfApprovalBlocked && (
+                                        <span className="text-xs font-semibold text-amber-700">
+                                            Vous avez créé cette opération ; un autre super-admin doit la traiter.
                                         </span>
                                     )}
                                 </div>
@@ -129,12 +165,19 @@ const PendingTransactionsPanel: React.FC<{ subsidiaryId?: string }> = ({ subsidi
                                 {confirmId === tx.id ? (
                                     <div className="flex items-center gap-1.5">
                                         <button
-                                            onClick={() => validate(tx.id)}
-                                            disabled={isValidating}
+                                            onClick={() => validate({ id: tx.id, status: TransactionStatus.VALIDATED })}
+                                            disabled={isValidating || selfApprovalBlocked}
                                             className="px-3 py-1.5 text-xs font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
                                         >
                                             {isValidating ? '...' : 'Confirmer'}
                                         </button>
+                                        {isBankOperation && <button
+                                            onClick={() => validate({ id: tx.id, status: TransactionStatus.CANCELLED })}
+                                            disabled={isValidating || selfApprovalBlocked}
+                                            className="px-3 py-1.5 text-xs font-bold bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-50 transition-colors"
+                                        >
+                                            Refuser
+                                        </button>}
                                         <button
                                             onClick={() => setConfirmId(null)}
                                             className="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
@@ -145,6 +188,7 @@ const PendingTransactionsPanel: React.FC<{ subsidiaryId?: string }> = ({ subsidi
                                 ) : (
                                     <button
                                         onClick={() => setConfirmId(tx.id)}
+                                        disabled={selfApprovalBlocked}
                                         className="px-3 py-1.5 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
                                     >
                                         Valider
@@ -152,9 +196,11 @@ const PendingTransactionsPanel: React.FC<{ subsidiaryId?: string }> = ({ subsidi
                                 )}
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
+            <Pagination meta={meta} onPageChange={setPage} />
         </div>
     );
 };

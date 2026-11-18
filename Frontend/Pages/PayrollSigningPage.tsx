@@ -1,3 +1,5 @@
+import Pagination from '../components/common/Pagination';
+import { useClientPagination } from '../hooks/useClientPagination';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useAuth } from '../context/AuthContext';
@@ -104,6 +106,8 @@ const PayrollSigningPage: React.FC = () => {
     setPayslipRecord(null);
   };
 
+  const { pageItems, meta, setPage } = useClientPagination(filteredPayrolls);
+
   return (
     <div className="p-6">
       {/* En-tête */}
@@ -173,7 +177,7 @@ const PayrollSigningPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {filteredPayrolls.map((record) => (
+              {pageItems.map((record) => (
                 <tr key={record.id} className="hover:bg-slate-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -244,6 +248,7 @@ const PayrollSigningPage: React.FC = () => {
               ))}
             </tbody>
           </table>
+          <Pagination meta={meta} onPageChange={setPage} />
         </div>
       )}
 

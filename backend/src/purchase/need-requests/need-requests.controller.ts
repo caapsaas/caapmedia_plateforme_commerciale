@@ -1,5 +1,4 @@
 import { RoleGuard } from '../../common/auth/role/role.guard';
-import { SuperAdminReadOnly } from '../../common/auth/role/role.decorator';
 import { PayNeedRequestDto } from './dto/pay-need-request.dto';
 import {
   Body,
@@ -8,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -20,7 +20,6 @@ import {
 } from './dto/need-request.dto';
 import { NeedRequestsService } from './need-requests.service';
 
-@SuperAdminReadOnly()
 @Controller('purchasing/need-requests')
 @UseGuards(JwtAuthGuard, RoleGuard)
 export class NeedRequestsController {
@@ -35,6 +34,13 @@ export class NeedRequestsController {
     @Body() dto: CreateNeedRequestDto,
   ) {
     return this.service.create(req.user, dto);
+  }
+  @Get('payable')
+  findPayable(
+    @Req() req: Request & { user: JwtUser },
+    @Query('subsidiaryId') subsidiaryId?: string,
+  ) {
+    return this.service.findPayable(req.user, subsidiaryId);
   }
   @Get(':id/payment-account')
   paymentAccount(

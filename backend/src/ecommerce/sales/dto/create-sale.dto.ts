@@ -13,6 +13,45 @@ import {
 } from 'class-validator';
 import { CustomerPaymentMethod } from '@prisma/client';
 
+class DirectSaleProductionStepDto {
+  @IsString()
+  @IsNotEmpty()
+  equipmentId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  equipmentNameSnapshot: string;
+
+  @IsInt()
+  @Min(1)
+  stepOrder: number;
+
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  estimatedTimeHours: number;
+
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  hourlyRateSnapshot: number;
+
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  calculatedCost: number;
+}
+
+class DirectSaleProductionSummaryDto {
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  totalProductionCost: number;
+
+  @IsNumber({ maxDecimalPlaces: 2 })
+  marginPercent: number;
+
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  finalPrice: number;
+}
+
 class DirectSaleItemDto {
   @IsString()
   @IsNotEmpty()
@@ -46,6 +85,17 @@ class DirectSaleItemDto {
   @IsOptional()
   @IsObject()
   specValues?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DirectSaleProductionStepDto)
+  productionSteps?: DirectSaleProductionStepDto[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DirectSaleProductionSummaryDto)
+  productionSummary?: DirectSaleProductionSummaryDto;
 }
 
 export class CreateDirectSaleDto {

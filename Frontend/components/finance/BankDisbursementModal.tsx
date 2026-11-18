@@ -4,13 +4,15 @@ import { AccountType, TreasuryAccount, TreasuryTransactionType } from '../../typ
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import { getTreasuryAccounts, createDisbursement } from '../../services/apiFinance/apiTreasury';
+import { getPayrollPaymentSummary } from '../../services/apihr/apiPayroll';
 
 interface BankDisbursementModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-// Décaissement depuis un compte Banque — réservé au SUPER_ADMIN, calqué sur
+// Décaissement depuis un compte Banque — réservé au SUPER_ADMIN et soumis à
+// approbation indépendante avant mouvement du solde, calqué sur
 // Frontend_GMO/components/analytics/BankDisbursementModal.tsx : plus simple
 // que le coffre-fort, uniquement salaires/primes réglés par virement.
 const BankDisbursementModal: React.FC<BankDisbursementModalProps> = ({ isOpen, onClose }) => {
@@ -20,6 +22,7 @@ const BankDisbursementModal: React.FC<BankDisbursementModalProps> = ({ isOpen, o
 
   const [sourceAccountId, setSourceAccountId] = useState('');
   const [treasuryType, setTreasuryType] = useState<TreasuryTransactionType>(TreasuryTransactionType.SALARY_PAYMENT);
+  const [salaryPaymentMethod, setSalaryPaymentMethod] = useState<'BANK_TRANSFER' | 'CHECK' | 'CASH'>('BANK_TRANSFER');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0]);
@@ -28,6 +31,7 @@ const BankDisbursementModal: React.FC<BankDisbursementModalProps> = ({ isOpen, o
   const resetForm = () => {
     setSourceAccountId('');
     setTreasuryType(TreasuryTransactionType.SALARY_PAYMENT);
+    setSalaryPaymentMethod('BANK_TRANSFER');
     setAmount('');
     setDescription('');
     setTransactionDate(new Date().toISOString().split('T')[0]);
@@ -46,6 +50,26 @@ const BankDisbursementModal: React.FC<BankDisbursementModalProps> = ({ isOpen, o
 
   const bankAccounts = useMemo(() => accounts.filter((a) => a.accountType === AccountType.BANQUE), [accounts]);
   const selectedSource = bankAccounts.find((a) => a.id === sourceAccountId);
+  const payrollMonth = transactionDate.slice(0, 7);
+  const { data: payrollSummary, isLoading: isLoadingPayroll } = useQuery({
+    queryKey: ['payrollPaymentSummary', payrollMonth, selectedSource?.subsidiaryId],
+    queryFn: () => getPayrollPaymentSummary(payrollMonth, selectedSource?.subsidiaryId),
+    enabled: isOpen && treasuryType === TreasuryTransactionType.SALARY_PAYMENT && !!payrollMonth && !!selectedSource?.subsidiaryId,
+  });
+
+  useEffect(() => {
+    if (treasuryType !== TreasuryTransactionType.SALARY_PAYMENT) {
+      setAmount('');
+      setDescription('');
+      return;
+    }
+    const salary = payrollSummary?.byPaymentMethod?.[salaryPaymentMethod];
+    setAmount(salary ? String(salary.netSalary) : '');
+    setDescription(salary ? t('bankDisbursement.salaryDescription', {
+      method: t(`hr.paymentMethod.${salaryPaymentMethod}`),
+      month: payrollMonth,
+    }) : '');
+  }, [payrollSummary, payrollMonth, treasuryType, salaryPaymentMethod, t]);
 
   const { mutate: submit, isPending } = useMutation({
     mutationFn: () =>
@@ -98,6 +122,15 @@ const BankDisbursementModal: React.FC<BankDisbursementModalProps> = ({ isOpen, o
             )}
           </div>
 
+          {treasuryType === TreasuryTransactionType.SALARY_PAYMENT && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700">{t('configuration.form.paymentMethod')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
+              <select value={salaryPaymentMethod} onChange={(e) => setSalaryPaymentMethod(e.target.value as typeof salaryPaymentMethod)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border bg-white">
+                {(['BANK_TRANSFER', 'CHECK', 'CASH'] as const).map((method) => <option key={method} value={method}>{t(`hr.paymentMethod.${method}`)}</option>)}
+              </select>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-slate-700">{t('bankDisbursement.operationType')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
             <select value={treasuryType} onChange={(e) => setTreasuryType(e.target.value as TreasuryTransactionType)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border bg-white">
@@ -109,7 +142,9 @@ const BankDisbursementModal: React.FC<BankDisbursementModalProps> = ({ isOpen, o
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700">{t('bankDisbursement.amount')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
-              <input type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border" />
+              <input type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} readOnly={treasuryType === TreasuryTransactionType.SALARY_PAYMENT} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border read-only:bg-slate-100" />
+              {isLoadingPayroll && <p className="mt-1 text-xs text-slate-500">{t('bankDisbursement.loadingPayroll')}</p>}
+              {treasuryType === TreasuryTransactionType.SALARY_PAYMENT && payrollSummary && !payrollSummary.byPaymentMethod[salaryPaymentMethod] && <p className="mt-1 text-xs text-amber-700">{t('bankDisbursement.noPayroll')}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.date')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
@@ -131,7 +166,7 @@ const BankDisbursementModal: React.FC<BankDisbursementModalProps> = ({ isOpen, o
             <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors">
               {t('common.cancel')}
             </button>
-            <button type="submit" disabled={isPending} className="px-4 py-2 bg-[#231F20] text-white rounded-md hover:bg-slate-700 transition-colors disabled:opacity-50">
+            <button type="submit" disabled={isPending || (treasuryType === TreasuryTransactionType.SALARY_PAYMENT && isLoadingPayroll)} className="px-4 py-2 bg-[#231F20] text-white rounded-md hover:bg-slate-700 transition-colors disabled:opacity-50">
               {isPending ? t('bankDisbursement.submitting') : t('bankDisbursement.submit')}
             </button>
           </div>

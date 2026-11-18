@@ -9,6 +9,8 @@ import IconClipboardList from '../icons/IconClipboardList';
 import IconChevronDown from '../icons/IconChevronDown';
 import IconChatBubbleLeftRight from '../icons/IconChatBubbleLeftRight';
 import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 interface ActivitiesViewProps {
     readOnly?: boolean;
@@ -77,6 +79,7 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({ readOnly = false, conta
         });
         return sortableItems;
     }, [crmTasks, priorityFilter, sortConfig]);
+    const { pageItems: pageTasks, meta: tasksMeta, setPage } = useClientPagination(sortedTasks);
     
     const recentInteractions = useMemo(() => {
         return interactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
@@ -175,7 +178,7 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({ readOnly = false, conta
                             </tr>
                         </thead>
                         <tbody>
-                             {sortedTasks.map(task => (
+                             {pageTasks.map(task => (
                                 <tr key={task.id} className="border-b hover:bg-slate-50">
                                     <td className="px-6 py-4">
                                         <input type="checkbox" disabled={readOnly} checked={task.status === CrmTaskStatus.DONE} onChange={() => onUpdateTaskStatus(task.id, task.status === CrmTaskStatus.DONE ? CrmTaskStatus.TODO : CrmTaskStatus.DONE)} className="h-5 w-5 rounded text-[#c6e911] focus:ring-[#adc40f]"/>
@@ -195,6 +198,7 @@ const ActivitiesView: React.FC<ActivitiesViewProps> = ({ readOnly = false, conta
                         </tbody>
                     </table>
                      {sortedTasks.length === 0 && <EmptyState icon="document" title={t('crm.activities.noActivity')} />}
+                    <Pagination meta={tasksMeta} onPageChange={setPage} />
                 </div>
             </div>
 

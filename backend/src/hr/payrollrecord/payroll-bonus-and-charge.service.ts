@@ -50,6 +50,55 @@ export class PayrollBonusAndChargeService {
     private readonly outbox: AccountingOutboxService,
   ) {}
 
+  /** Résumé de paie consultatif, sans créer ni modifier les charges. */
+  async getPaymentSummary(subsidiaryId: string | undefined, month: string) {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+      throw new BadRequestException('La période doit respecter le format YYYY-MM.');
+    }
+    const payrolls = await this.prisma.payrollRecord.findMany({
+      where: {
+        ...(subsidiaryId ? { subsidiaryId } : {}),
+        payrollPeriod: month,
+        status: { in: [PayrollStatus.PENDING, PayrollStatus.SIGNED, PayrollStatus.PAID] },
+      },
+      select: {
+        grossSalary: true, netSalary: true, cnpsEmployee: true,
+        cnpsEmployer: true, cfcEmployee: true, cfcEmployer: true,
+        irpp: true, cac: true, fne: true, otherDeductions: true,
+        employee: { select: { paymentMethod: true } },
+      },
+    });
+
+    const byPaymentMethod: Record<string, {
+      employeeCount: number; grossSalary: number; netSalary: number;
+    }> = {};
+    const totals = {
+      cnpsEmployee: 0, cnpsEmployer: 0, cfcEmployee: 0,
+      cfcEmployer: 0, irpp: 0, cac: 0, fne: 0, otherDeductions: 0,
+    };
+    for (const payroll of payrolls) {
+      const method = payroll.employee?.paymentMethod || 'UNKNOWN';
+      const group = byPaymentMethod[method] ??= { employeeCount: 0, grossSalary: 0, netSalary: 0 };
+      group.employeeCount += 1;
+      group.grossSalary += Number(payroll.grossSalary || 0);
+      group.netSalary += Number(payroll.netSalary || 0);
+      for (const key of Object.keys(totals) as (keyof typeof totals)[]) {
+        totals[key] += Number(payroll[key] || 0);
+      }
+    }
+    return {
+      month,
+      employeeCount: payrolls.length,
+      byPaymentMethod,
+      contributions: {
+        cnps: totals.cnpsEmployee + totals.cnpsEmployer,
+        irpp: totals.irpp + totals.cac,
+        cfcFne: totals.cfcEmployee + totals.cfcEmployer + totals.fne,
+        details: totals,
+      },
+    };
+  }
+
   async getBonusSubsidiaryId(bonusId: string): Promise<string> {
     const bonus = await this.prisma.payrollBonus.findUnique({
       where: { id: bonusId }, select: { subsidiaryId: true },

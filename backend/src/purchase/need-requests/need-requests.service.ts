@@ -22,6 +22,11 @@ import {
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { JwtUser } from '../../common/auth/jwt/jwt-user.interface';
 import {
+  assertSubsidiaryAccess,
+  resolveScopeContext,
+  withSubsidiaryScope,
+} from '../../common/utils/subsidiary-scope';
+import {
   getActiveRole,
   isSuperAdmin,
 } from '../../common/auth/role/role-identity';
@@ -56,9 +61,13 @@ export class NeedRequestsService {
   ) {}
 
   private assertAccess(user: JwtUser) {
-    if (!isSuperAdmin(user) && getActiveRole(user) !== UserRole.COMMERCIAL) {
+    if (
+      !isSuperAdmin(user) &&
+      getActiveRole(user) !== UserRole.COMMERCIAL &&
+      getActiveRole(user) !== UserRole.FINANCIAL_DIRECTOR
+    ) {
       throw new ForbiddenException(
-        'Accès réservé au commercial et au super-admin.',
+        'Accès réservé au commercial, au directeur financier et au super-admin.',
       );
     }
   }
@@ -68,7 +77,9 @@ export class NeedRequestsService {
     return this.prisma.needRequest.findMany({
       where: isSuperAdmin(user)
         ? {}
-        : { subsidiaryId: user.subsidiaryId, requesterId: user.id },
+        : getActiveRole(user) === UserRole.FINANCIAL_DIRECTOR
+          ? { subsidiaryId: user.subsidiaryId }
+          : { subsidiaryId: user.subsidiaryId, requesterId: user.id },
       include: details,
       orderBy: { createdAt: 'desc' },
     });
@@ -131,17 +142,35 @@ export class NeedRequestsService {
   }
 
   private assertPayer(user: JwtUser) {
-    if (!isSuperAdmin(user))
+    if (
+      isSuperAdmin(user) ||
+      getActiveRole(user) !== UserRole.FINANCIAL_DIRECTOR
+    )
       throw new ForbiddenException(
-        'Seul le super-admin peut régler une expression de besoin.',
+        'Seul le directeur financier de la filiale peut régler une expression de besoin.',
       );
+    return resolveScopeContext(user);
+  }
+
+  findPayable(user: JwtUser, subsidiaryId?: string) {
+    const scope = this.assertPayer(user);
+    return this.prisma.needRequest.findMany({
+      where: withSubsidiaryScope(
+        { status: NeedRequestStatus.APPROVED, payment: { is: null } },
+        scope,
+        subsidiaryId,
+      ),
+      include: details,
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async paymentAccount(user: JwtUser, id: string) {
-    this.assertPayer(user);
+    const scope = this.assertPayer(user);
     const request = await this.prisma.needRequest.findUnique({ where: { id } });
     if (!request)
       throw new NotFoundException('Expression de besoin introuvable.');
+    assertSubsidiaryAccess(request.subsidiaryId, scope);
     return this.resolveExpenseBox(this.prisma, request.subsidiaryId);
   }
 
@@ -166,7 +195,7 @@ export class NeedRequestsService {
   }
 
   async pay(user: JwtUser, id: string, dto: PayNeedRequestDto) {
-    this.assertPayer(user);
+    const scope = this.assertPayer(user);
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const result = await this.prisma.$transaction(
@@ -177,6 +206,7 @@ export class NeedRequestsService {
             });
             if (!request)
               throw new NotFoundException('Expression de besoin introuvable.');
+            assertSubsidiaryAccess(request.subsidiaryId, scope);
             if (request.status !== NeedRequestStatus.APPROVED)
               throw new BadRequestException(
                 'Seule une expression validée peut être réglée.',

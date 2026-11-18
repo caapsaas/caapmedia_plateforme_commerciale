@@ -16,6 +16,8 @@ import DocumentHeader from '../common/DocumentHeader';
 import { printElementAsPdf } from '../../utils/pdfExporter';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 const TYPE_LABELS: Record<AccountingAccountType, string> = {
   ASSET: 'Actif',
@@ -116,6 +118,7 @@ const ChartOfAccounts: React.FC = () => {
       return true;
     });
   }, [accounts, search, showInactive]);
+  const { pageItems: pageAccounts, meta: accountsMeta, setPage } = useClientPagination(filtered);
 
   const handleNewAccount = () => {
     setAccountToEdit(null);
@@ -254,7 +257,7 @@ const ChartOfAccounts: React.FC = () => {
             {isLoading ? (
               <TableSkeleton rows={10} columns={6} />
             ) : filtered.length > 0 ? (
-              filtered.map((account) => (
+              pageAccounts.map((account) => (
                 <tr key={account.id} className={`hover:bg-slate-50/50 transition-colors ${!account.isActive ? 'opacity-50' : ''}`}>
                   <td className="px-6 py-4 font-mono font-bold text-slate-700">{account.accountNumber}</td>
                   <td className="px-6 py-4 font-medium text-slate-800">{account.accountName}</td>
@@ -297,6 +300,7 @@ const ChartOfAccounts: React.FC = () => {
             )}
           </tbody>
         </table>
+        {!isLoading && <Pagination meta={accountsMeta} onPageChange={setPage} />}
       </div>
 
       {/* Create/Edit modal */}

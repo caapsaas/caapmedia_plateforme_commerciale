@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Employee, Gender, ContractType, EmployeeStatus, PaymentMethod, EmployeeFormData, TreasuryAccount, AccountType } from '../../types';
+import { isAxiosError } from 'axios';
 import { useI18n } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
 import FormInput from '../ui/FormInput';
@@ -8,7 +9,6 @@ import Button from '../ui/Button';
 import FormSection from '../ui/FormSection';
 import Card, { CardHeader, CardBody } from '../ui/Card';
 import CameroonPayrollWidget from './CameroonPayrollWidget';
-import LeaveBalanceWidget from './LeaveBalanceWidget';
 import DocumentUploadSection from './DocumentUploadSection';
 import LeaveManagementSection from './LeaveManagementSection';
 import { getTreasuryAccounts } from '../../services/apiFinance/apiTreasury';
@@ -27,6 +27,35 @@ interface FormErrors {
   [key: string]: string;
 }
 
+const textLimits = {
+  firstName: 100, lastName: 100, email: 150, phone: 20, address: 0,
+  nationality: 50, socialSecurityNumber: 50, positions: 100, department: 100,
+  workLocation: 100, bankName: 100, bankAccountNumber: 50,
+};
+const textFields = Object.keys(textLimits) as (keyof typeof textLimits)[];
+const numericFields = ['bonus', 'numberDependents', 'targetNetSalary'];
+const choices: Record<string, string[]> = {
+  gender: Object.values(Gender), contractType: Object.values(ContractType),
+  status: Object.values(EmployeeStatus), paymentMethod: Object.values(PaymentMethod),
+  situationMatrimony: ['SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED'],
+};
+const fieldsByTab: Record<FormTab, string[]> = {
+  personal: ['firstName', 'lastName', 'birthDate', 'gender', 'email', 'phone', 'nationality',
+    'socialSecurityNumber', 'address', 'situationMatrimony', 'numberDependents'],
+  professional: ['positions', 'department', 'hireDate', 'contractType', 'status', 'workLocation'],
+  salary: ['targetNetSalary', 'baseSalary', 'bonus', 'paymentMethod', 'bankName', 'bankAccountNumber', 'indemnities'],
+  documents: ['documents'],
+  leaves: ['leaveBalance', 'leaveRecords'],
+};
+const formTabs = Object.keys(fieldsByTab) as FormTab[];
+const sectionErrors = ['baseSalary', 'documents', 'leaveBalance', 'leaveRecords'];
+
+function isValidDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
 const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
   isOpen,
   onClose,
@@ -38,6 +67,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
   const [activeTab, setActiveTab] = useState<FormTab>('personal');
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [submitError, setSubmitError] = useState('');
   const [treasuryAccounts, setTreasuryAccounts] = useState<TreasuryAccount[]>([]);
 
   const initialFormState = {
@@ -124,6 +154,8 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
     }
     setActiveTab('personal');
     setErrors({});
+    setSubmitError('');
+    setNewIndemnitiesForm({ type: '', amount: 0 });
   }, [employee, isOpen]);
 
   useEffect(() => {
@@ -143,42 +175,126 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
     }
   }, [isOpen, subsidiary]);
 
-  const validateField = (field: string, value: any): string | null => {
-    switch (field) {
-      case 'email':
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? null : 'Invalid email format';
-      case 'phone':
-        return /^[+]?[0-9\s\-()]{7,20}$/.test(value) ? null : 'Invalid phone format';
-      case 'targetNetSalary':
-        return formData.salaryInputMode !== 'NET' || value > 0 ? null : 'Net salary must be > 0';
-      case 'birthDate': {
-        const age = new Date().getFullYear() - new Date(value).getFullYear();
-        return age >= 16 ? null : 'Employee must be at least 16 years old';
+  const message = (key: string, params?: Record<string, number>) =>
+    t('hr.employee.validation.' + key, params);
+
+  const showErrors = (fieldErrors: FormErrors) => {
+    setErrors(fieldErrors);
+    const tab = formTabs.find(tab => fieldsByTab[tab].some(field => fieldErrors[field]));
+    if (tab) setActiveTab(tab);
+  };
+
+  const validateForm = () => {
+    const fieldErrors: FormErrors = {};
+    for (const field of textFields) {
+      if ((field === 'bankName' || field === 'bankAccountNumber') &&
+          formData.paymentMethod !== PaymentMethod.BANK_TRANSFER) continue;
+      const value = formData[field]?.trim() ?? '';
+      const limit = textLimits[field];
+      if (!value) fieldErrors[field] = message('required');
+      else if (limit && value.length > limit) fieldErrors[field] = message('maxLength', { max: limit });
+      else if (field === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        fieldErrors[field] = message('email');
+      } else if (field === 'phone' &&
+          (!/^\+?[0-9\s\-()]{7,20}$/.test(value) || value.replace(/\D/g, '').length < 7)) {
+        fieldErrors[field] = message('phone');
       }
-      case 'hireDate':
-        return new Date(value) >= new Date(formData.birthDate) ? null : 'Hire date must be after birth date';
-      default:
-        return null;
     }
+
+    for (const [field, values] of Object.entries(choices)) {
+      if (field === 'situationMatrimony' && !formData[field]) continue;
+      if (!values.includes(formData[field])) fieldErrors[field] = message('selection');
+    }
+
+    const { birthDate, hireDate } = formData;
+    if (!isValidDate(birthDate)) fieldErrors.birthDate = message(birthDate ? 'date' : 'required');
+    else {
+      const [year, month, day] = birthDate.split('-').map(Number);
+      const today = new Date();
+      const birthday = month * 100 + day;
+      const todayMonthDay = (today.getMonth() + 1) * 100 + today.getDate();
+      const age = today.getFullYear() - year - Number(todayMonthDay < birthday);
+      if (age < 16) fieldErrors.birthDate = message('age');
+    }
+    if (!isValidDate(hireDate)) fieldErrors.hireDate = message(hireDate ? 'date' : 'required');
+    else if (isValidDate(birthDate) && hireDate <= birthDate) fieldErrors.hireDate = message('hireDate');
+
+    for (const field of [...numericFields, 'baseSalary']) {
+      if (field === 'targetNetSalary' && formData.salaryInputMode !== 'NET') continue;
+      const value = Number(formData[field] ?? 0);
+      if (field === 'numberDependents') {
+        if (!Number.isInteger(value) || value < 0 || value > 2147483647) {
+          fieldErrors[field] = message('dependents');
+        }
+      } else if (!Number.isFinite(value) || value < 0 || value > 9999999999999.99) {
+        fieldErrors[field] = message('amount');
+      } else if (field === 'targetNetSalary' && value === 0) {
+        fieldErrors[field] = message('netSalary');
+      }
+    }
+    if (newIndemnitiesForm.type || newIndemnitiesForm.amount) {
+      fieldErrors.indemnities = message(newIndemnitiesForm.type && newIndemnitiesForm.amount > 0
+        ? 'pendingIndemnity' : 'invalidIndemnity');
+    }
+    return fieldErrors;
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    const numericFields = ['bonus', 'numberDependents', 'targetNetSalary'];
-    const actualValue = numericFields.includes(name) ? parseFloat(value) || 0 : value;
+    const { name, value, validity } = e.target;
+    const actualValue = numericFields.includes(name) && validity.badInput ? NaN : value;
+    setFormData((prev: any) => ({
+      ...prev, [name]: actualValue, ...(name === 'targetNetSalary' ? { salaryInputMode: 'NET' } : {}),
+    }));
+    setErrors(prev => {
+      const next = { ...prev };
+      delete next[name];
+      if (name === 'birthDate') delete next.hireDate;
+      if (name === 'paymentMethod') {
+        delete next.bankName;
+        delete next.bankAccountNumber;
+      }
+      return next;
+    });
+  };
 
-    setFormData((prev: any) => ({ ...prev, [name]: actualValue, ...(name === 'targetNetSalary' ? { salaryInputMode: 'NET' } : {}) }));
-
-    const error = validateField(name, actualValue);
-    if (error) {
-      setErrors((prev) => ({ ...prev, [name]: error }));
-    } else {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
+  const showSaveError = (error: unknown) => {
+    let key = 'saveFailed';
+    const fieldErrors: FormErrors = {};
+    if (isAxiosError<{ message?: string | string[] }>(error)) {
+      const status = error.response?.status;
+      const detail = error.response?.data?.message;
+      if (status === 401) key = 'sessionExpired';
+      else if (status === 403) key = 'forbidden';
+      else if (!error.response) key = 'network';
+      else if (error.config?.url?.endsWith('/upload-documents')) {
+        key = 'uploadFailed';
+        fieldErrors.documents = message('uploadFailed');
+      } else if (status === 409 && (!employee || (typeof detail === 'string' && /email/i.test(detail)))) {
+        key = 'reviewFields';
+        fieldErrors.email = message('duplicateEmail');
+      } else if (status === 400) {
+        key = 'invalidData';
+        if (Array.isArray(detail)) {
+          for (const issue of detail) {
+            if (typeof issue !== 'string') continue;
+            const field = issue.split(/[.: ]/, 1)[0];
+            if (formTabs.some(tab => fieldsByTab[tab].includes(field))) {
+              fieldErrors[field] = message('invalidField');
+            }
+          }
+        } else if (typeof detail === 'string') {
+          if (/^Invalid (birthDate|hireDate) format/.test(detail)) {
+            fieldErrors[detail.includes('birthDate') ? 'birthDate' : 'hireDate'] = message('date');
+          } else if (detail === 'Enregistrement de congé invalide.') {
+            fieldErrors.leaveRecords = message('invalidField');
+          } else if (/^Subsidiary with ID|^Foreign key constraint failed/.test(detail)) {
+            key = 'invalidRelations';
+          }
+        }
+      }
     }
+    showErrors(fieldErrors);
+    setSubmitError(message(key));
   };
 
   const handleDocumentsUpdate = (documents: any) => {
@@ -195,31 +311,25 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    // Validate all fields
-    const newErrors: FormErrors = {};
-    const fieldsToValidate = ['email', 'phone', 'targetNetSalary', 'birthDate', 'hireDate'];
-
-    fieldsToValidate.forEach((field) => {
-      const error = validateField(field, formData[field]);
-      if (error) newErrors[field] = error;
-    });
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      setActiveTab(newErrors.targetNetSalary ? 'salary' : newErrors.hireDate ? 'professional' : 'personal');
-      setIsLoading(false);
+    if (isLoading) return;
+    setSubmitError('');
+    const fieldErrors = validateForm();
+    showErrors(fieldErrors);
+    if (Object.keys(fieldErrors).length > 0) {
+      setSubmitError(message('reviewFields'));
       return;
     }
+    setIsLoading(true);
 
     try {
-      // Ensure data persistence by explicitly including all nested objects
       const dataToSave = {
         ...formData,
-        salaryInputMode: formData.salaryInputMode,
-        bankName: formData.bankName || '',
-        bankAccountNumber: formData.bankAccountNumber || '',
+        ...Object.fromEntries(textFields.map(field => [field, formData[field]?.trim() ?? ''])),
+        bonus: Number(formData.bonus ?? 0),
+        baseSalary: Number(formData.baseSalary ?? 0),
+        targetNetSalary: formData.salaryInputMode === 'NET' ? Number(formData.targetNetSalary) : undefined,
+        numberDependents: Number(formData.numberDependents ?? 0),
+        situationMatrimony: formData.situationMatrimony || undefined,
         documents: {
           contract: formData.documents?.contract || null,
           idCard: formData.documents?.idCard || null,
@@ -240,7 +350,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
 
       await onSave(dataToSave);
     } catch (error) {
-      console.error('Error saving employee:', error);
+      showSaveError(error);
     } finally {
       setIsLoading(false);
     }
@@ -299,7 +409,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
           </p>
         </CardHeader>
 
-        <form onSubmit={handleSubmit}>
+        <form noValidate onSubmit={handleSubmit}>
           {/* Tabs Navigation */}
           <div className="flex space-x-1 px-6 pt-4 border-b border-slate-200 overflow-x-auto">
             <TabButton tab="personal" />
@@ -309,7 +419,11 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
             <TabButton tab="leaves" />
           </div>
 
+          {submitError && <p role="alert" className="px-6 pt-3 text-sm text-red-700">{submitError}</p>}
           <CardBody className="max-h-[60vh] overflow-y-auto">
+            {sectionErrors.filter(field => fieldsByTab[activeTab].includes(field) && errors[field]).map(field => (
+              <p key={field} className="mb-2 text-sm text-red-700">{message(field)} {errors[field]}</p>
+            ))}
             {/* Personal Tab */}
             {activeTab === 'personal' && (
               <FormSection title={t('hr.form.sections.personal')} subtitle={t('hr.form.sections.personal')}>
@@ -347,6 +461,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                     name="gender"
                     value={formData.gender ?? ''}
                     onChange={handleChange}
+                    error={errors.gender}
                     required
                     options={Object.entries(Gender).map(([, v]) => ({
                       value: v,
@@ -381,12 +496,16 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                     name="nationality"
                     value={formData.nationality ?? ''}
                     onChange={handleChange}
+                    error={errors.nationality}
+                    required
                   />
                   <FormInput
                     label={t('configuration.form.ssn')}
                     name="socialSecurityNumber"
                     value={formData.socialSecurityNumber ?? ''}
                     onChange={handleChange}
+                    error={errors.socialSecurityNumber}
+                    required
                   />
                 </div>
 
@@ -395,6 +514,8 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                   name="address"
                   value={formData.address ?? ''}
                   onChange={handleChange}
+                  error={errors.address}
+                  required
                 />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -403,6 +524,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                     name="situationMatrimony"
                     value={formData.situationMatrimony ?? ''}
                     onChange={handleChange}
+                    error={errors.situationMatrimony}
                     options={[
                       { value: 'SINGLE', label: t('hr.maritalStatusOptions.SINGLE') },
                       { value: 'MARRIED', label: t('hr.maritalStatusOptions.MARRIED') },
@@ -414,8 +536,9 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                     label={t('hr.numberDependents')}
                     name="numberDependents"
                     type="number"
-                    value={formData.numberDependents ?? ''}
+                    value={Number.isNaN(formData.numberDependents) ? '' : formData.numberDependents ?? ''}
                     onChange={handleChange}
+                    error={errors.numberDependents}
                     helperText={t('hr.dependentsHelperText')}
                   />
                 </div>
@@ -431,6 +554,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                     name="positions"
                     value={formData.positions ?? ''}
                     onChange={handleChange}
+                    error={errors.positions}
                     required
                   />
                   <FormInput
@@ -438,6 +562,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                     name="department"
                     value={formData.department ?? ''}
                     onChange={handleChange}
+                    error={errors.department}
                     required
                   />
                 </div>
@@ -457,6 +582,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                     name="contractType"
                     value={formData.contractType ?? ''}
                     onChange={handleChange}
+                    error={errors.contractType}
                     required
                     options={Object.entries(ContractType).map(([, v]) => ({
                       value: v,
@@ -471,6 +597,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                     name="status"
                     value={formData.status ?? ''}
                     onChange={handleChange}
+                    error={errors.status}
                     required
                     options={Object.entries(EmployeeStatus).map(([, v]) => ({
                       value: v,
@@ -482,6 +609,8 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                     name="workLocation"
                     value={formData.workLocation ?? ''}
                     onChange={handleChange}
+                    error={errors.workLocation}
+                    required
                   />
                 </div>
               </FormSection>
@@ -495,7 +624,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                     label={t('hr.form.salarySection.targetNetSalary') || 'Salaire net souhaité'}
                     name="targetNetSalary"
                     type="number"
-                    value={formData.targetNetSalary ?? ''}
+                    value={Number.isNaN(formData.targetNetSalary) ? '' : formData.targetNetSalary ?? ''}
                     onChange={handleChange}
                     error={errors.targetNetSalary}
                     helperText={t('hr.form.salarySection.targetNetSalaryHelper') || 'Salaire net souhaité mensuel (FCFA)'}
@@ -505,8 +634,9 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                     label={t('hr.form.salarySection.bonus')}
                     name="bonus"
                     type="number"
-                    value={formData.bonus ?? ''}
+                    value={Number.isNaN(formData.bonus) ? '' : formData.bonus ?? ''}
                     onChange={handleChange}
+                    error={errors.bonus}
                     helperText={t('hr.form.salarySection.bonusHelper')}
                   />
                 </div>
@@ -530,6 +660,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                             </p>
                           </div>
                           <button
+                            type="button"
                             onClick={() => {
                               setFormData({
                                 ...formData,
@@ -573,8 +704,9 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                       />
 
                       <button
+                        type="button"
                         onClick={() => {
-                          if (newIndemnitiesForm.type && newIndemnitiesForm.amount > 0) {
+                          if (newIndemnitiesForm.type && Number.isFinite(newIndemnitiesForm.amount) && newIndemnitiesForm.amount > 0) {
                             setFormData({
                               ...formData,
                               indemnities: [
@@ -583,6 +715,9 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                               ]
                             });
                             setNewIndemnitiesForm({ type: '', amount: 0 });
+                            setErrors(prev => ({ ...prev, indemnities: '' }));
+                          } else {
+                            setErrors(prev => ({ ...prev, indemnities: message('invalidIndemnity') }));
                           }
                         }}
                         className="px-4 py-2 bg-orange-500 text-white font-semibold rounded-md hover:bg-green-500 transition-colors"
@@ -591,6 +726,8 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                       </button>
                     </div>
                   </div>
+
+                  {errors.indemnities && <p className="mt-2 text-sm text-red-700">{errors.indemnities}</p>}
 
                   {/* Résumé Total */}
                   {(formData.indemnities || []).length > 0 && (
@@ -630,6 +767,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                             name="bankName"
                             value={formData.bankName ?? ''}
                             onChange={handleChange}
+                            error={errors.bankName}
                             options={[
                               { value: '', label: '-- Sélectionner une banque --' },
                               ...treasuryAccounts.map(account => ({
@@ -645,6 +783,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                           name="bankName"
                           value={formData.bankName ?? ''}
                           onChange={handleChange}
+                          error={errors.bankName}
                           placeholder="Ou entrez le nom de la banque"
                           helperText={treasuryAccounts.length > 0 ? "Valeur personnalisée ou autre banque" : ""}
                           required={formData.paymentMethod === PaymentMethod.BANK_TRANSFER}
@@ -655,6 +794,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                         name="bankAccountNumber"
                         value={formData.bankAccountNumber ?? ''}
                         onChange={handleChange}
+                        error={errors.bankAccountNumber}
                         placeholder="RIB/IBAN"
                         required={formData.paymentMethod === PaymentMethod.BANK_TRANSFER}
                       />
@@ -665,9 +805,9 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
                 {/* Cameroon Payroll Preview */}
                 <div className="mt-6">
                   <CameroonPayrollWidget
-                    netSalary={formData.targetNetSalary}
-                    bonus={formData.bonus}
-                    numberDependents={formData.numberDependents}
+                    netSalary={Number(formData.targetNetSalary ?? 0) || 0}
+                    bonus={Number(formData.bonus ?? 0) || 0}
+                    numberDependents={Number(formData.numberDependents ?? 0) || 0}
                   />
                 </div>
               </FormSection>
@@ -698,7 +838,7 @@ const EmployeeFormModalModern: React.FC<EmployeeFormModalModernProps> = ({
 
           {/* Footer with Actions */}
           <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 rounded-b-lg flex justify-end gap-3">
-            <Button variant="secondary" onClick={onClose} disabled={isLoading}>
+            <Button type="button" variant="secondary" onClick={onClose} disabled={isLoading}>
               {t('hr.cancel')}
             </Button>
             <Button

@@ -9,7 +9,7 @@ import { Reflector } from '@nestjs/core';
 import { UserRole } from '@prisma/client';
 import type { Request } from 'express';
 import type { JwtUser } from '../jwt/jwt-user.interface';
-import { SUPER_ADMIN_READ_ONLY_KEY } from './role.decorator';
+import { ACTIVE_ROLES_KEY, SUPER_ADMIN_READ_ONLY_KEY } from './role.decorator';
 import { getActiveRole, isSuperAdmin } from './role-identity';
 
 @Injectable()
@@ -34,15 +34,24 @@ export class RoleGuard implements CanActivate {
       method !== 'GET' &&
       method !== 'HEAD' &&
       method !== 'OPTIONS' &&
-      this.reflector.get<boolean>(SUPER_ADMIN_READ_ONLY_KEY, context.getClass())
+      this.reflector.getAllAndOverride<boolean>(SUPER_ADMIN_READ_ONLY_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ])
     ) {
       throw new ForbiddenException('Super-admin access is read-only');
     }
 
-    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(
-      'roles',
-      [context.getHandler(), context.getClass()],
+    const activeRoles = this.reflector.get<UserRole[]>(
+      ACTIVE_ROLES_KEY,
+      context.getHandler(),
     );
+    const requiredRoles =
+      activeRoles ??
+      this.reflector.getAllAndOverride<UserRole[]>('roles', [
+        context.getHandler(),
+        context.getClass(),
+      ]);
 
     this.logger.debug(
       `Required roles: ${requiredRoles ? requiredRoles.join(', ') : 'none'}`,
@@ -69,7 +78,7 @@ export class RoleGuard implements CanActivate {
     // @Roles(...)/@SetMetadata('roles', ...) de l'app serait fragile (c'est
     // exactement l'oubli qui a laisse finances-stats/* sans guard, cf. audit
     // Doc/architecture-multi-filiale-auth-rbac.md section 1.1/4.2).
-    if (isSuperAdmin(user)) {
+    if (!activeRoles && isSuperAdmin(user)) {
       this.logger.debug(
         `User ${user.id} is SUPER_ADMIN, bypassing role check for ${method} ${url}`,
         'RoleGuard',

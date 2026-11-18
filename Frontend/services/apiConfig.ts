@@ -15,8 +15,8 @@
  * Frontend/.env.development.local (et NON .env.local, que Vite charge aussi
  * pendant `vite build` et qui enverrait donc localhost en production).
  */
-const DEFAULT_ORIGIN = 'https://caapmedia.com';
-// const DEFAULT_ORIGIN = 'http://localhost:3000'; // développement local
+//const DEFAULT_ORIGIN = 'https://caapmedia.com';
+ const DEFAULT_ORIGIN = 'http://localhost:3000'; // développement local
 
 /** Origine nue du backend, sans slash final, ex: http://localhost:3000 */
 export const BACKEND_ORIGIN = (

@@ -28,12 +28,13 @@ const fmtDate = (date?: string | null, language = 'fr') => {
 
 interface TaskManagementProps {
     subsidiary: Subsidiary;
+    canEdit: boolean;
     employees: Employee[];
     onSave: (data: SaveSecretariatTaskDto) => void;
     onDelete: (id: string) => void;
 }
 
-const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary, employees, onSave, onDelete }) => {
+const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary, canEdit, employees, onSave, onDelete }) => {
     const { t, language } = useI18n();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<SecretariatTask | null>(null);
@@ -149,10 +150,10 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary, employees, 
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-semibold text-slate-800">{t('secretariat.tasks.title')}</h3>
                 <div className="flex items-center space-x-2 no-print">
-                    <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
+                    {canEdit && (<button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
                         <IconPlus className="h-4 w-4" />
                         <span>{t('secretariat.tasks.add')}</span>
-                    </button>
+                    </button>)}
                     <button onClick={handlePrint} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
                         <IconPrint className="h-4 w-4" />
                         <span>{t('common.print')}</span>
@@ -205,7 +206,8 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary, employees, 
                                 <td className="px-6 py-4">{getAssigneeName(task.assignedToId)}</td>
                                 <td className="px-6 py-4">{fmtDate(task.dueDate, language)}</td>
                                 <td className="px-6 py-4">
-                                    <select 
+                                    <select
+                                        disabled={!canEdit}
                                         value={task.status} 
                                         onChange={(e) => handleStatusChange(task.id, e.target.value as SecretariatTaskStatus)}
                                         className={`w-full text-xs font-semibold rounded-md border-0 focus:ring-0 py-1 ${getStatusClass(task.status)}`}
@@ -216,12 +218,12 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary, employees, 
                                     </select>
                                 </td>
                                 <td className="px-6 py-4 text-center space-x-1 no-print">
-                                    <button onClick={() => handleOpenEditModal(task)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
+                                    {canEdit && (<button onClick={() => handleOpenEditModal(task)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
                                         <IconEdit className="h-5 w-5" />
-                                    </button>
-                                    <button onClick={() => handleOpenDeleteModal(task)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" aria-label={t('common.delete')}>
+                                    </button>)}
+                                    {canEdit && (<button onClick={() => handleOpenDeleteModal(task)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" aria-label={t('common.delete')}>
                                         <IconDelete className="h-5 w-5" />
-                                    </button>
+                                    </button>)}
                                 </td>
                             </tr>
                         ))}
@@ -230,7 +232,7 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary, employees, 
             </div>
             {meta && <Pagination meta={meta} onPageChange={setPage} />}
 
-            {isModalOpen && (
+            {canEdit && isModalOpen && (
                 <TaskFormModal
                     isOpen={isModalOpen}
                     onClose={handleCloseModals}
@@ -241,7 +243,7 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ subsidiary, employees, 
                 />
             )}
 
-            {deletingTask && (
+            {canEdit && deletingTask && (
                 <ConfirmationModal
                     isOpen={!!deletingTask}
                     onClose={handleCloseModals}

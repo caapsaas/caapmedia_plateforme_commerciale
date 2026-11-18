@@ -16,6 +16,8 @@ import { getStockItemsBySubsidiary, createStockItem, updateStockItem, deleteStoc
 import { useAuth } from '../../context/AuthContext';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 const ProductManagement: React.FC = () => {
     const { t, formatCurrency } = useI18n();
@@ -40,6 +42,7 @@ const ProductManagement: React.FC = () => {
             String(value ?? '').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
         ),
     );
+    const { pageItems: pageProducts, meta: productsMeta, setPage } = useClientPagination(filteredItems);
 
     // --- TanStack Query: Mutations ---
     const { mutate: saveItemMutate } = useMutation({
@@ -138,7 +141,7 @@ const ProductManagement: React.FC = () => {
                                     <EmptyState icon="stock" title={t('configuration.productManagement')} description={t('common.notAvailable')} />
                                 </td>
                             </tr>
-                        ) : filteredItems.map((item) => (
+                        ) : pageProducts.map((item) => (
                             <tr key={item.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{item.name}</td>
                                 <td className="px-6 py-4">{item.productRange ? t(rangeToKeyMap[item.productRange] || item.productRange) : 'Non specifie'}</td>
@@ -164,6 +167,7 @@ const ProductManagement: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+            <Pagination meta={productsMeta} onPageChange={setPage} />
 
             {isImportModalOpen && (
                 <ProductImportModal

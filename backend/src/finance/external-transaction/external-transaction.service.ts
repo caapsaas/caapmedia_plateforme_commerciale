@@ -14,9 +14,9 @@ import {
   ExternalTransactionStatus,
   ExternalTransactionType,
   ExternalTransactionCategory,
-  PaymentMethod,
   NotificationType,
   UserRole,
+  Prisma,
 } from '@prisma/client';
 
 @Injectable()
@@ -61,23 +61,6 @@ export class ExternalTransactionService {
 
   async create(createDto: CreateExternalTransactionDto) {
     try {
-      console.log(
-        'Creating external transaction with DTO:',
-        JSON.stringify(createDto, null, 2),
-      );
-      console.log(
-        'Available ExternalTransactionType values:',
-        Object.values(ExternalTransactionType),
-      );
-      console.log(
-        'Available ExternalTransactionCategory values:',
-        Object.values(ExternalTransactionCategory),
-      );
-      console.log(
-        'Available PaymentMethod values:',
-        Object.values(PaymentMethod),
-      );
-
       const transaction = await this.prisma.externalFinancialTransaction.create(
         {
           data: {
@@ -118,59 +101,19 @@ export class ExternalTransactionService {
 
       return transaction;
     } catch (error) {
-      console.error('Error creating external transaction:', error);
-      console.error('Full error object:', JSON.stringify(error, null, 2));
-      console.error('Error details:', {
-        code: error.code,
-        message: error.message,
-        meta: error.meta,
-        cause: error.cause,
-        stack: error.stack,
-      });
-
-      if (error.code === 'P2002') {
-        throw new BadRequestException(
-          'Erreur de contrainte unique: une transaction avec ces données existe déjà.',
-        );
-      }
-      if (error.code === 'P2025') {
-        throw new BadRequestException(
-          "Erreur: enregistrement non trouvé. Vérifiez que l'utilisateur et la filiale existent.",
-        );
-      }
-
-      // Gérer les erreurs de validation de données
-      if (error.code === 'P2003' || error.code === 'P2004') {
-        throw new BadRequestException(
-          "Erreur de clé étrangère: vérifiez que l'utilisateur et la filiale existent.",
-        );
-      }
-
-      // Erreur de validation - capturer le message complet
-      if (error.message) {
-        const fullMessage = error.message;
-        console.error('Full validation error message:', fullMessage);
-
-        if (fullMessage.includes('Invalid value')) {
-          // Extraire la première ligne significative
-          const lines = fullMessage.split('\n').filter((line) => line.trim());
-          const relevantLine =
-            lines.find(
-              (line) =>
-                line.includes('Invalid value') ||
-                line.includes('Got') ||
-                line.includes('Expected'),
-            ) || lines[0];
-
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
           throw new BadRequestException(
-            `Erreur de validation: ${relevantLine}`,
+            'Une transaction avec ces données existe déjà.',
+          );
+        }
+        if (['P2003', 'P2004', 'P2025'].includes(error.code)) {
+          throw new BadRequestException(
+            'Les références de la transaction sont invalides.',
           );
         }
       }
-
-      throw new BadRequestException(
-        `Erreur lors de la création de la transaction: ${error.message}`,
-      );
+      throw error;
     }
   }
 
@@ -235,10 +178,10 @@ export class ExternalTransactionService {
     );
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, subsidiaryId: string | undefined) {
     const transaction =
       await this.prisma.externalFinancialTransaction.findUnique({
-        where: { id },
+        where: { id, subsidiaryId },
         include: {
           creator: {
             select: {
@@ -263,8 +206,27 @@ export class ExternalTransactionService {
     return transaction;
   }
 
-  async update(id: string, updateDto: UpdateExternalTransactionDto) {
-    const existingTransaction = await this.findOne(id);
+  private editableData(dto: UpdateExternalTransactionDto) {
+    return {
+      transactionDate: dto.transactionDate
+        ? new Date(dto.transactionDate)
+        : undefined,
+      description: dto.description,
+      amount: dto.amount,
+      externalTransactionType: dto.externalTransactionType,
+      externalTransactionCategory: dto.externalTransactionCategory,
+      paymentMethod: dto.paymentMethod,
+      referenceNumber: dto.referenceNumber,
+      relatedDocumentUrl: dto.relatedDocumentUrl,
+    };
+  }
+
+  async update(
+    id: string,
+    updateDto: UpdateExternalTransactionDto,
+    subsidiaryId: string | undefined,
+  ) {
+    const existingTransaction = await this.findOne(id, subsidiaryId);
 
     // Empêcher la modification d'une transaction validée
     if (existingTransaction.status === ExternalTransactionStatus.VALIDATED) {
@@ -273,19 +235,10 @@ export class ExternalTransactionService {
       );
     }
 
-    // Remove fields that shouldn't be updated
-    const { createdBy, subsidiaryId, ...validUpdateData } = updateDto as any;
-
-    const updateData: any = { ...validUpdateData };
-
-    if (updateDto.transactionDate) {
-      updateData.transactionDate = new Date(updateDto.transactionDate);
-    }
-
     const updatedTransaction =
       await this.prisma.externalFinancialTransaction.update({
-        where: { id },
-        data: updateData,
+        where: { id, subsidiaryId },
+        data: this.editableData(updateDto),
         include: {
           creator: {
             select: {
@@ -324,8 +277,12 @@ export class ExternalTransactionService {
     return updatedTransaction;
   }
 
-  async validate(id: string, validatorUserId?: string) {
-    const transaction = await this.findOne(id);
+  async validate(
+    id: string,
+    subsidiaryId: string | undefined,
+    validatorUserId: string,
+  ) {
+    const transaction = await this.findOne(id, subsidiaryId);
 
     if (transaction.status === ExternalTransactionStatus.VALIDATED) {
       throw new BadRequestException('Cette transaction est déjà validée');
@@ -358,7 +315,7 @@ export class ExternalTransactionService {
 
     const validatedTransaction =
       await this.prisma.externalFinancialTransaction.update({
-        where: { id },
+        where: { id, subsidiaryId, status: transaction.status },
         data: {
           status: ExternalTransactionStatus.VALIDATED,
         },
@@ -421,8 +378,8 @@ export class ExternalTransactionService {
     return validatedTransaction;
   }
 
-  async cancel(id: string) {
-    const transaction = await this.findOne(id);
+  async cancel(id: string, subsidiaryId: string | undefined) {
+    const transaction = await this.findOne(id, subsidiaryId);
 
     if (transaction.status === ExternalTransactionStatus.CANCELLED) {
       throw new BadRequestException('Cette transaction est déjà annulée');
@@ -430,7 +387,7 @@ export class ExternalTransactionService {
 
     const cancelledTransaction =
       await this.prisma.externalFinancialTransaction.update({
-        where: { id },
+        where: { id, subsidiaryId, status: transaction.status },
         data: {
           status: ExternalTransactionStatus.CANCELLED,
         },
@@ -472,8 +429,8 @@ export class ExternalTransactionService {
     return cancelledTransaction;
   }
 
-  async remove(id: string) {
-    const transaction = await this.findOne(id);
+  async remove(id: string, subsidiaryId: string | undefined) {
+    const transaction = await this.findOne(id, subsidiaryId);
 
     if (transaction.status === ExternalTransactionStatus.VALIDATED) {
       throw new BadRequestException(
@@ -484,7 +441,7 @@ export class ExternalTransactionService {
     // Notifications désactivées - suppression silencieuse
 
     await this.prisma.externalFinancialTransaction.delete({
-      where: { id },
+      where: { id, subsidiaryId },
     });
 
     return { message: 'Transaction supprimée avec succès' };
@@ -494,35 +451,14 @@ export class ExternalTransactionService {
   async adminUpdate(
     id: string,
     updateDto: UpdateExternalTransactionDto,
-    adminUserId: string,
+    subsidiaryId: string,
   ) {
-    const existingTransaction = await this.findOne(id);
-
-    // Vérifier que l'utilisateur est un administrateur ou un directeur financier
-    const adminUser = await this.prisma.user.findUnique({
-      where: { id: adminUserId },
-      select: { userRole: true },
-    });
-
-    if (
-      !adminUser ||
-      !['ADMIN', 'FINANCIAL_DIRECTOR'].includes(adminUser.userRole)
-    ) {
-      throw new BadRequestException(
-        'Accès refusé: réservé aux administrateurs et directeurs financiers',
-      );
-    }
-
-    const updateData: any = { ...updateDto };
-
-    if (updateDto.transactionDate) {
-      updateData.transactionDate = new Date(updateDto.transactionDate);
-    }
+    await this.findOne(id, subsidiaryId);
 
     const updatedTransaction =
       await this.prisma.externalFinancialTransaction.update({
-        where: { id },
-        data: updateData,
+        where: { id, subsidiaryId },
+        data: this.editableData(updateDto),
         include: {
           creator: {
             select: {
@@ -545,28 +481,11 @@ export class ExternalTransactionService {
     return updatedTransaction;
   }
 
-  async adminRemove(id: string, adminUserId: string) {
-    const transaction = await this.findOne(id);
-
-    // Vérifier que l'utilisateur est un administrateur ou un directeur financier
-    const adminUser = await this.prisma.user.findUnique({
-      where: { id: adminUserId },
-      select: { userRole: true },
-    });
-
-    if (
-      !adminUser ||
-      !['ADMIN', 'FINANCIAL_DIRECTOR'].includes(adminUser.userRole)
-    ) {
-      throw new BadRequestException(
-        'Accès refusé: réservé aux administrateurs et directeurs financiers',
-      );
-    }
-
-    // Notifications désactivées - suppression silencieuse
+  async adminRemove(id: string, subsidiaryId: string) {
+    await this.findOne(id, subsidiaryId);
 
     await this.prisma.externalFinancialTransaction.delete({
-      where: { id },
+      where: { id, subsidiaryId },
     });
 
     return {

@@ -1,3 +1,5 @@
+import { useAuth } from '../../context/AuthContext';
+import { UserRole } from '../../types';
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { RecurringExpense, Subsidiary } from '../../types';
@@ -10,6 +12,8 @@ import IconPlus from '../icons/IconPlus';
 import IconDelete from '../icons/IconDelete';
 import ConfirmationModal from '../common/ConfirmationModal';
 import RecurringExpenseModal from './RecurringExpenseModal';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 interface RecurringExpensesProps {
     subsidiary: Subsidiary;
@@ -26,10 +30,14 @@ const fmtDate = (date?: string | null, language = 'fr') => {
 };
 
 const RecurringExpenses: React.FC<RecurringExpensesProps> = ({ subsidiary, recurringExpenses: allExpenses, isLoading = false }) => {
+    const { user } = useAuth();
+    const activeRole = user?.activeRole ?? user?.userRole;
+    const canManage = activeRole === UserRole.ADMIN || activeRole === UserRole.FINANCIAL_DIRECTOR;
     const { t, formatCurrency, language } = useI18n();
     const toast = useToast();
     const queryClient = useQueryClient();
     const expenses = allExpenses.filter(e => e.subsidiaryId === subsidiary.id);
+    const { pageItems: pageExpenses, meta: expensesMeta, setPage } = useClientPagination(expenses);
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [deletingExpense, setDeletingExpense] = useState<RecurringExpense | null>(null);
@@ -64,13 +72,13 @@ const RecurringExpenses: React.FC<RecurringExpensesProps> = ({ subsidiary, recur
             <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                     <h3 className="text-xl font-semibold text-slate-800">{t('recurringExpenses.title')}</h3>
-                    <button
+                    {canManage && (<button
                         onClick={() => setIsCreateModalOpen(true)}
                         className="flex items-center space-x-2 px-3 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors no-print"
                     >
                         <IconPlus className="h-4 w-4" />
                         <span>{t('recurringExpenses.addExpense')}</span>
-                    </button>
+                    </button>)}
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left text-slate-500">
@@ -94,7 +102,7 @@ const RecurringExpenses: React.FC<RecurringExpensesProps> = ({ subsidiary, recur
                                         <EmptyState icon="finance" title={t('recurringExpenses.title')} description={t('common.notAvailable')} />
                                     </td>
                                 </tr>
-                            ) : expenses.map((expense) => (
+                            ) : pageExpenses.map((expense) => (
                                 <tr key={expense.id} className="bg-white border-b hover:bg-slate-50">
                                     <td className="px-6 py-4 font-medium text-slate-900">{expense.description}</td>
                                     <td className="px-6 py-4">{t(`expenses.categories.${expense.category}`)}</td>
@@ -107,7 +115,7 @@ const RecurringExpenses: React.FC<RecurringExpensesProps> = ({ subsidiary, recur
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-center no-print space-x-1">
-                                        <button
+                                        {canManage && (<button
                                             onClick={() => toggleActive(expense)}
                                             className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
                                                 expense.isActive
@@ -116,20 +124,21 @@ const RecurringExpenses: React.FC<RecurringExpensesProps> = ({ subsidiary, recur
                                             }`}
                                         >
                                             {expense.isActive ? t('recurringExpenses.pause') : t('recurringExpenses.resume')}
-                                        </button>
-                                        <button
+                                        </button>)}
+                                        {canManage && (<button
                                             onClick={() => setDeletingExpense(expense)}
                                             className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors"
                                             title={t('common.delete')}
                                         >
                                             <IconDelete className="h-5 w-5" />
-                                        </button>
+                                        </button>)}
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
+                <Pagination meta={expensesMeta} onPageChange={setPage} />
             </div>
 
             <RecurringExpenseModal

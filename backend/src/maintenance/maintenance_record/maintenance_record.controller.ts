@@ -18,11 +18,12 @@ import {
 } from 'src/maintenance/maintenance_record/dto/create-maintenance_record.dto';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
-import { Roles } from 'src/common/auth/role/role.decorator';
+import { Roles, SuperAdminReadOnly } from 'src/common/auth/role/role.decorator';
 import { SetMetadata } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 
 @Controller('maintenance-records')
+@SuperAdminReadOnly()
 export class MaintenanceRecordController {
   constructor(private service: MaintenanceRecordService) {}
 

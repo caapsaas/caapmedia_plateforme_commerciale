@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { FormDefinition } from '../../types';
+import { SpecFieldType } from '../../types/models';
 import { EquipmentWithCost, CommercialParams, ResolvedWorkflow } from '../../services/apiProduction/apiProduction';
 import { ProductionCostResult, ProductionStep } from './ProductionCostModal';
 import FormRenderer, { SpecValues } from '../common/FormRenderer';
@@ -41,7 +42,7 @@ function getRequiredKeys(schema: FormDefinition): string[] {
     return [
         ...schema.ungroupedSpecifications,
         ...schema.groups.flatMap(g => g.specifications),
-    ].filter(s => s.required).map(s => s.technicalKey);
+    ].filter(s => s.required && s.type !== SpecFieldType.UPLOAD).map(s => s.technicalKey);
 }
 
 // ─── Panel 1 — Coût de production ─────────────────────────────────────────────

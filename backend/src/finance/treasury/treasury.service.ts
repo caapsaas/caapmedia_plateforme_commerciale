@@ -22,7 +22,14 @@ import { UpdateTreasuryAccountDto } from './dto/update-treasury-account.dto';
 import { UpdateTransactionStatusDto } from './dto/update-transaction-status.dto';
 import { CreateDisbursementDto } from './dto/create-disbursement.dto';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
-import { checkRole } from 'src/common/auth/role/check-role.util';
+import {
+  checkActiveRole,
+  checkRole,
+} from 'src/common/auth/role/check-role.util';
+import {
+  getActiveRole,
+  isSuperAdmin,
+} from 'src/common/auth/role/role-identity';
 import {
   resolveScopeContext,
   withSubsidiaryScope,
@@ -34,6 +41,7 @@ import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 import { paginate } from 'src/common/pagination/pagination';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
+import { withOpeningBalance } from './treasury-opening-balance';
 @Injectable()
 export class TreasuryService {
   constructor(
@@ -89,22 +97,46 @@ export class TreasuryService {
   }
 
   async createAccount(dto: CreateTreasuryAccountDto, user: JwtUser) {
-    checkRole(
+    checkActiveRole(
       user,
-      [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
-      'Permission denied to create treasury accounts.',
+      [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
+      'Vous n’êtes pas autorisé à créer un compte de trésorerie.',
     );
+
+    if (
+      dto.accountType === AccountType.BANQUE &&
+      !isSuperAdmin(user) &&
+      getActiveRole(user) !== UserRole.ADMIN
+    ) {
+      throw new ForbiddenException(
+        'Seuls l’administrateur et le super-admin peuvent créer un compte bancaire.',
+      );
+    }
+
+    if (
+      dto.accountType === AccountType.EXPENSE_BOX &&
+      dto.initialBalance !== 0
+    ) {
+      throw new BadRequestException(
+        'La caisse dépense doit être créée avec un solde initial de 0. Alimentez-la ensuite par un transfert depuis le coffre-fort.',
+      );
+    }
+    if (new Prisma.Decimal(dto.initialBalance).decimalPlaces() > 2) {
+      throw new BadRequestException(
+        'Le solde initial ne peut pas comporter plus de deux chiffres après la virgule.',
+      );
+    }
 
     // Tous les comptes sont rattachés à la filiale choisie. ADMIN et
     // SUPER_ADMIN peuvent en choisir une autre ; le Directeur Financier reste
     // limité à sa filiale. Une banque physique reste globale et est référencée
     // par bankId, indépendamment de la filiale du compte bancaire.
-    const isSuperAdmin = (user.roles ?? [user.role]).includes(
+    const hasSuperAdminRole = (user.roles ?? [user.role]).includes(
       UserRole.SUPER_ADMIN,
     );
     const activeRole = user.activeRole ?? user.role;
     let targetSubsidiaryId = user.subsidiaryId;
-    if (isSuperAdmin || activeRole === UserRole.ADMIN) {
+    if (hasSuperAdminRole || activeRole === UserRole.ADMIN) {
       targetSubsidiaryId = dto.subsidiaryId || user.subsidiaryId;
     } else if (dto.subsidiaryId && dto.subsidiaryId !== user.subsidiaryId) {
       throw new ForbiddenException(
@@ -184,18 +216,11 @@ export class TreasuryService {
       );
     }
 
-    const initialBalance = dto.initialBalance || 0;
-    const accountId = generateId(ID_PREFIXES.TREASURY);
-
-    return this.prisma.$transaction(async (tx) => {
-      await tx.treasuryAccount.create({
-        data: {
-          id: accountId,
+    const created = await this.prisma.treasuryAccount.create({
+      data: withOpeningBalance(
+        {
+          id: generateId(ID_PREFIXES.TREASURY),
           accountName: dto.accountName,
-          // Le solde ne se constitue qu'à travers la transaction d'ouverture
-          // ci-dessous (traçabilité) — jamais posé directement en base.
-          balance: new Prisma.Decimal(0),
-          initialBalance: new Prisma.Decimal(initialBalance),
           currency: dto.currency,
           accountType: dto.accountType,
           subsidiaryId: targetSubsidiaryId,
@@ -205,51 +230,18 @@ export class TreasuryService {
           bankId:
             dto.accountType === AccountType.BANQUE ? dto.bankId : undefined,
         },
-      });
-
-      if (initialBalance > 0) {
-        // NB : pas d'écriture comptable (accounting outbox) générée ici —
-        // contrairement aux autres mouvements de trésorerie, une dotation de
-        // solde initial n'a pas de contrepartie évidente dans le plan
-        // SYSCOHADA actuel (ni client 411, ni fournisseur 401) : ce serait
-        // un compte de capital (101) ou de compte courant associé (455) à
-        // choisir explicitement avant de brancher journalization.service.ts
-        // dessus. La transaction de trésorerie ci-dessous reste la source de
-        // vérité du solde et apparaît dans l'historique/relevé du compte.
-        await tx.financialTransaction.create({
-          data: {
-            id: generateId(ID_PREFIXES.TREASURY),
-            transactionDate: new Date(),
-            description: 'Solde initial',
-            amount: new Prisma.Decimal(initialBalance),
-            financialTransactionType: TransactionType.RECETTE,
-            treasuryAccountId: accountId,
-            destinationAccountId: accountId,
-            sourceAccountId: null,
-            status: TransactionStatus.VALIDE,
-            treasuryType: TreasuryTransactionType.CASH_REFILL,
-            balanceAfterDest: new Prisma.Decimal(initialBalance),
-            subsidiaryId: targetSubsidiaryId,
-            reference: `INIT-${accountId}`,
-          },
-        });
-
-        await tx.treasuryAccount.update({
-          where: { id: accountId },
-          data: { balance: new Prisma.Decimal(initialBalance) },
-        });
-      }
-
-      const created = await tx.treasuryAccount.findUnique({
-        where: { id: accountId },
-        include: { bank: true },
-      });
-      return { ...created, balance: Number(created.balance) };
+        dto.initialBalance,
+        user.id,
+      ),
+      include: { bank: true },
     });
+    return { ...created, balance: Number(created.balance) };
   }
 
   async findAllAccounts(user: JwtUser, subsidiaryId?: string) {
     const ctx = resolveScopeContext(user);
+    const mayViewFullBankNumber =
+      isSuperAdmin(user) || getActiveRole(user) === UserRole.ADMIN;
 
     const accounts = await this.prisma.treasuryAccount.findMany({
       where: withSubsidiaryScope({}, ctx, subsidiaryId),
@@ -263,7 +255,16 @@ export class TreasuryService {
     return accounts.map((account) => ({
       ...account,
       balance: Number(account.balance),
+      accountNumber:
+        !mayViewFullBankNumber && account.accountType === AccountType.BANQUE
+          ? this.maskBankAccountNumber(account.accountNumber)
+          : account.accountNumber,
     }));
+  }
+
+  private maskBankAccountNumber(value: string | null): string | null {
+    if (!value) return value;
+    return `•••• ${value.slice(-4)}`;
   }
 
   async findOneAccount(id: string, user: JwtUser) {
@@ -279,6 +280,14 @@ export class TreasuryService {
     }
     assertSubsidiaryAccess(account.subsidiaryId, resolveScopeContext(user));
 
+    if (
+      account.accountType === AccountType.BANQUE &&
+      !isSuperAdmin(user) &&
+      getActiveRole(user) !== UserRole.ADMIN
+    ) {
+      account.accountNumber = this.maskBankAccountNumber(account.accountNumber);
+    }
+
     return { ...account, balance: Number(account.balance) };
   }
 
@@ -287,12 +296,21 @@ export class TreasuryService {
     dto: UpdateTreasuryAccountDto,
     user: JwtUser,
   ) {
-    checkRole(
+    checkActiveRole(
       user,
-      [UserRole.ADMIN],
+      [UserRole.SUPER_ADMIN, UserRole.ADMIN],
       'Permission denied to update treasury accounts.',
     );
     const account = await this.findOneAccount(id, user);
+
+    if (
+      account.accountType === AccountType.BANQUE &&
+      dto.accountNumber !== undefined
+    ) {
+      throw new BadRequestException(
+        'Le numéro d’un compte bancaire est immuable après sa création. Créez un nouveau compte si les coordonnées changent.',
+      );
+    }
 
     if (dto.cashierId) {
       await this.validateCashierAssignment(
@@ -306,9 +324,9 @@ export class TreasuryService {
   }
 
   async deleteAccount(id: string, user: JwtUser) {
-    checkRole(
+    checkActiveRole(
       user,
-      [UserRole.ADMIN],
+      [UserRole.SUPER_ADMIN, UserRole.ADMIN],
       'Permission denied to delete treasury accounts.',
     );
 
@@ -324,6 +342,12 @@ export class TreasuryService {
     }
 
     assertSubsidiaryAccess(account.subsidiaryId, resolveScopeContext(user));
+
+    if (account.accountType === AccountType.BANQUE && !isSuperAdmin(user)) {
+      throw new ForbiddenException(
+        'La suppression d’un compte bancaire est réservée au super-admin.',
+      );
+    }
 
     if (account._count.financialTransactions > 0) {
       throw new BadRequestException(
@@ -348,7 +372,7 @@ export class TreasuryService {
     const existing = await this.findPrefinancementAccount(subsidiaryId);
     if (existing) return existing;
 
-    checkRole(
+    checkActiveRole(
       user,
       [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
       'Permission denied to create prefinancement accounts.',
@@ -377,6 +401,14 @@ export class TreasuryService {
     return this.createTransaction(dto, user, TransactionType.RECETTE);
   }
 
+  private assertIncomeAccount(accountType: AccountType) {
+    if (accountType === AccountType.EXPENSE_BOX) {
+      throw new BadRequestException(
+        'La caisse dépense doit être alimentée par un transfert depuis le coffre-fort.',
+      );
+    }
+  }
+
   async createExpenseTransaction(
     dto: CreateFinancialTransactionDto,
     user: JwtUser,
@@ -393,7 +425,7 @@ export class TreasuryService {
     user: JwtUser,
     financialTransactionType: TransactionType,
   ) {
-    checkRole(
+    checkActiveRole(
       user,
       [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR, UserRole.CAISSIER],
       'Permission denied to create transactions.',
@@ -401,10 +433,6 @@ export class TreasuryService {
 
     const { treasuryAccountId, amount, transactionDate } = dto;
     const decimalAmount = new Prisma.Decimal(amount);
-    // Créée EN_ATTENTE : le solde n'est débité/crédité qu'à la validation
-    // (PATCH .../status) — voir updateTransactionStatus.
-    const isPending = dto.status === TransactionStatus.EN_ATTENTE;
-
     return this.prisma.$transaction(async (tx) => {
       // Lecture du compte DANS la transaction pour éviter la race condition
       const account = await tx.treasuryAccount.findFirst({
@@ -417,26 +445,41 @@ export class TreasuryService {
         );
       }
 
-      if (!isPending && financialTransactionType === TransactionType.DEPENSE) {
-        if (account.balance.comparedTo(decimalAmount) < 0) {
-          throw new BadRequestException(
-            `Solde insuffisant sur "${account.accountName}". Solde: ${account.balance}, Montant: ${decimalAmount}.`,
-          );
-        }
+      if (
+        financialTransactionType === TransactionType.DEPENSE &&
+        account.accountType === AccountType.BANQUE
+      ) {
+        throw new BadRequestException(
+          'Un décaissement bancaire doit passer par le formulaire de décaissement bancaire.',
+        );
+      }
+
+      // Toute opération bancaire est mise en attente, même si le client
+      // demande explicitement VALIDE. Seul un super-admin différent de
+      // l'auteur peut ensuite l'approuver.
+      const isPending =
+        dto.status === TransactionStatus.EN_ATTENTE ||
+        account.accountType === AccountType.BANQUE;
+
+      if (financialTransactionType === TransactionType.RECETTE) {
+        this.assertIncomeAccount(account.accountType);
       }
 
       let balanceAfterSource: Prisma.Decimal | undefined;
       if (!isPending) {
-        const balanceOp =
-          financialTransactionType === TransactionType.RECETTE
-            ? { increment: decimalAmount }
-            : { decrement: decimalAmount };
-
-        const updated = await tx.treasuryAccount.update({
-          where: { id: treasuryAccountId },
-          data: { balance: balanceOp },
-        });
-        balanceAfterSource = updated.balance;
+        if (financialTransactionType === TransactionType.RECETTE) {
+          const updated = await tx.treasuryAccount.update({
+            where: { id: treasuryAccountId },
+            data: { balance: { increment: decimalAmount } },
+          });
+          balanceAfterSource = updated.balance;
+        } else {
+          balanceAfterSource = await this.debitAccount(
+            tx,
+            account,
+            decimalAmount,
+          );
+        }
       }
 
       const transaction = await tx.financialTransaction.create({
@@ -450,6 +493,7 @@ export class TreasuryService {
           transactionDate: new Date(transactionDate),
           providerName: dto.providerName,
           providerPhone: dto.providerPhone,
+          createdByUserId: user.id,
           status: isPending
             ? TransactionStatus.EN_ATTENTE
             : TransactionStatus.VALIDE,
@@ -491,27 +535,31 @@ export class TreasuryService {
     dto: UpdateTransactionStatusDto,
     user: JwtUser,
   ) {
-    checkRole(
+    checkActiveRole(
       user,
       [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
       'Permission denied to validate transactions.',
     );
 
-    if (dto.status !== TransactionStatus.VALIDE) {
+    if (
+      dto.status !== TransactionStatus.VALIDE &&
+      dto.status !== TransactionStatus.ANNULE
+    ) {
       throw new BadRequestException(
-        'Seule la transition vers VALIDE est prise en charge.',
+        'Seule la validation ou l’annulation d’une opération en attente est prise en charge.',
       );
     }
 
     return this.prisma.$transaction(async (tx) => {
       // SUPER_ADMIN peut valider les transactions de n'importe quelle filiale
-      const isSuperAdmin = user.role === UserRole.SUPER_ADMIN;
       const transaction = await tx.financialTransaction.findFirst({
         where: {
           id,
-          ...(isSuperAdmin ? {} : { subsidiaryId: user.subsidiaryId }),
+          ...(getActiveRole(user) === UserRole.SUPER_ADMIN
+            ? {}
+            : { subsidiaryId: user.subsidiaryId }),
         },
-        include: { treasuryAccount: true },
+        include: { treasuryAccount: true, destinationAccount: true },
       });
 
       if (!transaction) {
@@ -524,46 +572,147 @@ export class TreasuryService {
         );
       }
 
+      const source = transaction.treasuryAccount;
+      const isIncome =
+        transaction.financialTransactionType === TransactionType.RECETTE;
+      const destination = isIncome ? null : transaction.destinationAccount;
+      const isBankOperation =
+        source.accountType === AccountType.BANQUE ||
+        destination?.accountType === AccountType.BANQUE;
+      const isOpeningBalanceReceipt =
+        transaction.financialTransactionType === TransactionType.RECETTE &&
+        transaction.description === 'Solde initial' &&
+        transaction.reference === `INIT-${transaction.treasuryAccountId}` &&
+        !transaction.destinationAccountId;
+
       if (
-        transaction.financialTransactionType === TransactionType.DEPENSE &&
-        transaction.treasuryAccount.balance.comparedTo(transaction.amount) < 0
+        getActiveRole(user) === UserRole.SUPER_ADMIN &&
+        !isBankOperation &&
+        !(source.accountType === AccountType.SAFE && destination)
       ) {
-        throw new BadRequestException(
-          `Solde insuffisant sur "${transaction.treasuryAccount.accountName}" pour valider ce décaissement.`,
+        throw new ForbiddenException(
+          'La validation de cette opération est réservée aux gestionnaires de la filiale.',
         );
       }
 
-      const balanceOp =
-        transaction.financialTransactionType === TransactionType.RECETTE
-          ? { increment: transaction.amount }
-          : { decrement: transaction.amount };
+      if (isIncome) {
+        this.assertIncomeAccount(source.accountType);
+      } else if (destination) {
+        this.assertTransferAccounts(
+          source,
+          destination,
+          transaction.treasuryType,
+        );
+        if (
+          source.accountType === AccountType.SAFE ||
+          source.accountType === AccountType.BANQUE
+        ) {
+          checkActiveRole(
+            user,
+            [UserRole.SUPER_ADMIN],
+            'Seul le super-administrateur peut valider un transfert depuis le coffre-fort ou une banque.',
+          );
+        }
+      }
 
-      const updatedAccount = await tx.treasuryAccount.update({
-        where: { id: transaction.treasuryAccountId },
-        data: { balance: balanceOp },
+      if (isBankOperation) {
+        checkActiveRole(
+          user,
+          [UserRole.SUPER_ADMIN],
+          'Seul le super-administrateur peut approuver une opération bancaire.',
+        );
+        if (
+          transaction.createdByUserId === user.id &&
+          !isOpeningBalanceReceipt
+        ) {
+          throw new ForbiddenException(
+            'L’auteur d’une opération bancaire ne peut pas l’approuver.',
+          );
+        }
+        if (
+          dto.status === TransactionStatus.VALIDE &&
+          !transaction.createdByUserId
+        ) {
+          throw new ConflictException(
+            'Cette ancienne opération n’a pas d’auteur enregistré. Annulez-la puis recréez-la pour respecter la double approbation.',
+          );
+        }
+      }
+
+      if (dto.status === TransactionStatus.ANNULE) {
+        if (!isBankOperation) {
+          throw new BadRequestException(
+            'Seule une opération bancaire en attente peut être annulée par ce circuit.',
+          );
+        }
+        const cancelled = await tx.financialTransaction.updateMany({
+          where: { id, status: TransactionStatus.EN_ATTENTE },
+          data: {
+            status: TransactionStatus.ANNULE,
+            approvedByUserId: user.id,
+            approvedAt: new Date(),
+          },
+        });
+        if (cancelled.count !== 1) {
+          throw new ConflictException(
+            'Cette opération a déjà été traitée. Actualisez puis réessayez.',
+          );
+        }
+        return tx.financialTransaction.findUniqueOrThrow({ where: { id } });
+      }
+
+      const claimed = await tx.financialTransaction.updateMany({
+        where: { id, status: TransactionStatus.EN_ATTENTE },
+        data: {
+          status: TransactionStatus.VALIDE,
+          approvedByUserId: user.id,
+          approvedAt: new Date(),
+        },
       });
+      if (claimed.count !== 1) {
+        throw new BadRequestException(
+          'Seule une transaction EN_ATTENTE peut être validée.',
+        );
+      }
+
+      const balanceAfterSource = isIncome
+        ? (
+            await tx.treasuryAccount.update({
+              where: { id: source.id },
+              data: { balance: { increment: transaction.amount } },
+            })
+          ).balance
+        : await this.debitAccount(tx, source, transaction.amount);
+      const updatedDestination =
+        destination &&
+        (await tx.treasuryAccount.update({
+          where: { id: destination.id },
+          data: { balance: { increment: transaction.amount } },
+        }));
 
       const updatedTransaction = await tx.financialTransaction.update({
         where: { id },
         data: {
-          status: TransactionStatus.VALIDE,
-          balanceAfterSource: updatedAccount.balance,
+          balanceAfterSource,
+          balanceAfterDest: updatedDestination?.balance,
         },
       });
 
       await this.accountingOutbox.enqueue(tx, {
-        eventType:
-          transaction.financialTransactionType === TransactionType.RECETTE
+        eventType: destination
+          ? 'TREASURY_TRANSFER'
+          : isIncome
             ? 'TREASURY_INCOME'
             : 'TREASURY_EXPENSE',
-        subsidiaryId: user.subsidiaryId,
+        subsidiaryId: transaction.subsidiaryId,
         payload: {
           userId: user.id,
           operationDate: transaction.transactionDate.toISOString(),
           amount: Number(transaction.amount),
           description: transaction.description,
           sourceId: transaction.id,
-          accountType: transaction.treasuryAccount.accountType,
+          accountType: source.accountType,
+          destinationAccountType: destination?.accountType,
         },
       });
 
@@ -580,6 +729,58 @@ export class TreasuryService {
     TreasuryTransactionType.BANK_WITHDRAWAL,
     TreasuryTransactionType.CASH_REFILL,
   ];
+
+  private assertTransferAccounts(
+    source: { id: string; accountType: AccountType; currency: string },
+    destination: { id: string; accountType: AccountType; currency: string },
+    treasuryType: TreasuryTransactionType | null,
+  ) {
+    if (source.id === destination.id) {
+      throw new BadRequestException(
+        'Les comptes source et destination doivent être différents.',
+      );
+    }
+    if (
+      treasuryType === TreasuryTransactionType.CASH_REFILL ||
+      destination.accountType === AccountType.EXPENSE_BOX
+    ) {
+      if (
+        treasuryType !== TreasuryTransactionType.CASH_REFILL ||
+        source.accountType !== AccountType.SAFE ||
+        destination.accountType !== AccountType.EXPENSE_BOX
+      ) {
+        throw new BadRequestException(
+          'La caisse dépense doit être alimentée par un transfert depuis le coffre-fort.',
+        );
+      }
+      if (source.currency !== destination.currency) {
+        throw new BadRequestException(
+          'Le coffre-fort et la caisse dépense doivent avoir la même devise.',
+        );
+      }
+    }
+  }
+
+  private async debitAccount(
+    tx: Prisma.TransactionClient,
+    account: { id: string; accountName: string },
+    amount: Prisma.Decimal,
+  ) {
+    const debit = await tx.treasuryAccount.updateMany({
+      where: { id: account.id, balance: { gte: amount } },
+      data: { balance: { decrement: amount } },
+    });
+    if (debit.count !== 1) {
+      throw new BadRequestException(
+        `Solde insuffisant sur "${account.accountName}".`,
+      );
+    }
+    const updated = await tx.treasuryAccount.findUniqueOrThrow({
+      where: { id: account.id },
+      select: { balance: true },
+    });
+    return updated.balance;
+  }
 
   async createDisbursement(dto: CreateDisbursementDto, user: JwtUser) {
     if (dto.treasuryType === TreasuryTransactionType.SUPPLIER_PAYMENT) {
@@ -604,8 +805,11 @@ export class TreasuryService {
     }
 
     const decimalAmount = new Prisma.Decimal(dto.amount);
-    const isPending = dto.status === TransactionStatus.EN_ATTENTE;
-
+    if (decimalAmount.decimalPlaces() > 2) {
+      throw new BadRequestException(
+        'Le montant du décaissement doit comporter au plus deux décimales.',
+      );
+    }
     return this.prisma.$transaction(async (tx) => {
       // Recherche globale nécessaire aux virements entre filiales et aux
       // comptes centraux. L'autorisation par type de compte fait le contrôle.
@@ -627,20 +831,19 @@ export class TreasuryService {
       }
 
       // Autorisation par type de compte source : Coffre-fort et Banque sont
-      // gérés exclusivement par le SUPER_ADMIN (checkRole([]) = personne
-      // d'autre n'a le rôle requis, seul le bypass SUPER_ADMIN passe) ;
+      // réservés au super-admin actif ;
       // Caisse dépense par le Directeur Financier de SA filiale.
       if (
         sourceAccount.accountType === AccountType.SAFE ||
         sourceAccount.accountType === AccountType.BANQUE
       ) {
-        checkRole(
+        checkActiveRole(
           user,
-          [],
+          [UserRole.SUPER_ADMIN],
           'Seul le super-administrateur peut décaisser depuis le coffre-fort ou une banque.',
         );
       } else if (sourceAccount.accountType === AccountType.EXPENSE_BOX) {
-        checkRole(
+        checkActiveRole(
           user,
           [UserRole.FINANCIAL_DIRECTOR],
           'Seul le directeur financier peut décaisser depuis la caisse dépense.',
@@ -650,7 +853,7 @@ export class TreasuryService {
           resolveScopeContext(user),
         );
       } else {
-        checkRole(
+        checkActiveRole(
           user,
           [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
           'Permission denied to create a disbursement.',
@@ -658,12 +861,6 @@ export class TreasuryService {
         assertSubsidiaryAccess(
           sourceAccount.subsidiaryId,
           resolveScopeContext(user),
-        );
-      }
-
-      if (!isPending && sourceAccount.balance.comparedTo(decimalAmount) < 0) {
-        throw new BadRequestException(
-          `Solde insuffisant sur "${sourceAccount.accountName}".`,
         );
       }
 
@@ -679,7 +876,20 @@ export class TreasuryService {
             `Treasury account with ID "${dto.destinationAccountId}" not found.`,
           );
         }
+        this.assertTransferAccounts(
+          sourceAccount,
+          destinationAccount,
+          dto.treasuryType,
+        );
       }
+
+      // Toute opération impliquant un compte bancaire attend une approbation
+      // distincte, qu’il soit à la source ou à la destination du virement.
+      const isBankOperation =
+        sourceAccount.accountType === AccountType.BANQUE ||
+        destinationAccount?.accountType === AccountType.BANQUE;
+      const isPending =
+        dto.status === TransactionStatus.EN_ATTENTE || isBankOperation;
 
       // L'écriture appartient à la filiale du compte source (là où l'argent
       // se trouve), pas forcément à celle de l'utilisateur qui agit (un
@@ -695,11 +905,11 @@ export class TreasuryService {
       let balanceAfterSource: Prisma.Decimal | undefined;
       let balanceAfterDest: Prisma.Decimal | undefined;
       if (!isPending) {
-        const updatedSource = await tx.treasuryAccount.update({
-          where: { id: sourceAccount.id },
-          data: { balance: { decrement: decimalAmount } },
-        });
-        balanceAfterSource = updatedSource.balance;
+        balanceAfterSource = await this.debitAccount(
+          tx,
+          sourceAccount,
+          decimalAmount,
+        );
 
         if (destinationAccount) {
           const updatedDest = await tx.treasuryAccount.update({
@@ -722,6 +932,7 @@ export class TreasuryService {
           treasuryType: dto.treasuryType,
           reference: dto.reference,
           counterpartyId,
+          createdByUserId: user.id,
           subsidiaryId: transactionSubsidiaryId,
           transactionDate: new Date(dto.transactionDate),
           status: isPending
@@ -861,8 +1072,10 @@ export class TreasuryService {
         where,
         orderBy: { transactionDate: 'desc' },
         include: {
-          treasuryAccount: { select: { accountName: true } },
-          destinationAccount: { select: { accountName: true } },
+          treasuryAccount: { select: { accountName: true, accountType: true } },
+          destinationAccount: {
+            select: { accountName: true, accountType: true },
+          },
           counterparty: { select: { name: true } },
         },
       },
@@ -927,7 +1140,7 @@ export class TreasuryService {
   }
 
   async deleteTransaction(id: string, user: JwtUser) {
-    checkRole(
+    checkActiveRole(
       user,
       [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
       'Permission denied to delete transactions.',
@@ -937,7 +1150,9 @@ export class TreasuryService {
       where: { id, subsidiaryId: user.subsidiaryId },
       include: {
         treasuryAccount: true,
+        destinationAccount: true,
         needRequestPayment: { select: { id: true } },
+        expensePayment: { select: { id: true } },
       },
     });
 
@@ -945,12 +1160,49 @@ export class TreasuryService {
       throw new NotFoundException(`Transaction with ID "${id}" not found.`);
     }
 
+    if (
+      transaction.treasuryAccount.accountType === AccountType.BANQUE ||
+      transaction.destinationAccount?.accountType === AccountType.BANQUE
+    ) {
+      throw new BadRequestException(
+        'Une opération liée à un compte bancaire ne peut pas être supprimée. Enregistrez une opération de correction traçable.',
+      );
+    }
+
     if (transaction.needRequestPayment) {
       throw new BadRequestException(
         'Le règlement lié à une expression de besoin ne peut pas être supprimé.',
       );
     }
+    if (transaction.expensePayment) {
+      throw new BadRequestException(
+        'Le règlement lié à une charge ne peut pas être supprimé.',
+      );
+    }
+    if (
+      transaction.status === TransactionStatus.VALIDE &&
+      ((transaction.financialTransactionType === TransactionType.RECETTE &&
+        transaction.reference === `INIT-${transaction.treasuryAccountId}`) ||
+        transaction.treasuryType === TreasuryTransactionType.CASH_REFILL)
+    ) {
+      throw new BadRequestException(
+        'Un solde initial ou une alimentation de caisse dépense validée ne peut pas être supprimé.',
+      );
+    }
     return this.prisma.$transaction(async (tx) => {
+      const deleted = await tx.financialTransaction
+        .delete({ where: { id, status: transaction.status } })
+        .catch((error: unknown) => {
+          if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === 'P2025'
+          ) {
+            throw new ConflictException(
+              'La transaction a été modifiée ou supprimée entre-temps.',
+            );
+          }
+          throw error;
+        });
       // Une transaction EN_ATTENTE n'a jamais impacté le solde (voir
       // createTransaction) — rien à réverser dans ce cas, seule une
       // transaction VALIDE doit être compensée avant suppression.
@@ -966,7 +1218,7 @@ export class TreasuryService {
         });
       }
 
-      return tx.financialTransaction.delete({ where: { id } });
+      return deleted;
     });
   }
 
@@ -988,6 +1240,12 @@ export class TreasuryService {
     if (!account) {
       throw new NotFoundException(
         `Treasury account with ID "${dto.treasuryAccountId}" not found.`,
+      );
+    }
+
+    if (account.accountType === AccountType.BANQUE) {
+      throw new BadRequestException(
+        'Une dépense ne peut pas débiter directement un compte bancaire. Utilisez une opération bancaire soumise à approbation.',
       );
     }
 

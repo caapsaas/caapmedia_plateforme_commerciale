@@ -11,6 +11,8 @@ import IconCoins from '../icons/IconCoins';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
 import PaySupplierDebtModal from './PaySupplierDebtModal';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 interface SupplierDebtsProps {
     // `null` = vue consolidée toutes filiales (SUPER_ADMIN, "Toutes les
@@ -43,6 +45,7 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
     const supplierDebts = isConsolidated
         ? allSupplierDebts
         : allSupplierDebts.filter(d => d.subsidiaryId === subsidiary.id);
+    const { pageItems: pageDebts, meta: debtsMeta, setPage } = useClientPagination(supplierDebts);
     const totalDebts = supplierDebts.filter(d => d.status !== DebtStatus.PAYER).reduce((acc, debt) => acc + Number(debt.amount), 0);
     const colSpan = isConsolidated ? 7 : 6;
 
@@ -149,7 +152,7 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
                                         <EmptyState icon="truck" title={t('supplierDebts.trackingTitle')} description={t('common.notAvailable')} />
                                     </td>
                                 </tr>
-                            ) : supplierDebts.map((debt) => (
+                            ) : pageDebts.map((debt) => (
                                 <tr key={debt.id} className="bg-white border-b hover:bg-slate-50">
                                     <td className="px-6 py-4 font-medium text-slate-900">{debt.supplierName}</td>
                                     {isConsolidated && (
@@ -187,6 +190,7 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
                         </tbody>
                     </table>
                 </div>
+                {!isLoading && <Pagination meta={debtsMeta} onPageChange={setPage} />}
             </div>
 
             <PaySupplierDebtModal

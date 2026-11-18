@@ -17,7 +17,7 @@ import { PaySupplierDebtDto } from './dto/pay-supplier-debt.dto';
 import { CreateLongTermDebtDto } from './dto/create-long-term-debt.dto';
 import { UpdateLongTermDebtDto } from './dto/update-long-term-debt.dto';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
-import { checkRole } from 'src/common/auth/role/check-role.util';
+import { checkActiveRole } from 'src/common/auth/role/check-role.util';
 import { AccountingOutboxService } from 'src/accounting/outbox/accounting-outbox.service';
 
 import { generateId } from 'src/common/utils/generate-id.util';
@@ -108,9 +108,9 @@ export class DebtsService {
    * entre les deux (contrairement à l'ancien double-chemin de paiement).
    */
   async paySupplierDebt(id: string, dto: PaySupplierDebtDto, user: JwtUser) {
-    checkRole(
+    checkActiveRole(
       user,
-      [],
+      [UserRole.SUPER_ADMIN],
       'Seul le super-administrateur peut payer une dette fournisseur.',
     );
 
@@ -139,6 +139,11 @@ export class DebtsService {
     ) {
       throw new BadRequestException(
         "Le paiement d'une dette fournisseur ne peut se faire que depuis le coffre-fort ou une banque.",
+      );
+    }
+    if (account.accountType === AccountType.BANQUE) {
+      throw new BadRequestException(
+        'Le paiement d’une dette fournisseur depuis une banque doit passer par le circuit bancaire à double approbation.',
       );
     }
     if (account.subsidiaryId !== debt.subsidiaryId) {
@@ -243,7 +248,7 @@ export class DebtsService {
   // ================================================================= //
 
   async createLongTermDebt(dto: CreateLongTermDebtDto, user: JwtUser) {
-    checkRole(
+    checkActiveRole(
       user,
       [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
       'Permission denied to create long-term debts.',
@@ -289,7 +294,7 @@ export class DebtsService {
     dto: UpdateLongTermDebtDto,
     user: JwtUser,
   ) {
-    checkRole(
+    checkActiveRole(
       user,
       [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
       'Permission denied to update long-term debts.',

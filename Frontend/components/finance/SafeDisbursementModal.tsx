@@ -5,13 +5,10 @@ import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import { getTreasuryAccounts, getCounterparties, createDisbursement } from '../../services/apiFinance/apiTreasury';
 import { getSupplierDebts, paySupplierDebt } from '../../services/apiFinance/apiDebts';
+import { getPayableExpenses, payExpense } from '../../services/apiFinance/apiExpense';
 import { getSubsidiaries } from '../../services/apiCommon/apiSubsidiaries';
-import {
-  getIrppDetail,
-  getCnpsDetail,
-  getCfcFneDetail,
-  getVatDetail,
-} from '../../services/apiFinance/apiTaxTransparency';
+import { getPayrollPaymentSummary } from '../../services/apihr/apiPayroll';
+import { getVatDetail } from '../../services/apiFinance/apiTaxTransparency';
 
 interface SafeDisbursementModalProps {
   isOpen: boolean;
@@ -29,6 +26,8 @@ const TAX_PERIOD_TYPES = [
 ];
 
 const TRANSFER_TYPES = [TreasuryTransactionType.BANK_WITHDRAWAL, TreasuryTransactionType.CASH_REFILL];
+const EXPENSE_PAYMENT = 'EXPENSE_RECORD_PAYMENT';
+type SafeOperation = TreasuryTransactionType | typeof EXPENSE_PAYMENT;
 
 // Décaissement depuis le Coffre-fort — réservé au SUPER_ADMIN (voir
 // Disbursement.tsx), calqué sur Frontend_GMO/components/analytics/SafeDisbursementModal.tsx :
@@ -40,19 +39,23 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
   const queryClient = useQueryClient();
 
   const [sourceAccountId, setSourceAccountId] = useState('');
-  const [treasuryType, setTreasuryType] = useState<TreasuryTransactionType>(TreasuryTransactionType.SUPPLIER_PAYMENT);
+  const [treasuryType, setTreasuryType] = useState<SafeOperation>(TreasuryTransactionType.SUPPLIER_PAYMENT);
   const [destinationAccountId, setDestinationAccountId] = useState('');
   const [supplierDebtId, setSupplierDebtId] = useState('');
+  const [expenseId, setExpenseId] = useState('');
+  const [expenseSearch, setExpenseSearch] = useState('');
   const [taxSubsidiaryId, setTaxSubsidiaryId] = useState('');
   const [taxMonth, setTaxMonth] = useState(new Date().getMonth() + 1);
   const [taxYear, setTaxYear] = useState(new Date().getFullYear());
+  const [salaryPaymentMethod, setSalaryPaymentMethod] = useState<'CASH' | 'CHECK' | 'BANK_TRANSFER'>('CASH');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0]);
   const [reference, setReference] = useState('');
 
-  const isTransfer = TRANSFER_TYPES.includes(treasuryType);
-  const isTaxPeriodType = TAX_PERIOD_TYPES.includes(treasuryType);
+  const isExpensePayment = treasuryType === EXPENSE_PAYMENT;
+  const isTransfer = !isExpensePayment && TRANSFER_TYPES.includes(treasuryType);
+  const isTaxPeriodType = !isExpensePayment && TAX_PERIOD_TYPES.includes(treasuryType);
   const isSupplierPayment = treasuryType === TreasuryTransactionType.SUPPLIER_PAYMENT;
 
   const resetForm = () => {
@@ -60,9 +63,12 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
     setTreasuryType(TreasuryTransactionType.SUPPLIER_PAYMENT);
     setDestinationAccountId('');
     setSupplierDebtId('');
+    setExpenseId('');
+    setExpenseSearch('');
     setTaxSubsidiaryId('');
     setTaxMonth(new Date().getMonth() + 1);
     setTaxYear(new Date().getFullYear());
+    setSalaryPaymentMethod('CASH');
     setAmount('');
     setDescription('');
     setTransactionDate(new Date().toISOString().split('T')[0]);
@@ -92,6 +98,12 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
     queryFn: getSupplierDebts,
     enabled: isOpen && isSupplierPayment,
   });
+  const expenses = useQuery({
+    queryKey: ['payableExpenses', expenseSearch.trim()],
+    queryFn: () => getPayableExpenses(expenseSearch.trim()),
+    enabled: isOpen && isExpensePayment,
+  });
+  const selectedExpense = expenses.data?.find((expense) => expense.id === expenseId);
 
   const { data: taxCounterparties = [] } = useQuery({
     queryKey: ['counterparties', CounterpartyType.TAX_AUTHORITY],
@@ -101,27 +113,20 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
 
   const safes = useMemo(() => accounts.filter((a) => a.accountType === AccountType.SAFE), [accounts]);
   const bankAccounts = useMemo(() => accounts.filter((a) => a.accountType === AccountType.BANQUE), [accounts]);
-  const expenseBoxes = useMemo(() => accounts.filter((a) => a.accountType === AccountType.EXPENSE_BOX), [accounts]);
   const selectedSource = safes.find((a) => a.id === sourceAccountId);
+  const expenseBoxes = accounts.filter((account) =>
+    account.accountType === AccountType.EXPENSE_BOX &&
+    (!selectedSource || account.currency === selectedSource.currency)
+  );
   const payableDebts = supplierDebts.filter((debt) => debt.status !== 'PAYER' && (!selectedSource || debt.subsidiaryId === selectedSource.subsidiaryId));
   const selectedDebt = payableDebts.find((debt) => debt.id === supplierDebtId);
 
   const taxPeriodParams = { month: taxMonth, year: taxYear, subsidiaryId: taxSubsidiaryId || undefined };
-
-  const { data: irppDetail } = useQuery({
-    queryKey: ['irppDetail', taxPeriodParams],
-    queryFn: () => getIrppDetail(taxPeriodParams),
-    enabled: isOpen && treasuryType === TreasuryTransactionType.IRPP_PAYMENT,
-  });
-  const { data: cnpsDetail } = useQuery({
-    queryKey: ['cnpsDetail', taxPeriodParams],
-    queryFn: () => getCnpsDetail(taxPeriodParams),
-    enabled: isOpen && treasuryType === TreasuryTransactionType.CNPS_PAYMENT,
-  });
-  const { data: cfcFneDetail } = useQuery({
-    queryKey: ['cfcFneDetail', taxPeriodParams],
-    queryFn: () => getCfcFneDetail(taxPeriodParams),
-    enabled: isOpen && treasuryType === TreasuryTransactionType.CFC_FNE_PAYMENT,
+  const payrollMonth = `${taxYear}-${String(taxMonth).padStart(2, '0')}`;
+  const { data: payrollSummary, isLoading: isLoadingPayroll } = useQuery({
+    queryKey: ['payrollPaymentSummary', payrollMonth, taxSubsidiaryId],
+    queryFn: () => getPayrollPaymentSummary(payrollMonth, taxSubsidiaryId || undefined),
+    enabled: isOpen && ((isTaxPeriodType && treasuryType !== TreasuryTransactionType.TVA_PAYMENT) || treasuryType === TreasuryTransactionType.SALARY_PAYMENT),
   });
   const { data: vatDetail } = useQuery({
     queryKey: ['vatDetail', taxPeriodParams],
@@ -132,27 +137,49 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
   // Montant + description auto-calculés (lecture seule) pour les versements
   // fiscaux/sociaux — même principe que gmo.
   useEffect(() => {
-    if (treasuryType === TreasuryTransactionType.IRPP_PAYMENT && irppDetail) {
-      setAmount(String(irppDetail.totalAmount));
+    if (treasuryType === TreasuryTransactionType.SALARY_PAYMENT && payrollSummary) {
+      const salary = payrollSummary.byPaymentMethod[salaryPaymentMethod];
+      setAmount(salary ? String(salary.netSalary) : '');
+      setDescription(salary ? t('safeDisbursement.descriptions.salary', { method: t(`hr.paymentMethod.${salaryPaymentMethod}`), period: payrollMonth }) : '');
+    } else if (treasuryType === TreasuryTransactionType.SALARY_PAYMENT) {
+      setAmount('');
+      setDescription('');
+    } else if (treasuryType === TreasuryTransactionType.IRPP_PAYMENT && payrollSummary) {
+      setAmount(String(payrollSummary.contributions.irpp));
       setDescription(t('safeDisbursement.descriptions.irpp', { month: taxMonth, year: taxYear }));
-    } else if (treasuryType === TreasuryTransactionType.CNPS_PAYMENT && cnpsDetail) {
-      setAmount(String(cnpsDetail.total));
+    } else if (treasuryType === TreasuryTransactionType.CNPS_PAYMENT && payrollSummary) {
+      setAmount(String(payrollSummary.contributions.cnps));
       setDescription(t('safeDisbursement.descriptions.cnps', { month: taxMonth, year: taxYear }));
-    } else if (treasuryType === TreasuryTransactionType.CFC_FNE_PAYMENT && cfcFneDetail) {
-      setAmount(String(cfcFneDetail.cfc.totalAmount + cfcFneDetail.fne.totalAmount));
+    } else if (treasuryType === TreasuryTransactionType.CFC_FNE_PAYMENT && payrollSummary) {
+      setAmount(String(payrollSummary.contributions.cfcFne));
       setDescription(t('safeDisbursement.descriptions.cfcFne', { month: taxMonth, year: taxYear }));
     } else if (treasuryType === TreasuryTransactionType.TVA_PAYMENT && vatDetail) {
-      const total = vatDetail.details.reduce((sum, d) => sum + d.vatAmount, 0);
-      setAmount(String(total));
+      setAmount(String(vatDetail.details.reduce((sum, detail) => sum + detail.vatAmount, 0)));
       setDescription(t('safeDisbursement.descriptions.tva', { month: taxMonth, year: taxYear }));
+    } else if (isTaxPeriodType) {
+      setAmount('');
+      setDescription('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [treasuryType, irppDetail, cnpsDetail, cfcFneDetail, vatDetail, taxMonth, taxYear]);
+  }, [treasuryType, payrollSummary, vatDetail, taxMonth, taxYear, isTaxPeriodType, salaryPaymentMethod, payrollMonth]);
 
   const { mutate: submit, isPending } = useMutation({
-    mutationFn: () => isSupplierPayment && selectedDebt
-      ? paySupplierDebt(selectedDebt.id, { paymentDate: transactionDate, treasuryAccountId: sourceAccountId, amount: parseFloat(amount) || 0 })
-      : createDisbursement({
+    mutationFn: async () => {
+      if (treasuryType === EXPENSE_PAYMENT) {
+        if (!selectedExpense) throw new Error(t('safeDisbursement.selectExpense'));
+        await payExpense(selectedExpense.id, {
+          safeId: sourceAccountId,
+          expectedAmount: Number(selectedExpense.amount),
+          transactionDate,
+          reference: reference.trim() || undefined,
+        });
+        return;
+      }
+      if (isSupplierPayment && selectedDebt) {
+        await paySupplierDebt(selectedDebt.id, { paymentDate: transactionDate, treasuryAccountId: sourceAccountId, amount: parseFloat(amount) || 0 });
+        return;
+      }
+      await createDisbursement({
         transactionDate,
         description,
         amount: parseFloat(amount) || 0,
@@ -161,22 +188,49 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
         treasuryType,
         reference: reference || undefined,
         counterpartyId: isTaxPeriodType ? taxCounterparties[0]?.id : undefined,
-      }),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['treasuryAccounts'] });
       queryClient.invalidateQueries({ queryKey: ['financialTransactions'] });
+      if (isExpensePayment) {
+        queryClient.invalidateQueries({ queryKey: ['expenseRecords'] });
+        queryClient.invalidateQueries({ queryKey: ['payableExpenses'] });
+        queryClient.invalidateQueries({ queryKey: ['accountTransactions', sourceAccountId] });
+        queryClient.invalidateQueries({ queryKey: ['treasuryStatement', sourceAccountId] });
+      }
+      if (isTransfer) {
+        queryClient.invalidateQueries({ queryKey: ['accountTransactions', sourceAccountId] });
+        queryClient.invalidateQueries({ queryKey: ['accountTransactions', destinationAccountId] });
+      }
       queryClient.invalidateQueries({ queryKey: ['supplierDebts'] });
       queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
-      toast('success', t('safeDisbursement.success'));
+      const destinationType = accounts.find(
+        (account) => account.id === destinationAccountId,
+      )?.accountType;
+      toast(
+        'success',
+        isTransfer && destinationType === AccountType.BANQUE
+          ? t('safeDisbursement.bankPending')
+          : t('safeDisbursement.success'),
+      );
       onClose();
     },
     onError: (error: any) => {
+      if (isExpensePayment && error?.response?.status === 409) {
+        setExpenseId('');
+        void expenses.refetch();
+      }
       toast('error', error?.response?.data?.message || t('common.error'));
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isExpensePayment) {
+      if (selectedSource?.currency === 'XOF' && selectedExpense && Number(selectedExpense.amount) <= selectedSource.balance) submit();
+      return;
+    }
     if (!sourceAccountId || !amount || parseFloat(amount) <= 0 || !description) return;
     if (isSupplierPayment && (!selectedDebt || parseFloat(amount) > Number(selectedDebt.amount))) return;
     if (isTransfer && !destinationAccountId) return;
@@ -198,7 +252,10 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
             <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.sourceSafe')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
             <select
               value={sourceAccountId}
-              onChange={(e) => setSourceAccountId(e.target.value)}
+              onChange={(e) => {
+                setSourceAccountId(e.target.value);
+                if (treasuryType === TreasuryTransactionType.CASH_REFILL) setDestinationAccountId('');
+              }}
               required
               className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border"
             >
@@ -219,8 +276,10 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
             <select
               value={treasuryType}
               onChange={(e) => {
-                setTreasuryType(e.target.value as TreasuryTransactionType);
+                setTreasuryType(e.target.value as SafeOperation);
                 setDestinationAccountId('');
+                setExpenseId('');
+                setExpenseSearch('');
                 setAmount('');
                 setDescription('');
               }}
@@ -228,6 +287,7 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
               className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border bg-white"
             >
               <option value={TreasuryTransactionType.SUPPLIER_PAYMENT}>{t('safeDisbursement.types.SUPPLIER_PAYMENT')}</option>
+              <option value={EXPENSE_PAYMENT}>{t('safeDisbursement.expensePayment')}</option>
               <option value={TreasuryTransactionType.BANK_WITHDRAWAL}>{t('safeDisbursement.types.BANK_WITHDRAWAL')}</option>
               <option value={TreasuryTransactionType.CASH_REFILL}>{t('safeDisbursement.types.CASH_REFILL')}</option>
               <option value={TreasuryTransactionType.SALARY_PAYMENT}>{t('safeDisbursement.types.SALARY_PAYMENT')}</option>
@@ -249,6 +309,22 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
                   <option key={acc.id} value={acc.id}>{acc.accountName} ({formatCurrency(acc.balance)})</option>
                 ))}
               </select>
+            </div>
+          )}
+
+          {isExpensePayment && (
+            <div className="space-y-2">
+              <label htmlFor="safe-expense-search" className="block text-sm font-medium text-slate-700">{t('safeDisbursement.expenseSearch')}</label>
+              <input id="safe-expense-search" type="search" value={expenseSearch} onChange={(event) => { setExpenseSearch(event.target.value); setExpenseId(''); }} className="w-full rounded-md border border-slate-300 px-3 py-2" />
+              <label htmlFor="safe-expense" className="block text-sm font-medium text-slate-700">{t('safeDisbursement.expensePayment')}</label>
+              <select id="safe-expense" value={expenseId} onChange={(event) => setExpenseId(event.target.value)} required className="w-full rounded-md border border-slate-300 bg-white px-3 py-2">
+                <option value="">{t(expenses.isError ? 'common.error' : expenses.isLoading ? 'common.loading' : expenses.data?.length ? 'safeDisbursement.selectExpense' : 'safeDisbursement.noExpenses')}</option>
+                {expenses.data?.map((expense) => (
+                  <option key={expense.id} value={expense.id}>{expense.description} · {expense.subsidiary.subsidiaryName} · {expense.expenseDate.slice(0, 10)} · {formatCurrency(Number(expense.amount))}</option>
+                ))}
+              </select>
+              {selectedSource && selectedSource.currency !== 'XOF' && <p role="alert" className="text-sm text-rose-700">{t('safeDisbursement.expenseCurrency')}</p>}
+              {selectedSource && selectedExpense && Number(selectedExpense.amount) > selectedSource.balance && <p role="alert" className="text-sm text-rose-700">{t('safeDisbursement.insufficientBalance', { balance: formatCurrency(selectedSource.balance) })}</p>}
             </div>
           )}
 
@@ -276,7 +352,7 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
             </div>
           )}
 
-          {isTaxPeriodType && (
+          {(isTaxPeriodType || treasuryType === TreasuryTransactionType.SALARY_PAYMENT) && (
             <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -309,6 +385,16 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
             </div>
           )}
 
+          {treasuryType === TreasuryTransactionType.SALARY_PAYMENT && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700">{t('configuration.form.paymentMethod')}</label>
+              <select value={salaryPaymentMethod} onChange={(event) => setSalaryPaymentMethod(event.target.value as typeof salaryPaymentMethod)} className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2">
+                {(['CASH', 'CHECK', 'BANK_TRANSFER'] as const).map((method) => <option key={method} value={method}>{t(`hr.paymentMethod.${method}`)}</option>)}
+              </select>
+              {payrollSummary && !payrollSummary.byPaymentMethod[salaryPaymentMethod] && <p className="mt-1 text-xs text-amber-700">{t('safeDisbursement.noPayroll')}</p>}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.amount')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
@@ -316,12 +402,13 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
                 type="number"
                 step="0.01"
                 min="0.01"
-                value={amount}
+                value={isExpensePayment ? selectedExpense?.amount ?? '' : amount}
                 onChange={(e) => setAmount(e.target.value)}
-                readOnly={isTaxPeriodType}
+                readOnly={isTaxPeriodType || isExpensePayment || treasuryType === TreasuryTransactionType.SALARY_PAYMENT}
                 required
                 className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border read-only:bg-slate-100"
               />
+              {isLoadingPayroll && <p className="mt-1 text-xs text-slate-500">{t('safeDisbursement.loadingPayroll')}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.date')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
@@ -329,17 +416,17 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
             </div>
           </div>
 
-          <div>
+          {!isExpensePayment && <div>
             <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.description')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              readOnly={isTaxPeriodType}
+              readOnly={isTaxPeriodType || treasuryType === TreasuryTransactionType.SALARY_PAYMENT}
               required
               className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border read-only:bg-slate-100"
             />
-          </div>
+          </div>}
 
           <div>
             <label className="block text-sm font-medium text-slate-700">{t('safeDisbursement.reference')}</label>
@@ -350,7 +437,7 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
             <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors">
               {t('common.cancel')}
             </button>
-            <button type="submit" disabled={isPending || (isSupplierPayment && !selectedDebt)} className="px-4 py-2 bg-[#231F20] text-white rounded-md hover:bg-slate-700 transition-colors disabled:opacity-50">
+            <button type="submit" disabled={isPending || (isLoadingPayroll && (isTaxPeriodType || treasuryType === TreasuryTransactionType.SALARY_PAYMENT)) || (isSupplierPayment && !selectedDebt) || (isExpensePayment && (!selectedExpense || selectedSource?.currency !== 'XOF' || Number(selectedExpense.amount) > selectedSource.balance))} className="px-4 py-2 bg-[#231F20] text-white rounded-md hover:bg-slate-700 transition-colors disabled:opacity-50">
               {isPending ? t('safeDisbursement.submitting') : t('safeDisbursement.submit')}
             </button>
           </div>

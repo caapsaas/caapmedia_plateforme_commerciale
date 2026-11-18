@@ -1,3 +1,4 @@
+import { isSuperAdmin as hasSuperAdminRole } from '../../utils/isSuperAdmin';
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Equipment, EquipmentStatus, Subsidiary, UserRole } from '../../types';
@@ -10,10 +11,11 @@ import { getSubsidiaries } from '../../services/apiCommon/apiSubsidiaries';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useI18n } from '../../i18n';
-import { useHasRole } from '../../hooks/useHasRole';
 import IconSearch from '../icons/IconSearch';
 import IconPlus from '../icons/IconPlus';
 import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 const CAN_LOG_MAINTENANCE = [UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR];
 
@@ -36,10 +38,9 @@ const Maintenance: React.FC = () => {
     const { subsidiary, user } = useAuth();
     const queryClient = useQueryClient();
 
-    // activeRole prime sur userRole (apercu de role SUPER_ADMIN, voir Purchasing.tsx pour le meme correctif).
-    const isSuperAdmin = (user?.activeRole ?? user?.userRole) === UserRole.SUPER_ADMIN;
-    const { hasRole } = useHasRole();
-    const canLogMaintenance = hasRole(CAN_LOG_MAINTENANCE);
+    const isSuperAdmin = hasSuperAdminRole(user);
+    const role = user?.activeRole ?? user?.userRole;
+    const canLogMaintenance = !isSuperAdmin && !!role && CAN_LOG_MAINTENANCE.includes(role);
 
     const [subsidiaryFilter, setSubsidiaryFilter] = useState('');
     const [search, setSearch] = useState('');
@@ -98,6 +99,7 @@ const Maintenance: React.FC = () => {
         }
         return list;
     }, [equipment, statusFilter, search]);
+    const { pageItems: pageEquipment, meta: equipmentMeta, setPage } = useClientPagination(filteredEquipment);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -184,7 +186,7 @@ const Maintenance: React.FC = () => {
                         <EmptyState icon="stock" title={t('maintenance.noEquipment')} />
                     ) : (
                         <ul className="divide-y divide-slate-50">
-                            {filteredEquipment.map(item => {
+                            {pageEquipment.map(item => {
                                 const isSelected = item.id === selectedId;
                                 const nextDate = new Date(item.nextMaintenanceDate);
                                 const overdue = nextDate < new Date();
@@ -224,6 +226,7 @@ const Maintenance: React.FC = () => {
                         </ul>
                     )}
                 </div>
+                {!isLoading && <Pagination meta={equipmentMeta} onPageChange={setPage} />}
             </div>
 
             {/* ── Colonne droite : historique + formulaire ─────────────────── */}

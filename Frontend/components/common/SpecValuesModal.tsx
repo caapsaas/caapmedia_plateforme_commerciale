@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FormDefinition } from '../../types/models';
+import { FormDefinition, SpecFieldType } from '../../types/models';
 import { useI18n } from '../../i18n';
 import FormRenderer, { SpecValues } from './FormRenderer';
 
@@ -13,7 +13,7 @@ interface SpecValuesModalProps {
 
 function getAllRequiredKeys(schema: FormDefinition): string[] {
     const allSpecs = [...schema.ungroupedSpecifications, ...schema.groups.flatMap(g => g.specifications)];
-    return allSpecs.filter(s => s.required).map(s => s.technicalKey);
+    return allSpecs.filter(s => s.required && s.type !== SpecFieldType.UPLOAD).map(s => s.technicalKey);
 }
 
 // Formulaire de saisie des spécifications techniques d'une ligne de commande

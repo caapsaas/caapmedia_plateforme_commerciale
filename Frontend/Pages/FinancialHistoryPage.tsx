@@ -10,7 +10,7 @@ import EmptyState from '../components/ui/EmptyState';
 import Pagination from '../components/common/Pagination';
 
 type HistoryTab = 'income' | 'expenses';
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 10;
 
 // Page autonome "Historique Financier" — même découpage que gmo
 // (FinancialHistory.tsx : onglets Recettes/Paiements), construite sur

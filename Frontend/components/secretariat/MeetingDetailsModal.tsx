@@ -6,6 +6,7 @@ import { useI18n } from '../../i18n';
 
 interface MeetingDetailsModalProps {
     isOpen: boolean;
+    canEdit: boolean;
     onClose: () => void;
     onSaveMinutes: (meetingId: string, minutes: string) => void;
     onMeetingUpdated: (meeting: Meeting) => void;
@@ -13,7 +14,7 @@ interface MeetingDetailsModalProps {
     employees: Employee[];
 }
 
-const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClose, onSaveMinutes, onMeetingUpdated, meeting, employees }) => {
+const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, canEdit, onClose, onSaveMinutes, onMeetingUpdated, meeting, employees }) => {
     const { t } = useI18n();
     const [minutes, setMinutes] = useState(meeting.minutes || '');
     const [reportFile, setReportFile] = useState<File | null>(null);
@@ -109,13 +110,13 @@ const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClo
                     <div>
                         <div className="flex justify-between items-center">
                             <h4 className="font-semibold text-slate-700">{t('secretariat.meetings.details.minutes')}</h4>
-                            {!isEditing && (
+                            {canEdit && !isEditing && (
                                 <button onClick={() => setIsEditing(true)} className="text-sm font-medium text-[#c6e911] hover:text-[#adc40f]">
                                     {t('common.edit')}
                                 </button>
                             )}
                         </div>
-                        {isEditing ? (
+                        {canEdit && isEditing ? (
                             <textarea 
                                 value={minutes} 
                                 onChange={(e) => setMinutes(e.target.value)} 
@@ -135,10 +136,10 @@ const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClo
                         ) : (
                             <div className="space-y-2">
                                 <p className="text-sm text-slate-600">{t(started ? 'secretariat.meetings.report.afterCompletion' : 'secretariat.meetings.report.notStarted')}</p>
-                                <button type="button" disabled={!started || reportBusy} onClick={handleComplete}
+                                {canEdit && <button type="button" disabled={!started || reportBusy} onClick={handleComplete}
                                     className="px-3 py-2 bg-slate-200 rounded-md text-sm disabled:opacity-50">
                                     {t('secretariat.meetings.report.complete')}
-                                </button>
+                                </button>}
                             </div>
                         )}
                         {meeting.minutesFileUrl ? (
@@ -150,7 +151,7 @@ const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClo
                                 </button>
                             </div>
                         ) : <p className="text-sm text-slate-500">{t('secretariat.meetings.report.none')}</p>}
-                        {meeting.completedAt && (
+                        {canEdit && meeting.completedAt && (
                             <div className="space-y-2">
                                 <label htmlFor={reportInputId} className="block text-sm font-medium">{t('secretariat.meetings.report.choose')}</label>
                                 <input id={reportInputId} type="file" disabled={reportBusy}
@@ -176,13 +177,13 @@ const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ isOpen, onClo
                     </section>
                 </div>
                 <div className="px-6 py-4 bg-slate-50 flex justify-end space-x-3 rounded-b-lg">
-                    {isEditing && (
+                    {canEdit && isEditing && (
                         <>
                             <button onClick={() => setIsEditing(false)} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors">{t('common.cancel')}</button>
                             <button onClick={handleSave} className="px-4 py-2 bg-[#c6e911] text-slate-800 rounded-md hover:bg-[#adc40f] transition-colors">{t('common.save')}</button>
                         </>
                     )}
-                    {!isEditing && (
+                    {(!canEdit || !isEditing) && (
                         <button onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors">{t('common.close')}</button>
                     )}
                 </div>

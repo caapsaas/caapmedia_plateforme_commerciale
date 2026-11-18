@@ -27,6 +27,8 @@ import { api } from '../../services/api';
 import { RefreshCw, Search, Filter, X, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 interface AbsenceManagementProps {
   subsidiary: Subsidiary;
@@ -187,6 +189,7 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({
       return matchesSearch && matchesType && matchesDateFrom && matchesDateTo && matchesCalendarPeriod;
     }).sort((a, b) => datePart(b.startDate).localeCompare(datePart(a.startDate)));
   }, [absences, searchTerm, typeFilter, dateFrom, dateTo, selectedDay, showAllPeriods, monthStart, monthEnd]);
+  const { pageItems: pageAbsences, meta: absencesMeta, setPage } = useClientPagination(filteredAbsences);
 
   const hasActiveFilters =
     searchTerm !== '' || !showAllPeriods ||
@@ -631,7 +634,7 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({
               {isLoading ? (
                 <TableSkeleton rows={7} columns={7} />
               ) : filteredAbsences.length > 0 ? (
-                filteredAbsences.map((record) => (
+                pageAbsences.map((record) => (
                   <tr
                     key={record.id}
                     className="bg-white border-b hover:bg-slate-50"
@@ -701,6 +704,7 @@ const AbsenceManagement: React.FC<AbsenceManagementProps> = ({
               )}
             </tbody>
           </table>
+          <Pagination meta={absencesMeta} onPageChange={setPage} />
         </div>
       </div>
 

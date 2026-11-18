@@ -2,6 +2,29 @@ import { api } from '../api';
 import { PayrollRecord } from '../../types';
 import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
+export interface PayrollPaymentSummary {
+  month: string;
+  employeeCount: number;
+  byPaymentMethod: Record<string, { employeeCount: number; grossSalary: number; netSalary: number }>;
+  contributions: {
+    cnps: number;
+    irpp: number;
+    cfcFne: number;
+    details: Record<string, number>;
+  };
+}
+
+/** Résumé mensuel en lecture seule pour le formulaire de décaissement. */
+export const getPayrollPaymentSummary = async (
+  month: string,
+  subsidiaryId?: string,
+): Promise<PayrollPaymentSummary> => {
+  const { data } = await api.get<PayrollPaymentSummary>('/hr/payroll-records/payment-summary', {
+    params: { month, subsidiaryId },
+  });
+  return data;
+};
+
 // ============================================================
 // TYPES - Configuration de paie
 // ============================================================

@@ -8,6 +8,8 @@ import {
 } from '../services/apiAccounting/apiAccountingAccess';
 import TableSkeleton from '../components/ui/TableSkeleton';
 import EmptyState from '../components/ui/EmptyState';
+import Pagination from '../components/common/Pagination';
+import { useClientPagination } from '../hooks/useClientPagination';
 
 const STATUS_LABELS: Record<AccountingAccessStatus, string> = {
   PENDING: 'En attente',
@@ -61,6 +63,8 @@ const AccountingAccessAdmin: React.FC = () => {
 
   const pending = requests.filter((r) => r.status === 'PENDING');
   const processed = requests.filter((r) => r.status !== 'PENDING');
+  const { pageItems: pagePending, meta: pendingMeta, setPage: setPendingPage } = useClientPagination(pending);
+  const { pageItems: pageProcessed, meta: processedMeta, setPage: setProcessedPage } = useClientPagination(processed);
 
   return (
     <div className="space-y-6">
@@ -90,7 +94,7 @@ const AccountingAccessAdmin: React.FC = () => {
               <EmptyState icon="warning" title="Aucune demande en attente." />
             ) : (
               <div className="space-y-3">
-                {pending.map((req) => (
+                {pagePending.map((req) => (
                   <div key={req.id} className="bg-white rounded-xl border border-amber-200 shadow-sm p-5 flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
@@ -120,6 +124,7 @@ const AccountingAccessAdmin: React.FC = () => {
                 ))}
               </div>
             )}
+            <Pagination meta={pendingMeta} onPageChange={setPendingPage} />
           </div>
 
           {/* Historique */}
@@ -142,7 +147,7 @@ const AccountingAccessAdmin: React.FC = () => {
                   ) : processed.length === 0 ? (
                     <tr><td colSpan={5}><EmptyState icon="document" title="Aucun historique." /></td></tr>
                   ) : (
-                    processed.map((req) => (
+                    pageProcessed.map((req) => (
                       <tr key={req.id} className="hover:bg-slate-50">
                         <td className="px-4 py-3 text-sm text-slate-700">{req.user?.userName ?? req.userId}</td>
                         <td className="px-4 py-3 text-sm text-slate-600 max-w-xs truncate">{req.justification}</td>
@@ -158,6 +163,7 @@ const AccountingAccessAdmin: React.FC = () => {
                   )}
                 </tbody>
               </table>
+              <Pagination meta={processedMeta} onPageChange={setProcessedPage} />
             </div>
           </div>
         </>

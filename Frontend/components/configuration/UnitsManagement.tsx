@@ -9,6 +9,8 @@ import IconEdit from '../icons/IconEdit';
 import IconDelete from '../icons/IconDelete';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 // Référentiel d'unités de mesure (Chantier 2) — administré une seule fois,
 // réutilisé comme unité de base ou unité d'emballage sur chaque produit de
@@ -33,6 +35,7 @@ const UnitsManagement: React.FC = () => {
             String(value ?? '').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
         ),
     );
+    const { pageItems: pageUnits, meta: unitsMeta, setPage } = useClientPagination(filteredUnits);
 
     const invalidate = () => queryClient.invalidateQueries({ queryKey: ['units'] });
 
@@ -118,7 +121,7 @@ const UnitsManagement: React.FC = () => {
                     <tbody>
                         {isLoading ? (
                             <TableSkeleton rows={5} columns={3} />
-                        ) : filteredUnits.map(unit => (
+                        ) : pageUnits.map(unit => (
                             <tr key={unit.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold">{unit.name}</td>
                                 <td className="px-6 py-4">{unit.symbol || '-'}</td>
@@ -140,6 +143,7 @@ const UnitsManagement: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+            <Pagination meta={unitsMeta} onPageChange={setPage} />
         </div>
     );
 };

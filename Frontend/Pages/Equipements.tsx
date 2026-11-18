@@ -18,6 +18,8 @@ import IconDelete from '../components/icons/IconDelete';
 import EquipmentFormModal from '../components/maintenance/EquipmentFormModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import EmptyState from '../components/ui/EmptyState';
+import Pagination from '../components/common/Pagination';
+import { useClientPagination } from '../hooks/useClientPagination';
 
 type SaveEquipmentDto = CreateEquipmentDto & { id?: string };
 
@@ -61,6 +63,7 @@ const Equipements: React.FC = () => {
         queryFn: () => getEquipments(effectiveSid),
         enabled: isSuperAdmin || !!subsidiary,
     });
+    const { pageItems: pageEquipment, meta: equipmentMeta, setPage } = useClientPagination(equipment);
 
     const { mutate: createMutation } = useMutation({
         mutationFn: createEquipment,
@@ -179,7 +182,7 @@ const Equipements: React.FC = () => {
                                         />
                                     </td>
                                 </tr>
-                            ) : equipment.map(item => {
+                            ) : pageEquipment.map(item => {
                                 const nextDate = new Date(item.nextMaintenanceDate);
                                 const isOverdue = nextDate < new Date();
                                 const sub = subsidiaries.find(s => s.id === item.subsidiaryId);
@@ -234,6 +237,7 @@ const Equipements: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+                <Pagination meta={equipmentMeta} onPageChange={setPage} />
             </div>
 
             {isFormModalOpen && (

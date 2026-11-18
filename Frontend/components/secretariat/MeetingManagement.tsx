@@ -23,12 +23,13 @@ const MEETINGS_PAGE_SIZE = 10;
 
 interface MeetingManagementProps {
     subsidiary: Subsidiary;
+    canEdit: boolean;
     employees: Employee[];
     onSave: (data: SaveMeetingDto) => void;
     onDelete: (id: string) => void;
 }
 
-const MeetingManagement: React.FC<MeetingManagementProps> = ({ subsidiary, employees, onSave, onDelete }) => {
+const MeetingManagement: React.FC<MeetingManagementProps> = ({ subsidiary, canEdit, employees, onSave, onDelete }) => {
     const { t } = useI18n();
     const queryClient = useQueryClient();
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -169,10 +170,10 @@ const formatTime = (isoString?: string | Date) => {
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-semibold text-slate-800">{t('secretariat.meetings.title')}</h3>
                 <div className="flex items-center space-x-2 no-print">
-                    <button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
+                    {canEdit && (<button onClick={handleOpenAddModal} className="flex items-center space-x-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors">
                         <IconPlus className="h-4 w-4" />
                         <span>{t('secretariat.meetings.add')}</span>
-                    </button>
+                    </button>)}
                     <button onClick={handlePrint} className="flex items-center space-x-2 px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-md hover:bg-slate-300 transition-colors">
                         <IconPrint className="h-4 w-4" />
                         <span>{t('common.print')}</span>
@@ -227,12 +228,12 @@ const formatTime = (isoString?: string | Date) => {
                                     <button onClick={() => handleOpenViewModal(meeting)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-100 rounded-full transition-colors" aria-label={t('common.view')}>
                                         <IconEye className="h-5 w-5" />
                                     </button>
-                                    <button onClick={() => handleOpenEditModal(meeting)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
+                                    {canEdit && (<button onClick={() => handleOpenEditModal(meeting)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
                                         <IconEdit className="h-5 w-5" />
-                                    </button>
-                                    <button onClick={() => handleOpenDeleteModal(meeting)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" aria-label={t('common.delete')}>
+                                    </button>)}
+                                    {canEdit && (<button onClick={() => handleOpenDeleteModal(meeting)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" aria-label={t('common.delete')}>
                                         <IconDelete className="h-5 w-5" />
-                                    </button>
+                                    </button>)}
                                 </td>
                             </tr>
                         ))}
@@ -241,7 +242,7 @@ const formatTime = (isoString?: string | Date) => {
             </div>
             {meta && <Pagination meta={meta} onPageChange={setPage} />}
 
-            {isFormModalOpen && (
+            {canEdit && isFormModalOpen && (
                 <MeetingFormModal 
                     isOpen={isFormModalOpen}
                     onClose={handleCloseModals}
@@ -254,6 +255,7 @@ const formatTime = (isoString?: string | Date) => {
             
             {viewingMeeting && (
                 <MeetingDetailsModal
+                    canEdit={canEdit}
                     isOpen={!!viewingMeeting}
                     onClose={handleCloseModals}
                     onSaveMinutes={handleSaveMinutes}
@@ -266,7 +268,7 @@ const formatTime = (isoString?: string | Date) => {
                 />
             )}
 
-            {deletingMeeting && (
+            {canEdit && deletingMeeting && (
                 <ConfirmationModal
                     isOpen={!!deletingMeeting}
                     onClose={handleCloseModals}

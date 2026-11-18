@@ -163,6 +163,13 @@ export class OrdersController {
     return this.ordersService.findPaymentAccounts(req.user);
   }
 
+  @Get('cashier/daily-receipts')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRole.CAISSIER)
+  getCashierDailyReceipts(@Req() req: { user: JwtUser }, @Query('date') date?: string) {
+    return this.ordersService.getCashierDailyReceipts(req.user, date);
+  }
+
   @Get('staff/:id')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(
@@ -237,11 +244,11 @@ export class OrdersController {
 
   /**
    * Endpoint pour enregistrer un paiement pour une commande
-   * Exemple d'URL : PATCH /ecommerce/orders/:id/payment
+   * Exemple d'URL : PATCH /ecommerce/orders/payment/:id
    */
   @Patch('/payment/:id')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.CAISSIER)
+  @Roles(UserRole.CAISSIER)
   recordPayment(
     @Param('id') id: string,
     @Body() recordPaymentDto: RecordPaymentDto,

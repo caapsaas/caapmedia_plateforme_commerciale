@@ -74,7 +74,7 @@ const Finance: React.FC = () => {
     // le reste (endpoints de toute façon inaccessibles à ce rôle).
     const { data: expenseRecords = [], isLoading: isLoadingExpenses } = useQuery<ExpenseRecord[]>({
         queryKey: ['expenseRecords', effectiveSubsidiary?.id],
-        queryFn: () => getExpenses(),
+        queryFn: () => getExpenses(effectiveSubsidiary?.id),
         enabled: !!effectiveSubsidiary && !isCaissier,
     });
 

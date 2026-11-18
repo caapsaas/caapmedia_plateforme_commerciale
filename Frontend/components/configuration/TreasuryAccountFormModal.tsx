@@ -75,6 +75,8 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
 
   const isCashierOwned = CASHIER_OWNED_TYPES.includes(formData.accountType);
   const isBank = formData.accountType === AccountType.BANQUE;
+  const startsEmpty = !account && formData.accountType === AccountType.EXPENSE_BOX;
+  const balance = startsEmpty ? '0' : formData.balance;
 
   // Caissiers éligibles (Configuration Trésorerie — assignation compte↔caissier).
   // Scopés à la filiale cible du compte (choisie par un ADMIN/SUPER_ADMIN, sinon la sienne).
@@ -112,7 +114,11 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
       newErrors.accountName = t('treasuryAccounts.validation.accountNameRequired');
     }
 
-    if (!formData.balance || isNaN(Number(formData.balance))) {
+    if (!account && (
+      !balance ||
+      !/^\d*(?:\.\d{1,2})?$/.test(balance) ||
+      Number(balance) > 9_999_999_999_999.99
+    )) {
       newErrors.balance = t('treasuryAccounts.validation.validBalance');
     }
 
@@ -137,7 +143,7 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
       const accountData: TreasuryAccount = {
         id: account?.id || Date.now().toString(),
         accountName: formData.accountName.trim(),
-        balance: parseFloat(formData.balance),
+        balance: Number(balance),
         currency: formData.currency,
         accountType: formData.accountType,
         // La filiale sélectionnée est appliquée par le backend à tous les types.
@@ -220,23 +226,29 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
                 <input
                   type="number"
                   name="balance"
-                  value={formData.balance}
+                  value={balance}
                   onChange={handleChange}
-                  disabled={!!account}
+                  disabled={!!account || startsEmpty}
                   className={`w-full pl-16 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#c6e911] focus:border-[#c6e911] transition-colors disabled:bg-slate-100 disabled:text-slate-500 ${
                     errors.balance ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="0"
+                  min="0"
                   step="0.01"
                   required
                 />
               </div>
+              {startsEmpty && (
+                <p className="mt-1 text-xs text-slate-500">
+                  {t('treasuryAccounts.form.expenseBoxOpeningBalance')}
+                </p>
+              )}
               {account && (
                 <p className="mt-1 text-xs text-slate-500">
                   Le solde n'évolue que via les transactions, il n'est modifiable qu'à la création.
                 </p>
               )}
-              {errors.balance && (
+              {!startsEmpty && errors.balance && (
                 <p className="mt-1 text-sm text-red-600">{errors.balance}</p>
               )}
             </div>

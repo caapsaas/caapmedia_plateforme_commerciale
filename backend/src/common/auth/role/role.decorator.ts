@@ -6,7 +6,12 @@ import {
 } from '@nestjs/common';
 
 export const SUPER_ADMIN_READ_ONLY_KEY = 'superAdminReadOnly';
-export const SuperAdminReadOnly = () => SetMetadata(SUPER_ADMIN_READ_ONLY_KEY, true);
+export const SuperAdminReadOnly = () =>
+  SetMetadata(SUPER_ADMIN_READ_ONLY_KEY, true);
+
+export const ACTIVE_ROLES_KEY = 'activeRoles';
+export const ActiveRoles = (...roles: UserRole[]) =>
+  SetMetadata(ACTIVE_ROLES_KEY, roles);
 
 export const ROLES_KEY = 'roles'; // Clé de métadonnées pour les rôles
 export const Roles = (...roles: UserRole[]) => SetMetadata(ROLES_KEY, roles);

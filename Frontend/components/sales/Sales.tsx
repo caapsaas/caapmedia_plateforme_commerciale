@@ -50,6 +50,8 @@ import { getSubsidiaries } from "../../services/apiCommon/apiSubsidiaries";
 import { useAuth } from "../../context/AuthContext";
 import { UserRole } from "../../types";
 import { getPresetPeriodDates } from "../../utils/datePeriods";
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 // Payload envoyé à POST /ecommerce/orders/by-salesrep/json — mis en cache le
 // temps de la requête pour enrichir la réponse API (qui ne renvoie pas tous
@@ -92,7 +94,7 @@ const Sales: React.FC = () => {
 
   const effectiveRole = user?.activeRole ?? user?.userRole;
   const hasGlobalScope = hasSuperAdminRole(user);
-  const canRecordPayment = !hasGlobalScope && (effectiveRole === UserRole.ADMIN || effectiveRole === UserRole.COMMERCIAL || effectiveRole === UserRole.CAISSIER);
+  const canRecordPayment = !hasGlobalScope && effectiveRole === UserRole.CAISSIER;
   const canFilterByCommercial =
     effectiveRole === UserRole.SUPER_ADMIN ||
     effectiveRole === UserRole.ADMIN ||
@@ -112,7 +114,6 @@ const Sales: React.FC = () => {
     queryFn: () => getServicesCatalog(),
     enabled: !!subsidiary,
   });
-
   const { data: subsidiariesList = [] } = useQuery({
     queryKey: ["subsidiaries"],
     queryFn: getSubsidiaries,
@@ -153,6 +154,7 @@ const Sales: React.FC = () => {
     queryFn: () => getOrders(appliedFilters),
     enabled: !!subsidiary,
   });
+  const { pageItems: pageOrders, meta: ordersMeta, setPage } = useClientPagination(filteredOrders);
 
   const {
     data: topSellingProducts = [],
@@ -660,7 +662,7 @@ const Sales: React.FC = () => {
                               </tr>
                             </thead>
                             <tbody>
-                              {filteredOrders.map((order) => {
+                              {pageOrders.map((order) => {
                                 const isExpanded = expandedOrderId === order.id;
                                 const today = new Date();
                                 today.setHours(0, 0, 0, 0);
@@ -817,6 +819,7 @@ const Sales: React.FC = () => {
                               })}
                             </tbody>
                           </table>
+                          <Pagination meta={ordersMeta} onPageChange={setPage} />
                           {filteredOrders.length === 0 && (
                             <EmptyState icon="order" title={t("filter.noResults")} />
                           )}
@@ -902,7 +905,7 @@ const Sales: React.FC = () => {
       )}
 
       {/* Modals */}
-      {payingOrder && (
+      {canRecordPayment && payingOrder && (
         <RecordPaymentModal
           isOpen={!!payingOrder}
           onClose={() => setPayingOrder(null)}

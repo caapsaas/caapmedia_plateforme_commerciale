@@ -57,6 +57,7 @@ const ExpenseBoxDisbursementModal: React.FC<ExpenseBoxDisbursementModalProps> = 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['treasuryAccounts'] });
       queryClient.invalidateQueries({ queryKey: ['financialTransactions'] });
+      queryClient.invalidateQueries({ queryKey: ['accountTransactions', expenseBox?.id] });
       toast('success', t('expenseBoxDisbursement.success'));
       onClose();
     },

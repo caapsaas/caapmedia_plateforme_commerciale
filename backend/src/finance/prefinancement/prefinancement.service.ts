@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import {
   PrefinancementTransactionType,
@@ -66,16 +70,14 @@ export class PrefinancementService {
       initialBalance?: number;
       subsidiaryId?: string;
     },
+    subsidiaryId: string,
   ) {
-    const updateData: any = { ...updateDto };
-    if (updateDto.initialBalance !== undefined) {
-      updateData.balance = updateDto.initialBalance;
-      delete updateData.initialBalance;
-    }
-
     return this.prisma.prefinancementAccount.update({
-      where: { id: accountId },
-      data: updateData,
+      where: { id: accountId, subsidiaryId },
+      data: {
+        accountName: updateDto.accountName,
+        balance: updateDto.initialBalance,
+      },
     });
   }
 
@@ -97,11 +99,19 @@ export class PrefinancementService {
     subsidiaryId: string;
     createdBy: string;
   }) {
-    const { date, ...rest } = createDto;
+    const { date } = createDto;
     return this.prisma.prefinancementTransaction.create({
       data: {
         id: crypto.randomUUID(),
-        ...rest,
+        description: createDto.description,
+        amount: createDto.amount,
+        type: createDto.type,
+        category: createDto.category,
+        referenceNumber: createDto.referenceNumber,
+        relatedOrderId: createDto.relatedOrderId,
+        notes: createDto.notes,
+        subsidiaryId: createDto.subsidiaryId,
+        createdBy: createDto.createdBy,
         date: new Date(date),
         status: PrefinancementStatus.EN_ATTENTE,
       } as any,
@@ -147,10 +157,12 @@ export class PrefinancementService {
     );
   }
 
-  async findTransactionById(id: string) {
-    return this.prisma.prefinancementTransaction.findUnique({
-      where: { id },
+  async findTransactionById(id: string, subsidiaryId: string | undefined) {
+    const transaction = await this.prisma.prefinancementTransaction.findUnique({
+      where: { id, subsidiaryId },
     });
+    if (!transaction) throw new NotFoundException('Transaction introuvable.');
+    return transaction;
   }
 
   async updateTransaction(
@@ -170,37 +182,45 @@ export class PrefinancementService {
       relatedOrderId?: string;
       notes?: string;
     },
+    subsidiaryId: string,
   ) {
-    const updateData: any = { ...updateDto };
-    if (updateDto.date) {
-      updateData.date = new Date(updateDto.date);
-    }
-
+    await this.findTransactionById(id, subsidiaryId);
     return this.prisma.prefinancementTransaction.update({
-      where: { id },
-      data: updateData,
+      where: { id, subsidiaryId },
+      data: {
+        date: updateDto.date ? new Date(updateDto.date) : undefined,
+        description: updateDto.description,
+        amount: updateDto.amount,
+        type: updateDto.type,
+        category: updateDto.category,
+        referenceNumber: updateDto.referenceNumber,
+        relatedOrderId: updateDto.relatedOrderId,
+        notes: updateDto.notes,
+      },
     });
   }
 
-  async validateTransaction(id: string) {
+  async validateTransaction(id: string, subsidiaryId: string) {
     // Utiliser une transaction Prisma pour garantir l'atomicité
     return this.prisma.$transaction(async (tx) => {
       // 1. Récupérer la transaction à valider
       const transaction = await tx.prefinancementTransaction.findUnique({
-        where: { id },
+        where: { id, subsidiaryId },
       });
 
       if (!transaction) {
-        throw new Error('Transaction not found');
+        throw new NotFoundException('Transaction introuvable.');
       }
 
       if (transaction.status !== PrefinancementStatus.EN_ATTENTE) {
-        throw new Error('Only pending transactions can be validated');
+        throw new ConflictException(
+          'Seule une transaction en attente peut être validée.',
+        );
       }
 
       // 2. Mettre à jour le statut de la transaction
       const updatedTransaction = await tx.prefinancementTransaction.update({
-        where: { id },
+        where: { id, subsidiaryId, status: transaction.status },
         data: { status: PrefinancementStatus.VALIDE },
       });
 
@@ -226,20 +246,20 @@ export class PrefinancementService {
     });
   }
 
-  async cancelTransaction(id: string) {
+  async cancelTransaction(id: string, subsidiaryId: string) {
     // Utiliser une transaction Prisma pour garantir l'atomicité
     return this.prisma.$transaction(async (tx) => {
       // 1. Récupérer la transaction à annuler
       const transaction = await tx.prefinancementTransaction.findUnique({
-        where: { id },
+        where: { id, subsidiaryId },
       });
 
       if (!transaction) {
-        throw new Error('Transaction not found');
+        throw new NotFoundException('Transaction introuvable.');
       }
 
       if (transaction.status === PrefinancementStatus.ANNULE) {
-        throw new Error('Transaction is already cancelled');
+        throw new ConflictException('Cette transaction est déjà annulée.');
       }
 
       // 2. Si la transaction était validée, réinitialiser le solde du compte
@@ -265,22 +285,22 @@ export class PrefinancementService {
 
       // 3. Mettre à jour le statut de la transaction
       return await tx.prefinancementTransaction.update({
-        where: { id },
+        where: { id, subsidiaryId, status: transaction.status },
         data: { status: PrefinancementStatus.ANNULE },
       });
     });
   }
 
-  async deleteTransaction(id: string) {
+  async deleteTransaction(id: string, subsidiaryId: string) {
     // Utiliser une transaction Prisma pour garantir l'atomicité
     return this.prisma.$transaction(async (tx) => {
       // 1. Récupérer la transaction à supprimer
       const transaction = await tx.prefinancementTransaction.findUnique({
-        where: { id },
+        where: { id, subsidiaryId },
       });
 
       if (!transaction) {
-        throw new Error('Transaction not found');
+        throw new NotFoundException('Transaction introuvable.');
       }
 
       // 2. Si la transaction était validée, réinitialiser le solde du compte
@@ -306,7 +326,7 @@ export class PrefinancementService {
 
       // 3. Supprimer la transaction
       return await tx.prefinancementTransaction.delete({
-        where: { id },
+        where: { id, subsidiaryId },
       });
     });
   }

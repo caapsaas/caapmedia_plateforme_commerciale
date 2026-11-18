@@ -1,3 +1,4 @@
+import { UserRole } from '@prisma/client';
 import {
   Controller,
   Get,
@@ -10,7 +11,6 @@ import {
   UseGuards,
   HttpStatus,
   HttpCode,
-  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -23,22 +23,42 @@ import { ExternalTransactionService } from './external-transaction.service';
 import { CreateExternalTransactionDto } from './dto/create-external-transaction.dto';
 import { UpdateExternalTransactionDto } from './dto/update-external-transaction.dto';
 import { FindExternalTransactionsDto } from './dto/find-external-transactions.dto';
+import type { JwtUser } from '../../common/auth/jwt/jwt-user.interface';
+import { financeSubsidiaryId } from '../finance-scope';
+import {
+  ActiveRoles,
+  CurrentUser,
+} from '../../common/auth/role/role.decorator';
+import { RoleGuard } from '../../common/auth/role/role.guard';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
 
 @ApiTags('external-transactions')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RoleGuard)
 @Controller('finance/external-transactions')
 export class ExternalTransactionController {
   constructor(
     private readonly externalTransactionService: ExternalTransactionService,
   ) {}
 
+  @ActiveRoles(
+    UserRole.ADMIN,
+    UserRole.FINANCIAL_DIRECTOR,
+    UserRole.SUPER_ADMIN,
+  )
   @Post()
   @ApiOperation({ summary: 'Créer une nouvelle transaction externe' })
   @ApiResponse({ status: 201, description: 'Transaction créée avec succès.' })
   @ApiResponse({ status: 400, description: 'Données invalides.' })
-  async create(@Body() createDto: CreateExternalTransactionDto) {
-    return await this.externalTransactionService.create(createDto);
+  async create(
+    @Body() createDto: CreateExternalTransactionDto,
+    @CurrentUser() user: JwtUser,
+  ) {
+    return await this.externalTransactionService.create({
+      ...createDto,
+      createdBy: user.id,
+      subsidiaryId:
+        financeSubsidiaryId(user, createDto.subsidiaryId) ?? user.subsidiaryId,
+    });
   }
 
   @Get()
@@ -77,8 +97,14 @@ export class ExternalTransactionController {
     required: false,
     description: 'Rechercher dans description ou référence',
   })
-  async findAll(@Query() query: FindExternalTransactionsDto) {
-    return await this.externalTransactionService.findAll(query);
+  async findAll(
+    @Query() query: FindExternalTransactionsDto,
+    @CurrentUser() user: JwtUser,
+  ) {
+    return await this.externalTransactionService.findAll({
+      ...query,
+      subsidiaryId: financeSubsidiaryId(user, query.subsidiaryId),
+    });
   }
 
   @Get('statistics')
@@ -94,8 +120,14 @@ export class ExternalTransactionController {
     required: true,
     description: 'ID de la filiale',
   })
-  async getStatistics(@Query('subsidiaryId') subsidiaryId: string) {
-    return await this.externalTransactionService.getStatistics(subsidiaryId);
+  async getStatistics(
+    @Query('subsidiaryId') subsidiaryId: string,
+    @CurrentUser() user: JwtUser,
+  ) {
+    return await this.externalTransactionService.getStatistics(
+      financeSubsidiaryId(user, subsidiaryId ?? user.subsidiaryId) ??
+        user.subsidiaryId,
+    );
   }
 
   @Get(':id')
@@ -106,10 +138,18 @@ export class ExternalTransactionController {
   })
   @ApiResponse({ status: 404, description: 'Transaction non trouvée.' })
   @ApiParam({ name: 'id', description: 'ID de la transaction' })
-  async findOne(@Param('id') id: string) {
-    return await this.externalTransactionService.findOne(id);
+  async findOne(@Param('id') id: string, @CurrentUser() user: JwtUser) {
+    return await this.externalTransactionService.findOne(
+      id,
+      financeSubsidiaryId(user),
+    );
   }
 
+  @ActiveRoles(
+    UserRole.ADMIN,
+    UserRole.FINANCIAL_DIRECTOR,
+    UserRole.SUPER_ADMIN,
+  )
   @Patch(':id')
   @ApiOperation({ summary: 'Mettre à jour une transaction externe' })
   @ApiResponse({
@@ -121,10 +161,20 @@ export class ExternalTransactionController {
   async update(
     @Param('id') id: string,
     @Body() updateDto: UpdateExternalTransactionDto,
+    @CurrentUser() user: JwtUser,
   ) {
-    return await this.externalTransactionService.update(id, updateDto);
+    return await this.externalTransactionService.update(
+      id,
+      updateDto,
+      financeSubsidiaryId(user),
+    );
   }
 
+  @ActiveRoles(
+    UserRole.ADMIN,
+    UserRole.FINANCIAL_DIRECTOR,
+    UserRole.SUPER_ADMIN,
+  )
   @Patch(':id/validate')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Valider une transaction externe' })
@@ -135,11 +185,19 @@ export class ExternalTransactionController {
   })
   @ApiResponse({ status: 404, description: 'Transaction non trouvée.' })
   @ApiParam({ name: 'id', description: 'ID de la transaction' })
-  async validate(@Param('id') id: string, @Request() req: any) {
-    const userId = req.user?.id;
-    return await this.externalTransactionService.validate(id, userId);
+  async validate(@Param('id') id: string, @CurrentUser() user: JwtUser) {
+    return await this.externalTransactionService.validate(
+      id,
+      financeSubsidiaryId(user),
+      user.id,
+    );
   }
 
+  @ActiveRoles(
+    UserRole.ADMIN,
+    UserRole.FINANCIAL_DIRECTOR,
+    UserRole.SUPER_ADMIN,
+  )
   @Patch(':id/cancel')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Annuler une transaction externe' })
@@ -147,10 +205,14 @@ export class ExternalTransactionController {
   @ApiResponse({ status: 400, description: 'Transaction déjà annulée.' })
   @ApiResponse({ status: 404, description: 'Transaction non trouvée.' })
   @ApiParam({ name: 'id', description: 'ID de la transaction' })
-  async cancel(@Param('id') id: string) {
-    return await this.externalTransactionService.cancel(id);
+  async cancel(@Param('id') id: string, @CurrentUser() user: JwtUser) {
+    return await this.externalTransactionService.cancel(
+      id,
+      financeSubsidiaryId(user),
+    );
   }
 
+  @ActiveRoles(UserRole.ADMIN)
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Supprimer une transaction externe' })
@@ -164,10 +226,14 @@ export class ExternalTransactionController {
   })
   @ApiResponse({ status: 404, description: 'Transaction non trouvée.' })
   @ApiParam({ name: 'id', description: 'ID de la transaction' })
-  async remove(@Param('id') id: string) {
-    return await this.externalTransactionService.remove(id);
+  async remove(@Param('id') id: string, @CurrentUser() user: JwtUser) {
+    return await this.externalTransactionService.remove(
+      id,
+      financeSubsidiaryId(user),
+    );
   }
 
+  @ActiveRoles(UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR)
   @Patch(':id/admin-update')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -187,16 +253,16 @@ export class ExternalTransactionController {
   async adminUpdate(
     @Param('id') id: string,
     @Body() updateDto: UpdateExternalTransactionDto,
-    @Request() req: any,
+    @CurrentUser() user: JwtUser,
   ) {
-    const userId = req.user?.id;
     return await this.externalTransactionService.adminUpdate(
       id,
       updateDto,
-      userId,
+      user.subsidiaryId,
     );
   }
 
+  @ActiveRoles(UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR)
   @Delete(':id/admin-delete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -213,8 +279,10 @@ export class ExternalTransactionController {
   })
   @ApiResponse({ status: 404, description: 'Transaction non trouvée.' })
   @ApiParam({ name: 'id', description: 'ID de la transaction' })
-  async adminRemove(@Param('id') id: string, @Request() req: any) {
-    const userId = req.user?.id;
-    return await this.externalTransactionService.adminRemove(id, userId);
+  async adminRemove(@Param('id') id: string, @CurrentUser() user: JwtUser) {
+    return await this.externalTransactionService.adminRemove(
+      id,
+      user.subsidiaryId,
+    );
   }
 }

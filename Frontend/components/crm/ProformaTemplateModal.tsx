@@ -29,6 +29,12 @@ const ProformaTemplateModal: React.FC<ProformaTemplateModalProps> = ({ isOpen, o
 
   if (!isOpen || !proforma || !subsidiary) return null;
 
+  // Prisma Decimal is serialized as a string in the API response. Normalize
+  // monetary fields before passing them to helpers that expect JavaScript numbers.
+  const subtotal = Number(proforma.subtotal) || 0;
+  const taxAmount = Number(proforma.taxAmount) || 0;
+  const totalAmount = Number(proforma.totalAmount) || 0;
+
   // Cohérent avec les 5 autres documents (BonDeCommande, Facture...) :
   // "Exporter PDF" télécharge directement, "Imprimer" ouvre le PDF dans un
   // nouvel onglet et déclenche l'impression — jusqu'ici les deux boutons de
@@ -111,33 +117,33 @@ const ProformaTemplateModal: React.FC<ProformaTemplateModalProps> = ({ isOpen, o
               emptyMessage={t('common.notAvailable')}
             />
 
-            <div className="flex justify-end mb-8">
+            <div className={`flex justify-end ${proforma.notes ? 'mb-3' : 'mb-8'}`}>
               <div className="w-full max-w-xs space-y-1">
                 <div className="flex justify-between">
                   <span className="text-slate-600">{t('proforma.template.subtotal')} :</span>
-                  <span className="font-medium text-slate-800">{formatCurrency(proforma.subtotal)}</span>
+                  <span className="font-medium text-slate-800">{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-600">{t('proforma.template.tax')} ({Number(proforma.taxRate)}%) :</span>
-                  <span className="font-medium text-slate-800">{formatCurrency(proforma.taxAmount)}</span>
+                  <span className="font-medium text-slate-800">{formatCurrency(taxAmount)}</span>
                 </div>
                 <div className="flex justify-between py-2 border-t-2 border-slate-300 mt-1">
                   <span className="font-bold text-lg text-slate-900">{t('proforma.template.total')} :</span>
-                  <span className="font-bold text-lg text-slate-900">{formatCurrency(proforma.totalAmount)}</span>
+                  <span className="font-bold text-lg text-slate-900">{formatCurrency(totalAmount)}</span>
                 </div>
               </div>
             </div>
 
-            <p className="text-sm text-slate-600 italic mb-8">
-              {t('proforma.template.amountInWords', { amount: amountToWordsFcfa(proforma.totalAmount) })}
-            </p>
-
             {proforma.notes && (
-              <div className="mb-8 p-4 bg-slate-50 rounded-lg">
-                <h4 className="text-xs font-semibold text-slate-500 uppercase mb-1">{t('proforma.template.notes')}</h4>
-                <p className="text-sm text-slate-600 whitespace-pre-line">{proforma.notes}</p>
+              <div className="mb-5 rounded-r-lg border-l-4 border-[#c6e911] bg-lime-50/70 px-4 py-3">
+                <h4 className="mb-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">{t('proforma.template.notes')}</h4>
+                <p className="text-sm leading-relaxed text-slate-700 whitespace-pre-line">{proforma.notes}</p>
               </div>
             )}
+
+            <p className="text-sm text-slate-600 italic mb-8">
+              {t('proforma.template.amountInWords', { amount: amountToWordsFcfa(totalAmount) })}
+            </p>
 
             <DocumentFooter message={t('proforma.template.footerMessage')} subsidiary={subsidiary} />
           </div>

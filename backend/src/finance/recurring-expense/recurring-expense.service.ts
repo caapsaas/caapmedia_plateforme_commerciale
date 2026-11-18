@@ -15,7 +15,10 @@ import {
   UserRole,
 } from '@prisma/client';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
-import { checkRole } from 'src/common/auth/role/check-role.util';
+import {
+  checkActiveRole,
+  checkRole,
+} from 'src/common/auth/role/check-role.util';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
@@ -37,7 +40,7 @@ export class RecurringExpenseService {
   ) {}
 
   async create(dto: CreateRecurringExpenseDto, user: JwtUser) {
-    checkRole(
+    checkActiveRole(
       user,
       [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
       'You do not have permission to create a recurring expense.',
@@ -100,7 +103,7 @@ export class RecurringExpenseService {
 
   async update(id: string, dto: UpdateRecurringExpenseDto, user: JwtUser) {
     await this.findOne(id, user);
-    checkRole(
+    checkActiveRole(
       user,
       [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
       'You do not have permission to update a recurring expense.',
@@ -124,7 +127,7 @@ export class RecurringExpenseService {
 
   async remove(id: string, user: JwtUser) {
     await this.findOne(id, user);
-    checkRole(
+    checkActiveRole(
       user,
       [UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR],
       'You do not have permission to delete a recurring expense.',

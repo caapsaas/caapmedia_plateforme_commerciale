@@ -1,3 +1,5 @@
+import Pagination from '../components/common/Pagination';
+import { useClientPagination } from '../hooks/useClientPagination';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Subsidiary, Product, Order, Contact, TaxRate, OrderStatus, ProductionStatus, PaymentStatus, CustomerPaymentMethod, FormDefinition } from '../types';
 import IconMinus from '../components/icons/IconMinus';
@@ -88,6 +90,8 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
             product.description.toLowerCase().includes(searchTerm.toLowerCase())
         ), [allProducts, searchTerm]
     );
+
+    const { pageItems, meta, setPage } = useClientPagination(filteredProducts);
 
     const { data: clients = [] } = useQuery<Contact[]>({
         queryKey: ['contacts', subsidiary.id],
@@ -349,7 +353,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                             <tbody className="divide-y divide-slate-200">
                                 {filteredProducts.length === 0 ? (
                                     <tr><td colSpan={4}><EmptyState icon="search" title={t('filter.noResults')} /></td></tr>
-                                ) : filteredProducts.map(product => (
+                                ) : pageItems.map(product => (
                                     <tr key={product.id}>
                                         <td className="px-4 py-3">
                                             <div className="h-12 w-12 rounded-md overflow-hidden bg-slate-100">
@@ -390,6 +394,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
                                 ))}
                             </tbody>
                         </table>
+                        <Pagination meta={meta} onPageChange={setPage} />
                     </div>
                 </div>
             </div>

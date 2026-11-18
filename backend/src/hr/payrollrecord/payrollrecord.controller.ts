@@ -144,6 +144,19 @@ export class PayrollRecordController {
     return this.payrollRecordService.findByEmployee(employeeId, employee.subsidiaryId);
   }
 
+  /** GET /hr/payroll-records/payment-summary?month=YYYY-MM */
+  @Get('payment-summary')
+  @Roles('HR_MANAGER', 'ADMIN', 'FINANCIAL_DIRECTOR', 'SUPER_ADMIN')
+  async getPaymentSummary(
+    @Query('month') month: string,
+    @Request() req: any,
+    @Query('subsidiaryId') subsidiaryIdFilter?: string,
+  ) {
+    const ctx = resolveScopeContext(req.user);
+    const subsidiaryId = resolveEffectiveSubsidiaryId(ctx, subsidiaryIdFilter);
+    return this.bonusAndChargeService.getPaymentSummary(subsidiaryId, month);
+  }
+
   /**
    * Récupérer une fiche de paie par ID
    * GET /hr/payroll-records/:id

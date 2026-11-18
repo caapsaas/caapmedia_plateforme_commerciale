@@ -1,10 +1,13 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { isEmail } from 'class-validator';
 import * as nodemailer from 'nodemailer';
+import { createSecureContext, rootCertificates } from 'tls';
 import { DeliveryProforma, proformaFilename } from './proforma-pdf.service';
 
 @Injectable()
 export class ProformaMailerService {
+  private readonly logger = new Logger(ProformaMailerService.name);
+
   async send(quote: DeliveryProforma, pdf: Buffer): Promise<void> {
     const host = process.env.SMTP_HOST;
     const user = process.env.SMTP_USER;
@@ -29,6 +32,25 @@ export class ProformaMailerService {
     const secure =
       process.env.SMTP_SECURE === 'true' ||
       (process.env.SMTP_SECURE === undefined && port === 465);
+    const smtpCaBase64 = process.env.SMTP_TLS_CA_BASE64?.trim();
+    let smtpCa: string | undefined;
+    if (smtpCaBase64) {
+      try {
+        const decodedCa = Buffer.from(smtpCaBase64, 'base64').toString('utf8');
+        if (
+          !decodedCa.includes('-----BEGIN CERTIFICATE-----') ||
+          !decodedCa.includes('-----END CERTIFICATE-----')
+        ) {
+          throw new Error('PEM certificate markers are missing');
+        }
+        createSecureContext({ ca: [...rootCertificates, decodedCa] });
+        smtpCa = decodedCa;
+      } catch {
+        throw new ServiceUnavailableException(
+          'Le certificat CA configuré pour SMTP est invalide.',
+        );
+      }
+    }
     const transport = nodemailer.createTransport({
       host,
       port,
@@ -40,6 +62,9 @@ export class ProformaMailerService {
       socketTimeout: 30000,
       disableFileAccess: true,
       disableUrlAccess: true,
+      ...(smtpCa
+        ? { tls: { ca: [...rootCertificates, smtpCa] } }
+        : {}),
     });
     try {
       const result = await transport.sendMail({
@@ -60,9 +85,18 @@ export class ProformaMailerService {
       });
       if (!result.accepted.length || result.rejected.length)
         throw new Error('Recipient rejected');
-    } catch {
+    } catch (error) {
+      const smtpError = error as {
+        code?: string;
+        responseCode?: number;
+        command?: string;
+      };
+      const diagnostic = smtpError.responseCode || smtpError.code || 'UNKNOWN';
+      this.logger.error(
+        `Échec d’envoi de la proforma ${quote.proformaNumber}: code=${smtpError.code || 'unknown'}, responseCode=${smtpError.responseCode || 'unknown'}, command=${smtpError.command || 'unknown'}`,
+      );
       throw new ServiceUnavailableException(
-        'L’e-mail n’a pas pu être transmis. Réessayez ou contactez un administrateur.',
+        `L’e-mail n’a pas pu être transmis (diagnostic SMTP : ${diagnostic}). Réessayez ou contactez un administrateur.`,
       );
     } finally {
       transport.close();

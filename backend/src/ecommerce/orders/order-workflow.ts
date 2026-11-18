@@ -8,6 +8,7 @@ import {
 } from '@prisma/client';
 import {
   getActiveRole,
+  isSuperAdmin,
   RoleIdentity,
 } from '../../common/auth/role/role-identity';
 
@@ -34,7 +35,7 @@ type WorkflowOrder = Pick<
 
 export function assertWorkflowRole(user: RoleIdentity, roles: UserRole[]) {
   const role = getActiveRole(user);
-  if (role !== UserRole.SUPER_ADMIN && (!role || !roles.includes(role))) {
+  if (isSuperAdmin(user) || !role || !roles.includes(role)) {
     throw new ForbiddenException(
       'Votre rôle actif ne permet pas cette action sur la commande.',
     );

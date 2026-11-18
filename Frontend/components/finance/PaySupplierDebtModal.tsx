@@ -26,8 +26,8 @@ interface PaySupplierDebtModalProps {
  * la dette fournisseur qui lui est liée (DebtsService.paySupplierDebt),
  * donc un seul écran de paiement, pas deux qui divergent.
  *
- * Prélèvement exclusivement Coffre-fort/Banque,
- * réservé au SUPER_ADMIN — comptes chargés globalement puis filtrés ici.
+ * Prélèvement depuis le Coffre-fort, réservé au SUPER_ADMIN. Le paiement
+ * fournisseur depuis une banque attend le parcours à double approbation.
  * Paiement partiel supporté (montant modifiable, plafonné au solde restant).
  */
 const PaySupplierDebtModal: React.FC<PaySupplierDebtModalProps> = ({
@@ -63,7 +63,7 @@ const PaySupplierDebtModal: React.FC<PaySupplierDebtModalProps> = ({
     enabled: isOpen,
   });
   const accounts = useMemo(
-    () => allAccounts.filter((a) => (a.accountType === AccountType.SAFE || a.accountType === AccountType.BANQUE) && a.subsidiaryId === subsidiaryId),
+    () => allAccounts.filter((a) => a.accountType === AccountType.SAFE && a.subsidiaryId === subsidiaryId),
     [allAccounts, subsidiaryId],
   );
 

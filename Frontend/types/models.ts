@@ -672,6 +672,7 @@ export interface TreasuryAccount {
 export enum TransactionStatus {
   VALIDATED = 'VALIDE',
   PENDING = 'EN_ATTENTE',
+  CANCELLED = 'ANNULE',
 }
 
 export type TransactionType = 'RECETTE' | 'DEPENSE';
@@ -726,6 +727,9 @@ export interface FinancialTransaction {
   providerPhone?: string; // Téléphone du prestataire
   // Décaissement typé / virement inter-comptes / workflow de validation.
   status?: TransactionStatus;
+  createdByUserId?: string | null;
+  approvedByUserId?: string | null;
+  approvedAt?: string | null;
   sourceAccountId?: string;
   destinationAccountId?: string;
   treasuryType?: TreasuryTransactionType;
@@ -734,8 +738,8 @@ export interface FinancialTransaction {
   balanceAfterSource?: number;
   balanceAfterDest?: number;
   // Présents uniquement sur les réponses enrichies (historique par compte).
-  treasuryAccount?: { accountName: string };
-  destinationAccount?: { accountName: string };
+  treasuryAccount?: { accountName: string; accountType?: AccountType };
+  destinationAccount?: { accountName: string; accountType?: AccountType };
   counterparty?: { name: string };
 }
 
@@ -854,6 +858,12 @@ export interface ExpenseRecord {
   type: ExpenseType;
   amount: number;
   subsidiaryId: string;
+  paymentTransaction?: {
+    id: string;
+    transactionDate: string;
+    reference: string | null;
+    treasuryAccount: { id: string; accountName: string };
+  } | null;
 }
 
 export enum RecurringExpenseFrequency {

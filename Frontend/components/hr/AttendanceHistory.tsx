@@ -6,6 +6,8 @@ import IconUserClock from '../icons/IconUserClock';
 import { Search, Filter, X } from 'lucide-react';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 interface AttendanceRecord {
   id: string;
@@ -106,6 +108,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = () => {
     dateFrom,
     dateTo,
   ]);
+  const { pageItems: pageRecords, meta: recordsMeta, setPage } = useClientPagination(filteredRecords);
 
   const hasActiveFilters =
     searchTerm !== '' ||
@@ -344,7 +347,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = () => {
               {historyLoading ? (
                 <TableSkeleton rows={10} columns={6} />
               ) : filteredRecords.length > 0 ? (
-                filteredRecords.map((record) => (
+                pageRecords.map((record) => (
                   <tr
                     key={record.id}
                     className="hover:bg-slate-50 transition-colors"
@@ -398,6 +401,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = () => {
               )}
             </tbody>
           </table>
+          <Pagination meta={recordsMeta} onPageChange={setPage} />
         </div>
     </div>
   );

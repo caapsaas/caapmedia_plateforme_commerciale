@@ -48,6 +48,7 @@ export async function creditCashRegister(
       treasuryAccountId: cashRegisterId,
       financialTransactionType: TransactionType.RECETTE,
       status: TransactionStatus.VALIDE,
+      createdByUserId: user.id,
       balanceAfterSource: balance,
     },
   });

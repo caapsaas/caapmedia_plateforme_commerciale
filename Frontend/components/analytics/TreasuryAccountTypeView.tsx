@@ -27,7 +27,7 @@ import { useI18n } from '../../i18n';
 import { PeriodFilter } from '../../services/apiStatistic/apiAnalytics';
 import { resolvePeriodBounds } from '../../utils/periodBounds';
 import { getTreasuryAccounts, getFinancialTransactions } from '../../services/apiFinance/apiTreasury';
-import { getTransactionLegForAccount } from '../../utils/transactionDisplay';
+import { findAccountIdInSet, getTransactionLegForAccount } from '../../utils/transactionDisplay';
 import Pagination from '../common/Pagination';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
@@ -138,7 +138,7 @@ const TreasuryAccountTypeView: React.FC<TreasuryAccountTypeViewProps> = ({
 
   const transactions = useMemo(() => {
     return allTransactions
-      .filter((tx) => accountIds.has(tx.sourceAccountId || tx.treasuryAccountId))
+      .filter((tx) => findAccountIdInSet(tx, accountIds) !== undefined)
       .filter((tx) => {
         if (!periodStart && !periodEnd) return true;
         const txDate = tx.transactionDate.slice(0, 10);
@@ -218,10 +218,9 @@ const TreasuryAccountTypeView: React.FC<TreasuryAccountTypeViewProps> = ({
                 paginated.map((tx) => {
                   const TypeIcon = tx.treasuryType ? TYPE_ICON[tx.treasuryType] : Banknote;
                   const badgeClass = tx.treasuryType ? TYPE_BADGE_CLASS[tx.treasuryType] : 'bg-slate-100 text-slate-700 border border-slate-200';
-                  // Cette vue ne liste que des décaissements (transactions dont
-                  // la source appartient à cet ensemble de comptes) : le compte
-                  // concerné est toujours treasuryAccountId.
-                  const { counterpartyName, balanceBefore, balanceAfter } = getTransactionLegForAccount(tx, tx.treasuryAccountId);
+                  const accountId = findAccountIdInSet(tx, accountIds) ?? tx.treasuryAccountId;
+                  const { isIncome, counterpartyName, balanceBefore, balanceAfter } =
+                    getTransactionLegForAccount(tx, accountId);
                   return (
                     <tr key={tx.id} className="bg-white border-b hover:bg-slate-50 transition-colors whitespace-nowrap">
                       <td className="px-4 py-3 text-slate-500 font-mono text-xs">{tx.reference || tx.id.slice(0, 12)}</td>
@@ -234,8 +233,8 @@ const TreasuryAccountTypeView: React.FC<TreasuryAccountTypeViewProps> = ({
                           {tx.treasuryType ? t(`safeDisbursement.types.${tx.treasuryType}`) : '-'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right font-bold whitespace-nowrap text-red-600">
-                        -{formatCurrency(Number(tx.amount))}
+                      <td className={`px-4 py-3 text-right font-bold whitespace-nowrap ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
+                        {isIncome ? '+' : '-'}{formatCurrency(Number(tx.amount))}
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">{balanceBefore != null ? formatCurrency(balanceBefore) : '—'}</td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">{balanceAfter != null ? formatCurrency(balanceAfter) : '—'}</td>

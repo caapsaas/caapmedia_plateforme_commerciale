@@ -7,6 +7,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useI18n } from '../../i18n';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 const EquipmentCostManagement: React.FC = () => {
     const { user } = useAuth();
@@ -34,6 +36,7 @@ const EquipmentCostManagement: React.FC = () => {
         [equipment.equipmentName, equipment.status, equipment.subsidiaryId, equipment.hourlyRate]
             .some((value) => String(value ?? '').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())),
     );
+    const { pageItems: pageEquipments, meta: equipmentsMeta, setPage } = useClientPagination(filteredEquipments);
 
     const { mutate: saveCost, isPending } = useMutation({
         mutationFn: upsertEquipmentCost,
@@ -97,7 +100,7 @@ const EquipmentCostManagement: React.FC = () => {
                         <tbody className="divide-y divide-slate-200">
                             {isLoading ? (
                                 <TableSkeleton rows={5} columns={isSuperAdmin ? 5 : 4} />
-                            ) : filteredEquipments.map(eq => (
+                            ) : pageEquipments.map(eq => (
                                 <tr key={eq.id} className="bg-white hover:bg-slate-50">
                                     <td className="px-4 py-3 font-medium text-slate-800">{eq.equipmentName}</td>
                                     <td className="px-4 py-3">
@@ -170,6 +173,7 @@ const EquipmentCostManagement: React.FC = () => {
                             )}
                         </tbody>
                     </table>
+                    <Pagination meta={equipmentsMeta} onPageChange={setPage} />
                 </div>
         </div>
     );

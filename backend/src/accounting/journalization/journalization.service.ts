@@ -11,6 +11,7 @@ export type OperationSource =
   | 'TREASURY_TRANSFER'
   | 'SALE_PAID'
   | 'EXPENSE_RECORD'
+  | 'EXPENSE_RECORD_PAYMENT'
   | 'SUPPLIER_DEBT_PAYMENT'
   | 'LONG_TERM_DEBT_RECEIPT'
   | 'FIXED_ASSET_ACQUISITION'
@@ -149,9 +150,12 @@ export class JournalizationService {
 
     const isCashFamily =
       !!accountType && CASH_FAMILY_ACCOUNT_TYPES.includes(accountType);
-    const treasuryAccount = isCashFamily
-      ? mappings['CASH_ACCOUNT'] || '571000'
-      : mappings['BANK_ACCOUNT'] || '521000';
+    const treasuryAccount =
+      accountType === AccountType.EXPENSE_BOX
+        ? mappings['EXPENSE_BOX_ACCOUNT'] || '571100'
+        : isCashFamily
+          ? mappings['CASH_ACCOUNT'] || '571000'
+          : mappings['BANK_ACCOUNT'] || '521000';
 
     switch (sourceType) {
       // ── VIREMENT INTER-COMPTES TRÉSORERIE (décaissement typé) ────────
@@ -300,18 +304,24 @@ export class JournalizationService {
       }
 
       // ── PAIEMENT DETTE FOURNISSEUR ──────────────────────────────────
+      case 'EXPENSE_RECORD_PAYMENT':
       case 'SUPPLIER_DEBT_PAYMENT': {
+        const paysExpense = sourceType === 'EXPENSE_RECORD_PAYMENT';
         return {
-          journalCode: 'JA',
+          journalCode: paysExpense ? 'JC' : 'JA',
           lines: [
             {
               accountNumber: mappings['PURCHASE_SUPPLIER'] || '401000',
-              description: 'Apurement dette fournisseur',
+              description: paysExpense
+                ? 'Apurement de la charge'
+                : 'Apurement dette fournisseur',
               debitAmount: amount,
               creditAmount: 0,
             },
             {
-              accountNumber: treasuryAccount,
+              accountNumber: paysExpense
+                ? mappings['SAFE_ACCOUNT'] || '571200'
+                : treasuryAccount,
               description: 'Règlement',
               debitAmount: 0,
               creditAmount: amount,

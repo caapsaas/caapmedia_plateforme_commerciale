@@ -4,6 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { CreateProformaDto, ProformaItemDto } from './dto/create-proforma.dto';
@@ -24,6 +25,7 @@ import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.d
 import { paginate, PaginatedResult } from 'src/common/pagination/pagination';
 import type { Proforma, Prisma } from '@prisma/client';
 import { JwtUser } from '../../common/auth/jwt/jwt-user.interface';
+import { isSuperAdmin } from '../../common/auth/role/role-identity';
 import {
   resolveScopeContext,
   withSubsidiaryScope,
@@ -43,6 +45,9 @@ export class ProformasService {
   ) {}
 
   async create(createProformaDto: CreateProformaDto, user: JwtUser) {
+    if (isSuperAdmin(user)) {
+      throw new ForbiddenException('Le super-administrateur ne peut pas créer de proforma.');
+    }
     const scope = resolveScopeContext(user);
     // Le proforma et ses références locales doivent appartenir à la même filiale.
     const lead = await this.prisma.lead.findUnique({
@@ -520,17 +525,22 @@ export class ProformasService {
   }
 
   private calculateAmounts(items: ProformaItemDto[], taxRate: number) {
-    const subtotal = items.reduce(
+    // Les prix des lignes d'une proforma sont TTC : la TVA est comprise dans
+    // le montant saisi, elle ne s'ajoute pas au total demandé au client.
+    const totalAmount = items.reduce(
       (sum, item) => sum + item.quantity * item.unitPrice,
       0,
     );
-    const taxAmount = (subtotal * taxRate) / 100;
-    const totalAmount = subtotal + taxAmount;
+    const roundedTotal = Math.round(totalAmount * 100) / 100;
+    const taxAmount = Math.round(
+      ((roundedTotal * taxRate) / (100 + taxRate)) * 100,
+    ) / 100;
+    const subtotal = roundedTotal - taxAmount;
 
     return {
-      subtotal: Math.round(subtotal * 100) / 100,
-      taxAmount: Math.round(taxAmount * 100) / 100,
-      totalAmount: Math.round(totalAmount * 100) / 100,
+      subtotal,
+      taxAmount,
+      totalAmount: roundedTotal,
     };
   }
 }

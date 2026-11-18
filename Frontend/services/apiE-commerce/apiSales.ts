@@ -14,6 +14,19 @@ export interface CreateDirectSaleDto {
         discount?: number;
         assemblyPrice?: number;
         specValues?: Record<string, unknown>; // Spécifications techniques (Chantier 5)
+        productionSteps?: {
+            equipmentId: string;
+            equipmentNameSnapshot: string;
+            stepOrder: number;
+            estimatedTimeHours: number;
+            hourlyRateSnapshot: number;
+            calculatedCost: number;
+        }[];
+        productionSummary?: {
+            totalProductionCost: number;
+            marginPercent: number;
+            finalPrice: number;
+        };
     }[];
     paymentMethod: CustomerPaymentMethod;
     customerId: string;

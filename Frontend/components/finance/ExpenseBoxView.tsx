@@ -1,14 +1,20 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Subsidiary, TreasuryAccount, FinancialTransaction, AccountType, UserRole } from '../../types';
+import { Subsidiary, TreasuryAccount, AccountType, UserRole } from '../../types';
 import { useI18n } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
-import { getTreasuryAccounts, getFinancialTransactions } from '../../services/apiFinance/apiTreasury';
+import { useToast } from '../../context/ToastContext';
+import { getTreasuryAccounts, getAccountTransactions } from '../../services/apiFinance/apiTreasury';
 import { getTransactionLegForAccount } from '../../utils/transactionDisplay';
 import ExpenseBoxDisbursementModal from './ExpenseBoxDisbursementModal';
 import AccountHistoryModal from './AccountHistoryModal';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
+import NeedRequestDialog from '../purchasing/NeedRequestDialog';
+import NeedRequestPaymentPanel from '../purchasing/NeedRequestPaymentPanel';
+import { getPayableNeedRequests } from '../../services/apiPurchasing/apiNeedRequests';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 interface ExpenseBoxViewProps {
   subsidiary: Subsidiary;
@@ -22,11 +28,16 @@ interface ExpenseBoxViewProps {
 const ExpenseBoxView: React.FC<ExpenseBoxViewProps> = ({ subsidiary }) => {
   const { t, formatCurrency, language } = useI18n();
   const { user } = useAuth();
+  const { toast } = useToast();
   const activeRole = user?.activeRole ?? user?.userRole;
   const canDisburse = activeRole === UserRole.FINANCIAL_DIRECTOR;
+  const canPayNeed = canDisburse;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [needPaymentOpen, setNeedPaymentOpen] = useState(false);
+  const [needId, setNeedId] = useState('');
+  const [payingNeed, setPayingNeed] = useState(false);
 
   const { data: accounts = [], isLoading: isLoadingAccounts } = useQuery<TreasuryAccount[]>({
     queryKey: ['treasuryAccounts', subsidiary.id],
@@ -38,19 +49,19 @@ const ExpenseBoxView: React.FC<ExpenseBoxViewProps> = ({ subsidiary }) => {
     [accounts],
   );
 
-  const { data: transactions = [], isLoading: isLoadingTx } = useQuery<FinancialTransaction[]>({
-    queryKey: ['financialTransactions', subsidiary.id],
-    queryFn: () => getFinancialTransactions(subsidiary.id),
+  const { data: history, isLoading: isLoadingTx } = useQuery({
+    queryKey: ['accountTransactions', expenseBox?.id, 'expense-box'],
+    queryFn: () => getAccountTransactions(expenseBox!.id, { limit: 1000 }),
     enabled: !!expenseBox,
   });
-
-  const expenseBoxTransactions = useMemo(
-    () =>
-      expenseBox
-        ? transactions.filter((tx) => tx.treasuryAccountId === expenseBox.id || tx.destinationAccountId === expenseBox.id)
-        : [],
-    [transactions, expenseBox],
-  );
+  const expenseBoxTransactions = history?.data ?? [];
+  const { pageItems: pageTransactions, meta: transactionsMeta, setPage } = useClientPagination(expenseBoxTransactions);
+  const payableNeeds = useQuery({
+    queryKey: ['payable-need-requests', subsidiary.id, user?.id],
+    queryFn: () => getPayableNeedRequests(subsidiary.id),
+    enabled: needPaymentOpen && canPayNeed,
+  });
+  const need = payableNeeds.data?.find((request) => request.id === needId);
 
   if (isLoadingAccounts) {
     return (
@@ -73,15 +84,25 @@ const ExpenseBoxView: React.FC<ExpenseBoxViewProps> = ({ subsidiary }) => {
             </button>
           )}
         </div>
-        {canDisburse && (
+        <div className="mt-4 flex flex-wrap gap-2 sm:mt-0">
+          {canPayNeed && <button
+            type="button"
+            onClick={() => { setNeedId(''); setNeedPaymentOpen(true); }}
+            disabled={!expenseBox}
+            className="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-800 disabled:opacity-50"
+          >
+            {t('needs.payTitle')}
+          </button>}
+          {canDisburse && (
           <button
             onClick={() => setIsModalOpen(true)}
             disabled={!expenseBox}
-            className="mt-4 sm:mt-0 bg-[#231F20] hover:bg-slate-700 text-white px-5 py-2.5 rounded-lg font-semibold transition-colors disabled:opacity-50"
+            className="bg-[#231F20] hover:bg-slate-700 text-white px-5 py-2.5 rounded-lg font-semibold transition-colors disabled:opacity-50"
           >
             {t('treasuryAccounts.view.disbursement')}
           </button>
-        )}
+          )}
+        </div>
       </div>
 
       {!expenseBox ? (
@@ -116,7 +137,7 @@ const ExpenseBoxView: React.FC<ExpenseBoxViewProps> = ({ subsidiary }) => {
                     </td>
                   </tr>
                 ) : (
-                  expenseBoxTransactions.map((tx) => {
+                  pageTransactions.map((tx) => {
                     const { isIncome, counterpartyName, balanceBefore, balanceAfter } = getTransactionLegForAccount(tx, expenseBox!.id);
                     return (
                       <tr key={tx.id} className="bg-white border-b hover:bg-slate-50 whitespace-nowrap">
@@ -140,6 +161,7 @@ const ExpenseBoxView: React.FC<ExpenseBoxViewProps> = ({ subsidiary }) => {
                 )}
               </tbody>
             </table>
+            <Pagination meta={transactionsMeta} onPageChange={setPage} />
             </div>
           </div>
         </div>
@@ -147,6 +169,26 @@ const ExpenseBoxView: React.FC<ExpenseBoxViewProps> = ({ subsidiary }) => {
 
       <ExpenseBoxDisbursementModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} expenseBox={expenseBox} />
       <AccountHistoryModal isOpen={historyOpen} onClose={() => setHistoryOpen(false)} account={expenseBox} />
+      {needPaymentOpen && canPayNeed && (
+        <NeedRequestDialog title={t('needs.payTitle')} busy={payingNeed} onClose={() => setNeedPaymentOpen(false)}>
+          <div className="space-y-4 p-6">
+            <label htmlFor="expense-box-need" className="block text-sm font-semibold">{t('needs.selectPayable')}</label>
+            <select id="expense-box-need" value={needId} disabled={payingNeed} onChange={(event) => setNeedId(event.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2">
+              <option value="">{t(payableNeeds.isError ? 'needs.error' : payableNeeds.isLoading ? 'common.loading' : payableNeeds.data?.length ? 'needs.selectPayable' : 'needs.noPayable')}</option>
+              {payableNeeds.data?.map((request) => <option key={request.id} value={request.id}>{request.title}</option>)}
+            </select>
+            {need && <NeedRequestPaymentPanel
+              key={need.id}
+              request={need}
+              onBusyChange={setPayingNeed}
+              onPaid={() => {
+                toast('success', t('needs.paymentSuccess'));
+                setNeedPaymentOpen(false);
+              }}
+            />}
+          </div>
+        </NeedRequestDialog>
+      )}
     </div>
   );
 };

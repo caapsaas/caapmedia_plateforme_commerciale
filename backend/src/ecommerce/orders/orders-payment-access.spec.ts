@@ -4,54 +4,55 @@ import { Reflector } from '@nestjs/core';
 import { UserRole } from '@prisma/client';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
+import { SalesController } from '../sales/sales.controller';
 import { RoleGuard } from '../../common/auth/role/role.guard';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { ProductSpecsService } from '../products/product-specs/product-specs.service';
 import { OrderNotificationsService } from '../../notifications/order-notifications.service';
 
 describe('Order payment permissions', () => {
-  it.each([UserRole.COMMERCIAL, UserRole.CAISSIER, UserRole.ADMIN])(
-    'allows active role %s to collect payments and list payment accounts',
-    (role) => {
-      const guard = new RoleGuard(new Reflector());
-      for (const handler of [
-        OrdersController.prototype.recordPayment,
-        OrdersController.prototype.findPaymentAccounts,
-      ]) {
-        const context = {
-          getHandler: () => handler,
-          getClass: () => OrdersController,
-          switchToHttp: () => ({
-            getRequest: () => ({
-              user: { id: 'staff', activeRole: role, userRole: role },
-              method: 'PATCH',
-              url: '/ecommerce/orders/payment/order',
-            }),
-          }),
-        } as unknown as ExecutionContext;
-        expect(guard.canActivate(context)).toBe(true);
-      }
+  describe.each([
+    {
+      controller: OrdersController,
+      handler: OrdersController.prototype.recordPayment,
+      method: 'PATCH',
+      url: '/ecommerce/orders/payment/order',
     },
-  );
-
-  it('rejects collection when the active role lacks payment permission', () => {
-    const context = {
-      getHandler: () => OrdersController.prototype.recordPayment,
-      getClass: () => OrdersController,
-      switchToHttp: () => ({
-        getRequest: () => ({
-          user: {
-            id: 'staff',
-            activeRole: UserRole.PRODUCTION_DIRECTOR,
-            additionalRoles: [UserRole.COMMERCIAL],
-          },
-          method: 'PATCH',
-          url: '/ecommerce/orders/payment/order',
+    {
+      controller: SalesController,
+      handler: SalesController.prototype.createDirectSale,
+      method: 'POST',
+      url: '/ecommerce/sales/direct',
+    },
+  ])('$method $url', ({ controller, handler, method, url }) => {
+    const checkAccess = (activeRole: UserRole) => {
+      const context = {
+        getHandler: () => handler,
+        getClass: () => controller,
+        switchToHttp: () => ({
+          getRequest: () => ({
+            user: {
+              id: 'staff',
+              activeRole,
+              roles: [activeRole, UserRole.CAISSIER],
+            },
+            method,
+            url,
+          }),
         }),
-      }),
-    } as unknown as ExecutionContext;
-    expect(() => new RoleGuard(new Reflector()).canActivate(context)).toThrow(
-      ForbiddenException,
+      } as unknown as ExecutionContext;
+      return new RoleGuard(new Reflector()).canActivate(context);
+    };
+
+    it('allows the active cashier role to collect payments', () => {
+      expect(checkAccess(UserRole.CAISSIER)).toBe(true);
+    });
+
+    it.each([UserRole.COMMERCIAL, UserRole.ADMIN, UserRole.SUPER_ADMIN])(
+      'rejects active role %s even when the cashier role is assigned',
+      (role) => {
+        expect(() => checkAccess(role)).toThrow(ForbiddenException);
+      },
     );
   });
 

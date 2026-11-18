@@ -1,3 +1,4 @@
+import { isSuperAdmin as hasSuperAdminRole } from '../../utils/isSuperAdmin';
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -28,6 +29,8 @@ import ReceiveItemsModal from './ReceiveItemsModal';
 import PaySupplierDebtModal from '../finance/PaySupplierDebtModal';
 import BonEntree from '../../Pages/BonEntree';
 import EmptyState from '../ui/EmptyState';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const fmtDate = (d?: string | null) => {
@@ -77,13 +80,10 @@ const Purchasing: React.FC = () => {
     const { subsidiary, user } = useAuth();
     const queryClient = useQueryClient();
 
-    // `activeRole` prime sur `userRole` (aperçu de rôle par un SUPER_ADMIN,
-    // voir AppContext) — l'ancien check `userRole === SUPER_ADMIN ||
-    // activeRole === SUPER_ADMIN` restait vrai même en aperçu "Directeur des
-    // achats", cachant les actions Nouveau bon de commande/Réceptionner à un
-    // SUPER_ADMIN prévisualisant ce rôle.
     const activeRole = user?.activeRole ?? user?.userRole;
-    const isSuperAdmin = activeRole === UserRole.SUPER_ADMIN;
+    const isSuperAdmin = hasSuperAdminRole(user);
+    const canManageOrders = !isSuperAdmin && !!activeRole && [UserRole.ADMIN, UserRole.PURCHASING_MANAGER, UserRole.FINANCIAL_DIRECTOR].includes(activeRole);
+    const canPay = activeRole === UserRole.SUPER_ADMIN;
 
     const [activeTab, setActiveTab] = useState<'orders' | 'receipts'>('orders');
     const [showHistory, setShowHistory] = useState(true);
@@ -114,6 +114,7 @@ const Purchasing: React.FC = () => {
         queryFn: () => getPurchaseOrders(appliedFilters),
         enabled: isSuperAdmin || !!subsidiary,
     });
+    const { pageItems: pageOrders, meta: ordersMeta, setPage: setOrdersPage } = useClientPagination(orders);
 
     const invalidate = () => queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
 
@@ -179,6 +180,7 @@ const Purchasing: React.FC = () => {
         () => orders.filter(po => po.status === PurchaseOrderStatus.PARTIALLY_RECEIVED || po.status === PurchaseOrderStatus.RECEIVED),
         [orders],
     );
+    const { pageItems: pageReceivedOrders, meta: receivedMeta, setPage: setReceivedPage } = useClientPagination(receivedOrders);
     const lastReceiptDate = (po: PurchaseOrder) => po.history.find(h => h.event.includes('Réception'))?.date;
 
     const colSpan = isSuperAdmin ? 10 : 9;
@@ -203,7 +205,7 @@ const Purchasing: React.FC = () => {
                             {t('purchasing.tabs.receipts')}
                         </button>
                     </div>
-                    {!isSuperAdmin && activeTab === 'orders' && (
+                    {canManageOrders && activeTab === 'orders' && (
                         <button
                             onClick={() => openModal(null, 'form')}
                             className="flex items-center gap-2 px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-bold rounded-lg hover:bg-[#adc40f] transition-colors"
@@ -356,7 +358,7 @@ const Purchasing: React.FC = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {orders.map(po => {
+                                                    {pageOrders.map(po => {
                                                         const isExpanded = expandedPoId === po.id;
                                                         const toggle = () => setExpandedPoId(isExpanded ? null : po.id);
 
@@ -400,7 +402,7 @@ const Purchasing: React.FC = () => {
                                                                         onClick={e => e.stopPropagation()}
                                                                     >
                                                                         <div className="flex justify-center items-center gap-1">
-                                                                            {!isSuperAdmin && (po.status === PurchaseOrderStatus.ORDERED || po.status === PurchaseOrderStatus.PARTIALLY_RECEIVED) && (
+                                                                            {canManageOrders && (po.status === PurchaseOrderStatus.ORDERED || po.status === PurchaseOrderStatus.PARTIALLY_RECEIVED) && (
                                                                                 <button onClick={() => openModal(po, 'receive')}
                                                                                     className="p-2 text-green-600 hover:bg-green-100 rounded-full"
                                                                                     title={t('purchasing.receiveOrder')}>
@@ -409,7 +411,7 @@ const Purchasing: React.FC = () => {
                                                                             )}
                                                                             {/* Le paiement (Coffre-fort/Banque) est réservé au SUPER_ADMIN,
                                                                                 comme tout décaissement SAFE/BANQUE (voir Disbursement.tsx). */}
-                                                                            {isSuperAdmin && po.paymentStatus !== PaymentStatus.PAID && po.status !== PurchaseOrderStatus.DRAFT && (
+                                                                            {canPay && po.paymentStatus !== PaymentStatus.PAID && po.status !== PurchaseOrderStatus.DRAFT && (
                                                                                 <button onClick={() => openModal(po, 'payment')}
                                                                                     className="p-2 text-amber-600 hover:bg-amber-100 rounded-full"
                                                                                     title={t('purchasing.recordPayment')}>
@@ -481,6 +483,7 @@ const Purchasing: React.FC = () => {
                                                     })}
                                                 </tbody>
                                             </table>
+                                            <Pagination meta={ordersMeta} onPageChange={setOrdersPage} />
                                             {orders.length === 0 && (
                                                 <EmptyState
                                                     icon="order"
@@ -530,7 +533,7 @@ const Purchasing: React.FC = () => {
                                                         </td>
                                                     </tr>
                                                 ))
-                                            ) : receivedOrders.map(po => (
+                                            ) : pageReceivedOrders.map(po => (
                                                 <tr key={po.id} className="bg-white border-b hover:bg-slate-50 whitespace-nowrap">
                                                     <td className="px-4 py-4 font-mono text-xs text-slate-500">
                                                         #{po.id.slice(-8).toUpperCase()}
@@ -560,6 +563,7 @@ const Purchasing: React.FC = () => {
                                             ))}
                                         </tbody>
                                     </table>
+                                    <Pagination meta={receivedMeta} onPageChange={setReceivedPage} />
                                     {!isLoading && receivedOrders.length === 0 && (
                                         <EmptyState
                                             icon="order"
@@ -576,7 +580,7 @@ const Purchasing: React.FC = () => {
             )}
 
             {/* Modals */}
-            {modal === 'form' && (
+            {canManageOrders && modal === 'form' && (
                 <PurchaseOrderFormModal
                     isOpen onClose={closeModal}
                     onSave={(data: CreatePurchaseOrderDto) => createPO(data)}
@@ -589,14 +593,14 @@ const Purchasing: React.FC = () => {
                     purchaseOrder={selectedPO} subsidiary={subsidiary}
                 />
             )}
-            {modal === 'receive' && selectedPO && (
+            {canManageOrders && modal === 'receive' && selectedPO && (
                 <ReceiveItemsModal
                     isOpen onClose={closeModal}
                     purchaseOrder={selectedPO}
                     onReceive={(id, items) => receiveItems({ id, data: { items } })}
                 />
             )}
-            {modal === 'payment' && selectedPO && (
+            {canPay && modal === 'payment' && selectedPO && (
                 <PaySupplierDebtModal
                     isOpen onClose={closeModal}
                     debtId={selectedPO.supplierDebts?.[0]?.id ?? null}

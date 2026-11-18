@@ -1,6 +1,7 @@
 import { PrismaClient, AccountType, BankType } from '@prisma/client';
 import { generateId } from './generate-id.util';
 import { ID_PREFIXES } from './id-prefixes.const';
+import { withOpeningBalance } from '../../src/finance/treasury/treasury-opening-balance';
 
 const prisma = new PrismaClient();
 
@@ -79,16 +80,14 @@ export async function seedTreasuryAccounts() {
       continue;
     }
     await prisma.treasuryAccount.create({
-      data: {
+      data: withOpeningBalance({
         id: generateId(ID_PREFIXES.TREASURY),
         accountName: acc.accountName,
-        balance: acc.balance,
-        initialBalance: acc.balance,
         currency: 'XOF',
         accountType: acc.accountType,
         subsidiaryId: headquarter.id,
         bankId: acc.bankId,
-      },
+      }, acc.balance, 'SEEDER'),
     });
     console.log(`Compte "${acc.accountName}" créé au siège (${headquarter.subsidiaryName}).`);
   }
@@ -110,7 +109,7 @@ export async function seedTreasuryAccounts() {
       cashierId?: string;
     }[] = [
       { accountName: `${subsidiary.subsidiaryName} - Caisse de Vente`, legacyName: 'Caisse de Vente', balance: 30000, accountType: AccountType.CASH_REGISTER, cashierId: cashier?.id },
-      { accountName: `${subsidiary.subsidiaryName} - Caisse Dépense`, legacyName: 'Caisse Dépense', balance: 20000, accountType: AccountType.EXPENSE_BOX },
+      { accountName: `${subsidiary.subsidiaryName} - Caisse Dépense`, legacyName: 'Caisse Dépense', balance: 0, accountType: AccountType.EXPENSE_BOX },
     ];
 
     for (const acc of perSubsidiaryAccounts) {
@@ -138,16 +137,14 @@ export async function seedTreasuryAccounts() {
       }
 
       await prisma.treasuryAccount.create({
-        data: {
+        data: withOpeningBalance({
           id: generateId(ID_PREFIXES.TREASURY),
           accountName: acc.accountName,
-          balance: acc.balance,
-          initialBalance: acc.balance,
           currency: 'XOF',
           accountType: acc.accountType,
           subsidiaryId: subsidiary.id,
           cashierId: acc.cashierId,
-        },
+        }, acc.balance, 'SEEDER'),
       });
       console.log(`Compte "${acc.accountName}" créé pour la filiale ${subsidiary.subsidiaryName}.`);
     }

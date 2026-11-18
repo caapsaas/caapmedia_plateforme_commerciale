@@ -52,7 +52,7 @@ export class SalesService {
    * Respecte le principe de vente de la plateforme : crée une véritable Commande (Order + OrderItems)
    * immédiatement payée (PAID) et génère les enregistrements de vente (Sale) associés.
    * @param createDirectSaleDto Les données de la vente
-   * @param user L'utilisateur connecté (caissier / commercial)
+   * @param user Le caissier connecté
    */
   async createDirectSale(createDirectSaleDto: CreateDirectSaleDto, user: any) {
     const {
@@ -172,8 +172,32 @@ export class SalesService {
             specSnapshot: formDefinitionByProductId.get(
               item.productId,
             ) as unknown as Prisma.InputJsonValue | undefined,
+            productionSteps: item.productionSteps ?? [],
+            productionSummary: item.productionSummary,
           };
         });
+
+        const equipmentIds = [
+          ...new Set(orderItemsData.flatMap((item) => item.productionSteps.map((step) => step.equipmentId))),
+        ];
+        if (equipmentIds.length) {
+          const equipments = await tx.equipment.findMany({
+            where: { id: { in: equipmentIds }, subsidiaryId },
+            select: { id: true, equipmentName: true },
+          });
+          if (equipments.length !== equipmentIds.length) {
+            throw new BadRequestException(
+              'Une ou plusieurs machines sélectionnées ne sont pas disponibles dans votre filiale.',
+            );
+          }
+          const equipmentNameById = new Map(equipments.map((equipment) => [equipment.id, equipment.equipmentName]));
+          for (const item of orderItemsData) {
+            item.productionSteps = item.productionSteps.map((step) => ({
+              ...step,
+              equipmentNameSnapshot: equipmentNameById.get(step.equipmentId)!,
+            }));
+          }
+        }
 
         const effectiveTaxRate = applyTax ? taxRate.rate : new Decimal(0);
         const taxAmount = subtotal.mul(effectiveTaxRate);
@@ -222,7 +246,40 @@ export class SalesService {
               ),
             },
           },
+          include: { orderItems: { select: { id: true } } },
         });
+
+        // Conserver les machines, temps et coûts choisis depuis la caisse
+        // sur les lignes de commande pour leur suivi dans le module Production.
+        for (let index = 0; index < orderItemsData.length; index++) {
+          const item = orderItemsData[index];
+          const orderItemId = newOrder.orderItems[index].id;
+          if (item.productionSteps.length) {
+            await tx.orderItemProductionStep.createMany({
+              data: item.productionSteps.map((step) => ({
+                id: generateId(ID_PREFIXES.ORDERITEMPRODUCTIONSTEP),
+                orderItemId,
+                equipmentId: step.equipmentId,
+                equipmentNameSnapshot: step.equipmentNameSnapshot,
+                stepOrder: step.stepOrder,
+                estimatedTimeHours: new Decimal(step.estimatedTimeHours),
+                hourlyRateSnapshot: new Decimal(step.hourlyRateSnapshot),
+                calculatedCost: new Decimal(step.calculatedCost),
+              })),
+            });
+          }
+          if (item.productionSummary) {
+            await tx.orderItemProductionSummary.create({
+              data: {
+                id: generateId(ID_PREFIXES.ORDERITEMPRODUCTIONSUMMARY),
+                orderItemId,
+                totalProductionCost: new Decimal(item.productionSummary.totalProductionCost),
+                marginPercent: new Decimal(item.productionSummary.marginPercent),
+                finalPrice: new Decimal(item.productionSummary.finalPrice),
+              },
+            });
+          }
+        }
 
         // 4. Créer les enregistrements de vente (Sale) liés à la commande
         const salesToCreate: Prisma.SaleCreateManyInput[] = orderItemsData.map(

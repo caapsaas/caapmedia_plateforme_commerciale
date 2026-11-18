@@ -14,6 +14,8 @@ import {
 } from '../../services/apiAccounting/apiPeriods';
 import ConfirmationModal from '../common/ConfirmationModal';
 import { AsyncSelect } from '../ui/AsyncSelect';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
 
@@ -262,6 +264,8 @@ const JournalsTab: React.FC<{ canModify: boolean }> = ({ canModify }) => {
     seedMutation.mutate();
   };
 
+  const { pageItems, meta, setPage } = useClientPagination(journals);
+
   return (
     <div className="space-y-4">
       {canModify && (
@@ -289,7 +293,7 @@ const JournalsTab: React.FC<{ canModify: boolean }> = ({ canModify }) => {
         <tbody className="divide-y divide-slate-100">
           {isLoading ? (
             <TableSkeleton rows={6} columns={4} />
-          ) : journals.map((j) => (
+          ) : pageItems.map((j) => (
             <tr key={j.id} className="hover:bg-slate-50">
               <td className="px-4 py-3 text-sm font-mono font-bold text-slate-800">{j.code}</td>
               <td className="px-4 py-3 text-sm text-slate-700">{j.name}</td>
@@ -303,6 +307,7 @@ const JournalsTab: React.FC<{ canModify: boolean }> = ({ canModify }) => {
           ))}
         </tbody>
       </table>
+      <Pagination meta={meta} onPageChange={setPage} />
       {!isLoading && journals.length === 0 && (
         <EmptyState
           icon="document"
@@ -354,6 +359,7 @@ const PeriodsTab: React.FC<{ periods: FiscalYear[]; canModify: boolean }> = ({ p
     onError: (e: any) => toast.error(e?.response?.data?.message || 'Erreur lors de la réouverture.'),
   });
 
+  const { pageItems, meta, setPage } = useClientPagination(periods);
   const fmt = (dateStr: string) => new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
 
   return (
@@ -377,7 +383,7 @@ const PeriodsTab: React.FC<{ periods: FiscalYear[]; canModify: boolean }> = ({ p
         </div>
         <div className="p-4 space-y-2">
           {periods.length > 0 ? (
-            periods.map((period) => (
+            pageItems.map((period) => (
               <div key={period.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                 <div className="flex items-center space-x-4">
                   <div className={`p-2 rounded-lg ${period.isClosed ? 'bg-red-100' : 'bg-green-100'}`}>
@@ -421,6 +427,8 @@ const PeriodsTab: React.FC<{ periods: FiscalYear[]; canModify: boolean }> = ({ p
           )}
         </div>
       </div>
+
+      <Pagination meta={meta} onPageChange={setPage} />
 
       <ConfirmationModal
         isOpen={!!confirmClose}

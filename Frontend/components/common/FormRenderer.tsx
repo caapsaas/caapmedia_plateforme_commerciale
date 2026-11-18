@@ -83,7 +83,8 @@ const FormRenderer: React.FC<FormRendererProps> = ({ schema, values, onChange, r
         const { hidden, forcedRequired, forcedReadOnly } = computeFieldState(spec.technicalKey, allRules, values);
         if (hidden) return null;
 
-        const isRequired = spec.required || forcedRequired;
+        const isUpload = spec.type === SpecFieldType.UPLOAD;
+        const isRequired = !isUpload && (spec.required || forcedRequired);
         const isDisabled = !!readOnly || forcedReadOnly;
         const value = values[spec.technicalKey] ?? spec.defaultValue ?? '';
 
@@ -280,6 +281,7 @@ const FormRenderer: React.FC<FormRendererProps> = ({ schema, values, onChange, r
                 <label htmlFor={spec.technicalKey} className="block text-sm font-medium text-slate-700">
                     {spec.name}
                     {isRequired && <span className="text-red-500"> *</span>}
+                    {isUpload && !readOnly && <span className="text-slate-500"> ({t('specBuilder.valuesModal.optional')})</span>}
                     {spec.unit && spec.type !== SpecFieldType.DIMENSIONS && (
                         <span className="text-xs text-slate-400"> ({spec.unit})</span>
                     )}

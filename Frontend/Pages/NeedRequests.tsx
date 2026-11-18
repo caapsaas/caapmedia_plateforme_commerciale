@@ -25,9 +25,12 @@ import { UserRole } from "../types";
 import {
   createNeedRequest,
   getNeedRequests,
+  reviewNeedRequest,
+  NeedRequest,
   NeedStatus,
 } from "../services/apiPurchasing/apiNeedRequests";
 import NeedRequestDialog from "../components/purchasing/NeedRequestDialog";
+import NeedRequestPaymentPanel from "../components/purchasing/NeedRequestPaymentPanel";
 
 const statuses = ["PENDING", "APPROVED", "REJECTED"] as const;
 const statusStyle = {
@@ -47,7 +50,7 @@ const statusStyle = {
     accent: "text-rose-600 bg-rose-50",
   },
 };
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 10;
 const input =
   "w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-lime-500 focus:bg-white focus:ring-4 focus:ring-lime-100";
 const primary =
@@ -65,7 +68,8 @@ export default function NeedRequests() {
   const admin =
     user?.userRole === UserRole.SUPER_ADMIN ||
     user?.additionalRoles?.includes(UserRole.SUPER_ADMIN);
-  const allowed = !!admin || role === UserRole.COMMERCIAL;
+  const canPay = !admin && role === UserRole.FINANCIAL_DIRECTOR;
+  const allowed = !!admin || canPay || role === UserRole.COMMERCIAL;
   const [filter, setFilter] = useState<NeedStatus | "">("");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"recent" | "pending">(
@@ -79,6 +83,8 @@ export default function NeedRequests() {
   const [budget, setBudget] = useState("");
   const [date, setDate] = useState("");
   const [notice, setNotice] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [showRejectForm, setShowRejectForm] = useState(false);
   const closeDetails = () => {
     setSelectedId(null);
     if (hash)
@@ -118,6 +124,27 @@ export default function NeedRequests() {
       setNotice(t("needs.submitted"));
       setPage(1);
       void client.invalidateQueries({ queryKey: ["need-requests"] });
+    },
+  });
+  const review = useMutation({
+    mutationFn: ({
+      id,
+      status,
+      reason,
+    }: {
+      id: string;
+      status: Exclude<NeedStatus, "PENDING">;
+      reason?: string;
+    }) => reviewNeedRequest(id, status, reason),
+    onSuccess: (updated) => {
+      client.setQueriesData<NeedRequest[]>(
+        { queryKey: ["need-requests"] },
+        (old) => old?.map((item) => (item.id === updated.id ? updated : item)),
+      );
+      void client.invalidateQueries({ queryKey: ["need-requests"] });
+      setNotice(t("needs.reviewed"));
+      setRejectionReason("");
+      setShowRejectForm(false);
     },
   });
   const requests = query.data ?? [];
@@ -190,11 +217,15 @@ export default function NeedRequests() {
               {t("needs.title")}
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              {t(admin ? "needs.adminIntro" : "needs.commercialIntro")}
+              {t(
+                admin || role === UserRole.FINANCIAL_DIRECTOR
+                  ? "needs.adminIntro"
+                  : "needs.commercialIntro",
+              )}
             </p>
           </div>
         </div>
-        {!admin && (
+        {role === UserRole.COMMERCIAL && (
           <button onClick={openForm} className={primary}>
             <Plus className="h-4 w-4" />
             {t("needs.new")}
@@ -353,7 +384,7 @@ export default function NeedRequests() {
                 {t("needs.reset")}
               </button>
             ) : (
-              !admin && (
+              role === UserRole.COMMERCIAL && (
                 <button className={`${primary} mt-5`} onClick={openForm}>
                   <Plus className="h-4 w-4" />
                   {t("needs.new")}
@@ -678,6 +709,73 @@ export default function NeedRequests() {
                 </p>
               </div>
             )}
+            {admin && selected.status === "PENDING" && (
+              <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
+                {showRejectForm ? (
+                  <>
+                    <label className="block text-sm font-semibold text-slate-700">
+                      {t("needs.reason")}
+                      <textarea
+                        className={`${input} mt-2 min-h-24`}
+                        required
+                        maxLength={2000}
+                        value={rejectionReason}
+                        onChange={(event) =>
+                          setRejectionReason(event.target.value)
+                        }
+                        placeholder={t("needs.reasonPlaceholder")}
+                      />
+                    </label>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <button
+                        className={secondary}
+                        onClick={() => setShowRejectForm(false)}
+                      >
+                        {t("needs.cancel")}
+                      </button>
+                      <button
+                        className="inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+                        disabled={
+                          review.isPending || rejectionReason.trim().length === 0
+                        }
+                        onClick={() =>
+                          review.mutate({
+                            id: selected.id,
+                            status: "REJECTED",
+                            reason: rejectionReason.trim(),
+                          })
+                        }
+                      >
+                        {t("needs.confirmReject")}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <button
+                      className="inline-flex items-center justify-center rounded-xl border border-rose-200 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                      onClick={() => setShowRejectForm(true)}
+                    >
+                      {t("needs.reject")}
+                    </button>
+                    <button
+                      className={primary}
+                      disabled={review.isPending}
+                      onClick={() =>
+                        review.mutate({ id: selected.id, status: "APPROVED" })
+                      }
+                    >
+                      {t("needs.approve")}
+                    </button>
+                  </div>
+                )}
+                {review.error && (
+                  <p role="alert" className="text-sm text-rose-700">
+                    {errorText(review.error)}
+                  </p>
+                )}
+              </section>
+            )}
             {selected.payment && (
               <section className="space-y-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
                 <h3 className="flex items-center gap-2 font-bold text-emerald-800">
@@ -742,6 +840,15 @@ export default function NeedRequests() {
                   </div>
                 </dl>
               </section>
+            )}
+            {canPay && selected.status === "APPROVED" && !selected.payment && (
+              <NeedRequestPaymentPanel
+                request={selected}
+                onPaid={() => {
+                  setNotice(t("needs.paid"));
+                  void client.invalidateQueries({ queryKey: ["need-requests"] });
+                }}
+              />
             )}
           </div>
           <footer className="flex flex-wrap justify-end gap-3 border-t border-slate-100 bg-slate-50/50 px-6 py-4 sm:px-8">

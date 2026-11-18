@@ -207,6 +207,7 @@ const Sidebar: React.FC = () => {
             groupIcon: <IconFinance className="h-5 w-5" />,
             items: [
               { to: '/dashboard/finance', label: t('sidebar.finance'), icon: <IconFinance className="h-5 w-5" /> },
+              ...(activeRole === UserRole.SUPER_ADMIN ? [{ to: '/dashboard/cashier-receipts', label: t('cashierReceipts.adminTitle'), icon: <IconCurrency className="h-5 w-5" /> }] : []),
               // Décaissement (Coffre-fort + Banques) réservé au SUPER_ADMIN —
               // trésorerie centralisée au siège, comme gmo (« le super admin
               // gère le coffre et les banques »). Un ADMIN de filiale ne l'a
@@ -302,6 +303,7 @@ const Sidebar: React.FC = () => {
             groupIcon: <IconCashRegister className="h-5 w-5" />,
             items: [
               { to: '/dashboard/caisse', label: t('sidebar.cashRegister'), icon: <IconCashRegister className="h-5 w-5" /> },
+              { to: '/dashboard/cashier-receipts', label: t('cashierReceipts.title'), icon: <IconCurrency className="h-5 w-5" /> },
               { to: '/dashboard/sales', label: t('sidebar.transactions'), icon: <IconSales className="h-5 w-5" /> },
               // La caisse ne fait l'objet d'aucun décaissement direct : un
               // caissier ne fait que des remises de caisse (voir
@@ -354,6 +356,7 @@ const Sidebar: React.FC = () => {
             groupIcon: <IconCrm className="h-5 w-5" />,
             items: [
               { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-5 w-5" /> },
+              { to: '/dashboard/need-requests', label: t('needs.title'), icon: <IconClipboardList className="h-5 w-5" /> },
               { to: '/dashboard/proforma', label: t('sidebar.proforma'), icon: <IconDocumentText className="h-5 w-5" /> },
               { to: '/dashboard/sales', label: t('sidebar.orders'), icon: <IconSales className="h-5 w-5" /> },
             ],

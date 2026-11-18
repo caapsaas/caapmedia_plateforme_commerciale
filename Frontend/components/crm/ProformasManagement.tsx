@@ -293,7 +293,7 @@ const ProformasManagement: React.FC = () => {
       {meta && <Pagination meta={meta} onPageChange={setPage} />}
 
       {/* Modals */}
-      {isCreateModalOpen && (
+      {isCreateModalOpen && !readOnly && (
         <CreateProformaModal
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}

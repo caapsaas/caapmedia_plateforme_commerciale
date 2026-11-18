@@ -11,6 +11,8 @@ import { getBanks, createBank, updateBank, deleteBank } from '../../services/api
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
 import { useToast } from '../../context/ToastContext';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 // Gestion des banques (institutions physiques) référencées par les comptes
 // de trésorerie de type Banque — voir TreasuryAccountFormModal. Sans portée
@@ -33,6 +35,7 @@ const BankManagement: React.FC = () => {
             String(value ?? '').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
         ),
     );
+    const { pageItems: pageBanks, meta: banksMeta, setPage } = useClientPagination(filteredBanks);
 
     const onMutationError = (error: any) => {
         toast('error', error?.response?.data?.message || t('common.error'));
@@ -116,7 +119,7 @@ const BankManagement: React.FC = () => {
                                     <EmptyState icon="inbox" title={t('configuration.bank.management')} description={t('common.notAvailable')} />
                                 </td>
                             </tr>
-                        ) : filteredBanks.map((bank) => (
+                        ) : pageBanks.map((bank) => (
                             <tr key={bank.id} className="bg-white border-b hover:bg-slate-50">
                                 <td className="px-6 py-4 font-semibold text-slate-900">{bank.name}</td>
                                 <td className="px-6 py-4">{bank.address}</td>
@@ -135,6 +138,7 @@ const BankManagement: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+            <Pagination meta={banksMeta} onPageChange={setPage} />
 
             {isModalOpen && (
                 <BankFormModal

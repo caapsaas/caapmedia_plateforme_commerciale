@@ -11,6 +11,8 @@ import IconDelete from '../icons/IconDelete';
 import { getPendingBonuses, getApprovedBonuses, approveBonus, cancelBonus, extractBonusesFromPayroll, assignBonus } from '../../services/apihr/apiPayroll';
 import { getEmployees } from '../../services/apihr/apiEmployees';
 import IconPlus from '../icons/IconPlus';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 interface PayrollBonus {
   id: string;
@@ -96,6 +98,7 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ subsidiary }) => {
       return matchesPeriod;
     });
   }, [bonuses, searchTerm, selectedPeriod]);
+  const { pageItems: pageBonuses, meta: bonusesMeta, setPage } = useClientPagination(filteredBonuses);
 
   // Résumé financier
   const summary = useMemo(() => {
@@ -326,7 +329,7 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ subsidiary }) => {
                 </td>
               </tr>
             ) : (
-              filteredBonuses.map((bonus) => (
+              pageBonuses.map((bonus) => (
                 <tr key={bonus.id} className="bg-white border-b hover:bg-slate-50">
                   <td className="px-4 py-3 font-semibold text-slate-800">
                     {bonus.bonusTypeId || '—'}
@@ -371,6 +374,7 @@ const BonusManagement: React.FC<BonusManagementProps> = ({ subsidiary }) => {
             )}
           </tbody>
         </table>
+        <Pagination meta={bonusesMeta} onPageChange={setPage} />
       </div>
 
       {/* Modale Attribuer un Bonus */}

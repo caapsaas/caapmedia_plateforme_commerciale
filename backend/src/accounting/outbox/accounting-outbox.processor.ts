@@ -3,6 +3,7 @@ import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { AccountingOutboxStatus, Prisma } from '@prisma/client';
 import { JournalizationService } from '../journalization/journalization.service';
+import type { AccountingOutboxPayload } from './accounting-outbox.service';
 
 /**
  * Processeur Outbox - Pattern transactionnel pour intégrité comptable
@@ -131,6 +132,19 @@ export class AccountingOutboxProcessor {
       case 'CHARGE_PAYMENT_ENTRY':
         await this.handleChargePaymentEntry(typedPayload, subsidiaryId);
         break;
+
+      case 'EXPENSE_RECORD':
+      case 'EXPENSE_RECORD_PAYMENT':
+      case 'TREASURY_EXPENSE': {
+        const context = payload as unknown as AccountingOutboxPayload;
+        await this.journalizationService.journalize({
+          ...context,
+          subsidiaryId,
+          sourceType: eventType,
+          operationDate: new Date(context.operationDate),
+        });
+        break;
+      }
 
       default:
         throw new Error(`Type d'événement inconnu: ${eventType}`);

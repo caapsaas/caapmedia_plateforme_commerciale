@@ -17,7 +17,7 @@ import EmptyState from '../components/ui/EmptyState';
 import { useAuth } from '../context/AuthContext';
 
 type NotificationFilter = 'all' | 'unread';
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 10;
 
 // Page autonome "Notifications" — vue complète paginée en complément du
 // dropdown compact du Header (voir NotificationDropdown.tsx), même pattern

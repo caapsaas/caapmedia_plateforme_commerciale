@@ -8,7 +8,12 @@ import {
   CreateSupplierDto,
   UpdateSupplierDto,
 } from './dto/create-supplier.dto';
-import { Prisma, TransactionStatus, TransactionType } from '@prisma/client';
+import {
+  AccountType,
+  Prisma,
+  TransactionStatus,
+  TransactionType,
+} from '@prisma/client';
 import { IN_MOVEMENT_TYPES } from '../stock-movements/stock-movements.service';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
@@ -169,7 +174,20 @@ export class SuppliersService {
         // Match their explicit document link, never a supplier name.
         const payments = await tx.financialTransaction.findMany({
           where: { relatedDocumentId: { in: documentIds } },
+          include: {
+            treasuryAccount: { select: { accountType: true } },
+          },
         });
+        if (
+          payments.some(
+            (payment) =>
+              payment.treasuryAccount.accountType === AccountType.BANQUE,
+          )
+        ) {
+          throw new ConflictException(
+            'Un fournisseur ayant des opérations bancaires ne peut pas être supprimé. Désactivez-le et conservez sa piste d’audit.',
+          );
+        }
         for (const payment of payments) {
           if (payment.status !== TransactionStatus.VALIDE) continue;
           const delta =

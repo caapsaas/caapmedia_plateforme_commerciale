@@ -9,8 +9,13 @@ import {
 } from '@nestjs/common';
 import { StockMovementsService } from './stock-movements.service';
 import { JwtAuthGuard } from 'src/common/auth/jwt/jwt.guard';
+import type { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 import { RoleGuard } from 'src/common/auth/role/role.guard';
-import { Roles } from 'src/common/auth/role/role.decorator';
+import {
+  ActiveRoles,
+  Roles,
+  SuperAdminReadOnly,
+} from 'src/common/auth/role/role.decorator';
 import { UserRole } from '@prisma/client';
 import {
   CreateStockMovementDto,
@@ -28,18 +33,14 @@ const READ_ROLES = [
 ];
 const MANAGE_ROLES = [
   UserRole.ADMIN,
-  UserRole.SUPER_ADMIN,
   UserRole.PURCHASING_MANAGER,
 ];
 // "Prélever les matières" — réservé au responsable de production existant,
 // pas de nouveau rôle "Magasinier" créé pour ce chantier (décision actée).
-const WITHDRAW_ROLES = [
-  UserRole.ADMIN,
-  UserRole.SUPER_ADMIN,
-  UserRole.PRODUCTION_DIRECTOR,
-];
+const WITHDRAW_ROLES = [UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR];
 
 @Controller('purchase/stock-movements')
+@SuperAdminReadOnly()
 @UseGuards(JwtAuthGuard, RoleGuard)
 export class StockMovementsController {
   constructor(private readonly stockMovementsService: StockMovementsService) {}
@@ -63,8 +64,11 @@ export class StockMovementsController {
   }
 
   @Post('withdraw-for-order')
-  @Roles(...WITHDRAW_ROLES)
-  withdrawForOrder(@Body() dto: WithdrawForOrderDto, @Req() req: any) {
+  @ActiveRoles(...WITHDRAW_ROLES)
+  withdrawForOrder(
+    @Body() dto: WithdrawForOrderDto,
+    @Req() req: { user: JwtUser },
+  ) {
     return this.stockMovementsService.withdrawForOrder(dto, req.user);
   }
 }

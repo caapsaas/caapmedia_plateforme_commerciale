@@ -4,10 +4,12 @@ import { FinancialTransaction, TransactionStatus, TreasuryAccount, UserRole } fr
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import { useHasRole } from '../../hooks/useHasRole';
-import { deleteTransaction, getAccountTransactions, updateTransactionStatus } from '../../services/apiFinance/apiTreasury';
+import { getAccountTransactions, updateTransactionStatus } from '../../services/apiFinance/apiTreasury';
 import { getTransactionLegForAccount } from '../../utils/transactionDisplay';
 import IconCheck from '../icons/IconCheck';
 import IconCancelX from '../icons/IconCancelX';
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 
 interface AccountHistoryModalProps {
   isOpen: boolean;
@@ -32,6 +34,7 @@ const AccountHistoryModal: React.FC<AccountHistoryModalProps> = ({ isOpen, onClo
   });
 
   const transactions = data?.data ?? [];
+  const { pageItems: pageTransactions, meta: transactionsMeta, setPage } = useClientPagination(transactions);
 
   const { mutate: setStatus, isPending } = useMutation({
     mutationFn: ({ id, status }: { id: string; status: TransactionStatus }) => updateTransactionStatus(id, status),
@@ -46,7 +49,7 @@ const AccountHistoryModal: React.FC<AccountHistoryModalProps> = ({ isOpen, onClo
   });
 
   const { mutate: cancelPending, isPending: isCancelling } = useMutation({
-    mutationFn: (id: string) => deleteTransaction(id),
+    mutationFn: (id: string) => updateTransactionStatus(id, TransactionStatus.CANCELLED),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accountTransactions', account?.id] });
       toast.success(t('treasury.history.cancelled'), t('treasury.history.cancelledMessage'));
@@ -110,7 +113,7 @@ const AccountHistoryModal: React.FC<AccountHistoryModalProps> = ({ isOpen, onClo
                   <tr><td colSpan={10} className="px-4 py-6 text-center text-slate-400">{t('common.loading')}</td></tr>
                 ) : transactions.length === 0 ? (
                   <tr><td colSpan={10} className="px-4 py-6 text-center text-slate-400">{t('common.notAvailable')}</td></tr>
-                ) : transactions.map((tx) => {
+                ) : pageTransactions.map((tx) => {
                   const { isIncome, counterpartyName, balanceBefore, balanceAfter } = getTransactionLegForAccount(tx, account.id);
 
                   return (
@@ -130,8 +133,8 @@ const AccountHistoryModal: React.FC<AccountHistoryModalProps> = ({ isOpen, onClo
                       <td className="px-4 py-3 text-right">{balanceBefore != null ? formatCurrency(balanceBefore) : '—'}</td>
                       <td className="px-4 py-3 text-right">{balanceAfter != null ? formatCurrency(balanceAfter) : '—'}</td>
                       <td className="px-4 py-3 text-center">
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${tx.status === TransactionStatus.PENDING ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
-                          {tx.status === TransactionStatus.PENDING ? t('treasury.statusPending') : t('treasury.statusValidated')}
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${tx.status === TransactionStatus.PENDING ? 'bg-amber-100 text-amber-800' : tx.status === TransactionStatus.CANCELLED ? 'bg-slate-100 text-slate-600' : 'bg-green-100 text-green-800'}`}>
+                          {tx.status === TransactionStatus.PENDING ? t('treasury.statusPending') : tx.status === TransactionStatus.CANCELLED ? t('treasury.statusCancelled') : t('treasury.statusValidated')}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center no-print space-x-1">
@@ -161,6 +164,7 @@ const AccountHistoryModal: React.FC<AccountHistoryModalProps> = ({ isOpen, onClo
                 })}
               </tbody>
             </table>
+            <Pagination meta={transactionsMeta} onPageChange={setPage} />
           </div>
         </div>
       </div>

@@ -14,6 +14,8 @@ export default function ShareProformaModal({ proforma, onClose }: { proforma: Pr
   const [opened, setOpened] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const refresh = () => { void cache.invalidateQueries({ queryKey: ['proformas'] }); };
+  const supportsFileShare = typeof navigator !== 'undefined' &&
+    typeof navigator.share === 'function' && typeof navigator.canShare === 'function';
   const run = async (channel: string, work: () => Promise<void>) => {
     if (busy) return;
     setBusy(channel);
@@ -23,6 +25,23 @@ export default function ShareProformaModal({ proforma, onClose }: { proforma: Pr
       const message = isAxiosError<{ message?: string | string[] }>(failure) ? failure.response?.data.message : undefined;
       setError(typeof message === 'string' ? message : Array.isArray(message) ? message.join(' ') : t('proforma.sharing.error'));
     } finally { setBusy(null); }
+  };
+  const sharePdfToWhatsApp = async () => {
+    if (!share) return;
+    const response = await fetch(share.downloadUrl);
+    if (!response.ok) throw new Error(t('proforma.sharing.pdfDownloadError'));
+    const blob = await response.blob();
+    const filename = `proforma_${proforma.proformaNumber.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
+    const file = new File([blob], filename, { type: 'application/pdf' });
+    if (!navigator.canShare({ files: [file] })) {
+      throw new Error(t('proforma.sharing.pdfShareUnsupported'));
+    }
+    await navigator.share({
+      files: [file],
+      title: `Proforma ${proforma.proformaNumber}`,
+      text: share.caption,
+    });
+    setOpened(true);
   };
   return <div className="fixed inset-0 z-[70] modal-backdrop flex items-center justify-center p-4" onClick={event => { event.stopPropagation(); if (!busy) onClose(); }}>
     <section role="dialog" aria-modal="true" aria-labelledby="share-proforma-title" className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-5" onClick={event => event.stopPropagation()}>
@@ -50,9 +69,17 @@ export default function ShareProformaModal({ proforma, onClose }: { proforma: Pr
         </button> : <>
           <pre className="text-xs whitespace-pre-wrap break-all bg-slate-50 p-3 rounded-md max-h-36 overflow-y-auto">{share.message}</pre>
           <p className="text-xs text-slate-500">{t('proforma.sharing.expires', { date: new Date(share.expiresAt).toLocaleString(language, { timeZone: 'Africa/Douala' }) })}</p>
-          <a href={share.whatsappUrl} target="_blank" rel="noopener noreferrer" onClick={() => setOpened(true)} className="inline-block px-4 py-2 bg-green-700 text-white rounded-md">
-            {t('proforma.sharing.openWhatsApp')}
-          </a>
+          <div className="flex flex-wrap gap-2">
+            {supportsFileShare && <button type="button" disabled={!!busy} onClick={() => run('whatsapp-pdf', sharePdfToWhatsApp)} className="px-4 py-2 bg-green-700 text-white rounded-md disabled:opacity-50">
+              {busy === 'whatsapp-pdf' ? t('common.loading') : t('proforma.sharing.sharePdfWhatsApp')}
+            </button>}
+            <a href={share.downloadUrl} target="_blank" rel="noopener noreferrer" className="inline-block px-4 py-2 bg-slate-100 text-slate-800 rounded-md">
+              {t('proforma.sharing.downloadPdf')}
+            </a>
+            <a href={share.whatsappUrl} target="_blank" rel="noopener noreferrer" onClick={() => setOpened(true)} className="inline-block px-4 py-2 border border-green-700 text-green-800 rounded-md">
+              {t('proforma.sharing.openWhatsApp')}
+            </a>
+          </div>
           {opened && proforma.status === 'DRAFT' && !emailSent && !confirmed && <button type="button" disabled={!!busy} className="block text-sm text-blue-700 underline disabled:opacity-50"
             onClick={() => run('confirm', async () => { await sendProforma(proforma.id); setConfirmed(true); refresh(); })}>
             {t('proforma.sharing.confirmWhatsApp')}

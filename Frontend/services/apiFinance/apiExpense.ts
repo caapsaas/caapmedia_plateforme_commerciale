@@ -5,7 +5,7 @@ import { ExpenseRecord } from '../../types';
  * Données pour la création d'une charge.
  * Les champs gérés par le backend sont omis.
  */
-export type ExpenseRecordCreationData = Omit<ExpenseRecord, 'id' | 'subsidiaryId'>;
+export type ExpenseRecordCreationData = Omit<ExpenseRecord, 'id' | 'subsidiaryId' | 'paymentTransaction'>;
 
 /**
  * Données pour la mise à jour d'une charge.
@@ -18,14 +18,36 @@ export type ExpenseRecordUpdateData = Partial<ExpenseRecordCreationData>;
  * préserver le comportement "tout charger" nécessaire à l'export CSV/PDF de
  * ExpenseManagement.tsx.
  */
-export const getExpenses = async (): Promise<ExpenseRecord[]> => {
-  const { data } = await api.get<{ data: any[] }>('/finance/expenses', { params: { limit: 500 } });
+export const getExpenses = async (subsidiaryId?: string): Promise<ExpenseRecord[]> => {
+  const { data } = await api.get<{ data: any[] }>('/finance/expenses', { params: { limit: 500, subsidiaryId } });
   // Mapper les champs du backend vers le frontend
   return data.data.map(expense => ({
     ...expense,
     date: expense.expenseDate, // expenseDate -> date
     type: expense.expenseRecordType, // expenseRecordType -> type
   }));
+};
+
+export interface PayableExpense {
+  id: string;
+  description: string;
+  amount: string;
+  expenseDate: string;
+  subsidiary: { subsidiaryName: string };
+}
+
+export const getPayableExpenses = async (search: string): Promise<PayableExpense[]> => {
+  const { data } = await api.get<{ data: PayableExpense[] }>('/finance/expenses/payable', { params: { limit: 100, search } });
+  return data.data;
+};
+
+export const payExpense = async (id: string, payment: {
+  safeId: string;
+  expectedAmount: number;
+  transactionDate: string;
+  reference?: string;
+}): Promise<void> => {
+  await api.post(`/finance/expenses/${id}/pay`, payment);
 };
 
 /**

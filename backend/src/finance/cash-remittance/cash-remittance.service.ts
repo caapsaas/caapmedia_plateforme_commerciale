@@ -17,7 +17,7 @@ import {
 import { CreateCashRemittanceDto } from './dto/create-cash-remittance.dto';
 import { ReceiveCashRemittanceDto } from './dto/receive-cash-remittance.dto';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
-import { checkRole } from 'src/common/auth/role/check-role.util';
+import { checkActiveRole } from 'src/common/auth/role/check-role.util';
 import {
   resolveScopeContext,
   assertSubsidiaryAccess,
@@ -400,7 +400,7 @@ export class CashRemittanceService {
   }
 
   async receive(id: string, dto: ReceiveCashRemittanceDto, user: JwtUser) {
-    checkRole(
+    checkActiveRole(
       user,
       [UserRole.FINANCIAL_DIRECTOR],
       'Seul le directeur financier peut réceptionner une remise de caisse.',

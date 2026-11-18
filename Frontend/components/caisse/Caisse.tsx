@@ -1,3 +1,5 @@
+import Pagination from '../common/Pagination';
+import { useClientPagination } from '../../hooks/useClientPagination';
 import React, { useState, useMemo } from 'react';
 import { Product, Contact, Order, CustomerPaymentMethod, TaxRate, ProductOptions } from '../../types';
 import IconCreditCard from '../icons/IconCreditCard';
@@ -32,6 +34,8 @@ import { CartItem } from '../ecommerce/ShoppingCart';
 type CaisseCartItem = CartItem & {
     discount?: number;
     assemblyPrice?: number;
+    productionSteps?: ProductionCostResult['steps'];
+    productionSummary?: ProductionCostResult['summary'];
 };
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getServicesCatalog } from '../../services/apiE-commerce/apiProducts';
@@ -161,6 +165,7 @@ const Caisse: React.FC = () => {
 
     // Memoized data
     const filteredProducts = useMemo(() => products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())), [products, searchTerm]);
+    const { pageItems, meta, setPage } = useClientPagination(filteredProducts);
     const [chosenPaymentMethod, setSelectedPaymentMethod] = useState<CustomerPaymentMethod | null>(null);
     // Paiements bancaires : compte + référence de transaction
     const [selectedBankAccountId, setSelectedBankAccountId] = useState<string>('');
@@ -235,6 +240,8 @@ const Caisse: React.FC = () => {
                 unitPrice,
                 totalPrice: result.summary.finalPrice,
                 specValues,
+                productionSteps: result.steps,
+                productionSummary: result.summary,
                 options: {},
             }
         ]);
@@ -301,6 +308,8 @@ const Caisse: React.FC = () => {
                 discount: item.discount || 0,
                 assemblyPrice: item.assemblyPrice || 0,
                 specValues: item.specValues,
+                productionSteps: item.productionSteps,
+                productionSummary: item.productionSummary,
             })),
             customerId: selectedContact.id,
             paymentMethod: selectedPaymentMethod,
@@ -439,7 +448,7 @@ const Caisse: React.FC = () => {
                                     <EmptyState icon="search" title={t('cashRegister.noProducts')} />
                                 ) : (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                                    {filteredProducts.map(p => (
+                                    {pageItems.map(p => (
                                         <div
                                             key={p.id}
                                             className="border border-slate-200 rounded-xl p-3 hover:border-[#c6e911] hover:shadow-md transition-all flex flex-col justify-between bg-white"
@@ -496,6 +505,7 @@ const Caisse: React.FC = () => {
                                     ))}
                                 </div>
                                 )}
+                                <Pagination meta={meta} onPageChange={setPage} />
                             </div>
                         </>
                     ) : loadedOrder && (
