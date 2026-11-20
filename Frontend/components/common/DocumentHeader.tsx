@@ -32,20 +32,20 @@ const DocumentHeader: React.FC<DocumentHeaderProps> = ({ subsidiary, showFiscalI
     const phone = usePublicContact ? '+237 671 89 01 84' : subsidiary.phone;
     const email = usePublicContact ? 'contact@caapmedia.com' : subsidiary.email;
     return (
-        <div className="flex items-stretch gap-6 pb-6 mb-6 border-b border-slate-200 min-h-[7rem]">
-            <div className="w-1/3 flex items-center justify-center">
+        <div className="relative flex items-center gap-8 pb-5 mb-7 border-b border-slate-200 min-h-[7rem]">
+            <div className="w-[28%] shrink-0 flex items-center justify-start">
                 <img src={LOGO_SRC} alt="CaapMedia" className="max-h-24 max-w-full object-contain" />
             </div>
 
-            <div className="w-2/3 rounded-lg border border-[#c6e911]/40 bg-[#c6e911]/5 p-4 flex flex-col justify-center text-sm text-slate-700 leading-snug">
-                <p className="font-bold text-base text-slate-900">{subsidiary.name}</p>
-                {subsidiary.address && <p>{subsidiary.address}</p>}
-                <div className="flex flex-wrap gap-x-4 mt-1">
-                    {phone && <p><span className="font-semibold">Tél :</span> {phone}</p>}
-                    {email && <p><span className="font-semibold">Email :</span> {email}</p>}
+            <div className="flex-1 border-l-2 border-[#c6e911] pl-5 text-sm text-slate-600 leading-snug">
+                <p className="font-bold text-base tracking-tight text-slate-900">{subsidiary.name}</p>
+                {subsidiary.address && <p className="mt-1">{subsidiary.address}</p>}
+                <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2 text-xs text-slate-500">
+                    {phone && <p>Tél : {phone}</p>}
+                    {email && <p>Email : {email}</p>}
                 </div>
                 {showFiscalInfo && (subsidiary.ifu || subsidiary.rccm) && (
-                    <div className="flex flex-wrap gap-x-4 mt-1 text-xs text-slate-500">
+                    <div className="flex flex-wrap gap-x-4 mt-2 text-[11px] text-slate-500">
                         {subsidiary.ifu && <p>IFU : {subsidiary.ifu}</p>}
                         {subsidiary.rccm && <p>RCCM : {subsidiary.rccm}</p>}
                     </div>

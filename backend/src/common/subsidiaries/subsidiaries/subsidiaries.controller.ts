@@ -189,7 +189,12 @@ export class SubsidiaryController {
   }
 
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.HR_MANAGER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+    UserRole.HR_MANAGER,
+    UserRole.FINANCIAL_DIRECTOR,
+  )
   @Get()
   async getAllSubsidiaries(
     @Request() req,

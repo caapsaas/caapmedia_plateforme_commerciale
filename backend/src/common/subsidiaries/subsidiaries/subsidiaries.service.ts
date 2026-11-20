@@ -13,6 +13,8 @@ import { generateId } from '../../utils/generate-id.util';
 import { ID_PREFIXES } from '../../constants/id-prefixes.const';
 import { PaginationQueryDto } from '../../pagination/dto/pagination-query.dto';
 import { paginate } from '../../pagination/pagination';
+import { getActiveRole, isSuperAdmin } from '../../auth/role/role-identity';
+import type { ScopableUser } from '../../utils/subsidiary-scope';
 
 @Injectable()
 export class SubsidiaryService {
@@ -322,16 +324,28 @@ export class SubsidiaryService {
   }
 
   async getAllSubsidiaries(
-    currentUser: {
-      id: string;
-      role?: UserRole;
-      roles?: UserRole[];
-      subsidiaryId: string;
-    },
+    currentUser: ScopableUser,
     paginationQuery: PaginationQueryDto = {},
   ) {
-    const isGlobalScope = this.hasAdminPrivileges(currentUser);
-    const where: any = isGlobalScope ? {} : { id: currentUser.subsidiaryId };
+    const isFinancialDirector =
+      getActiveRole(currentUser) === UserRole.FINANCIAL_DIRECTOR &&
+      !isSuperAdmin(currentUser);
+    let isGlobalScope = this.hasAdminPrivileges(currentUser);
+    if (isFinancialDirector) {
+      if (!currentUser.subsidiaryId?.trim()) {
+        throw new ForbiddenException(
+          'Une filiale est requise pour cette opération.',
+        );
+      }
+      const subsidiary = await this.prisma.subsidiary.findUnique({
+        where: { id: currentUser.subsidiaryId },
+        select: { isHeadquarter: true },
+      });
+      isGlobalScope = subsidiary?.isHeadquarter === true;
+    }
+    const where: Prisma.SubsidiaryWhereInput = isGlobalScope
+      ? {}
+      : { id: currentUser.subsidiaryId };
 
     if (paginationQuery.search && paginationQuery.search.trim() !== '') {
       const term = paginationQuery.search.trim();
@@ -354,23 +368,30 @@ export class SubsidiaryService {
     );
     return {
       ...result,
-      data: result.data.map((subsidiary) => ({
-        id: subsidiary.id,
-        subsidiaryName: subsidiary.subsidiaryName,
-        name: subsidiary.subsidiaryName,
-        logoSvg: subsidiary.logoSvg,
-        email: subsidiary.email,
-        address: subsidiary.address,
-        phone: subsidiary.phone,
-        ifu: subsidiary.ifu,
-        rccm: subsidiary.rccm,
-        bankName: subsidiary.bankName,
-        accountNumber: subsidiary.accountNumber,
-        swiftCode: subsidiary.swiftCode,
-        shareCapital: Number(subsidiary.shareCapital),
-        taxRate: subsidiary.taxRate.toNumber(),
-        isHeadquarter: subsidiary.isHeadquarter,
-      })),
+      data: result.data.map((subsidiary) => {
+        const summary = {
+          id: subsidiary.id,
+          subsidiaryName: subsidiary.subsidiaryName,
+          name: subsidiary.subsidiaryName,
+          isHeadquarter: subsidiary.isHeadquarter,
+        };
+        if (isFinancialDirector) return summary;
+
+        return {
+          ...summary,
+          logoSvg: subsidiary.logoSvg,
+          email: subsidiary.email,
+          address: subsidiary.address,
+          phone: subsidiary.phone,
+          ifu: subsidiary.ifu,
+          rccm: subsidiary.rccm,
+          bankName: subsidiary.bankName,
+          accountNumber: subsidiary.accountNumber,
+          swiftCode: subsidiary.swiftCode,
+          shareCapital: Number(subsidiary.shareCapital),
+          taxRate: subsidiary.taxRate.toNumber(),
+        };
+      }),
     };
   }
 

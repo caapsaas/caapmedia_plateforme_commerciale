@@ -49,9 +49,9 @@ const BonEntree: React.FC<BonEntreeProps> = ({ purchaseOrder, subsidiary, onClos
 
             <DocumentHeader subsidiary={subsidiary} usePublicContact />
 
-            <div className="flex justify-between items-start mb-8 mt-4">
+            <div className="flex justify-between items-center gap-6 mb-8 mt-4 pb-4 border-b border-slate-200">
                 <div>
-                    <h4 className="text-2xl font-bold text-slate-800">{t('purchasing.goodsReceipt.title')}</h4>
+                    <h4 className="text-2xl font-bold tracking-tight text-slate-900">{t('purchasing.goodsReceipt.title')}</h4>
                     {/* purchaseOrder.id est un UUID réel — même troncature que Purchasing.tsx/PurchaseOrderDetailsModal.tsx. */}
                     <p className="text-slate-600 mt-1">
                         {t('purchasing.poNumber')} : <span className="font-semibold font-mono">#{purchaseOrder.id.slice(-8).toUpperCase()}</span>
@@ -91,16 +91,16 @@ const BonEntree: React.FC<BonEntreeProps> = ({ purchaseOrder, subsidiary, onClos
             </p>
 
             {/* Blocs signature — remplis à la main, pas de capture électronique (hors périmètre actuel). */}
-            <div className="grid grid-cols-2 gap-6 mt-4">
-                <div className="border border-slate-200 rounded-lg p-4">
-                    <p className="text-xs text-slate-500 uppercase font-semibold mb-8">{t('purchasing.goodsReceipt.warehouseKeeper')}</p>
-                    <div className="border-t border-dashed border-slate-300 pt-2 text-center text-xs text-slate-300 italic">
+            <div className="grid grid-cols-2 gap-12 mt-10">
+                <div className="px-2">
+                    <p className="text-[10px] text-slate-500 uppercase font-semibold mb-12">{t('purchasing.goodsReceipt.warehouseKeeper')}</p>
+                    <div className="border-t border-slate-300 pt-2 text-center text-[10px] text-slate-400">
                         {t('purchasing.goodsReceipt.signature')}
                     </div>
                 </div>
-                <div className="border border-slate-200 rounded-lg p-4">
-                    <p className="text-xs text-slate-500 uppercase font-semibold mb-8">{t('purchasing.goodsReceipt.supplierOrCarrier')}</p>
-                    <div className="border-t border-dashed border-slate-300 pt-2 text-center text-xs text-slate-300 italic">
+                <div className="px-2">
+                    <p className="text-[10px] text-slate-500 uppercase font-semibold mb-12">{t('purchasing.goodsReceipt.supplierOrCarrier')}</p>
+                    <div className="border-t border-slate-300 pt-2 text-center text-[10px] text-slate-400">
                         {t('purchasing.goodsReceipt.signature')}
                     </div>
                 </div>

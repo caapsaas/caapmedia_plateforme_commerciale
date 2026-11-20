@@ -25,17 +25,15 @@ const DocumentFooter: React.FC<DocumentFooterProps> = ({
     return (
         <div className="mt-8">
             {message && (
-                <p className="text-sm text-slate-600 text-center leading-relaxed pt-6 border-t border-slate-200">
+                <p className="text-xs text-slate-500 text-center leading-relaxed py-3 border-t border-slate-200">
                     {message}
                 </p>
             )}
 
             {showSignature && (
                 <>
-                    <p className="text-xs text-slate-400 text-center mt-6">
-                        ___________________________________________________________
-                    </p>
-                    <p className="text-xs text-slate-400 text-center mt-2">
+                    <div className="mx-auto mt-8 w-56 border-t border-slate-300" />
+                    <p className="text-[10px] text-slate-400 text-center mt-2">
                         {customText}
                     </p>
                 </>
@@ -45,7 +43,7 @@ const DocumentFooter: React.FC<DocumentFooterProps> = ({
                 // -mx-8 -mb-8 : bord à bord avec la page (compense le p-8 du
                 // conteneur document, standard sur les 6 documents) — pas de
                 // marge/espace flottant, comme la bande de FooterGMO chez gmo.
-                <div className="mt-6 -mx-8 -mb-8 border-t-2 border-[#c6e911] bg-[#c6e911]/10 px-8 py-2.5 text-center text-[11px] text-slate-600 leading-relaxed">
+                <div className="mt-6 -mx-8 -mb-8 border-t border-slate-200 bg-white px-8 py-3 text-center text-[10px] text-slate-500 leading-relaxed">
                     {hasFiscalInfo && (
                         <p>
                             {subsidiary.rccm && <>RCCM : {subsidiary.rccm}</>}

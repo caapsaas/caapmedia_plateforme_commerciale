@@ -74,8 +74,8 @@ const Finance: React.FC = () => {
     // le reste (endpoints de toute façon inaccessibles à ce rôle).
     const { data: expenseRecords = [], isLoading: isLoadingExpenses } = useQuery<ExpenseRecord[]>({
         queryKey: ['expenseRecords', effectiveSubsidiary?.id],
-        queryFn: () => getExpenses(effectiveSubsidiary?.id),
-        enabled: !!effectiveSubsidiary && !isCaissier,
+        queryFn: ({ signal }) => getExpenses(effectiveSubsidiary?.id, signal),
+        enabled: !!effectiveSubsidiary && !isCaissier && activeTab === FinanceView.EXPENSES,
     });
 
     const { data: supplierDebts = [], isLoading: isLoadingSupplierDebts } = useQuery<SupplierDebt[]>({
@@ -135,7 +135,7 @@ const Finance: React.FC = () => {
             case FinanceView.CASH_REMITTANCES:
                 return <CashRemittanceManagement />;
             case FinanceView.EXPENSES:
-                return <ExpenseManagement subsidiary={effectiveSubsidiary} expenseRecords={expenseRecords} isLoading={isLoadingExpenses} />;
+                return <ExpenseManagement key={effectiveSubsidiary.id} subsidiary={effectiveSubsidiary} expenseRecords={expenseRecords} isLoading={isLoadingExpenses} />;
             case FinanceView.RECURRING_EXPENSES:
                 return <RecurringExpenses subsidiary={effectiveSubsidiary} recurringExpenses={recurringExpenses} isLoading={isLoadingRecurringExpenses} />;
             case FinanceView.TAX_TRANSPARENCY:

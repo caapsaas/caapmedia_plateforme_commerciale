@@ -112,7 +112,11 @@ export class ExpensesService {
 
     return paginate(
       this.prisma.expenseRecord,
-      { where, orderBy: { expenseDate: 'desc' }, include: paymentDetails },
+      {
+        where,
+        orderBy: [{ expenseDate: 'desc' }, { id: 'asc' }],
+        include: paymentDetails,
+      },
       paginationQuery,
     );
   }

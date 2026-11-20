@@ -63,19 +63,17 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
             <DocumentWatermark />
             {/* Header */}
             <DocumentHeader subsidiary={subsidiary} usePublicContact />
-            <div className="flex justify-between items-start mb-8">
-                <h2 className="font-bold text-2xl text-slate-800 uppercase">{t('bonDeCommande.title')}</h2>
+            <div className="flex justify-between items-center gap-6 mb-8 pb-4 border-b border-slate-200">
+                <div>
+                    <h2 className="font-bold text-2xl text-slate-900 uppercase tracking-tight">{t('bonDeCommande.title')}</h2>
+                </div>
                 <div className="text-right">
-                    <div className="space-y-2 text-sm">
-                        <p className="text-slate-700 font-semibold">{t('bonDeCommande.orderNum')}: <span className="font-bold text-base text-[#c6e911]">{order.id}</span></p>
-                        <p className="text-slate-600">{t('bonDeCommande.date')}: <span className="font-semibold text-slate-800">{formatDate(documentData.date)}</span></p>
-                        <p className="text-slate-600 mt-3 text-xs font-semibold">
-                            {order.status === 'PENDING_VALIDATION' ? (
-                                <span className="text-yellow-600 bg-yellow-50 px-2 py-1 rounded">⏳ En attente</span>
-                            ) : (
-                                <span className="text-green-600 bg-green-50 px-2 py-1 rounded">✓ Validée</span>
-                            )}
-                        </p>
+                    <div className="space-y-1.5 text-sm">
+                        <div>
+                            <p className="text-slate-500 text-[10px] font-medium uppercase tracking-wide">{t('bonDeCommande.orderNum')}</p>
+                            <p className="font-semibold font-mono text-xs text-slate-900">{order.id}</p>
+                        </div>
+                        <p className="text-slate-600">{t('bonDeCommande.date')}: <span className="font-semibold text-slate-900">{formatDate(documentData.date)}</span></p>
                     </div>
                 </div>
             </div>
@@ -89,11 +87,6 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
                 <div>
                     <h5 className="font-semibold text-slate-600 uppercase text-xs tracking-wide mb-3 border-b pb-2">{t('bonDeCommande.paymentMethod')}</h5>
                     <p className="font-semibold text-slate-800">{t(getOrderPaymentLabelKey(order.paymentMethod))}</p>
-                    {order.paymentDueDate && (
-                        <p className="text-slate-600 text-sm mt-3">
-                            <span className="font-semibold">{t('bonDeCommande.dueDate')}:</span> {formatDate(order.paymentDueDate)}
-                        </p>
-                    )}
                 </div>
             </div>
 
@@ -120,11 +113,7 @@ const BonDeCommande: React.FC<BonDeCommandeProps> = ({ order, subsidiary, onClos
             </p>
 
             {/* Footer */}
-            <DocumentFooter
-                message={`${t('bonDeCommande.footer')} ${order.paymentDueDate ? formatDate(order.paymentDueDate) : ''}.`}
-                showSignature={true}
-                subsidiary={subsidiary}
-            />
+            <DocumentFooter showSignature={true} subsidiary={subsidiary} />
         </div>
     );
 

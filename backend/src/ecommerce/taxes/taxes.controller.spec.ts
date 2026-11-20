@@ -21,11 +21,11 @@ describe('TaxesController', () => {
   });
 
   it.each(['findAll', 'findOne'] as const)(
-    'allows commercials to read taxes through %s',
+    'does not restrict authenticated tax reads by active role through %s',
     (method) => {
       expect(
         Reflect.getMetadata(ROLES_KEY, TaxesController.prototype[method]),
-      ).toEqual([UserRole.ADMIN, UserRole.COMMERCIAL]);
+      ).toBeUndefined();
     },
   );
 

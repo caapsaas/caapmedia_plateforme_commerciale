@@ -12,13 +12,14 @@ import type { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 export class CommercialParamsController {
   constructor(private readonly service: CommercialParamsService) {}
 
-  // Accessible à tous les rôles connectés : les commerciaux en ont besoin
-  // pour afficher les marges indicatives côté frontend.
+  // Les commerciaux et caissiers en ont besoin pour afficher les marges
+  // indicatives dans leurs écrans de vente et de caisse.
   @Get()
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.ADMIN,
     UserRole.COMMERCIAL,
+    UserRole.CAISSIER,
     UserRole.FINANCIAL_DIRECTOR,
   )
   findGlobal() {

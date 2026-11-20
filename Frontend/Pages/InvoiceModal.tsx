@@ -50,17 +50,17 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, order, subsidiary, 
 
             <DocumentHeader subsidiary={subsidiary} usePublicContact showFiscalInfo />
 
-            <div className="flex justify-between items-start mb-10 mt-4">
-                <div className="p-4 bg-slate-50 rounded-lg max-w-xs">
-                    <h3 className="font-semibold text-slate-500 uppercase text-xs mb-1">{t('invoice.billedTo')}</h3>
+            <div className="flex justify-between items-stretch gap-8 mb-9 mt-4">
+                <div className="max-w-sm flex-1">
+                    <h3 className="font-medium text-slate-500 uppercase text-[10px] tracking-[0.1em] mb-2">{t('invoice.billedTo')}</h3>
                     <p className="font-bold text-slate-800">{client.contactName}</p>
                     <p className="text-slate-600">{client.company}</p>
                     <p className="text-slate-600">{client.address}</p>
                     <p className="text-slate-600">{client.phone}</p>
                 </div>
-                <div className="text-right">
-                    <h2 className="text-3xl font-bold uppercase text-slate-800">{t('invoice.title')}</h2>
-                    <p className="text-slate-600 mt-2">{t('invoice.invoiceNum')} <span className="font-semibold">{order.id}</span></p>
+                <div className="text-right min-w-[16rem]">
+                    <h2 className="text-2xl font-bold uppercase tracking-tight text-slate-900">{t('invoice.title')}</h2>
+                    <p className="text-slate-600 mt-2">{t('invoice.invoiceNum')} <span className="font-semibold font-mono text-xs">{order.id}</span></p>
                     <p className="text-slate-600">{t('invoice.date')}: {new Date(order.date).toLocaleDateString(language)}</p>
                     <p className="text-slate-600">{t('invoice.paymentDueDate')}: <span className="font-semibold">{new Date(order.paymentDueDate).toLocaleDateString(language)}</span></p>
                 </div>

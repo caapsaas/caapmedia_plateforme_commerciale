@@ -69,7 +69,12 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
         
         return filtered;
     }, [expenses, category, type, period, startDate, endDate]);
-    const { pageItems: pageExpenses, meta: expensesMeta, setPage } = useClientPagination(filteredExpenses);
+    const { pageItems: pageExpenses, meta: expensesMeta, setPage } = useClientPagination(filteredExpenses, 10);
+
+    const updateFilter = (setFilter: (value: string) => void) => (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setFilter(event.target.value);
+        setPage(1);
+    };
 
     const totalExpenses = useMemo(() => filteredExpenses.reduce((acc, exp) => acc + Number(exp.amount), 0), [filteredExpenses]);
 
@@ -195,10 +200,16 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
 
                 <div className="p-4 bg-slate-50 rounded-lg no-print mb-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                        <SelectFilter name="category" label={t('expenses.filter.category')} value={category} onChange={e => setCategory(e.target.value)} options={Object.values(ExpenseCategory).map(c => ({value: c, label: t(`expenses.categories.${c}`)}))} placeholder={t('expenses.filter.allCategories')} />
-                        <SelectFilter name="type" label={t('expenses.filter.type')} value={type} onChange={e => setType(e.target.value)} options={Object.values(ExpenseType).map(c => ({value: c, label: t(`expenses.types.${c}`)}))} placeholder={t('expenses.filter.allTypes')} />
+                        <SelectFilter name="category" label={t('expenses.filter.category')} value={category} onChange={updateFilter(setCategory)} options={Object.values(ExpenseCategory).map(c => ({value: c, label: t(`expenses.categories.${c}`)}))} placeholder={t('expenses.filter.allCategories')} />
+                        <SelectFilter name="type" label={t('expenses.filter.type')} value={type} onChange={updateFilter(setType)} options={Object.values(ExpenseType).map(c => ({value: c, label: t(`expenses.types.${c}`)}))} placeholder={t('expenses.filter.allTypes')} />
                         <div className="lg:col-span-2">
-                             <PeriodFilter period={period} onPeriodChange={e => { const next = e.target.value; setPeriod(next); if (next !== 'custom') { setStartDate(''); setEndDate(''); } }} startDate={startDate} onStartDateChange={e => setStartDate(e.target.value)} endDate={endDate} onEndDateChange={e => setEndDate(e.target.value)} />
+                             <PeriodFilter period={period} onPeriodChange={updateFilter(next => {
+                                 setPeriod(next);
+                                 if (next !== 'custom') {
+                                     setStartDate('');
+                                     setEndDate('');
+                                 }
+                             })} startDate={startDate} onStartDateChange={updateFilter(setStartDate)} endDate={endDate} onEndDateChange={updateFilter(setEndDate)} />
                         </div>
                     </div>
                 </div>

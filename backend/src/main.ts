@@ -35,11 +35,28 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   // Dynamic CORS configuration
-  const corsOrigins = configService.get('CORS_ORIGINS')?.split(',') || [
+  const configuredCorsOrigins = configService
+    .get<string>('CORS_ORIGINS')
+    ?.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  const defaultCorsOrigins = [
     'http://localhost:5173',
     'http://localhost:3001',
     'https://www.caapmedia.com',
     'https://caapmedia.com',
+  ];
+  const localDevelopmentOrigins =
+    process.env.NODE_ENV === 'production'
+      ? []
+      : ['http://localhost:5173', 'http://localhost:3001'];
+  const corsOrigins = [
+    ...new Set([
+      ...(configuredCorsOrigins?.length
+        ? configuredCorsOrigins
+        : defaultCorsOrigins),
+      ...localDevelopmentOrigins,
+    ]),
   ];
 
   app.enableCors({

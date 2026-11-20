@@ -1085,7 +1085,7 @@ const frTranslations = {
     "total": "Total Général",
     "print": "Imprimer le bon",
     "exportPdf": "Exporter en PDF",
-    "footer": "Merci de votre confiance. Livraison à régler avant le",
+    "footer": "Merci de votre confiance.",
     "noData": "Aucun article à livrer"
   },
   "invoice": {

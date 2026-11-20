@@ -17,7 +17,7 @@ interface BonDeLivraisonProps {
 }
 
 const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onClose }) => {
-    const { t, formatCurrency, language } = useI18n();
+    const { t, language } = useI18n();
     const blContentRef = React.useRef<HTMLDivElement>(null);
     const [isBusy, setIsBusy] = React.useState(false);
 
@@ -71,20 +71,25 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
 
             {/* Header */}
             <DocumentHeader subsidiary={subsidiary} usePublicContact />
-            <div className="flex justify-between items-start mb-8">
-                <h2 className="font-bold text-2xl text-slate-800 uppercase">{t('bonDeLivraison.title')}</h2>
+            <div className="flex justify-between items-center gap-6 mb-8 pb-4 border-b border-slate-200">
+                <div>
+                    <h2 className="font-bold text-2xl text-slate-900 uppercase tracking-tight">{t('bonDeLivraison.title')}</h2>
+                </div>
                 <div className="text-right">
-                    <div className="space-y-2 text-sm">
-                        <p className="text-slate-700 font-semibold">{t('bonDeLivraison.orderNum')}: <span className="font-bold text-base text-[#c6e911]">{order.id}</span></p>
-                        <p className="text-slate-600">{t('bonDeLivraison.date')}: <span className="font-semibold text-slate-800">{formatDate(order.date)}</span></p>
+                    <div className="space-y-1.5 text-sm">
+                        <div>
+                            <p className="text-slate-500 text-[10px] font-medium uppercase tracking-wide">{t('bonDeLivraison.orderNum')}</p>
+                            <p className="font-semibold font-mono text-xs text-slate-900">{order.id}</p>
+                        </div>
+                        <p className="text-slate-600">{t('bonDeLivraison.date')}: <span className="font-semibold text-slate-900">{formatDate(order.date)}</span></p>
                     </div>
                 </div>
             </div>
 
             {/* Customer Info */}
-            <div className="mb-10">
-                <h5 className="font-semibold text-slate-600 uppercase text-xs tracking-wide mb-3 border-b pb-2">{t('bonDeLivraison.billedTo')}</h5>
-                <p className="font-bold text-lg text-slate-900">{order.customerName}</p>
+            <div className="mb-8">
+                <h5 className="font-medium text-slate-500 uppercase text-[10px] tracking-wide mb-1">{t('bonDeLivraison.billedTo')}</h5>
+                <p className="font-semibold text-base text-slate-900">{order.customerName}</p>
             </div>
 
             {/* Table */}
@@ -92,27 +97,18 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
                 title={t('bonDeLivraison.items')}
                 columns={[
                     { label: t('bonDeLivraison.item'), key: 'productName', align: 'left' },
-                    { label: t('bonDeLivraison.quantity'), key: 'quantity', align: 'center' },
-                    { label: t('bonDeLivraison.unitPrice'), key: 'unitPrice', align: 'right', formatter: (v) => formatCurrency(v) },
-                    { label: t('bonDeLivraison.totalPrice'), key: 'total', align: 'right', formatter: (v) => formatCurrency(v) }
+                    { label: t('bonDeLivraison.quantity'), key: 'quantity', align: 'center' }
                 ]}
                 data={billableItems.map((item: any) => ({
                     productName: item.productName || item.product?.name || '—',
-                    quantity: item.quantity || 0,
-                    unitPrice: item.unitPrice ?? item.price ?? 0,
-                    total: (item.unitPrice ?? item.price ?? 0) * (item.quantity || 0)
+                    quantity: item.quantity || 0
                 }))}
-                totalRow={{
-                    label: t('bonDeLivraison.total'),
-                    value: formatCurrency(order.totalAmount),
-                    isHighlighted: true
-                }}
                 emptyMessage={t('bonDeLivraison.noData')}
             />
 
             
             <DocumentFooter
-                message={`${t('bonDeLivraison.footer')} ${order.paymentDueDate ? formatDate(order.paymentDueDate) : ''}.`}
+                message={t('bonDeLivraison.footer')}
                 showSignature={true}
                 subsidiary={subsidiary}
             />

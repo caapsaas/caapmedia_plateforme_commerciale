@@ -11,7 +11,7 @@ import React from 'react';
  */
 const DocumentWatermark: React.FC = () => (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden" aria-hidden="true">
-        <img src="/CaapMedia.png" alt="" className="w-64 opacity-5" />
+        <img src="/CaapMedia.png" alt="" className="w-56 opacity-[0.025]" />
     </div>
 );
 

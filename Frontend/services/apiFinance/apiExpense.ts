@@ -1,5 +1,6 @@
 import { api } from '../api';
 import { ExpenseRecord } from '../../types';
+import { PaginatedResponse } from '../../types/pagination.types';
 
 /**
  * Données pour la création d'une charge.
@@ -14,18 +15,32 @@ export type ExpenseRecordUpdateData = Partial<ExpenseRecordCreationData>;
 
 /**
  * Récupère toutes les charges pour la filiale de l'utilisateur connecté.
- * Protégé par rôle (ADMIN, FINANCIAL_DIRECTOR, CAISSIER). Limit élevée pour
- * préserver le comportement "tout charger" nécessaire à l'export CSV/PDF de
- * ExpenseManagement.tsx.
+ * Charge toutes les pages pour les filtres, le total et les exports CSV/PDF.
  */
-export const getExpenses = async (subsidiaryId?: string): Promise<ExpenseRecord[]> => {
-  const { data } = await api.get<{ data: any[] }>('/finance/expenses', { params: { limit: 500, subsidiaryId } });
-  // Mapper les champs du backend vers le frontend
-  return data.data.map(expense => ({
-    ...expense,
-    date: expense.expenseDate, // expenseDate -> date
-    type: expense.expenseRecordType, // expenseRecordType -> type
-  }));
+export const getExpenses = async (subsidiaryId?: string, signal?: AbortSignal): Promise<ExpenseRecord[]> => {
+  type ApiExpense = Omit<ExpenseRecord, 'date' | 'type'> & {
+    expenseDate: ExpenseRecord['date'];
+    expenseRecordType: ExpenseRecord['type'];
+  };
+
+  const expenses: ExpenseRecord[] = [];
+  let page = 1;
+  let hasNextPage: boolean;
+  do {
+    const { data } = await api.get<PaginatedResponse<ApiExpense>>('/finance/expenses', {
+      params: { page, limit: 500, subsidiaryId },
+      signal,
+    });
+    expenses.push(...data.data.map(expense => ({
+      ...expense,
+      date: expense.expenseDate,
+      type: expense.expenseRecordType,
+    })));
+    hasNextPage = data.meta.hasNextPage;
+    page += 1;
+  } while (hasNextPage);
+
+  return expenses;
 };
 
 export interface PayableExpense {

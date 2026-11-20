@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import jsQR from 'jsqr';
-import html2canvas from 'html2canvas';
+import html2canvas from 'html2canvas-pro';
 import { Camera, Download } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';

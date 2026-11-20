@@ -42,20 +42,21 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
     };
 
     return (
-        <div className="mb-10">
+        <div className="mb-8">
             {title && (
-                <h3 className="font-semibold text-slate-700 uppercase text-xs tracking-wide mb-4">
-                    {title}
-                </h3>
+                <div className="mb-3 border-b border-slate-200 pb-2">
+                    <h3 className="font-semibold text-slate-700 uppercase text-[11px] tracking-[0.1em]">{title}</h3>
+                </div>
             )}
+            <div className="overflow-hidden border-y border-slate-200">
             <table className="w-full text-sm text-left text-slate-600">
-                <thead className="text-xs text-slate-700 uppercase bg-[#c6e911]/10 border-t border-b border-[#c6e911]/50">
+                <thead className="text-[11px] text-slate-700 uppercase bg-slate-50 border-b-2 border-[#c6e911]">
                     <tr>
                         {columns.map((col) => (
                             <th
                                 key={col.key}
                                 scope="col"
-                                className={`px-6 py-4 font-bold ${getAlignClass(col.align)}`}
+                                className={`px-4 py-3 font-semibold tracking-wide ${getAlignClass(col.align)}`}
                             >
                                 {col.label}
                             </th>
@@ -65,12 +66,12 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                 <tbody>
                     {data && data.length > 0 ? (
                         data.map((row, index) => (
-                            <tr key={index} className="bg-white border-b border-slate-100 hover:bg-slate-50">
+                            <tr key={index} className="bg-white border-b border-slate-100 last:border-0">
                                 {columns.map((col) => (
                                     <td
                                         key={col.key}
-                                        className={`px-6 py-4 ${
-                                            index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                                        className={`px-4 py-3 ${
+                                            index % 2 === 0 ? 'bg-white' : 'bg-slate-50/70'
                                         } ${getAlignClass(col.align)}`}
                                     >
                                         {col.render
@@ -86,7 +87,7 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                         <tr className="bg-white border-b border-slate-100">
                             <td
                                 colSpan={columns.length}
-                                className="px-6 py-4 text-center text-slate-500"
+                                className="px-5 py-8 text-center text-slate-500"
                             >
                                 {emptyMessage}
                             </td>
@@ -98,19 +99,19 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                         <tr
                             className={`font-bold ${
                                 totalRow.isHighlighted
-                                    ? 'bg-[#c6e911]/10 border-t border-[#c6e911]/50 text-slate-900'
+                                    ? 'bg-slate-50 border-t border-slate-200 text-slate-900'
                                     : 'bg-slate-50 border-t border-slate-200 text-slate-800'
                             }`}
                         >
                             <td
                                 colSpan={columns.length - 1}
-                                className="px-6 py-4 text-right text-base"
+                                className="px-5 py-4 text-right text-sm"
                             >
                                 {totalRow.label}:
                             </td>
                             <td
-                                className={`px-6 py-4 text-right text-lg ${
-                                    totalRow.isHighlighted ? 'text-[#c6e911]' : ''
+                                className={`px-5 py-4 text-right text-lg ${
+                                    totalRow.isHighlighted ? 'text-slate-900' : ''
                                 }`}
                             >
                                 {totalRow.value}
@@ -119,6 +120,7 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                     </tfoot>
                 )}
             </table>
+            </div>
         </div>
     );
 };

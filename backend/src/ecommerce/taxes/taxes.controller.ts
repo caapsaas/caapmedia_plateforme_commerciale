@@ -27,15 +27,13 @@ export class TaxesController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
+  @UseGuards(JwtAuthGuard)
   findAll() {
     return this.taxesService.findAll();
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
+  @UseGuards(JwtAuthGuard)
   findOne(@Param('id') id: string) {
     return this.taxesService.findOne(id);
   }

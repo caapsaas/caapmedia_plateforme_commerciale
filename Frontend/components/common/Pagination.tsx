@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+import { useI18n } from '../../i18n';
 import { PaginationMeta } from '../../types/pagination.types';
 
 interface PaginationProps {
@@ -9,7 +9,7 @@ interface PaginationProps {
 }
 
 const Pagination: React.FC<PaginationProps> = ({ meta, onPageChange, className = '' }) => {
-  const { t } = useTranslation();
+  const { t } = useI18n();
 
   if (!meta || meta.totalPages <= 1) return null;
 
