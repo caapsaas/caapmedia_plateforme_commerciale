@@ -12,7 +12,7 @@ import { getContacts, searchContactsGlobal, GlobalContactSearchResult } from '..
 import { getTaxes } from '../services/apiE-commerce/apitaxes';
 import { getFormDefinition } from '../services/apiE-commerce/apiProductSpecs';
 import {
-    getConfiguredEquipments, getCommercialParams,
+    getProductionEquipments, getCommercialParams,
     resolveWorkflow,
     EquipmentWithCost, CommercialParams, ResolvedWorkflow,
 } from '../services/apiProduction/apiProduction';
@@ -112,7 +112,7 @@ const NewOrder: React.FC<NewOrderProps> = ({ subsidiary, products: allProducts, 
     // Données nécessaires pour ProductionCostModal — chargées une fois au montage
     const { data: configuredEquipments = [] } = useQuery<EquipmentWithCost[]>({
         queryKey: ['equipment-configured'],
-        queryFn: () => getConfiguredEquipments(),
+        queryFn: () => getProductionEquipments(),
     });
 
     const { data: commercialParams = null } = useQuery<CommercialParams | null>({

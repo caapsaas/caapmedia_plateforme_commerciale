@@ -29,6 +29,11 @@ export class CashRemittanceController {
     return this.cashRemittanceService.findSourceAccounts(user);
   }
 
+  @Get('available-receipts')
+  findAvailableReceipts(@CurrentUser() user: JwtUser) {
+    return this.cashRemittanceService.findAvailableReceipts(user);
+  }
+
   @Get()
   findAll(@CurrentUser() user: JwtUser) {
     return this.cashRemittanceService.findAll(user);

@@ -2,6 +2,22 @@ import { api } from '../api';
 import { AttendanceRecord } from '../../types';
 import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
+interface QrPointageResponse {
+  message: string;
+  employeeName: string;
+  status: string;
+  duration?: string;
+}
+
+export async function submitQrPointage(payload: {
+  token: string;
+  matricule: string;
+  action: 'arrival' | 'departure';
+}): Promise<QrPointageResponse> {
+  const { data } = await api.post<QrPointageResponse>('/pointage', payload);
+  return data;
+}
+
 /**
  * Données pour la création manuelle d'un enregistrement de présence.
  * employeeId est obligatoire en création manuelle.

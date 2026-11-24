@@ -2,8 +2,7 @@ import { api } from '../api';
 import { CashRemittance, TreasuryAccount } from '../../types';
 
 type RemittanceSourceAccount = Pick<TreasuryAccount, 'id' | 'accountName' | 'balance'> & {
-  dailyCollectedAmount: number;
-  availableReceipts: { receiptId: string; orderId: string; customerName: string; amount: number }[];
+  availableBalance: number;
 };
 
 export const getRemittanceSourceAccounts = async (): Promise<RemittanceSourceAccount[]> => {
@@ -11,9 +10,22 @@ export const getRemittanceSourceAccounts = async (): Promise<RemittanceSourceAcc
   return data;
 };
 
+export interface RemittableReceipt {
+  id: string;
+  treasuryAccountId: string;
+  relatedDocumentId: string;
+  transactionDate: string;
+  amount: number;
+}
+
+export const getAvailableRemittanceReceipts = async (): Promise<RemittableReceipt[]> => {
+  const { data } = await api.get<RemittableReceipt[]>('/finance/cash-remittances/available-receipts');
+  return data;
+};
+
 export interface CreateCashRemittanceData {
+  receiptIds?: string[];
   declaredAmount: number;
-  receiptIds: string[];
   sourceCashRegisterId?: string;
   remittanceDate: string;
   notes?: string;

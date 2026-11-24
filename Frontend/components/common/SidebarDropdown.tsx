@@ -10,6 +10,7 @@ interface SidebarDropdownItem {
   to: string;
   label: React.ReactNode;
   icon: React.ReactNode;
+  exact?: boolean;
 }
 
 interface SidebarDropdownProps {
@@ -38,7 +39,9 @@ const SidebarDropdown: React.FC<SidebarDropdownProps> = ({
   // - currentPath vaut donc '/dashboard', jamais '/dashboard/', meme si
   // item.to (utilise pour la navigation) garde le slash.
   const isItemActive = (item: SidebarDropdownItem) =>
-    item.to === '/dashboard/' ? currentPath === '/dashboard' : currentPath.startsWith(item.to);
+    item.to === '/dashboard/' ? currentPath === '/dashboard'
+      : item.exact ? currentPath === item.to
+      : currentPath.startsWith(item.to);
   const hasActiveItem = items.some(isItemActive);
 
   useEffect(() => {
@@ -121,6 +124,7 @@ const SidebarDropdown: React.FC<SidebarDropdownProps> = ({
               <div key={item.to} className="relative group">
                 <Link
                   to={item.to}
+                  activeOptions={{ exact: item.exact }}
                   onClick={handleItemClick}
                   className={`w-full flex items-center gap-3 py-2 px-4 rounded-lg transition-all duration-200 ${
                     isActive
@@ -156,6 +160,7 @@ const SidebarDropdown: React.FC<SidebarDropdownProps> = ({
                 <Link
                   key={item.to}
                   to={item.to}
+                  activeOptions={{ exact: item.exact }}
                   onClick={() => { setIsOpen(false); handleItemClick(); }}
                   className={`flex items-center gap-3 px-3 py-2 transition-all duration-200 ${
                     isActive ? 'bg-[#c6e911]/20 text-white' : 'text-gray-300 hover:bg-white/10 hover:text-white'

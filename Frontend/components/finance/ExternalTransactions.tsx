@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { usePopup } from '../../context/PopupContext';
 import { ExternalFinancialTransaction, ExternalTransactionType, ExternalTransactionCategory, ExternalTransactionStatus, PaymentMethod, Subsidiary, UserRole } from '../../types/models';
 import { getExternalTransactions, createExternalTransaction, updateExternalTransaction, validateExternalTransaction, cancelExternalTransaction, deleteExternalTransaction, getExternalTransactionStatistics, ExternalTransactionFilters, ExternalTransactionStatistics, CreateExternalTransactionData } from '../../services/apiFinance/apiExternalTransactions';
 import { getPrefinancementAccount, getPrefinancementStatistics } from '../../services/apiFinance/apiPrefinancement';
@@ -31,6 +32,7 @@ const STATUS_STYLES: Record<ExternalTransactionStatus, string> = {
 
 const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary }) => {
   const { t } = useI18n();
+  const { confirmAction } = usePopup();
   const { user } = useAuth();
   const activeRole = user?.activeRole ?? user?.userRole;
   const { toast } = useToast();
@@ -165,13 +167,13 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm(t('externalTransactions.confirm.delete'))) return;
+    if (!await confirmAction(t('externalTransactions.confirm.delete'), { isDangerous: true })) return;
     try { await deleteExternalTransaction(id); loadData(); toast('success', t('externalTransactions.success.deleted')); }
     catch { toast('error', t('externalTransactions.error.delete')); }
   };
 
   const handleAdminDelete = async (id: string) => {
-    if (!window.confirm(t('externalTransactions.confirm.adminDelete'))) return;
+    if (!await confirmAction(t('externalTransactions.confirm.adminDelete'), { isDangerous: true })) return;
     try { await deleteExternalTransaction(id); loadData(); toast('success', t('externalTransactions.success.adminDeleted')); }
     catch { toast('error', t('externalTransactions.error.adminDelete')); }
   };

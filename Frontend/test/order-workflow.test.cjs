@@ -15,12 +15,12 @@ const pending = { status: 'PENDING_VALIDATION', productionStatus: 'PREPRESS', pa
 
 test('commercial and cashier cannot approve fabrication', () => {
   assert.deepEqual(allowedOrderTransitions(pending, 'COMMERCIAL'), ['CANCELLED']);
-  assert.deepEqual(allowedOrderTransitions(pending, 'CAISSIER'), []);
+  assert.deepEqual(allowedOrderTransitions(pending, 'CAISSIER'), ['CANCELLED']);
   assert(allowedOrderTransitions(pending, 'PRODUCTION_DIRECTOR').includes('IN_PRODUCTION'));
 });
-test('paid orders cannot be cancelled before validation', () => {
-  assert.deepEqual(allowedOrderTransitions({ ...pending, amountPaid: 1 }, 'COMMERCIAL'), []);
-  assert.deepEqual(allowedOrderTransitions({ ...pending, amountPaid: 1 }, 'PRODUCTION_DIRECTOR'), ['IN_PRODUCTION']);
+test('paid orders can be cancelled at any stage', () => {
+  assert.deepEqual(allowedOrderTransitions({ ...pending, amountPaid: 1 }, 'COMMERCIAL'), ['CANCELLED']);
+  assert.deepEqual(allowedOrderTransitions({ ...pending, amountPaid: 1 }, 'PRODUCTION_DIRECTOR'), ['IN_PRODUCTION', 'CANCELLED']);
 });
 test('the kanban includes ready orders and excludes unapproved and delivered orders', () => {
   assert.equal(isKanbanOrder(pending), false);
@@ -37,8 +37,9 @@ test('production controls only offer the next stage to a production manager', ()
 });
 test('delivery and closure actions depend on the lifecycle and payment state', () => {
   const ready = { ...pending, status: 'PENDING_DELIVERY', productionStatus: 'READY_FOR_DELIVERY' };
-  assert.deepEqual(allowedOrderTransitions(ready, 'COMMERCIAL'), ['DELIVERED']);
-  assert.deepEqual(allowedOrderTransitions({ ...ready, status: 'DELIVERED' }, 'COMMERCIAL'), []);
-  assert.deepEqual(allowedOrderTransitions({ ...ready, status: 'DELIVERED', paymentStatus: 'PAID', amountPaid: 100 }, 'COMMERCIAL'), ['COMPLETED']);
+  assert.deepEqual(allowedOrderTransitions(ready, 'COMMERCIAL'), ['DELIVERED', 'CANCELLED']);
+  assert.deepEqual(allowedOrderTransitions({ ...ready, status: 'DELIVERED' }, 'COMMERCIAL'), ['CANCELLED']);
+  assert.deepEqual(allowedOrderTransitions({ ...ready, status: 'DELIVERED', paymentStatus: 'PAID', amountPaid: 100 }, 'COMMERCIAL'), ['COMPLETED', 'CANCELLED']);
   assert.deepEqual(allowedOrderTransitions(ready, 'SUPER_ADMIN'), []);
+  assert.deepEqual(allowedOrderTransitions({ ...ready, status: 'COMPLETED' }, 'CAISSIER'), ['CANCELLED']);
 });

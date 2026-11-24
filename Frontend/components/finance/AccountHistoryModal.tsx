@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePopup } from '../../context/PopupContext';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FinancialTransaction, TransactionStatus, TreasuryAccount, UserRole } from '../../types';
 import { useI18n } from '../../i18n';
@@ -19,6 +20,7 @@ interface AccountHistoryModalProps {
 
 const AccountHistoryModal: React.FC<AccountHistoryModalProps> = ({ isOpen, onClose, account }) => {
   const { t, formatCurrency, language } = useI18n();
+  const { confirmAction } = usePopup();
   const toast = useToast();
   const queryClient = useQueryClient();
   const { hasRole } = useHasRole();
@@ -59,8 +61,8 @@ const AccountHistoryModal: React.FC<AccountHistoryModalProps> = ({ isOpen, onClo
     },
   });
 
-  const handleCancel = (id: string) => {
-    if (window.confirm(t('treasury.history.confirmCancel'))) {
+  const handleCancel = async (id: string) => {
+    if (await confirmAction(t('treasury.history.confirmCancel'))) {
       cancelPending(id);
     }
   };

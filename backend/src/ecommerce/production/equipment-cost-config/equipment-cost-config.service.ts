@@ -91,20 +91,32 @@ export class EquipmentCostConfigService {
     };
   }
 
-  // Retourne uniquement les équipements avec un coût configuré (usage workflows).
-  async findConfigured(subsidiaryId?: string, user?: JwtUser) {
-    const isCashier =
-      (user?.activeRole ?? user?.role ?? user?.userRole) === UserRole.CAISSIER;
+  async findConfigured(
+    subsidiaryId?: string,
+    user?: JwtUser,
+    includeUnpriced = false,
+  ) {
+    const role = user?.activeRole ?? user?.role ?? user?.userRole;
+    const isCashier = role === UserRole.CAISSIER;
     if (isCashier && !user?.subsidiaryId) {
-      throw new ForbiddenException('Filiale requise pour consulter les machines.');
+      throw new ForbiddenException(
+        'Filiale requise pour consulter les machines.',
+      );
     }
     // Un caissier ne consulte que les machines opérationnelles de sa filiale,
     // même si un subsidiaryId différent est fourni dans la requête.
     const scopedSubsidiaryId = isCashier ? user.subsidiaryId : subsidiaryId;
+    const configuredCost = { costConfig: { isNot: null } };
+    let costFilter: Prisma.EquipmentWhereInput = configuredCost;
+    if (includeUnpriced && (isCashier || role === UserRole.SUPER_ADMIN)) {
+      costFilter = {};
+    } else if (includeUnpriced && user?.subsidiaryId) {
+      costFilter = { OR: [configuredCost, { subsidiaryId: user.subsidiaryId }] };
+    }
     const equipments = await this.prisma.equipment.findMany({
       where: {
         ...(scopedSubsidiaryId ? { subsidiaryId: scopedSubsidiaryId } : {}),
-        costConfig: { isNot: null },
+        ...costFilter,
         status: 'OPERATIONAL',
       },
       include: {
@@ -120,7 +132,8 @@ export class EquipmentCostConfigService {
       status: eq.status,
       subsidiaryId: eq.subsidiaryId,
       subsidiaryName: eq.subsidiary.subsidiaryName,
-      hourlyRate: eq.costConfig.hourlyRate,
+      hourlyRate: eq.costConfig?.hourlyRate ?? null,
+      costConfigId: eq.costConfig?.id ?? null,
     }));
   }
 }

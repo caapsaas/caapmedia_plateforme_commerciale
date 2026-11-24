@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   NotificationType,
+  OrderStatus,
   RecipientType,
   UserRole,
   Prisma,
@@ -61,8 +62,18 @@ export class NotificationsService {
 
   /** Point d'entrée unique de création avec persistance puis push SSE. */
   async notifyUser(userId: string, payload: NotifyPayload) {
-    const notification = await this.createNotification(userId, payload);
-    this.sse.push(userId, notification);
+    const notification =
+      payload.type === NotificationType.PAYMENT_RECEIVED && payload.orderId
+        ? await this.prisma.$transaction(async (tx) => {
+            const [order] = await tx.$queryRaw<{ status: OrderStatus }[]>`
+            SELECT status FROM orders WHERE id = ${payload.orderId} FOR UPDATE
+          `;
+            if (!order || order.status === OrderStatus.CANCELLED) return;
+            return this.createNotification(userId, payload, tx);
+          })
+        : await this.createNotification(userId, payload);
+
+    if (notification) this.publish(notification);
     return notification;
   }
 

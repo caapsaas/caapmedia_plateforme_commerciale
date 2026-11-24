@@ -5,6 +5,8 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
+    const devApiOrigin = new URL(env.VITE_API_ORIGIN || 'http://localhost:3000');
+    const useLocalApiProxy = ['localhost', '127.0.0.1', '[::1]'].includes(devApiOrigin.hostname);
     if (mode === 'production') {
       const origin = new URL(env.VITE_API_ORIGIN || 'https://caapmedia.com');
       if (origin.protocol !== 'https:' || ['localhost', '127.0.0.1', '[::1]'].includes(origin.hostname)
@@ -17,6 +19,14 @@ export default defineConfig(({ mode }) => {
     }
     return {
       plugins: [react(), tailwindcss()],
+      server: {
+        proxy: useLocalApiProxy ? {
+          '/api-caapmedia': {
+            target: devApiOrigin.origin,
+            changeOrigin: true,
+          },
+        } : undefined,
+      },
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)

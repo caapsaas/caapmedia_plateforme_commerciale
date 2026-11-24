@@ -1,3 +1,6 @@
+import { rm } from 'node:fs/promises';
+import { ProductSpecsService } from '../../ecommerce/products/product-specs/product-specs.service';
+import { ConvertProformaDto } from './dto/convert-proforma.dto';
 import { OrderNotificationsService } from '../../notifications/order-notifications.service';
 import {
   Injectable,
@@ -16,6 +19,7 @@ import {
   ProductionStatus,
   PaymentStatus,
   OrderSource,
+  SpecFieldType,
 } from '@prisma/client';
 import { addDays } from 'date-fns';
 
@@ -31,6 +35,11 @@ import {
   withSubsidiaryScope,
 } from '../../common/utils/subsidiary-scope';
 
+const pendingDecision: ProformaStatus[] = [
+  ProformaStatus.SENT,
+  ProformaStatus.VIEWED,
+];
+
 const creatorSelect = {
   id: true,
   userName: true,
@@ -42,11 +51,14 @@ export class ProformasService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly orderNotifications: OrderNotificationsService,
+    private readonly productSpecs: ProductSpecsService,
   ) {}
 
   async create(createProformaDto: CreateProformaDto, user: JwtUser) {
     if (isSuperAdmin(user)) {
-      throw new ForbiddenException('Le super-administrateur ne peut pas créer de proforma.');
+      throw new ForbiddenException(
+        'Le super-administrateur ne peut pas créer de proforma.',
+      );
     }
     const scope = resolveScopeContext(user);
     // Le proforma et ses références locales doivent appartenir à la même filiale.
@@ -150,6 +162,7 @@ export class ProformasService {
       {},
       resolveScopeContext(user),
     );
+    await this.expirePending(where);
     if (status) {
       where.status = status;
     }
@@ -180,6 +193,19 @@ export class ProformasService {
         where,
         include: {
           items: { include: { product: true } },
+          subsidiary: {
+            select: {
+              subsidiaryName: true,
+              address: true,
+              phone: true,
+              email: true,
+              ifu: true,
+              rccm: true,
+              bankName: true,
+              accountNumber: true,
+            },
+          },
+          order: { select: { salesRepId: true } },
           lead: true,
           createdByUser: { select: creatorSelect },
         },
@@ -195,23 +221,35 @@ export class ProformasService {
    */
   async getStatusCounts(user: JwtUser) {
     const scope = withSubsidiaryScope({}, resolveScopeContext(user));
-    const [all, draft, sent, accepted, rejected] = await Promise.all([
-      this.prisma.proforma.count({ where: scope }),
-      this.prisma.proforma.count({
-        where: { ...scope, status: ProformaStatus.DRAFT },
-      }),
-      this.prisma.proforma.count({
-        where: { ...scope, status: ProformaStatus.SENT },
-      }),
-      this.prisma.proforma.count({
-        where: { ...scope, status: ProformaStatus.ACCEPTED },
-      }),
-      this.prisma.proforma.count({
-        where: { ...scope, status: ProformaStatus.REJECTED },
-      }),
-    ]);
+    await this.expirePending(scope);
+    const [all, draft, sent, viewed, accepted, rejected, expired, converted] =
+      await Promise.all([
+        this.prisma.proforma.count({ where: scope }),
+        ...[
+          ProformaStatus.DRAFT,
+          ProformaStatus.SENT,
+          ProformaStatus.VIEWED,
+          ProformaStatus.ACCEPTED,
+          ProformaStatus.REJECTED,
+          ProformaStatus.EXPIRED,
+          ProformaStatus.CONVERTED,
+        ].map((status) =>
+          this.prisma.proforma.count({ where: { ...scope, status } }),
+        ),
+      ]);
 
-    return { all, draft, sent, accepted, rejected };
+    return { all, draft, sent, viewed, accepted, rejected, expired, converted };
+  }
+
+  private expirePending(scope: Prisma.ProformaWhereInput) {
+    return this.prisma.proforma.updateMany({
+      where: {
+        ...scope,
+        status: { in: pendingDecision },
+        validityDate: { lte: new Date() },
+      },
+      data: { status: ProformaStatus.EXPIRED },
+    });
   }
 
   async findOne(id: string, user: JwtUser) {
@@ -233,6 +271,12 @@ export class ProformasService {
       throw new NotFoundException(`Proforma with ID "${id}" not found.`);
     }
 
+    if (
+      pendingDecision.includes(proforma.status) &&
+      proforma.validityDate <= new Date()
+    ) {
+      return { ...proforma, status: ProformaStatus.EXPIRED };
+    }
     return proforma;
   }
 
@@ -296,13 +340,18 @@ export class ProformasService {
   async send(id: string, user: JwtUser) {
     const proforma = await this.findOne(id, user);
 
-    if (proforma.status !== ProformaStatus.DRAFT) {
-      throw new BadRequestException('Only draft proformas can be sent.');
+    if (
+      proforma.status !== ProformaStatus.DRAFT ||
+      proforma.validityDate <= new Date()
+    ) {
+      throw new BadRequestException(
+        'Seuls les brouillons en cours de validité peuvent être envoyés.',
+      );
     }
 
     return this.prisma.proforma.update({
       where: withSubsidiaryScope(
-        { id, status: proforma.status },
+        { id, status: proforma.status, validityDate: { gt: new Date() } },
         resolveScopeContext(user),
       ),
       data: {
@@ -335,7 +384,7 @@ export class ProformasService {
     if (!proforma.viewedAt) {
       return this.prisma.proforma.update({
         where: withSubsidiaryScope(
-          { id, status: proforma.status },
+          { id, status: proforma.status, validityDate: { gt: new Date() } },
           resolveScopeContext(user),
         ),
         data: {
@@ -348,39 +397,143 @@ export class ProformasService {
     return proforma;
   }
 
-  /**
-   * Acceptation = conversion directe en commande (pas d'état ACCEPTED
-   * intermédiaire distinct) — voir Doc plan d'implémentation §Phase G.4.
-   * Conversion "simple" : pas de contrôle/réservation de stock, la commande
-   * est créée telle quelle depuis les lignes de la proforma.
-   *
-   * Le client de la proforma (Lead) n'a pas d'équivalent Contact CRM tant
-   * qu'aucune commande n'a été passée — on résout donc un Contact par email
-   * (le seul champ unique partagé), ou on en crée un nouveau ("non vérifié",
-   * sans mot de passe : pas d'accès portail tant que le client ne s'inscrit
-   * pas lui-même).
-   */
   async accept(id: string, user: JwtUser) {
     const proforma = await this.findOne(id, user);
 
-    if (
-      proforma.status !== ProformaStatus.SENT &&
-      proforma.status !== ProformaStatus.VIEWED
-    ) {
+    if (!pendingDecision.includes(proforma.status)) {
       throw new BadRequestException(
-        'Only sent or viewed proformas can be accepted.',
+        'Seules les proformas envoyées ou consultées et en cours de validité peuvent être acceptées.',
       );
     }
 
+    return this.prisma.proforma.update({
+      where: withSubsidiaryScope(
+        {
+          id,
+          status: { in: pendingDecision },
+          validityDate: { gt: new Date() },
+        },
+        resolveScopeContext(user),
+      ),
+      data: { status: ProformaStatus.ACCEPTED, acceptedAt: new Date() },
+    });
+  }
+
+  async convert(
+    id: string,
+    user: JwtUser,
+    dto: ConvertProformaDto,
+    files: Express.Multer.File[] = [],
+  ) {
+    const proforma = await this.findOne(id, user);
+
+    if (proforma.status === ProformaStatus.CONVERTED && proforma.orderId) {
+      await Promise.all(files.map((file) => rm(file.path, { force: true })));
+      return proforma;
+    }
+
+    if (proforma.status !== ProformaStatus.ACCEPTED) {
+      throw new BadRequestException(
+        'Seules les proformas acceptées peuvent être converties en commande.',
+      );
+    }
+
+    const today = new Date().toLocaleDateString('sv-SE', {
+      timeZone: 'Africa/Douala',
+    });
+    if (dto.paymentDueDate < today) {
+      throw new BadRequestException(
+        'L’échéance de paiement doit être aujourd’hui ou à une date ultérieure.',
+      );
+    }
+
+    const inputs = new Map((dto.items ?? []).map((item) => [item.id, item]));
+    const fileIndices = (dto.items ?? []).flatMap((item) =>
+      item.designFileIndex === undefined ? [] : [item.designFileIndex],
+    );
+    const proformaItemIds = new Set(proforma.items.map((item) => item.id));
+    if (
+      inputs.size !== (dto.items?.length ?? 0) ||
+      [...inputs.keys()].some((itemId) => !proformaItemIds.has(itemId)) ||
+      fileIndices.length !== files.length ||
+      new Set(fileIndices).size !== files.length ||
+      fileIndices.some(
+        (index) =>
+          !files[index]?.filename.startsWith(`${proforma.subsidiaryId}/`),
+      )
+    ) {
+      throw new BadRequestException(
+        'Les articles ou fichiers de conversion ne correspondent pas à la proforma.',
+      );
+    }
+
+    const definitions = new Map(
+      await Promise.all(
+        [...new Set(proforma.items.map((item) => item.productId))].map(
+          async (productId) =>
+            [
+              productId,
+              await this.productSpecs.getFormDefinition(productId),
+            ] as const,
+        ),
+      ),
+    );
+    const orderItems = proforma.items.map((item) => {
+      const input = inputs.get(item.id);
+      const definition = definitions.get(item.productId)!;
+      this.productSpecs.validateAgainstDefinition(
+        definition,
+        input?.specValues,
+      );
+      const file =
+        input?.designFileIndex === undefined
+          ? undefined
+          : files[input.designFileIndex];
+      const fields = [
+        ...definition.ungroupedSpecifications,
+        ...definition.groups.flatMap((group) => group.specifications),
+      ];
+      if (
+        !file &&
+        fields.some(
+          (field) => field.type === SpecFieldType.UPLOAD && field.required,
+        )
+      ) {
+        throw new BadRequestException(
+          `Un fichier de production est requis pour « ${item.product.name} ».`,
+        );
+      }
+      return {
+        id: generateId(ID_PREFIXES.ORDERITEM),
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        total: item.unitPrice.mul(item.quantity),
+        specValues: input?.specValues as Prisma.InputJsonObject | undefined,
+        specSnapshot: definition as unknown as Prisma.InputJsonObject,
+        designFileName: file?.originalname,
+        designFileUrl: file
+          ? `/public/order_item_img/${file.filename}`
+          : undefined,
+      };
+    });
+
+    const scope = resolveScopeContext(user);
     const { result, order } = await this.prisma.$transaction(async (tx) => {
       const claimed = await tx.proforma.updateMany({
         where: withSubsidiaryScope(
-          { id, status: proforma.status },
-          resolveScopeContext(user),
+          { id, status: ProformaStatus.ACCEPTED, orderId: null },
+          scope,
         ),
-        data: { status: ProformaStatus.CONVERTED, acceptedAt: new Date() },
+        data: { status: ProformaStatus.CONVERTED },
       });
       if (claimed.count !== 1) {
+        const existing = await tx.proforma.findUnique({
+          where: withSubsidiaryScope({ id }, scope),
+        });
+        if (existing?.status === ProformaStatus.CONVERTED && existing.orderId) {
+          return { result: existing, order: null };
+        }
         throw new ConflictException(
           'Ce proforma a déjà été modifié. Rechargez-le avant de réessayer.',
         );
@@ -425,33 +578,36 @@ export class ProformasService {
           taxRateValue: proforma.taxRate,
           taxRateId: defaultTaxRate.id,
           applyTax: proforma.taxAmount.greaterThan(0),
-          paymentDueDate: proforma.validityDate,
-          status: OrderStatus.NEW,
+          paymentDueDate: new Date(dto.paymentDueDate),
+          status: OrderStatus.PENDING_VALIDATION,
           productionStatus: ProductionStatus.PREPRESS,
           paymentStatus: PaymentStatus.UNPAID,
           source: OrderSource.QUOTE_REQUEST,
-          orderItems: {
-            create: proforma.items.map((item) => ({
-              id: generateId(ID_PREFIXES.ORDERITEM),
-              productId: item.productId,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              total: item.unitPrice.mul(item.quantity),
-            })),
+          productionHistory: {
+            create: {
+              id: generateId(ID_PREFIXES.ORDERPRODUCTIONHISTORY),
+              status: ProductionStatus.PREPRESS,
+            },
           },
+          orderItems: { create: orderItems },
         },
       });
 
-      const updatedProforma = await tx.proforma.findUniqueOrThrow({
-        where: withSubsidiaryScope({ id }, resolveScopeContext(user)),
+      const updatedProforma = await tx.proforma.update({
+        where: withSubsidiaryScope({ id }, scope),
+        data: { orderId: order.id },
         include: {
           items: { include: { product: true } },
         },
       });
 
-      return { result: { ...updatedProforma, orderId: order.id }, order };
+      return { result: updatedProforma, order };
     });
-    await this.orderNotifications.created(order);
+    if (order) {
+      await this.orderNotifications.created(order);
+    } else {
+      await Promise.all(files.map((file) => rm(file.path, { force: true })));
+    }
     return result;
   }
 
@@ -469,7 +625,11 @@ export class ProformasService {
 
     return this.prisma.proforma.update({
       where: withSubsidiaryScope(
-        { id, status: proforma.status },
+        {
+          id,
+          status: { in: pendingDecision },
+          validityDate: { gt: new Date() },
+        },
         resolveScopeContext(user),
       ),
       data: {
@@ -532,9 +692,8 @@ export class ProformasService {
       0,
     );
     const roundedTotal = Math.round(totalAmount * 100) / 100;
-    const taxAmount = Math.round(
-      ((roundedTotal * taxRate) / (100 + taxRate)) * 100,
-    ) / 100;
+    const taxAmount =
+      Math.round(((roundedTotal * taxRate) / (100 + taxRate)) * 100) / 100;
     const subtotal = roundedTotal - taxAmount;
 
     return {

@@ -1,3 +1,4 @@
+import { EntriesService } from '../../accounting/entries/entries.service';
 import { ConflictException } from '@nestjs/common';
 import {
   CustomerPaymentMethod,
@@ -78,6 +79,7 @@ describe('Order notification triggers', () => {
       prisma as unknown as PrismaService,
       {} as ProductSpecsService,
       notifications as unknown as OrderNotificationsService,
+      {} as EntriesService,
     );
     return { service, tx, notifications };
   }

@@ -23,7 +23,7 @@ export const PRODUCTION_STAGES: ProductionStatus[] = [
   ProductionStatus.READY_FOR_DELIVERY,
 ];
 const PRODUCTION_ROLES = [UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR];
-const DELIVERY_ROLES = [
+export const DELIVERY_ROLES = [
   ...PRODUCTION_ROLES,
   UserRole.COMMERCIAL,
   UserRole.CAISSIER,
@@ -55,16 +55,8 @@ export function assertOrderTransition(
     assertWorkflowRole(user, PRODUCTION_ROLES);
     return;
   }
-  if (
-    target === OrderStatus.CANCELLED &&
-    BEFORE_PRODUCTION.includes(order.status)
-  ) {
-    assertWorkflowRole(user, [...PRODUCTION_ROLES, UserRole.COMMERCIAL]);
-    if (order.amountPaid.greaterThan(0)) {
-      throw new ConflictException(
-        'Une commande encaissée ne peut pas être annulée. Régularisez son paiement au préalable.',
-      );
-    }
+  if (target === OrderStatus.CANCELLED) {
+    assertWorkflowRole(user, DELIVERY_ROLES);
     return;
   }
   if (

@@ -16,7 +16,7 @@ import OrderSelectionModal from './OrderSelectionModal';
 import IconSearchDocument from '../icons/IconSearchDocument';
 import AddItemMultiStepModal from '../ecommerce/AddItemMultiStepModal';
 import {
-    getConfiguredEquipments,
+    getProductionEquipments,
     getCommercialParams,
     resolveWorkflow,
     EquipmentWithCost,
@@ -109,7 +109,7 @@ const Caisse: React.FC = () => {
 
     const { data: configuredEquipments = [] } = useQuery<EquipmentWithCost[]>({
         queryKey: ['equipment-configured'],
-        queryFn: () => getConfiguredEquipments(),
+        queryFn: () => getProductionEquipments(),
     });
 
     const { data: commercialParams = null } = useQuery<CommercialParams | null>({

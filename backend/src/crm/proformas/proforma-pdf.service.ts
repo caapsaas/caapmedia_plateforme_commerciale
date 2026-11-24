@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import PDFDocument from 'pdfkit';
+import { join } from 'node:path';
+import { amountInWords } from './proforma-amount-in-words';
 
 export type DeliveryProforma = Prisma.ProformaGetPayload<{
   include: { items: { include: { product: true } }; subsidiary: true };
@@ -30,72 +32,142 @@ export class ProformaPdfService {
           Author: 'CaapMedia',
         },
       });
-      doc.page.margins.bottom = 80;
-      doc.on('pageAdded', () => {
+      const logo = join(__dirname, 'assets', 'CaapMedia.png');
+      const decoratePage = () => {
+        const { x, y } = doc;
         doc.page.margins.bottom = 80;
-      });
+        doc.save().opacity(0.025);
+        doc.image(
+          logo,
+          (doc.page.width - 168) / 2,
+          (doc.page.height - 168) / 2,
+          { fit: [168, 168] },
+        );
+        doc.restore();
+        doc.x = x;
+        doc.y = y;
+      };
+      doc.on('pageAdded', decoratePage);
       const chunks: Buffer[] = [];
       doc.on('data', (chunk: Buffer) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
       try {
+        decoratePage();
         const width = doc.page.width - 96;
         const ensure = (height: number) => {
           if (doc.y + height > doc.page.height - 80) doc.addPage();
         };
         const date = (value: Date) =>
           value.toLocaleDateString('fr-FR', { timeZone: 'Africa/Douala' });
-        doc.rect(48, 48, 6, 45).fill('#c6e911');
+        const right = 48 + width;
         doc
-          .font('Helvetica-Bold')
-          .fontSize(25)
-          .fillColor('#172033')
-          .text('CAAPMEDIA', 68, 52);
+          .polygon(
+            [right - 225, 39],
+            [right, 39],
+            [right, 51],
+            [right - 244, 51],
+          )
+          .fill('#aeca30');
+        doc.rect(48, 69, 13, 25).fill('#459d36');
+        doc.image(logo, 56, 56, {
+          fit: [48, 48],
+        });
+        doc
+          .font('Times-Bold')
+          .fontSize(23)
+          .fillColor('#377f2c')
+          .text('CAAP - GROUPE Sarl', 116, 57, { width: 245, align: 'center' });
         doc
           .font('Helvetica')
-          .fontSize(9)
+          .fontSize(8)
+          .fillColor('#172033')
+          .text('IMPRIMERIE - CONCEPTION - SÉRIGRAPHIE', 116, 84, {
+            width: 245,
+            align: 'center',
+          })
+          .text('PRESTATION DE SERVICES DIVERS', 116, 96, {
+            width: 245,
+            align: 'center',
+          });
+        doc
+          .font('Times-Bold')
+          .fontSize(10)
+          .fillColor('#377f2c')
+          .text('Communication et impression sur tous supports', 116, 109, {
+            width: 245,
+            align: 'center',
+          });
+
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(10)
+          .fillColor('#172033')
+          .text(clean(quote.subsidiary.subsidiaryName), 48, 128, {
+            width,
+            align: 'right',
+          });
+        doc.font('Helvetica').fontSize(9).fillColor('#475569');
+        if (quote.subsidiary.address)
+          doc.text(clean(quote.subsidiary.address), { width, align: 'right' });
+        doc.text('+237 671 89 01 84  |  contact@caapmedia.com', {
+          width,
+          align: 'right',
+        });
+        const divider = doc.y + 10;
+        doc
+          .moveTo(48, divider)
+          .lineTo(right, divider)
+          .lineWidth(1)
+          .strokeColor('#aeca30')
+          .stroke();
+
+        const partiesTop = divider + 17;
+        const columnWidth = (width - 20) / 2;
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(8)
           .fillColor('#64748b')
-          .text('Impression et communication', 68, 83);
+          .text('FACTURÉ À', 48, partiesTop, { width: columnWidth });
+        doc
+          .fontSize(11)
+          .fillColor('#172033')
+          .text(clean(quote.clientName), { width: columnWidth });
+        doc.font('Helvetica').fontSize(9).fillColor('#475569');
+        for (const detail of [
+          quote.clientCompany,
+          quote.clientEmail,
+          quote.clientPhone,
+        ]) {
+          if (detail) doc.text(clean(detail), { width: columnWidth });
+        }
+        const clientBottom = doc.y;
         doc
           .font('Helvetica-Bold')
-          .fontSize(13)
+          .fontSize(18)
           .fillColor('#172033')
-          .text(clean(quote.subsidiary.subsidiaryName), 48, 120, { width });
-        doc
-          .font('Helvetica')
-          .fontSize(9)
-          .fillColor('#475569')
-          .text(clean(quote.subsidiary.address), { width });
-        doc.text('+237 671 89 01 84 | contact@caapmedia.com', { width });
-        doc.moveDown(1.5);
-        doc
-          .font('Helvetica-Bold')
-          .fontSize(20)
-          .fillColor('#172033')
-          .text('FACTURE PROFORMA', { width });
+          .text('FACTURE PROFORMA', right - columnWidth, partiesTop, {
+            width: columnWidth,
+            align: 'right',
+          });
         doc
           .font('Helvetica')
           .fontSize(10)
-          .text(`N° ${clean(quote.proformaNumber)}`);
-        doc.text(
-          `Date : ${date(quote.createdAt)}    Validité : ${date(quote.validityDate)}`,
-        );
-        doc.moveDown(1.5);
-        doc
-          .font('Helvetica-Bold')
-          .fontSize(9)
-          .fillColor('#64748b')
-          .text('CLIENT');
-        doc
-          .fontSize(12)
-          .fillColor('#172033')
-          .text(clean(quote.clientName), { width });
-        doc.font('Helvetica').fontSize(10).fillColor('#475569');
-        if (quote.clientCompany)
-          doc.text(clean(quote.clientCompany), { width });
-        doc.text(clean(quote.clientEmail), { width });
-        doc.text(clean(quote.clientPhone), { width });
-        doc.moveDown(1.5);
+          .fillColor('#475569')
+          .text(`N° ${clean(quote.proformaNumber)}`, {
+            width: columnWidth,
+            align: 'right',
+          })
+          .text(`Date : ${date(quote.createdAt)}`, {
+            width: columnWidth,
+            align: 'right',
+          })
+          .text(`Validité : ${date(quote.validityDate)}`, {
+            width: columnWidth,
+            align: 'right',
+          });
+        doc.y = Math.max(clientBottom, doc.y) + 20;
+
         const xs = [48, 303, 347, 447];
         const widths = [255, 44, 100, width - 399];
         const heading = () => {
@@ -103,11 +175,12 @@ export class ProformaPdfService {
           const y = doc.y;
           doc.rect(48, y, width, 26).fill('#eef2e0');
           doc.font('Helvetica-Bold').fontSize(9).fillColor('#172033');
-            ['Désignation', 'Qté', 'Prix unitaire TTC', 'Total TTC'].forEach((label, i) =>
-            doc.text(label, xs[i] + 6, y + 8, {
-              width: widths[i] - 12,
-              align: i > 1 ? 'right' : i === 1 ? 'center' : 'left',
-            }),
+          ['Désignation', 'Qté', 'Prix unitaire TTC', 'Total TTC'].forEach(
+            (label, i) =>
+              doc.text(label, xs[i] + 6, y + 8, {
+                width: widths[i] - 12,
+                align: i > 1 ? 'right' : i === 1 ? 'center' : 'left',
+              }),
           );
           doc.y = y + 34;
         };
@@ -158,7 +231,7 @@ export class ProformaPdfService {
             .stroke();
           doc.y += 12;
         }
-        ensure(106);
+        ensure(108);
         doc.y += 8;
         for (const [label, value, bold] of [
           ['Sous-total HT', money(quote.subtotal), false],
@@ -174,6 +247,13 @@ export class ProformaPdfService {
             .font(bold ? 'Helvetica-Bold' : 'Helvetica')
             .fontSize(bold ? 12 : 10)
             .fillColor('#172033');
+          if (bold)
+            doc
+              .moveTo(270, y - 5)
+              .lineTo(right, y - 5)
+              .lineWidth(1)
+              .strokeColor('#cbd5e1')
+              .stroke();
           doc.text(label, 270, y, { width: 125 });
           doc.text(value, 395, y, { width: width - 347, align: 'right' });
           doc.y = y + (bold ? 28 : 22);
@@ -212,6 +292,22 @@ export class ProformaPdfService {
             });
           doc.y = y + boxHeight + 12;
         }
+        const amountLine = `Arrêté la présente facture proforma à la somme de : ${amountInWords(Number(quote.totalAmount))}.`;
+        doc.font('Helvetica-Oblique').fontSize(9).fillColor('#475569');
+        ensure(doc.heightOfString(amountLine, { width }) + 12);
+        doc.text(amountLine, 48, doc.y, { width });
+        doc.moveDown(0.5);
+        ensure(35);
+        doc
+          .font('Helvetica-Oblique')
+          .fontSize(8)
+          .fillColor('#64748b')
+          .text(
+            'Ce document est une facture proforma et ne constitue pas une facture définitive.',
+            48,
+            doc.y + 8,
+            { width, align: 'center' },
+          );
         const pages = doc.bufferedPageRange();
         for (let page = 0; page < pages.count; page++) {
           doc.switchToPage(page);

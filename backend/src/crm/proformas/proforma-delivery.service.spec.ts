@@ -1,5 +1,4 @@
 import { NotFoundException, ServiceUnavailableException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { ProformaStatus, UserRole } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import {
@@ -32,7 +31,6 @@ describe('Proforma delivery', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.JWT_SECRET = 'unit-test-secret-longer-than-32-characters';
-    process.env.PUBLIC_API_URL = 'https://backend.example/api-caapmedia';
     quote = {
       id: 'quote',
       proformaNumber: 'PRO-2026-001',
@@ -86,6 +84,17 @@ describe('Proforma delivery', () => {
     process.env = { ...originalEnv };
   });
 
+  it('previews the server PDF without recording a customer view or sending it', async () => {
+    quote.status = ProformaStatus.SENT;
+    await expect(service.preview('quote', user)).resolves.toEqual({
+      quote,
+      buffer: Buffer.from('%PDF-test'),
+    });
+    expect(pdf.render).toHaveBeenCalledWith(quote);
+    expect(prisma.proforma.updateMany).not.toHaveBeenCalled();
+    expect(mailer.send).not.toHaveBeenCalled();
+  });
+
   it('sends the generated document only to the stored client and marks it sent afterwards', async () => {
     expect(await service.email('quote', user, quote.clientEmail)).toEqual({
       channel: 'email',
@@ -106,6 +115,10 @@ describe('Proforma delivery', () => {
   });
   it('does not disclose another subsidiary proforma', async () => {
     quote.subsidiaryId = 'B';
+    await expect(service.preview('quote', user)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(pdf.render).not.toHaveBeenCalled();
     await expect(
       service.email('quote', user, quote.clientEmail),
     ).rejects.toBeInstanceOf(NotFoundException);
@@ -114,38 +127,89 @@ describe('Proforma delivery', () => {
     );
     expect(mailer.send).not.toHaveBeenCalled();
   });
-  it('prepares WhatsApp without changing status and uses a separate signed sharing token', async () => {
+  it('prepares a WhatsApp caption without a document link or status change', async () => {
     const share = await service.whatsapp('quote', user);
     expect(share.phone).toBe('237699123456');
-    expect(new URL(share.whatsappUrl).searchParams.get('text')).toContain(
-      share.downloadUrl,
-    );
+    const chat = new URL(share.whatsappUrl);
+    expect(chat.pathname).toBe('/237699123456');
+    expect(chat.searchParams.get('text')).toBe(share.caption);
+    expect(share.caption).toContain('PRO-2026-001');
+    expect(share.caption).not.toMatch(/https?:\/\//);
+    expect(share).not.toHaveProperty('downloadUrl');
     expect(prisma.proforma.updateMany).not.toHaveBeenCalled();
-    const token = share.downloadUrl.split('/').pop()!;
-    expect(() =>
-      new JwtService().verify(token, { secret: process.env.JWT_SECRET }),
-    ).toThrow();
-    expect((await service.sharedDocument(token)).quote).toBe(quote);
-    quote.status = ProformaStatus.SENT;
-    expect((await service.sharedDocument(token)).quote).toBe(quote);
   });
-  it('invalidates the link after document content changes', async () => {
-    const share = await service.whatsapp('quote', user);
-    quote.clientName = 'Changed client';
-    await expect(
-      service.sharedDocument(share.downloadUrl.split('/').pop()!),
-    ).rejects.toBeInstanceOf(NotFoundException);
+  describe('direct WhatsApp delivery', () => {
+    beforeEach(() => {
+      process.env.WHATSAPP_GRAPH_API_VERSION = 'v27.0';
+      process.env.WHATSAPP_PHONE_NUMBER_ID = '1234';
+      process.env.WHATSAPP_ACCESS_TOKEN = 'test-token';
+      process.env.WHATSAPP_PROFORMA_TEMPLATE = 'proforma_caapmedia';
+    });
+
+    afterEach(() => jest.restoreAllMocks());
+
+    it('uploads the PDF and sends one template message with a document, then marks it sent', async () => {
+      const request = jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValueOnce(Response.json({ id: 'media-id' }))
+        .mockResolvedValueOnce(
+          Response.json({ messages: [{ id: 'message-id' }] }),
+        );
+
+      await expect(
+        service.sendWhatsApp('quote', user, '699123456'),
+      ).resolves.toMatchObject({
+        messageId: 'message-id',
+      });
+      const [upload, send] = request.mock.calls;
+      expect(upload[0]).toBe('https://graph.facebook.com/v27.0/1234/media');
+      const attachment = (upload[1]?.body as FormData).get('file') as Blob;
+      expect(attachment.type).toBe('application/pdf');
+      await expect(attachment.text()).resolves.toBe('%PDF-test');
+      expect(send[0]).toBe('https://graph.facebook.com/v27.0/1234/messages');
+      expect(JSON.parse(send[1]?.body as string)).toMatchObject({
+        to: '237699123456',
+        type: 'template',
+        template: {
+          components: [
+            {
+              type: 'header',
+              parameters: [{ type: 'document', document: { id: 'media-id' } }],
+            },
+            {
+              type: 'body',
+              parameters: [{ type: 'text', text: quote.proformaNumber }],
+            },
+          ],
+        },
+      });
+      expect(prisma.proforma.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: ProformaStatus.SENT,
+          }) as unknown,
+        }),
+      );
+    });
+
+    it('leaves the status unchanged when Meta refuses the message', async () => {
+      jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValueOnce(Response.json({ id: 'media-id' }))
+        .mockResolvedValueOnce(
+          Response.json({ error: { code: 132001 } }, { status: 400 }),
+        );
+      await expect(
+        service.sendWhatsApp('quote', user, quote.clientPhone),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(prisma.proforma.updateMany).not.toHaveBeenCalled();
+    });
   });
-  it('expires links after at most seven days and rejects forged tokens', async () => {
-    jest.useFakeTimers();
-    const share = await service.whatsapp('quote', user);
+
+  it('rejects forged legacy document links', async () => {
     await expect(service.sharedDocument('forged')).rejects.toBeInstanceOf(
       NotFoundException,
     );
-    jest.advanceTimersByTime(8 * 86400000);
-    await expect(
-      service.sharedDocument(share.downloadUrl.split('/').pop()!),
-    ).rejects.toBeInstanceOf(NotFoundException);
   });
   it('supports resending sent quotes and refuses expired or rejected quotes', async () => {
     quote.status = ProformaStatus.SENT;
@@ -164,19 +228,6 @@ describe('Proforma delivery', () => {
     expect(normalizeWhatsAppPhone('699 123 456')).toBe('237699123456');
     expect(normalizeWhatsAppPhone('0033 6 12 34 56 78')).toBe('33612345678');
     expect(() => normalizeWhatsAppPhone('not-a-number')).toThrow();
-  });
-
-  it('refuses malformed or insecure public sharing addresses', async () => {
-    for (const address of [
-      'not-a-url',
-      'http://public.example/api-caapmedia',
-      'https://user:password@example.test/api-caapmedia',
-    ]) {
-      process.env.PUBLIC_API_URL = address;
-      await expect(service.whatsapp('quote', user)).rejects.toBeInstanceOf(
-        ServiceUnavailableException,
-      );
-    }
   });
 
   it('does not send to a changed recipient without a refreshed confirmation', async () => {

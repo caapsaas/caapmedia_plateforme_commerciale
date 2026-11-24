@@ -1,4 +1,163 @@
 {
+  "integrationAudit": {
+    "geminiSetup": "Set GEMINI_API_KEY in the backend environment to enable this check.",
+    "settings": "Settings",
+    "title": "External services",
+    "intro": "Platform-wide inventory. Automated checks verify a specific capability and send no customer messages.",
+    "refresh": "Refresh results",
+    "categoryLabel": "Dependency type",
+    "checkLabel": "Check status",
+    "all": "All",
+    "history": "Check history",
+    "historyError": "Could not load check history.",
+    "noChecks": "No checks recorded.",
+    "newer": "Newer",
+    "older": "Older",
+    "loadError": "Could not load the inventory or latest check results.",
+    "noMatches": "No services match these filters.",
+    "duration": "{{value}} ms",
+    "category": {
+      "infrastructure": "Infrastructure",
+      "server": "Server integration",
+      "browser": "Browser integration",
+      "seed": "Seed data",
+      "link": "External link"
+    },
+    "configuration": {
+      "configured": "Configuration present",
+      "incomplete": "Incomplete or invalid configuration",
+      "disabled": "Disabled",
+      "notApplicable": "No server configuration"
+    },
+    "state": {
+      "passed": "Check passed",
+      "failed": "Check failed",
+      "stale": "Stale result",
+      "neverChecked": "Never checked",
+      "requiresSetup": "Check requires setup",
+      "inactive": "Inactive check",
+      "unmonitored": "No automated check",
+      "skipped": "Check skipped"
+    },
+    "capability": {
+      "databaseQuery": "Runs a simple PostgreSQL query.",
+      "smtpAuthentication": "Verifies a secure connection and authentication to the SMTP transport.",
+      "r2ObjectMetadata": "Reads metadata for a known R2 object.",
+      "whatsappApiAccess": "Reads the configured business phone number from the Meta API without sending a message.",
+      "geminiModels": "Lists available Gemini models using the server key without generating content.",
+      "publicHttpResponse": "Checks the reference URL for a response or initial redirect from the server.",
+      "whatsappLinkOrigin": "Checks whether wa.me responds without using a phone number."
+    },
+    "diagnostic": {
+      "missingGeminiKey": "The backend Gemini key is missing.",
+      "endpointNotFound": "The check URL was not found.",
+      "rateLimited": "The request limit was reached.",
+      "unexpectedHttpStatus": "The provider returned an unexpected HTTP status.",
+      "accessDenied": "The service denied access.",
+      "connectionFailed": "Connection or check failed.",
+      "timeout": "The check timed out.",
+      "probeObjectNotFound": "Test object not found.",
+      "missingProbeObject": "Set R2_AUDIT_OBJECT_KEY to the key of an existing object.",
+      "disabled": "R2 storage is disabled.",
+      "configurationIncomplete": "Incomplete or invalid configuration."
+    },
+    "services": {
+      "postgresql": {
+        "name": "PostgreSQL",
+        "usage": "Database for the API and check history."
+      },
+      "smtp": {
+        "name": "SMTP",
+        "usage": "Staff password resets, proforma emails, and delivery of contact form messages to support@caapmedia.com."
+      },
+      "r2": {
+        "name": "Cloudflare R2",
+        "usage": "Product image storage. The check covers private object metadata."
+      },
+      "whatsapp": {
+        "name": "WhatsApp Cloud API",
+        "usage": "Sends proformas through the Meta API."
+      },
+      "gemini": {
+        "name": "Google Gemini",
+        "usage": "Frontend marketing generation, unavailable in production."
+      },
+      "google-fonts": {
+        "name": "Google Fonts",
+        "usage": "Fonts loaded by the browser."
+      },
+      "unsplash": {
+        "name": "Unsplash",
+        "usage": "Images displayed on the storefront."
+      },
+      "picsum": {
+        "name": "Picsum",
+        "usage": "Remote image in the header component."
+      },
+      "placeholder-images": {
+        "name": "via.placeholder.com",
+        "usage": "Placeholder images in sales flows."
+      },
+      "google-cloud-storage": {
+        "name": "Google Cloud Storage",
+        "usage": "Images referenced by catalog seed data."
+      },
+      "whatsapp-links": {
+        "name": "WhatsApp",
+        "usage": "Manual sharing through an external link."
+      },
+      "google-maps": {
+        "name": "Google Maps",
+        "usage": "Directions from public pages."
+      },
+      "facebook": {
+        "name": "Facebook",
+        "usage": "Link in the storefront footer."
+      },
+      "instagram": {
+        "name": "Instagram",
+        "usage": "Link in the storefront footer."
+      },
+      "linkedin": {
+        "name": "LinkedIn",
+        "usage": "Link in the storefront footer."
+      }
+    }
+  },
+  "qrPointage": {
+    "arrival": "Arrival",
+    "departure": "Departure",
+    "invalidLinkTitle": "Invalid attendance link",
+    "errors": {
+      "missingQr": "The link is incomplete. Scan the attendance QR code displayed at your workplace.",
+      "invalidQr": "This QR code is invalid or has expired. Scan the current attendance QR code displayed at your workplace.",
+      "replacedQr": "This QR code has been replaced. Scan the new QR code displayed at your workplace.",
+      "alreadyArrived": "Your arrival has already been recorded today. To clock out, select ‘Departure’.",
+      "invalidDeparture": "You can clock out once your arrival has been recorded for today. If your departure has already been recorded, no further action is needed.",
+      "invalidEmployeeId": "Enter your employee ID as it was given to you.",
+      "employeeNotFound": "This employee ID does not match an active employee at the branch associated with this QR code. Check your ID and the QR code you scanned, then contact HR if needed.",
+      "invalidInput": "The attendance details are invalid. Check your employee ID and attendance action, then try again.",
+      "forbidden": "Access to attendance tracking was denied. Scan the QR code displayed at your workplace again. If the problem persists, contact HR.",
+      "tooManyAttempts": "Too many attendance attempts. Wait one minute before trying again.",
+      "network": "Could not reach the attendance service. Check your internet connection and try again.",
+      "unavailable": "Your attendance could not be confirmed. Try again in a moment. If the problem persists, contact HR."
+    }
+  },
+  "popups": {
+    "confirmTitle": "Confirmation",
+    "messageTitle": "Information",
+    "opportunityContact": "Please select a contact.",
+    "opportunityName": "Please enter a name for the opportunity.",
+    "opportunityValue": "Please enter an opportunity value greater than zero.",
+    "proformaRequired": "Please complete the required fields and add at least one item.",
+    "positiveAmount": "Please enter an amount greater than zero.",
+    "passwordMismatch": "The new passwords do not match.",
+    "passwordChangedSimulation": "The password change succeeded in simulation mode.",
+    "replaceQr": "Replace the permanent QR code? The printed code will stop working and must be reprinted.",
+    "importTitle": "Confirm import",
+    "importSummary": "Rows to process ({{entity}}): {{valid}}. CRM fields recognized: {{mapped}} of {{total}}.{{skipped}}",
+    "importSkipped": " Rows skipped because a required field is missing or invalid: {{count}}."
+  },
   "cashierReceipts": {
     "title": "My daily receipts",
     "subtitle": "Track receipts recorded under your account.",
@@ -103,7 +262,7 @@
     "disbursement": "Disbursement",
     "creditHistory": "Customer Receivables",
     "financialHistory": "Financial History",
-    "proforma": "Proforma Invoice",
+    "proforma": "Proforma",
     "salesAnalytics": "Sales Analysis",
     "purchaseAnalytics": "Purchase Analysis",
     "notifications": "Notifications"
@@ -1583,6 +1742,8 @@
       "colHourlyRate": "Hourly rate (F CFA/h)",
       "colAction": "Action",
       "notConfigured": "Not configured",
+      "unpriced": "Hourly rate not set",
+      "unpricedOrder": "Rate not set, machine cost counted as 0",
       "noEquipment": "No equipment found.",
       "saveError": "Error saving.",
       "invalidRate": "Invalid hourly rate.",
@@ -2003,7 +2164,10 @@
     "closeOrder": "Close order",
     "validationSuccess": "Order approved for production.",
     "workflowError": "Action unavailable. Refresh the list and check the order status.",
-    "cancellationPaymentBlocked": "Payment has already been collected. Resolve the payment before cancelling this order.",
+    "cancelOrder": "Cancel order",
+    "cancellationReason": "Cancellation reason",
+    "cancellationImpact": "The cancellation debit will appear on the relevant account statement.",
+    "cancellationSaved": "Order cancelled",
     "productionStage": "Manufacturing stage",
     "orderId": "Order ID",
     "customer": "Customer",
@@ -2641,6 +2805,7 @@
     }
   },
   "contactModal": {
+    "deliveryError": "Your message could not be sent. Try again or email support@caapmedia.com.",
     "title": "Contact Us",
     "subtitle": "A question? A project? The CaapMedia team is here for you.",
     "name": "Full Name",
@@ -2759,6 +2924,7 @@
       "visitTitle": "Meet us in Douala",
       "visitNote": "Call or email us if you would like to arrange a visit to our premises.",
       "directions": "Get directions",
+      "locating": "Finding your location…",
       "alsoReachUs": "You can also reach us by phone or email"
     },
     "photoSlots": {
@@ -2833,6 +2999,8 @@
     "items": "items",
     "total": "Total",
     "orderViaWhatsApp": "Order via WhatsApp",
+    "whatsAppContact": "Chat with us on WhatsApp",
+    "whatsAppContactMessage": "Hello, I'd like to learn more about your products.",
     "viewDetails": "View Details",
     "pauseCarousel": "Pause carousel",
     "resumeCarousel": "Resume carousel",
@@ -3068,7 +3236,25 @@
       "successMessage": "Stock has been updated."
     }
   },
+  "documentHeader": {
+    "printServices": "Printing - Design - Screen printing",
+    "otherServices": "Other services",
+    "tagline": "Communication and printing across all media",
+    "phone": "Tel.",
+    "email": "Email"
+  },
   "bonDeLivraison": {
+    "deliveryDate": "Delivery date",
+    "deliveryNumber": "Delivery no. {{number}}",
+    "chooseDelivery": "Delivery to print",
+    "remainingQuantity": "Remaining: {{remaining}} of {{ordered}} ordered",
+    "saved": "Delivery recorded.",
+    "documentTitle": "Delivery Note",
+    "recipient": "Recipient",
+    "designation": "Description",
+    "orderedQuantity": "Quantity ordered",
+    "packageCount": "Number of packages",
+    "deliveredQuantity": "Quantity delivered",
     "title": "Delivery Note",
     "orderNum": "Order #",
     "date": "Date",
@@ -3319,6 +3505,14 @@
     "noExpenseBox": "No expense box has been configured for this subsidiary."
   },
   "cashRemittance": {
+    "linkReceipts": "Order payments included in this remittance",
+    "linkReceiptsHint": "Select the payments actually included so that any cancellation is posted to the correct account.",
+    "linkedReceiptsAboveAmount": "Selected payments exceed the declared amount.",
+    "receiptDate": "Collection date",
+    "submittedDate": "Submission date",
+    "availableToRemit": "Available for a new remittance",
+    "totalToRemit": "Amount to collect",
+    "amountAboveAvailable": "This amount exceeds the available balance after pending remittances are deducted.",
     "title": "Cash remittances",
     "subtitle": "Remittance of the cash register's contents to the headquarter safe.",
     "new": "New remittance",
@@ -3503,6 +3697,64 @@
     }
   },
   "proforma": {
+    "conversionDesignFile": "Production file",
+    "conversionSpecsError": "Could not load item specifications.",
+    "viewOrder": "View order",
+    "orderReference": "Order",
+    "conversionDueDate": "Payment due date",
+    "conversionPendingValidation": "The order will be created pending validation.",
+    "previewPdf": "Preview PDF",
+    "hidePreview": "Hide PDF",
+    "previewError": "Could not load the proforma PDF.",
+    "previewRetry": "Retry",
+    "previewNewTab": "Open PDF in a new tab",
+    "form": {
+      "lead": "Lead",
+      "leadPlaceholder": "Select a lead",
+      "clientName": "Client name",
+      "email": "Email",
+      "phone": "Phone",
+      "company": "Company",
+      "product": "Product",
+      "productPlaceholder": "Select a product",
+      "quantity": "Quantity",
+      "unitPrice": "Unit price incl. tax",
+      "addItem": "Add",
+      "removeItem": "Remove item",
+      "lineTotal": "Total incl. tax",
+      "action": "Action",
+      "taxRate": "Tax rate (%)",
+      "validity": "Validity (days)",
+      "notes": "Notes and special terms",
+      "notesPlaceholder": "Delivery lead time, payment terms…",
+      "subtotal": "Subtotal excl. tax",
+      "taxAmount": "Tax included ({{rate}}%)",
+      "steps": {
+        "client": "Client",
+        "items": "Items",
+        "terms": "Terms",
+        "review": "Review"
+      },
+      "create": "Create proforma",
+      "edit": "Edit proforma",
+      "created": "Proforma created",
+      "updated": "Proforma updated",
+      "save": "Save changes",
+      "previous": "Back",
+      "next": "Next",
+      "clientRequired": "Select a lead and enter the client name, a valid email address, and a phone number.",
+      "itemsRequired": "Add at least one item to continue.",
+      "termsInvalid": "Enter a tax rate between 0 and 100% and a positive validity period.",
+      "validitySummary": "Valid for {{days}} days",
+      "validUntil": "Valid until {{date}}",
+      "saveError": "Could not save the proforma. Try again."
+    },
+    "changeStatus": "Change status",
+    "markViewed": "Mark as viewed",
+    "viewedSuccess": "Proforma marked as viewed",
+    "viewedError": "Could not mark the proforma as viewed.",
+    "rejectConfirmation": "Proforma {{number}} will be marked as rejected.",
+    "convertConfirmation": "An order will be created from proforma {{number}}.",
     "title": "Proformas (Quotes)",
     "create": "Create Proforma",
     "empty": "No proforma found",
@@ -3511,7 +3763,10 @@
       "draft": "Drafts",
       "sent": "Sent",
       "accepted": "Accepted",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "viewed": "Viewed",
+      "converted": "Converted",
+      "expired": "Expired"
     },
     "table": {
       "number": "Number",
@@ -3526,7 +3781,8 @@
       "edit": "Edit",
       "send": "Send",
       "resend": "Resend",
-      "accept": "Accept (converts to order)",
+      "accept": "Accept",
+      "convert": "Convert to order",
       "reject": "Reject",
       "delete": "Delete"
     },
@@ -3542,7 +3798,11 @@
     "deleteConfirmTitle": "Delete proforma",
     "deleteConfirmMessage": "Are you sure you want to delete proforma {{number}}?",
     "acceptSuccess": "Proforma accepted",
-    "acceptSuccessMessage": "The proforma has been converted to an order.",
+    "acceptSuccessMessage": "The decision has been recorded.",
+    "convertSuccess": "Converted",
+    "convertSuccessMessage": "The order has been created.",
+    "convertError": "Conversion failed",
+    "convertErrorMessage": "Could not convert this proforma to an order.",
     "acceptError": "Error",
     "acceptErrorMessage": "Failed to accept the proforma.",
     "rejectSuccess": "Proforma rejected",
@@ -3581,14 +3841,20 @@
       "emailSuccess": "Email handed to the mail server.",
       "missingEmail": "Customer email address missing.",
       "missingPhone": "Customer phone number missing.",
-      "whatsappHint": "Share the PDF file directly to WhatsApp when your device supports it. Otherwise, download the PDF and attach it in the WhatsApp chat.",
+      "sendWhatsAppDirect": "Send PDF on WhatsApp",
+      "whatsAppAccepted": "WhatsApp accepted the PDF and message for sending.",
+      "whatsappHint": "Download the PDF and copy the message. Open WhatsApp, attach the PDF as a document, then paste the message into the caption before sending.",
+      "copyMessage": "Copy message",
+      "messageCopied": "Message copied.",
+      "copyMessageError": "Select the text above to copy it manually.",
+      "nativeShareHint": "Choose WhatsApp and the customer ({{phone}}). If the message is missing, copy it here and add it to the PDF before sending.",
       "sharePdfWhatsApp": "Share PDF on WhatsApp",
       "downloadPdf": "Download PDF",
       "pdfDownloadError": "The PDF could not be downloaded. Please try again.",
       "pdfShareUnsupported": "File sharing is not available on this device. Download the PDF and attach it in WhatsApp.",
       "prepareWhatsApp": "Prepare WhatsApp message",
       "openWhatsApp": "Open WhatsApp",
-      "confirmWhatsApp": "I sent the message",
+      "confirmWhatsApp": "I sent the PDF and message",
       "confirmed": "Proforma marked as sent.",
       "expires": "Link available until {{date}}.",
       "error": "Unable to prepare or send the proforma.",

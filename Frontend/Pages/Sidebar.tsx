@@ -41,6 +41,7 @@ interface NavItem {
   to: string;
   label: React.ReactNode;
   icon: React.ReactNode;
+  exact?: boolean;
 }
 
 interface NavGroup {
@@ -122,7 +123,9 @@ const NavLink: React.FC<{
 // (utilise pour la navigation) garde le slash. Meme correctif que
 // SidebarDropdown.tsx::isItemActive.
 const isNavItemActive = (item: NavItem, currentPath: string): boolean =>
-  item.to === '/dashboard/' ? currentPath === '/dashboard' : currentPath.startsWith(item.to);
+  item.to === '/dashboard/' ? currentPath === '/dashboard'
+    : item.exact ? currentPath === item.to
+    : currentPath.startsWith(item.to);
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
@@ -149,7 +152,7 @@ const Sidebar: React.FC = () => {
     refetchInterval: 60000,
   });
 
-  if (!user || (!subsidiary && user.userRole !== UserRole.ADMIN && user.userRole !== UserRole.SUPER_ADMIN)) return null;
+  if (!user || (!subsidiary && user.userRole !== UserRole.ADMIN && user.userRole !== UserRole.SUPER_ADMIN && activeRole !== UserRole.SUPER_ADMIN)) return null;
 
   const setIsSidebarOpen = (v: boolean) => dispatch({ type: 'SET_SIDEBAR_OPEN', payload: v });
   const setIsSidebarCollapsed = (v: boolean) => dispatch({ type: 'SET_SIDEBAR_COLLAPSED', payload: v });
@@ -165,10 +168,8 @@ const Sidebar: React.FC = () => {
 
   const getNavGroups = (): NavGroup[] => {
     switch (activeRole) {
-      // SUPER_ADMIN voit exactement les memes vues qu'ADMIN (memes routes
-      // /dashboard/*) - seule la donnee affichee differe (consolidee toutes
-      // filiales au lieu de la filiale de l'utilisateur), resolu cote backend
-      // via subsidiary-scope.ts, pas par une page dediee.
+      // Les deux rôles partagent les rubriques métier. Les liens propres au
+      // super-admin sont ajoutés selon le rôle actif.
       case UserRole.SUPER_ADMIN:
       case UserRole.ADMIN:
         return [
@@ -229,7 +230,7 @@ const Sidebar: React.FC = () => {
             items: [
               { to: '/dashboard/hr', label: t('sidebar.hrManagement'), icon: <IconBriefcase className="h-5 w-5" /> },
               { to: '/dashboard/secretariat', label: t('sidebar.secretariat'), icon: <IconClipboardList className="h-5 w-5" /> },
-              { to: '/dashboard/configuration', label: t('sidebar.configuration'), icon: <IconSettings className="h-5 w-5" /> },
+              { to: '/dashboard/configuration', label: t('sidebar.configuration'), icon: <IconSettings className="h-5 w-5" />, exact: true },
              
             ],
           },
@@ -240,6 +241,15 @@ const Sidebar: React.FC = () => {
               { to: '/dashboard/notifications', label: t('sidebar.notifications'), icon: <Bell className="h-5 w-5" /> },
             ],
           },
+          ...(activeRole === UserRole.SUPER_ADMIN ? [{
+            groupLabel: t('integrationAudit.settings'),
+            groupIcon: <IconSettings className="h-5 w-5" />,
+            items: [{
+              to: '/dashboard/configuration/integrations',
+              label: t('integrationAudit.settings'),
+              icon: <IconSettings className="h-5 w-5" />,
+            }],
+          }] : []),
           // Lien autonome hors dropdown, meme emplacement/logique que
           // Frontend_GMO/components/Sidebar.tsx (rendu en NavLink direct, pas
           // imbrique dans un groupe) - reserve au siege, badge de compteur.

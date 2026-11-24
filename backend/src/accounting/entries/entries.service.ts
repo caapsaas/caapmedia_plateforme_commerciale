@@ -261,10 +261,23 @@ export class EntriesService {
       );
     }
 
-    const alreadyReversed = await this.prisma.journalEntry.findFirst({
+    return this.prisma.$transaction((tx) =>
+      this.reversePostedEntry(tx, original, user.id),
+    );
+  }
+
+  async reversePostedEntry(
+    tx: Prisma.TransactionClient,
+    original: Prisma.JournalEntryGetPayload<{ include: { lines: true } }>,
+    userId?: string,
+    allowExisting = false,
+  ) {
+    const { id } = original;
+    const alreadyReversed = await tx.journalEntry.findFirst({
       where: { reversalOfEntryId: id },
     });
     if (alreadyReversed) {
+      if (allowExisting) return alreadyReversed;
       throw new BadRequestException(
         `Cette écriture a déjà été extournée (voir ${alreadyReversed.sequentialNumber || alreadyReversed.entryNumber}).`,
       );
@@ -283,39 +296,37 @@ export class EntriesService {
       creditAmount: Number(line.debitAmount),
     }));
 
-    return this.prisma.$transaction(async (tx) => {
-      const sequentialNumber = await this.assignSequentialNumber(
-        tx,
-        original.journalId,
-        original.subsidiaryId,
-        reversalDate,
-      );
+    const sequentialNumber = await this.assignSequentialNumber(
+      tx,
+      original.journalId,
+      original.subsidiaryId,
+      reversalDate,
+    );
 
-      return tx.journalEntry.create({
-        data: {
-          id: generateId(ID_PREFIXES.JOURNALENTRY),
-          entryNumber: `EXT-${original.entryNumber}`,
-          entryDate: reversalDate,
-          description: `Extourne de "${original.description}" (${original.sequentialNumber || original.entryNumber})`,
-          status: JournalEntryStatus.POSTED,
-          journalId: original.journalId,
-          fiscalYearId: original.fiscalYearId,
-          subsidiaryId: original.subsidiaryId,
-          createdBy: user.id,
-          reversalOfEntryId: id,
-          sequentialNumber,
-          lines: {
-            create: invertedLines.map((line) => ({
-              id: generateId(ID_PREFIXES.JOURNALENTRYLINE),
-              accountId: line.accountId,
-              description: line.description,
-              debitAmount: new Prisma.Decimal(line.debitAmount),
-              creditAmount: new Prisma.Decimal(line.creditAmount),
-            })),
-          },
+    return tx.journalEntry.create({
+      data: {
+        id: generateId(ID_PREFIXES.JOURNALENTRY),
+        entryNumber: `EXT-${original.entryNumber}`,
+        entryDate: reversalDate,
+        description: `Extourne de "${original.description}" (${original.sequentialNumber || original.entryNumber})`,
+        status: JournalEntryStatus.POSTED,
+        journalId: original.journalId,
+        fiscalYearId: original.fiscalYearId,
+        subsidiaryId: original.subsidiaryId,
+        createdBy: userId,
+        reversalOfEntryId: id,
+        sequentialNumber,
+        lines: {
+          create: invertedLines.map((line) => ({
+            id: generateId(ID_PREFIXES.JOURNALENTRYLINE),
+            accountId: line.accountId,
+            description: line.description,
+            debitAmount: new Prisma.Decimal(line.debitAmount),
+            creditAmount: new Prisma.Decimal(line.creditAmount),
+          })),
         },
-        include: { lines: true },
-      });
+      },
+      include: { lines: true },
     });
   }
 

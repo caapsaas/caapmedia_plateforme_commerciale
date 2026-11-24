@@ -62,6 +62,20 @@ describe('Proforma SMTP transport', () => {
     ).rejects.toThrow();
     expect(close).toHaveBeenCalled();
   });
+  it('reports SMTP authentication rejection without exposing the server response', async () => {
+    sendMail.mockRejectedValue({
+      code: 'EAUTH',
+      responseCode: 535,
+      command: 'AUTH PLAIN',
+      response: 'private server response',
+    });
+    await expect(
+      new ProformaMailerService().send(quote, Buffer.from('%PDF-test')),
+    ).rejects.toThrow(
+      'Le serveur de messagerie a refusé l’authentification SMTP.',
+    );
+    expect(close).toHaveBeenCalled();
+  });
   it('fails closed when SMTP configuration is missing', async () => {
     delete process.env.SMTP_HOST;
     await expect(

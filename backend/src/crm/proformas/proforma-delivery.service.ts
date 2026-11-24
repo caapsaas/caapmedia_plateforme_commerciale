@@ -20,6 +20,7 @@ import {
   ProformaPdfService,
 } from './proforma-pdf.service';
 import { ProformaMailerService } from './proforma-mailer.service';
+import { sendProformaDocument } from './proforma-whatsapp';
 
 const include = {
   items: { orderBy: { id: 'asc' as const }, include: { product: true } },
@@ -116,12 +117,22 @@ export class ProformaDeliveryService {
       .update('caapmedia-proforma-sharing-v1')
       .digest('hex');
   }
-  private async authorized(id: string, user: JwtUser) {
+  private async findScoped(id: string, user: JwtUser) {
     const quote = await this.prisma.proforma.findUnique({
       where: withSubsidiaryScope({ id }, resolveScopeContext(user)),
       include,
     });
     if (!quote) throw new NotFoundException('Proforma introuvable.');
+    return quote;
+  }
+
+  async preview(id: string, user: JwtUser) {
+    const quote = await this.findScoped(id, user);
+    return { quote, buffer: await this.pdf.render(quote) };
+  }
+
+  private async authorized(id: string, user: JwtUser) {
+    const quote = await this.findScoped(id, user);
     if (!sendable.includes(quote.status) || quote.validityDate <= new Date())
       throw new BadRequestException(
         'Cette proforma ne peut plus être envoyée.',
@@ -135,74 +146,46 @@ export class ProformaDeliveryService {
         'Les coordonnées du client ont changé. Actualisez la proforma avant de l’envoyer.',
       );
     await this.mailer.send(quote, await this.pdf.render(quote));
-    // Never claim success or change the status on SMTP failure; preserve later workflow states.
+    await this.recordSent(quote);
+    return { channel: 'email', recipient: quote.clientEmail, success: true };
+  }
+
+  async sendWhatsApp(id: string, user: JwtUser, expectedRecipient: string) {
+    const quote = await this.authorized(id, user);
+    const phone = normalizeWhatsAppPhone(quote.clientPhone);
+    if (phone !== normalizeWhatsAppPhone(expectedRecipient)) {
+      throw new ConflictException(
+        'Le numéro du client a changé. Actualisez la proforma avant de l’envoyer.',
+      );
+    }
+    const messageId = await sendProformaDocument(
+      phone,
+      quote.proformaNumber,
+      await this.pdf.render(quote),
+    );
+    await this.recordSent(quote);
+    return { channel: 'whatsapp', recipient: phone, success: true, messageId };
+  }
+
+  private async recordSent(quote: DeliveryProforma) {
     await this.prisma.proforma.updateMany({
       where: {
-        id,
+        id: quote.id,
         subsidiaryId: quote.subsidiaryId,
         status: ProformaStatus.DRAFT,
       },
       data: { status: ProformaStatus.SENT, sentAt: new Date() },
     });
-    return { channel: 'email', recipient: quote.clientEmail, success: true };
   }
+
   async whatsapp(id: string, user: JwtUser) {
     const quote = await this.authorized(id, user);
     const phone = normalizeWhatsAppPhone(quote.clientPhone);
-    const seconds = Math.max(
-      1,
-      Math.min(
-        7 * 86400,
-        Math.floor((quote.validityDate.getTime() - Date.now()) / 1000),
-      ),
-    );
-    const token = this.jwt.sign(
-      { sub: id, version: version(quote) },
-      {
-        secret: this.key(),
-        algorithm: 'HS256',
-        audience: 'proforma-sharing',
-        issuer: 'caapmedia',
-        expiresIn: seconds,
-      },
-    );
-    let base: string;
-    try {
-      base = process.env.PUBLIC_API_URL || '';
-      if (!base) {
-        const origin = new URL(
-          process.env.FRONTEND_URL || 'https://caapmedia.com',
-        );
-        if (['localhost', '127.0.0.1', '[::1]'].includes(origin.hostname))
-          origin.port = process.env.PORT || '3000';
-        base = `${origin.origin}/api-caapmedia`;
-      }
-      const configured = new URL(base);
-      if (
-        !['https:', 'http:'].includes(configured.protocol) ||
-        (configured.protocol === 'http:' &&
-          !['localhost', '127.0.0.1', '[::1]'].includes(configured.hostname)) ||
-        configured.search ||
-        configured.hash ||
-        configured.username ||
-        configured.password
-      )
-        throw new Error();
-    } catch {
-      throw new ServiceUnavailableException(
-        'L’adresse de partage des proformas est invalide.',
-      );
-    }
-    const downloadUrl = `${base.replace(/\/+$/, '')}/proforma-share/${token}`;
     const caption = `Bonjour ${quote.clientName},\nVoici votre facture proforma n° ${quote.proformaNumber} (${money(quote.totalAmount)}).\n\n${quote.subsidiary.subsidiaryName}`;
-    const message = `${caption}\nTélécharger le PDF : ${downloadUrl}`;
     return {
       phone,
       caption,
-      message,
-      downloadUrl,
-      whatsappUrl: `https://wa.me/${phone}?text=${encodeURIComponent(message)}`,
-      expiresAt: new Date(Date.now() + seconds * 1000).toISOString(),
+      whatsappUrl: `https://wa.me/${phone}?text=${encodeURIComponent(caption)}`,
     };
   }
   async sharedDocument(token: string) {
@@ -234,6 +217,18 @@ export class ProformaDeliveryService {
       version(quote) !== payload.version
     )
       throw new NotFoundException('Ce lien est expiré ou indisponible.');
-    return { quote, buffer: await this.pdf.render(quote) };
+    const buffer = await this.pdf.render(quote);
+    if (quote.status === ProformaStatus.SENT) {
+      await this.prisma.proforma.updateMany({
+        where: {
+          id: quote.id,
+          subsidiaryId: quote.subsidiaryId,
+          status: ProformaStatus.SENT,
+          validityDate: { gt: new Date() },
+        },
+        data: { status: ProformaStatus.VIEWED, viewedAt: new Date() },
+      });
+    }
+    return { quote, buffer };
   }
 }

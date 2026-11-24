@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePopup } from '../../../context/PopupContext';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProductSpecification } from '../../../types/models';
 import {
@@ -24,6 +25,7 @@ interface ProductSpecBuilderProps {
 // (FormRenderer) que celui utilisé en création de commande.
 const ProductSpecBuilder: React.FC<ProductSpecBuilderProps> = ({ productId, productName }) => {
     const { t } = useI18n();
+    const { confirmAction } = usePopup();
     const queryClient = useQueryClient();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [editingSpec, setEditingSpec] = useState<ProductSpecification | null>(null);
@@ -90,14 +92,14 @@ const ProductSpecBuilder: React.FC<ProductSpecBuilderProps> = ({ productId, prod
         setDrawerOpen(true);
     };
 
-    const handleDeleteSpec = (spec: ProductSpecification) => {
-        if (window.confirm(t('specBuilder.builder.confirmDeleteSpec', { name: spec.name }))) {
+    const handleDeleteSpec = async (spec: ProductSpecification) => {
+        if (await confirmAction(t('specBuilder.builder.confirmDeleteSpec', { name: spec.name }), { isDangerous: true })) {
             deleteSpecMutation.mutate(spec.id);
         }
     };
 
-    const handleDeleteGroup = (group: { id: string; name: string }) => {
-        if (window.confirm(t('specBuilder.builder.confirmDeleteGroup', { name: group.name }))) {
+    const handleDeleteGroup = async (group: { id: string; name: string }) => {
+        if (await confirmAction(t('specBuilder.builder.confirmDeleteGroup', { name: group.name }), { isDangerous: true })) {
             deleteGroupMutation.mutate(group.id);
         }
     };

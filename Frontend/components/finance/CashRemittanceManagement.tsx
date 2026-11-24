@@ -7,6 +7,7 @@ import { useToast } from '../../context/ToastContext';
 import {
   getCashRemittances,
   getRemittanceSourceAccounts,
+  getAvailableRemittanceReceipts,
   createCashRemittance,
   receiveCashRemittance,
 } from '../../services/apiFinance/apiCashRemittance';
@@ -22,13 +23,15 @@ const STATUS_STYLES: Record<CashRemittanceStatus, string> = {
   [CashRemittanceStatus.REJECTED]: 'bg-red-100 text-red-800',
 };
 
+const doualaDateInput = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Africa/Douala' });
+
 // Remise de caisse : le caissier déclare le contenu de sa caisse à remettre
 // (vers le coffre-fort de sa filiale, résolu côté backend) ; le
 // Directeur Financier de sa filiale réceptionne et confirme le comptage —
 // même logique que gmo (CashRemittanceManagement.tsx), sans la capture de
 // signature manuscrite (hors périmètre de cette parité).
 const CashRemittanceManagement: React.FC = () => {
-  const { t, formatCurrency } = useI18n();
+  const { t, formatCurrency, language } = useI18n();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -38,8 +41,13 @@ const CashRemittanceManagement: React.FC = () => {
   const [receivingRemittance, setReceivingRemittance] = useState<CashRemittance | null>(null);
   const [sourceCashRegisterId, setSourceCashRegisterId] = useState('');
   const [selectedReceiptIds, setSelectedReceiptIds] = useState<string[]>([]);
+  const [enteredAmount, setEnteredAmount] = useState<string | null>(null);
+  const [receiptDate, setReceiptDate] = useState('');
   const [receivedAmount, setReceivedAmount] = useState('');
   const [notes, setNotes] = useState('');
+  const today = doualaDateInput.format(new Date());
+  const hasValidReceiptDate = Boolean(receiptDate && receiptDate <= today);
+  const dateFormatter = new Intl.DateTimeFormat(language, { timeZone: 'Africa/Douala' });
 
   const { data: remittances = [], isLoading } = useQuery<CashRemittance[]>({
     queryKey: ['cashRemittances'],
@@ -47,7 +55,7 @@ const CashRemittanceManagement: React.FC = () => {
   });
   const { pageItems: pageRemittances, meta: remittancesMeta, setPage } = useClientPagination(remittances);
 
-  const { data: assignedCashRegisters = [], isFetching: isLoadingAccounts, isError: hasAccountsError } = useQuery({
+  const { data: assignedCashRegisters = [], isLoading: isLoadingAccounts, isError: hasAccountsError } = useQuery({
     queryKey: ['treasury-accounts', 'remittance-sources', user?.subsidiaryId, user?.id],
     queryFn: getRemittanceSourceAccounts,
     enabled: showCreateModal && activeRole === UserRole.CAISSIER,
@@ -60,13 +68,24 @@ const CashRemittanceManagement: React.FC = () => {
     ? assignedCashRegisters[0]
     : assignedCashRegisters.find((account) => account.id === sourceCashRegisterId);
 
-  const selectedReceipts = (myCashRegister?.availableReceipts ?? []).filter((receipt) =>
-    selectedReceiptIds.includes(receipt.receiptId),
-  );
-  const declaredAmount = selectedReceipts.reduce(
-    (total, receipt) => total + Number(receipt.amount),
-    0,
-  );
+  const { data: availableReceipts = [] } = useQuery({
+    queryKey: ['treasury-accounts', 'remittance-receipts', user?.subsidiaryId, user?.id],
+    queryFn: getAvailableRemittanceReceipts,
+    enabled: showCreateModal && activeRole === UserRole.CAISSIER,
+  });
+  const cashReceipts = availableReceipts.filter(receipt => receipt.treasuryAccountId === myCashRegister?.id);
+  const linkedReceipts = cashReceipts.filter(receipt => selectedReceiptIds.includes(receipt.id));
+  const linkedCents = linkedReceipts.reduce((total, receipt) => total + Math.round(receipt.amount * 100), 0);
+
+  const availableBalance = myCashRegister?.availableBalance ?? 0;
+  const availableWholeFrancs = Math.floor(availableBalance);
+  const amountToRemit = enteredAmount ?? (availableWholeFrancs > 0 ? String(availableWholeFrancs) : '');
+  const declaredAmount = Number(amountToRemit);
+  const exceedsAvailableBalance = declaredAmount > availableBalance;
+  const hasValidAmount = Number.isFinite(declaredAmount) &&
+    declaredAmount > 0 &&
+    Number(declaredAmount.toFixed(2)) === declaredAmount &&
+    !exceedsAvailableBalance && Math.round(declaredAmount * 100) >= linkedCents;
 
   const onError = (error: any) => {
     toast('error', error?.response?.data?.message || t('common.error'));
@@ -75,6 +94,8 @@ const CashRemittanceManagement: React.FC = () => {
   const resetForm = () => {
     setSourceCashRegisterId('');
     setSelectedReceiptIds([]);
+    setEnteredAmount(null);
+    setReceiptDate('');
     setReceivedAmount('');
     setNotes('');
   };
@@ -84,14 +105,15 @@ const CashRemittanceManagement: React.FC = () => {
       createCashRemittance({
         sourceCashRegisterId: myCashRegister?.id,
         declaredAmount,
-        receiptIds: selectedReceipts.map((receipt) => receipt.receiptId),
-        remittanceDate: new Date().toISOString(),
+        receiptIds: linkedReceipts.map(receipt => receipt.id),
+        remittanceDate: receiptDate,
         notes: notes || undefined,
       }),
     onSuccess: () => {
       toast('success', t('cashRemittance.createSuccess'));
       queryClient.invalidateQueries({ queryKey: ['cashRemittances'] });
       queryClient.invalidateQueries({ queryKey: ['treasury-accounts', 'remittance-sources'] });
+      void queryClient.invalidateQueries({ queryKey: ['treasury-accounts', 'remittance-receipts'] });
       setShowCreateModal(false);
       resetForm();
     },
@@ -136,7 +158,11 @@ const CashRemittanceManagement: React.FC = () => {
         </div>
         {activeRole === UserRole.CAISSIER && (
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => {
+              resetForm();
+              setReceiptDate(doualaDateInput.format(new Date()));
+              setShowCreateModal(true);
+            }}
             className="px-4 py-2 bg-[#c6e911] text-slate-800 text-sm font-semibold rounded-md hover:bg-[#adc40f] transition-colors"
           >
             {t('cashRemittance.new')}
@@ -149,10 +175,10 @@ const CashRemittanceManagement: React.FC = () => {
           <thead className="text-xs text-slate-700 uppercase bg-slate-50">
             <tr>
               <th className="px-4 py-3">{t('cashRemittance.table.reference')}</th>
-              <th className="px-4 py-3">{t('cashRemittance.table.date')}</th>
+              <th className="px-4 py-3">{t('cashRemittance.receiptDate')}</th>
+              <th className="px-4 py-3">{t('cashRemittance.submittedDate')}</th>
               <th className="px-4 py-3">{t('cashRemittance.table.cashier')}</th>
               <th className="px-4 py-3">Caisse</th>
-              <th className="px-4 py-3">Commandes incluses</th>
               <th className="px-4 py-3 text-right">{t('cashRemittance.table.declared')}</th>
               <th className="px-4 py-3 text-right">{t('cashRemittance.table.received')}</th>
               <th className="px-4 py-3 text-center">{t('cashRemittance.table.status')}</th>
@@ -172,33 +198,13 @@ const CashRemittanceManagement: React.FC = () => {
               pageRemittances.map((r) => (
                 <tr key={r.id} className="bg-white border-b hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium text-slate-900">{r.reference}</td>
-                  <td className="px-4 py-3">{new Date(r.remittanceDate).toLocaleDateString()}</td>
+                  <td className="px-4 py-3">{dateFormatter.format(new Date(r.remittanceDate))}</td>
+                  <td className="px-4 py-3">{dateFormatter.format(new Date(r.createdAt))}</td>
                   <td className="px-4 py-3">{r.createdByUser?.userName || '-'}</td>
                   <td className="px-4 py-3">
                     <span className="bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold px-2 py-1 rounded">
                       {r.sourceCashRegister?.accountName || 'Caisse'}
                     </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {r.receipts?.length ? (
-                      <div className="space-y-1">
-                        {r.receipts.map(({ financialTransaction: receipt }) => (
-                          <div key={receipt.id} className="text-xs text-slate-700">
-                            <span className="font-medium">{receipt.relatedDocumentId || receipt.id}</span>
-                            <span className="block text-slate-500">{formatCurrency(receipt.amount)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : r.orders?.length ? (
-                      <div className="space-y-1">
-                        {r.orders.map(({ order }) => (
-                          <div key={order.id} className="text-xs text-slate-700">
-                            <span className="font-medium">{order.id}</span>
-                            <span className="block text-slate-500">{order.customerName}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : '—'}
                   </td>
                   <td className="px-4 py-3 text-right font-medium">{formatCurrency(r.declaredAmount)}</td>
                   <td className="px-4 py-3 text-right">
@@ -235,10 +241,22 @@ const CashRemittanceManagement: React.FC = () => {
 
       {showCreateModal && (
         <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={() => setShowCreateModal(false)}>
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
               <h3 className="text-lg font-bold text-slate-900">{t('cashRemittance.new')}</h3>
               <div className="mt-4 space-y-4">
+                <label className="block text-sm font-medium text-slate-700">
+                  {t('cashRemittance.receiptDate')}
+                  <input
+                    type="date"
+                    required
+                    max={today}
+                    value={receiptDate}
+                    disabled={isCreating}
+                    onChange={(event) => setReceiptDate(event.target.value)}
+                    className="mt-1 w-full rounded-md border border-slate-300 p-2"
+                  />
+                </label>
                 {assignedCashRegisters.length > 1 && (
                   <label className="block text-sm font-medium text-slate-700">
                     {t('cashRegister.cashAccount')}
@@ -247,7 +265,7 @@ const CashRemittanceManagement: React.FC = () => {
                       value={sourceCashRegisterId}
                       onChange={(event) => {
                         setSourceCashRegisterId(event.target.value);
-                        setSelectedOrderIds([]);
+                        setEnteredAmount(null);
                       }}
                     >
                       <option value="">{t('cashRegister.selectCashAccount')}</option>
@@ -257,7 +275,7 @@ const CashRemittanceManagement: React.FC = () => {
                     </select>
                   </label>
                 )}
-                {isLoadingAccounts ? (
+                {!hasValidReceiptDate ? null : isLoadingAccounts ? (
                   <p className="text-sm text-slate-600">{t('common.loading')}</p>
                 ) : hasAccountsError ? (
                   <p role="alert" className="text-sm text-red-700">{t('common.error')}</p>
@@ -268,12 +286,8 @@ const CashRemittanceManagement: React.FC = () => {
                       <span className="font-bold text-slate-800">{myCashRegister.accountName}</span>
                     </div>
                     <div className="flex justify-between text-xs text-slate-600">
-                      <span>Solde disponible en caisse :</span>
-                      <span className="font-bold text-green-700">{formatCurrency(myCashRegister.balance)}</span>
-                    </div>
-                    <div className="flex justify-between text-xs text-slate-600">
-                      <span>Encaissements du jour encore disponibles :</span>
-                      <span className="font-bold text-slate-800">{formatCurrency(myCashRegister.dailyCollectedAmount)}</span>
+                      <span>{t('cashRemittance.availableToRemit')}</span>
+                      <span className="font-bold text-slate-800">{formatCurrency(availableWholeFrancs)}</span>
                     </div>
                   </div>
                 ) : assignedCashRegisters.length === 0 && (
@@ -282,45 +296,51 @@ const CashRemittanceManagement: React.FC = () => {
                     Veuillez contacter un administrateur pour vous attribuer une caisse dans <em>Configuration &gt; Trésorerie</em>.
                   </div>
                 )}
-                {myCashRegister && (
-                  <div>
-                    <p className="block text-sm font-medium text-slate-700 mb-2">Sélectionnez les commandes de cette remise</p>
-                    <div className="max-h-48 overflow-y-auto rounded-md border border-slate-200 divide-y divide-slate-100">
-                      {myCashRegister.availableReceipts.length === 0 ? (
-                        <p className="p-3 text-sm text-slate-500">Aucun encaissement reçu aujourd’hui n’est disponible pour une nouvelle remise.</p>
-                      ) : myCashRegister.availableReceipts.map((receipt) => (
-                        <label key={receipt.receiptId} className="flex items-center gap-3 p-3 text-sm hover:bg-slate-50 cursor-pointer">
+                {cashReceipts.length > 0 && (
+                  <fieldset disabled={isCreating} className="space-y-2">
+                    <legend className="text-sm font-medium text-slate-700">{t('cashRemittance.linkReceipts')}</legend>
+                    <p className="text-xs text-slate-600">{t('cashRemittance.linkReceiptsHint')}</p>
+                    <div className="max-h-36 space-y-2 overflow-y-auto rounded-md border border-slate-200 p-2">
+                      {cashReceipts.map(receipt => (
+                        <label key={receipt.id} className="flex items-center gap-2 text-sm">
                           <input
                             type="checkbox"
-                            checked={selectedReceiptIds.includes(receipt.receiptId)}
-                            onChange={(event) => setSelectedReceiptIds((current) =>
-                              event.target.checked
-                                ? [...current, receipt.receiptId]
-                                : current.filter((id) => id !== receipt.receiptId),
-                            )}
-                            className="rounded border-slate-300 text-lime-600 focus:ring-lime-500"
+                            checked={selectedReceiptIds.includes(receipt.id)}
+                            onChange={event => {
+                              const checked = event.target.checked;
+                              setSelectedReceiptIds(ids => checked
+                                ? [...ids, receipt.id]
+                                : ids.filter(id => id !== receipt.id));
+                            }}
                           />
-                          <span className="min-w-0 flex-1">
-                            <span className="block font-medium text-slate-800">{receipt.orderId}</span>
-                            <span className="block text-xs text-slate-500">{receipt.customerName}</span>
-                          </span>
-                          <span className="font-semibold text-slate-700">{formatCurrency(receipt.amount)}</span>
+                          <span>{receipt.relatedDocumentId} · {dateFormatter.format(new Date(receipt.transactionDate))}</span>
+                          <span className="ml-auto">{formatCurrency(receipt.amount)}</span>
                         </label>
                       ))}
                     </div>
-                  </div>
+                    {linkedCents > Math.round(declaredAmount * 100) && (
+                      <p className="text-sm text-red-600">{t('cashRemittance.linkedReceiptsAboveAmount')}</p>
+                    )}
+                  </fieldset>
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">Montant à déclarer (commandes sélectionnées)</label>
+                  <label htmlFor="cash-remittance-amount" className="block text-sm font-medium text-slate-700">
+                    {t('cashRemittance.totalToRemit')}
+                  </label>
                   <input
+                    id="cash-remittance-amount"
                     type="number"
-                    min="0"
+                    min="0.01"
+                    max={myCashRegister?.availableBalance}
                     step="0.01"
-                    value={declaredAmount.toFixed(2)}
-                    readOnly
-                    disabled={!myCashRegister}
-                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border bg-slate-50 focus:outline-none"
+                    value={amountToRemit}
+                    onChange={(event) => setEnteredAmount(event.target.value)}
+                    disabled={!myCashRegister || isCreating}
+                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] disabled:bg-slate-100"
                   />
+                  {myCashRegister && exceedsAvailableBalance && (
+                    <p className="mt-1 text-sm text-red-600">{t('cashRemittance.amountAboveAvailable')}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700">{t('cashRemittance.form.notes')}</label>
@@ -339,7 +359,7 @@ const CashRemittanceManagement: React.FC = () => {
               </button>
               <button
                 onClick={() => submitCreate()}
-                disabled={isCreating || isLoadingAccounts || hasAccountsError || selectedReceipts.length === 0 || !myCashRegister}
+                disabled={isCreating || !hasValidReceiptDate || isLoadingAccounts || hasAccountsError || !hasValidAmount || !myCashRegister}
                 className="px-4 py-2 bg-[#c6e911] text-slate-800 font-bold rounded-md hover:bg-[#adc40f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isCreating ? t('common.saving') : t('cashRemittance.submit')}
@@ -358,6 +378,10 @@ const CashRemittanceManagement: React.FC = () => {
               </h3>
               <div className="mt-4 space-y-4">
                 <div className="bg-slate-50 p-3 rounded space-y-1">
+                  <div className="flex justify-between text-xs text-slate-500">
+                    <span>{t('cashRemittance.receiptDate')}</span>
+                    <span className="font-semibold text-slate-700">{dateFormatter.format(new Date(receivingRemittance.remittanceDate))}</span>
+                  </div>
                   <div className="flex justify-between text-xs text-slate-500">
                     <span>Caisse d'origine:</span>
                     <span className="font-semibold text-slate-700">{receivingRemittance.sourceCashRegister?.accountName || 'Caisse'}</span>

@@ -1,5 +1,6 @@
 import {
   PRIVATE_DOCUMENT_ROOT,
+  PUBLIC_ASSETS_ROOT,
   PRIVATE_DOCUMENT_PREFIX,
 } from './document-storage';
 import { Injectable, BadRequestException } from '@nestjs/common';
@@ -16,14 +17,7 @@ interface FileUploadOptions {
 
 @Injectable()
 export class FileUploadService {
-  private readonly publicPath = path.join(
-    __dirname,
-    '..',
-    '..',
-    '..',
-    '..',
-    'public',
-  );
+  private readonly publicPath = PUBLIC_ASSETS_ROOT;
 
   async uploadFile(
     buffer: Buffer,

@@ -479,7 +479,18 @@ export interface OrderGroup{
   orders: Order[];
 }
 
+export interface OrderDeliveryInput {
+  id: string;
+  deliveredOn: string;
+  lines: { orderItemId: string; deliveredQuantity: number; packageCount: number }[];
+}
+
+export interface OrderDelivery extends Omit<OrderDeliveryInput, 'lines'> {
+  lines: (OrderDeliveryInput['lines'][number] & { productName: string; orderedQuantity: number })[];
+}
+
 export interface Order {
+  cancellationReason?: string | null;
   id: string;
   orderDate?: string;
   date: string;
@@ -494,6 +505,7 @@ export interface Order {
   // le référence. Toute nouvelle lecture doit utiliser `orderItems`.
   items: OrderItem[];
   orderItems?: OrderItem[];
+  deliveries?: OrderDelivery[];
   totalAmount: number;
   subtotal: number;
   taxAmount: number;

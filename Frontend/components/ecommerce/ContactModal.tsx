@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useI18n } from '../../i18n';
 import IconCheckCircle from '../icons/IconCheckCircle';
 import IconCancelX from '../icons/IconCancelX';
+import { sendStorefrontContact } from '../../services/apiE-commerce/apiStorefrontContact';
 
 interface ContactModalProps {
     isOpen: boolean;
@@ -14,6 +15,16 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, variant = 
     const { t } = useI18n();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
+    const [hasError, setHasError] = useState(false);
+
+    useEffect(() => {
+        if (!isSuccess) return;
+        const timer = window.setTimeout(() => {
+            setIsSuccess(false);
+            if (variant === 'modal') onClose();
+        }, 3000);
+        return () => window.clearTimeout(timer);
+    }, [isSuccess, onClose, variant]);
     
     // Form State
     const [formData, setFormData] = useState({
@@ -33,48 +44,24 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, variant = 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (formData.honeypot) {
+        if (isSubmitting || formData.honeypot) {
             return;
         }
 
         setIsSubmitting(true);
-
-        const dataToSend = {
-            ...formData,
-            access_key: "f3f81f08-5a65-4f13-809e-fd0a75a565ec", // Votre clé d'accès
-            subject: formData.subject || `Nouveau message de ${formData.name}`, // Sujet dynamique
-        };
+        setHasError(false);
 
         try {
-            const response = await fetch("https://api.web3forms.com/submit", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                },
-                body: JSON.stringify(dataToSend),
+            await sendStorefrontContact({
+                ...formData,
+                email: formData.email.trim(),
             });
-
-            const result = await response.json();
-
-            if (result.success) {
-                setIsSuccess(true);
-                setFormData({ name: '', email: '', phone: '', subject: '', message: '', honeypot: '' }); // Reset form
-            } else {
-                console.error("Erreur Web3Forms:", result.message);
-                // Vous pourriez afficher une erreur à l'utilisateur ici
-            }
-        } catch (error) {
-            console.error("Erreur lors de l'envoi du formulaire:", error);
-            // Gérer les erreurs réseau
+            setIsSuccess(true);
+            setFormData({ name: '', email: '', phone: '', subject: '', message: '', honeypot: '' });
+        } catch {
+            setHasError(true);
         } finally {
             setIsSubmitting(false);
-            setTimeout(() => {
-                onClose();
-                // La réinitialisation de isSuccess se fait déjà dans le setTimeout de fermeture
-                // mais on peut s'assurer qu'il est bien à false après la fermeture.
-                setTimeout(() => setIsSuccess(false), 500);
-            }, 3000); // Laisse le message de succès visible 3 secondes
         }
     };
 
@@ -124,6 +111,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, variant = 
                                 type="text" 
                                 id="name" 
                                 name="name" 
+                                maxLength={120}
                                 value={formData.name} 
                                 onChange={handleChange} 
                                 required 
@@ -139,6 +127,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, variant = 
                                     type="email" 
                                     id="email" 
                                     name="email" 
+                                    maxLength={254}
                                     value={formData.email} 
                                     onChange={handleChange} 
                                     required 
@@ -152,6 +141,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, variant = 
                                     type="tel" 
                                     id="phone" 
                                     name="phone" 
+                                    maxLength={40}
                                     value={formData.phone} 
                                     onChange={handleChange} 
                                     className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#c6e911] focus:border-[#c6e911] transition-all outline-none"
@@ -166,6 +156,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, variant = 
                                 type="text" 
                                 id="subject" 
                                 name="subject" 
+                                maxLength={160}
                                 value={formData.subject} 
                                 onChange={handleChange} 
                                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#c6e911] focus:border-[#c6e911] transition-all outline-none"
@@ -178,6 +169,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, variant = 
                             <textarea 
                                 id="message" 
                                 name="message" 
+                                maxLength={5000}
                                 value={formData.message} 
                                 onChange={handleChange} 
                                 required 
@@ -187,6 +179,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, variant = 
                             ></textarea>
                         </div>
 
+                        {hasError && <p role="alert" className="text-sm text-red-700">{t('contactModal.deliveryError')}</p>}
                         <div className="pt-2">
                             <button 
                                 type="submit" 

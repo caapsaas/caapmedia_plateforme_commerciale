@@ -109,7 +109,7 @@ export class OrderNotificationsService {
         title: validated
           ? 'Commande validée pour la production'
           : cancelled
-            ? 'Commande annulée avant production'
+            ? 'Commande annulée'
             : isDelivery
               ? 'Livraison de commande'
               : 'Statut de commande modifié',

@@ -39,7 +39,12 @@ export class ProductionWorkflowsController {
   // Résolution du workflow d'un service : utilisé par le frontend lors de la
   // création d'une commande pour pré-remplir les machines.
   @Get('resolve/:itemId')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.COMMERCIAL)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.COMMERCIAL,
+    UserRole.CAISSIER,
+  )
   resolve(@Param('itemId') itemId: string) {
     return this.service.resolve(itemId);
   }

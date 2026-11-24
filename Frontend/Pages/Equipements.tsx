@@ -65,10 +65,16 @@ const Equipements: React.FC = () => {
     });
     const { pageItems: pageEquipment, meta: equipmentMeta, setPage } = useClientPagination(equipment);
 
+    const refreshEquipmentQueries = () => {
+        for (const key of ['equipment', 'equipment-costs', 'equipment-configured', 'workflows', 'workflow-resolve']) {
+            void queryClient.invalidateQueries({ queryKey: [key] });
+        }
+    };
+
     const { mutate: createMutation } = useMutation({
         mutationFn: createEquipment,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['equipment'] });
+            refreshEquipmentQueries();
             toast.success('Équipement ajouté !', '');
         },
         onError: () => toast.error('Erreur', "Impossible d'ajouter l'équipement."),
@@ -77,7 +83,7 @@ const Equipements: React.FC = () => {
     const { mutate: updateMutation } = useMutation({
         mutationFn: ({ id, data }: { id: string; data: Partial<CreateEquipmentDto> }) => updateEquipment(id, data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['equipment'] });
+            refreshEquipmentQueries();
             toast.success('Équipement modifié !', '');
         },
         onError: () => toast.error('Erreur', 'Impossible de modifier l\'équipement.'),
@@ -86,7 +92,7 @@ const Equipements: React.FC = () => {
     const { mutate: deleteMutation } = useMutation({
         mutationFn: deleteEquipment,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['equipment'] });
+            refreshEquipmentQueries();
             setDeletingEquipment(null);
             toast.success('Équipement supprimé !', '');
         },

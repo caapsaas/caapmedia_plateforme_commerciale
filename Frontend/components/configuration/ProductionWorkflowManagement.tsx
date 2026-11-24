@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     getWorkflows, createWorkflow, updateWorkflow, deleteWorkflow,
-    getConfiguredEquipments, Workflow, CreateWorkflowDto,
+    getProductionEquipments, Workflow, CreateWorkflowDto,
 } from '../../services/apiProduction/apiProduction';
 import { getSubsidiaries } from '../../services/apiCommon/apiSubsidiaries';
 import { Subsidiary, UserRole, Product } from '../../types';
@@ -59,7 +59,7 @@ const ProductionWorkflowManagement: React.FC = () => {
 
     const { data: configuredEquipments = [] } = useQuery({
         queryKey: ['equipment-configured'],
-        queryFn: () => getConfiguredEquipments(),
+        queryFn: () => getProductionEquipments(),
     });
 
     const { data: services = [] } = useQuery<Product[]>({
@@ -67,21 +67,26 @@ const ProductionWorkflowManagement: React.FC = () => {
         queryFn: getServicesCatalog,
     });
 
+    const refreshWorkflows = () => {
+        void queryClient.invalidateQueries({ queryKey: ['workflows'] });
+        void queryClient.invalidateQueries({ queryKey: ['workflow-resolve'] });
+    };
+
     const { mutate: create, isPending: isCreating } = useMutation({
         mutationFn: createWorkflow,
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['workflows'] }); closeForm(); },
+        onSuccess: () => { refreshWorkflows(); closeForm(); },
         onError: () => setError(t('production.workflows.form.createError')),
     });
 
     const { mutate: edit, isPending: isEditing } = useMutation({
         mutationFn: ({ id, dto }: { id: string; dto: Partial<CreateWorkflowDto> }) => updateWorkflow(id, dto),
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['workflows'] }); closeForm(); },
+        onSuccess: () => { refreshWorkflows(); closeForm(); },
         onError: () => setError(t('production.workflows.form.editError')),
     });
 
     const { mutate: remove } = useMutation({
         mutationFn: deleteWorkflow,
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['workflows'] }); setDeletingId(null); },
+        onSuccess: () => { refreshWorkflows(); setDeletingId(null); },
     });
 
     const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setError(''); setShowForm(true); };
@@ -373,7 +378,7 @@ const ProductionWorkflowManagement: React.FC = () => {
                                                         {configuredEquipments.map(eq => (
                                                             <option key={eq.id} value={eq.id}>
                                                                 {eq.equipmentName}
-                                                                {eq.hourlyRate != null ? ` · ${Number(eq.hourlyRate).toLocaleString('fr-FR')} F/h` : ''}
+                                                                {' · '}{eq.hourlyRate != null ? `${eq.hourlyRate.toLocaleString('fr-FR')} F/h` : t('production.equipmentCosts.unpriced')}
                                                             </option>
                                                         ))}
                                                     </select>

@@ -11,7 +11,10 @@ import { PrismaService } from '../../utils/prisma/prisma.service';
 import { LoggerService } from '../../utils/logger/logger.service';
 import * as bcrypt from 'bcryptjs';
 import { Prisma, UserRole } from '@prisma/client';
-import * as nodemailer from 'nodemailer';
+import {
+  createSmtpTransport,
+  smtpTransportOptions,
+} from '../../utils/email/smtp-transport';
 import { createHash, randomBytes } from 'crypto';
 import { resolveScopeContext } from '../../utils/subsidiary-scope';
 import { RefreshTokenService, RequestMeta } from './refresh-token.service';
@@ -300,14 +303,12 @@ export class AuthService {
     // account enumeration. No email is sent for an unknown address.
     if (!user) return { message: 'If the account exists, a reset link has been sent.' };
 
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
     const frontendUrl = process.env.FRONTEND_URL;
-    if (!smtpHost || !smtpUser || !smtpPass || !frontendUrl) {
-      this.logger.error('Password reset email configuration is incomplete (SMTP_HOST, SMTP_USER, SMTP_PASS, FRONTEND_URL).', 'AuthService');
+    if (!frontendUrl) {
+      this.logger.error('Password reset email configuration is incomplete (FRONTEND_URL).', 'AuthService');
       throw new Error('Password reset email service is not configured.');
     }
+    const smtp = smtpTransportOptions();
 
     const token = randomBytes(32).toString('hex');
     const tokenHash = createHash('sha256').update(token).digest('hex');
@@ -318,23 +319,19 @@ export class AuthService {
       }),
     ]);
 
-    const transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: Number(process.env.SMTP_PORT || 587),
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: smtpUser,
-        pass: smtpPass,
-      },
-    });
+    const transporter = createSmtpTransport(smtp);
     const resetUrl = `${frontendUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || smtpUser,
-      to: user.email,
-      subject: 'CaapMedia — Réinitialisation de votre mot de passe',
-      text: `Bonjour,\n\nPour choisir un nouveau mot de passe, ouvrez ce lien (valable une heure et utilisable une seule fois) :\n${resetUrl}\n\nSi vous n'avez pas demandé cette réinitialisation, ignorez ce message.`,
-      html: `<p>Bonjour,</p><p>Pour choisir un nouveau mot de passe, cliquez sur le lien ci-dessous. Il est valable une heure et ne peut être utilisé qu'une fois.</p><p><a href="${resetUrl}">Réinitialiser mon mot de passe</a></p><p>Si vous n'avez pas demandé cette réinitialisation, ignorez ce message.</p>`,
-    });
+    try {
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || smtp.auth.user,
+        to: user.email,
+        subject: 'CaapMedia — Réinitialisation de votre mot de passe',
+        text: `Bonjour,\n\nPour choisir un nouveau mot de passe, ouvrez ce lien (valable une heure et utilisable une seule fois) :\n${resetUrl}\n\nSi vous n'avez pas demandé cette réinitialisation, ignorez ce message.`,
+        html: `<p>Bonjour,</p><p>Pour choisir un nouveau mot de passe, cliquez sur le lien ci-dessous. Il est valable une heure et ne peut être utilisé qu'une fois.</p><p><a href="${resetUrl}">Réinitialiser mon mot de passe</a></p><p>Si vous n'avez pas demandé cette réinitialisation, ignorez ce message.</p>`,
+      });
+    } finally {
+      transporter.close();
+    }
 
     this.logger.log(`Password reset email sent to user ${user.id}`, 'AuthService');
     return { message: 'If the account exists, a reset link has been sent.' };

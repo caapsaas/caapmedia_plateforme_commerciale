@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { usePopup } from '../../context/PopupContext';
 import PasswordInput from '../ui/PasswordInput';
 import { useI18n } from '../../i18n';
 
 const SecurityView: React.FC = () => {
     const { t } = useI18n();
+    const { showMessage } = usePopup();
     const [passwords, setPasswords] = useState({
         current: '',
         new: '',
@@ -18,10 +20,10 @@ const SecurityView: React.FC = () => {
         e.preventDefault();
         // In a real app, this would call a function to update password
         if (passwords.new !== passwords.confirm) {
-            alert("New passwords don't match!");
+            showMessage(t('popups.passwordMismatch'));
             return;
         }
-        alert('Password changed successfully (simulation)!');
+        showMessage(t('popups.passwordChangedSimulation'));
     };
 
     return (

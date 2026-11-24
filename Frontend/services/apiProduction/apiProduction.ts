@@ -90,11 +90,14 @@ export const upsertEquipmentCost = async (dto: UpsertEquipmentCostDto): Promise<
     await api.post('/production/equipment-costs', dto);
 };
 
-export const getConfiguredEquipments = async (subsidiaryId?: string): Promise<EquipmentWithCost[]> => {
-    const { data } = await api.get('/production/equipment-costs/configured', {
-        params: subsidiaryId ? { subsidiaryId } : undefined,
+export const getProductionEquipments = async (subsidiaryId?: string): Promise<EquipmentWithCost[]> => {
+    const { data } = await api.get<EquipmentWithCost[]>('/production/equipment-costs/configured', {
+        params: { subsidiaryId, includeUnpriced: true },
     });
-    return data;
+    return data.map(equipment => ({
+        ...equipment,
+        hourlyRate: equipment.hourlyRate == null ? null : Number(equipment.hourlyRate),
+    }));
 };
 
 // --- Commercial Params ---
@@ -172,8 +175,15 @@ export const getWorkflowById = async (id: string): Promise<Workflow> => {
 // Retourne null si aucun workflow n'est configuré pour ce service.
 export const resolveWorkflow = async (itemId: string): Promise<ResolvedWorkflow | null> => {
     try {
-        const { data } = await api.get(`/production/workflows/resolve/${itemId}`);
-        return data;
+        const { data } = await api.get<ResolvedWorkflow | null>(`/production/workflows/resolve/${itemId}`);
+        if (!data) return null;
+        return {
+            ...data,
+            steps: data.steps.map(step => ({
+                ...step,
+                hourlyRate: step.hourlyRate == null ? null : Number(step.hourlyRate),
+            })),
+        };
     } catch {
         return null;
     }

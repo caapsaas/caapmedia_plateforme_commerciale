@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   ConflictException,
 } from '@nestjs/common';
+import { isISO8601 } from 'class-validator';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import {
   UserRole,
@@ -12,6 +13,7 @@ import {
   TransactionType,
   TransactionStatus,
   CashRemittanceStatus,
+  OrderStatus,
   Prisma,
 } from '@prisma/client';
 import { CreateCashRemittanceDto } from './dto/create-cash-remittance.dto';
@@ -121,246 +123,259 @@ export class CashRemittanceService {
     return { start: new Date(start), end: new Date(start + 86400000) };
   }
 
+  private validateRemittanceDate(date: string) {
+    if (!isISO8601(date, { strict: true })) {
+      throw new BadRequestException(
+        'La journée des encaissements est invalide.',
+      );
+    }
+
+    const remittanceDate = new Date(date);
+    if (!Number.isFinite(remittanceDate.getTime())) {
+      throw new BadRequestException(
+        'La journée des encaissements est invalide.',
+      );
+    }
+    if (
+      this.doualaDayRange(remittanceDate).start > this.doualaDayRange().start
+    ) {
+      throw new BadRequestException(
+        'La journée des encaissements ne peut pas être future.',
+      );
+    }
+    return remittanceDate;
+  }
+
+  private async pendingAmounts(
+    client: Prisma.TransactionClient,
+    accountIds: string[],
+    subsidiaryId: string,
+  ) {
+    const amounts = await client.cashRemittance.groupBy({
+      by: ['sourceCashRegisterId'],
+      where: {
+        sourceCashRegisterId: { in: accountIds },
+        subsidiaryId,
+        status: CashRemittanceStatus.SUBMITTED,
+      },
+      _sum: { declaredAmount: true },
+    });
+    return new Map(
+      amounts.map((amount) => [
+        amount.sourceCashRegisterId,
+        amount._sum.declaredAmount ?? new Prisma.Decimal(0),
+      ]),
+    );
+  }
+
   async findSourceAccounts(user: JwtUser) {
+    const scope = this.sourceAccountScope(user);
     const accounts = await this.prisma.treasuryAccount.findMany({
-      where: this.sourceAccountScope(user),
+      where: scope,
       select: { id: true, accountName: true, balance: true },
       orderBy: { accountName: 'asc' },
     });
+    if (!accounts.length) return [];
 
-    const { start, end } = this.doualaDayRange();
-
-    return Promise.all(
-      accounts.map(async (account) => {
-        const receipts = await this.prisma.financialTransaction.findMany({
-          where: {
-            treasuryAccountId: account.id,
-            subsidiaryId: user.subsidiaryId,
-            financialTransactionType: TransactionType.RECETTE,
-            status: TransactionStatus.VALIDE,
-            relatedDocumentId: { not: null },
-            transactionDate: {
-              gte: start,
-              lt: end,
-            },
-          },
-          select: { id: true, relatedDocumentId: true, amount: true },
-        });
-        const orderIds = [
-          ...new Set(
-            receipts
-              .map((receipt) => receipt.relatedDocumentId)
-              .filter((id): id is string => id !== null),
-          ),
-        ];
-        const [orders, remittedReceipts, legacyRemittedOrders] = await Promise.all([
-          orderIds.length
-            ? this.prisma.order.findMany({
-                where: {
-                  id: { in: orderIds },
-                  subsidiaryId: user.subsidiaryId,
-                },
-                select: { id: true, customerName: true },
-              })
-            : Promise.resolve([]),
-          receipts.length
-            ? this.prisma.cashRemittanceReceipt.findMany({
-                where: {
-                  financialTransactionId: {
-                    in: receipts.map((receipt) => receipt.id),
-                  },
-                },
-                select: { financialTransactionId: true },
-              })
-            : Promise.resolve([]),
-          orderIds.length
-            ? this.prisma.cashRemittanceOrder.findMany({
-                where: { orderId: { in: orderIds } },
-                select: { orderId: true },
-              })
-            : Promise.resolve([]),
-        ]);
-        const customerByOrder = new Map(
-          orders.map((order) => [order.id, order.customerName]),
-        );
-        const remittedReceiptIds = new Set(
-          remittedReceipts.map((receipt) => receipt.financialTransactionId),
-        );
-        const legacyRemittedOrderIds = new Set(
-          legacyRemittedOrders.map((link) => link.orderId),
-        );
-        const availableReceipts = receipts
-          .filter(
-            (receipt) =>
-              !remittedReceiptIds.has(receipt.id) &&
-              !legacyRemittedOrderIds.has(receipt.relatedDocumentId ?? ''),
-          )
-          .map((receipt) => ({
-            receiptId: receipt.id,
-            orderId: receipt.relatedDocumentId!,
-            customerName:
-              customerByOrder.get(receipt.relatedDocumentId!) ?? 'Client',
-            amount: Number(receipt.amount),
-          }));
-        const dailyCollectedAmount = availableReceipts.reduce(
-          (sum, receipt) => sum + receipt.amount,
-          0,
-        );
-        return {
-          ...account,
-          // Prisma Decimal est sérialisé en chaîne JSON ; le frontend attend
-          // des nombres (formatCurrency affiche 0 pour une chaîne).
-          balance: Number(account.balance),
-          dailyCollectedAmount,
-          availableReceipts,
-        };
-      }),
+    const pending = await this.pendingAmounts(
+      this.prisma,
+      accounts.map((account) => account.id),
+      scope.subsidiaryId,
     );
+    return accounts.map((account) => ({
+      ...account,
+      balance: Number(account.balance),
+      availableBalance: Math.max(
+        0,
+        Number(account.balance.sub(pending.get(account.id) ?? 0)),
+      ),
+    }));
+  }
+
+  private async availableReceipts(
+    client: Prisma.TransactionClient,
+    subsidiaryId: string,
+    accountIds: string[],
+    receiptIds?: string[],
+  ) {
+    const receipts = await client.financialTransaction.findMany({
+      where: {
+        ...(receiptIds ? { id: { in: receiptIds } } : {}),
+        subsidiaryId,
+        treasuryAccountId: { in: accountIds },
+        financialTransactionType: TransactionType.RECETTE,
+        status: TransactionStatus.VALIDE,
+        relatedDocumentId: { not: null },
+        cashRemittanceReceipts: { none: {} },
+      },
+      select: {
+        id: true,
+        treasuryAccountId: true,
+        relatedDocumentId: true,
+        transactionDate: true,
+        amount: true,
+      },
+      orderBy: { transactionDate: 'desc' },
+    });
+    if (!receipts.length) return [];
+    const orders = await client.order.findMany({
+      where: {
+        id: {
+          in: receipts.flatMap((receipt) => receipt.relatedDocumentId ?? []),
+        },
+        subsidiaryId,
+        status: { not: OrderStatus.CANCELLED },
+        cashRemittanceOrders: { none: {} },
+      },
+      select: { id: true },
+    });
+    const eligibleOrders = new Set(orders.map((order) => order.id));
+    return receipts.filter(
+      (receipt) =>
+        receipt.relatedDocumentId &&
+        eligibleOrders.has(receipt.relatedDocumentId),
+    );
+  }
+
+  async findAvailableReceipts(user: JwtUser) {
+    const scope = this.sourceAccountScope(user);
+    const accounts = await this.prisma.treasuryAccount.findMany({
+      where: scope,
+      select: { id: true },
+    });
+    if (!accounts.length) return [];
+    const receipts = await this.availableReceipts(
+      this.prisma,
+      scope.subsidiaryId,
+      accounts.map((account) => account.id),
+    );
+    return receipts.map((receipt) => ({
+      ...receipt,
+      amount: Number(receipt.amount),
+    }));
   }
 
   async create(dto: CreateCashRemittanceDto, user: JwtUser) {
     const sourceAccountScope = this.sourceAccountScope(user);
-    const receiptIds = [...new Set(dto.receiptIds ?? [])];
-    if (!receiptIds.length) {
+    const remittanceDate = this.validateRemittanceDate(dto.remittanceDate);
+    if (!Number.isFinite(dto.declaredAmount) || dto.declaredAmount <= 0) {
+      throw new BadRequestException('Le montant à remettre doit être positif.');
+    }
+    const declaredAmount = new Prisma.Decimal(dto.declaredAmount);
+    if (declaredAmount.decimalPlaces() > 2) {
       throw new BadRequestException(
-        'Sélectionnez au moins un encaissement pour cette remise.',
+        'Le montant à remettre doit avoir au plus deux décimales.',
       );
     }
-    const { start, end } = this.doualaDayRange();
 
     try {
-      return await this.prisma.$transaction(async (tx) => {
-        const accounts = await tx.treasuryAccount.findMany({
-          where: {
-            id: dto.sourceCashRegisterId,
-            ...sourceAccountScope,
-          },
-          take: 2,
-        });
-        if (accounts.length > 1) {
-          throw new BadRequestException('Veuillez choisir la caisse source.');
-        }
-        const [sourceAccount] = accounts;
-        if (!sourceAccount) {
-          throw new NotFoundException(
-            "Aucune caisse n'est associée à votre compte. Contactez l'administrateur.",
-          );
-        }
-
-        const alreadyRemitted = await tx.cashRemittanceReceipt.findMany({
-          where: { financialTransactionId: { in: receiptIds } },
-          select: { financialTransactionId: true },
-        });
-        if (alreadyRemitted.length) {
-          throw new ConflictException(
-            'Un encaissement sélectionné figure déjà dans une remise de caisse.',
-          );
-        }
-
-        const receipts = await tx.financialTransaction.findMany({
-          where: {
-            id: { in: receiptIds },
-            treasuryAccountId: sourceAccount.id,
-            subsidiaryId: sourceAccount.subsidiaryId,
-            financialTransactionType: TransactionType.RECETTE,
-            status: TransactionStatus.VALIDE,
-            relatedDocumentId: { not: null },
-            transactionDate: { gte: start, lt: end },
-          },
-          select: { id: true, relatedDocumentId: true, amount: true },
-        });
-        if (receipts.length !== receiptIds.length) {
-          throw new BadRequestException(
-            'Un ou plusieurs encaissements sont introuvables, déjà remis ou hors de cette caisse.',
-          );
-        }
-
-        const orderIds = [
-          ...new Set(
-            receipts
-              .map((receipt) => receipt.relatedDocumentId)
-              .filter((id): id is string => id !== null),
-          ),
-        ];
-        const legacyRemittedOrders = await tx.cashRemittanceOrder.findMany({
-          where: { orderId: { in: orderIds } },
-          select: { orderId: true },
-        });
-        if (legacyRemittedOrders.length) {
-          throw new ConflictException(
-            'Une commande incluse dans une ancienne remise ne peut pas être remise de nouveau.',
-          );
-        }
-
-        const orders = await tx.order.findMany({
-          where: {
-            id: { in: orderIds },
-            subsidiaryId: sourceAccount.subsidiaryId,
-          },
-          select: { id: true },
-        });
-        if (orders.length !== orderIds.length) {
-          throw new BadRequestException(
-            'Une ou plusieurs commandes ne sont pas rattachées à votre filiale.',
-          );
-        }
-
-        const declaredAmount = receipts.reduce(
-          (total, receipt) => total.add(receipt.amount),
-          new Prisma.Decimal(0),
-        );
-        if (sourceAccount.balance.comparedTo(declaredAmount) < 0) {
-          throw new BadRequestException(
-            `Le montant déclaré (${Number(declaredAmount)}) dépasse le solde de la caisse (${Number(sourceAccount.balance)}).`,
-          );
-        }
-
-        const destinationSafe = await tx.treasuryAccount.findFirst({
-          where: {
-            subsidiaryId: sourceAccount.subsidiaryId,
-            accountType: AccountType.SAFE,
-          },
-        });
-        if (!destinationSafe) {
-          throw new NotFoundException(
-            "Aucun compte de type Coffre-fort n'a été trouvé pour cette filiale.",
-          );
-        }
-
-        const year = new Date().getFullYear();
-        const count = await tx.cashRemittance.count();
-        const reference = `RC-${year}-${String(count + 1).padStart(4, '0')}`;
-
-        const remittance = await tx.cashRemittance.create({
-          data: {
-            id: generateId(ID_PREFIXES.CASHREMITTANCE),
-            reference,
-            declaredAmount,
-            remittanceDate: new Date(dto.remittanceDate),
-            status: CashRemittanceStatus.SUBMITTED,
-            notes: dto.notes,
-            sourceCashRegisterId: sourceAccount.id,
-            destinationSafeId: destinationSafe.id,
-            subsidiaryId: user.subsidiaryId,
-            createdByUserId: user.id,
-            receipts: {
-              create: receiptIds.map((receiptId) => ({
-                financialTransaction: { connect: { id: receiptId } },
-              })),
+      return await this.prisma.$transaction(
+        async (tx) => {
+          const accounts = await tx.treasuryAccount.findMany({
+            where: {
+              id: dto.sourceCashRegisterId,
+              ...sourceAccountScope,
             },
-          },
-          include: REMITTANCE_INCLUDE,
-        });
+            take: 2,
+          });
+          if (accounts.length > 1) {
+            throw new BadRequestException('Veuillez choisir la caisse source.');
+          }
+          const [sourceAccount] = accounts;
+          if (!sourceAccount) {
+            throw new NotFoundException(
+              "Aucune caisse n'est associée à votre compte. Contactez l'administrateur.",
+            );
+          }
 
-        return this.serializeRemittance(remittance);
-      });
+          const pending = await this.pendingAmounts(
+            tx,
+            [sourceAccount.id],
+            sourceAccount.subsidiaryId,
+          );
+          const availableBalance = sourceAccount.balance.sub(
+            pending.get(sourceAccount.id) ?? 0,
+          );
+          if (declaredAmount.gt(availableBalance)) {
+            throw new BadRequestException(
+              'Le montant déclaré dépasse le solde disponible après déduction des remises en attente.',
+            );
+          }
+
+          const receiptIds = dto.receiptIds ?? [];
+          if (receiptIds.length) {
+            const receipts = await this.availableReceipts(
+              tx,
+              sourceAccount.subsidiaryId,
+              [sourceAccount.id],
+              receiptIds,
+            );
+            const linkedAmount = receipts.reduce(
+              (total, receipt) => total.plus(receipt.amount),
+              new Prisma.Decimal(0),
+            );
+            if (
+              receipts.length !== receiptIds.length ||
+              linkedAmount.gt(declaredAmount)
+            ) {
+              throw new BadRequestException(
+                'Les encaissements sélectionnés doivent être disponibles et leur total ne peut pas dépasser le montant déclaré.',
+              );
+            }
+          }
+
+          const destinationSafe = await tx.treasuryAccount.findFirst({
+            where: {
+              subsidiaryId: sourceAccount.subsidiaryId,
+              accountType: AccountType.SAFE,
+            },
+          });
+          if (!destinationSafe) {
+            throw new NotFoundException(
+              "Aucun compte de type Coffre-fort n'a été trouvé pour cette filiale.",
+            );
+          }
+
+          const year = new Date().getFullYear();
+          const count = await tx.cashRemittance.count();
+          const reference = `RC-${year}-${String(count + 1).padStart(4, '0')}`;
+
+          const remittance = await tx.cashRemittance.create({
+            data: {
+              id: generateId(ID_PREFIXES.CASHREMITTANCE),
+              reference,
+              declaredAmount,
+              remittanceDate,
+              status: CashRemittanceStatus.SUBMITTED,
+              notes: dto.notes,
+              sourceCashRegisterId: sourceAccount.id,
+              destinationSafeId: destinationSafe.id,
+              subsidiaryId: user.subsidiaryId,
+              createdByUserId: user.id,
+              ...(receiptIds.length
+                ? {
+                    receipts: {
+                      create: receiptIds.map((financialTransactionId) => ({
+                        financialTransactionId,
+                      })),
+                    },
+                  }
+                : {}),
+            },
+            include: REMITTANCE_INCLUDE,
+          });
+
+          return this.serializeRemittance(remittance);
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
+        (error.code === 'P2002' || error.code === 'P2034')
       ) {
         throw new ConflictException(
-          'Un encaissement vient d’être affecté à une autre remise de caisse.',
+          'Une autre opération de caisse est en cours. Actualisez la remise et réessayez.',
         );
       }
       throw error;
@@ -438,7 +453,11 @@ export class CashRemittanceService {
       const newStatus = CashRemittanceStatus.RECEIVED;
 
       const claim = await tx.cashRemittance.updateMany({
-        where: { id, status: CashRemittanceStatus.SUBMITTED },
+        where: {
+          id,
+          status: CashRemittanceStatus.SUBMITTED,
+          declaredAmount: remittance.declaredAmount,
+        },
         data: {
           status: newStatus,
           receivedAmount,

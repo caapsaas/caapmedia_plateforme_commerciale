@@ -12,11 +12,11 @@ export function allowedOrderTransitions(order: Order, role?: UserRole): OrderSta
   const production = canManageProduction(role);
   if (isBeforeProduction(order.status)) {
     if (production) result.push(OrderStatus.IN_PRODUCTION);
-    if ((production || role === UserRole.COMMERCIAL) && Number(order.amountPaid) === 0) result.push(OrderStatus.CANCELLED);
   }
   if (production && order.status === OrderStatus.IN_PRODUCTION && order.productionStatus === ProductionStatus.READY_FOR_DELIVERY) result.push(OrderStatus.PENDING_DELIVERY);
   const delivery = production || role === UserRole.COMMERCIAL || role === UserRole.CAISSIER;
   if (delivery && order.status === OrderStatus.PENDING_DELIVERY && order.productionStatus === ProductionStatus.READY_FOR_DELIVERY) result.push(OrderStatus.DELIVERED);
   if (delivery && order.status === OrderStatus.DELIVERED && order.paymentStatus === PaymentStatus.PAID && Number(order.amountPaid) >= Number(order.totalAmount)) result.push(OrderStatus.COMPLETED);
+  if (delivery && order.status !== OrderStatus.CANCELLED) result.push(OrderStatus.CANCELLED);
   return result;
 }

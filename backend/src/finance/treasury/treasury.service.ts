@@ -1169,6 +1169,12 @@ export class TreasuryService {
       );
     }
 
+    if (transaction.reference?.startsWith('ORDER-CANCEL:')) {
+      throw new BadRequestException(
+        'Le débit lié à l’annulation d’une commande doit rester sur le relevé.',
+      );
+    }
+
     if (transaction.needRequestPayment) {
       throw new BadRequestException(
         'Le règlement lié à une expression de besoin ne peut pas être supprimé.',

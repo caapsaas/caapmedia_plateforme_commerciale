@@ -80,11 +80,11 @@ const ProductionValidationView: React.FC = () => {
     });
 
     const { mutate: reject, isPending: isRejecting } = useMutation({
-        mutationFn: (orderId: string) => rejectOrderByDirector(orderId),
+        mutationFn: ({ orderId, reason }: { orderId: string; reason: string }) => rejectOrderByDirector(orderId, reason),
         onSuccess: () => {
             toast.success('Commande rejetée', 'La commande a été annulée.');
             closePanel();
-            invalidate();
+            void queryClient.invalidateQueries();
         },
         onError: () => toast.error('Erreur', 'Impossible de rejeter la commande.'),
     });
@@ -240,7 +240,7 @@ const ProductionValidationView: React.FC = () => {
                     order={selectedOrder}
                     onClose={closePanel}
                     onValidate={() => validate(selectedOrder.id)}
-                    onReject={() => reject(selectedOrder.id)}
+                    onReject={reason => reject({ orderId: selectedOrder.id, reason })}
                     isValidating={isValidating}
                     isRejecting={isRejecting}
                     canValidate={canValidate}

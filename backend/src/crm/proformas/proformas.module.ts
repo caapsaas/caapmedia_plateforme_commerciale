@@ -1,3 +1,4 @@
+import { ProductSpecsModule } from '../../ecommerce/products/product-specs/product-specs.module';
 import { NotificationsModule } from '../../notifications/notifications.module';
 import { Module } from '@nestjs/common';
 import { ProformasService } from './proformas.service';
@@ -8,7 +9,7 @@ import { ProformaDeliveryService } from './proforma-delivery.service';
 import { ProformaShareController } from './proforma-share.controller';
 
 @Module({
-  imports: [NotificationsModule],
+  imports: [NotificationsModule, ProductSpecsModule],
   controllers: [ProformasController, ProformaShareController],
   providers: [
     ProformasService,

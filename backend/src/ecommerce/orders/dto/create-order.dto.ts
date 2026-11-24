@@ -1,6 +1,10 @@
 import { plainToInstance, Transform, Type } from 'class-transformer';
 import {
   IsArray,
+  ArrayMinSize,
+  ArrayUnique,
+  IsDateString,
+  IsUUID,
   IsEmail,
   Length,
   Matches,
@@ -244,10 +248,54 @@ export class RecordPaymentDto {
   transactionReference?: string;
 }
 
+class DeliveryLineDto {
+  @IsString()
+  @IsNotEmpty()
+  orderItemId: string;
+
+  @IsInt()
+  @Min(1)
+  deliveredQuantity: number;
+
+  @IsInt()
+  @Min(0)
+  packageCount: number;
+}
+
+export class RecordOrderDeliveryDto {
+  @IsUUID('4')
+  id: string;
+
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  deliveredOn: string;
+
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayUnique((line: DeliveryLineDto | null) => line?.orderItemId)
+  @ValidateNested({ each: true })
+  @Type(() => DeliveryLineDto)
+  lines: DeliveryLineDto[];
+}
+
 export class UpdateOrderStatusDto {
   @IsEnum(OrderStatus)
   @IsNotEmpty()
   status: OrderStatus;
+
+  @IsOptional()
+  @ValidateNested()
+  @IsObject()
+  @Type(() => RecordOrderDeliveryDto)
+  delivery?: RecordOrderDeliveryDto;
+
+  @ValidateIf(
+    (dto: UpdateOrderStatusDto) => dto.status === OrderStatus.CANCELLED,
+  )
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString()
+  @Length(1, 1000)
+  cancellationReason?: string;
 }
 
 export class updateProductionStatusDto {

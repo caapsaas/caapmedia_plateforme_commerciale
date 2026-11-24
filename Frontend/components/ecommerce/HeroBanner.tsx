@@ -12,10 +12,9 @@ import slide6 from '../../assets/slide6.jpg';
 import slide7 from '../../assets/slide7.jpg';
 interface HeroBannerProps {
     onNavigateToRealisations: () => void;
-    onQuoteRequest: () => void;
 }
 
-const HeroBanner: React.FC<HeroBannerProps> = ({ onNavigateToRealisations, onQuoteRequest }) => {
+const HeroBanner: React.FC<HeroBannerProps> = ({ onNavigateToRealisations }) => {
     const { t } = useI18n();
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
@@ -67,8 +66,6 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ onNavigateToRealisations, onQuo
         image: slide5,
         title: "Une Stratégie de Communication Intégrée",
         subtitle: 'Du marketing digital à la campagne print, nous orchestrons votre succès.',
-        cta: 'Demander un devis',
-        action: onQuoteRequest,
       },
       {
         // Packaging - Colorful, boxes, product presentation
@@ -134,9 +131,11 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ onNavigateToRealisations, onQuo
                             <p className="mt-2 text-sm md:text-base drop-shadow-md font-medium">
                                 {slide.subtitle}
                             </p>
-                            <button onClick={slide.action} className="mt-6 px-5 py-2 md:px-6 md:py-2.5 bg-[#c6e911] text-slate-800 font-bold rounded-full hover:bg-[#adc40f] transition-colors text-xs md:text-sm shadow-lg border-2 border-[#c6e911] hover:border-[#adc40f]">
-                                {slide.cta}
-                            </button>
+                            {slide.cta && (
+                                <button onClick={slide.action} className="mt-6 px-5 py-2 md:px-6 md:py-2.5 bg-[#c6e911] text-slate-800 font-bold rounded-full hover:bg-[#adc40f] transition-colors text-xs md:text-sm shadow-lg border-2 border-[#c6e911] hover:border-[#adc40f]">
+                                    {slide.cta}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

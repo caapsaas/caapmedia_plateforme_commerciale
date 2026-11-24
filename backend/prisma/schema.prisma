@@ -212,6 +212,19 @@ model AuthAuditLog {
   @@map("auth_audit_logs")
 }
 
+model IntegrationCheck {
+  id         Int      @id @default(autoincrement())
+  serviceId  String   @map("service_id")
+  status     String
+  diagnostic String?
+  durationMs Int?     @map("duration_ms")
+  checkedAt  DateTime @default(now()) @map("checked_at")
+
+  @@index([serviceId, checkedAt(sort: Desc), id(sort: Desc)])
+  @@index([checkedAt])
+  @@map("integration_checks")
+}
+
 model Notification {
   id            String           @id @default(uuid()) @map("id")
   title         String           @map("title") @db.VarChar(255)
@@ -846,8 +859,11 @@ model Order {
   source               OrderSource              @map("source")
   groupId              String?                  @map("group_id")
   paymentMethod        CustomerPaymentMethod?   @map("payment_method")
+  proforma             Proforma?
   orderItems           OrderItem[]
   productionHistory    OrderProductionHistory[]
+  cancellationReason   String?                  @map("cancellation_reason") @db.VarChar(1000)
+  deliveries           Json?                    @map("deliveries")
   customer             Contact                  @relation(fields: [customerId], references: [id])
   orderGroup           OrderGroup?              @relation(fields: [groupId], references: [id])
   opportunity          Opportunity?             @relation(fields: [opportunityId], references: [id])
@@ -2720,6 +2736,9 @@ model Proforma {
   sentAt        DateTime? @map("sent_at")
   viewedAt      DateTime? @map("viewed_at")
   acceptedAt    DateTime? @map("accepted_at")
+
+  orderId String? @unique @map("order_id")
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
   subsidiaryId String     @map("subsidiary_id")
   subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id])

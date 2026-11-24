@@ -10,7 +10,7 @@ interface DocumentFooterProps {
     // Frontend_GMO/components/bons/FooterGMO.tsx (bande colorée en pied de
     // document), en version atténuée/claire plutôt que le bloc vert saturé
     // de gmo, pour rester dans l'identité "light" de caapmedia.
-    subsidiary?: Subsidiary;
+    subsidiary?: Pick<Subsidiary, 'bankDetails' | 'rccm' | 'ifu'>;
 }
 
 const DocumentFooter: React.FC<DocumentFooterProps> = ({

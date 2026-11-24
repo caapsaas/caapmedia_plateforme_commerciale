@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   PutObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
 import { createHash, randomUUID } from 'node:crypto';
@@ -107,6 +108,18 @@ export class ProductImageStorage {
       throw new Error(
         'Le stockage local des images doit être explicitement réservé au développement',
       );
+  }
+
+  get usesR2(): boolean {
+    return this.settings !== undefined;
+  }
+
+  async checkRead(key: string, abortSignal: AbortSignal): Promise<void> {
+    if (!this.settings) throw new Error('R2 is disabled');
+    await this.settings.client.send(
+      new HeadObjectCommand({ Bucket: this.settings.bucket, Key: key }),
+      { abortSignal },
+    );
   }
 
   async upload(files: Express.Multer.File[] = []) {

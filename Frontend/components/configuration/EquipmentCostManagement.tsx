@@ -42,6 +42,8 @@ const EquipmentCostManagement: React.FC = () => {
         mutationFn: upsertEquipmentCost,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['equipment-costs'] });
+            queryClient.invalidateQueries({ queryKey: ['equipment-configured'] });
+            queryClient.invalidateQueries({ queryKey: ['workflow-resolve'] });
             setEditingId(null);
             setEditingRate('');
         },

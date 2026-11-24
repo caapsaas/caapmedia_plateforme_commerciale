@@ -1,12 +1,11 @@
 import {
   IsString,
+  IsArray,
+  ArrayUnique,
   IsNumber,
   IsPositive,
   IsDateString,
   IsOptional,
-  IsArray,
-  ArrayMinSize,
-  ArrayUnique,
 } from 'class-validator';
 
 export class CreateCashRemittanceDto {
@@ -14,19 +13,18 @@ export class CreateCashRemittanceDto {
   @IsString()
   sourceCashRegisterId?: string;
 
-  // Le backend recalcule ce montant à partir des commandes sélectionnées.
-  @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @IsPositive()
-  declaredAmount?: number;
+  declaredAmount: number;
 
+  @IsOptional()
   @IsArray()
-  @ArrayMinSize(1)
   @ArrayUnique()
   @IsString({ each: true })
-  receiptIds: string[];
+  receiptIds?: string[];
 
-  @IsDateString()
+  // Journée des encaissements. Les anciens clients envoient un horodatage ISO.
+  @IsDateString({ strict: true })
   remittanceDate: string;
 
   @IsString()

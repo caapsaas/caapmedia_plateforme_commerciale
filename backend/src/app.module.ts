@@ -31,6 +31,7 @@ import { AccountingAccessModule } from './accounting-access/accounting-access.mo
 import { NotificationsModule } from './notifications/notifications.module';
 import { validate } from './config/env.validation';
 import { ConfigurationModule } from './configuration/configuration.module';
+import { IntegrationsModule } from './common/integrations/integrations.module';
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { ConfigurationModule } from './configuration/configuration.module';
     AccountingAccessModule,
     NotificationsModule,
     ConfigurationModule,
+    IntegrationsModule,
   ],
   controllers: [AppController],
   providers: [

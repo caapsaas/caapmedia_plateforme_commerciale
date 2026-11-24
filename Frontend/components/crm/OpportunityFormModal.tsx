@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { usePopup } from '../../context/PopupContext';
 import { Opportunity, Contact, Product, OpportunityStage } from '../../types';
 import { useI18n } from '../../i18n';
 import { getContactsPaginated } from '../../services/apiCrm/apiCrm';
@@ -32,6 +33,7 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
     products
 }) => {
     const { t } = useI18n();
+    const { showMessage } = usePopup();
 
     const initialFormState = {
         opportunityName: '',
@@ -86,17 +88,17 @@ const OpportunityFormModal: React.FC<OpportunityFormModalProps> = ({
         
         // Validation des champs requis
         if (!formData.contactId) {
-            alert('Veuillez sélectionner un contact');
+            showMessage(t('popups.opportunityContact'));
             return;
         }
         
         if (!formData.opportunityName.trim()) {
-            alert('Veuillez saisir un nom pour l\'opportunité');
+            showMessage(t('popups.opportunityName'));
             return;
         }
         
         if (formData.opportunityValue <= 0) {
-            alert('Veuillez saisir une valeur d\'opportunité supérieure à 0');
+            showMessage(t('popups.opportunityValue'));
             return;
         }
         

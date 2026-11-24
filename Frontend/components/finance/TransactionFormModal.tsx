@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { usePopup } from '../../context/PopupContext';
 import { useQuery } from '@tanstack/react-query';
 import { TreasuryAccount, FinancialTransaction, TransactionType } from '../../types';
 import { useI18n } from '../../i18n';
@@ -15,6 +16,7 @@ interface TransactionFormModalProps {
 
 const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onClose, onSave, transactionType, subsidiaryId }) => {
     const { t, formatCurrency } = useI18n();
+    const { showMessage } = usePopup();
 
     const { data: accounts = [], isLoading: isLoadingAccounts } = useQuery<TreasuryAccount[]>({
         queryKey: ['treasuryAccounts', subsidiaryId],
@@ -67,7 +69,7 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({ isOpen, onC
         // Valider que le montant est un nombre positif
         const amount = Number(formData.amount);
         if (isNaN(amount) || amount <= 0) {
-            alert('Le montant doit être un nombre positif valide');
+            showMessage(t('popups.positiveAmount'));
             return;
         }
         

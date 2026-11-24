@@ -1,3 +1,4 @@
+import { EntriesService } from '../../accounting/entries/entries.service';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { JwtUser } from '../../common/auth/jwt/jwt-user.interface';
@@ -18,6 +19,7 @@ describe('Staff order details opened from notifications', () => {
     { order: { findUnique } } as unknown as PrismaService,
     {} as ProductSpecsService,
     {} as OrderNotificationsService,
+    {} as EntriesService,
   );
   const user = {
     id: 'seller',

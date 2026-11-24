@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { usePopup } from '../../context/PopupContext';
 import { TreasuryAccount, Subsidiary, UserRole, AccountType } from '../../types/models';
 import { useAuth } from '../../context/AuthContext';
 import { useI18n } from '../../i18n';
@@ -18,6 +19,7 @@ interface TreasuryAccountManagementProps {
 
 const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ subsidiary }) => {
   const { t } = useI18n();
+  const { confirmAction } = usePopup();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -88,12 +90,12 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
         balance: formatCurrency(account.balance, account.currency)
       });
       
-      if (!window.confirm(confirmMessage)) {
+      if (!await confirmAction(confirmMessage, { isDangerous: true })) {
         return;
       }
     } else {
       // Confirmation standard pour les comptes avec solde nul
-      if (!window.confirm(t('treasuryAccounts.confirm.delete'))) {
+      if (!await confirmAction(t('treasuryAccounts.confirm.delete'), { isDangerous: true })) {
         return;
       }
     }
@@ -106,11 +108,12 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
       // Gérer les erreurs spécifiques du backend
       if (error?.message?.includes('non-zero balance')) {
         // Offrir une option pour forcer la suppression si le serveur n'est pas encore mis à jour
-        const forceConfirm = window.confirm(
+        const forceConfirm = await confirmAction(
           t('treasuryAccounts.confirm.forceDelete', { 
             accountName: account?.accountName || 'Ce compte',
             balance: formatCurrency(account?.balance || 0, account?.currency || 'XOF')
-          })
+          }),
+          { isDangerous: true },
         );
         
         if (forceConfirm) {

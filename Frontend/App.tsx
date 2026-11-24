@@ -7,6 +7,7 @@ import './styles/print.css';
 import { useAppContext } from './context/AppContext';
 import { useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { PopupProvider } from './context/PopupContext';
 import { Outlet, useRouterState, useNavigate } from '@tanstack/react-router';
 
 const App: React.FC = () => {
@@ -101,29 +102,33 @@ const App: React.FC = () => {
   if (isDashboard) {
     return (
       <ToastProvider>
-        <div className="flex h-screen bg-gray-100 text-slate-800">
-          <Sidebar />
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <Header />
-            <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4 md:p-6 lg:p-8">
-              <div className="printable-area">
-                <Outlet />
-              </div>
-            </main>
+        <PopupProvider>
+          <div className="flex h-screen bg-gray-100 text-slate-800">
+            <Sidebar />
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <Header />
+              <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4 md:p-6 lg:p-8">
+                <div className="printable-area">
+                  <Outlet />
+                </div>
+              </main>
+            </div>
+            <IdleTimeoutModal
+              isOpen={showIdleModal}
+              onLogout={handleLogout}
+              onStayLoggedIn={handleStayLoggedIn}
+            />
           </div>
-          <IdleTimeoutModal
-            isOpen={showIdleModal}
-            onLogout={handleLogout}
-            onStayLoggedIn={handleStayLoggedIn}
-          />
-        </div>
+        </PopupProvider>
       </ToastProvider>
     );
   }
 
   return (
     <ToastProvider>
-      <Outlet />
+      <PopupProvider>
+        <Outlet />
+      </PopupProvider>
     </ToastProvider>
   );
 };

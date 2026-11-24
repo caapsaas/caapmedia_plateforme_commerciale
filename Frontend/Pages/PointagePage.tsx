@@ -1,70 +1,80 @@
 import React, { useState } from 'react';
 import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import { api } from '../services/api';
+import { isAxiosError } from 'axios';
 import { useQueryClient } from '@tanstack/react-query';
+import { useI18n } from '../i18n';
+import { submitQrPointage } from '../services/apihr/apiAttendance';
 
-interface PointageResponse {
-  success: boolean;
-  type: 'arrival' | 'departure';
-  message: string;
-  employeeName: string;
-  status: string;
-  duration?: string;
+function getPointageError(error: unknown) {
+  if (!isAxiosError<{ code?: string; message?: { code?: string } | string | string[] }>(error)) {
+    return 'unavailable';
+  }
+  if (!error.response) {
+    return error.code === 'ERR_NETWORK' ? 'network' : 'unavailable';
+  }
+
+  const { data, status } = error.response;
+  const message = data?.message;
+  const code = data?.code ?? (message && !Array.isArray(message) && typeof message === 'object' ? message.code : undefined);
+
+  switch (code) {
+    case 'QR_EXPIRED': return 'invalidQr';
+    case 'QR_REVOKED': return 'replacedQr';
+    case 'ALREADY_CHECKED_IN': return 'alreadyArrived';
+    case 'INVALID_DEPARTURE': return 'invalidDeparture';
+  }
+
+  switch (status) {
+    case 400: return 'invalidInput';
+    case 401:
+    case 403: return 'forbidden';
+    case 404: return 'employeeNotFound';
+    case 429: return 'tooManyAttempts';
+    default: return 'unavailable';
+  }
 }
 
 export const PointagePage: React.FC = () => {
-  const token = new URLSearchParams(window.location.search).get('t') || '';
+  const { t } = useI18n();
+  const token = new URLSearchParams(window.location.search).get('t')?.trim() || '';
   const queryClient = useQueryClient();
 
   const [matricule, setMatricule] = useState('');
   const [action, setAction] = useState<'arrival' | 'departure'>('arrival');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<PointageResponse | null>(null);
+  const [success, setSuccess] = useState<Awaited<ReturnType<typeof submitQrPointage>> | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    setLoading(true);
-
-    if (!token) {
-      setError('Token QR manquant');
-      setLoading(false);
+    const employeeId = matricule.trim();
+    if (!employeeId || employeeId.length > 100) {
+      setError('invalidEmployeeId');
       return;
     }
 
+    setLoading(true);
     try {
-      const payload = {
+      const response = await submitQrPointage({
         token,
-        matricule,
+        matricule: employeeId,
         action,
-      };
-      const response = await api.post<PointageResponse>('/pointage', payload);
-      setSuccess(response.data);
+      });
+      setSuccess(response);
       setMatricule('');
 
       // Invalidate attendance records cache to refresh history
       queryClient.invalidateQueries({ queryKey: ['attendance-records'] });
-    } catch (err: any) {
-      const responseData = err.response?.data;
-      const responseMessage = responseData?.message;
-      const code = responseData?.code ?? responseMessage?.code;
-      const knownErrors: Record<string, string> = {
-        QR_EXPIRED: 'Ce lien QR temporaire a expiré. Scannez le QR permanent affiché dans les locaux.',
-        QR_REVOKED: 'Ce QR a été remplacé. Scannez le nouveau QR affiché dans les locaux.',
-        ALREADY_CHECKED_IN: 'Votre arrivée est déjà enregistrée aujourd’hui.',
-        INVALID_DEPARTURE: 'Une arrivée doit être enregistrée avant le départ.',
-      };
-      setError(knownErrors[code] || (err.response?.status === 400 || err.response?.status === 403
-        ? 'Pointage non autorisé. Vérifiez vos informations ou contactez les RH.'
-        : `Échec du pointage (HTTP ${err.response?.status ?? 'inconnu'}). Vérifiez le matricule et réessayez.`));
+    } catch (err) {
+      setError(getPointageError(err));
     } finally {
       setLoading(false);
     }
   };
 
-  if (!token) {
+  if (token.length < 20 || token.length > 128) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
@@ -72,10 +82,10 @@ export const PointagePage: React.FC = () => {
             <AlertCircle className="w-12 h-12 text-red-500" />
           </div>
           <h1 className="text-2xl font-bold text-center text-slate-800 mb-4">
-            Accès non autorisé
+            {t('qrPointage.invalidLinkTitle')}
           </h1>
           <p className="text-center text-slate-600">
-            Veuillez scanner le QR code pour accéder à cette page.
+            {t(token ? 'qrPointage.errors.invalidQr' : 'qrPointage.errors.missingQr')}
           </p>
         </div>
       </div>
@@ -96,10 +106,10 @@ export const PointagePage: React.FC = () => {
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 mb-6">
+          <div role="alert" className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 mb-6">
             <div className="flex items-center gap-3 mb-2">
               <XCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-              <p className="text-red-800 text-sm font-medium">{error}</p>
+              <p className="text-red-800 text-sm font-medium">{t(`qrPointage.errors.${error}`)}</p>
             </div>
           </div>
         )}
@@ -152,8 +162,8 @@ export const PointagePage: React.FC = () => {
               className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#c6e911] focus:border-transparent"
               disabled={loading}
             >
-              <option value="arrival">Arrivée</option>
-              <option value="departure">Départ</option>
+              <option value="arrival">{t('qrPointage.arrival')}</option>
+              <option value="departure">{t('qrPointage.departure')}</option>
             </select>
           </div>
 

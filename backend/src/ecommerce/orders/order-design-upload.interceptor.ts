@@ -165,6 +165,9 @@ export class OrderDesignUploadInterceptor implements NestInterceptor {
   private readonly multipart = new Multipart();
 
   async intercept(context: ExecutionContext, next: CallHandler) {
+    const request = context.switchToHttp().getRequest<Request>();
+    if (!request.is('multipart/form-data')) return next.handle();
+
     if (activeUploads >= 4)
       throw new HttpException(
         'Trop de transferts simultanés.',
@@ -179,7 +182,6 @@ export class OrderDesignUploadInterceptor implements NestInterceptor {
           'Espace disque insuffisant pour recevoir des fichiers.',
         );
       }
-      const request = context.switchToHttp().getRequest<Request>();
       const result = await this.multipart.intercept(context, {
         handle: () => {
           const files =

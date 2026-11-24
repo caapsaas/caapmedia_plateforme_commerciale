@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { usePopup } from '../../context/PopupContext';
+import { useI18n } from '../../i18n';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { RefreshCw, MapPin, Download, Printer } from 'lucide-react';
 import { qrCodeToJpeg } from '../../utils/qrCodeExport';
@@ -10,6 +12,8 @@ interface DynamicQrData {
 }
 
 export const DynamicQrDisplay: React.FC = () => {
+  const { confirmAction } = usePopup();
+  const { t } = useI18n();
   const [qrData, setQrData] = useState<DynamicQrData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +34,7 @@ export const DynamicQrDisplay: React.FC = () => {
   };
 
   const replaceQrCode = async () => {
-    if (!window.confirm('Remplacer le QR permanent ? Le code déjà imprimé cessera de fonctionner et devra être réimprimé.')) return;
+    if (!await confirmAction(t('popups.replaceQr'))) return;
     try {
       setLoading(true);
       const data = await replaceAttendanceQr();

@@ -52,9 +52,14 @@ export class EquipmentCostConfigController {
   )
   findConfigured(
     @Query('subsidiaryId') subsidiaryId: string | undefined,
+    @Query('includeUnpriced') includeUnpriced: string | undefined,
     @CurrentUser() user: JwtUser,
   ) {
-    return this.service.findConfigured(subsidiaryId, user);
+    return this.service.findConfigured(
+      subsidiaryId,
+      user,
+      includeUnpriced === 'true',
+    );
   }
 
   @Get(':equipmentId')

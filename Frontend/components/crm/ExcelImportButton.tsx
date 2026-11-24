@@ -1,4 +1,6 @@
 import React, { useRef, useState } from 'react';
+import { usePopup } from '../../context/PopupContext';
+import { useI18n } from '../../i18n';
 import { Upload } from 'lucide-react';
 
 export interface ExcelColumn {
@@ -84,6 +86,8 @@ const readXlsx = async (buffer: ArrayBuffer): Promise<unknown[][]> => {
 };
 
 function ExcelImportButton({ columns, onImport, title }: ExcelImportButtonProps) {
+    const { confirmAction } = usePopup();
+    const { t } = useI18n();
     const inputRef = useRef<HTMLInputElement>(null);
     const [busy, setBusy] = useState(false);
     const [message, setMessage] = useState('');
@@ -164,8 +168,14 @@ function ExcelImportButton({ columns, onImport, title }: ExcelImportButtonProps)
             }));
             const skipped = rows.length - validRows.length;
             if (!validRows.length) throw new Error('Aucune ligne exploitable : vérifiez les champs obligatoires.');
-            const summary = `${validRows.length} ${title.toLocaleLowerCase()} seront traitées. ${mappedColumns} champ(s) CRM reconnus sur ${columns.length}${skipped ? ` ; ${skipped} ligne(s) seront ignorées car un champ obligatoire est manquant ou invalide` : ''}. Continuer ?`;
-            if (!window.confirm(summary)) return;
+            const summary = t('popups.importSummary', {
+                valid: validRows.length,
+                entity: title.toLocaleLowerCase(),
+                mapped: mappedColumns,
+                total: columns.length,
+                skipped: skipped ? t('popups.importSkipped', { count: skipped }) : '',
+            });
+            if (!await confirmAction(summary, { title: t('popups.importTitle') })) return;
             const result = await onImport(validRows);
             const imported = result?.imported ?? validRows.length;
             const failed = result?.failed ?? 0;

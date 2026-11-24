@@ -1,4 +1,163 @@
 {
+  "integrationAudit": {
+    "geminiSetup": "Renseigner GEMINI_API_KEY dans l’environnement du backend pour activer ce contrôle.",
+    "settings": "Paramètres",
+    "title": "Services externes",
+    "intro": "Inventaire à l’échelle de la plateforme. Les contrôles automatiques vérifient une capacité précise et n’envoient aucun message client.",
+    "refresh": "Actualiser les résultats",
+    "categoryLabel": "Type de dépendance",
+    "checkLabel": "État du contrôle",
+    "all": "Tous",
+    "history": "Historique des contrôles",
+    "historyError": "Impossible de charger l’historique.",
+    "noChecks": "Aucun contrôle enregistré.",
+    "newer": "Plus récents",
+    "older": "Plus anciens",
+    "loadError": "Impossible de charger l’inventaire ou les derniers contrôles.",
+    "noMatches": "Aucun service ne correspond aux filtres.",
+    "duration": "{{value}} ms",
+    "category": {
+      "infrastructure": "Infrastructure",
+      "server": "Intégration serveur",
+      "browser": "Intégration navigateur",
+      "seed": "Données de démonstration",
+      "link": "Lien externe"
+    },
+    "configuration": {
+      "configured": "Configuration présente",
+      "incomplete": "Configuration incomplète ou invalide",
+      "disabled": "Désactivé",
+      "notApplicable": "Sans configuration serveur"
+    },
+    "state": {
+      "passed": "Contrôle réussi",
+      "failed": "Contrôle en échec",
+      "stale": "Résultat périmé",
+      "neverChecked": "Jamais contrôlé",
+      "requiresSetup": "Contrôle à configurer",
+      "inactive": "Contrôle inactif",
+      "unmonitored": "Sans contrôle automatique",
+      "skipped": "Contrôle ignoré"
+    },
+    "capability": {
+      "databaseQuery": "Exécution d’une requête PostgreSQL simple.",
+      "smtpAuthentication": "Connexion sécurisée et authentification au transport SMTP.",
+      "r2ObjectMetadata": "Accès aux métadonnées d’un objet témoin dans R2.",
+      "whatsappApiAccess": "Lecture du numéro professionnel configuré dans l’API Meta, sans envoi de message.",
+      "geminiModels": "Accès à la liste des modèles Gemini avec la clé du serveur, sans génération de contenu.",
+      "publicHttpResponse": "Réponse HTTP ou première redirection de l’URL de référence depuis le serveur.",
+      "whatsappLinkOrigin": "Réponse HTTP du domaine wa.me, sans utiliser de numéro de téléphone."
+    },
+    "diagnostic": {
+      "missingGeminiKey": "Clé Gemini du backend absente.",
+      "endpointNotFound": "URL de contrôle introuvable.",
+      "rateLimited": "Limite de requêtes atteinte.",
+      "unexpectedHttpStatus": "Le fournisseur a renvoyé un statut HTTP inattendu.",
+      "accessDenied": "Accès refusé par le service.",
+      "connectionFailed": "Échec de la connexion ou du contrôle.",
+      "timeout": "Délai de réponse dépassé.",
+      "probeObjectNotFound": "Objet témoin introuvable.",
+      "missingProbeObject": "Définir R2_AUDIT_OBJECT_KEY avec la clé d’un objet existant.",
+      "disabled": "Stockage R2 désactivé.",
+      "configurationIncomplete": "Configuration incomplète ou invalide."
+    },
+    "services": {
+      "postgresql": {
+        "name": "PostgreSQL",
+        "usage": "Base de données de l’API et de l’historique des contrôles."
+      },
+      "smtp": {
+        "name": "SMTP",
+        "usage": "Réinitialisation des accès staff, envoi des proformas et réception du formulaire de contact à support@caapmedia.com."
+      },
+      "r2": {
+        "name": "Cloudflare R2",
+        "usage": "Stockage des images produits. Le contrôle couvre les métadonnées privées."
+      },
+      "whatsapp": {
+        "name": "WhatsApp Cloud API",
+        "usage": "Envoi des proformas par l’API Meta."
+      },
+      "gemini": {
+        "name": "Google Gemini",
+        "usage": "Génération marketing depuis le frontend, indisponible en production."
+      },
+      "google-fonts": {
+        "name": "Google Fonts",
+        "usage": "Polices chargées dans le navigateur."
+      },
+      "unsplash": {
+        "name": "Unsplash",
+        "usage": "Images affichées sur la vitrine."
+      },
+      "picsum": {
+        "name": "Picsum",
+        "usage": "Image distante du composant d’en-tête."
+      },
+      "placeholder-images": {
+        "name": "via.placeholder.com",
+        "usage": "Images de remplacement dans les parcours de vente."
+      },
+      "google-cloud-storage": {
+        "name": "Google Cloud Storage",
+        "usage": "Images référencées par les données de démonstration du catalogue."
+      },
+      "whatsapp-links": {
+        "name": "WhatsApp",
+        "usage": "Partage manuel par lien externe."
+      },
+      "google-maps": {
+        "name": "Google Maps",
+        "usage": "Itinéraire depuis les pages publiques."
+      },
+      "facebook": {
+        "name": "Facebook",
+        "usage": "Lien depuis le pied de page de la vitrine."
+      },
+      "instagram": {
+        "name": "Instagram",
+        "usage": "Lien depuis le pied de page de la vitrine."
+      },
+      "linkedin": {
+        "name": "LinkedIn",
+        "usage": "Lien depuis le pied de page de la vitrine."
+      }
+    }
+  },
+  "qrPointage": {
+    "arrival": "Arrivée",
+    "departure": "Départ",
+    "invalidLinkTitle": "Lien de pointage invalide",
+    "errors": {
+      "missingQr": "Le lien est incomplet. Scannez le QR code de pointage affiché dans vos locaux.",
+      "invalidQr": "Ce QR code est invalide ou a expiré. Scannez le QR code de pointage actuellement affiché dans vos locaux.",
+      "replacedQr": "Ce QR code a été remplacé. Scannez le nouveau QR code affiché dans vos locaux.",
+      "alreadyArrived": "Votre arrivée est déjà enregistrée aujourd’hui. Pour pointer votre départ, sélectionnez « Départ ».",
+      "invalidDeparture": "Pour pointer un départ, une arrivée doit être enregistrée aujourd’hui. Si votre départ est déjà enregistré, aucune action n’est nécessaire.",
+      "invalidEmployeeId": "Saisissez votre matricule employé tel qu’il vous a été communiqué.",
+      "employeeNotFound": "Ce matricule ne correspond à aucun employé actif dans la filiale de ce QR code. Vérifiez votre matricule et le QR code utilisé, puis contactez les RH si nécessaire.",
+      "invalidInput": "Les informations de pointage sont invalides. Vérifiez votre matricule et le type de pointage, puis réessayez.",
+      "forbidden": "L’accès au pointage a été refusé. Scannez à nouveau le QR code affiché dans vos locaux. Si le problème persiste, contactez les RH.",
+      "tooManyAttempts": "Trop de tentatives de pointage. Attendez une minute avant de réessayer.",
+      "network": "Impossible de joindre le service de pointage. Vérifiez votre connexion Internet et réessayez.",
+      "unavailable": "Le pointage n’a pas pu être confirmé. Réessayez dans quelques instants. Si le problème persiste, contactez les RH."
+    }
+  },
+  "popups": {
+    "confirmTitle": "Confirmation",
+    "messageTitle": "Information",
+    "opportunityContact": "Veuillez sélectionner un contact.",
+    "opportunityName": "Veuillez saisir un nom pour l’opportunité.",
+    "opportunityValue": "Veuillez saisir une valeur d’opportunité supérieure à zéro.",
+    "proformaRequired": "Veuillez remplir les champs requis et ajouter au moins un article.",
+    "positiveAmount": "Veuillez saisir un montant supérieur à zéro.",
+    "passwordMismatch": "Les nouveaux mots de passe ne correspondent pas.",
+    "passwordChangedSimulation": "Le changement de mot de passe a réussi en mode simulation.",
+    "replaceQr": "Remplacer le QR permanent ? Le code déjà imprimé cessera de fonctionner et devra être réimprimé.",
+    "importTitle": "Confirmer l’import",
+    "importSummary": "Lignes à traiter ({{entity}}) : {{valid}}. Champs CRM reconnus : {{mapped}} sur {{total}}.{{skipped}}",
+    "importSkipped": " Lignes ignorées pour champ obligatoire manquant ou invalide : {{count}}."
+  },
   "cashierReceipts": {
     "title": "Mes recettes journalières",
     "subtitle": "Suivi des encaissements enregistrés avec votre compte.",
@@ -103,7 +262,7 @@
     "disbursement": "Décaissement",
     "creditHistory": "Créances Clients",
     "financialHistory": "Historique Financier",
-    "proforma": "Facture Proforma",
+    "proforma": "Proforma",
     "salesAnalytics": "Analyse des Ventes",
     "purchaseAnalytics": "Analyse des Achats",
     "notifications": "Notifications"
@@ -1583,6 +1742,8 @@
       "colHourlyRate": "Taux horaire (F CFA/h)",
       "colAction": "Action",
       "notConfigured": "Non configuré",
+      "unpriced": "Tarif horaire non renseigné",
+      "unpricedOrder": "Tarif non renseigné, coût machine compté à 0",
       "noEquipment": "Aucun équipement trouvé.",
       "saveError": "Erreur lors de la sauvegarde.",
       "invalidRate": "Taux horaire invalide.",
@@ -2003,7 +2164,10 @@
     "closeOrder": "Clôturer",
     "validationSuccess": "Commande validée pour la production.",
     "workflowError": "Action impossible. Actualisez la liste et vérifiez le statut de la commande.",
-    "cancellationPaymentBlocked": "Cette commande a déjà été encaissée. Son paiement doit être régularisé avant toute annulation.",
+    "cancelOrder": "Annuler la commande",
+    "cancellationReason": "Motif d’annulation",
+    "cancellationImpact": "Le débit d’annulation figurera sur le relevé du compte concerné.",
+    "cancellationSaved": "Commande annulée",
     "productionStage": "Étape de fabrication",
     "orderId": "ID Commande",
     "customer": "Client",
@@ -2641,6 +2805,7 @@
     }
   },
   "contactModal": {
+    "deliveryError": "Le message n’a pas pu être envoyé. Réessayez ou écrivez à support@caapmedia.com.",
     "title": "Contactez-nous",
     "subtitle": "Une question ? Un projet ? L'équipe CaapMedia est là pour vous.",
     "name": "Nom complet",
@@ -2759,6 +2924,7 @@
       "visitTitle": "Nous rencontrer à Douala",
       "visitNote": "Appelez-nous ou écrivez-nous si vous souhaitez préparer une visite de nos locaux.",
       "directions": "Obtenir l’itinéraire",
+      "locating": "Recherche de votre position…",
       "alsoReachUs": "Vous pouvez aussi nous joindre par téléphone ou e-mail"
     },
     "photoSlots": {
@@ -2833,6 +2999,8 @@
     "items": "articles",
     "total": "Total",
     "orderViaWhatsApp": "Commander via WhatsApp",
+    "whatsAppContact": "Écrivez-nous sur WhatsApp",
+    "whatsAppContactMessage": "Bonjour, je souhaite me renseigner sur vos produits.",
     "viewDetails": "Voir les détails",
     "pauseCarousel": "Mettre le carrousel en pause",
     "resumeCarousel": "Reprendre le carrousel",
@@ -3068,7 +3236,25 @@
       "successMessage": "Le stock a été mis à jour."
     }
   },
+  "documentHeader": {
+    "printServices": "Imprimerie - Conception - Sérigraphie",
+    "otherServices": "Prestation de services divers",
+    "tagline": "Communication et impression sur tous supports",
+    "phone": "Tél.",
+    "email": "E-mail"
+  },
   "bonDeLivraison": {
+    "deliveryDate": "Date de livraison",
+    "deliveryNumber": "Livraison n° {{number}}",
+    "chooseDelivery": "Livraison à imprimer",
+    "remainingQuantity": "Reste à livrer : {{remaining}} sur {{ordered}} commandé(s)",
+    "saved": "Livraison enregistrée.",
+    "documentTitle": "Bordereau de livraison",
+    "recipient": "Destinataire",
+    "designation": "Désignation",
+    "orderedQuantity": "Quantité commandée",
+    "packageCount": "Nombre de colis",
+    "deliveredQuantity": "Quantité livrée",
     "title": "Bon de Livraison",
     "orderNum": "Commande N°",
     "date": "Date",
@@ -3319,6 +3505,14 @@
     "noExpenseBox": "Aucune caisse dépense n'a été configurée pour cette filiale."
   },
   "cashRemittance": {
+    "linkReceipts": "Encaissements de commandes inclus dans la remise",
+    "linkReceiptsHint": "Cochez les encaissements réellement inclus pour que leur annulation soit reportée sur le bon compte.",
+    "linkedReceiptsAboveAmount": "Le total des encaissements sélectionnés dépasse le montant déclaré.",
+    "receiptDate": "Journée des encaissements",
+    "submittedDate": "Date de soumission",
+    "availableToRemit": "Disponible pour une nouvelle remise",
+    "totalToRemit": "Montant à encaisser",
+    "amountAboveAvailable": "Ce montant dépasse le solde disponible après déduction des remises en attente.",
     "title": "Remises de caisse",
     "subtitle": "Remise du contenu de la caisse au coffre-fort du siège.",
     "new": "Nouvelle remise",
@@ -3503,6 +3697,64 @@
     }
   },
   "proforma": {
+    "conversionDesignFile": "Fichier de production",
+    "conversionSpecsError": "Impossible de charger les spécifications des articles.",
+    "viewOrder": "Voir la commande",
+    "orderReference": "Commande",
+    "conversionDueDate": "Échéance de paiement",
+    "conversionPendingValidation": "La commande sera créée en attente de validation.",
+    "previewPdf": "Visualiser le PDF",
+    "hidePreview": "Masquer le PDF",
+    "previewError": "Impossible de charger le PDF de la proforma.",
+    "previewRetry": "Réessayer",
+    "previewNewTab": "Ouvrir le PDF dans un nouvel onglet",
+    "form": {
+      "lead": "Lead",
+      "leadPlaceholder": "-- Choisir un lead --",
+      "clientName": "Nom Client",
+      "email": "Email",
+      "phone": "Téléphone",
+      "company": "Entreprise",
+      "product": "Produit",
+      "productPlaceholder": "-- Choisir un produit --",
+      "quantity": "Quantité",
+      "unitPrice": "Prix unitaire TTC",
+      "addItem": "Ajouter",
+      "removeItem": "Retirer l’article",
+      "lineTotal": "Total TTC",
+      "action": "Action",
+      "taxRate": "Taux de TVA (%)",
+      "validity": "Validité (jours)",
+      "notes": "Notes et conditions particulières",
+      "notesPlaceholder": "Délai de livraison, conditions de paiement…",
+      "subtotal": "Sous-total HT",
+      "taxAmount": "TVA incluse ({{rate}} %)",
+      "steps": {
+        "client": "Client",
+        "items": "Articles",
+        "terms": "Conditions",
+        "review": "Récapitulatif"
+      },
+      "create": "Créer la proforma",
+      "edit": "Modifier la proforma",
+      "created": "Proforma créée",
+      "updated": "Proforma modifiée",
+      "save": "Enregistrer les modifications",
+      "previous": "Précédent",
+      "next": "Suivant",
+      "clientRequired": "Sélectionnez un lead et renseignez le nom, une adresse e-mail valide et le téléphone du client.",
+      "itemsRequired": "Ajoutez au moins un article pour continuer.",
+      "termsInvalid": "Indiquez un taux de TVA entre 0 et 100 % et une durée de validité positive.",
+      "validitySummary": "Validité de {{days}} jours",
+      "validUntil": "Valable jusqu’au {{date}}",
+      "saveError": "Impossible d’enregistrer la proforma. Réessayez."
+    },
+    "changeStatus": "Changer le statut",
+    "markViewed": "Marquer comme consultée",
+    "viewedSuccess": "Proforma marquée comme consultée",
+    "viewedError": "Impossible de marquer la proforma comme consultée.",
+    "rejectConfirmation": "La proforma {{number}} sera marquée comme refusée.",
+    "convertConfirmation": "Une commande sera créée à partir de la proforma {{number}}.",
     "title": "Proformas (Devis)",
     "create": "Créer Proforma",
     "empty": "Aucune proforma trouvée",
@@ -3511,7 +3763,10 @@
       "draft": "Brouillons",
       "sent": "Envoyées",
       "accepted": "Acceptées",
-      "rejected": "Refusées"
+      "rejected": "Refusées",
+      "viewed": "Consultées",
+      "converted": "Converties",
+      "expired": "Expirées"
     },
     "table": {
       "number": "Numéro",
@@ -3526,7 +3781,8 @@
       "edit": "Éditer",
       "send": "Envoyer",
       "resend": "Renvoyer",
-      "accept": "Accepter (convertit en commande)",
+      "accept": "Accepter",
+      "convert": "Convertir en commande",
       "reject": "Refuser",
       "delete": "Supprimer"
     },
@@ -3542,7 +3798,11 @@
     "deleteConfirmTitle": "Supprimer la proforma",
     "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer la proforma {{number}} ?",
     "acceptSuccess": "Proforma acceptée",
-    "acceptSuccessMessage": "La proforma a été convertie en commande.",
+    "acceptSuccessMessage": "La décision a été enregistrée.",
+    "convertSuccess": "Proforma convertie",
+    "convertSuccessMessage": "La commande a été créée.",
+    "convertError": "Échec de la conversion",
+    "convertErrorMessage": "Impossible de convertir cette proforma en commande.",
     "acceptError": "Erreur",
     "acceptErrorMessage": "L'acceptation de la proforma a échoué.",
     "rejectSuccess": "Proforma refusée",
@@ -3581,14 +3841,20 @@
       "emailSuccess": "E-mail transmis au serveur de messagerie.",
       "missingEmail": "Adresse e-mail du client manquante.",
       "missingPhone": "Numéro du client manquant.",
-      "whatsappHint": "Partagez directement le fichier PDF vers WhatsApp lorsque votre appareil le permet. Sinon, téléchargez le PDF puis joignez-le dans la conversation WhatsApp.",
+      "sendWhatsAppDirect": "Envoyer le PDF sur WhatsApp",
+      "whatsAppAccepted": "WhatsApp a accepté l’envoi du PDF et du message.",
+      "whatsappHint": "Téléchargez le PDF et copiez le message. Ouvrez WhatsApp, joignez le PDF comme document, puis collez le message dans la légende avant d’envoyer.",
+      "copyMessage": "Copier le message",
+      "messageCopied": "Message copié.",
+      "copyMessageError": "Sélectionnez le texte ci-dessus pour le copier manuellement.",
+      "nativeShareHint": "Choisissez WhatsApp et le client ({{phone}}). Si le message manque, copiez-le ici et ajoutez-le au PDF avant d’envoyer.",
       "sharePdfWhatsApp": "Partager le PDF sur WhatsApp",
       "downloadPdf": "Télécharger le PDF",
       "pdfDownloadError": "Le PDF n’a pas pu être téléchargé. Réessayez.",
       "pdfShareUnsupported": "Le partage de fichier n’est pas disponible sur cet appareil. Téléchargez le PDF puis joignez-le dans WhatsApp.",
       "prepareWhatsApp": "Préparer le message WhatsApp",
       "openWhatsApp": "Ouvrir WhatsApp",
-      "confirmWhatsApp": "J’ai envoyé le message",
+      "confirmWhatsApp": "J’ai envoyé le PDF et le message",
       "confirmed": "Proforma marquée comme envoyée.",
       "expires": "Lien disponible jusqu’au {{date}}.",
       "error": "Impossible de préparer ou d’envoyer la proforma.",

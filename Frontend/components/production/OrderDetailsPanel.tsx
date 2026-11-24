@@ -3,7 +3,7 @@ import {
     Order, OrderItem, PaymentStatus,
     FormDefinition, ProductSpecification, SpecFieldType, ResolvedOption,
 } from '../../types';
-import ConfirmationModal from '../common/ConfirmationModal';
+import OrderStatusUpdateModal from '../sales/OrderStatusUpdateModal';
 import { useI18n } from '../../i18n';
 import { BACKEND_ORIGIN as BACKEND_BASE } from '../../services/apiConfig';
 
@@ -256,7 +256,7 @@ export interface OrderDetailsPanelProps {
     // Actions de validation production — optionnelles : absentes = panneau
     // en lecture seule (cas Sales.tsx "Voir détails", Production.tsx "détails").
     onValidate?: () => void;
-    onReject?: () => void;
+    onReject?: (reason: string) => void;
     isValidating?: boolean;
     isRejecting?: boolean;
     canValidate?: boolean;
@@ -473,8 +473,7 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({
                                 <button
                                     type="button"
                                     onClick={() => setConfirmReject(true)}
-                                    disabled={isRejecting || isValidating || Number(order.amountPaid) > 0}
-                                    title={Number(order.amountPaid) > 0 ? t('order.cancellationPaymentBlocked') : undefined}
+                                    disabled={isRejecting || isValidating}
                                     className="px-5 py-2.5 rounded-lg border-2 border-red-300 text-red-600 text-sm font-semibold hover:bg-red-50 disabled:opacity-50 transition-colors"
                                 >
                                     {isRejecting ? 'Rejet en cours…' : 'Rejeter'}
@@ -505,12 +504,14 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({
             </div>
 
             {confirmReject && onReject && (
-                <ConfirmationModal
+                <OrderStatusUpdateModal
                     isOpen
+                    order={order}
+                    isSaving={isRejecting}
                     onClose={() => setConfirmReject(false)}
-                    onConfirm={() => { setConfirmReject(false); onReject(); }}
-                    title="Rejeter la commande"
-                    message={`Voulez-vous rejeter la commande de « ${order.customerName} » ? Elle sera annulée et le commercial devra la recréer.`}
+                    onUpdateStatus={(_id, _status, _delivery, reason) => {
+                        if (reason) onReject(reason);
+                    }}
                 />
             )}
         </div>

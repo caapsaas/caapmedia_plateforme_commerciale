@@ -3,13 +3,6 @@ import { API_BASE_URL } from '../apiConfig';
 import { AppNotification } from '../../types';
 import { PaginatedResponse, PaginationParams } from '../../types/pagination.types';
 
-/**
- * Base URL de l'API (cookie httpOnly, meme origine que `api.ts`) - reprise ici
- * car `EventSource` ne peut pas reutiliser l'instance Axios (pas d'interceteur
- * possible sur ce type de connexion).
- */
-const SSE_BASE_URL = API_BASE_URL;
-
 export const getNotifications = async (
   params: PaginationParams & { unreadOnly?: boolean } = {},
 ): Promise<PaginatedResponse<AppNotification>> => {
@@ -32,4 +25,4 @@ export const markAllNotificationsAsRead = async (): Promise<{ count: number }> =
   return data;
 };
 
-export const getNotificationsSseUrl = (): string => `${SSE_BASE_URL}/notifications/sse`;
+export const getNotificationsSseUrl = (): string => `${API_BASE_URL}/notifications/sse`;

@@ -13,21 +13,20 @@ import { printElementAsPdf, exportElementToPdf } from '../utils/pdfExporter';
 interface BonDeLivraisonProps {
     order: Order;
     subsidiary: Subsidiary;
+    initialDeliveryId?: string;
     onClose: () => void;
 }
 
-const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onClose }) => {
+const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, initialDeliveryId, onClose }) => {
     const { t, language } = useI18n();
     const blContentRef = React.useRef<HTMLDivElement>(null);
     const [isBusy, setIsBusy] = React.useState(false);
+    const deliveries = order.deliveries ?? [];
+    const [selectedDeliveryId, setSelectedDeliveryId] = React.useState(() => initialDeliveryId ?? deliveries.at(-1)?.id ?? '');
+    const deliveryIndex = deliveries.findIndex(record => record.id === selectedDeliveryId);
+    const delivery = deliveries[deliveryIndex];
 
-    // Le backend renvoie toujours `orderItems` (jamais `items`, malgré le
-    // type frontend Order.items) avec un productName/unitPrice à plat sur
-    // chaque ligne — pas de order.product imbriqué. Sans ce fallback, le
-    // tableau restait vide (le vrai bug derrière "rien ne s'affiche").
-    const billableItems: any[] = (order as any).orderItems?.length
-        ? (order as any).orderItems
-        : (order.items ?? []);
+    const items = order.orderItems?.length ? order.orderItems : (order.items ?? []);
 
     const handlePrint = async () => {
         if (!blContentRef.current || isBusy) return;
@@ -38,23 +37,25 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
 
     const handleExportPdf = async () => {
         if (!blContentRef.current) return;
-        await exportElementToPdf(blContentRef.current, `bon_de_livraison_${order.id}.pdf`);
+        const reference = delivery ? `${order.id}-${deliveryIndex + 1}` : order.id;
+        await exportElementToPdf(blContentRef.current, `bon_de_livraison_${reference}.pdf`);
     };
 
     const formatDate = (dateString: string | undefined) => {
-        if (!dateString) return 'N/A';
+        if (!dateString) return '—';
         try {
             const date = new Date(dateString);
             if (isNaN(date.getTime())) {
-                return 'N/A';
+                return '—';
             }
             return date.toLocaleDateString(language, {
+                timeZone: 'UTC',
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'
             });
         } catch (e) {
-            return 'N/A';
+            return '—';
         }
     };
 
@@ -73,7 +74,7 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
             <DocumentHeader subsidiary={subsidiary} usePublicContact />
             <div className="flex justify-between items-center gap-6 mb-8 pb-4 border-b border-slate-200">
                 <div>
-                    <h2 className="font-bold text-2xl text-slate-900 uppercase tracking-tight">{t('bonDeLivraison.title')}</h2>
+                    <h2 className="font-bold text-2xl text-slate-900 uppercase tracking-tight">{t('bonDeLivraison.documentTitle')}</h2>
                 </div>
                 <div className="text-right">
                     <div className="space-y-1.5 text-sm">
@@ -81,14 +82,19 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
                             <p className="text-slate-500 text-[10px] font-medium uppercase tracking-wide">{t('bonDeLivraison.orderNum')}</p>
                             <p className="font-semibold font-mono text-xs text-slate-900">{order.id}</p>
                         </div>
-                        <p className="text-slate-600">{t('bonDeLivraison.date')}: <span className="font-semibold text-slate-900">{formatDate(order.date)}</span></p>
+                        {delivery && <p className="text-slate-600">{t('bonDeLivraison.deliveryNumber', { number: deliveryIndex + 1 })}</p>}
+                        <p className="text-slate-600">
+                            {t(delivery ? 'bonDeLivraison.deliveryDate' : 'bonDeLivraison.date')}: <span className="font-semibold text-slate-900">
+                                {formatDate(delivery ? delivery.deliveredOn : order.orderDate ?? order.date)}
+                            </span>
+                        </p>
                     </div>
                 </div>
             </div>
 
             {/* Customer Info */}
             <div className="mb-8">
-                <h5 className="font-medium text-slate-500 uppercase text-[10px] tracking-wide mb-1">{t('bonDeLivraison.billedTo')}</h5>
+                <h5 className="font-medium text-slate-500 uppercase text-[10px] tracking-wide mb-1">{t('bonDeLivraison.recipient')}</h5>
                 <p className="font-semibold text-base text-slate-900">{order.customerName}</p>
             </div>
 
@@ -96,12 +102,21 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
             <DocumentTable
                 title={t('bonDeLivraison.items')}
                 columns={[
-                    { label: t('bonDeLivraison.item'), key: 'productName', align: 'left' },
-                    { label: t('bonDeLivraison.quantity'), key: 'quantity', align: 'center' }
+                    { label: t('bonDeLivraison.designation'), key: 'productName', align: 'left' },
+                    { label: t('bonDeLivraison.orderedQuantity'), key: 'quantity', align: 'center', formatter: String },
+                    { label: t('bonDeLivraison.packageCount'), key: 'packageCount', align: 'center' },
+                    { label: t('bonDeLivraison.deliveredQuantity'), key: 'deliveredQuantity', align: 'center' }
                 ]}
-                data={billableItems.map((item: any) => ({
+                data={delivery ? delivery.lines.map(line => ({
+                    productName: line.productName,
+                    quantity: line.orderedQuantity,
+                    packageCount: String(line.packageCount),
+                    deliveredQuantity: String(line.deliveredQuantity)
+                })) : items.map(item => ({
                     productName: item.productName || item.product?.name || '—',
-                    quantity: item.quantity || 0
+                    quantity: item.quantity ?? '—',
+                    packageCount: '—',
+                    deliveredQuantity: '—'
                 }))}
                 emptyMessage={t('bonDeLivraison.noData')}
             />
@@ -140,6 +155,19 @@ const BonDeLivraison: React.FC<BonDeLivraisonProps> = ({ order, subsidiary, onCl
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6 text-slate-600"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                 </div>
+                {deliveries.length > 1 && (
+                    <label className="flex flex-wrap items-center gap-3 px-6 py-3 text-sm font-medium text-slate-700">
+                        {t('bonDeLivraison.chooseDelivery')}
+                        <select value={selectedDeliveryId} onChange={event => setSelectedDeliveryId(event.target.value)}
+                            className="rounded-md border border-slate-300 px-3 py-2">
+                            {deliveries.map((record, index) => (
+                                <option key={record.id} value={record.id}>
+                                    {t('bonDeLivraison.deliveryNumber', { number: index + 1 })} · {formatDate(record.deliveredOn)}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                )}
                 <div className="overflow-y-auto flex-1 bg-slate-50 p-6">
                     <DocumentContent />
                 </div>

@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { PeriodFilterDto, PeriodFilter } from './dto/period-filter.dto';
-import { Prisma, User } from '@prisma/client';
+import { OrderStatus, Prisma, User } from '@prisma/client';
 import {
   startOfMonth,
   endOfMonth,
@@ -221,6 +221,7 @@ export class AnalyticsService {
       where: {
         ...subsidiaryFilter,
         orderDate: dateFilter,
+        status: { not: OrderStatus.CANCELLED },
       },
     });
 

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { endOfMonth, startOfMonth } from 'date-fns';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
-import { UserRole } from '@prisma/client';
+import { OrderStatus, UserRole } from '@prisma/client';
 import {
   resolveScopeContext,
   withSubsidiaryScope,
@@ -201,6 +201,7 @@ export class TaxTransparencyService {
       {
         orderDate: { gte: monthStart, lte: monthEnd },
         applyTax: true,
+        status: { not: OrderStatus.CANCELLED },
       },
       scope,
       dto.subsidiaryId,
@@ -234,6 +235,7 @@ export class TaxTransparencyService {
       {
         orderDate: { gte: monthStart, lte: monthEnd },
         applyTax: true,
+        status: { not: OrderStatus.CANCELLED },
       },
       scope,
       dto.subsidiaryId,

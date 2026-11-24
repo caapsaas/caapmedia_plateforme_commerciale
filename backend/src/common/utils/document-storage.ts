@@ -2,6 +2,8 @@ import type { Request } from 'express';
 import { mkdirSync } from 'fs';
 import { resolve } from 'path';
 
+export const PUBLIC_ASSETS_ROOT = resolve(process.cwd(), 'public');
+
 // Private files must never be placed under the Express/static server root.
 export const PRIVATE_DOCUMENT_ROOT = resolve(
   process.cwd(),

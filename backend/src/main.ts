@@ -3,7 +3,7 @@ import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
-import { join } from 'path';
+import { PUBLIC_ASSETS_ROOT } from './common/utils/document-storage';
 import { Logger, ValidationPipe, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
@@ -29,7 +29,6 @@ async function bootstrap() {
     }),
   );
   app.use(cookieParser());
-  app.use(csrfMiddleware);
 
   // Get config service
   const configService = app.get(ConfigService);
@@ -64,6 +63,7 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true,
   });
+  app.use(csrfMiddleware);
 
   // Add global validation pipe
   app.useGlobalInterceptors(new PasswordRedactionInterceptor());
@@ -94,15 +94,13 @@ async function bootstrap() {
     },
   );
 
-  app.useStaticAssets(join(__dirname, '..', '..', 'public'), {
+  app.useStaticAssets(PUBLIC_ASSETS_ROOT, {
     prefix: '/public',
   });
 
   app.enableShutdownHooks();
 
-  const staticPath = join(__dirname, '..', '..', 'public');
-
-  Logger.log(`✅ Static files served from: ${staticPath}`, 'Bootstrap');
+  Logger.log(`✅ Static files served from: ${PUBLIC_ASSETS_ROOT}`, 'Bootstrap');
 
   app.setGlobalPrefix('api-caapmedia');
 

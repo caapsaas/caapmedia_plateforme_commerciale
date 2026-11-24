@@ -12,6 +12,8 @@ interface ConfirmationModalProps {
     confirmButtonClass?: string;
     isDangerous?: boolean;
     isLoading?: boolean;
+    embedded?: boolean;
+    acknowledgeOnly?: boolean;
 }
 
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -23,7 +25,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     confirmButtonText,
     confirmButtonClass,
     isDangerous = false,
-    isLoading = false
+    isLoading = false,
+    embedded = false,
+    acknowledgeOnly = false
 }) => {
     const { t } = useI18n();
 
@@ -33,9 +37,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         <div
             className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4"
             onClick={onClose}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="confirmation-title"
+            role={embedded ? undefined : 'dialog'}
+            aria-modal={embedded ? undefined : true}
+            aria-labelledby={embedded ? undefined : 'confirmation-title'}
         >
             <div
                 className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all animate-in fade-in zoom-in-95"
@@ -49,14 +53,15 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                                 <AlertTriangle size={24} color={isDangerous ? '#dc2626' : '#2563eb'} />
                             </div>
                             <div className="flex-1">
-                                <h3 id="confirmation-title" className="text-xl font-bold text-slate-900">{title}</h3>
+                                <h3 id={embedded ? undefined : 'confirmation-title'} className="text-xl font-bold text-slate-900">{title}</h3>
                                 <p className="mt-2 text-sm text-slate-600 leading-relaxed">{message}</p>
                             </div>
                         </div>
                         <button
+                            type="button"
                             onClick={onClose}
                             className="flex-shrink-0 text-slate-400 hover:text-slate-600 transition-colors ml-2"
-                            aria-label="Close"
+                            aria-label={t('common.close')}
                         >
                             <X size={20} />
                         </button>
@@ -65,15 +70,17 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
                 {/* Footer with Actions */}
                 <div className="px-6 py-4 bg-white flex justify-end gap-3">
-                    <button
+                    {!acknowledgeOnly && <button
                         type="button"
+                        autoFocus={embedded}
                         onClick={onClose}
                         className="px-5 py-2.5 bg-slate-100 text-slate-900 rounded-lg hover:bg-slate-200 transition-colors font-medium text-sm"
                     >
                         {t('common.cancel')}
-                    </button>
+                    </button>}
                     <button
                         type="button"
+                        autoFocus={embedded && acknowledgeOnly}
                         onClick={onConfirm}
                         disabled={isLoading}
                         className={confirmButtonClass || (isDangerous

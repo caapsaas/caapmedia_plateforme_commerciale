@@ -1,6 +1,7 @@
 import { isSuperAdmin as hasSuperAdminRole } from '../../utils/isSuperAdmin';
 import { useOrderNotificationSelection } from '../../hooks/useOrderNotificationSelection';
 import React, { useState, useMemo, useRef, useEffect } from "react";
+import axios from 'axios';
 import {
   Order,
   OrderItem,
@@ -206,22 +207,38 @@ const Sales: React.FC = () => {
     },
   });
 
-  const { mutate: updateOrderStatusMutate } = useMutation({
-    mutationFn: (payload: { orderId: string; status: OrderStatus }) =>
-      updateOrderStatus(payload),
-    onSuccess: () => {
+  const { mutate: updateOrderStatusMutate, isPending: isUpdatingOrderStatus } = useMutation({
+    mutationFn: updateOrderStatus,
+    onSuccess: (updatedOrder, payload) => {
+      setUpdatingStatusOrder(null);
+      if (payload.delivery) setBlOrder({ order: updatedOrder, deliveryId: payload.delivery.id });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ['customerOrders'] });
       queryClient.invalidateQueries({ queryKey: ['productionOrders'] });
       queryClient.invalidateQueries({ queryKey: ['pendingValidationOrders'] });
+      if (payload.status === OrderStatus.CANCELLED) {
+        void queryClient.invalidateQueries();
+        toast.success(t('order.cancellationSaved'));
+        return;
+      }
+      if (payload.delivery) {
+        toast.success(t('bonDeLivraison.saved'));
+        return;
+      }
       toast.success(
         "Statut mis à jour!",
         "Le statut de la commande a été mis à jour avec succès.",
       );
     },
-    onError: () => {
+    onError: (error) => {
+      if (axios.isAxiosError(error) && error.response?.status === 409) {
+        void queryClient.invalidateQueries({ queryKey: ['orders'] });
+      }
       toast.error(
         "Erreur de mise à jour",
-        "Une erreur est survenue lors de la mise à jour du statut.",
+        axios.isAxiosError(error) && typeof error.response?.data?.message === 'string'
+          ? error.response.data.message
+          : "Une erreur est survenue lors de la mise à jour du statut.",
       );
     },
   });
@@ -317,7 +334,7 @@ const Sales: React.FC = () => {
     null,
   );
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
-  const [blOrder, setBlOrder] = useState<Order | null>(null);
+  const [blOrder, setBlOrder] = useState<{ order: Order; deliveryId?: string } | null>(null);
   const [bonDeCommandeOrder, setBonDeCommandeOrder] = useState<Order | null>(null);
   // Détail complet (infos générales, résumé financier, options/specs/fichier
   // BAT/workflow production par ligne) — distinct du simple dépliage de ligne
@@ -666,7 +683,7 @@ const Sales: React.FC = () => {
                                 const isExpanded = expandedOrderId === order.id;
                                 const today = new Date();
                                 today.setHours(0, 0, 0, 0);
-                                const isPaymentLate = order.paymentStatus !== PaymentStatus.PAID && order.paymentDueDate && new Date(order.paymentDueDate) < today;
+                                const isPaymentLate = order.status !== OrderStatus.CANCELLED && order.paymentStatus !== PaymentStatus.PAID && order.paymentDueDate && new Date(order.paymentDueDate) < today;
                                 const hasStatusIssue = order.status === OrderStatus.CANCELLED;
                                 const orderItems = (order.orderItems?.length ? order.orderItems : order.items) ?? [];
 
@@ -697,9 +714,11 @@ const Sales: React.FC = () => {
                                       </td>
                                       <td className="px-6 py-4 text-center">
                                         <div className="flex items-center justify-center gap-2">
-                                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPaymentStatusClass(order.paymentStatus)}`}>
-                                            {t(`order.paymentStatus_${order.paymentStatus}`)}
-                                          </span>
+                                          {hasStatusIssue ? '—' : (
+                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPaymentStatusClass(order.paymentStatus)}`}>
+                                              {t(`order.paymentStatus_${order.paymentStatus}`)}
+                                            </span>
+                                          )}
                                           {isPaymentLate && (
                                             <span title={t("sales.paymentOverdue")}>
                                               <IconExclamationTriangle className="h-5 w-5 text-red-500" />
@@ -712,6 +731,11 @@ const Sales: React.FC = () => {
                                           <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getOrderStatusClass(order.status)}`}>
                                             {t(`order.status_${order.status}`)}
                                           </span>
+                                          {order.cancellationReason && (
+                                            <span className="max-w-xs break-words text-xs text-slate-600">
+                                              {t('order.cancellationReason')} · {order.cancellationReason}
+                                            </span>
+                                          )}
                                           {order.status === OrderStatus.IN_PRODUCTION && <span className="text-xs text-slate-500">{t(`production.status_${order.productionStatus}`)}</span>}
                                           {hasStatusIssue && (
                                             <span title={t("sales.statusIssue")}>
@@ -778,7 +802,7 @@ const Sales: React.FC = () => {
                                               <IconInvoice className="h-5 w-5" />
                                             </button>
                                             <button
-                                              onClick={() => setBlOrder(order)}
+                                              onClick={() => setBlOrder({ order })}
                                               className="p-2 text-slate-500 hover:bg-slate-100 rounded-full"
                                               title={t("common.viewBL")}
                                             >
@@ -920,8 +944,9 @@ const Sales: React.FC = () => {
           isOpen={!!updatingStatusOrder}
           onClose={() => setUpdatingStatusOrder(null)}
           order={updatingStatusOrder}
-          onUpdateStatus={(orderId, newStatus) =>
-            updateOrderStatusMutate({ orderId, status: newStatus })
+          isSaving={isUpdatingOrderStatus}
+          onUpdateStatus={(orderId, newStatus, delivery, cancellationReason) =>
+            updateOrderStatusMutate({ orderId, status: newStatus, delivery, cancellationReason })
           }
         />
       )}
@@ -936,7 +961,8 @@ const Sales: React.FC = () => {
       )}
       {blOrder && (
         <BonDeLivraison
-          order={blOrder}
+          order={blOrder.order}
+          initialDeliveryId={blOrder.deliveryId}
           subsidiary={subsidiary}
           onClose={() => setBlOrder(null)}
         />

@@ -1,5 +1,10 @@
+import { EntriesService } from '../../accounting/entries/entries.service';
 import { creditCashRegister } from '../credit-cash-register';
-import { getActiveRole, isSuperAdmin } from '../../common/auth/role/role-identity';
+import {
+  getActiveRole,
+  isSuperAdmin,
+  type RoleIdentity,
+} from '../../common/auth/role/role-identity';
 import {
   resolveScopeContext,
   withSubsidiaryScope,
@@ -24,6 +29,10 @@ import {
 } from './dto/create-order.dto';
 import {
   OrderStatus,
+  CashRemittanceStatus,
+  JournalEntryStatus,
+  NotificationType,
+  Order,
   PaymentStatus,
   Prisma,
   ProductionStatus,
@@ -54,9 +63,23 @@ import { ProductSpecsService } from '../products/product-specs/product-specs.ser
 import { OrderNotificationsService } from '../../notifications/order-notifications.service';
 import {
   assertOrderTransition,
+  assertWorkflowRole,
   BEFORE_PRODUCTION,
+  DELIVERY_ROLES,
   nextOrderStatusForProduction,
 } from './order-workflow';
+
+type RecordedDelivery = {
+  id: string;
+  deliveredOn: string;
+  lines: {
+    orderItemId: string;
+    deliveredQuantity: number;
+    packageCount: number;
+    productName: string;
+    orderedQuantity: number;
+  }[];
+};
 
 // Allowlist shared by every order response, including raw Prisma responses.
 const orderCustomerSelect = {
@@ -81,10 +104,14 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly productSpecsService: ProductSpecsService,
     private readonly orderNotifications: OrderNotificationsService,
+    private readonly entries: EntriesService,
   ) {}
 
   // Fonction utilitaire pour mapper une commande à son format de réponse
-  private mapOrderToResponse(order: any) {
+  private mapOrderToResponse(
+    order: any,
+    audience: 'staff' | 'customer' = 'staff',
+  ) {
     return {
       id: order.id,
       date: order.orderDate,
@@ -103,12 +130,21 @@ export class OrdersService {
       taxRateValue: order.taxRateValue ? order.taxRateValue.toNumber() : 0,
       applyTax: order.applyTax,
       status: order.status,
+      ...(audience === 'staff'
+        ? {
+            cancellationReason:
+              (order as Pick<Order, 'cancellationReason'>).cancellationReason ??
+              null,
+          }
+        : {}),
       productionStatus: order.productionStatus,
       paymentStatus: order.paymentStatus,
       paymentMethod:
         (order as { paymentMethod?: CustomerPaymentMethod | null })
           .paymentMethod ?? null,
       productionHistory: order.productionHistory ?? [],
+      deliveries:
+        (order as { deliveries?: RecordedDelivery[] }).deliveries ?? [],
       orderItems: (order.orderItems ?? []).map((item: any) => ({
         id: item.id,
         productName: item.product?.name ?? item.productName,
@@ -487,7 +523,8 @@ export class OrdersService {
     }
 
     if (paymentStatus && paymentStatus.trim()) {
-      where.paymentStatus = paymentStatus as any;
+      where.paymentStatus = paymentStatus as PaymentStatus;
+      if (!orderStatus?.trim()) where.status = { not: OrderStatus.CANCELLED };
     }
 
     // Appliquer le filtre de période
@@ -569,7 +606,7 @@ export class OrdersService {
     if (!order) {
       throw new NotFoundException(`Commande avec l'ID "${id}" non trouvée.`);
     }
-    return this.mapOrderToResponse(order);
+    return this.mapOrderToResponse(order, 'customer');
   }
 
   async findOne(id: string, user: JwtUser) {
@@ -616,21 +653,117 @@ export class OrdersService {
   async updateOrderStatus(
     id: string,
     updateDto: UpdateOrderStatusDto,
-    user: any,
+    user: RoleIdentity & { id?: string; subsidiaryId?: string },
   ) {
     if (!user.subsidiaryId) throw new ForbiddenException('Filiale requise.');
     // Vérifier que la commande existe et appartient à la bonne filiale
     const order = await this.prisma.order.findUnique({
       where: { id, subsidiaryId: user.subsidiaryId },
+      include: this.orderFullInclude,
     });
 
     if (!order) {
       throw new NotFoundException(`Commande avec l'ID "${id}" non trouvée.`);
     }
 
+    if (updateDto.status === OrderStatus.CANCELLED) {
+      assertWorkflowRole(user, DELIVERY_ROLES);
+      const reason =
+        typeof updateDto.cancellationReason === 'string'
+          ? updateDto.cancellationReason.trim()
+          : '';
+      if (!reason || reason.length > 1000 || updateDto.delivery) {
+        throw new BadRequestException(
+          'Renseignez un motif d’annulation de 1 à 1 000 caractères.',
+        );
+      }
+      if (order.status === OrderStatus.CANCELLED)
+        return this.mapOrderToResponse(order);
+      return this.cancelOrder(order, reason, user.id);
+    }
+
+    const delivery = updateDto.delivery;
+    const deliveries = (order.deliveries ??
+      []) as unknown as RecordedDelivery[];
+    if (delivery) {
+      assertWorkflowRole(user, DELIVERY_ROLES);
+      if (updateDto.status !== OrderStatus.DELIVERED) {
+        throw new BadRequestException(
+          'Les détails de livraison nécessitent une confirmation de livraison.',
+        );
+      }
+      if (deliveries.some((record) => record.id === delivery.id)) {
+        return this.mapOrderToResponse(order);
+      }
+      if (order.status !== OrderStatus.PENDING_DELIVERY) {
+        throw new ConflictException(
+          'Cette commande n’est plus en attente de livraison.',
+        );
+      }
+    }
     assertOrderTransition(order, updateDto.status, user);
     if (order.status === updateDto.status)
       return this.mapOrderToResponse(order);
+
+    let nextStatus = updateDto.status;
+    let recordedDelivery: RecordedDelivery | undefined;
+    if (nextStatus === OrderStatus.DELIVERED) {
+      if (!delivery) {
+        throw new BadRequestException(
+          'Renseignez les détails de la livraison.',
+        );
+      }
+      const today = new Intl.DateTimeFormat('sv-SE', {
+        timeZone: 'Africa/Douala',
+      }).format(new Date());
+      if (delivery.deliveredOn > today) {
+        throw new BadRequestException(
+          'La date de livraison ne peut pas être future.',
+        );
+      }
+      const items = order.orderItems ?? [];
+      const byId = new Map(items.map((item) => [item.id, item]));
+      const deliveredByItem = new Map<string, number>();
+      for (const record of deliveries) {
+        for (const line of record.lines) {
+          deliveredByItem.set(
+            line.orderItemId,
+            (deliveredByItem.get(line.orderItemId) ?? 0) +
+              line.deliveredQuantity,
+          );
+        }
+      }
+      const seen = new Set<string>();
+      const lines = delivery.lines.map((line) => {
+        const item = byId.get(line.orderItemId);
+        const total =
+          (deliveredByItem.get(line.orderItemId) ?? 0) + line.deliveredQuantity;
+        if (!item || seen.has(line.orderItemId) || total > item.quantity) {
+          throw new BadRequestException(
+            'Une ligne de livraison est invalide ou dépasse le reliquat de la commande.',
+          );
+        }
+        seen.add(line.orderItemId);
+        deliveredByItem.set(line.orderItemId, total);
+        return {
+          ...line,
+          productName: item.product?.name ?? item.id,
+          orderedQuantity: item.quantity,
+        };
+      });
+      recordedDelivery = {
+        id: delivery.id,
+        deliveredOn: delivery.deliveredOn,
+        lines,
+      };
+      if (
+        items.some(
+          (item) => (deliveredByItem.get(item.id) ?? 0) < item.quantity,
+        )
+      ) {
+        nextStatus = OrderStatus.PENDING_DELIVERY;
+      }
+    }
 
     return this.prisma
       .$transaction(async (tx) => {
@@ -642,8 +775,23 @@ export class OrdersService {
             productionStatus: order.productionStatus,
             amountPaid: order.amountPaid,
             paymentStatus: order.paymentStatus,
+            ...(recordedDelivery
+              ? {
+                  deliveries: {
+                    equals:
+                      order.deliveries === null
+                        ? Prisma.DbNull
+                        : (order.deliveries as Prisma.InputJsonValue),
+                  },
+                }
+              : {}),
           },
-          data: { status: updateDto.status },
+          data: {
+            status: nextStatus,
+            ...(recordedDelivery
+              ? { deliveries: [...deliveries, recordedDelivery] }
+              : {}),
+          },
           include: this.orderFullInclude,
         });
 
@@ -651,19 +799,216 @@ export class OrdersService {
       })
       .catch((error: unknown) => this.handleStatusConflict(error))
       .then(async (updated) => {
-        await this.orderNotifications.statusChanged(
-          order,
-          updateDto.status,
-          order.status,
-        );
+        if (nextStatus !== order.status) {
+          await this.orderNotifications.statusChanged(
+            order,
+            nextStatus,
+            order.status,
+          );
+        }
         return updated;
       });
+  }
+
+  private async cancelOrder(order: Order, reason: string, userId?: string) {
+    const { id, subsidiaryId } = order;
+    const updated = await this.prisma
+      .$transaction(
+        async (tx) => {
+          const cancelled = await tx.order.update({
+            where: {
+              id,
+              subsidiaryId,
+              status: order.status,
+              amountPaid: order.amountPaid,
+              paymentStatus: order.paymentStatus,
+            },
+            data: {
+              status: OrderStatus.CANCELLED,
+              cancellationReason: reason,
+              amountPaid: 0,
+              paymentStatus: PaymentStatus.UNPAID,
+              paymentMethod: null,
+            },
+            include: this.orderFullInclude,
+          });
+
+          const receipts = await tx.financialTransaction.findMany({
+            where: {
+              subsidiaryId,
+              relatedDocumentId: id,
+              financialTransactionType: TransactionType.RECETTE,
+            },
+            include: {
+              cashRemittanceReceipts: { include: { cashRemittance: true } },
+            },
+          });
+          const receiptIds = receipts.map((receipt) => receipt.id);
+          const sales = await tx.sale.findMany({
+            where: { subsidiaryId, orderId: id },
+            select: { id: true },
+          });
+          const sources = [
+            { sourceType: 'TREASURY_INCOME', ids: receiptIds },
+            { sourceType: 'SALE_PAID', ids: sales.map((sale) => sale.id) },
+          ];
+          for (const { sourceType, ids } of sources) {
+            if (ids.length === 0) continue;
+            await tx.accountingOutboxEntry.deleteMany({
+              where: {
+                subsidiaryId,
+                eventType: sourceType,
+                OR: ids.map((sourceId) => ({
+                  payload: { path: ['sourceId'], equals: sourceId },
+                })),
+              },
+            });
+            const entries = await tx.journalEntry.findMany({
+              where: { subsidiaryId, sourceType, sourceId: { in: ids } },
+              include: { lines: true },
+            });
+            for (const entry of entries) {
+              if (
+                entry.status === JournalEntryStatus.POSTED ||
+                entry.sequentialNumber
+              ) {
+                await this.entries.reversePostedEntry(tx, entry, userId, true);
+              } else {
+                await tx.journalEntry.delete({ where: { id: entry.id } });
+              }
+            }
+          }
+
+          const pendingReceiptIds = receipts
+            .filter((receipt) => receipt.status !== TransactionStatus.VALIDE)
+            .map((receipt) => receipt.id);
+          if (pendingReceiptIds.length) {
+            await tx.financialTransaction.deleteMany({
+              where: { subsidiaryId, id: { in: pendingReceiptIds } },
+            });
+          }
+
+          const legacyLink = receipts.some(
+            (receipt) => receipt.status === TransactionStatus.VALIDE,
+          )
+            ? await tx.cashRemittanceOrder.findUnique({
+                where: { orderId: id },
+                include: { cashRemittance: true },
+              })
+            : null;
+          const pendingRemittances = new Map<
+            string,
+            { amount: Decimal; declared: Decimal; receiptIds: string[] }
+          >();
+          let lastDebitTime = 0;
+          for (const receipt of receipts) {
+            if (receipt.status !== TransactionStatus.VALIDE) continue;
+            const linkedRemittance =
+              receipt.cashRemittanceReceipts[0]?.cashRemittance ??
+              legacyLink?.cashRemittance;
+            const remittance =
+              linkedRemittance?.subsidiaryId === subsidiaryId &&
+              linkedRemittance.sourceCashRegisterId ===
+                receipt.treasuryAccountId
+                ? linkedRemittance
+                : undefined;
+            if (remittance?.status === CashRemittanceStatus.SUBMITTED) {
+              const pending = pendingRemittances.get(remittance.id) ?? {
+                amount: new Decimal(0),
+                declared: remittance.declaredAmount,
+                receiptIds: [],
+              };
+              pending.amount = pending.amount.plus(receipt.amount);
+              pending.receiptIds.push(receipt.id);
+              pendingRemittances.set(remittance.id, pending);
+            }
+            // Le transfert vers le coffre est comptabilisé à la réception.
+            const movedToSafe =
+              remittance?.status === CashRemittanceStatus.RECEIVED ||
+              remittance?.status ===
+                CashRemittanceStatus.RECEIVED_WITH_DISCREPANCY;
+            const accountId = movedToSafe
+              ? remittance.destinationSafeId
+              : receipt.treasuryAccountId;
+            const account = await tx.treasuryAccount.update({
+              where: { id: accountId, subsidiaryId },
+              data: { balance: { decrement: receipt.amount } },
+              select: { balance: true },
+            });
+
+            // Les débits successifs doivent être triés dans l’ordre des soldes.
+            lastDebitTime = Math.max(Date.now(), lastDebitTime + 1);
+            await tx.financialTransaction.create({
+              data: {
+                transactionDate: new Date(lastDebitTime),
+                description: `Annulation du paiement — Commande ${id} — ${reason}`,
+                amount: receipt.amount,
+                financialTransactionType: TransactionType.DEPENSE,
+                status: TransactionStatus.VALIDE,
+                relatedDocumentId: id,
+                subsidiaryId,
+                treasuryAccountId: accountId,
+                sourceAccountId: accountId,
+                createdByUserId: userId,
+                reference: `ORDER-CANCEL:${receipt.id}`,
+                balanceAfterSource: account.balance,
+              },
+            });
+          }
+
+          for (const [remittanceId, pending] of pendingRemittances) {
+            const remaining = Decimal.max(
+              0,
+              pending.declared.minus(pending.amount),
+            );
+            await tx.cashRemittance.update({
+              where: {
+                id: remittanceId,
+                subsidiaryId,
+                status: CashRemittanceStatus.SUBMITTED,
+              },
+              data: {
+                declaredAmount: remaining,
+                ...(remaining.isZero()
+                  ? { status: CashRemittanceStatus.REJECTED }
+                  : {}),
+              },
+            });
+            await tx.cashRemittanceReceipt.deleteMany({
+              where: {
+                cashRemittanceId: remittanceId,
+                financialTransactionId: { in: pending.receiptIds },
+              },
+            });
+            if (legacyLink?.cashRemittance.id === remittanceId) {
+              await tx.cashRemittanceOrder.deleteMany({
+                where: { orderId: id, cashRemittanceId: remittanceId },
+              });
+            }
+          }
+
+          await tx.sale.deleteMany({ where: { subsidiaryId, orderId: id } });
+          await tx.notification.deleteMany({
+            where: { orderId: id, type: NotificationType.PAYMENT_RECEIVED },
+          });
+          return this.mapOrderToResponse(cancelled);
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      )
+      .catch((error: unknown) => this.handleStatusConflict(error));
+
+    await this.orderNotifications.statusChanged(
+      order,
+      OrderStatus.CANCELLED,
+      order.status,
+    );
+    return updated;
   }
 
   private handleStatusConflict(error: unknown): never {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2025'
+      ['P2025', 'P2034'].includes(error.code)
     ) {
       throw new ConflictException(
         'Le statut de cette commande a changé. Actualisez la liste avant de réessayer.',
@@ -772,7 +1117,9 @@ export class OrdersService {
       groupCode: group.groupCode,
       totalAmount: group.totalAmount.toNumber(),
       createdAt: group.createdAt,
-      orders: group.orders.map(this.mapOrderToResponse),
+      orders: group.orders.map((order) =>
+        this.mapOrderToResponse(order, 'customer'),
+      ),
     }));
 
     // 4. Créer des "groupes synthétiques" pour les commandes uniques
@@ -781,7 +1128,7 @@ export class OrdersService {
       groupCode: `ORD-${order.id.substring(0, 8)}`, // Créer un code de groupe synthétique
       totalAmount: order.totalAmount.toNumber(),
       createdAt: order.orderDate,
-      orders: [this.mapOrderToResponse(order)], // La commande est la seule de son "groupe"
+      orders: [this.mapOrderToResponse(order, 'customer')], // La commande est la seule de son "groupe"
     }));
 
     // 5. Combiner et trier les résultats
@@ -876,18 +1223,33 @@ export class OrdersService {
     });
   }
 
-  async getCashierDailyReceipts(user: JwtUser, date = new Date().toISOString().slice(0, 10)) {
+  async getCashierDailyReceipts(
+    user: JwtUser,
+    date = new Date().toISOString().slice(0, 10),
+  ) {
     const superAdminView = isSuperAdmin(user);
-    if (!user.id || (!user.subsidiaryId && !superAdminView)) throw new ForbiddenException('Filiale requise.');
+    if (!user.id || (!user.subsidiaryId && !superAdminView))
+      throw new ForbiddenException('Filiale requise.');
     const start = new Date(`${date}T00:00:00.000Z`);
-    if (Number.isNaN(start.getTime()) || start.toISOString().slice(0, 10) !== date) throw new BadRequestException('Date invalide.');
+    if (
+      Number.isNaN(start.getTime()) ||
+      start.toISOString().slice(0, 10) !== date
+    )
+      throw new BadRequestException('Date invalide.');
     const end = new Date(start);
     end.setUTCDate(end.getUTCDate() + 1);
     const cashierIds = superAdminView
-      ? (await this.prisma.user.findMany({
-          where: { OR: [{ userRole: UserRole.CAISSIER }, { additionalRoles: { has: UserRole.CAISSIER } }] },
-          select: { id: true },
-        })).map((cashier) => cashier.id)
+      ? (
+          await this.prisma.user.findMany({
+            where: {
+              OR: [
+                { userRole: UserRole.CAISSIER },
+                { additionalRoles: { has: UserRole.CAISSIER } },
+              ],
+            },
+            select: { id: true },
+          })
+        ).map((cashier) => cashier.id)
       : [user.id];
     const transactions = await this.prisma.financialTransaction.findMany({
       where: {
@@ -897,10 +1259,20 @@ export class OrdersService {
         transactionDate: { gte: start, lt: end },
         treasuryAccount: { accountType: { in: ['CASH_REGISTER', 'BANQUE'] } },
       },
-      select: { id: true, transactionDate: true, description: true, amount: true, status: true, treasuryAccount: { select: { accountName: true, accountType: true } } },
+      select: {
+        id: true,
+        transactionDate: true,
+        description: true,
+        amount: true,
+        status: true,
+        treasuryAccount: { select: { accountName: true, accountType: true } },
+      },
       orderBy: { transactionDate: 'desc' },
     });
-    const total = transactions.reduce((sum, transaction) => sum + Number(transaction.amount), 0);
+    const total = transactions.reduce(
+      (sum, transaction) => sum + Number(transaction.amount),
+      0,
+    );
     return { date, total, count: transactions.length, transactions };
   }
 
@@ -1171,8 +1543,16 @@ export class OrdersService {
     );
   }
 
-  async rejectByProductionDirector(id: string, user: any) {
-    return this.updateOrderStatus(id, { status: OrderStatus.CANCELLED }, user);
+  async rejectByProductionDirector(
+    id: string,
+    cancellationReason: string,
+    user: RoleIdentity & { id?: string; subsidiaryId?: string },
+  ) {
+    return this.updateOrderStatus(
+      id,
+      { status: OrderStatus.CANCELLED, cancellationReason },
+      user,
+    );
   }
 
   async findPendingValidation(

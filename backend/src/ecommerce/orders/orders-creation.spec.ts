@@ -1,3 +1,4 @@
+import { EntriesService } from '../../accounting/entries/entries.service';
 import {
   BadRequestException,
   ConflictException,
@@ -45,6 +46,7 @@ describe('Order creation with repeated services', () => {
       validateAgainstDefinition,
     } as unknown as ProductSpecsService,
     { created: notifyCreated } as unknown as OrderNotificationsService,
+    {} as EntriesService,
   );
   const draft = {
     customerId: 'customer',

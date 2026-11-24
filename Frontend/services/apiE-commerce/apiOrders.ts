@@ -1,5 +1,5 @@
 import { api } from '.././api';
-import { CustomerPaymentMethod, OrderStatus, PaymentStatus, ProductionStatus, Order } from '../../types';
+import { CustomerPaymentMethod, OrderStatus, PaymentStatus, ProductionStatus, Order, OrderDeliveryInput } from '../../types';
 import { PaginatedResponse } from '../../types/pagination.types';
 
 export interface OccasionalOrderCustomer {
@@ -154,8 +154,8 @@ export const recordOrderPayment = async (payload: RecordOrderPaymentPayload) => 
  * Met à jour le statut de production d'une commande.
  * @param payload - Contient l'ID de la commande et le nouveau statut d'une commande.
  */
-export const updateOrderStatus = async (payload: { orderId: string; status: OrderStatus }) => {
-    const { data } = await api.patch(`/ecommerce/orders/order-status/${payload.orderId}`, { status: payload.status });
+export const updateOrderStatus = async ({ orderId, ...payload }: { orderId: string; status: OrderStatus; delivery?: OrderDeliveryInput; cancellationReason?: string }) => {
+    const { data } = await api.patch<Order>(`/ecommerce/orders/order-status/${orderId}`, payload);
     return data;
 };
 
@@ -192,8 +192,8 @@ export const validateOrderForProduction = async (orderId: string) => {
 /**
  * Rejette une commande : PENDING_VALIDATION → CANCELLED.
  */
-export const rejectOrderByDirector = async (orderId: string) => {
-    const { data } = await api.patch(`/ecommerce/orders/reject-order/${orderId}`);
+export const rejectOrderByDirector = async (orderId: string, cancellationReason: string) => {
+    const { data } = await api.patch(`/ecommerce/orders/reject-order/${orderId}`, { cancellationReason });
     return data;
 };
     

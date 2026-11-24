@@ -25,6 +25,18 @@ export interface CreateProformaData {
 export interface Proforma {
   id: string;
   proformaNumber: string;
+  orderId?: string | null;
+  order?: { salesRepId: string | null } | null;
+  subsidiary?: {
+    subsidiaryName: string;
+    address: string;
+    phone: string;
+    email: string;
+    ifu: string;
+    rccm: string;
+    bankName: string;
+    accountNumber: string;
+  };
   leadId: string;
   opportunityId?: string;
   clientName: string;
@@ -64,6 +76,9 @@ export interface ProformaStatusCounts {
   all: number;
   draft: number;
   sent: number;
+  viewed: number;
+  expired: number;
+  converted: number;
   accepted: number;
   rejected: number;
 }
@@ -77,6 +92,11 @@ export const getProformaStatusCounts = async (): Promise<ProformaStatusCounts> =
 // Récupérer une proforma spécifique
 export const getProforma = async (id: string): Promise<Proforma> => {
   const { data } = await api.get(`/crm/proformas/${id}`);
+  return data;
+};
+
+export const getProformaPdf = async (id: string, signal?: AbortSignal): Promise<Blob> => {
+  const { data } = await api.get<Blob>(`/crm/proformas/${id}/pdf`, { responseType: 'blob', signal });
   return data;
 };
 
@@ -104,6 +124,36 @@ export const acceptProforma = async (id: string): Promise<Proforma> => {
   return data;
 };
 
+export interface ProformaConversionInput {
+  paymentDueDate: string;
+  items: { id: string; specValues?: Record<string, unknown>; designFile?: File }[];
+}
+
+export const convertProforma = async ({
+  id,
+  paymentDueDate,
+  items,
+}: ProformaConversionInput & { id: string }): Promise<Proforma & { orderId: string }> => {
+  const url = `/crm/proformas/${id}/convert`;
+  const files: File[] = [];
+  const lineInputs = items.map(({ designFile, ...item }) => ({
+    ...item,
+    designFileIndex: designFile ? files.push(designFile) - 1 : undefined,
+  }));
+
+  if (!files.length) {
+    const { data } = await api.post(url, { paymentDueDate, items: lineInputs });
+    return data;
+  }
+
+  const form = new FormData();
+  form.append('paymentDueDate', paymentDueDate);
+  form.append('items', JSON.stringify(lineInputs));
+  for (const file of files) form.append('designFiles', file);
+  const { data } = await api.post(url, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+  return data;
+};
+
 // Refuser une proforma
 export const rejectProforma = async (id: string): Promise<Proforma> => {
   const { data } = await api.post(`/crm/proformas/${id}/reject`);
@@ -119,16 +169,21 @@ export const deleteProforma = async (id: string): Promise<any> => {
 export interface WhatsAppProformaShare {
   phone: string;
   caption: string;
-  message: string;
-  downloadUrl: string;
   whatsappUrl: string;
-  expiresAt: string;
 }
 
-export const sendProformaEmail = async (id: string, expectedRecipient: string): Promise<{ success: boolean; recipient: string }> => {
+export const sendProformaEmail = async (
+  id: string,
+  expectedRecipient: string,
+): Promise<{ success: boolean; recipient: string }> => {
   return (await api.post(`/crm/proformas/${id}/email`, { expectedRecipient })).data;
 };
 
 export const prepareProformaWhatsApp = async (id: string): Promise<WhatsAppProformaShare> => {
   return (await api.post(`/crm/proformas/${id}/whatsapp`)).data;
+};
+
+export const sendProformaWhatsApp = async (id: string, expectedRecipient: string): Promise<{ success: boolean; messageId: string }> => {
+  const { data } = await api.post(`/crm/proformas/${id}/whatsapp/send`, { expectedRecipient });
+  return data;
 };

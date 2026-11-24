@@ -38,14 +38,14 @@ describe('Order workflow rules', () => {
       assertOrderTransition(state, OrderStatus.IN_PRODUCTION, director),
     ).not.toThrow();
   });
-  it('prevents cancelling an order after even a partial collection', () => {
+  it('allows cancelling an order after a partial collection', () => {
     expect(() =>
       assertOrderTransition(
         { ...state, amountPaid: new Decimal(1) },
         OrderStatus.CANCELLED,
         { activeRole: UserRole.COMMERCIAL },
       ),
-    ).toThrow(ConflictException);
+    ).not.toThrow();
   });
   it.each([
     OrderStatus.IN_PRODUCTION,
@@ -53,11 +53,10 @@ describe('Order workflow rules', () => {
     OrderStatus.DELIVERED,
     OrderStatus.COMPLETED,
     OrderStatus.CANCELLED,
-  ])('prevents reverting or cancelling a %s order', (status) => {
+  ])('prevents reverting a %s order', (status) => {
     for (const target of [
       OrderStatus.NEW,
       OrderStatus.PENDING_VALIDATION,
-      OrderStatus.CANCELLED,
     ]) {
       if (status !== target)
         expect(() =>

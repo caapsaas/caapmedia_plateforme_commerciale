@@ -35,12 +35,12 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   /**
-   * Endpoint pour créer une commande par un commercial (avec fichiers)
+   * Création d'une commande interne avec fichiers.
    * Exemple d'URL : /ecommerce/orders/by-salesrep
    */
   @Post('by-salesrep')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.CAISSIER)
   @UseInterceptors(OrderDesignUploadInterceptor)
   createBySalesRep(
     @Body() createOrderDto: CreateOrderBySalesRepDto,
@@ -55,12 +55,12 @@ export class OrdersController {
   }
 
   /**
-   * Endpoint pour créer une commande par un commercial (JSON pur, sans fichiers)
+   * Création d'une commande interne en JSON, sans fichiers.
    * Exemple d'URL : /ecommerce/orders/by-salesrep/json
    */
   @Post('by-salesrep/json')
   @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.CAISSIER)
   createBySalesRepJson(
     @Body() createOrderDto: CreateOrderBySalesRepDto,
     @Req() req,
@@ -130,8 +130,16 @@ export class OrdersController {
   @Patch('reject-order/:id')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.ADMIN, UserRole.PRODUCTION_DIRECTOR)
-  rejectOrder(@Param('id') id: string, @Req() req) {
-    return this.ordersService.rejectByProductionDirector(id, req.user);
+  rejectOrder(
+    @Param('id') id: string,
+    @Body('cancellationReason') cancellationReason: string,
+    @Req() req: { user: JwtUser },
+  ) {
+    return this.ordersService.rejectByProductionDirector(
+      id,
+      cancellationReason,
+      req.user,
+    );
   }
 
   /**
@@ -166,7 +174,10 @@ export class OrdersController {
   @Get('cashier/daily-receipts')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.CAISSIER)
-  getCashierDailyReceipts(@Req() req: { user: JwtUser }, @Query('date') date?: string) {
+  getCashierDailyReceipts(
+    @Req() req: { user: JwtUser },
+    @Query('date') date?: string,
+  ) {
     return this.ordersService.getCashierDailyReceipts(req.user, date);
   }
 
@@ -214,7 +225,7 @@ export class OrdersController {
   updateOrderStatus(
     @Param('id') id: string,
     @Body() updateOrderStatusDto: UpdateOrderStatusDto,
-    @Req() req,
+    @Req() req: { user: JwtUser },
   ) {
     return this.ordersService.updateOrderStatus(
       id,

@@ -34,6 +34,7 @@ import Finance from './Pages/Finance';
 import Accounting from './Pages/Accounting';
 import AccountingAccessAdmin from './Pages/AccountingAccessAdmin';
 import Configuration from './Pages/Configuration';
+import IntegrationSettings from './Pages/IntegrationSettings';
 import HrManagement from './Pages/HrManagement';
 import Secretariat from './Pages/Secretariat';
 import Production from './Pages/Production';
@@ -248,6 +249,16 @@ const mesCommandesRoute = createRoute({
 });
 
 const configurationRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/configuration', component: Configuration });
+const integrationSettingsRoute = createRoute({
+  getParentRoute: () => dashboardRoute,
+  path: '/configuration/integrations',
+  component: IntegrationSettings,
+  beforeLoad: ({ context }) => {
+    if (context.auth.authLive.current.activeRole !== UserRole.SUPER_ADMIN) {
+      throw redirect({ to: '/dashboard/configuration' });
+    }
+  },
+});
 const productionRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/production', component: Production });
 // Parametres personnels (2FA...) - accessible a tout role authentifie, pas de garde specifique.
 const securityRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/security', component: SecuritySettings });
@@ -353,6 +364,7 @@ const routeTree = rootRoute.addChildren([
     financialHistoryRoute,
     notificationsRoute,
     configurationRoute,
+    integrationSettingsRoute,
     hrRoute.addChildren([
       hrPreHireTrainingRoute,
       hrCardsRoute,

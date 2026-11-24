@@ -1,3 +1,7 @@
+import { OrderDesignUploadInterceptor } from '../../ecommerce/orders/order-design-upload.interceptor';
+import { ConvertProformaDto } from './dto/convert-proforma.dto';
+import type { Response } from 'express';
+import { proformaFilename } from './proforma-pdf.service';
 import {
   Controller,
   Get,
@@ -7,7 +11,10 @@ import {
   Param,
   Delete,
   UseGuards,
+  UseInterceptors,
+  UploadedFiles,
   Query,
+  Res,
 } from '@nestjs/common';
 import { ProformasService } from './proformas.service';
 import { CreateProformaDto } from './dto/create-proforma.dto';
@@ -25,6 +32,7 @@ import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.d
 import { Throttle } from '@nestjs/throttler';
 import { ProformaDeliveryService } from './proforma-delivery.service';
 import { SendProformaEmailDto } from './dto/send-proforma-email.dto';
+import { SendProformaWhatsAppDto } from './dto/send-proforma-whatsapp.dto';
 
 @SuperAdminReadOnly()
 @Controller('crm/proformas')
@@ -49,6 +57,16 @@ export class ProformasController {
     @Body() dto: SendProformaEmailDto,
   ) {
     return this.delivery.email(id, user, dto.expectedRecipient);
+  }
+
+  @Post(':id/whatsapp/send')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  sendWhatsApp(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtUser,
+    @Body() dto: SendProformaWhatsAppDto,
+  ) {
+    return this.delivery.sendWhatsApp(id, user, dto.expectedRecipient);
   }
 
   @Post(':id/whatsapp')
@@ -79,6 +97,23 @@ export class ProformasController {
     return this.proformasService.getStatusCounts(user);
   }
 
+  @Get(':id/pdf')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  async previewPdf(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtUser,
+    @Res() response: Response,
+  ) {
+    const { quote, buffer } = await this.delivery.preview(id, user);
+    response.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="${proformaFilename(quote.proformaNumber)}"`,
+      'Cache-Control': 'private, no-store',
+      'X-Content-Type-Options': 'nosniff',
+    });
+    response.send(buffer);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: JwtUser) {
     return this.proformasService.findOne(id, user);
@@ -106,6 +141,17 @@ export class ProformasController {
   @Post(':id/accept')
   accept(@Param('id') id: string, @CurrentUser() user: JwtUser) {
     return this.proformasService.accept(id, user);
+  }
+
+  @Post(':id/convert')
+  @UseInterceptors(OrderDesignUploadInterceptor)
+  convert(
+    @Param('id') id: string,
+    @Body() dto: ConvertProformaDto,
+    @CurrentUser() user: JwtUser,
+    @UploadedFiles() files?: { designFiles?: Express.Multer.File[] },
+  ) {
+    return this.proformasService.convert(id, user, dto, files?.designFiles);
   }
 
   @Post(':id/reject')

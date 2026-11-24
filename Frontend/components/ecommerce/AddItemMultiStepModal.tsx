@@ -6,6 +6,7 @@ import { ProductionCostResult, ProductionStep } from './ProductionCostModal';
 import FormRenderer, { SpecValues } from '../common/FormRenderer';
 import IconPlus from '../icons/IconPlus';
 import IconDelete from '../icons/IconDelete';
+import { useI18n } from '../../i18n';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -63,6 +64,7 @@ const ProductionCostPanel: React.FC<CostPanelProps> = ({
     productName, quantity, configuredEquipments, commercialParams,
     resolvedWorkflow, hasSpecs, onNext, onClose,
 }) => {
+    const { t } = useI18n();
     const [steps, setSteps] = useState<StepRow[]>([]);
     const [marginPercent, setMarginPercent] = useState('');
     const [error, setError] = useState('');
@@ -189,7 +191,9 @@ const ProductionCostPanel: React.FC<CostPanelProps> = ({
                                                 className="w-full px-2 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#c6e911] bg-white">
                                                 <option value="">— Machine —</option>
                                                 {configuredEquipments.map(eq => (
-                                                    <option key={eq.id} value={eq.id}>{eq.equipmentName}</option>
+                                                    <option key={eq.id} value={eq.id}>
+                                                        {eq.equipmentName}{eq.hourlyRate == null && ` · ${t('production.equipmentCosts.unpricedOrder')}`}
+                                                    </option>
                                                 ))}
                                             </select>
                                             {step.hourlyRateSnapshot > 0 && (

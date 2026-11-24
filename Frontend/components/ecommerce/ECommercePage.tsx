@@ -6,10 +6,8 @@ import ECommerceHeader from "./ECommerceHeader";
 import ShoppingCart, { CartItem } from "./ShoppingCart";
 import { PRODUCT_HIERARCHY } from "../../constants";
 import HeroBanner from "./HeroBanner";
-import QuoteRequestModal from "./QuoteRequestModal";
 import ECommerceFooter from "./ECommerceFooter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createQuoteRequest } from "../../services/apiCrm/apiLeads";
 import { subscribeToNewsletter } from "../../services/apiE-commerce/apiNewsletter";
 import ContactModal from "./ContactModal";
 import AuthModal from "../customer/AuthModal";
@@ -23,6 +21,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useAuth } from "../../context/AuthContext";
 import ProductsGrid from "../products/productsGrids";
 import PriceCalculatorModal from "./PriceCalculatorModal";
+import { buildWhatsAppLink } from "../../utils/whatsapp";
 type SignupFormData = Omit<
   ContactRegisterData,
   "subsidiaryId" | "since" | "isVerified"
@@ -56,7 +55,6 @@ const ECommercePage: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [detailsProduct, setDetailsProduct] = useState<Product | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [likedProducts, setLikedProducts] = useState<Set<string>>(() => {
     try {
@@ -89,13 +87,6 @@ const ECommercePage: React.FC = () => {
         isVerified: false,
       };
       return registerContact(fullSignupData);
-    },
-  });
-
-  const { mutateAsync: quoteRequestMutation } = useMutation<any, Error, any>({
-    mutationFn: createQuoteRequest,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["leads"] });
     },
   });
 
@@ -303,7 +294,6 @@ const ECommercePage: React.FC = () => {
         onWishlistClick={handleWishlistClick}
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
-        onQuoteRequest={() => setIsQuoteModalOpen(true)}
         onSelectAllCategories={handleSelectAllCategories}
         productHierarchy={PRODUCT_HIERARCHY.filter(
           (cat) => cat.category !== "Matières Premières",
@@ -314,10 +304,7 @@ const ECommercePage: React.FC = () => {
         cartItemCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
         onCartClick={() => setIsCartOpen(true)}
       />
-      <HeroBanner
-        onNavigateToRealisations={onNavigateToRealisations}
-        onQuoteRequest={() => setIsQuoteModalOpen(true)}
-      />
+      <HeroBanner onNavigateToRealisations={onNavigateToRealisations} />
       <main className="container mx-auto px-4 pt-8 pb-8 ">
         <section className="mb-6" aria-labelledby="storefront-title">
           <h1 id="storefront-title" className="text-2xl font-bold tracking-tight text-slate-900">
@@ -767,6 +754,18 @@ const ECommercePage: React.FC = () => {
         onContactClick={handleContactClick}
       />
 
+      <a
+        href={buildWhatsAppLink(t("ecommerce.whatsAppContactMessage"))}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={t("ecommerce.whatsAppContact")}
+        className="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 grid size-12 place-items-center rounded-full bg-[#25D366] text-white shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-green-700 motion-safe:animate-[whatsapp-pulse_2.8s_ease-in-out_infinite] sm:right-6 sm:bottom-6"
+      >
+        <svg aria-hidden="true" viewBox="0 0 16 16" fill="currentColor" className="size-7">
+          <path d="M13.601 2.326A7.85 7.85 0 0 0 7.99 0 7.94 7.94 0 0 0 .084 7.915c0 1.394.364 2.756 1.056 3.945L.018 16l4.21-1.104a7.9 7.9 0 0 0 3.762.956h.003c4.367 0 7.92-3.551 7.923-7.918a7.88 7.88 0 0 0-2.315-5.608ZM7.993 14.515a6.57 6.57 0 0 1-3.35-.917l-.24-.142-2.498.655.667-2.432-.157-.25a6.56 6.56 0 0 1-1.008-3.514 6.59 6.59 0 0 1 6.586-6.58 6.58 6.58 0 0 1 6.586 6.589 6.59 6.59 0 0 1-6.586 6.591Zm3.612-4.935c-.198-.099-1.17-.577-1.352-.643-.182-.066-.315-.099-.447.099-.133.198-.513.643-.629.775-.115.132-.231.149-.43.05-.198-.1-.837-.309-1.595-.986-.59-.527-.988-1.178-1.104-1.376-.115-.198-.012-.305.087-.404.089-.088.198-.231.297-.347.1-.115.132-.198.198-.33.066-.132.033-.248-.016-.347-.05-.099-.447-1.075-.612-1.472-.161-.387-.325-.334-.447-.34l-.38-.007a.73.73 0 0 0-.529.247c-.182.199-.695.677-.695 1.654 0 .976.712 1.92.811 2.052.099.132 1.402 2.14 3.398 3.002.475.205.845.328 1.135.419.477.152.911.13 1.254.079.383-.057 1.171-.479 1.336-.942.165-.463.165-.86.116-.942-.05-.083-.182-.132-.38-.231Z" />
+        </svg>
+      </a>
+
       {isCartOpen && (
         <ShoppingCart
           cartItems={cart}
@@ -793,22 +792,6 @@ const ECommercePage: React.FC = () => {
         />
       )}
 
-      {isQuoteModalOpen && (
-        <QuoteRequestModal
-          isOpen={isQuoteModalOpen}
-          onClose={() => setIsQuoteModalOpen(false)}
-          onSave={async (data) => {
-            const quoteData = {
-              leadName: data.name,
-              company: data.company,
-              email: data.email,
-              phone: data.phone,
-              description: data.description,
-            };
-            await quoteRequestMutation(quoteData);
-          }}
-        />
-      )}
       {isContactModalOpen && (
         <ContactModal
           isOpen={isContactModalOpen}

@@ -1,4 +1,5 @@
 import Pagination from '../common/Pagination';
+import { usePopup } from '../../context/PopupContext';
 import { useClientPagination } from '../../hooks/useClientPagination';
 import React, { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -14,6 +15,7 @@ const emptyEmployee = (): PreHireEmployeeInput => ({ firstName: '', lastName: ''
 
 const PreHireTrainingManagement: React.FC<{ subsidiaryId: string; onConverted: () => void }> = ({ subsidiaryId, onConverted }) => {
   const { t, language } = useI18n();
+  const { confirmAction } = usePopup();
   const { user } = useAuth();
   const activeRole = user?.activeRole ?? user?.userRole;
   const canManagePreHire = activeRole === UserRole.PRE_HIRE_MANAGER || activeRole === UserRole.SUPER_ADMIN;
@@ -59,7 +61,7 @@ const PreHireTrainingManagement: React.FC<{ subsidiaryId: string; onConverted: (
   };
   const statusLabel = (status: PreHireTrainingStatus) => t(`hr.preHire.status.${status}`);
   const formatDate = (value?: string | null) => value ? new Intl.DateTimeFormat(language).format(new Date(value)) : '—';
-  const renderActions = (record: PreHireTraining) => <div className="flex flex-wrap items-center justify-end gap-2">{!record.employeeId && !['NOT_RETAINED', 'CANCELLED'].includes(record.status) && <button onClick={() => openConversion(record)} className="mr-auto rounded-xl bg-[#c6e911] px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-[#b6d90e]">↗ {t('hr.preHire.convert')}</button>}{record.employeeId && <span className="mr-auto self-center text-xs font-semibold text-emerald-700">✓ {t('hr.preHire.employeeCreated')}</span>}<button onClick={() => startEdit(record)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50">{t('hr.preHire.edit')}</button><button onClick={() => { if (window.confirm(t('hr.preHire.confirmDelete'))) remove.mutate(record.id); }} className="rounded-xl border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50">{t('hr.preHire.delete')}</button></div>;
+  const renderActions = (record: PreHireTraining) => <div className="flex flex-wrap items-center justify-end gap-2">{!record.employeeId && !['NOT_RETAINED', 'CANCELLED'].includes(record.status) && <button onClick={() => openConversion(record)} className="mr-auto rounded-xl bg-[#c6e911] px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-[#b6d90e]">↗ {t('hr.preHire.convert')}</button>}{record.employeeId && <span className="mr-auto self-center text-xs font-semibold text-emerald-700">✓ {t('hr.preHire.employeeCreated')}</span>}<button onClick={() => startEdit(record)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50">{t('hr.preHire.edit')}</button><button onClick={async () => { if (await confirmAction(t('hr.preHire.confirmDelete'), { isDangerous: true })) remove.mutate(record.id); }} className="rounded-xl border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50">{t('hr.preHire.delete')}</button></div>;
   const filtered = useMemo(() => data.filter((record) => {
     const matchesStatus = filter === 'ALL' || record.status === filter;
     const text = `${record.firstName} ${record.lastName} ${record.email || ''} ${record.targetPosition} ${record.department || ''}`.toLocaleLowerCase();

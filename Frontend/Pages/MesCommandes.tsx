@@ -1,6 +1,6 @@
 import { isSuperAdmin } from '../utils/isSuperAdmin';
 import React, { useState, useMemo, useEffect } from 'react';
-import { Order, OrderStatus, Product, Contact } from '../types';
+import { Order, OrderStatus, Product, Contact, UserRole } from '../types';
 import { useI18n } from '../i18n';
 import NewOrder, { NewOrderDraft } from './NewOrder';
 import BonDeLivraison from './BonDeLivraison';
@@ -31,6 +31,7 @@ const MesCommandes: React.FC = () => {
     const queryClient = useQueryClient();
 
     const readOnly = isSuperAdmin(currentUser);
+    const isCashier = (currentUser?.activeRole ?? currentUser?.userRole) === UserRole.CAISSIER;
     const [activeTab, setActiveTab] = useState<'history' | 'new'>('history');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [isBlModalOpen, setIsBlModalOpen] = useState(false);
@@ -250,7 +251,7 @@ const MesCommandes: React.FC = () => {
                     <Pagination meta={clientOrdersMeta} onPageChange={setPage} />
                 </div>
             )}
-            {!readOnly && activeTab === 'new' && currentCustomer && (
+            {!readOnly && activeTab === 'new' && (isCashier || currentCustomer) && (
                 isLoadingProducts ? (
                     <CrmListSkeleton columns={4} />
                 ) : (
@@ -258,7 +259,7 @@ const MesCommandes: React.FC = () => {
                         subsidiary={subsidiary}
                         products={products}
                         onOrderPlaced={handlePlaceOrder}
-                        selectedCustomer={currentCustomer}
+                        selectedCustomer={isCashier ? undefined : currentCustomer ?? undefined}
                     />
                 )
             )}

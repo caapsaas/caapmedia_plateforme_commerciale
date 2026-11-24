@@ -1,3 +1,4 @@
+import { EntriesService } from '../../accounting/entries/entries.service';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { CustomerPaymentMethod } from '@prisma/client';
 import { OrdersService } from './orders.service';
@@ -27,6 +28,7 @@ describe('OrdersService access control', () => {
       prisma as unknown as PrismaService,
       {} as ProductSpecsService,
       {} as OrderNotificationsService,
+      {} as EntriesService,
     );
   });
 

@@ -6,7 +6,7 @@ import {
 } from "../../services/apiE-commerce/apiProducts";
 import { Product } from "../../types";
 import { PRODUCT_HIERARCHY } from "../../constants";
-import { useTranslation } from 'react-i18next';
+import { useI18n } from '../../i18n';
 import { useClientPagination } from '../../hooks/useClientPagination';
 import Pagination from '../common/Pagination';
 import ProductCard from "../ecommerce/ProductCard";
@@ -34,7 +34,7 @@ export default function ProductsGrid({
   onResetFilters,
   onViewDetails,
 }: Props) {
-  const { t } = useTranslation();
+  const { t } = useI18n();
   const pageSize = 10;
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm.trim());
 

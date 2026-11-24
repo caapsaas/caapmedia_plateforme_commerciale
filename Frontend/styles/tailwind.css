@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+@keyframes whatsapp-pulse {
+  50% {
+    opacity: 0.85;
+  }
+}
+
 /* Shared translucent veil for modal overlays and native dialogs. */
 .modal-backdrop,
 .modal-dialog::backdrop {
