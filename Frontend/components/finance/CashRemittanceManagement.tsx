@@ -164,7 +164,7 @@ const CashRemittanceManagement: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6">
+    <div className="bg-white rounded-[var(--radius-lg)] border border-[var(--border)] shadow-2xs p-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h3 className="text-lg font-semibold text-slate-800">{t('cashRemittance.title')}</h3>

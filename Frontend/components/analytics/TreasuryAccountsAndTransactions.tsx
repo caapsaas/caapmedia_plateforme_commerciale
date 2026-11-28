@@ -96,7 +96,7 @@ const TreasuryAccountsAndTransactions: React.FC<TreasuryAccountsAndTransactionsP
 
   if (isLoadingAccounts) {
     return (
-      <div className="bg-white p-6 rounded-xl shadow-md animate-pulse space-y-3">
+      <div className="bg-white p-6 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-2xs animate-pulse space-y-3">
         <div className="h-6 bg-slate-200 rounded w-48" />
         <div className="h-24 bg-slate-100 rounded" />
       </div>
@@ -104,23 +104,25 @@ const TreasuryAccountsAndTransactions: React.FC<TreasuryAccountsAndTransactionsP
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-          <h3 className="text-xl font-semibold text-slate-800">{title}</h3>
-          <div className="flex space-x-2 p-1 bg-slate-100 rounded-lg">
+    <div className="space-y-5">
+      <div className="bg-white p-6 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-2xs">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5">
+          <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+          <div className="flex space-x-1 p-1 bg-[var(--muted)] border border-[var(--border)] rounded-[var(--radius-md)]">
             <button
+              type="button"
               onClick={() => setSubTab('accounts')}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                subTab === 'accounts' ? 'bg-white text-slate-800 shadow' : 'text-slate-500 hover:text-slate-700'
+              className={`px-3.5 py-1.5 text-[13px] rounded-[var(--radius-sm)] transition-colors cursor-pointer ${
+                subTab === 'accounts' ? 'bg-white text-slate-900 font-semibold shadow-2xs' : 'font-medium text-slate-500 hover:text-slate-800'
               }`}
             >
               {title}
             </button>
             <button
+              type="button"
               onClick={() => { setSubTab('transactions'); setPage(1); }}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                subTab === 'transactions' ? 'bg-white text-slate-800 shadow' : 'text-slate-500 hover:text-slate-700'
+              className={`px-3.5 py-1.5 text-[13px] rounded-[var(--radius-sm)] transition-colors cursor-pointer ${
+                subTab === 'transactions' ? 'bg-white text-slate-900 font-semibold shadow-2xs' : 'font-medium text-slate-500 hover:text-slate-800'
               }`}
             >
               {t('sidebar.transactions')}
@@ -130,12 +132,12 @@ const TreasuryAccountsAndTransactions: React.FC<TreasuryAccountsAndTransactionsP
 
         {subTab === 'accounts' ? (
           accounts.length === 0 ? (
-            <EmptyState icon="finance" title={title} description={t('common.notAvailable')} />
+            <EmptyState icon="finance" title={title} />
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--border)]">
               <div className="min-w-max w-full">
-              <table className="w-full text-sm text-left text-slate-500">
-                <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+              <table className="w-full text-sm text-left text-slate-600">
+                <thead className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider bg-[var(--muted)] border-b border-[var(--border)]">
                   <tr className="whitespace-nowrap">
                     <th className="px-4 py-3">{t('treasuryAccounts.table.accountName')}</th>
                     <th className="px-4 py-3">{t('treasury.statement.period')}</th>
@@ -143,19 +145,19 @@ const TreasuryAccountsAndTransactions: React.FC<TreasuryAccountsAndTransactionsP
                     <th className="px-4 py-3 text-center no-print">{t('common.actions')}</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-[var(--border)]">
                   {accounts.map((acc) => (
-                    <tr key={acc.id} className="bg-white border-b hover:bg-slate-50 whitespace-nowrap">
-                      <td className="px-4 py-3 font-medium text-slate-800">{acc.accountName}</td>
-                      <td className="px-4 py-3">{acc.accountNumber || '—'}</td>
-                      <td className="px-4 py-3 text-right font-semibold">{formatCurrency(acc.balance)}</td>
+                    <tr key={acc.id} className="bg-white hover:bg-slate-50/70 whitespace-nowrap transition-colors">
+                      <td className="px-4 py-3 font-medium text-slate-900">{acc.accountName}</td>
+                      <td className="px-4 py-3 text-slate-500">{acc.accountNumber || '—'}</td>
+                      <td className="px-4 py-3 text-right font-semibold tabular-nums text-slate-900">{formatCurrency(acc.balance)}</td>
                       <td className="px-4 py-3 text-center no-print">
                         <button
                           onClick={() => setStatementAccount(acc)}
-                          className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors"
+                          className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
                           title={t('treasury.statement.title')}
                         >
-                          <IconPrint className="h-5 w-5" />
+                          <IconPrint className="h-4 w-4" />
                         </button>
                       </td>
                     </tr>
@@ -167,10 +169,10 @@ const TreasuryAccountsAndTransactions: React.FC<TreasuryAccountsAndTransactionsP
           )
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--border)]">
               <div className="min-w-max w-full">
-              <table className="w-full text-sm text-left text-slate-500">
-                <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+              <table className="w-full text-sm text-left text-slate-600">
+                <thead className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider bg-[var(--muted)] border-b border-[var(--border)]">
                   <tr className="whitespace-nowrap">
                     <th className="px-4 py-3">{t('treasury.date')}</th>
                     <th className="px-4 py-3">{t('treasury.description')}</th>
@@ -182,13 +184,13 @@ const TreasuryAccountsAndTransactions: React.FC<TreasuryAccountsAndTransactionsP
                     <th className="px-4 py-3 text-right">{t('treasury.history.balanceAfter')}</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-[var(--border)]">
                   {isLoadingTx ? (
                     <TableSkeleton rows={5} columns={8} />
                   ) : paginatedTransactions.length === 0 ? (
                     <tr>
                       <td colSpan={8}>
-                        <EmptyState icon="finance" title={t('sidebar.transactions')} description={t('common.notAvailable')} />
+                        <EmptyState icon="finance" title={t('sidebar.transactions')} />
                       </td>
                     </tr>
                   ) : (
@@ -200,7 +202,7 @@ const TreasuryAccountsAndTransactions: React.FC<TreasuryAccountsAndTransactionsP
                       const matchedId = findAccountIdInSet(tx, accountIds) ?? tx.treasuryAccountId;
                       const { isIncome, counterpartyName, balanceBefore, balanceAfter } = getTransactionLegForAccount(tx, matchedId);
                       return (
-                        <tr key={tx.id} className="bg-white border-b hover:bg-slate-50 whitespace-nowrap">
+                        <tr key={tx.id} className="bg-white hover:bg-slate-50/70 whitespace-nowrap transition-colors">
                           <td className="px-4 py-3">{new Date(tx.transactionDate).toLocaleDateString(language)}</td>
                           <td className="px-4 py-3 font-medium text-slate-800">{tx.description}</td>
                           <td className="px-4 py-3">

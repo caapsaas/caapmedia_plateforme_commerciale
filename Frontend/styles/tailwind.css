@@ -72,6 +72,41 @@
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+/* Correctif Tailwind v4 : restaure des bordures hairline claires (--border) par défaut
+   au lieu de currentColor (#0F172A), et harmonise les contrôles de formulaire. */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--border, #E2E8F0);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  input:not([type='checkbox']):not([type='radio']):not([type='file']),
+  select,
+  textarea {
+    border-color: var(--border-strong, #CBD5E1);
+  }
+
+  input:not([type='checkbox']):not([type='radio']):not([type='file']):focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+  }
+
+  th,
+  td {
+    border-color: var(--border, #E2E8F0);
+  }
+}
+
 .font-display {
   font-family: 'Montserrat', 'Inter', system-ui, sans-serif;
 }

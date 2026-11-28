@@ -241,8 +241,8 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
     };
 
     return (
-        <div className="space-y-6">
-             <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
+        <div className="space-y-5">
+             <div className="bg-white p-6 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-2xs">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                     <h3 className="text-xl font-semibold text-slate-800">{t('expenses.title')}</h3>
                     <div className="flex items-center flex-wrap gap-2 no-print self-start md:self-center">
@@ -298,7 +298,7 @@ const ExpenseManagement: React.FC<ExpenseManagementProps> = ({ subsidiary, expen
                             ) : filteredExpenses.length === 0 ? (
                                 <tr>
                                     <td colSpan={8}>
-                                        <EmptyState icon="finance" title={t('expenses.title')} description={t('common.notAvailable')} />
+                                        <EmptyState icon="finance" title={t('expenses.title')} />
                                     </td>
                                 </tr>
                             ) : pageExpenses.map((exp) => {

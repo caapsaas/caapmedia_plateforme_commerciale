@@ -155,16 +155,16 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
     };
 
     return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 no-print">
-                 <div className="md:col-span-1 bg-white p-6 rounded-xl shadow-md">
-                    <h4 className="font-semibold text-slate-500">{t('supplierDebts.totalDebts')}</h4>
-                    <p className="text-3xl font-bold text-slate-800 mt-2">{formatCurrency(totalDebts)}</p>
-                    <p className="text-sm text-slate-400 mt-1">{t('supplierDebts.totalDebtsDesc')}</p>
+        <div className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 no-print">
+                 <div className="md:col-span-1 bg-white p-5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-2xs">
+                    <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('supplierDebts.totalDebts')}</h4>
+                    <p className="text-2xl font-bold tabular-nums text-slate-900 mt-2">{formatCurrency(totalDebts)}</p>
+                    <p className="text-xs text-slate-400 mt-1">{t('supplierDebts.totalDebtsDesc')}</p>
                 </div>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
+            <div className="bg-white p-6 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-2xs">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                     <h3 className="text-xl font-semibold text-slate-800">{t('supplierDebts.trackingTitle')}</h3>
                     <div className="flex flex-wrap gap-2 no-print self-start md:self-center">
@@ -201,11 +201,11 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
                             ) : supplierDebts.length === 0 ? (
                                 <tr>
                                     <td colSpan={colSpan}>
-                                        <EmptyState icon="truck" title={t('supplierDebts.trackingTitle')} description={t('common.notAvailable')} />
+                                        <EmptyState icon="truck" title={t('supplierDebts.trackingTitle')} />
                                     </td>
                                 </tr>
                             ) : pageDebts.map((debt) => (
-                                <tr key={debt.id} className="bg-white border-b hover:bg-slate-50">
+                                <tr key={debt.id} className="bg-white border-b border-slate-100 hover:bg-slate-50/70 transition-colors">
                                     <td className="px-6 py-4 font-medium text-slate-900">{debt.supplierName}</td>
                                     {isConsolidated && (
                                         <td className="px-6 py-4 text-slate-500">{debt.subsidiary?.subsidiaryName ?? '—'}</td>
@@ -245,7 +245,7 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
                 {!isLoading && <Pagination meta={debtsMeta} onPageChange={setPage} />}
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-md space-y-4">
+            <div className="bg-white p-6 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-2xs space-y-4">
                 <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-slate-800">
                         {t('supplierDebts.creditNotes.title')}
@@ -253,33 +253,33 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
                     {canPayDebt && (
                         <button
                             onClick={() => setShowCreditNoteModal(true)}
-                            className="px-3 py-2 bg-[#c6e911] text-slate-900 text-xs font-semibold rounded-md hover:bg-[#adc40f]"
+                            className="h-9 px-3.5 bg-[#c6e911] text-slate-900 text-xs font-semibold rounded-[var(--radius-sm)] hover:bg-[#adc40f] transition-colors"
                         >
                             {t('supplierDebts.creditNotes.add')}
                         </button>
                     )}
                 </div>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--border)]">
                     <table className="w-full text-sm text-left text-slate-500">
-                        <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                        <thead className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider bg-[var(--muted)] border-b border-[var(--border)]">
                             <tr>
-                                <th className="px-4 py-2">{t('supplierDebts.creditNotes.number')}</th>
-                                <th className="px-4 py-2">{t('supplierDebts.supplier')}</th>
-                                <th className="px-4 py-2">{t('supplierDebts.invoiceId')}</th>
-                                <th className="px-4 py-2 text-right">{t('supplierDebts.amount')}</th>
-                                <th className="px-4 py-2 text-center">{t('supplierDebts.status')}</th>
-                                <th className="px-4 py-2 text-center no-print">{t('common.actions')}</th>
+                                <th className="px-4 py-2.5">{t('supplierDebts.creditNotes.number')}</th>
+                                <th className="px-4 py-2.5">{t('supplierDebts.supplier')}</th>
+                                <th className="px-4 py-2.5">{t('supplierDebts.invoiceId')}</th>
+                                <th className="px-4 py-2.5 text-right">{t('supplierDebts.amount')}</th>
+                                <th className="px-4 py-2.5 text-center">{t('supplierDebts.status')}</th>
+                                <th className="px-4 py-2.5 text-center no-print">{t('common.actions')}</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-[var(--border)]">
                             {creditNotes.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-4 py-6 text-center text-xs text-slate-400">
-                                        {t('common.notAvailable')}
+                                        —
                                     </td>
                                 </tr>
                             ) : creditNotes.map((cn) => (
-                                <tr key={cn.id} className="border-b hover:bg-slate-50">
+                                <tr key={cn.id} className="hover:bg-slate-50/70 transition-colors">
                                     <td className="px-4 py-2 font-mono text-xs text-slate-800">{cn.creditNoteNumber}</td>
                                     <td className="px-4 py-2">{cn.supplierName}</td>
                                     <td className="px-4 py-2">{cn.supplierDebt?.invoiceId ?? '—'}</td>

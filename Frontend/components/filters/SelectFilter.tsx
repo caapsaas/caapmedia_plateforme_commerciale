@@ -18,7 +18,7 @@ const SelectFilter: React.FC<SelectFilterProps> = ({ label, name, value, onChang
                 name={name}
                 value={value}
                 onChange={onChange}
-                className="w-full bg-white border border-slate-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-[#c6e911] focus:border-[#c6e911] sm:text-sm"
+                className="w-full h-9 bg-white border border-[var(--border-strong)] rounded-[var(--radius-sm)] shadow-2xs pl-3 pr-9 text-left text-sm text-slate-700 cursor-pointer hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-[#c6e911]/40 focus:border-slate-400"
             >
                 <option value="">{placeholder}</option>
                 {options.map(option => (

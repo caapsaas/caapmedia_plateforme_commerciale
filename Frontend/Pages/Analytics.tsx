@@ -107,29 +107,33 @@ const Analytics: React.FC = () => {
         { view: 'expenseBox', label: t('analytics.tabs.expenseBox') },
     ];
 
-    const TabButton: React.FC<{ view: AnalyticsView; label: string }> = ({ view, label }) => (
-        <button
-            onClick={() => setActiveTab(view)}
-            className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors focus:outline-none ${
-                activeTab === view
-                    ? 'border-slate-800 text-slate-800'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
-        >
-            {label}
-        </button>
-    );
+    const TabButton: React.FC<{ view: AnalyticsView; label: string }> = ({ view, label }) => {
+        const isActive = activeTab === view;
+        return (
+            <button
+                type="button"
+                onClick={() => setActiveTab(view)}
+                className={`whitespace-nowrap shrink-0 px-3.5 py-1.5 rounded-[var(--radius-sm)] text-[13px] cursor-pointer transition-[background-color,color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] ${
+                    isActive
+                        ? 'bg-[var(--brand)] text-[var(--brand-foreground)] font-semibold shadow-2xs'
+                        : 'font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-white/80'
+                }`}
+            >
+                {label}
+            </button>
+        );
+    };
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row justify-between md:items-start gap-4">
-                <h1 className="text-4xl font-bold text-slate-800">{t('analytics.title')}</h1>
+        <div className="space-y-5">
+            <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('analytics.title')}</h1>
                 <div className="flex flex-wrap items-center gap-3">
                     {hasGlobalScope && subsidiariesList && subsidiariesList.length > 0 && (
                         <select
                             value={selectedSubsidiaryId}
                             onChange={e => setSelectedSubsidiaryId(e.target.value)}
-                            className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                            className="h-9 rounded-[var(--radius-sm)] border border-[var(--border-strong)] bg-white pl-3 pr-9 text-sm text-slate-700 shadow-2xs cursor-pointer hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-[#c6e911]/40 focus:border-slate-400"
                         >
                             <option value="">{t('analytics.allSubsidiaries')}</option>
                             {subsidiariesList.map(s => (
@@ -148,12 +152,10 @@ const Analytics: React.FC = () => {
                 </div>
             </div>
 
-            <div className="border-b border-slate-200">
-                <nav className="-mb-px flex space-x-8 overflow-x-auto" aria-label="Tabs">
-                    {TABS.map(tab => (
-                        <TabButton key={tab.view} view={tab.view} label={tab.label} />
-                    ))}
-                </nav>
+            <div className="flex flex-wrap items-center gap-1 p-1 bg-[var(--muted)] border border-[var(--border)] rounded-[var(--radius-md)]" role="tablist" aria-label="Tabs">
+                {TABS.map(tab => (
+                    <TabButton key={tab.view} view={tab.view} label={tab.label} />
+                ))}
             </div>
 
             <div className="mt-6">

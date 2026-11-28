@@ -87,15 +87,15 @@ const TreasuryManagement: React.FC = () => {
   const AccountCard: React.FC<{ account: TreasuryAccount }> = ({ account }) => (
     <div
       onClick={() => setHistoryAccount(account)}
-      className="group relative bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md overflow-hidden cursor-pointer transition-all duration-300"
+      className="group relative bg-white rounded-[var(--radius-lg)] border border-[var(--border)] shadow-2xs hover:border-[var(--border-strong)] hover:shadow-sm overflow-hidden cursor-pointer transition-all duration-200"
     >
-      <div className="p-4 transition-transform duration-300 group-hover:scale-105">
+      <div className="p-4">
         <h3 className="text-sm font-semibold text-slate-600 truncate" title={account.accountName}>{account.accountName}</h3>
-        <p className="text-xl font-bold text-slate-800 mt-1">{formatCurrency(account.balance)}</p>
+        <p className="text-xl font-bold tabular-nums text-slate-900 mt-1">{formatCurrency(account.balance)}</p>
         {account.accountNumber && <p className="text-xs text-slate-400 mt-0.5 truncate">{account.accountNumber}</p>}
       </div>
-      <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        <span className="text-white text-sm font-medium flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+      <div className="absolute inset-0 bg-slate-900/65 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <span className="text-white text-sm font-medium flex items-center gap-2">
           <IconEye className="h-4 w-4" /> {t('treasury.management.viewDetails')}
         </span>
       </div>
@@ -103,13 +103,13 @@ const TreasuryManagement: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex flex-col sm:flex-row justify-start items-center gap-4">
-        <div className="flex space-x-2 p-1 bg-slate-100 rounded-lg">
-          <button onClick={() => setActiveTab('banks')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'banks' ? 'bg-white text-slate-800 shadow' : 'text-slate-500 hover:text-slate-700'}`}>{t('analytics.tabs.banks')}</button>
-          <button onClick={() => setActiveTab('safes')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'safes' ? 'bg-white text-slate-800 shadow' : 'text-slate-500 hover:text-slate-700'}`}>{t('analytics.tabs.safe')}</button>
-          <button onClick={() => setActiveTab('cash_registers')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'cash_registers' ? 'bg-white text-slate-800 shadow' : 'text-slate-500 hover:text-slate-700'}`}>{t('sidebar.cashRegister')}</button>
-          <button onClick={() => setActiveTab('expense_box')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'expense_box' ? 'bg-white text-slate-800 shadow' : 'text-slate-500 hover:text-slate-700'}`}>{t('expenseBoxDisbursement.title')}</button>
+        <div className="flex flex-wrap gap-1 p-1 bg-[var(--muted)] border border-[var(--border)] rounded-[var(--radius-md)]">
+          <button onClick={() => setActiveTab('banks')} className={`px-3.5 py-1.5 text-[13px] rounded-[var(--radius-sm)] transition-colors cursor-pointer ${activeTab === 'banks' ? 'bg-white text-slate-900 font-semibold shadow-2xs' : 'font-medium text-slate-500 hover:text-slate-800'}`}>{t('analytics.tabs.banks')}</button>
+          <button onClick={() => setActiveTab('safes')} className={`px-3.5 py-1.5 text-[13px] rounded-[var(--radius-sm)] transition-colors cursor-pointer ${activeTab === 'safes' ? 'bg-white text-slate-900 font-semibold shadow-2xs' : 'font-medium text-slate-500 hover:text-slate-800'}`}>{t('analytics.tabs.safe')}</button>
+          <button onClick={() => setActiveTab('cash_registers')} className={`px-3.5 py-1.5 text-[13px] rounded-[var(--radius-sm)] transition-colors cursor-pointer ${activeTab === 'cash_registers' ? 'bg-white text-slate-900 font-semibold shadow-2xs' : 'font-medium text-slate-500 hover:text-slate-800'}`}>{t('sidebar.cashRegister')}</button>
+          <button onClick={() => setActiveTab('expense_box')} className={`px-3.5 py-1.5 text-[13px] rounded-[var(--radius-sm)] transition-colors cursor-pointer ${activeTab === 'expense_box' ? 'bg-white text-slate-900 font-semibold shadow-2xs' : 'font-medium text-slate-500 hover:text-slate-800'}`}>{t('expenseBoxDisbursement.title')}</button>
         </div>
       </div>
 

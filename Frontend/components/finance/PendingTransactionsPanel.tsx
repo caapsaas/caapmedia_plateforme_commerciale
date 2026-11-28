@@ -70,17 +70,38 @@ const PendingTransactionsPanel: React.FC<{ subsidiaryId?: string }> = ({ subsidi
 
     if (isLoading) {
         return (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 animate-pulse">
-                <div className="h-5 w-48 bg-slate-200 rounded mb-4" />
-                {[1, 2].map((i) => <div key={i} className="h-16 bg-slate-100 rounded mb-3" />)}
+            <div className="bg-white rounded-[var(--radius-lg)] shadow-2xs border border-[var(--border)] px-5 py-3 animate-pulse">
+                <div className="h-5 w-48 bg-slate-200 rounded" />
+            </div>
+        );
+    }
+
+    if (pendingTransactions.length === 0) {
+        return (
+            <div className="bg-white rounded-[var(--radius-lg)] shadow-2xs border border-[var(--border)] px-5 py-3 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
+                        <svg className="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div className="min-w-0">
+                        <span className="text-sm font-semibold text-slate-800">Paiements bancaires en attente</span>
+                        <span className="hidden sm:inline text-xs text-slate-500 ml-2">— Tous les paiements bancaires ont été validés</span>
+                    </div>
+                </div>
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                    ✓ Tout à jour
+                </span>
             </div>
         );
     }
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="bg-white rounded-[var(--radius-lg)] shadow-2xs border border-[var(--border)] overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
                 <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center">
                         <svg className="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -93,27 +114,14 @@ const PendingTransactionsPanel: React.FC<{ subsidiaryId?: string }> = ({ subsidi
                         <p className="text-xs text-slate-500">Transactions à valider pour application au compte</p>
                     </div>
                 </div>
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                    pendingTransactions.length > 0
-                        ? 'bg-amber-100 text-amber-700'
-                        : 'bg-green-100 text-green-700'
-                }`}>
-                    {pendingTransactions.length === 0 ? '✓ Tout à jour' : `${pendingTransactions.length} en attente`}
+                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">
+                    {`${pendingTransactions.length} en attente`}
                 </span>
             </div>
 
             {/* Body */}
-            {pendingTransactions.length === 0 ? (
-                <div className="py-12 flex flex-col items-center text-slate-400">
-                    <svg className="h-10 w-10 mb-2 text-green-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="text-sm font-medium">Aucune transaction en attente</p>
-                    <p className="text-xs mt-0.5">Tous les paiements bancaires ont été validés</p>
-                </div>
-            ) : (
-                <div className="divide-y divide-slate-50">
+            {(
+                <div className="divide-y divide-[var(--border)]">
                     {pageItems.map((tx) => {
                         const isOpeningBalanceReceipt =
                             tx.description === 'Solde initial' &&

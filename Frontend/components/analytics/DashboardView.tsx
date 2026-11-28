@@ -39,18 +39,18 @@ const DashboardView: React.FC<DashboardViewProps> = ({ data }) => {
     
 
     return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {kpis.map(kpi => <KpiCard key={kpi.titleKey} {...kpi} />)}
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 min-w-0">
-                    <h3 className="font-semibold text-lg mb-4 text-slate-700">{t('analytics.dashboard.weeklySalesPerformance')}</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div className="bg-white p-5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-2xs min-w-0">
+                    <h3 className="font-semibold text-base mb-4 text-slate-800">{t('analytics.dashboard.weeklySalesPerformance')}</h3>
                     <SalesChart data={subsidiarySalesChartData} />
                 </div>
-                <div className="bg-white p-6 rounded-xl shadow-md min-w-0">
-                    <h3 className="font-semibold text-lg mb-4 text-slate-700">{t('analytics.dashboard.stockDistributionByCategory')}</h3>
+                <div className="bg-white p-5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-2xs min-w-0">
+                    <h3 className="font-semibold text-base mb-4 text-slate-800">{t('analytics.dashboard.stockDistributionByCategory')}</h3>
                     <StockChart data={subsidiaryStockChartData} />
                 </div>
             </div>

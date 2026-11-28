@@ -143,7 +143,7 @@ const CashflowProfitabilityView: React.FC<CashflowProfitabilityViewProps> = ({ s
                   <dt className="text-slate-600">{t('treasuryAccounts.types.EXPENSE_BOX')}</dt>
                   <dd className="font-semibold tabular-nums">{formatCurrency(cashflow?.balancesByType.expenseBox ?? 0)}</dd>
                 </div>
-                <div className="flex justify-between border-t pt-2">
+                <div className="flex justify-between border-t border-[var(--border)] pt-2">
                   <dt className="text-slate-600">{t('finance.pilotage.pendingReceivables')}</dt>
                   <dd className="font-semibold tabular-nums text-amber-700">{formatCurrency(cashflow?.pending.customerReceivables ?? 0)}</dd>
                 </div>
@@ -175,7 +175,7 @@ const CashflowProfitabilityView: React.FC<CashflowProfitabilityViewProps> = ({ s
                   <dt className="text-slate-600">{t('finance.pilotage.payrollCosts')}</dt>
                   <dd className="font-semibold tabular-nums text-rose-700">-{formatCurrency(profitability?.payrollCosts ?? 0)}</dd>
                 </div>
-                <div className="flex justify-between border-t pt-2 font-bold">
+                <div className="flex justify-between border-t border-[var(--border)] pt-2 font-bold">
                   <dt className="text-slate-900">{t('finance.pilotage.grossMargin')}</dt>
                   <dd className="tabular-nums text-slate-900">{formatCurrency(profitability?.grossMargin ?? 0)}</dd>
                 </div>

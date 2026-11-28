@@ -21,7 +21,7 @@ const PeriodFilter: React.FC<PeriodFilterProps> = ({ period, onPeriodChange, sta
                     id="period-filter"
                     value={period}
                     onChange={onPeriodChange}
-                    className="bg-white border border-slate-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-[#c6e911] focus:border-[#c6e911] sm:text-sm"
+                    className="h-9 bg-white border border-[var(--border-strong)] rounded-[var(--radius-sm)] shadow-2xs pl-3 pr-9 text-left text-sm text-slate-700 cursor-pointer hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-[#c6e911]/40 focus:border-slate-400"
                 >
                     <option value="all_time">{t('filter.allTime')}</option>
                     <option value="this_month">{t('pnl.thisMonth')}</option>
@@ -42,17 +42,17 @@ const PeriodFilter: React.FC<PeriodFilterProps> = ({ period, onPeriodChange, sta
                         value={startDate}
                         max={endDate || undefined}
                         onChange={onStartDateChange}
-                        className="bg-white border border-slate-300 rounded-md shadow-sm px-3 py-2 text-left focus:outline-none focus:ring-1 focus:ring-[#c6e911] focus:border-[#c6e911] sm:text-sm"
+                        className="h-9 bg-white border border-[var(--border-strong)] rounded-[var(--radius-sm)] shadow-2xs px-3 text-left text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#c6e911]/40 focus:border-slate-400"
                         aria-label={t('analytics.startDate')}
                     />
-                    <span className="text-slate-500">-</span>
+                    <span className="text-slate-400">-</span>
                     <input
                         type="date"
                         id="end-date-filter"
                         value={endDate}
                         min={startDate || undefined}
                         onChange={onEndDateChange}
-                        className="bg-white border border-slate-300 rounded-md shadow-sm px-3 py-2 text-left focus:outline-none focus:ring-1 focus:ring-[#c6e911] focus:border-[#c6e911] sm:text-sm"
+                        className="h-9 bg-white border border-[var(--border-strong)] rounded-[var(--radius-sm)] shadow-2xs px-3 text-left text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#c6e911]/40 focus:border-slate-400"
                         aria-label={t('analytics.endDate')}
                     />
                 </div>

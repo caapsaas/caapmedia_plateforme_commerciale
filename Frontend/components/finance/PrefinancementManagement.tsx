@@ -374,37 +374,37 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
 
     return (
         <>
-            <div className="space-y-6">
+            <div className="space-y-5">
                 {/* KPI Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 no-print">
-                    <div className="bg-white p-6 rounded-xl shadow-md flex flex-col">
-                        <h4 className="font-semibold text-slate-500">Solde Actuel</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 no-print">
+                    <div className="bg-white p-5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-2xs flex flex-col">
+                        <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Solde Actuel</h4>
                         <div className="flex-grow flex items-end mt-2">
-                            <p className="text-3xl font-bold text-slate-800 whitespace-nowrap">
+                            <p className="text-2xl font-bold tabular-nums text-slate-900 whitespace-nowrap">
                                 {account ? formatCurrency(account.balance) : formatCurrency(0)}
                             </p>
                         </div>
                     </div>
-                    <div className="bg-white p-6 rounded-xl shadow-md flex flex-col">
-                        <h4 className="font-semibold text-slate-500">Total Crédits</h4>
+                    <div className="bg-white p-5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-2xs flex flex-col">
+                        <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total Crédits</h4>
                         <div className="flex-grow flex items-end mt-2">
-                            <p className="text-3xl font-bold text-green-600 whitespace-nowrap">
+                            <p className="text-2xl font-bold tabular-nums text-emerald-600 whitespace-nowrap">
                                 {statistics ? formatCurrency(statistics.totalCredits) : formatCurrency(0)}
                             </p>
                         </div>
                     </div>
-                    <div className="bg-white p-6 rounded-xl shadow-md flex flex-col">
-                        <h4 className="font-semibold text-slate-500">Total Débits</h4>
+                    <div className="bg-white p-5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-2xs flex flex-col">
+                        <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total Débits</h4>
                         <div className="flex-grow flex items-end mt-2">
-                            <p className="text-3xl font-bold text-red-600 whitespace-nowrap">
+                            <p className="text-2xl font-bold tabular-nums text-rose-600 whitespace-nowrap">
                                 {formatCurrency(statistics?.totalDebits ?? 0)}
                             </p>
                         </div>
                     </div>
-                    <div className="bg-white p-6 rounded-xl shadow-md flex flex-col">
-                        <h4 className="font-semibold text-slate-500">Transactions</h4>
+                    <div className="bg-white p-5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-2xs flex flex-col">
+                        <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Transactions</h4>
                         <div className="flex-grow flex items-end mt-2">
-                            <p className="text-3xl font-bold text-slate-800 whitespace-nowrap">
+                            <p className="text-2xl font-bold tabular-nums text-slate-900 whitespace-nowrap">
                                 {statistics ? statistics.transactionCount : 0}
                             </p>
                         </div>
@@ -413,7 +413,7 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
 
           {/* Formulaire d'ajout - seulement si directeur financier */}
                 {showAddForm && canAddPrefinancement && (
-                    <div className="bg-white p-6 rounded-xl shadow-md">
+                    <div className="bg-white p-6 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-2xs">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-xl font-semibold text-slate-800">Nouvelle Transaction de Préfinancement</h3>
                             <button
@@ -523,7 +523,7 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
                 )}
 
                 {/* Tableau des transactions */}
-                <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
+                <div className="bg-white p-6 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-2xs">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                         <h3 className="text-xl font-semibold text-slate-800">Transactions Préfinancement</h3>
                         {isLoadingTransactions && (
@@ -534,7 +534,7 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
                         </div>
                     </div>
                     
-                    <div className="flex flex-wrap items-center gap-2 no-print self-start md:self-center">
+                    <div className="flex flex-wrap items-center gap-2 mb-4 no-print self-start md:self-center">
                         {/* Filtres */}
                         <div className="flex gap-2">
                             <button
@@ -601,10 +601,9 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
                             <span>PDF</span>
                         </PrimaryButton>
                     </div>
-                </div>
 
                 {(isLoading || filteredTransactions.length > 0) && (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--border)]">
                         <table className="w-full text-sm text-left text-slate-500">
                         <thead className="text-xs text-slate-700 uppercase bg-slate-50">
                             <tr>
@@ -719,6 +718,7 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
                         title={searchTerm ? "Aucune transaction ne correspond à votre recherche." : "Aucune transaction trouvée."}
                     />
                 )}
+                </div>
             </div>
             
             {creditValidateTarget && (
