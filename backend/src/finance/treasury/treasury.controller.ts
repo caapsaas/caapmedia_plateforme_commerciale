@@ -8,7 +8,10 @@ import {
   UseGuards,
   Delete,
   Query,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { TreasuryService } from './treasury.service';
 import type { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 import { JwtAuthGuard } from '../../common/auth/jwt/jwt.guard';
@@ -20,6 +23,7 @@ import { UpdateTreasuryAccountDto } from './dto/update-treasury-account.dto';
 import { CreateFinancialTransactionDto } from './dto/create-financial-transaction.dto';
 import { UpdateTransactionStatusDto } from './dto/update-transaction-status.dto';
 import { CreateDisbursementDto } from './dto/create-disbursement.dto';
+import { ReverseTransactionDto } from './dto/reverse-transaction.dto';
 import { CounterpartyType, UserRole } from '@prisma/client';
 import { PaginationQueryDto } from '../../common/pagination/dto/pagination-query.dto';
 
@@ -155,5 +159,24 @@ export class TreasuryController {
     @CurrentUser() user: JwtUser,
   ) {
     return this.treasuryService.updateTransactionStatus(id, updateDto, user);
+  }
+
+  @Post('transactions/:id/reverse')
+  reverseTransaction(
+    @Param('id') id: string,
+    @Body() dto: ReverseTransactionDto,
+    @CurrentUser() user: JwtUser,
+  ) {
+    return this.treasuryService.reverseTransaction(id, dto, user);
+  }
+
+  @Post('transactions/:id/proof')
+  @UseInterceptors(FileInterceptor('file'))
+  attachProof(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: JwtUser,
+  ) {
+    return this.treasuryService.attachProof(id, file, user);
   }
 }

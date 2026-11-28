@@ -25,6 +25,7 @@ const RecurringExpenseModal: React.FC<RecurringExpenseModalProps> = ({
 
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState(0);
+  const [isVariableAmount, setIsVariableAmount] = useState(false);
   const [category, setCategory] = useState<ExpenseCategory>(ExpenseCategory.OTHER);
   const [expenseRecordType, setExpenseRecordType] = useState<ExpenseType>(ExpenseType.VARIABLE);
   const [frequency, setFrequency] = useState<RecurringExpenseFrequency>(RecurringExpenseFrequency.MONTHLY);
@@ -35,6 +36,7 @@ const RecurringExpenseModal: React.FC<RecurringExpenseModalProps> = ({
     if (isOpen) {
       setDescription('');
       setAmount(0);
+      setIsVariableAmount(false);
       setCategory(ExpenseCategory.OTHER);
       setExpenseRecordType(ExpenseType.VARIABLE);
       setFrequency(RecurringExpenseFrequency.MONTHLY);
@@ -60,10 +62,11 @@ const RecurringExpenseModal: React.FC<RecurringExpenseModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!description || amount <= 0 || !startDate) return;
+    if (!description || (!isVariableAmount && amount <= 0) || !startDate) return;
     submit({
       description,
-      amount,
+      amount: isVariableAmount ? 0 : amount,
+      isVariableAmount,
       category,
       expenseRecordType,
       frequency,
@@ -99,12 +102,24 @@ const RecurringExpenseModal: React.FC<RecurringExpenseModalProps> = ({
                   <input
                     type="number"
                     step="0.01"
-                    min="0.01"
-                    value={amount || ''}
+                    min={isVariableAmount ? '0' : '0.01'}
+                    value={isVariableAmount ? 0 : (amount || '')}
+                    disabled={isVariableAmount}
                     onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-                    required
-                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm"
+                    required={!isVariableAmount}
+                    className="mt-1 block w-full border-slate-300 rounded-md shadow-sm disabled:bg-slate-100"
                   />
+                  <label className="mt-2 flex items-center gap-2 text-xs text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={isVariableAmount}
+                      onChange={(e) => {
+                        setIsVariableAmount(e.target.checked);
+                        if (e.target.checked) setAmount(0);
+                      }}
+                    />
+                    <span>{t('recurringExpenses.modal.variableAmount')}</span>
+                  </label>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700">{t('recurringExpenses.modal.frequency')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>

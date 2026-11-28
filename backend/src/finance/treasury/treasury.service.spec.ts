@@ -325,4 +325,72 @@ describe('Treasury account funding', () => {
     );
     expect(approved).toMatchObject({ status: TransactionStatus.VALIDE });
   });
+
+  it('blocks deletion of validated transactions and supports motivated reversal', async () => {
+    prisma.financialTransaction.findFirst.mockResolvedValueOnce({
+      id: 'tx-valide',
+      status: TransactionStatus.VALIDE,
+      subsidiaryId: admin.subsidiaryId,
+      treasuryAccount: safe,
+      destinationAccount: null,
+    });
+    await expect(
+      service.deleteTransaction('tx-valide', {
+        ...admin,
+        role: UserRole.ADMIN,
+        activeRole: UserRole.ADMIN,
+        roles: [UserRole.ADMIN],
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    prisma.financialTransaction.findFirst.mockResolvedValueOnce({
+      id: 'tx-valide',
+      description: 'Loyer Octobre',
+      amount: new Prisma.Decimal(100),
+      status: TransactionStatus.VALIDE,
+      isReversed: false,
+      financialTransactionType: TransactionType.DEPENSE,
+      subsidiaryId: safe.subsidiaryId,
+      treasuryAccountId: safe.id,
+      treasuryAccount: { ...safe, balance: new Prisma.Decimal(400) },
+      destinationAccount: null,
+      destinationAccountId: null,
+      relatedDocumentId: null,
+    });
+    prisma.treasuryAccount.update.mockResolvedValue({
+      balance: new Prisma.Decimal(500),
+    });
+    prisma.financialTransaction.create.mockResolvedValue({
+      id: 'tx-rev',
+      status: TransactionStatus.VALIDE,
+    });
+    prisma.financialTransaction.update.mockResolvedValue({
+      id: 'tx-valide',
+      status: TransactionStatus.REVERSED,
+      isReversed: true,
+    });
+
+    const res = await service.reverseTransaction(
+      'tx-valide',
+      { reason: 'Erreur de saisie fournisseur' },
+      admin,
+    );
+    expect(res).toMatchObject({
+      id: 'tx-rev',
+      status: TransactionStatus.VALIDE,
+    });
+    expect(prisma.financialTransaction.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'tx-valide' },
+        data: expect.objectContaining({
+          status: TransactionStatus.REVERSED,
+          isReversed: true,
+        }),
+      }),
+    );
+    expect(outbox.enqueue).toHaveBeenCalledWith(
+      prisma,
+      expect.objectContaining({ eventType: 'TRANSACTION_REVERSAL' }),
+    );
+  });
 });

@@ -36,7 +36,15 @@ function DataTable<T>({
   className,
 }: DataTableProps<T>) {
   if (isLoading) {
-    return <TableSkeleton columns={columns.length} rows={6} />;
+    return (
+      <div className={cn('bg-white border border-[var(--border)] rounded-[var(--radius-md)] overflow-hidden shadow-2xs', className)}>
+        <table className="w-full text-left border-collapse">
+          <tbody>
+            <TableSkeleton columns={columns.length} rows={6} />
+          </tbody>
+        </table>
+      </div>
+    );
   }
 
   if (data.length === 0) {

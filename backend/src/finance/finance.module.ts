@@ -8,8 +8,7 @@ import { CashRemittanceModule } from './cash-remittance/cash-remittance.module';
 import { DebtsModule } from './debts/debts.module';
 import { AssetsModule } from './assets/assets.module';
 import { ExternalTransactionModule } from './external-transaction/external-transaction.module';
-import { BalancesheetModule } from './balancesheet/balancesheet.module';
-import { IncomestatementModule } from './incomestatement/incomestatement.module';
+import { FinancialPilotageModule } from './pilotage/financial-pilotage.module';
 import { PrefinancementModule } from './prefinancement/prefinancement.module';
 import { JournalizationModule } from '../accounting/journalization/journalization.module';
 
@@ -24,8 +23,7 @@ import { JournalizationModule } from '../accounting/journalization/journalizatio
     DebtsModule,
     AssetsModule,
     ExternalTransactionModule,
-    BalancesheetModule,
-    IncomestatementModule,
+    FinancialPilotageModule,
     PrefinancementModule,
     JournalizationModule,
   ],

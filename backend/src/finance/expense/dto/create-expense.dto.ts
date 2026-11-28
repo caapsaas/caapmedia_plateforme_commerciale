@@ -4,6 +4,8 @@ import {
   IsNumber,
   IsEnum,
   IsDateString,
+  IsOptional,
+  IsBoolean,
 } from 'class-validator';
 import { ExpenseCategory, ExpenseType } from '@prisma/client';
 
@@ -27,4 +29,12 @@ export class CreateExpenseDto {
   @IsDateString()
   @IsNotEmpty()
   expenseDate: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isPendingInvoice?: boolean;
+
+  @IsOptional()
+  @IsString()
+  proofFilePath?: string;
 }

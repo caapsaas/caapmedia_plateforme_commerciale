@@ -353,7 +353,7 @@
     "warning": "Attention",
     "info": "Information",
     "showing": "Affichage de",
-    "to": "à",
+    "to": "Au",
     "of": "sur",
     "results": "résultats",
     "previous": "Précédent",
@@ -377,7 +377,8 @@
     "send": "Envoyer",
     "create": "Créer",
     "update": "Mettre à jour",
-    "total": "Total"
+    "total": "Total",
+    "from": "Du"
   },
   "login": {
     "errorSelectSubsidiary": "Veuillez sélectionner une filiale.",
@@ -1601,7 +1602,9 @@
       "paymentMethod": "Méthode de paiement",
       "referenceNumber": "Numéro de référence",
       "document": "Document",
-      "documentUrl": "URL du document"
+      "documentUrl": "URL du document",
+      "impactsTreasury": "Impacter un compte de trésorerie (Coffre ou Banque)",
+      "selectTreasuryAccount": "Sélectionnez un compte de trésorerie"
     },
     "notifications": {
       "created": {
@@ -1729,6 +1732,13 @@
       "movementsSection": "Historique des mouvements",
       "type": "Type",
       "statusColumn": "Statut"
+    },
+    "types": {
+      "CASH_REGISTER": "Caisses de vente",
+      "SAFE": "Coffres-forts",
+      "BANQUE": "Banques",
+      "EXPENSE_BOX": "Caisses dépenses",
+      "COMPTE_PREFINANCEMENT": "Préfinancement"
     }
   },
   "production": {
@@ -2715,7 +2725,8 @@
       "category": "Catégorie",
       "type": "Type",
       "amount": "Montant",
-      "date": "Date"
+      "date": "Date",
+      "workflowStatus": "Statut"
     },
     "categories": {
       "RENT": "Loyer",
@@ -2746,6 +2757,27 @@
       "allCategories": "Toutes les catégories",
       "type": "Type",
       "allTypes": "Tous les types"
+    },
+    "form": {
+      "pendingInvoiceToggle": "Facture en attente de montant réel"
+    },
+    "status": {
+      "PENDING_INVOICE": "Facture à saisir",
+      "DRAFT": "Brouillon",
+      "APPROVED": "Approuvée",
+      "REJECTED": "Rejetée",
+      "PAID": "Réglée"
+    },
+    "workflow": {
+      "confirmInvoiceBtn": "Saisir montant",
+      "confirmInvoiceTitle": "Confirmer le montant réel de la facture",
+      "confirmInvoiceSuccess": "Montant confirmé.",
+      "approveBtn": "Approuver",
+      "approveSuccess": "Charge approuvée et engagée en comptabilité.",
+      "rejectBtn": "Rejeter",
+      "rejectTitle": "Rejeter cette charge",
+      "rejectPlaceholder": "Motif du rejet...",
+      "rejectSuccess": "Charge rejetée."
     }
   },
   "aiMarketing": {
@@ -2826,26 +2858,7 @@
     "logout": "Se déconnecter"
   },
   "payment": {
-    "chooseMethod": "Choisissez votre mode de paiement",
-    "creditCard": "Carte de crédit",
-    "orangeMoney": "Orange Money",
-    "wave": "Wave",
-    "mtnMoney": "MTN Money",
-    "paycaap": "Paycaap.com",
-    "payOnDelivery": "Paiement à la réception",
-    "customerCredit": "Paiement dans 30 jours (Crédit client)",
-    "pay": "Payer",
-    "processing": "Traitement en cours...",
-    "success": "Paiement réussi !",
-    "CASH": "Espèces",
-    "CARD": "Carte",
-    "CHECK": "Chèque",
-    "MOBILE_MONEY": "Mobile Money",
-    "WAVE": "Wave",
-    "ORANGE_MONEY": "Orange Money",
-    "PAYCAAP": "PayCaap",
-    "PAY_ON_DELIVERY": "Paiement à la livraison",
-    "CUSTOMER_CREDIT": "Crédit Client (30 jours)"
+    "BANK_TRANSFER": "Virement bancaire"
   },
   "quoteRequest": {
     "title": "Demande de Devis",
@@ -3048,9 +3061,6 @@
     "total": "Total",
     "status": "Statut",
     "backToShop": "Retour à la boutique"
-  },
-  "payment": {
-    "BANK_TRANSFER": "Virement bancaire"
   },
   "paymentMethods": {
     "BANK_TRANSFER": "Virement bancaire",
@@ -3299,6 +3309,25 @@
       "netIncome": "Résultat Net de l'exercice",
       "retainedEarnings": "Résultats Cumulés",
       "totalLiabilitiesAndEquity": "Total Passifs et Capitaux Propres"
+    },
+    "pilotage": {
+      "tabTitle": "Cash-Flow & Rentabilité",
+      "title": "Pilotage Cash-Flow & Rentabilité",
+      "subtitle": "Suivi de trésorerie réelle, encours clients/fournisseurs et marge opérationnelle.",
+      "cashPosition": "Trésorerie disponible",
+      "netCashflow": "Cash-Flow net période",
+      "operatingResult": "Résultat opérationnel",
+      "marginRate": "Taux de marge",
+      "collectionRate": "Taux de recouvrement",
+      "cashBreakdown": "Répartition par compte & encours",
+      "pendingReceivables": "Créances clients en attente",
+      "pendingDebts": "Dettes fournisseurs impayées",
+      "profitabilitySummary": "Synthèse de rentabilité",
+      "invoicedRevenue": "Chiffre d'affaires facturé",
+      "purchaseCosts": "Achats directs",
+      "operatingExpenses": "Charges opérationnelles",
+      "payrollCosts": "Masse salariale",
+      "grossMargin": "Marge brute"
     }
   },
   "credit": {
@@ -3390,6 +3419,30 @@
       "noBankAccounts": "Aucun compte bancaire trouvé.",
       "noAccountsForCategory": "Aucun compte trouvé pour cette catégorie.",
       "unlinkedBankAccounts": "Comptes bancaires sans banque associée"
+    },
+    "statusReversed": "Contre-passé",
+    "trace": {
+      "title": "Traçabilité & Audit Transaction",
+      "inspect": "Détails",
+      "bankFees": "Frais bancaires retenus",
+      "sourceBalances": "Compte source",
+      "destBalances": "Compte destination",
+      "actors": "Acteurs & Comptabilité",
+      "createdBy": "Créée par",
+      "approvedBy": "Validée / Traitée par",
+      "journalEntry": "Écriture SYSCOHADA",
+      "rejectionReason": "Motif de rejet",
+      "reversedNotice": "Contre-passée",
+      "proof": "Pièce justificative",
+      "uploadProof": "Joindre un justificatif",
+      "viewProof": "Ouvrir le justificatif",
+      "noProof": "Aucun justificatif attaché.",
+      "proofSuccess": "Justificatif téléversé avec succès.",
+      "reverseButton": "Contre-passer cette transaction",
+      "reverseReasonLabel": "Motif obligatoire de la contre-passation",
+      "reverseReasonPlaceholder": "Expliquez la raison (erreur de saisie, doublon, annulation...)",
+      "confirmReverse": "Confirmer la contre-passation",
+      "reverseSuccess": "Contre-passation générée avec succès."
     }
   },
   "disbursement": {
@@ -3544,7 +3597,13 @@
     "confirmReceive": "Confirmer la réception",
     "createSuccess": "Remise de caisse créée avec succès",
     "receiveSuccess": "Remise de caisse réceptionnée avec succès",
-    "noData": "Aucune remise de caisse trouvée."
+    "noData": "Aucune remise de caisse trouvée.",
+    "reject": "Rejeter",
+    "rejectTitle": "Rejeter la remise {{reference}}",
+    "rejectReasonLabel": "Motif du rejet",
+    "rejectReasonPlaceholder": "Expliquez pourquoi la remise est rejetée...",
+    "confirmReject": "Confirmer le rejet",
+    "rejectSuccess": "Remise de caisse rejetée."
   },
   "supplierDebts": {
     "totalDebts": "Total Dettes Fournisseurs",
@@ -3574,7 +3633,9 @@
       "title": "Payer la dette fournisseur",
       "account": "Compte de trésorerie",
       "date": "Date de paiement",
-      "submit": "Confirmer le paiement"
+      "submit": "Confirmer le paiement",
+      "bankMakerCheckerHint": "Un règlement par banque nécessite la double validation (Maker-Checker).",
+      "noCompatibleAccount": "Aucun Coffre-fort ni Banque disponible dans cette filiale."
     },
     "createModal": {
       "title": "Nouvelle dette fournisseur",
@@ -3604,6 +3665,19 @@
       "editModal": {
         "title": "Modifier la dette à long terme"
       }
+    },
+    "pendingApprovalTitle": "En attente de double validation",
+    "pendingApprovalMessage": "L'ordre de paiement bancaire/coffre a été soumis pour approbation.",
+    "creditNotes": {
+      "title": "Avoirs fournisseurs",
+      "add": "Nouvel avoir",
+      "createTitle": "Enregistrer un avoir fournisseur",
+      "selectDebt": "Sélectionnez la dette fournisseur concernée",
+      "number": "N° Avoir",
+      "reason": "Motif de l'avoir",
+      "apply": "Imputer",
+      "createSuccess": "Avoir fournisseur enregistré.",
+      "applySuccess": "Avoir imputé sur la dette fournisseur."
     }
   },
   "recurringExpenses": {
@@ -3650,8 +3724,10 @@
       "type": "Type",
       "frequency": "Fréquence",
       "startDate": "Date de début",
-      "endDate": "Date de fin (optionnel)"
-    }
+      "endDate": "Date de fin (optionnel)",
+      "variableAmount": "Montant variable (à saisir à chaque échéance)"
+    },
+    "variableBadge": "Montant variable"
   },
   "taxTransparency": {
     "title": "Fiscalité et paie",
@@ -4002,10 +4078,9 @@
     "payConfirmHint": "La confirmation débite immédiatement cette caisse et marque la demande comme réglée.",
     "selectPayable": "Sélectionner une expression de besoin validée",
     "noPayable": "Aucune expression de besoin à régler dans cette filiale",
-    "paymentSuccess": "Expression de besoin réglée.",
+    "paymentSuccess": "Le règlement a été enregistré depuis la caisse de dépense. Le commercial a été notifié.",
     "confirmPayment": "Confirmer le règlement",
     "paying": "Règlement en cours…",
-    "paymentSuccess": "Le règlement a été enregistré depuis la caisse de dépense. Le commercial a été notifié.",
     "paidBy": "Réglée par",
     "categories": {
       "RENT": "Loyer",
@@ -4097,5 +4172,10 @@
       "SIMPLIFIE": "Régime Simplifié (RSI)",
       "LIBERATOIRE": "Impôt Libératoire"
     }
+  },
+  "subsidiaryThresholds": {
+    "expenseBoxUnitLimit": "Plafond unitaire Caisse Dépenses (FCFA)",
+    "expenseBoxImprestCeiling": "Plafond encaisse Caisse Dépenses (FCFA)",
+    "safeMakerCheckerThreshold": "Seuil double approbation Coffre (FCFA, 0 = désactivé)"
   }
 }

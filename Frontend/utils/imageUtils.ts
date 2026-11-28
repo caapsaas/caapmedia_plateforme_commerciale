@@ -33,6 +33,10 @@ export const getImageUrl = (
     return fallback;
   }
 
+  if (url.startsWith('<svg')) {
+    return `data:image/svg+xml;utf8,${encodeURIComponent(url)}`;
+  }
+
   if (ABSOLUTE_URL_PATTERN.test(url)) {
     return url;
   }

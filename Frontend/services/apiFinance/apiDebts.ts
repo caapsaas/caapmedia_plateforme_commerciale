@@ -1,5 +1,5 @@
 import { api } from '../api';
-import { SupplierDebt, LongTermDebt } from '../../types';
+import { SupplierDebt, SupplierCreditNote, LongTermDebt } from '../../types';
 
 // --- Types pour les Dettes Fournisseurs ---
 // Pas de type de création : une dette fournisseur résulte toujours d'un
@@ -56,8 +56,48 @@ export const getSupplierDebts = async (): Promise<SupplierDebt[]> => {
  * @param id - L'ID de la dette à payer.
  * @param paymentData - Les informations sur le paiement.
  */
-export const paySupplierDebt = async (id: string, paymentData: SupplierDebtPaymentData): Promise<SupplierDebt> => {
-  const { data } = await api.post<SupplierDebt>(`/finance/debts/supplier/${id}/pay`, paymentData);
+export const paySupplierDebt = async (
+  id: string,
+  paymentData: SupplierDebtPaymentData,
+): Promise<SupplierDebt & { pendingApproval?: boolean }> => {
+  const { data } = await api.post<SupplierDebt & { pendingApproval?: boolean }>(
+    `/finance/debts/supplier/${id}/pay`,
+    paymentData,
+  );
+  return data;
+};
+
+export interface SupplierCreditNoteCreationData {
+  supplierDebtId: string;
+  creditNoteNumber: string;
+  amount: number;
+  reason: string;
+}
+
+export const getSupplierCreditNotes = async (): Promise<SupplierCreditNote[]> => {
+  const { data } = await api.get<{ data: SupplierCreditNote[] }>(
+    '/finance/debts/supplier-credit-notes',
+    { params: { limit: 500 } },
+  );
+  return data.data;
+};
+
+export const createSupplierCreditNote = async (
+  payload: SupplierCreditNoteCreationData,
+): Promise<SupplierCreditNote> => {
+  const { data } = await api.post<SupplierCreditNote>(
+    '/finance/debts/supplier-credit-notes',
+    payload,
+  );
+  return data;
+};
+
+export const applySupplierCreditNote = async (
+  id: string,
+): Promise<{ creditNote: SupplierCreditNote; debt: SupplierDebt }> => {
+  const { data } = await api.post<{ creditNote: SupplierCreditNote; debt: SupplierDebt }>(
+    `/finance/debts/supplier-credit-notes/${id}/apply`,
+  );
   return data;
 };
 

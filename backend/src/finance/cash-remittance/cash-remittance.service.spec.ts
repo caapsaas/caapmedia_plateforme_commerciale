@@ -175,4 +175,63 @@ describe('CashRemittanceService source accounts', () => {
       }),
     );
   });
+
+  it('requires notes for cash remittance discrepancy and posts CASH_REMITTANCE_WITH_DISCREPANCY when justified', async () => {
+    const daf: JwtUser = {
+      ...cashier,
+      activeRole: UserRole.FINANCIAL_DIRECTOR,
+      roles: [UserRole.FINANCIAL_DIRECTOR],
+    };
+    const outboxEnqueue = jest.fn();
+    const svc = new CashRemittanceService(
+      { $transaction: transaction } as unknown as PrismaService,
+      { enqueue: outboxEnqueue } as unknown as AccountingOutboxService,
+    );
+
+    const tx = {
+      cashRemittance: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'rem-1',
+          reference: 'REM-001',
+          status: CashRemittanceStatus.SUBMITTED,
+          declaredAmount: new Prisma.Decimal(100),
+          sourceCashRegisterId: 'reg-1',
+          destinationSafeId: 'safe-1',
+          subsidiaryId: 'branch',
+          createdByUserId: 'cashier',
+        }),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      treasuryAccount: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        findUniqueOrThrow: jest
+          .fn()
+          .mockResolvedValueOnce({ balance: new Prisma.Decimal(0) })
+          .mockResolvedValueOnce({ balance: new Prisma.Decimal(90) }),
+      },
+      financialTransaction: {
+        create: jest.fn().mockResolvedValue({ id: 'tx-rem-1' }),
+      },
+    };
+    transaction.mockImplementation((cb: (c: typeof tx) => unknown) => cb(tx));
+
+    await expect(
+      svc.receive('rem-1', { receivedAmount: 90 }, daf),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    await svc.receive(
+      'rem-1',
+      {
+        receivedAmount: 90,
+        notes: 'Billet 10k manquant constaté en présence caissier',
+      },
+      daf,
+    );
+    expect(outboxEnqueue).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({
+        eventType: 'CASH_REMITTANCE_WITH_DISCREPANCY',
+      }),
+    );
+  });
 });

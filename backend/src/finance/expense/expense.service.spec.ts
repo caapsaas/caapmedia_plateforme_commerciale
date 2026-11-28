@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   AccountType,
+  ExpenseStatus,
   Prisma,
   TransactionStatus,
   TransactionType,
@@ -112,7 +113,7 @@ describe('Expense payments from the safe', () => {
         amount,
         description: expense.description,
       },
-      data: { paymentTransactionId: 'payment' },
+      data: { paymentTransactionId: 'payment', status: ExpenseStatus.PAID },
     });
     expect(outbox.enqueue).toHaveBeenCalledWith(
       prisma,
@@ -167,5 +168,50 @@ describe('Expense payments from the safe', () => {
       ConflictException,
     );
     expect(outbox.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('enforces 3-step workflow and ExpenseBox unit limit', async () => {
+    prisma.expenseRecord.findUnique.mockResolvedValue({
+      ...expense,
+      status: ExpenseStatus.DRAFT,
+    });
+    await expect(service.pay(expense.id, dto, admin)).rejects.toThrow(
+      ConflictException,
+    );
+
+    prisma.expenseRecord.findUnique.mockResolvedValue({
+      ...expense,
+      status: ExpenseStatus.APPROVED,
+    });
+    prisma.treasuryAccount.findFirst.mockResolvedValue({
+      id: 'box-1',
+      subsidiaryId: 'branch',
+      accountType: AccountType.EXPENSE_BOX,
+      currency: 'XAF',
+      balance: new Prisma.Decimal(500),
+    });
+    (prisma as any).subsidiary = {
+      findUnique: jest.fn().mockResolvedValue({
+        expenseBoxUnitLimit: new Prisma.Decimal(50),
+        safeMakerCheckerThreshold: new Prisma.Decimal(0),
+      }),
+    };
+
+    await expect(
+      service.pay(
+        expense.id,
+        {
+          accountId: 'box-1',
+          transactionDate: '2026-11-16',
+          expectedAmount: 120,
+        },
+        {
+          ...admin,
+          role: UserRole.FINANCIAL_DIRECTOR,
+          activeRole: UserRole.FINANCIAL_DIRECTOR,
+          roles: [UserRole.FINANCIAL_DIRECTOR],
+        },
+      ),
+    ).rejects.toThrow(BadRequestException);
   });
 });

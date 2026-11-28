@@ -8,6 +8,7 @@ import { isIncomeLegForSet, isExpenseLegForSet, getTransactionLegForAccount } fr
 import TableSkeleton from '../components/ui/TableSkeleton';
 import EmptyState from '../components/ui/EmptyState';
 import Pagination from '../components/common/Pagination';
+import TransactionTraceDrawer from '../components/finance/TransactionTraceDrawer';
 
 type HistoryTab = 'income' | 'expenses';
 const PAGE_SIZE = 10;
@@ -21,6 +22,7 @@ const FinancialHistoryPage: React.FC = () => {
     const { subsidiary } = useAuth();
     const [activeTab, setActiveTab] = useState<HistoryTab>('income');
     const [page, setPage] = useState(1);
+    const [tracingTx, setTracingTx] = useState<FinancialTransaction | null>(null);
 
     const { data: accounts = [] } = useQuery<TreasuryAccount[]>({
         queryKey: ['treasuryAccounts', subsidiary?.id],
@@ -124,16 +126,21 @@ const FinancialHistoryPage: React.FC = () => {
                                     : tx.treasuryAccountId;
                                 const { counterpartyName, balanceBefore, balanceAfter } = getTransactionLegForAccount(tx, matchedId);
                                 return (
-                                    <tr key={tx.id} className="bg-white border-b hover:bg-slate-50 whitespace-nowrap">
+                                    <tr
+                                        key={tx.id}
+                                        onClick={() => setTracingTx(tx)}
+                                        className="bg-white border-b hover:bg-slate-50 whitespace-nowrap cursor-pointer"
+                                        title={t('treasury.trace.title')}
+                                    >
                                         <td className="px-6 py-4">{new Date(tx.transactionDate).toLocaleDateString(language)}</td>
                                         <td className="px-6 py-4 font-medium text-slate-800">{tx.description}</td>
                                         <td className="px-6 py-4">{accountMap.get(matchedId) || '—'}</td>
                                         <td className="px-6 py-4">{counterpartyName}</td>
-                                        <td className={`px-6 py-4 text-right font-bold ${activeTab === 'income' ? 'text-green-700' : 'text-red-700'}`}>
+                                        <td className={`px-6 py-4 text-right tabular-nums font-bold ${activeTab === 'income' ? 'text-green-700' : 'text-red-700'}`}>
                                             {activeTab === 'income' ? '+' : '-'}{formatCurrency(Number(tx.amount))}
                                         </td>
-                                        <td className="px-6 py-4 text-right">{balanceBefore != null ? formatCurrency(balanceBefore) : '—'}</td>
-                                        <td className="px-6 py-4 text-right">{balanceAfter != null ? formatCurrency(balanceAfter) : '—'}</td>
+                                        <td className="px-6 py-4 text-right tabular-nums">{balanceBefore != null ? formatCurrency(balanceBefore) : '—'}</td>
+                                        <td className="px-6 py-4 text-right tabular-nums">{balanceAfter != null ? formatCurrency(balanceAfter) : '—'}</td>
                                     </tr>
                                 );
                             })}
@@ -142,7 +149,7 @@ const FinancialHistoryPage: React.FC = () => {
                             <tfoot>
                                 <tr className="bg-slate-100 font-bold text-slate-800">
                                     <td colSpan={6} className="px-6 py-4 text-right">{t('common.total')}</td>
-                                    <td className="px-6 py-4 text-right">{formatCurrency(total)}</td>
+                                    <td className="px-6 py-4 text-right tabular-nums">{formatCurrency(total)}</td>
                                 </tr>
                             </tfoot>
                         )}
@@ -151,6 +158,7 @@ const FinancialHistoryPage: React.FC = () => {
                 </div>
                 <Pagination meta={paginationMeta} onPageChange={setPage} />
             </div>
+            <TransactionTraceDrawer transaction={tracingTx} isOpen={!!tracingTx} onClose={() => setTracingTx(null)} />
         </div>
     );
 };

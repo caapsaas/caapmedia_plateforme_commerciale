@@ -13,6 +13,10 @@ import {
   TransactionStatus,
   TreasuryTransactionType,
   CounterpartyType,
+  PaymentStatus,
+  DebtStatus,
+  ExpenseStatus,
+  NotificationType,
   Prisma,
   AccountType,
 } from '@prisma/client';
@@ -22,6 +26,7 @@ import { CreateFinancialTransactionDto } from './dto/create-financial-transactio
 import { UpdateTreasuryAccountDto } from './dto/update-treasury-account.dto';
 import { UpdateTransactionStatusDto } from './dto/update-transaction-status.dto';
 import { CreateDisbursementDto } from './dto/create-disbursement.dto';
+import { ReverseTransactionDto } from './dto/reverse-transaction.dto';
 import { JwtUser } from 'src/common/auth/jwt/jwt-user.interface';
 import {
   checkActiveRole,
@@ -44,12 +49,16 @@ import { paginate } from 'src/common/pagination/pagination';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 import { withOpeningBalance } from './treasury-opening-balance';
 import { SystemAuditService } from 'src/common/audit/system-audit.service';
+import { FileUploadService } from 'src/common/utils/file-upload.service';
+import { NotificationsService } from 'src/notifications/notifications.service';
 @Injectable()
 export class TreasuryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly accountingOutbox: AccountingOutboxService,
     @Optional() private readonly systemAudit?: SystemAuditService,
+    @Optional() private readonly fileUploadService?: FileUploadService,
+    @Optional() private readonly notificationsService?: NotificationsService,
   ) {}
 
   // ================================================================= //
@@ -468,8 +477,10 @@ export class TreasuryService {
         this.assertIncomeAccount(account.accountType);
       }
 
+      let balanceBeforeSource: Prisma.Decimal | undefined;
       let balanceAfterSource: Prisma.Decimal | undefined;
       if (!isPending) {
+        balanceBeforeSource = account.balance;
         if (financialTransactionType === TransactionType.RECETTE) {
           const updated = await tx.treasuryAccount.update({
             where: { id: treasuryAccountId },
@@ -496,10 +507,12 @@ export class TreasuryService {
           transactionDate: new Date(transactionDate),
           providerName: dto.providerName,
           providerPhone: dto.providerPhone,
+          proofFilePath: dto.proofFilePath,
           createdByUserId: user.id,
           status: isPending
             ? TransactionStatus.EN_ATTENTE
             : TransactionStatus.VALIDE,
+          balanceBeforeSource,
           balanceAfterSource,
         },
       });
@@ -562,7 +575,13 @@ export class TreasuryService {
             ? {}
             : { subsidiaryId: user.subsidiaryId }),
         },
-        include: { treasuryAccount: true, destinationAccount: true },
+        include: {
+          treasuryAccount: true,
+          destinationAccount: true,
+          expensePayment: {
+            select: { id: true, subsidiaryId: true, description: true },
+          },
+        },
       });
 
       if (!transaction) {
@@ -588,9 +607,11 @@ export class TreasuryService {
         transaction.reference === `INIT-${transaction.treasuryAccountId}` &&
         !transaction.destinationAccountId;
 
+      const isSafeOrBankPending =
+        isBankOperation || source.accountType === AccountType.SAFE;
       if (
         getActiveRole(user) === UserRole.SUPER_ADMIN &&
-        !isBankOperation &&
+        !isSafeOrBankPending &&
         !(source.accountType === AccountType.SAFE && destination)
       ) {
         throw new ForbiddenException(
@@ -618,22 +639,23 @@ export class TreasuryService {
         }
       }
 
-      if (isBankOperation) {
+      if (isSafeOrBankPending) {
         checkActiveRole(
           user,
           [UserRole.SUPER_ADMIN, UserRole.FINANCIAL_DIRECTOR],
-          'Seul le super-administrateur ou le directeur financier de la filiale peut approuver une opération bancaire.',
+          'Seul le super-administrateur ou le directeur financier de la filiale peut approuver cette opération.',
         );
         if (
           transaction.createdByUserId === user.id &&
           !isOpeningBalanceReceipt
         ) {
           throw new ForbiddenException(
-            'L’auteur d’une opération bancaire ne peut pas l’approuver.',
+            'L’auteur d’une opération soumise à double approbation ne peut pas l’approuver.',
           );
         }
         if (
           dto.status === TransactionStatus.VALIDE &&
+          isBankOperation &&
           !transaction.createdByUserId
         ) {
           throw new ConflictException(
@@ -643,15 +665,21 @@ export class TreasuryService {
       }
 
       if (dto.status === TransactionStatus.ANNULE) {
-        if (!isBankOperation) {
+        if (!isSafeOrBankPending) {
           throw new BadRequestException(
-            'Seule une opération bancaire en attente peut être annulée par ce circuit.',
+            'Seule une opération bancaire ou de coffre en attente peut être annulée par ce circuit.',
+          );
+        }
+        if (isIncome && isBankOperation && !dto.reason?.trim()) {
+          throw new BadRequestException(
+            'Un motif est obligatoire pour rejeter ou déclarer impayé un encaissement différé.',
           );
         }
         const cancelled = await tx.financialTransaction.updateMany({
           where: { id, status: TransactionStatus.EN_ATTENTE },
           data: {
             status: TransactionStatus.ANNULE,
+            rejectionReason: dto.reason?.trim() || null,
             approvedByUserId: user.id,
             approvedAt: new Date(),
           },
@@ -661,20 +689,43 @@ export class TreasuryService {
             'Cette opération a déjà été traitée. Actualisez puis réessayez.',
           );
         }
+
+        // Réouverture automatique de la créance Order en cas de chèque/virement impayé
+        if (isIncome && transaction.relatedDocumentId) {
+          await this.reopenOrderOnBouncedPayment(
+            tx,
+            transaction.relatedDocumentId,
+            transaction.amount,
+            dto.reason?.trim() || 'Encaissement différé rejeté / impayé',
+            user.id,
+          );
+        }
+
+        if (transaction.expensePayment) {
+          await tx.expenseRecord.update({
+            where: { id: transaction.expensePayment.id },
+            data: { paymentTransactionId: null },
+          });
+        }
+
         await this.systemAudit?.log(
           {
             actorId: user.id,
             actorEmail: user.email,
             actorRole: getActiveRole(user),
             subsidiaryId: transaction.subsidiaryId,
-            action: 'TREASURY_TRANSACTION_CANCELLED',
+            action:
+              isIncome && transaction.relatedDocumentId
+                ? 'DEFERRED_PAYMENT_BOUNCED'
+                : 'TREASURY_TRANSACTION_CANCELLED',
             entityType: 'FinancialTransaction',
             entityId: id,
-            summary: `Transaction ${id} annulée par ${user.email}`,
+            summary: `Transaction ${id} annulée par ${user.email}${dto.reason ? ` (${dto.reason})` : ''}`,
             metadata: {
               amount: Number(transaction.amount),
               sourceAccountId: source.id,
               destinationAccountId: destination?.id ?? null,
+              reason: dto.reason?.trim() || null,
             },
           },
           tx,
@@ -696,11 +747,30 @@ export class TreasuryService {
         );
       }
 
+      const rawBankFees = Number(dto.bankFees ?? 0);
+      if (
+        isIncome &&
+        rawBankFees > 0 &&
+        rawBankFees >= Number(transaction.amount)
+      ) {
+        throw new BadRequestException(
+          'Les frais bancaires doivent être strictement inférieurs au montant encaissé.',
+        );
+      }
+      const feesDecimal =
+        isIncome && rawBankFees > 0 ? new Prisma.Decimal(rawBankFees) : null;
+      const netCreditAmount = feesDecimal
+        ? transaction.amount.sub(feesDecimal)
+        : transaction.amount;
+
+      const balanceBeforeSource = source.balance;
+      const balanceBeforeDest = destination?.balance;
+
       const balanceAfterSource = isIncome
         ? (
             await tx.treasuryAccount.update({
               where: { id: source.id },
-              data: { balance: { increment: transaction.amount } },
+              data: { balance: { increment: netCreditAmount } },
             })
           ).balance
         : await this.debitAccount(tx, source, transaction.amount);
@@ -711,25 +781,54 @@ export class TreasuryService {
           data: { balance: { increment: transaction.amount } },
         }));
 
+      // Si paiement différé de dette fournisseur via Banque/Coffre, solder la dette ici
+      if (!isIncome && transaction.supplierDebtId) {
+        await this.settleSupplierDebtOnApproval(
+          tx,
+          transaction.supplierDebtId,
+          transaction.amount,
+          source.accountName,
+        );
+      }
+
+      if (!isIncome && transaction.expensePayment) {
+        await tx.expenseRecord.update({
+          where: { id: transaction.expensePayment.id },
+          data: { status: ExpenseStatus.PAID },
+        });
+      }
+
       const updatedTransaction = await tx.financialTransaction.update({
         where: { id },
         data: {
+          balanceBeforeSource,
           balanceAfterSource,
+          balanceBeforeDest,
           balanceAfterDest: updatedDestination?.balance,
+          ...(feesDecimal
+            ? { grossAmount: transaction.amount, feesAmount: feesDecimal }
+            : {}),
         },
       });
 
+      const outboxEventType = destination
+        ? 'TREASURY_TRANSFER'
+        : isIncome
+          ? 'TREASURY_INCOME'
+          : transaction.supplierDebtId
+            ? 'SUPPLIER_DEBT_PAYMENT'
+            : transaction.expensePayment
+              ? 'EXPENSE_RECORD_PAYMENT'
+              : 'TREASURY_EXPENSE';
+
       await this.accountingOutbox.enqueue(tx, {
-        eventType: destination
-          ? 'TREASURY_TRANSFER'
-          : isIncome
-            ? 'TREASURY_INCOME'
-            : 'TREASURY_EXPENSE',
+        eventType: outboxEventType,
         subsidiaryId: transaction.subsidiaryId,
         payload: {
           userId: user.id,
           operationDate: transaction.transactionDate.toISOString(),
-          amount: Number(transaction.amount),
+          amount: Number(isIncome ? netCreditAmount : transaction.amount),
+          ...(feesDecimal ? { feesAmount: Number(feesDecimal) } : {}),
           description: transaction.description,
           sourceId: transaction.id,
           accountType: source.accountType,
@@ -923,13 +1022,51 @@ export class TreasuryService {
         );
       }
 
-      // Toute opération impliquant un compte bancaire attend une approbation
-      // distincte, qu’il soit à la source ou à la destination du virement.
+      // Seuils configurables filiale (Imprest + Plafond unitaire + Maker-Checker Coffre)
+      const subConfig = await tx.subsidiary.findUnique({
+        where: { id: sourceAccount.subsidiaryId },
+        select: {
+          expenseBoxUnitLimit: true,
+          expenseBoxImprestCeiling: true,
+          safeMakerCheckerThreshold: true,
+        },
+      });
+
+      if (
+        sourceAccount.accountType === AccountType.EXPENSE_BOX &&
+        subConfig?.expenseBoxUnitLimit != null &&
+        decimalAmount.greaterThan(subConfig.expenseBoxUnitLimit)
+      ) {
+        throw new BadRequestException(
+          `Montant supérieur au plafond unitaire de la caisse dépense (${Number(subConfig.expenseBoxUnitLimit)} FCFA).`,
+        );
+      }
+
+      if (
+        destinationAccount?.accountType === AccountType.EXPENSE_BOX &&
+        subConfig?.expenseBoxImprestCeiling != null &&
+        destinationAccount.balance
+          .add(decimalAmount)
+          .greaterThan(subConfig.expenseBoxImprestCeiling)
+      ) {
+        throw new BadRequestException(
+          `L'alimentation dépasse le plafond d'avance Imprest de la caisse dépense (${Number(subConfig.expenseBoxImprestCeiling)} FCFA).`,
+        );
+      }
+
+      // Toute opération impliquant un compte bancaire OU dépassant le seuil coffre-fort
+      // attend une approbation distincte.
       const isBankOperation =
         sourceAccount.accountType === AccountType.BANQUE ||
         destinationAccount?.accountType === AccountType.BANQUE;
+      const exceedsSafeThreshold =
+        sourceAccount.accountType === AccountType.SAFE &&
+        subConfig?.safeMakerCheckerThreshold != null &&
+        decimalAmount.greaterThanOrEqualTo(subConfig.safeMakerCheckerThreshold);
       const isPending =
-        dto.status === TransactionStatus.EN_ATTENTE || isBankOperation;
+        dto.status === TransactionStatus.EN_ATTENTE ||
+        isBankOperation ||
+        exceedsSafeThreshold;
 
       // L'écriture appartient à la filiale du compte source (là où l'argent
       // se trouve), pas forcément à celle de l'utilisateur qui agit (un
@@ -942,9 +1079,12 @@ export class TreasuryService {
         dto,
       );
 
+      let balanceBeforeSource: Prisma.Decimal | undefined;
       let balanceAfterSource: Prisma.Decimal | undefined;
+      let balanceBeforeDest: Prisma.Decimal | undefined;
       let balanceAfterDest: Prisma.Decimal | undefined;
       if (!isPending) {
+        balanceBeforeSource = sourceAccount.balance;
         balanceAfterSource = await this.debitAccount(
           tx,
           sourceAccount,
@@ -952,6 +1092,7 @@ export class TreasuryService {
         );
 
         if (destinationAccount) {
+          balanceBeforeDest = destinationAccount.balance;
           const updatedDest = await tx.treasuryAccount.update({
             where: { id: destinationAccount.id },
             data: { balance: { increment: decimalAmount } },
@@ -971,6 +1112,7 @@ export class TreasuryService {
           destinationAccountId: destinationAccount?.id,
           treasuryType: dto.treasuryType,
           reference: dto.reference,
+          proofFilePath: dto.proofFilePath,
           counterpartyId,
           createdByUserId: user.id,
           subsidiaryId: transactionSubsidiaryId,
@@ -978,7 +1120,9 @@ export class TreasuryService {
           status: isPending
             ? TransactionStatus.EN_ATTENTE
             : TransactionStatus.VALIDE,
+          balanceBeforeSource,
           balanceAfterSource,
+          balanceBeforeDest,
           balanceAfterDest,
         },
       });
@@ -1042,10 +1186,7 @@ export class TreasuryService {
    * comptes de sa filiale.
    * `subsidiaryId` permet à un ADMIN/SUPER_ADMIN de lister les caissiers d'une filiale.
    */
-  async findEligibleCashiers(
-    user: JwtUser,
-    subsidiaryId?: string,
-  ) {
+  async findEligibleCashiers(user: JwtUser, subsidiaryId?: string) {
     const ctx = resolveScopeContext(user);
     const targetSubsidiaryWhere = withSubsidiaryScope({}, ctx, subsidiaryId);
 
@@ -1106,7 +1247,7 @@ export class TreasuryService {
     // partiel ici les laissait à `undefined` sur toute vue basée sur cet
     // endpoint générique (Décaissement, Analytics, Caisse dépense,
     // Historique financier), contrairement à findAccountTransactions.
-    return paginate(
+    const result = await paginate(
       this.prisma.financialTransaction,
       {
         where,
@@ -1121,6 +1262,10 @@ export class TreasuryService {
       },
       paginationQuery,
     );
+    return {
+      ...result,
+      data: await this.enrichTransactionsTraceability(result.data),
+    };
   }
 
   /**
@@ -1164,19 +1309,192 @@ export class TreasuryService {
       };
     }
 
-    return paginate(
+    const result = await paginate(
       this.prisma.financialTransaction,
       {
         where,
         orderBy: { transactionDate: 'desc' },
         include: {
-          treasuryAccount: { select: { accountName: true } },
-          destinationAccount: { select: { accountName: true } },
+          treasuryAccount: { select: { accountName: true, accountType: true } },
+          destinationAccount: {
+            select: { accountName: true, accountType: true },
+          },
           counterparty: { select: { name: true } },
         },
       },
       paginationQuery,
     );
+    return {
+      ...result,
+      data: await this.enrichTransactionsTraceability(result.data),
+    };
+  }
+
+  private async enrichTransactionsTraceability<
+    T extends {
+      id: string;
+      createdByUserId?: string | null;
+      approvedByUserId?: string | null;
+      reversedByUserId?: string | null;
+    },
+  >(transactions: T[]) {
+    if (!transactions.length) return transactions;
+    const userIds = Array.from(
+      new Set(
+        transactions
+          .flatMap((t) => [
+            t.createdByUserId,
+            t.approvedByUserId,
+            t.reversedByUserId,
+          ])
+          .filter((id): id is string => !!id),
+      ),
+    );
+    const txIds = transactions.map((t) => t.id);
+
+    const [users, journalEntries] = await Promise.all([
+      userIds.length
+        ? this.prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, userName: true, email: true },
+          })
+        : Promise.resolve([]),
+      this.prisma.journalEntry.findMany({
+        where: { sourceId: { in: txIds } },
+        select: {
+          id: true,
+          sourceId: true,
+          entryNumber: true,
+          sequentialNumber: true,
+        },
+      }),
+    ]);
+
+    const userMap = new Map(users.map((u) => [u.id, u]));
+    const journalMap = new Map(
+      journalEntries.filter((j) => !!j.sourceId).map((j) => [j.sourceId, j]),
+    );
+
+    return transactions.map((t) => {
+      const journal = journalMap.get(t.id);
+      return {
+        ...t,
+        createdByUser: t.createdByUserId
+          ? (userMap.get(t.createdByUserId) ?? null)
+          : null,
+        approvedByUser: t.approvedByUserId
+          ? (userMap.get(t.approvedByUserId) ?? null)
+          : null,
+        reversedByUser: t.reversedByUserId
+          ? (userMap.get(t.reversedByUserId) ?? null)
+          : null,
+        journalEntryId: journal?.id ?? null,
+        journalEntryReference:
+          journal?.sequentialNumber || journal?.entryNumber || null,
+      };
+    });
+  }
+
+  private async reopenOrderOnBouncedPayment(
+    tx: Prisma.TransactionClient,
+    orderId: string,
+    bouncedAmount: Prisma.Decimal,
+    reason: string,
+    actorId: string,
+  ) {
+    const order = await tx.order.findUnique({ where: { id: orderId } });
+    if (!order) return;
+
+    const currentPaid = new Prisma.Decimal(order.amountPaid);
+    const nextPaid = currentPaid.greaterThan(bouncedAmount)
+      ? currentPaid.sub(bouncedAmount)
+      : new Prisma.Decimal(0);
+    const nextStatus = nextPaid.isZero()
+      ? PaymentStatus.UNPAID
+      : nextPaid.greaterThanOrEqualTo(order.totalAmount)
+        ? PaymentStatus.PAID
+        : PaymentStatus.PARTIALLY_PAID;
+
+    await tx.order.update({
+      where: { id: order.id },
+      data: { amountPaid: nextPaid, paymentStatus: nextStatus },
+    });
+
+    if (
+      order.paymentStatus === PaymentStatus.PAID &&
+      nextStatus !== PaymentStatus.PAID
+    ) {
+      await tx.sale.deleteMany({ where: { orderId: order.id } });
+    }
+
+    if (this.notificationsService) {
+      const roles = [
+        UserRole.COMMERCIAL,
+        UserRole.CAISSIER,
+        UserRole.FINANCIAL_DIRECTOR,
+        UserRole.ADMIN,
+        UserRole.SUPER_ADMIN,
+      ];
+      await Promise.all(
+        roles.map((role) =>
+          this.notificationsService.notifyUsersByRole(
+            order.subsidiaryId,
+            role,
+            {
+              title: `Incident de paiement sur commande ${order.id}`,
+              message: `Encaissement rejeté/impayé (${Number(bouncedAmount)} FCFA) — Motif : ${reason}. Créance réouverte par ${actorId}.`,
+              type: NotificationType.PAYMENT_RECEIVED,
+              data: {
+                orderId: order.id,
+                reason,
+                amount: Number(bouncedAmount),
+              },
+            },
+          ),
+        ),
+      );
+    }
+  }
+
+  private async settleSupplierDebtOnApproval(
+    tx: Prisma.TransactionClient,
+    debtId: string,
+    paymentAmount: Prisma.Decimal,
+    accountName: string,
+  ) {
+    const debt = await tx.supplierDebt.findUnique({
+      where: { id: debtId },
+      include: { purchaseOrder: true },
+    });
+    if (!debt || debt.status === DebtStatus.PAYER) return;
+
+    const remainingDebt = debt.amount.greaterThan(paymentAmount)
+      ? debt.amount.sub(paymentAmount)
+      : new Prisma.Decimal(0);
+    const newDebtStatus = remainingDebt.isZero()
+      ? DebtStatus.PAYER
+      : DebtStatus.PARTIELLEMENT_PAYE;
+
+    await tx.supplierDebt.update({
+      where: { id: debt.id },
+      data: { amount: remainingDebt, status: newDebtStatus },
+    });
+
+    const po = debt.purchaseOrder;
+    const newAmountPaid = po.amountPaid.add(paymentAmount);
+    const newPaymentStatus = newAmountPaid.gte(po.totalAmount)
+      ? PaymentStatus.PAID
+      : PaymentStatus.PARTIALLY_PAID;
+    await tx.purchaseOrder.update({
+      where: { id: po.id },
+      data: { amountPaid: newAmountPaid, paymentStatus: newPaymentStatus },
+    });
+    await tx.purchaseOrderHistory.create({
+      data: {
+        purchaseOrderId: po.id,
+        eventName: `Paiement de ${Number(paymentAmount)} validé (${accountName})`,
+      },
+    });
   }
 
   async deleteTransaction(id: string, user: JwtUser) {
@@ -1201,20 +1519,13 @@ export class TreasuryService {
     }
 
     if (
-      transaction.treasuryAccount.accountType === AccountType.BANQUE ||
-      transaction.destinationAccount?.accountType === AccountType.BANQUE
+      transaction.status === TransactionStatus.VALIDE ||
+      transaction.status === TransactionStatus.REVERSED
     ) {
       throw new BadRequestException(
-        'Une opération liée à un compte bancaire ne peut pas être supprimée. Enregistrez une opération de correction traçable.',
+        'Une transaction validée ne peut jamais être supprimée. Utilisez la contre-passation motivée.',
       );
     }
-
-    if (transaction.reference?.startsWith('ORDER-CANCEL:')) {
-      throw new BadRequestException(
-        'Le débit lié à l’annulation d’une commande doit rester sur le relevé.',
-      );
-    }
-
     if (transaction.needRequestPayment) {
       throw new BadRequestException(
         'Le règlement lié à une expression de besoin ne peut pas être supprimé.',
@@ -1223,16 +1534,6 @@ export class TreasuryService {
     if (transaction.expensePayment) {
       throw new BadRequestException(
         'Le règlement lié à une charge ne peut pas être supprimé.',
-      );
-    }
-    if (
-      transaction.status === TransactionStatus.VALIDE &&
-      ((transaction.financialTransactionType === TransactionType.RECETTE &&
-        transaction.reference === `INIT-${transaction.treasuryAccountId}`) ||
-        transaction.treasuryType === TreasuryTransactionType.CASH_REFILL)
-    ) {
-      throw new BadRequestException(
-        'Un solde initial ou une alimentation de caisse dépense validée ne peut pas être supprimé.',
       );
     }
     return this.prisma.$transaction(async (tx) => {
@@ -1249,22 +1550,202 @@ export class TreasuryService {
           }
           throw error;
         });
-      // Une transaction EN_ATTENTE n'a jamais impacté le solde (voir
-      // createTransaction) — rien à réverser dans ce cas, seule une
-      // transaction VALIDE doit être compensée avant suppression.
-      if (transaction.status === TransactionStatus.VALIDE) {
-        const balanceOp =
-          transaction.financialTransactionType === TransactionType.RECETTE
-            ? { decrement: transaction.amount }
-            : { increment: transaction.amount };
+      return deleted;
+    });
+  }
 
-        await tx.treasuryAccount.update({
-          where: { id: transaction.treasuryAccountId },
-          data: { balance: balanceOp },
-        });
+  async reverseTransaction(
+    id: string,
+    dto: ReverseTransactionDto,
+    user: JwtUser,
+  ) {
+    checkActiveRole(
+      user,
+      [UserRole.SUPER_ADMIN, UserRole.FINANCIAL_DIRECTOR],
+      'Seul le super-administrateur ou le directeur financier peut contre-passer une transaction.',
+    );
+
+    const reason = dto.reason?.trim();
+    if (!reason) {
+      throw new BadRequestException(
+        'Un motif est obligatoire pour contre-passer une transaction.',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const original = await tx.financialTransaction.findFirst({
+        where: {
+          id,
+          ...(isSuperAdmin(user) ? {} : { subsidiaryId: user.subsidiaryId }),
+        },
+        include: {
+          treasuryAccount: true,
+          destinationAccount: true,
+          expensePayment: {
+            select: { id: true, subsidiaryId: true, description: true },
+          },
+        },
+      });
+
+      if (!original) {
+        throw new NotFoundException(`Transaction with ID "${id}" not found.`);
+      }
+      if (
+        original.status !== TransactionStatus.VALIDE ||
+        original.isReversed ||
+        original.reversedTransactionId
+      ) {
+        throw new BadRequestException(
+          'Seule une transaction validée et non encore contre-passée peut être contre-passée.',
+        );
       }
 
-      return deleted;
+      const source = original.treasuryAccount;
+      const dest = original.destinationAccount;
+      const effectiveSourceAmount =
+        original.financialTransactionType === TransactionType.RECETTE &&
+        original.feesAmount
+          ? original.amount.sub(original.feesAmount)
+          : original.amount;
+
+      const balanceBeforeSource = source.balance;
+      const balanceAfterSource =
+        original.financialTransactionType === TransactionType.RECETTE
+          ? await this.debitAccount(tx, source, effectiveSourceAmount)
+          : (
+              await tx.treasuryAccount.update({
+                where: { id: source.id },
+                data: { balance: { increment: effectiveSourceAmount } },
+              })
+            ).balance;
+
+      let balanceBeforeDest: Prisma.Decimal | undefined;
+      let balanceAfterDest: Prisma.Decimal | undefined;
+      if (dest) {
+        balanceBeforeDest = dest.balance;
+        balanceAfterDest = await this.debitAccount(tx, dest, original.amount);
+      }
+
+      await tx.financialTransaction.update({
+        where: { id: original.id },
+        data: {
+          status: TransactionStatus.REVERSED,
+          isReversed: true,
+          reversalReason: reason,
+          reversedByUserId: user.id,
+          reversedAt: new Date(),
+        },
+      });
+
+      const mirrorType =
+        original.financialTransactionType === TransactionType.RECETTE
+          ? TransactionType.DEPENSE
+          : TransactionType.RECETTE;
+
+      const reversalTx = await tx.financialTransaction.create({
+        data: {
+          id: generateId(ID_PREFIXES.TREASURY),
+          description: `Contre-passation (${original.id}) : ${reason}`,
+          amount: effectiveSourceAmount,
+          financialTransactionType: mirrorType,
+          treasuryAccountId: source.id,
+          sourceAccountId: source.id,
+          destinationAccountId: dest?.id,
+          treasuryType: original.treasuryType,
+          reference: `REV-${original.reference || original.id}`,
+          relatedDocumentId: original.relatedDocumentId,
+          subsidiaryId: original.subsidiaryId,
+          transactionDate: new Date(),
+          status: TransactionStatus.VALIDE,
+          createdByUserId: user.id,
+          approvedByUserId: user.id,
+          approvedAt: new Date(),
+          reversedTransactionId: original.id,
+          reversalReason: reason,
+          balanceBeforeSource,
+          balanceAfterSource,
+          balanceBeforeDest,
+          balanceAfterDest,
+        },
+      });
+
+      await this.accountingOutbox.enqueue(tx, {
+        eventType: 'TRANSACTION_REVERSAL',
+        subsidiaryId: original.subsidiaryId,
+        payload: {
+          userId: user.id,
+          operationDate: new Date().toISOString(),
+          amount: Number(effectiveSourceAmount),
+          description: reversalTx.description,
+          sourceId: reversalTx.id,
+          reversedSourceId: original.id,
+        },
+      });
+
+      await this.systemAudit?.log(
+        {
+          actorId: user.id,
+          actorEmail: user.email,
+          actorRole: getActiveRole(user),
+          subsidiaryId: original.subsidiaryId,
+          action: 'TREASURY_TRANSACTION_REVERSED',
+          entityType: 'FinancialTransaction',
+          entityId: original.id,
+          summary: `Transaction ${original.id} contre-passée par ${user.email} (${reason})`,
+          metadata: {
+            reversalTransactionId: reversalTx.id,
+            amount: Number(effectiveSourceAmount),
+            reason,
+          },
+        },
+        tx,
+      );
+
+      return reversalTx;
+    });
+  }
+
+  async attachProof(id: string, file: Express.Multer.File, user: JwtUser) {
+    checkActiveRole(
+      user,
+      [
+        UserRole.SUPER_ADMIN,
+        UserRole.ADMIN,
+        UserRole.FINANCIAL_DIRECTOR,
+        UserRole.CAISSIER,
+      ],
+      'Permission denied to upload transaction proof.',
+    );
+
+    if (!file || !file.buffer) {
+      throw new BadRequestException('Aucun fichier justificatif fourni.');
+    }
+    if (!this.fileUploadService) {
+      throw new BadRequestException('Service de stockage indisponible.');
+    }
+
+    const transaction = await this.prisma.financialTransaction.findFirst({
+      where: {
+        id,
+        ...(isSuperAdmin(user) ? {} : { subsidiaryId: user.subsidiaryId }),
+      },
+    });
+    if (!transaction) {
+      throw new NotFoundException(`Transaction with ID "${id}" not found.`);
+    }
+
+    const { url } = await this.fileUploadService.uploadFile(
+      file.buffer,
+      file.originalname,
+      {
+        privateSubsidiaryId: transaction.subsidiaryId,
+        maxSizeMb: 10,
+      },
+    );
+
+    return this.prisma.financialTransaction.update({
+      where: { id },
+      data: { proofFilePath: url },
     });
   }
 
@@ -1301,6 +1782,7 @@ export class TreasuryService {
       );
     }
 
+    const balanceBeforeSource = account.balance;
     const updatedAccount = await tx.treasuryAccount.update({
       where: { id: dto.treasuryAccountId },
       data: { balance: { decrement: decimalAmount } },
@@ -1319,6 +1801,7 @@ export class TreasuryService {
         providerName: dto.providerName,
         providerPhone: dto.providerPhone,
         status: TransactionStatus.VALIDE,
+        balanceBeforeSource,
         balanceAfterSource: updatedAccount.balance,
       },
     });

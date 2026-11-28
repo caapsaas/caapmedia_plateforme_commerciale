@@ -13,6 +13,11 @@ export type OperationSource =
   | 'EXPENSE_RECORD'
   | 'EXPENSE_RECORD_PAYMENT'
   | 'SUPPLIER_DEBT_PAYMENT'
+  | 'SUPPLIER_CREDIT_NOTE'
+  | 'CASH_REMITTANCE_WITH_DISCREPANCY'
+  | 'PREFINANCEMENT_USAGE'
+  | 'EXTERNAL_TRANSACTION'
+  | 'TRANSACTION_REVERSAL'
   | 'LONG_TERM_DEBT_RECEIPT'
   | 'FIXED_ASSET_ACQUISITION'
   | 'PAYROLL_ACCRUAL'
@@ -32,6 +37,12 @@ export interface JournalizationContext {
   destinationAccountType?: AccountType; // virement inter-comptes (TREASURY_TRANSFER)
   expenseCategory?: ExpenseCategory; // pour dépenses : catégorie SYSCOHADA
   withTva?: boolean; // inclure TVA dans l'écriture
+  feesAmount?: number; // frais bancaires / opérateur retenus sur encaissement différé
+  declaredAmount?: number; // remise de caisse avec écart : montant déclaré caisse
+  receivedAmount?: number; // remise de caisse avec écart : montant compté coffre
+  externalType?: string; // INVESTMENT, INVESTMENT_RETURN, LOAN, DONATION
+  reversedSourceType?: OperationSource; // pour contre-passation générique
+  reversedSourceId?: string;
 }
 
 interface BuiltLine {
@@ -90,6 +101,31 @@ export class JournalizationService {
   async journalize(ctx: JournalizationContext): Promise<void> {
     const { subsidiaryId, operationDate, description, sourceType, sourceId } =
       ctx;
+
+    if (sourceType === 'TRANSACTION_REVERSAL') {
+      const targetSourceId = ctx.reversedSourceId || sourceId;
+      const originals = await this.prisma.journalEntry.findMany({
+        where: {
+          subsidiaryId,
+          sourceId: targetSourceId,
+          status: 'POSTED',
+        },
+        include: { lines: true },
+      });
+      if (originals.length > 0) {
+        await this.prisma.$transaction(async (tx) => {
+          for (const entry of originals) {
+            await this.entriesService.reversePostedEntry(
+              tx,
+              entry,
+              ctx.userId,
+              true,
+            );
+          }
+        });
+      }
+      return;
+    }
 
     // S'assure qu'un exercice existe pour l'année courante (convenience —
     // n'empêche pas de travailler sur des exercices personnalisés créés à la
@@ -187,24 +223,35 @@ export class JournalizationService {
         };
       }
 
-      // ── RECETTE TRÉSORERIE ──────────────────────────────────────────
+      // ── RECETTE TRÉSORERIE (avec frais opérateur/banque optionnels) ────
       case 'TREASURY_INCOME': {
+        const fees = Math.max(0, Number(ctx.feesAmount ?? 0));
+        const gross = amount + fees;
+        const lines: BuiltLine[] = [
+          {
+            accountNumber: treasuryAccount,
+            description: fees > 0 ? 'Encaissement net reçu' : 'Encaissement',
+            debitAmount: amount,
+            creditAmount: 0,
+          },
+          {
+            accountNumber: mappings['SALES_CLIENT'] || '411000',
+            description: 'Client',
+            debitAmount: 0,
+            creditAmount: gross,
+          },
+        ];
+        if (fees > 0) {
+          lines.splice(1, 0, {
+            accountNumber: mappings['BANK_FEES'] || '627000',
+            description: 'Frais bancaires / commission opérateur',
+            debitAmount: fees,
+            creditAmount: 0,
+          });
+        }
         return {
           journalCode: isCashFamily ? 'JC' : 'JB',
-          lines: [
-            {
-              accountNumber: treasuryAccount,
-              description: 'Encaissement',
-              debitAmount: amount,
-              creditAmount: 0,
-            },
-            {
-              accountNumber: mappings['SALES_CLIENT'] || '411000',
-              description: 'Client',
-              debitAmount: 0,
-              creditAmount: amount,
-            },
-          ],
+          lines,
         };
       }
 
@@ -369,6 +416,137 @@ export class JournalizationService {
               creditAmount: amount,
             },
           ],
+        };
+      }
+
+      // ── REMISE DE CAISSE AVEC ÉCART RÉEL (Lot 2) ──────────────────────
+      case 'CASH_REMITTANCE_WITH_DISCREPANCY': {
+        const declared = Number(ctx.declaredAmount ?? amount);
+        const received = Number(ctx.receivedAmount ?? amount);
+        const diff = received - declared;
+        const cashRegisterAcc = mappings['CASH_ACCOUNT'] || '571000';
+        const safeAcc = mappings['SAFE_ACCOUNT'] || '571200';
+        const lines: BuiltLine[] = [
+          {
+            accountNumber: safeAcc,
+            description: 'Remise de caisse — montant compté au coffre',
+            debitAmount: received,
+            creditAmount: 0,
+          },
+          {
+            accountNumber: cashRegisterAcc,
+            description: 'Remise de caisse — solde déclaré caisse',
+            debitAmount: 0,
+            creditAmount: declared,
+          },
+        ];
+        if (diff < 0) {
+          lines.splice(1, 0, {
+            accountNumber: mappings['CASH_DISCREPANCY_LOSS'] || '471000',
+            description: 'Manquant de caisse à régulariser',
+            debitAmount: Math.abs(diff),
+            creditAmount: 0,
+          });
+        } else if (diff > 0) {
+          lines.push({
+            accountNumber: mappings['CASH_DISCREPANCY_GAIN'] || '758000',
+            description: 'Excédent de caisse constaté',
+            debitAmount: 0,
+            creditAmount: diff,
+          });
+        }
+        return { journalCode: 'JOD', lines };
+      }
+
+      // ── AVOIR FOURNISSEUR (Lot 2) ─────────────────────────────────────
+      case 'SUPPLIER_CREDIT_NOTE': {
+        return {
+          journalCode: 'JA',
+          lines: [
+            {
+              accountNumber: mappings['PURCHASE_SUPPLIER'] || '401000',
+              description: 'Avoir fournisseur obtenu',
+              debitAmount: amount,
+              creditAmount: 0,
+            },
+            {
+              accountNumber: mappings['PURCHASE_COST'] || '601000',
+              description: 'Rabais / avoir sur achats',
+              debitAmount: 0,
+              creditAmount: amount,
+            },
+          ],
+        };
+      }
+
+      // ── UTILISATION PRÉFINANCEMENT SUR COMMANDE (Lot 2) ───────────────
+      case 'PREFINANCEMENT_USAGE': {
+        const chargeNum =
+          EXPENSE_CATEGORY_ACCOUNT[expenseCategory ?? 'PURCHASE_COST'] ??
+          '601000';
+        return {
+          journalCode: 'JOD',
+          lines: [
+            {
+              accountNumber: chargeNum,
+              description: 'Emploi fonds de préfinancement',
+              debitAmount: amount,
+              creditAmount: 0,
+            },
+            {
+              accountNumber: mappings['PREFINANCEMENT_ACCOUNT'] || '521100',
+              description: 'Compte de préfinancement',
+              debitAmount: 0,
+              creditAmount: amount,
+            },
+          ],
+        };
+      }
+
+      // ── OPÉRATION EXTERNE (Apport PDG / Prêt / Retour) (Lot 2) ────────
+      case 'EXTERNAL_TRANSACTION': {
+        const extType = ctx.externalType || 'INVESTMENT';
+        const isInflow =
+          extType === 'INVESTMENT' ||
+          extType === 'LOAN' ||
+          extType === 'DONATION';
+        const counterpartAccount =
+          extType === 'LOAN'
+            ? mappings['LONG_TERM_DEBT'] || '162000'
+            : extType === 'DONATION'
+              ? mappings['OTHER_INCOME'] || '758000'
+              : mappings['OWNER_EQUITY_CURRENT'] || '455000';
+        return {
+          journalCode: isCashFamily ? 'JC' : 'JB',
+          lines: isInflow
+            ? [
+                {
+                  accountNumber: treasuryAccount,
+                  description: 'Entrée de fonds externe',
+                  debitAmount: amount,
+                  creditAmount: 0,
+                },
+                {
+                  accountNumber: counterpartAccount,
+                  description: 'Compte courant associé / prêteur',
+                  debitAmount: 0,
+                  creditAmount: amount,
+                },
+              ]
+            : [
+                {
+                  accountNumber: counterpartAccount,
+                  description: 'Remboursement apport / prêt',
+                  debitAmount: amount,
+                  creditAmount: 0,
+                },
+                {
+                  accountNumber: treasuryAccount,
+                  description: 'Sortie de trésorerie',
+                  debitAmount: 0,
+                  creditAmount: amount,
+                },
+              ],
         };
       }
 

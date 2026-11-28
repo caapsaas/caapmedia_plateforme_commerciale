@@ -48,6 +48,7 @@ export interface PayableExpense {
   description: string;
   amount: string;
   expenseDate: string;
+  status?: string;
   subsidiary: { subsidiaryName: string };
 }
 
@@ -57,12 +58,40 @@ export const getPayableExpenses = async (search: string): Promise<PayableExpense
 };
 
 export const payExpense = async (id: string, payment: {
-  safeId: string;
+  safeId?: string;
+  accountId?: string;
   expectedAmount: number;
   transactionDate: string;
   reference?: string;
 }): Promise<void> => {
   await api.post(`/finance/expenses/${id}/pay`, payment);
+};
+
+export const uploadExpenseProof = async (id: string, file: File): Promise<ExpenseRecord> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await api.post<ExpenseRecord>(`/finance/expenses/${id}/proof`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data;
+};
+
+export const confirmExpenseInvoice = async (
+  id: string,
+  payload: { amount: number; description?: string; expenseDate?: string },
+): Promise<ExpenseRecord> => {
+  const { data } = await api.patch<ExpenseRecord>(`/finance/expenses/${id}/confirm-invoice`, payload);
+  return data;
+};
+
+export const approveExpense = async (id: string): Promise<ExpenseRecord> => {
+  const { data } = await api.patch<ExpenseRecord>(`/finance/expenses/${id}/approve`);
+  return data;
+};
+
+export const rejectExpense = async (id: string, reason: string): Promise<ExpenseRecord> => {
+  const { data } = await api.patch<ExpenseRecord>(`/finance/expenses/${id}/reject`, { reason });
+  return data;
 };
 
 /**
@@ -83,7 +112,9 @@ export const getExpenseById = async (id: string): Promise<ExpenseRecord> => {
  * Protégé par rôle (ADMIN, FINANCIAL_DIRECTOR).
  * @param expenseData - Les données de la charge.
  */
-export const saveExpense = async (expenseData: Partial<ExpenseRecord>): Promise<ExpenseRecord> => {
+export const saveExpense = async (
+  expenseData: Partial<ExpenseRecord> & { isPendingInvoice?: boolean },
+): Promise<ExpenseRecord> => {
   // Mapper les champs du frontend vers le backend
   const backendData = {
     description: expenseData.description,
@@ -91,6 +122,9 @@ export const saveExpense = async (expenseData: Partial<ExpenseRecord>): Promise<
     category: expenseData.category,
     expenseRecordType: expenseData.type, // type -> expenseRecordType
     expenseDate: expenseData.date, // date -> expenseDate
+    ...(expenseData.isPendingInvoice !== undefined
+      ? { isPendingInvoice: expenseData.isPendingInvoice }
+      : {}),
   };
 
   if (expenseData.id) {

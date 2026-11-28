@@ -108,7 +108,7 @@ const SidebarDropdown: React.FC<SidebarDropdownProps> = ({
               <span className={`shrink-0 transition-colors duration-200 ${hasActiveItem || isOpen ? 'text-[#c6e911]' : 'text-gray-400 group-hover:text-white'}`}>
                 {icon}
               </span>
-              <span className="font-medium text-xs tracking-wide truncate">{title}</span>
+              <span className="font-medium text-xs tracking-wide text-left leading-snug">{title}</span>
             </div>
             <ChevronDown className={`h-4 w-4 shrink-0 transition-all duration-200 ${isOpen ? 'rotate-180 text-[#c6e911]' : 'text-gray-500'}`} />
           </button>

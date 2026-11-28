@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ForbiddenException,
   ConflictException,
+  Optional,
 } from '@nestjs/common';
 import { isISO8601 } from 'class-validator';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
@@ -13,6 +14,7 @@ import {
   TransactionType,
   TransactionStatus,
   CashRemittanceStatus,
+  NotificationType,
   OrderStatus,
   Prisma,
 } from '@prisma/client';
@@ -25,6 +27,8 @@ import {
   assertSubsidiaryAccess,
 } from 'src/common/utils/subsidiary-scope';
 import { AccountingOutboxService } from 'src/accounting/outbox/accounting-outbox.service';
+import { SystemAuditService } from 'src/common/audit/system-audit.service';
+import { NotificationsService } from 'src/notifications/notifications.service';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 
@@ -54,6 +58,9 @@ export class CashRemittanceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly accountingOutbox: AccountingOutboxService,
+    @Optional() private readonly systemAudit?: SystemAuditService,
+    @Optional()
+    private readonly notificationsService?: NotificationsService,
   ) {}
 
   private sourceAccountScope(user: JwtUser) {
@@ -445,12 +452,17 @@ export class CashRemittanceService {
 
       const receivedAmount = new Prisma.Decimal(dto.receivedAmount);
       const discrepancy = receivedAmount.minus(remittance.declaredAmount);
-      if (!discrepancy.isZero()) {
+      if (
+        !discrepancy.isZero() &&
+        (!dto.notes || dto.notes.trim().length < 5)
+      ) {
         throw new BadRequestException(
-          'La remise ne peut pas être validée : le montant compté doit correspondre au montant déclaré.',
+          'Un écart entre le montant déclaré et le montant compté exige un motif explicatif dans les notes (min. 5 caractères).',
         );
       }
-      const newStatus = CashRemittanceStatus.RECEIVED;
+      const newStatus = discrepancy.isZero()
+        ? CashRemittanceStatus.RECEIVED
+        : CashRemittanceStatus.RECEIVED_WITH_DISCREPANCY;
 
       const claim = await tx.cashRemittance.updateMany({
         where: {
@@ -508,10 +520,19 @@ export class CashRemittanceService {
         select: { balance: true },
       });
 
+      const balanceBeforeSource = new Prisma.Decimal(updatedSource.balance).add(
+        remittance.declaredAmount,
+      );
+      const balanceBeforeDest = new Prisma.Decimal(updatedDest.balance).sub(
+        receivedAmount,
+      );
+
       const transaction = await tx.financialTransaction.create({
         data: {
           id: generateId(ID_PREFIXES.TREASURY),
-          description: `Versement remise de caisse ${remittance.reference}`,
+          description: discrepancy.isZero()
+            ? `Versement remise de caisse ${remittance.reference}`
+            : `Versement remise de caisse ${remittance.reference} (écart ${Number(discrepancy)} FCFA)`,
           amount: receivedAmount,
           financialTransactionType: TransactionType.DEPENSE,
           treasuryAccountId: remittance.sourceCashRegisterId,
@@ -521,18 +542,27 @@ export class CashRemittanceService {
           subsidiaryId: remittance.subsidiaryId,
           transactionDate: new Date(),
           status: TransactionStatus.VALIDE,
+          createdByUserId: remittance.createdByUserId ?? user.id,
+          approvedByUserId: user.id,
+          approvedAt: new Date(),
+          balanceBeforeSource,
+          balanceBeforeDest,
           balanceAfterSource: updatedSource.balance,
           balanceAfterDest: updatedDest.balance,
         },
       });
 
       await this.accountingOutbox.enqueue(tx, {
-        eventType: 'TREASURY_TRANSFER',
+        eventType: discrepancy.isZero()
+          ? 'TREASURY_TRANSFER'
+          : 'CASH_REMITTANCE_WITH_DISCREPANCY',
         subsidiaryId: remittance.subsidiaryId,
         payload: {
           userId: user.id,
           operationDate: new Date().toISOString(),
           amount: Number(receivedAmount),
+          declaredAmount: Number(remittance.declaredAmount),
+          receivedAmount: Number(receivedAmount),
           description: `Versement remise de caisse ${remittance.reference}`,
           sourceId: transaction.id,
           accountType: AccountType.CASH_REGISTER,
@@ -544,9 +574,102 @@ export class CashRemittanceService {
         where: { id },
         include: REMITTANCE_INCLUDE,
       });
+
+      if (!discrepancy.isZero()) {
+        await this.systemAudit?.log({
+          actorId: user.id,
+          actorEmail: user.email,
+          actorRole: user.activeRole,
+          subsidiaryId: remittance.subsidiaryId,
+          action: 'CASH_REMITTANCE_DISCREPANCY',
+          entityType: 'CashRemittance',
+          entityId: remittance.id,
+          summary: `Écart sur remise de caisse ${remittance.reference} (${Number(discrepancy)} FCFA)`,
+          metadata: {
+            reference: remittance.reference,
+            declaredAmount: Number(remittance.declaredAmount),
+            receivedAmount: Number(receivedAmount),
+            discrepancy: Number(discrepancy),
+            notes: dto.notes,
+          },
+        });
+        await this.notificationsService?.notifyUsersByRole(
+          remittance.subsidiaryId,
+          UserRole.SUPER_ADMIN,
+          {
+            title: 'Écart sur remise de caisse',
+            message: `Remise ${remittance.reference} : déclaré ${Number(remittance.declaredAmount)} FCFA, compté ${Number(receivedAmount)} FCFA (écart : ${Number(discrepancy)} FCFA). Motif : ${dto.notes}`,
+            type: NotificationType.SYSTEM_ALERT,
+            data: {
+              remittanceId: remittance.id,
+              reference: remittance.reference,
+              discrepancy: Number(discrepancy),
+            },
+          },
+        );
+      }
+
       return updatedRemittance
         ? this.serializeRemittance(updatedRemittance)
         : null;
     });
+  }
+
+  async reject(id: string, reason: string | undefined, user: JwtUser) {
+    checkActiveRole(
+      user,
+      [UserRole.FINANCIAL_DIRECTOR, UserRole.SUPER_ADMIN],
+      'Seul le Directeur Financier ou le Super-Admin peut rejeter une remise de caisse.',
+    );
+
+    const trimmedReason = reason?.trim() ?? '';
+    if (trimmedReason.length < 5) {
+      throw new BadRequestException(
+        'Le motif du rejet doit contenir au moins 5 caractères.',
+      );
+    }
+
+    const remittance = await this.prisma.cashRemittance.findUnique({
+      where: { id },
+    });
+    if (!remittance) {
+      throw new NotFoundException(`Remise de caisse ${id} introuvable.`);
+    }
+    assertSubsidiaryAccess(remittance.subsidiaryId, resolveScopeContext(user));
+    if (remittance.status !== CashRemittanceStatus.SUBMITTED) {
+      throw new BadRequestException(
+        `Cette remise ne peut pas être rejetée (statut actuel : ${remittance.status}).`,
+      );
+    }
+
+    const claim = await this.prisma.cashRemittance.updateMany({
+      where: { id, status: CashRemittanceStatus.SUBMITTED },
+      data: {
+        status: CashRemittanceStatus.REJECTED,
+        notes: trimmedReason,
+        receivedByUserId: user.id,
+      },
+    });
+    if (!claim.count) {
+      throw new ConflictException('Cette remise a déjà été traitée.');
+    }
+
+    await this.systemAudit?.log({
+      actorId: user.id,
+      actorEmail: user.email,
+      actorRole: user.activeRole,
+      subsidiaryId: remittance.subsidiaryId,
+      action: 'CASH_REMITTANCE_REJECTED',
+      entityType: 'CashRemittance',
+      entityId: remittance.id,
+      summary: `Rejet remise de caisse ${remittance.reference} : ${trimmedReason}`,
+      metadata: { reference: remittance.reference, reason: trimmedReason },
+    });
+
+    const updated = await this.prisma.cashRemittance.findUniqueOrThrow({
+      where: { id },
+      include: REMITTANCE_INCLUDE,
+    });
+    return this.serializeRemittance(updated);
   }
 }

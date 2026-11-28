@@ -135,7 +135,18 @@ export class AccountingOutboxProcessor {
 
       case 'EXPENSE_RECORD':
       case 'EXPENSE_RECORD_PAYMENT':
-      case 'TREASURY_EXPENSE': {
+      case 'TREASURY_EXPENSE':
+      case 'TREASURY_INCOME':
+      case 'TREASURY_TRANSFER':
+      case 'SALE_PAID':
+      case 'SUPPLIER_DEBT_PAYMENT':
+      case 'LONG_TERM_DEBT_RECEIPT':
+      case 'FIXED_ASSET_ACQUISITION':
+      case 'CASH_REMITTANCE_WITH_DISCREPANCY':
+      case 'SUPPLIER_CREDIT_NOTE':
+      case 'PREFINANCEMENT_USAGE':
+      case 'EXTERNAL_TRANSACTION':
+      case 'TRANSACTION_REVERSAL': {
         const context = payload as unknown as AccountingOutboxPayload;
         await this.journalizationService.journalize({
           ...context,

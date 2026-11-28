@@ -7,7 +7,7 @@ import { getPayrollPaymentSummary } from '../../services/apihr/apiPayroll';
 interface ExpenseFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (data: Omit<ExpenseRecord, 'id' | 'subsidiaryId'>) => void;
+    onSave: (data: Omit<ExpenseRecord, 'id' | 'subsidiaryId'> & { isPendingInvoice?: boolean }) => void;
     expense: ExpenseRecord | null;
 }
 
@@ -32,6 +32,7 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({ isOpen, onClose, on
         type: ExpenseType.VARIABLE,
         amount: 0,
         period: new Date().toISOString().slice(0, 7),
+        isPendingInvoice: false,
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -71,6 +72,7 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({ isOpen, onClose, on
                 type: expense.type,
                 amount: expense.amount,
                 period: new Date(expense.date).toISOString().slice(0, 7),
+                isPendingInvoice: expense.status === 'PENDING_INVOICE',
             });
         } else {
             setFormData(initialFormState);
@@ -147,13 +149,14 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({ isOpen, onClose, on
                                     <input
                                         type="number"
                                         step="any"
+                                        min="0"
                                         name="amount"
                                         id="amount"
-                                        value={formData.amount}
+                                        value={formData.isPendingInvoice ? 0 : formData.amount}
                                         onChange={handleChange}
-                                        readOnly={isSalaryCategory}
-                                        required
-                                        className={`mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm ${isSalaryCategory ? 'bg-slate-100 cursor-not-allowed' : ''}`}
+                                        readOnly={isSalaryCategory || formData.isPendingInvoice}
+                                        required={!formData.isPendingInvoice}
+                                        className={`mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm ${isSalaryCategory || formData.isPendingInvoice ? 'bg-slate-100 cursor-not-allowed' : ''}`}
                                     />
                                     {isSalaryCategory && formData.amount > 0 && (
                                         <p className="text-xs text-green-600 mt-1">✓ Montant auto-chargé</p>
@@ -164,6 +167,20 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({ isOpen, onClose, on
                                     <input type="date" name="date" id="date" value={formData.date} onChange={handleChange} required className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-4 border focus:outline-none focus:ring-1 focus:border-[#c6e911] focus:ring-[#c6e911] sm:text-sm" />
                                 </div>
                             </div>
+                            {!expense && !isSalaryCategory && (
+                                <label className="flex items-center gap-2 text-sm text-slate-700 pt-1">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.isPendingInvoice}
+                                        onChange={(e) => setFormData((prev) => ({
+                                            ...prev,
+                                            isPendingInvoice: e.target.checked,
+                                            amount: e.target.checked ? 0 : prev.amount,
+                                        }))}
+                                    />
+                                    <span>{t('expenses.form.pendingInvoiceToggle')}</span>
+                                </label>
+                            )}
                         </div>
                     </div>
                     <div className="px-6 py-4 bg-slate-50 flex justify-end space-x-3 rounded-b-lg">

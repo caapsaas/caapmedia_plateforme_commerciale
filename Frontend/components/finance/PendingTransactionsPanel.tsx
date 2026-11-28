@@ -20,6 +20,8 @@ const PendingTransactionsPanel: React.FC<{ subsidiaryId?: string }> = ({ subsidi
     const toast = useToast();
     const queryClient = useQueryClient();
     const [confirmId, setConfirmId] = useState<string | null>(null);
+    const [bankFeesMap, setBankFeesMap] = useState<Record<string, string>>({});
+    const [reasonMap, setReasonMap] = useState<Record<string, string>>({});
 
     const { data: allTransactions = [], isLoading } = useQuery<FinancialTransaction[]>({
         queryKey: ['financial-transactions', subsidiaryId],
@@ -32,11 +34,13 @@ const PendingTransactionsPanel: React.FC<{ subsidiaryId?: string }> = ({ subsidi
             tx.status === TransactionStatus.PENDING &&
             (tx.treasuryAccount?.accountType === AccountType.BANQUE ||
                 tx.destinationAccount?.accountType === AccountType.BANQUE ||
-                (tx.treasuryAccount?.accountType === AccountType.SAFE && tx.destinationAccountId)),
+                (tx.treasuryAccount?.accountType === AccountType.SAFE && tx.destinationAccountId) ||
+                tx.treasuryAccount?.accountType === AccountType.SAFE),
     );
 
     const { mutate: validate, isPending: isValidating } = useMutation({
-        mutationFn: ({ id, status }: { id: string; status: TransactionStatus }) => validateTransaction(id, status),
+        mutationFn: ({ id, status, bankFees, reason }: { id: string; status: TransactionStatus; bankFees?: number; reason?: string }) =>
+            validateTransaction(id, status, { bankFees, reason }),
         onSuccess: (_, { status }) => {
             toast.success(
                 status === TransactionStatus.CANCELLED ? 'Opération annulée' : 'Transaction validée',
@@ -163,27 +167,63 @@ const PendingTransactionsPanel: React.FC<{ subsidiaryId?: string }> = ({ subsidi
                                 </span>
 
                                 {confirmId === tx.id ? (
-                                    <div className="flex items-center gap-1.5">
-                                        <button
-                                            onClick={() => validate({ id: tx.id, status: TransactionStatus.VALIDATED })}
-                                            disabled={isValidating || selfApprovalBlocked}
-                                            className="px-3 py-1.5 text-xs font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-                                        >
-                                            {isValidating ? '...' : 'Confirmer'}
-                                        </button>
-                                        {isBankOperation && <button
-                                            onClick={() => validate({ id: tx.id, status: TransactionStatus.CANCELLED })}
-                                            disabled={isValidating || selfApprovalBlocked}
-                                            className="px-3 py-1.5 text-xs font-bold bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-50 transition-colors"
-                                        >
-                                            Refuser
-                                        </button>}
-                                        <button
-                                            onClick={() => setConfirmId(null)}
-                                            className="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
-                                        >
-                                            Annuler
-                                        </button>
+                                    <div className="flex flex-col items-end gap-2">
+                                        {tx.financialTransactionType === 'RECETTE' && isBankOperation && (
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="1"
+                                                    value={bankFeesMap[tx.id] ?? ''}
+                                                    onChange={(e) => setBankFeesMap((prev) => ({ ...prev, [tx.id]: e.target.value }))}
+                                                    placeholder="Frais bancaires (FCFA)"
+                                                    className="w-40 px-2 py-1 text-xs border border-slate-300 rounded"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={reasonMap[tx.id] ?? ''}
+                                                    onChange={(e) => setReasonMap((prev) => ({ ...prev, [tx.id]: e.target.value }))}
+                                                    placeholder="Motif si rejet/impayé"
+                                                    className="w-44 px-2 py-1 text-xs border border-slate-300 rounded"
+                                                />
+                                            </div>
+                                        )}
+                                        <div className="flex items-center gap-1.5">
+                                            <button
+                                                onClick={() => {
+                                                    const rawFees = parseFloat(bankFeesMap[tx.id] ?? '');
+                                                    validate({
+                                                        id: tx.id,
+                                                        status: TransactionStatus.VALIDATED,
+                                                        ...(Number.isFinite(rawFees) && rawFees > 0 ? { bankFees: rawFees } : {}),
+                                                    });
+                                                }}
+                                                disabled={isValidating || selfApprovalBlocked}
+                                                className="px-3 py-1.5 text-xs font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                                            >
+                                                {isValidating ? '...' : 'Confirmer'}
+                                            </button>
+                                            {isBankOperation && <button
+                                                onClick={() => {
+                                                    const reason = (reasonMap[tx.id] ?? '').trim();
+                                                    if (tx.financialTransactionType === 'RECETTE' && !reason) {
+                                                        toast.error('Motif requis', 'Saisissez le motif du rejet bancaire ou chèque impayé.');
+                                                        return;
+                                                    }
+                                                    validate({ id: tx.id, status: TransactionStatus.CANCELLED, ...(reason ? { reason } : {}) });
+                                                }}
+                                                disabled={isValidating || selfApprovalBlocked}
+                                                className="px-3 py-1.5 text-xs font-bold bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-50 transition-colors"
+                                            >
+                                                Refuser
+                                            </button>}
+                                            <button
+                                                onClick={() => setConfirmId(null)}
+                                                className="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+                                            >
+                                                Annuler
+                                            </button>
+                                        </div>
                                     </div>
                                 ) : (
                                     <button

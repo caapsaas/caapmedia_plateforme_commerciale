@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePopup } from '../../context/PopupContext';
-import { ExternalFinancialTransaction, ExternalTransactionType, ExternalTransactionCategory, ExternalTransactionStatus, PaymentMethod, Subsidiary, UserRole } from '../../types/models';
+import { AccountType, ExternalFinancialTransaction, ExternalTransactionType, ExternalTransactionCategory, ExternalTransactionStatus, PaymentMethod, Subsidiary, TreasuryAccount, UserRole } from '../../types/models';
+import { getTreasuryAccounts } from '../../services/apiFinance/apiTreasury';
 import { getExternalTransactions, createExternalTransaction, updateExternalTransaction, validateExternalTransaction, cancelExternalTransaction, deleteExternalTransaction, getExternalTransactionStatistics, ExternalTransactionFilters, ExternalTransactionStatistics, CreateExternalTransactionData } from '../../services/apiFinance/apiExternalTransactions';
 import { getPrefinancementAccount, getPrefinancementStatistics } from '../../services/apiFinance/apiPrefinancement';
 import { useAuth } from '../../context/AuthContext';
@@ -40,6 +41,7 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
   const canManage = activeRole === UserRole.SUPER_ADMIN || activeRole === UserRole.ADMIN || activeRole === UserRole.FINANCIAL_DIRECTOR;
 
   const [transactions, setTransactions] = useState<ExternalFinancialTransaction[]>([]);
+  const [treasuryAccounts, setTreasuryAccounts] = useState<TreasuryAccount[]>([]);
   const { pageItems: pageTransactions, meta: transactionsMeta, setPage } = useClientPagination(transactions);
   const [statistics, setStatistics] = useState<ExternalTransactionStatistics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,6 +58,8 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
     externalTransactionCategory: ExternalTransactionCategory.OTHER,
     paymentMethod: PaymentMethod.BANK_TRANSFER,
     referenceNumber: '',
+    impactsTreasury: false,
+    treasuryAccountId: '',
   });
   const [customCategory, setCustomCategory] = useState('');
   const [customTransactionType, setCustomTransactionType] = useState('');
@@ -66,10 +70,14 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [transactionsData, statisticsData] = await Promise.all([
+      const [transactionsData, statisticsData, accountsData] = await Promise.all([
         getExternalTransactions(subsidiary.id, filters),
         getExternalTransactionStatistics(subsidiary.id),
+        getTreasuryAccounts(subsidiary.id).catch(() => []),
       ]);
+      setTreasuryAccounts(
+        accountsData.filter((a) => a.accountType === AccountType.SAFE || a.accountType === AccountType.BANQUE),
+      );
 
       try {
         await getPrefinancementAccount(subsidiary.id);
@@ -108,6 +116,8 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
         externalTransactionCategory: formData.externalTransactionCategory,
         paymentMethod: formData.paymentMethod,
         referenceNumber: formData.referenceNumber?.trim() || undefined,
+        impactsTreasury: formData.impactsTreasury,
+        treasuryAccountId: formData.impactsTreasury ? formData.treasuryAccountId : undefined,
         createdBy: user!.id,
         subsidiaryId: subsidiary.id,
       };
@@ -145,6 +155,8 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
         externalTransactionCategory: formData.externalTransactionCategory,
         paymentMethod: formData.paymentMethod,
         referenceNumber: formData.referenceNumber || undefined,
+        impactsTreasury: formData.impactsTreasury,
+        treasuryAccountId: formData.impactsTreasury ? formData.treasuryAccountId : undefined,
       });
       toast('success', t('externalTransactions.success.updated'));
       setShowEditModal(false);
@@ -187,6 +199,8 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
       externalTransactionCategory: ExternalTransactionCategory.OTHER,
       paymentMethod: PaymentMethod.BANK_TRANSFER,
       referenceNumber: '',
+      impactsTreasury: false,
+      treasuryAccountId: '',
     });
     setCustomCategory('');
     setCustomTransactionType('');
@@ -203,6 +217,8 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
       externalTransactionCategory: transaction.externalTransactionCategory,
       paymentMethod: transaction.paymentMethod,
       referenceNumber: transaction.referenceNumber || '',
+      impactsTreasury: Boolean(transaction.impactsTreasury),
+      treasuryAccountId: transaction.treasuryAccountId || '',
     });
     setShowEditModal(true);
   };
@@ -659,6 +675,31 @@ const ExternalTransactions: React.FC<ExternalTransactionsProps> = ({ subsidiary 
                     />
                   </div>
                 </div>
+              </div>
+
+              <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={formData.impactsTreasury}
+                    onChange={(e) => setFormData({ ...formData, impactsTreasury: e.target.checked, treasuryAccountId: e.target.checked ? formData.treasuryAccountId : '' })}
+                  />
+                  <span>{t('externalTransactions.form.impactsTreasury')}</span>
+                </label>
+                {formData.impactsTreasury && (
+                  <select
+                    value={formData.treasuryAccountId}
+                    onChange={(e) => setFormData({ ...formData, treasuryAccountId: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white"
+                  >
+                    <option value="">-- {t('externalTransactions.form.selectTreasuryAccount')} --</option>
+                    {treasuryAccounts.map((acc) => (
+                      <option key={acc.id} value={acc.id}>
+                        {acc.accountName} ({acc.accountType})
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* Description pleine largeur */}

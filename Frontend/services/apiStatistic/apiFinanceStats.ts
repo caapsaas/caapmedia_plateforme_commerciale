@@ -16,39 +16,52 @@ export interface SupplierDebtsStats {
 }
 
 /**
- * Compte de résultat (Profit and Loss).
+ * Rapport Cash-Flow (trésorerie réelle & encours).
  */
-export interface PnlStatement {
-    revenue: number;
-    cogs: number;
-    grossProfit: number;
-    operatingExpenses: number;
-    taxes: number;
-    netIncome: number;
+export interface CashflowReport {
+    totalCashPosition: number;
+    balancesByType: {
+        cashRegister: number;
+        safe: number;
+        bank: number;
+        expenseBox: number;
+        prefinancement: number;
+    };
+    period: {
+        inflows: number;
+        outflows: number;
+        netCashflow: number;
+        internalTransfers: number;
+        bankFees: number;
+    };
+    pending: {
+        pendingInflows: number;
+        pendingOutflows: number;
+        customerReceivables: number;
+        supplierDebts: number;
+    };
+    monthlySeries: Array<{
+        month: string;
+        inflows: number;
+        outflows: number;
+    }>;
 }
 
 /**
- * Bilan comptable.
+ * Rapport Rentabilité Opérationnelle.
  */
-export interface BalanceSheet {
-    assets: {
-        treasury: number;
-        customerReceivables: number;
-        inventory: number;
-        equipments: number;
-        fixedAssets: number;
-    };
-    totalAssets: number;
-    liabilities: {
-        supplierDebts: number;
-        longTermDebts: number;
-    };
-    totalLiabilities: number;
-    equity: {
-        shareCapital: number;
-        retainedEarnings: number;
-    };
-    totalEquity: number;
+export interface ProfitabilityReport {
+    invoicedRevenue: number;
+    collectedRevenue: number;
+    ledgerRevenue: number;
+    collectionRate: number;
+    purchaseCosts: number;
+    operatingExpenses: number;
+    payrollCosts: number;
+    grossMargin: number;
+    netOperatingResult: number;
+    marginRate: number;
+    expenseBreakdown: Array<{ category: string; amount: number }>;
 }
 
 /**
@@ -83,26 +96,32 @@ export const getSupplierDebts = async (query: PeriodFilterDto): Promise<Supplier
 };
 
 /**
- * Récupère le compte de résultat (P&L).
- * @param query - Le filtre de période.
- * @param subsidiaryId - ID de la filiale (optionnel)
+ * Récupère le tableau de pilotage Cash-Flow.
  */
-export const getPnlStatement = async (query: PeriodFilterDto, subsidiaryId?: string): Promise<PnlStatement> => {
-    const params: any = { ...query };
+export const getCashflowReport = async (
+    query: { period?: string; startDate?: string; endDate?: string },
+    subsidiaryId?: string,
+): Promise<CashflowReport> => {
+    const params: Record<string, unknown> = { ...query };
     if (subsidiaryId) {
         params.subsidiaryId = subsidiaryId;
     }
-    const { data } = await api.get<PnlStatement>('/finances-stats/pnl-statement', { params });
+    const { data } = await api.get<CashflowReport>('/finances-stats/cashflow', { params });
     return data;
 };
 
 /**
- * Récupère le bilan comptable.
- * @param subsidiaryId - ID de la filiale (optionnel)
+ * Récupère l'analyse de rentabilité opérationnelle.
  */
-export const getBalanceSheet = async (subsidiaryId?: string): Promise<BalanceSheet> => {
-    const params = subsidiaryId ? { subsidiaryId } : {};
-    const { data } = await api.get<BalanceSheet>('/finances-stats/balance-sheet', { params });
+export const getProfitabilityReport = async (
+    query: { period?: string; startDate?: string; endDate?: string },
+    subsidiaryId?: string,
+): Promise<ProfitabilityReport> => {
+    const params: Record<string, unknown> = { ...query };
+    if (subsidiaryId) {
+        params.subsidiaryId = subsidiaryId;
+    }
+    const { data } = await api.get<ProfitabilityReport>('/finances-stats/profitability', { params });
     return data;
 };
 

@@ -47,6 +47,7 @@ export enum View {
 }
 
 export enum FinanceView {
+    PILOTAGE = 'pilotage',
     SUPPLIERS = 'suppliers',
     LONG_TERM_DEBTS = 'long_term_debts',
     TREASURY = 'treasury',
@@ -122,6 +123,11 @@ export interface ExternalFinancialTransaction {
   paymentMethod: PaymentMethod;
   referenceNumber?: string;
   relatedDocumentUrl?: string;
+  impactsTreasury?: boolean;
+  treasuryAccountId?: string | null;
+  financialTransactionId?: string | null;
+  validatedById?: string | null;
+  validatedAt?: string | null;
   createdBy: string;
   subsidiaryId: string;
   createdAt: string;
@@ -163,6 +169,9 @@ export interface Subsidiary {
   // Taux d'IS (impôt sur les sociétés, 0-1) utilisé dans le compte de résultat —
   // configurable par filiale, distinct de la TVA (module taxes).
   taxRate?: number;
+  expenseBoxUnitLimit?: number;
+  expenseBoxImprestCeiling?: number;
+  safeMakerCheckerThreshold?: number;
 }
 
 export interface User {
@@ -697,6 +706,7 @@ export enum TransactionStatus {
   VALIDATED = 'VALIDE',
   PENDING = 'EN_ATTENTE',
   CANCELLED = 'ANNULE',
+  REVERSED = 'REVERSED',
 }
 
 export type TransactionType = 'RECETTE' | 'DEPENSE';
@@ -759,9 +769,25 @@ export interface FinancialTransaction {
   treasuryType?: TreasuryTransactionType;
   reference?: string;
   counterpartyId?: string;
+  balanceBeforeSource?: number | null;
   balanceAfterSource?: number;
+  balanceBeforeDest?: number | null;
   balanceAfterDest?: number;
-  // Présents uniquement sur les réponses enrichies (historique par compte).
+  proofFilePath?: string | null;
+  rejectionReason?: string | null;
+  grossAmount?: number | null;
+  feesAmount?: number | null;
+  supplierDebtId?: string | null;
+  isReversed?: boolean;
+  reversalReason?: string | null;
+  reversedTransactionId?: string | null;
+  reversedAt?: string | null;
+  // Présents uniquement sur les réponses enrichies (historique par compte / traçabilité).
+  createdByUser?: { id: string; userName: string; email?: string } | null;
+  approvedByUser?: { id: string; userName: string; email?: string } | null;
+  reversedByUser?: { id: string; userName: string; email?: string } | null;
+  journalEntryId?: string | null;
+  journalEntryReference?: string | null;
   treasuryAccount?: { accountName: string; accountType?: AccountType };
   destinationAccount?: { accountName: string; accountType?: AccountType };
   counterparty?: { name: string };
@@ -874,6 +900,42 @@ export enum ExpenseCategory {
   OTHER = "OTHER",
 }
 
+export enum ExpenseStatus {
+  PENDING_INVOICE = 'PENDING_INVOICE',
+  DRAFT = 'DRAFT',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+  PAID = 'PAID',
+}
+
+export enum SupplierCreditNoteStatus {
+  ACTIVE = 'ACTIVE',
+  APPLIED = 'APPLIED',
+  CANCELLED = 'CANCELLED',
+}
+
+export interface SupplierCreditNote {
+  id: string;
+  creditNoteNumber: string;
+  supplierName: string;
+  supplierDebtId?: string | null;
+  purchaseOrderId?: string | null;
+  amount: number;
+  appliedAmount: number;
+  reason: string;
+  proofFilePath?: string | null;
+  status: SupplierCreditNoteStatus;
+  subsidiaryId: string;
+  createdAt: string;
+  supplierDebt?: {
+    id: string;
+    invoiceId: string;
+    supplierName: string;
+    amount: number;
+    status: DebtStatus;
+  } | null;
+}
+
 export interface ExpenseRecord {
   id: string;
   date: string;
@@ -881,11 +943,16 @@ export interface ExpenseRecord {
   category: ExpenseCategory;
   type: ExpenseType;
   amount: number;
+  status?: ExpenseStatus;
+  proofFilePath?: string | null;
+  rejectionReason?: string | null;
+  approvedAt?: string | null;
   subsidiaryId: string;
   paymentTransaction?: {
     id: string;
     transactionDate: string;
     reference: string | null;
+    status?: TransactionStatus;
     treasuryAccount: { id: string; accountName: string };
   } | null;
 }
@@ -900,6 +967,7 @@ export interface RecurringExpense {
   id: string;
   description: string;
   amount: number;
+  isVariableAmount?: boolean;
   category: ExpenseCategory;
   expenseRecordType: ExpenseType;
   frequency: RecurringExpenseFrequency;

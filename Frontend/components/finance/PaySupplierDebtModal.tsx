@@ -63,9 +63,15 @@ const PaySupplierDebtModal: React.FC<PaySupplierDebtModalProps> = ({
     enabled: isOpen,
   });
   const accounts = useMemo(
-    () => allAccounts.filter((a) => a.accountType === AccountType.SAFE && a.subsidiaryId === subsidiaryId),
+    () =>
+      allAccounts.filter(
+        (a) =>
+          (a.accountType === AccountType.SAFE || a.accountType === AccountType.BANQUE) &&
+          a.subsidiaryId === subsidiaryId,
+      ),
     [allAccounts, subsidiaryId],
   );
+  const selectedAccount = accounts.find((a) => a.id === treasuryAccountId);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value);
@@ -82,11 +88,16 @@ const PaySupplierDebtModal: React.FC<PaySupplierDebtModalProps> = ({
         paymentDate: new Date().toISOString().split('T')[0],
       });
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['supplierDebts'] });
       queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
       queryClient.invalidateQueries({ queryKey: ['treasuryAccounts'] });
-      toast.success(t('supplierDebts.paymentSuccess'), t('supplierDebts.paymentSuccessMessage'));
+      queryClient.invalidateQueries({ queryKey: ['financial-transactions'] });
+      if (res?.pendingApproval) {
+        toast.info(t('supplierDebts.pendingApprovalTitle'), t('supplierDebts.pendingApprovalMessage'));
+      } else {
+        toast.success(t('supplierDebts.paymentSuccess'), t('supplierDebts.paymentSuccessMessage'));
+      }
       onPaid?.();
       onClose();
     },
@@ -139,10 +150,20 @@ const PaySupplierDebtModal: React.FC<PaySupplierDebtModalProps> = ({
                 <option value="">-- {t('common.select')} --</option>
                 {accounts.map((acc) => (
                   <option key={acc.id} value={acc.id}>
-                    {acc.accountName} - {formatCurrency(acc.balance)}
+                    {acc.accountName} ({acc.accountType === AccountType.BANQUE ? 'Banque' : 'Coffre'}) - {formatCurrency(acc.balance)}
                   </option>
                 ))}
               </select>
+              {accounts.length === 0 && (
+                <p className="mt-1 text-xs text-rose-600">
+                  {t('supplierDebts.payModal.noCompatibleAccount')}
+                </p>
+              )}
+              {selectedAccount?.accountType === AccountType.BANQUE && (
+                <p className="mt-1 text-xs text-amber-700">
+                  {t('supplierDebts.payModal.bankMakerCheckerHint')}
+                </p>
+              )}
             </div>
             <div>
               <label htmlFor="amount" className="block text-sm font-medium text-slate-700">{t('purchasing.paymentModal.amountToPay')} <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>

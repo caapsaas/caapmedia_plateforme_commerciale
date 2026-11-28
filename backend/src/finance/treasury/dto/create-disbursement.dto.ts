@@ -67,4 +67,9 @@ export class CreateDisbursementDto {
   @IsEnum(TransactionStatus)
   @IsOptional()
   status?: TransactionStatus;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  proofFilePath?: string;
 }

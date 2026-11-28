@@ -13,6 +13,9 @@ export type SubsidiaryCreationData = Pick<Subsidiary,
   taxRate?: number;
   isHeadquarter?: boolean;
   logoSvg?: string;
+  expenseBoxUnitLimit?: number;
+  expenseBoxImprestCeiling?: number;
+  safeMakerCheckerThreshold?: number;
 };
 
 export type SubsidiaryUpdateData = Partial<SubsidiaryCreationData>;

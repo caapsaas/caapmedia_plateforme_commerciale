@@ -20,8 +20,14 @@ export type OutboxEventType =
   | 'EXPENSE_RECORD_PAYMENT'
   // Tiers
   | 'SUPPLIER_DEBT_PAYMENT'
-  // Financement
+  | 'SUPPLIER_CREDIT_NOTE'
+  // Financement & Externe
   | 'LONG_TERM_DEBT_RECEIPT'
+  | 'PREFINANCEMENT_USAGE'
+  | 'EXTERNAL_TRANSACTION'
+  // Trésorerie & Contrepassation (Lot 2)
+  | 'CASH_REMITTANCE_WITH_DISCREPANCY'
+  | 'TRANSACTION_REVERSAL'
   // Immobilisations
   | 'FIXED_ASSET_ACQUISITION'
   | 'PAYROLL_CHARGE_PAYMENT';
@@ -38,6 +44,14 @@ export interface AccountingOutboxPayload {
   destinationAccountType?: AccountType;
   expenseCategory?: ExpenseCategory;
   withTva?: boolean;
+  feesAmount?: number;
+  declaredAmount?: number;
+  receivedAmount?: number;
+  direction?: 'INFLOW' | 'OUTFLOW';
+  category?: string;
+  reason?: string;
+  reversedSourceId?: string;
+  originalSourceId?: string;
 }
 
 export interface EnqueueAccountingEventDto {

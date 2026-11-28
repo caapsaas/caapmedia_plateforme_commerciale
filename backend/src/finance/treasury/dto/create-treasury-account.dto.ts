@@ -16,7 +16,9 @@ export class CreateTreasuryAccountDto {
 
   @IsNumber({}, { message: 'Le solde initial doit être un montant valide.' })
   @Min(0, { message: 'Le solde initial ne peut pas être négatif.' })
-  @Max(9_999_999_999_999.99, { message: 'Le solde initial dépasse le montant maximal autorisé.' })
+  @Max(9_999_999_999_999.99, {
+    message: 'Le solde initial dépasse le montant maximal autorisé.',
+  })
   @IsNotEmpty({ message: 'Le solde initial est obligatoire.' })
   initialBalance: number;
 
@@ -24,7 +26,9 @@ export class CreateTreasuryAccountDto {
   @IsNotEmpty({ message: 'La devise est obligatoire.' })
   currency: string;
 
-  @IsEnum(AccountType, { message: 'Sélectionnez un type de compte de trésorerie valide.' })
+  @IsEnum(AccountType, {
+    message: 'Sélectionnez un type de compte de trésorerie valide.',
+  })
   @IsNotEmpty({ message: 'Le type de compte est obligatoire.' })
   accountType: AccountType;
 

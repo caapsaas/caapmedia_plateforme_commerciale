@@ -10,7 +10,10 @@ import {
 } from 'src/common/utils/subsidiary-scope';
 import { AccountingBalanceService } from '../shared/accounting-balance.service';
 import { ACCOUNTING_GLOBAL_SCOPE_ROLES } from '../shared/accounting-scope-roles.const';
-import { endOfDateInput, startOfDateInput } from 'src/common/utils/date-period.util';
+import {
+  endOfDateInput,
+  startOfDateInput,
+} from 'src/common/utils/date-period.util';
 
 @Injectable()
 export class ReportsService {
@@ -53,17 +56,20 @@ export class ReportsService {
     startDate?: string,
     endDate?: string,
   ): { startDate: Date; endDate: Date } {
-    const fiscalYearStart = startOfDateInput(fiscalYear.startDate.toISOString().slice(0, 10));
-    const fiscalYearEnd = endOfDateInput(fiscalYear.endDate.toISOString().slice(0, 10));
-    const requestedStart = startDate ? startOfDateInput(startDate) : fiscalYearStart;
+    const fiscalYearStart = startOfDateInput(
+      fiscalYear.startDate.toISOString().slice(0, 10),
+    );
+    const fiscalYearEnd = endOfDateInput(
+      fiscalYear.endDate.toISOString().slice(0, 10),
+    );
+    const requestedStart = startDate
+      ? startOfDateInput(startDate)
+      : fiscalYearStart;
     const requestedEnd = endDate ? endOfDateInput(endDate) : fiscalYearEnd;
     return {
       startDate:
-        requestedStart < fiscalYearStart
-          ? fiscalYearStart
-          : requestedStart,
-      endDate:
-        requestedEnd > fiscalYearEnd ? fiscalYearEnd : requestedEnd,
+        requestedStart < fiscalYearStart ? fiscalYearStart : requestedStart,
+      endDate: requestedEnd > fiscalYearEnd ? fiscalYearEnd : requestedEnd,
     };
   }
 

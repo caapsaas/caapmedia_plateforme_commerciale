@@ -106,7 +106,13 @@ const RecurringExpenses: React.FC<RecurringExpensesProps> = ({ subsidiary, recur
                                 <tr key={expense.id} className="bg-white border-b hover:bg-slate-50">
                                     <td className="px-6 py-4 font-medium text-slate-900">{expense.description}</td>
                                     <td className="px-6 py-4">{t(`expenses.categories.${expense.category}`)}</td>
-                                    <td className="px-6 py-4 text-right font-semibold">{formatCurrency(expense.amount)}</td>
+                                    <td className="px-6 py-4 text-right font-semibold tabular-nums">
+                                        {expense.isVariableAmount ? (
+                                            <span className="inline-block rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                                                {t('recurringExpenses.variableBadge')}
+                                            </span>
+                                        ) : formatCurrency(expense.amount)}
+                                    </td>
                                     <td className="px-6 py-4">{t(`recurringExpenses.frequency.${expense.frequency}`)}</td>
                                     <td className="px-6 py-4">{fmtDate(expense.nextExecutionDate, language)}</td>
                                     <td className="px-6 py-4 text-center">

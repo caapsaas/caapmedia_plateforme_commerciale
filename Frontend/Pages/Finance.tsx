@@ -20,6 +20,7 @@ import ExpenseBoxView from '../components/finance/ExpenseBoxView';
 import CashRemittanceManagement from '../components/finance/CashRemittanceManagement';
 import TreasuryManagement from '../components/finance/TreasuryManagement';
 import PendingTransactionsPanel from '../components/finance/PendingTransactionsPanel';
+import CashflowProfitabilityView from '../components/finance/CashflowProfitabilityView';
 import TabBar, { TabItem } from '../components/ui/TabBar';
 import CrmListSkeleton from '../components/ui/CrmListSkeleton';
 
@@ -97,6 +98,7 @@ const Finance: React.FC = () => {
     });
 
     const allTabs: TabItem<FinanceView>[] = [
+        { value: FinanceView.PILOTAGE,              label: t('finance.pilotage.tabTitle'),    icon: <IconScale className="h-4 w-4" /> },
         { value: FinanceView.SUPPLIERS,             label: t('finance.supplierDebts'),        icon: <IconTruckCoins className="h-4 w-4" /> },
         { value: FinanceView.LONG_TERM_DEBTS,       label: t('supplierDebts.longTerm.tabTitle'), icon: <IconTruckCoins className="h-4 w-4" /> },
         { value: FinanceView.PREFINANCEMENT,        label: t('finance.prefinancement'),       icon: <IconCoins className="h-4 w-4" /> },
@@ -118,8 +120,9 @@ const Finance: React.FC = () => {
         : allTabs;
 
     const renderContent = () => {
-        // Trésorerie est une vue globale (comptes centralisés au siège pour
-        // Banque/Coffre) — ne dépend pas de la filiale sélectionnée.
+        if (activeTab === FinanceView.PILOTAGE) {
+            return <CashflowProfitabilityView subsidiary={isSuperAdmin && !subsidiaryFilter ? null : effectiveSubsidiary} />;
+        }
         if (activeTab === FinanceView.TREASURY) return <TreasuryManagement />;
         if (!effectiveSubsidiary) return null;
 

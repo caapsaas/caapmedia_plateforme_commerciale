@@ -34,7 +34,7 @@ const ProductManagement: React.FC = () => {
     // --- TanStack Query: Data Fetching ---
     const { data: items = [], isLoading, isError } = useQuery<StockItem[]>({
         queryKey: ['stockItems', subsidiary?.id],
-        queryFn: getStockItemsBySubsidiary,
+        queryFn: () => getStockItemsBySubsidiary(subsidiary?.id),
         enabled: !!subsidiary,
     });
     const filteredItems = items.filter((item) =>

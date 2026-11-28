@@ -86,6 +86,21 @@ class CreateSubsidiaryDto {
   @IsOptional()
   @IsBoolean()
   isHeadquarter?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  expenseBoxUnitLimit?: number | null;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  expenseBoxImprestCeiling?: number | null;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  safeMakerCheckerThreshold?: number | null;
 }
 
 class UpdateSubsidiaryDto {
@@ -151,6 +166,21 @@ class UpdateSubsidiaryDto {
   @IsOptional()
   @IsBoolean()
   isHeadquarter?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  expenseBoxUnitLimit?: number | null;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  expenseBoxImprestCeiling?: number | null;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  safeMakerCheckerThreshold?: number | null;
 }
 
 class SearchSubsidiariesDto extends PaginationQueryDto {
@@ -187,7 +217,9 @@ export class SubsidiaryController {
 
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(UserRole.SUPER_ADMIN)
-  @UseInterceptors(FileInterceptor('logo', { limits: { fileSize: 5 * 1024 * 1024 } }))
+  @UseInterceptors(
+    FileInterceptor('logo', { limits: { fileSize: 5 * 1024 * 1024 } }),
+  )
   @Post(':id/logo')
   async uploadLogo(
     @Param('id') id: string,

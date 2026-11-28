@@ -18,6 +18,7 @@ import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.d
 import { PaySupplierDebtDto } from './dto/pay-supplier-debt.dto';
 import { CreateLongTermDebtDto } from './dto/create-long-term-debt.dto';
 import { UpdateLongTermDebtDto } from './dto/update-long-term-debt.dto';
+import { CreateSupplierCreditNoteDto } from './dto/create-supplier-credit-note.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('finance/debts')
@@ -42,6 +43,30 @@ export class DebtsController {
     @CurrentUser() user: JwtUser,
   ) {
     return this.debtsService.paySupplierDebt(id, payDto, user);
+  }
+
+  @Get('supplier-credit-notes')
+  findAllSupplierCreditNotes(
+    @CurrentUser() user: JwtUser,
+    @Query() paginationQuery: PaginationQueryDto,
+  ) {
+    return this.debtsService.findAllSupplierCreditNotes(user, paginationQuery);
+  }
+
+  @Post('supplier-credit-notes')
+  createSupplierCreditNote(
+    @Body() createDto: CreateSupplierCreditNoteDto,
+    @CurrentUser() user: JwtUser,
+  ) {
+    return this.debtsService.createSupplierCreditNote(createDto, user);
+  }
+
+  @Post('supplier-credit-notes/:id/apply')
+  applySupplierCreditNote(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtUser,
+  ) {
+    return this.debtsService.applySupplierCreditNote(id, user);
   }
 
   // --- Long-Term Debts Routes ---

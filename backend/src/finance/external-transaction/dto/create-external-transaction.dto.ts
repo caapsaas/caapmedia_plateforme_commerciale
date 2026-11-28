@@ -4,12 +4,12 @@ import {
   IsOptional,
   IsEnum,
   IsDateString,
+  IsBoolean,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ExternalTransactionType,
   ExternalTransactionCategory,
-  ExternalTransactionStatus,
   PaymentMethod,
 } from '@prisma/client';
 
@@ -51,6 +51,20 @@ export class CreateExternalTransactionDto {
   @IsOptional()
   @IsString()
   referenceNumber?: string;
+
+  @ApiPropertyOptional({
+    description: 'Indique si la transaction impacte un compte de trésorerie',
+  })
+  @IsOptional()
+  @IsBoolean()
+  impactsTreasury?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Compte de trésorerie impacté (Coffre ou Banque)',
+  })
+  @IsOptional()
+  @IsString()
+  treasuryAccountId?: string;
 
   // User.id est un id préfixé custom (USR-xxx), jamais un UUID.
   @ApiProperty({ description: "ID de l'utilisateur qui crée la transaction" })

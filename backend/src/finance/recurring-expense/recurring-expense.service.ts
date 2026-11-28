@@ -3,14 +3,18 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  Optional,
 } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { AccountingOutboxService } from 'src/accounting/outbox/accounting-outbox.service';
+import { NotificationsService } from 'src/notifications/notifications.service';
 import { CreateRecurringExpenseDto } from './dto/create-recurring-expense.dto';
 import { UpdateRecurringExpenseDto } from './dto/update-recurring-expense.dto';
 import {
   ExpenseCategory,
+  ExpenseStatus,
+  NotificationType,
   RecurringExpenseFrequency,
   UserRole,
 } from '@prisma/client';
@@ -37,6 +41,8 @@ export class RecurringExpenseService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly accountingOutbox: AccountingOutboxService,
+    @Optional()
+    private readonly notificationsService?: NotificationsService,
   ) {}
 
   async create(dto: CreateRecurringExpenseDto, user: JwtUser) {
@@ -52,13 +58,20 @@ export class RecurringExpenseService {
       );
     }
 
+    if (!dto.isVariableAmount && dto.amount <= 0) {
+      throw new BadRequestException(
+        'Le montant doit être strictement positif pour une charge récurrente fixe.',
+      );
+    }
+
     const startDate = new Date(dto.startDate);
 
     return this.prisma.recurringExpense.create({
       data: {
         id: generateId(ID_PREFIXES.RECURRINGEXPENSE),
         description: dto.description,
-        amount: dto.amount,
+        amount: dto.isVariableAmount ? 0 : dto.amount,
+        isVariableAmount: Boolean(dto.isVariableAmount),
         category: dto.category,
         expenseRecordType: dto.expenseRecordType,
         frequency: dto.frequency,
@@ -154,33 +167,39 @@ export class RecurringExpenseService {
     for (const recurring of dueExpenses) {
       try {
         await this.prisma.$transaction(async (tx) => {
+          const isVariable = Boolean(recurring.isVariableAmount);
           const record = await tx.expenseRecord.create({
             data: {
               id: generateId(ID_PREFIXES.EXPENSE),
               description: recurring.description,
-              amount: recurring.amount,
+              amount: isVariable ? 0 : recurring.amount,
               category: recurring.category,
               expenseRecordType: recurring.expenseRecordType,
               expenseDate: recurring.nextExecutionDate,
               subsidiaryId: recurring.subsidiaryId,
+              status: isVariable
+                ? ExpenseStatus.PENDING_INVOICE
+                : ExpenseStatus.APPROVED,
             },
           });
 
-          await this.accountingOutbox.enqueue(tx, {
-            eventType: 'EXPENSE_RECORD',
-            subsidiaryId: recurring.subsidiaryId,
-            payload: {
-              // Généré par le cron, pas par un utilisateur — userId non
-              // consommé par JournalizationService (voir accounting-outbox.service.ts).
-              userId: 'SYSTEM_RECURRING_EXPENSE',
-              operationDate: record.expenseDate.toISOString(),
-              amount: Number(record.amount),
-              description: record.description,
-              sourceId: record.id,
-              expenseCategory: record.category,
-              withTva: true,
-            },
-          });
+          if (!isVariable) {
+            await this.accountingOutbox.enqueue(tx, {
+              eventType: 'EXPENSE_RECORD',
+              subsidiaryId: recurring.subsidiaryId,
+              payload: {
+                // Généré par le cron, pas par un utilisateur — userId non
+                // consommé par JournalizationService (voir accounting-outbox.service.ts).
+                userId: 'SYSTEM_RECURRING_EXPENSE',
+                operationDate: record.expenseDate.toISOString(),
+                amount: Number(record.amount),
+                description: record.description,
+                sourceId: record.id,
+                expenseCategory: record.category,
+                withTva: true,
+              },
+            });
+          }
 
           const nextExecutionDate = this.computeNextExecutionDate(
             recurring.nextExecutionDate,
@@ -196,6 +215,37 @@ export class RecurringExpenseService {
               isActive: isPastEndDate ? false : recurring.isActive,
             },
           });
+
+          if (isVariable && this.notificationsService) {
+            await Promise.all([
+              this.notificationsService.notifyUsersByRole(
+                recurring.subsidiaryId,
+                UserRole.FINANCIAL_DIRECTOR,
+                {
+                  title: 'Facture récurrente variable à saisir',
+                  message: `La charge récurrente "${recurring.description}" est arrivée à échéance. Veuillez saisir le montant réel de la facture.`,
+                  type: NotificationType.SYSTEM_ALERT,
+                  data: {
+                    expenseId: record.id,
+                    recurringExpenseId: recurring.id,
+                  },
+                },
+              ),
+              this.notificationsService.notifyUsersByRole(
+                recurring.subsidiaryId,
+                UserRole.ADMIN,
+                {
+                  title: 'Facture récurrente variable à saisir',
+                  message: `La charge récurrente "${recurring.description}" attend la saisie du montant réel.`,
+                  type: NotificationType.SYSTEM_ALERT,
+                  data: {
+                    expenseId: record.id,
+                    recurringExpenseId: recurring.id,
+                  },
+                },
+              ),
+            ]);
+          }
         });
 
         this.logger.log(

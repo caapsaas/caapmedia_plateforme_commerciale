@@ -274,10 +274,36 @@ export const deleteTransaction = async (id: string): Promise<FinancialTransactio
 export const validateTransaction = async (
   id: string,
   status: TransactionStatus = TransactionStatus.VALIDATED,
+  options?: { bankFees?: number; reason?: string },
 ): Promise<FinancialTransaction> => {
   const { data } = await api.patch<FinancialTransaction>(
     `/finance/treasury/transaction/${id}/status`,
-    { status },
+    { status, ...options },
+  );
+  return data;
+};
+
+export const reverseTransaction = async (
+  id: string,
+  reason: string,
+): Promise<FinancialTransaction> => {
+  const { data } = await api.post<FinancialTransaction>(
+    `/finance/treasury/transactions/${id}/reverse`,
+    { reason },
+  );
+  return data;
+};
+
+export const attachTransactionProof = async (
+  id: string,
+  file: File,
+): Promise<FinancialTransaction> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await api.post<FinancialTransaction>(
+    `/finance/treasury/transactions/${id}/proof`,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
   );
   return data;
 };

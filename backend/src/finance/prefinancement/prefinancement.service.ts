@@ -1,15 +1,23 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import {
+  AccountType,
   PrefinancementTransactionType,
   PrefinancementCategory,
   PrefinancementStatus,
+  Prisma,
+  TransactionStatus,
+  TransactionType,
 } from '@prisma/client';
 import { TreasuryService } from '../treasury/treasury.service';
+import { AccountingOutboxService } from 'src/accounting/outbox/accounting-outbox.service';
+import { SystemAuditService } from 'src/common/audit/system-audit.service';
 
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
@@ -21,6 +29,8 @@ export class PrefinancementService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly treasuryService: TreasuryService,
+    @Optional() private readonly accountingOutbox?: AccountingOutboxService,
+    @Optional() private readonly systemAudit?: SystemAuditService,
   ) {}
 
   // --- Account Methods ---
@@ -200,10 +210,13 @@ export class PrefinancementService {
     });
   }
 
-  async validateTransaction(id: string, subsidiaryId: string) {
-    // Utiliser une transaction Prisma pour garantir l'atomicité
+  async validateTransaction(
+    id: string,
+    subsidiaryId: string | undefined,
+    treasuryAccountId?: string,
+    validatorUserId?: string,
+  ) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Récupérer la transaction à valider
       const transaction = await tx.prefinancementTransaction.findUnique({
         where: { id, subsidiaryId },
       });
@@ -218,38 +231,181 @@ export class PrefinancementService {
         );
       }
 
-      // 2. Mettre à jour le statut de la transaction
-      const updatedTransaction = await tx.prefinancementTransaction.update({
-        where: { id, subsidiaryId, status: transaction.status },
-        data: { status: PrefinancementStatus.VALIDE },
-      });
-
-      // 3. Mettre à jour le solde du compte de préfinancement
       const prefinancementAccount =
         await this.treasuryService.findPrefinancementAccount(
           transaction.subsidiaryId,
         );
-
-      if (prefinancementAccount) {
-        const balanceUpdateOperation =
-          transaction.type === PrefinancementTransactionType.CREDIT
-            ? { increment: transaction.amount }
-            : { decrement: transaction.amount };
-
-        await tx.treasuryAccount.update({
-          where: { id: prefinancementAccount.id },
-          data: { balance: balanceUpdateOperation },
-        });
+      if (!prefinancementAccount) {
+        throw new BadRequestException(
+          'Aucun compte de trésorerie Préfinancement configuré pour cette filiale.',
+        );
       }
+
+      const amount = new Prisma.Decimal(transaction.amount);
+      let linkedFinTxId: string | null = null;
+      let usedAccountId: string = prefinancementAccount.id;
+
+      if (transaction.type === PrefinancementTransactionType.CREDIT) {
+        if (!treasuryAccountId) {
+          throw new BadRequestException(
+            'Sélectionnez un compte source (Coffre-fort ou Banque) pour approvisionner le préfinancement.',
+          );
+        }
+        const sourceAccount = await tx.treasuryAccount.findFirst({
+          where: {
+            id: treasuryAccountId,
+            subsidiaryId: transaction.subsidiaryId,
+            accountType: { in: [AccountType.SAFE, AccountType.BANQUE] },
+          },
+        });
+        if (!sourceAccount) {
+          throw new BadRequestException(
+            'Compte source (Coffre-fort ou Banque) introuvable dans cette filiale.',
+          );
+        }
+        if (sourceAccount.balance.comparedTo(amount) < 0) {
+          throw new BadRequestException(
+            `Solde insuffisant sur "${sourceAccount.accountName}".`,
+          );
+        }
+
+        const balanceBeforeSource = sourceAccount.balance;
+        const balanceBeforeDest = prefinancementAccount.balance;
+        const updatedSource = await tx.treasuryAccount.update({
+          where: { id: sourceAccount.id },
+          data: { balance: { decrement: amount } },
+        });
+        const updatedDest = await tx.treasuryAccount.update({
+          where: { id: prefinancementAccount.id },
+          data: { balance: { increment: amount } },
+        });
+
+        const finTx = await tx.financialTransaction.create({
+          data: {
+            id: generateId(ID_PREFIXES.TREASURY),
+            description: `Approvisionnement préfinancement : ${transaction.description}`,
+            amount,
+            financialTransactionType: TransactionType.DEPENSE,
+            treasuryAccountId: sourceAccount.id,
+            sourceAccountId: sourceAccount.id,
+            destinationAccountId: prefinancementAccount.id,
+            relatedDocumentId: transaction.id,
+            reference: transaction.referenceNumber ?? transaction.id,
+            subsidiaryId: transaction.subsidiaryId,
+            transactionDate: transaction.date,
+            status: TransactionStatus.VALIDE,
+            createdByUserId: transaction.createdBy,
+            approvedByUserId: validatorUserId ?? transaction.createdBy,
+            approvedAt: new Date(),
+            balanceBeforeSource,
+            balanceAfterSource: updatedSource.balance,
+            balanceBeforeDest,
+            balanceAfterDest: updatedDest.balance,
+          },
+        });
+        linkedFinTxId = finTx.id;
+        usedAccountId = sourceAccount.id;
+
+        if (this.accountingOutbox) {
+          await this.accountingOutbox.enqueue(tx, {
+            eventType: 'TREASURY_TRANSFER',
+            subsidiaryId: transaction.subsidiaryId,
+            payload: {
+              userId: validatorUserId ?? transaction.createdBy,
+              operationDate: transaction.date.toISOString(),
+              amount: Number(amount),
+              description: finTx.description,
+              sourceId: finTx.id,
+              accountType: sourceAccount.accountType,
+              destinationAccountType: AccountType.COMPTE_PREFINANCEMENT,
+            },
+          });
+        }
+      } else {
+        if (prefinancementAccount.balance.comparedTo(amount) < 0) {
+          throw new BadRequestException(
+            'Solde insuffisant sur le compte Préfinancement.',
+          );
+        }
+        const balanceBeforeSource = prefinancementAccount.balance;
+        const updatedPrefin = await tx.treasuryAccount.update({
+          where: { id: prefinancementAccount.id },
+          data: { balance: { decrement: amount } },
+        });
+
+        const finTx = await tx.financialTransaction.create({
+          data: {
+            id: generateId(ID_PREFIXES.TREASURY),
+            description: `Utilisation préfinancement : ${transaction.description}`,
+            amount,
+            financialTransactionType: TransactionType.DEPENSE,
+            treasuryAccountId: prefinancementAccount.id,
+            sourceAccountId: prefinancementAccount.id,
+            relatedDocumentId: transaction.relatedOrderId ?? transaction.id,
+            reference: transaction.referenceNumber ?? transaction.id,
+            subsidiaryId: transaction.subsidiaryId,
+            transactionDate: transaction.date,
+            status: TransactionStatus.VALIDE,
+            createdByUserId: transaction.createdBy,
+            approvedByUserId: validatorUserId ?? transaction.createdBy,
+            approvedAt: new Date(),
+            balanceBeforeSource,
+            balanceAfterSource: updatedPrefin.balance,
+          },
+        });
+        linkedFinTxId = finTx.id;
+
+        if (this.accountingOutbox) {
+          await this.accountingOutbox.enqueue(tx, {
+            eventType: 'PREFINANCEMENT_USAGE',
+            subsidiaryId: transaction.subsidiaryId,
+            payload: {
+              userId: validatorUserId ?? transaction.createdBy,
+              operationDate: transaction.date.toISOString(),
+              amount: Number(amount),
+              description: transaction.description,
+              sourceId: finTx.id,
+              category: transaction.category,
+            },
+          });
+        }
+      }
+
+      const updatedTransaction = await tx.prefinancementTransaction.update({
+        where: { id, subsidiaryId, status: transaction.status },
+        data: {
+          status: PrefinancementStatus.VALIDE,
+          treasuryAccountId: usedAccountId,
+          financialTransactionId: linkedFinTxId,
+          validatedById: validatorUserId,
+          validatedAt: new Date(),
+        },
+      });
+
+      await this.systemAudit?.log({
+        actorId: validatorUserId ?? transaction.createdBy,
+        subsidiaryId: transaction.subsidiaryId,
+        action: 'PREFINANCEMENT_VALIDATED',
+        entityType: 'PrefinancementTransaction',
+        entityId: transaction.id,
+        summary: `Validation préfinancement ${transaction.type} (${Number(amount)} FCFA) : ${transaction.description}`,
+        metadata: {
+          type: transaction.type,
+          amount: Number(amount),
+          financialTransactionId: linkedFinTxId,
+        },
+      });
 
       return updatedTransaction;
     });
   }
 
-  async cancelTransaction(id: string, subsidiaryId: string) {
-    // Utiliser une transaction Prisma pour garantir l'atomicité
+  async cancelTransaction(
+    id: string,
+    subsidiaryId: string | undefined,
+    actorUserId?: string,
+  ) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Récupérer la transaction à annuler
       const transaction = await tx.prefinancementTransaction.findUnique({
         where: { id, subsidiaryId },
       });
@@ -262,39 +418,81 @@ export class PrefinancementService {
         throw new ConflictException('Cette transaction est déjà annulée.');
       }
 
-      // 2. Si la transaction était validée, réinitialiser le solde du compte
       if (transaction.status === PrefinancementStatus.VALIDE) {
         const prefinancementAccount =
           await this.treasuryService.findPrefinancementAccount(
             transaction.subsidiaryId,
           );
+        const amount = new Prisma.Decimal(transaction.amount);
 
         if (prefinancementAccount) {
-          // Inverser l'opération de solde
-          const balanceUpdateOperation =
-            transaction.type === PrefinancementTransactionType.CREDIT
-              ? { decrement: transaction.amount }
-              : { increment: transaction.amount };
+          if (transaction.type === PrefinancementTransactionType.CREDIT) {
+            await tx.treasuryAccount.update({
+              where: { id: prefinancementAccount.id },
+              data: { balance: { decrement: amount } },
+            });
+            if (transaction.treasuryAccountId) {
+              await tx.treasuryAccount.update({
+                where: { id: transaction.treasuryAccountId },
+                data: { balance: { increment: amount } },
+              });
+            }
+          } else {
+            await tx.treasuryAccount.update({
+              where: { id: prefinancementAccount.id },
+              data: { balance: { increment: amount } },
+            });
+          }
+        }
 
-          await tx.treasuryAccount.update({
-            where: { id: prefinancementAccount.id },
-            data: { balance: balanceUpdateOperation },
+        if (transaction.financialTransactionId && this.accountingOutbox) {
+          await tx.financialTransaction.updateMany({
+            where: { id: transaction.financialTransactionId },
+            data: {
+              status: TransactionStatus.REVERSED,
+              isReversed: true,
+              reversalReason: 'Annulation transaction préfinancement',
+              reversedAt: new Date(),
+              reversedByUserId: actorUserId,
+            },
+          });
+          await this.accountingOutbox.enqueue(tx, {
+            eventType: 'TRANSACTION_REVERSAL',
+            subsidiaryId: transaction.subsidiaryId,
+            payload: {
+              userId: actorUserId ?? transaction.createdBy,
+              operationDate: new Date().toISOString(),
+              amount: Number(amount),
+              description: `Annulation préfinancement : ${transaction.description}`,
+              sourceId: `REV_${transaction.financialTransactionId}`,
+              originalSourceId: transaction.financialTransactionId,
+              reason: 'Annulation transaction préfinancement',
+            },
           });
         }
       }
 
-      // 3. Mettre à jour le statut de la transaction
-      return await tx.prefinancementTransaction.update({
+      const cancelled = await tx.prefinancementTransaction.update({
         where: { id, subsidiaryId, status: transaction.status },
         data: { status: PrefinancementStatus.ANNULE },
       });
+
+      await this.systemAudit?.log({
+        actorId: actorUserId ?? transaction.createdBy,
+        subsidiaryId: transaction.subsidiaryId,
+        action: 'PREFINANCEMENT_CANCELLED',
+        entityType: 'PrefinancementTransaction',
+        entityId: transaction.id,
+        summary: `Annulation préfinancement : ${transaction.description} (ancien statut : ${transaction.status})`,
+        metadata: { previousStatus: transaction.status },
+      });
+
+      return cancelled;
     });
   }
 
   async deleteTransaction(id: string, subsidiaryId: string) {
-    // Utiliser une transaction Prisma pour garantir l'atomicité
     return this.prisma.$transaction(async (tx) => {
-      // 1. Récupérer la transaction à supprimer
       const transaction = await tx.prefinancementTransaction.findUnique({
         where: { id, subsidiaryId },
       });
@@ -303,28 +501,12 @@ export class PrefinancementService {
         throw new NotFoundException('Transaction introuvable.');
       }
 
-      // 2. Si la transaction était validée, réinitialiser le solde du compte
       if (transaction.status === PrefinancementStatus.VALIDE) {
-        const prefinancementAccount =
-          await this.treasuryService.findPrefinancementAccount(
-            transaction.subsidiaryId,
-          );
-
-        if (prefinancementAccount) {
-          // Inverser l'opération de solde
-          const balanceUpdateOperation =
-            transaction.type === PrefinancementTransactionType.CREDIT
-              ? { decrement: transaction.amount }
-              : { increment: transaction.amount };
-
-          await tx.treasuryAccount.update({
-            where: { id: prefinancementAccount.id },
-            data: { balance: balanceUpdateOperation },
-          });
-        }
+        throw new ConflictException(
+          'Une transaction de préfinancement validée ne peut pas être supprimée. Annulez-la pour générer une contre-passation.',
+        );
       }
 
-      // 3. Supprimer la transaction
       return await tx.prefinancementTransaction.delete({
         where: { id, subsidiaryId },
       });

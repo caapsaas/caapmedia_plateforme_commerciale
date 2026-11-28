@@ -70,3 +70,14 @@ export const receiveCashRemittance = async (
   );
   return remittance;
 };
+
+export const rejectCashRemittance = async (
+  id: string,
+  reason: string,
+): Promise<CashRemittance> => {
+  const { data: remittance } = await api.patch<CashRemittance>(
+    `/finance/cash-remittances/${id}/reject`,
+    { reason },
+  );
+  return remittance;
+};

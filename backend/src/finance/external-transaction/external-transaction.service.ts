@@ -2,28 +2,47 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/utils/prisma/prisma.service';
 import { NotificationsService } from '../../notifications/notifications.service';
+import { AccountingOutboxService } from '../../accounting/outbox/accounting-outbox.service';
+import { SystemAuditService } from '../../common/audit/system-audit.service';
+import { generateId } from '../../common/utils/generate-id.util';
+import { ID_PREFIXES } from '../../common/constants/id-prefixes.const';
 import { CreateExternalTransactionDto } from './dto/create-external-transaction.dto';
 import { UpdateExternalTransactionDto } from './dto/update-external-transaction.dto';
 import { FindExternalTransactionsDto } from './dto/find-external-transactions.dto';
 import { paginate } from '../../common/pagination/pagination';
 import { endOfDateInput } from '../../common/utils/date-period.util';
 import {
+  AccountType,
   ExternalTransactionStatus,
   ExternalTransactionType,
   ExternalTransactionCategory,
   NotificationType,
+  TransactionStatus,
+  TransactionType,
   UserRole,
   Prisma,
 } from '@prisma/client';
+
+const EXTERNAL_INFLOW_TYPES: ExternalTransactionType[] = [
+  ExternalTransactionType.INVESTMENT_RETURN,
+  ExternalTransactionType.LOAN,
+  ExternalTransactionType.PERSONAL_INCOME,
+  ExternalTransactionType.TAX_REFUND,
+  ExternalTransactionType.INSURANCE_PAYOUT,
+  ExternalTransactionType.LEGAL_SETTLEMENT,
+];
 
 @Injectable()
 export class ExternalTransactionService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    @Optional() private accountingOutbox?: AccountingOutboxService,
+    @Optional() private systemAudit?: SystemAuditService,
   ) {}
 
   private async notifyAdminsAndFinancialDirectors(
@@ -61,10 +80,34 @@ export class ExternalTransactionService {
 
   async create(createDto: CreateExternalTransactionDto) {
     try {
+      if (createDto.impactsTreasury) {
+        if (!createDto.treasuryAccountId) {
+          throw new BadRequestException(
+            'Sélectionnez le compte de trésorerie impacté (Coffre-fort ou Banque).',
+          );
+        }
+        const account = await this.prisma.treasuryAccount.findFirst({
+          where: {
+            id: createDto.treasuryAccountId,
+            subsidiaryId: createDto.subsidiaryId,
+            accountType: { in: [AccountType.SAFE, AccountType.BANQUE] },
+          },
+        });
+        if (!account) {
+          throw new BadRequestException(
+            'Compte de trésorerie (Coffre-fort ou Banque) introuvable dans cette filiale.',
+          );
+        }
+      }
+
       const transaction = await this.prisma.externalFinancialTransaction.create(
         {
           data: {
             ...createDto,
+            impactsTreasury: Boolean(createDto.impactsTreasury),
+            treasuryAccountId: createDto.impactsTreasury
+              ? createDto.treasuryAccountId
+              : null,
             status: ExternalTransactionStatus.DRAFT,
             transactionDate: new Date(createDto.transactionDate),
           },
@@ -313,11 +356,126 @@ export class ExternalTransactionService {
       });
     }
 
-    const validatedTransaction =
-      await this.prisma.externalFinancialTransaction.update({
+    const amount = new Prisma.Decimal(transaction.amount);
+    const isInflow = EXTERNAL_INFLOW_TYPES.includes(
+      transaction.externalTransactionType,
+    );
+
+    const validatedTransaction = await this.prisma.$transaction(async (tx) => {
+      let financialTransactionId: string | null = null;
+
+      if (transaction.impactsTreasury && transaction.treasuryAccountId) {
+        const account = await tx.treasuryAccount.findFirst({
+          where: {
+            id: transaction.treasuryAccountId,
+            subsidiaryId: transaction.subsidiaryId,
+            accountType: { in: [AccountType.SAFE, AccountType.BANQUE] },
+          },
+        });
+        if (!account) {
+          throw new BadRequestException(
+            'Le compte de trésorerie rattaché est introuvable dans cette filiale.',
+          );
+        }
+
+        const subsidiary = await tx.subsidiary.findUnique({
+          where: { id: transaction.subsidiaryId },
+          select: { safeMakerCheckerThreshold: true },
+        });
+        const safeThreshold = Number(
+          subsidiary?.safeMakerCheckerThreshold ?? 0,
+        );
+        const sameUserValidation =
+          !!validatorUserId && validatorUserId === transaction.createdBy;
+        const requiresSecondApprover =
+          sameUserValidation &&
+          (account.accountType === AccountType.BANQUE ||
+            (account.accountType === AccountType.SAFE &&
+              safeThreshold > 0 &&
+              Number(amount) >= safeThreshold));
+
+        if (requiresSecondApprover) {
+          const pendingFinTx = await tx.financialTransaction.create({
+            data: {
+              id: generateId(ID_PREFIXES.TREASURY),
+              description: `Opération externe (${transaction.externalTransactionType}) : ${transaction.description}`,
+              amount,
+              financialTransactionType: isInflow
+                ? TransactionType.RECETTE
+                : TransactionType.DEPENSE,
+              treasuryAccountId: account.id,
+              sourceAccountId: account.id,
+              relatedDocumentId: transaction.id,
+              reference: transaction.referenceNumber ?? transaction.id,
+              subsidiaryId: transaction.subsidiaryId,
+              transactionDate: transaction.transactionDate,
+              status: TransactionStatus.EN_ATTENTE,
+              createdByUserId: transaction.createdBy,
+            },
+          });
+          financialTransactionId = pendingFinTx.id;
+        } else {
+          if (!isInflow && account.balance.comparedTo(amount) < 0) {
+            throw new BadRequestException(
+              `Solde insuffisant sur "${account.accountName}".`,
+            );
+          }
+          const balanceBeforeSource = account.balance;
+          const updatedAccount = await tx.treasuryAccount.update({
+            where: { id: account.id },
+            data: {
+              balance: isInflow ? { increment: amount } : { decrement: amount },
+            },
+          });
+          const finTx = await tx.financialTransaction.create({
+            data: {
+              id: generateId(ID_PREFIXES.TREASURY),
+              description: `Opération externe (${transaction.externalTransactionType}) : ${transaction.description}`,
+              amount,
+              financialTransactionType: isInflow
+                ? TransactionType.RECETTE
+                : TransactionType.DEPENSE,
+              treasuryAccountId: account.id,
+              sourceAccountId: account.id,
+              relatedDocumentId: transaction.id,
+              reference: transaction.referenceNumber ?? transaction.id,
+              subsidiaryId: transaction.subsidiaryId,
+              transactionDate: transaction.transactionDate,
+              status: TransactionStatus.VALIDE,
+              createdByUserId: transaction.createdBy,
+              approvedByUserId: validatorUserId || transaction.createdBy,
+              approvedAt: new Date(),
+              balanceBeforeSource,
+              balanceAfterSource: updatedAccount.balance,
+            },
+          });
+          financialTransactionId = finTx.id;
+
+          if (this.accountingOutbox) {
+            await this.accountingOutbox.enqueue(tx, {
+              eventType: 'EXTERNAL_TRANSACTION',
+              subsidiaryId: transaction.subsidiaryId,
+              payload: {
+                userId: validatorUserId || transaction.createdBy,
+                operationDate: transaction.transactionDate.toISOString(),
+                amount: Number(amount),
+                description: transaction.description,
+                sourceId: finTx.id,
+                accountType: account.accountType,
+                direction: isInflow ? 'INFLOW' : 'OUTFLOW',
+              },
+            });
+          }
+        }
+      }
+
+      return tx.externalFinancialTransaction.update({
         where: { id, subsidiaryId, status: transaction.status },
         data: {
           status: ExternalTransactionStatus.VALIDATED,
+          validatedById: validatorUserId || null,
+          validatedAt: new Date(),
+          ...(financialTransactionId ? { financialTransactionId } : {}),
         },
         include: {
           creator: {
@@ -335,6 +493,21 @@ export class ExternalTransactionService {
           },
         },
       });
+    });
+
+    await this.systemAudit?.log({
+      actorId: validatorUserId || validatedTransaction.createdBy,
+      subsidiaryId: validatedTransaction.subsidiaryId,
+      action: 'EXTERNAL_TRANSACTION_VALIDATED',
+      entityType: 'ExternalFinancialTransaction',
+      entityId: validatedTransaction.id,
+      summary: `Validation opération externe (${validatedTransaction.externalTransactionType}) : ${Number(validatedTransaction.amount)} FCFA`,
+      metadata: {
+        impactsTreasury: validatedTransaction.impactsTreasury,
+        financialTransactionId: validatedTransaction.financialTransactionId,
+        amount: Number(validatedTransaction.amount),
+      },
+    });
 
     if (validatorUser && validatorUser.userRole === 'FINANCIAL_DIRECTOR') {
       // Un directeur financier a validé : notifier uniquement les administrateurs
@@ -482,14 +655,19 @@ export class ExternalTransactionService {
   }
 
   async adminRemove(id: string, subsidiaryId: string) {
-    await this.findOne(id, subsidiaryId);
+    const transaction = await this.findOne(id, subsidiaryId);
+    if (transaction.status === ExternalTransactionStatus.VALIDATED) {
+      throw new BadRequestException(
+        'Une opération externe validée ne peut pas être supprimée — annulez ou contre-passez l’écriture.',
+      );
+    }
 
     await this.prisma.externalFinancialTransaction.delete({
       where: { id, subsidiaryId },
     });
 
     return {
-      message: "Transaction validée supprimée avec succès par l'administrateur",
+      message: 'Transaction brouillon supprimée avec succès',
     };
   }
 

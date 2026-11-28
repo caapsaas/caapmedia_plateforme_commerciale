@@ -47,4 +47,13 @@ export class CashRemittanceController {
   ) {
     return this.cashRemittanceService.receive(id, dto, user);
   }
+
+  @Patch(':id/reject')
+  reject(
+    @Param('id') id: string,
+    @Body() dto: { reason?: string },
+    @CurrentUser() user: JwtUser,
+  ) {
+    return this.cashRemittanceService.reject(id, dto?.reason, user);
+  }
 }

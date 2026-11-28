@@ -9,9 +9,15 @@ import {
 } from 'class-validator';
 
 export class PayExpenseDto {
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  safeId: string;
+  safeId?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  accountId?: string;
 
   @IsNumber()
   @IsPositive()

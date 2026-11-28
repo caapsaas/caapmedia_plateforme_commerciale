@@ -24,7 +24,7 @@ function TabBar<T extends string>({
   return (
     <div
       className={cn(
-        'flex items-center gap-1 p-1 bg-[var(--muted)] border border-[var(--border)] rounded-[var(--radius-md)] overflow-x-auto no-scrollbar',
+        'flex flex-wrap items-center gap-1 p-1 bg-[var(--muted)] border border-[var(--border)] rounded-[var(--radius-md)]',
         className,
       )}
     >

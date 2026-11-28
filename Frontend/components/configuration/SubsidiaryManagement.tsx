@@ -30,12 +30,18 @@ type SubsidiaryForm = {
   shareCapital: number;
   taxRate: number;
   isHeadquarter: boolean;
+  expenseBoxUnitLimit: number;
+  expenseBoxImprestCeiling: number;
+  safeMakerCheckerThreshold: number;
 };
 
 const EMPTY_FORM: SubsidiaryForm = {
   subsidiaryName: '', address: '', phone: '', email: '', niu: '', taxCenter: '', taxRegime: 'REEL', rccm: '',
   bankName: '', accountNumber: '', swiftCode: '', shareCapital: 0, taxRate: 0.3,
   isHeadquarter: false,
+  expenseBoxUnitLimit: 50000,
+  expenseBoxImprestCeiling: 250000,
+  safeMakerCheckerThreshold: 0,
 };
 
 const SubsidiaryManagement: React.FC = () => {
@@ -82,6 +88,9 @@ const SubsidiaryManagement: React.FC = () => {
       bankName: item.bankName || item.bankDetails?.bankName || '', accountNumber: item.accountNumber || item.bankDetails?.accountNumber || '',
       swiftCode: item.swiftCode || item.bankDetails?.swift || '', shareCapital: Number(item.shareCapital || 0),
       taxRate: Number(item.taxRate ?? 0.3), isHeadquarter: !!item.isHeadquarter,
+      expenseBoxUnitLimit: Number(item.expenseBoxUnitLimit ?? 50000),
+      expenseBoxImprestCeiling: Number(item.expenseBoxImprestCeiling ?? 250000),
+      safeMakerCheckerThreshold: Number(item.safeMakerCheckerThreshold ?? 0),
     });
     setLogo(null); setFormError(''); setFormOpen(true);
   };
@@ -191,6 +200,9 @@ const SubsidiaryManagement: React.FC = () => {
               </label>
               <label className="text-sm font-medium text-slate-700">Capital social (FCFA)<input required min="0" type="number" value={form.shareCapital} onChange={(event) => setField('shareCapital', Number(event.target.value))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /> <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
               <label className="text-sm font-medium text-slate-700">Taux IS (%)<input required min="0" max="100" step="0.01" type="number" value={form.taxRate * 100} onChange={(event) => setField('taxRate', Number(event.target.value) / 100)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label>
+              <label className="text-sm font-medium text-slate-700">{t('subsidiaryThresholds.expenseBoxUnitLimit')}<input min="0" type="number" value={form.expenseBoxUnitLimit} onChange={(event) => setField('expenseBoxUnitLimit', Number(event.target.value))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label>
+              <label className="text-sm font-medium text-slate-700">{t('subsidiaryThresholds.expenseBoxImprestCeiling')}<input min="0" type="number" value={form.expenseBoxImprestCeiling} onChange={(event) => setField('expenseBoxImprestCeiling', Number(event.target.value))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label>
+              <label className="text-sm font-medium text-slate-700">{t('subsidiaryThresholds.safeMakerCheckerThreshold')}<input min="0" type="number" value={form.safeMakerCheckerThreshold} onChange={(event) => setField('safeMakerCheckerThreshold', Number(event.target.value))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label>
               <label className="flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" checked={form.isHeadquarter} onChange={(event) => setField('isHeadquarter', event.target.checked)} />Cette filiale est le siège</label>
               <label className="text-sm font-medium text-slate-700">Logo (PNG ou JPEG, 5 Mo max)<input type="file" accept="image/png,image/jpeg" onChange={(event) => setLogo(event.target.files?.[0] || null)} className="mt-1 block w-full text-sm" /></label>
               {logo && <div className="flex items-center gap-3 text-sm text-slate-500"><img src={logoPreview || ''} alt="Aperçu du logo" className="h-12 w-12 object-contain" />{logo.name}</div>}

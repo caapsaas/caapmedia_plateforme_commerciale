@@ -10,6 +10,8 @@ export interface CreateExternalTransactionData {
   externalTransactionCategory: ExternalTransactionCategory;
   paymentMethod: PaymentMethod;
   referenceNumber?: string;
+  impactsTreasury?: boolean;
+  treasuryAccountId?: string;
   createdBy: string;
   subsidiaryId: string;
 }

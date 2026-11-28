@@ -2,10 +2,11 @@ import {
   IsString,
   IsNotEmpty,
   IsNumber,
-  IsPositive,
   IsEnum,
   IsDateString,
   IsOptional,
+  IsBoolean,
+  Min,
 } from 'class-validator';
 import {
   ExpenseCategory,
@@ -19,8 +20,12 @@ export class CreateRecurringExpenseDto {
   description: string;
 
   @IsNumber()
-  @IsPositive()
+  @Min(0)
   amount: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isVariableAmount?: boolean;
 
   @IsEnum(ExpenseCategory)
   @IsNotEmpty()

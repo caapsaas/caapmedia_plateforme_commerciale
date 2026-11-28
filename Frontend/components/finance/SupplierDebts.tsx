@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
-import { DebtStatus, Subsidiary, SupplierDebt, UserRole } from '../../types';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { DebtStatus, Subsidiary, SupplierCreditNoteStatus, SupplierDebt, UserRole } from '../../types';
 import { useI18n } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
+import {
+    applySupplierCreditNote,
+    createSupplierCreditNote,
+    getSupplierCreditNotes,
+} from '../../services/apiFinance/apiDebts';
 import { exportToCsv } from '../../utils/csvExporter';
 import { exportToPdf } from '../../utils/pdfExporter';
 import IconPrint from '../icons/IconPrint';
@@ -40,7 +47,10 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
     // décaissement SAFE/BANQUE (voir Pages/Disbursement.tsx). Les autres
     // rôles voient la liste mais ne peuvent pas payer.
     // activeRole prime sur userRole (apercu de role SUPER_ADMIN, voir Purchasing.tsx pour le meme correctif).
-    const isSuperAdmin = (user?.activeRole ?? user?.userRole) === UserRole.SUPER_ADMIN;
+    const toast = useToast();
+    const queryClient = useQueryClient();
+    const activeRole = user?.activeRole ?? user?.userRole;
+    const canPayDebt = activeRole === UserRole.SUPER_ADMIN || activeRole === UserRole.FINANCIAL_DIRECTOR;
     const isConsolidated = subsidiary === null;
     const supplierDebts = isConsolidated
         ? allSupplierDebts
@@ -50,6 +60,48 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
     const colSpan = isConsolidated ? 7 : 6;
 
     const [debtToPay, setDebtToPay] = useState<SupplierDebt | null>(null);
+    const [showCreditNoteModal, setShowCreditNoteModal] = useState(false);
+    const [creditNoteForm, setCreditNoteForm] = useState({
+        supplierDebtId: '',
+        creditNoteNumber: '',
+        amount: '',
+        reason: '',
+    });
+
+    const { data: creditNotes = [] } = useQuery({
+        queryKey: ['supplierCreditNotes'],
+        queryFn: getSupplierCreditNotes,
+    });
+
+    const createCreditNoteMutation = useMutation({
+        mutationFn: () =>
+            createSupplierCreditNote({
+                supplierDebtId: creditNoteForm.supplierDebtId,
+                creditNoteNumber: creditNoteForm.creditNoteNumber.trim(),
+                amount: parseFloat(creditNoteForm.amount) || 0,
+                reason: creditNoteForm.reason.trim(),
+            }),
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['supplierCreditNotes'] });
+            setShowCreditNoteModal(false);
+            setCreditNoteForm({ supplierDebtId: '', creditNoteNumber: '', amount: '', reason: '' });
+            toast.success(t('supplierDebts.creditNotes.createSuccess'));
+        },
+        onError: (err: any) => toast.error(err?.response?.data?.message || t('common.error')),
+    });
+
+    const applyCreditNoteMutation = useMutation({
+        mutationFn: (id: string) => applySupplierCreditNote(id),
+        onSuccess: async () => {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['supplierCreditNotes'] }),
+                queryClient.invalidateQueries({ queryKey: ['supplierDebts'] }),
+                queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] }),
+            ]);
+            toast.success(t('supplierDebts.creditNotes.applySuccess'));
+        },
+        onError: (err: any) => toast.error(err?.response?.data?.message || t('common.error')),
+    });
 
     const getStatusClass = (status: SupplierDebt['status']) => {
         switch (status) {
@@ -175,7 +227,7 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-center no-print">
-                                        {debt.status !== DebtStatus.PAYER && isSuperAdmin && (
+                                        {debt.status !== DebtStatus.PAYER && canPayDebt && (
                                             <button
                                                 onClick={() => setDebtToPay(debt)}
                                                 className="p-2 text-slate-500 hover:text-orange-600 hover:bg-orange-100 rounded-full transition-colors"
@@ -192,6 +244,120 @@ const SupplierDebts: React.FC<SupplierDebtsProps> = ({ subsidiary, supplierDebts
                 </div>
                 {!isLoading && <Pagination meta={debtsMeta} onPageChange={setPage} />}
             </div>
+
+            <div className="bg-white p-6 rounded-xl shadow-md space-y-4">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-slate-800">
+                        {t('supplierDebts.creditNotes.title')}
+                    </h3>
+                    {canPayDebt && (
+                        <button
+                            onClick={() => setShowCreditNoteModal(true)}
+                            className="px-3 py-2 bg-[#c6e911] text-slate-900 text-xs font-semibold rounded-md hover:bg-[#adc40f]"
+                        >
+                            {t('supplierDebts.creditNotes.add')}
+                        </button>
+                    )}
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left text-slate-500">
+                        <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                            <tr>
+                                <th className="px-4 py-2">{t('supplierDebts.creditNotes.number')}</th>
+                                <th className="px-4 py-2">{t('supplierDebts.supplier')}</th>
+                                <th className="px-4 py-2">{t('supplierDebts.invoiceId')}</th>
+                                <th className="px-4 py-2 text-right">{t('supplierDebts.amount')}</th>
+                                <th className="px-4 py-2 text-center">{t('supplierDebts.status')}</th>
+                                <th className="px-4 py-2 text-center no-print">{t('common.actions')}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {creditNotes.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="px-4 py-6 text-center text-xs text-slate-400">
+                                        {t('common.notAvailable')}
+                                    </td>
+                                </tr>
+                            ) : creditNotes.map((cn) => (
+                                <tr key={cn.id} className="border-b hover:bg-slate-50">
+                                    <td className="px-4 py-2 font-mono text-xs text-slate-800">{cn.creditNoteNumber}</td>
+                                    <td className="px-4 py-2">{cn.supplierName}</td>
+                                    <td className="px-4 py-2">{cn.supplierDebt?.invoiceId ?? '—'}</td>
+                                    <td className="px-4 py-2 text-right font-semibold tabular-nums">{formatCurrency(cn.amount)}</td>
+                                    <td className="px-4 py-2 text-center">
+                                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${cn.status === SupplierCreditNoteStatus.APPLIED ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+                                            {cn.status}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-2 text-center no-print">
+                                        {canPayDebt && cn.status === SupplierCreditNoteStatus.ACTIVE && (
+                                            <button
+                                                onClick={() => applyCreditNoteMutation.mutate(cn.id)}
+                                                disabled={applyCreditNoteMutation.isPending}
+                                                className="px-2.5 py-1 text-xs font-semibold bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50"
+                                            >
+                                                {t('supplierDebts.creditNotes.apply')}
+                                            </button>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {showCreditNoteModal && (
+                <div className="fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4" onClick={() => setShowCreditNoteModal(false)}>
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-lg font-bold text-slate-800">{t('supplierDebts.creditNotes.createTitle')}</h3>
+                        <select
+                            value={creditNoteForm.supplierDebtId}
+                            onChange={(e) => setCreditNoteForm((p) => ({ ...p, supplierDebtId: e.target.value }))}
+                            className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm"
+                        >
+                            <option value="">-- {t('supplierDebts.creditNotes.selectDebt')} --</option>
+                            {supplierDebts.filter((d) => d.status !== DebtStatus.PAYER).map((d) => (
+                                <option key={d.id} value={d.id}>
+                                    {d.supplierName} — {d.invoiceId} ({formatCurrency(d.amount)})
+                                </option>
+                            ))}
+                        </select>
+                        <input
+                            type="text"
+                            placeholder={t('supplierDebts.creditNotes.number')}
+                            value={creditNoteForm.creditNoteNumber}
+                            onChange={(e) => setCreditNoteForm((p) => ({ ...p, creditNoteNumber: e.target.value }))}
+                            className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm"
+                        />
+                        <input
+                            type="number"
+                            min="1"
+                            placeholder={t('supplierDebts.amount')}
+                            value={creditNoteForm.amount}
+                            onChange={(e) => setCreditNoteForm((p) => ({ ...p, amount: e.target.value }))}
+                            className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm"
+                        />
+                        <textarea
+                            rows={2}
+                            placeholder={t('supplierDebts.creditNotes.reason')}
+                            value={creditNoteForm.reason}
+                            onChange={(e) => setCreditNoteForm((p) => ({ ...p, reason: e.target.value }))}
+                            className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm"
+                        />
+                        <div className="flex justify-end gap-2">
+                            <button onClick={() => setShowCreditNoteModal(false)} className="px-4 py-2 text-sm bg-slate-200 rounded-md">{t('common.cancel')}</button>
+                            <button
+                                onClick={() => createCreditNoteMutation.mutate()}
+                                disabled={createCreditNoteMutation.isPending || !creditNoteForm.supplierDebtId || !creditNoteForm.creditNoteNumber || !creditNoteForm.amount}
+                                className="px-4 py-2 text-sm font-semibold bg-[#c6e911] text-slate-900 rounded-md disabled:opacity-50"
+                            >
+                                {t('common.save')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <PaySupplierDebtModal
                 isOpen={!!debtToPay}

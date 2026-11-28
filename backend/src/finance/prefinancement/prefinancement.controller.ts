@@ -159,17 +159,27 @@ export class PrefinancementController {
 
   @ActiveRoles(UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR)
   @Patch('transactions/:id/validate')
-  validateTransaction(@Param('id') id: string, @CurrentUser() user: JwtUser) {
+  validateTransaction(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtUser,
+    @Body() body?: { treasuryAccountId?: string },
+  ) {
     return this.prefenancementService.validateTransaction(
       id,
-      user.subsidiaryId,
+      financeSubsidiaryId(user),
+      body?.treasuryAccountId,
+      user.id,
     );
   }
 
   @ActiveRoles(UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR)
   @Patch('transactions/:id/cancel')
   cancelTransaction(@Param('id') id: string, @CurrentUser() user: JwtUser) {
-    return this.prefenancementService.cancelTransaction(id, user.subsidiaryId);
+    return this.prefenancementService.cancelTransaction(
+      id,
+      financeSubsidiaryId(user),
+      user.id,
+    );
   }
 
   @ActiveRoles(UserRole.ADMIN, UserRole.FINANCIAL_DIRECTOR)

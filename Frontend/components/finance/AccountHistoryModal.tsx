@@ -11,6 +11,7 @@ import IconCheck from '../icons/IconCheck';
 import IconCancelX from '../icons/IconCancelX';
 import Pagination from '../common/Pagination';
 import { useClientPagination } from '../../hooks/useClientPagination';
+import TransactionTraceDrawer from './TransactionTraceDrawer';
 
 interface AccountHistoryModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ const AccountHistoryModal: React.FC<AccountHistoryModalProps> = ({ isOpen, onClo
 
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [tracingTx, setTracingTx] = useState<FinancialTransaction | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['accountTransactions', account?.id, startDate, endDate],
@@ -132,14 +134,21 @@ const AccountHistoryModal: React.FC<AccountHistoryModalProps> = ({ isOpen, onClo
                       <td className={`px-4 py-3 text-right font-semibold ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
                         {isIncome ? '+' : '-'}{formatCurrency(Number(tx.amount))}
                       </td>
-                      <td className="px-4 py-3 text-right">{balanceBefore != null ? formatCurrency(balanceBefore) : '—'}</td>
-                      <td className="px-4 py-3 text-right">{balanceAfter != null ? formatCurrency(balanceAfter) : '—'}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">{balanceBefore != null ? formatCurrency(balanceBefore) : '—'}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">{balanceAfter != null ? formatCurrency(balanceAfter) : '—'}</td>
                       <td className="px-4 py-3 text-center">
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${tx.status === TransactionStatus.PENDING ? 'bg-amber-100 text-amber-800' : tx.status === TransactionStatus.CANCELLED ? 'bg-slate-100 text-slate-600' : 'bg-green-100 text-green-800'}`}>
-                          {tx.status === TransactionStatus.PENDING ? t('treasury.statusPending') : tx.status === TransactionStatus.CANCELLED ? t('treasury.statusCancelled') : t('treasury.statusValidated')}
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${tx.status === TransactionStatus.PENDING ? 'bg-amber-100 text-amber-800' : tx.status === TransactionStatus.REVERSED ? 'bg-orange-100 text-orange-800' : tx.status === TransactionStatus.CANCELLED ? 'bg-slate-100 text-slate-600' : 'bg-green-100 text-green-800'}`}>
+                          {tx.status === TransactionStatus.PENDING ? t('treasury.statusPending') : tx.status === TransactionStatus.REVERSED ? t('treasury.statusReversed') : tx.status === TransactionStatus.CANCELLED ? t('treasury.statusCancelled') : t('treasury.statusValidated')}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center no-print space-x-1">
+                        <button
+                          onClick={() => setTracingTx(tx)}
+                          className="px-2 py-1 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded transition-colors"
+                          title={t('treasury.trace.title')}
+                        >
+                          {t('treasury.trace.inspect')}
+                        </button>
                         {canValidate && tx.status === TransactionStatus.PENDING && (
                           <>
                             <button
@@ -170,6 +179,7 @@ const AccountHistoryModal: React.FC<AccountHistoryModalProps> = ({ isOpen, onClo
           </div>
         </div>
       </div>
+      <TransactionTraceDrawer transaction={tracingTx} isOpen={!!tracingTx} onClose={() => setTracingTx(null)} />
     </div>
   );
 };

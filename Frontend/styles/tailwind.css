@@ -39,8 +39,10 @@
   /* Sidebar Signature Anthracite */
   --sidebar-bg: #141619;
   --sidebar-surface: #1E2126;
+  --sidebar-hover: #1E2126;
   --sidebar-border: rgba(255, 255, 255, 0.08);
   --sidebar-foreground: #CBD5E1;
+  --sidebar-fg: #E2E8F0;
   --sidebar-muted: #94A3B8;
 
   /* Statuts Semantiques Stricts */

@@ -30,6 +30,10 @@ model Subsidiary {
   latitude                      Float?                         @map("latitude")
   longitude                     Float?                         @map("longitude")
   geofenceRadius                Int                            @default(100) @map("geofence_radius")
+  // Seuils financiers configurables (Lot 2)
+  expenseBoxUnitLimit           Decimal?                       @map("expense_box_unit_limit") @db.Decimal(15, 2)
+  expenseBoxImprestCeiling      Decimal?                       @map("expense_box_imprest_ceiling") @db.Decimal(15, 2)
+  safeMakerCheckerThreshold     Decimal?                       @map("safe_maker_checker_threshold") @db.Decimal(15, 2)
   absenceRecords                AbsenceRecord[]
   accounts                      Account[]
   attendanceRecords             AttendanceRecord[]
@@ -80,6 +84,7 @@ model Subsidiary {
   payrollCumulatives     PayrollCumulative[]    @relation("PayrollCumulatives")
   cashRemittances        CashRemittance[]
   userSubsidiaryAccesses UserSubsidiaryAccess[]
+  supplierCreditNotes    SupplierCreditNote[]
 
   @@index([subsidiaryName]) // Ajout de cet index
   @@index([latitude, longitude])
@@ -1260,8 +1265,20 @@ model FinancialTransaction {
   treasuryType             TreasuryTransactionType? @map("treasury_type")
   reference                String?                  @map("reference") @db.VarChar(100)
   counterpartyId           String?                  @map("counterparty_id")
+  balanceBeforeSource      Decimal?                 @map("balance_before_source") @db.Decimal(15, 2)
   balanceAfterSource       Decimal?                 @map("balance_after_source") @db.Decimal(15, 2)
+  balanceBeforeDest        Decimal?                 @map("balance_before_dest") @db.Decimal(15, 2)
   balanceAfterDest         Decimal?                 @map("balance_after_dest") @db.Decimal(15, 2)
+  grossAmount              Decimal?                 @map("gross_amount") @db.Decimal(15, 2)
+  feesAmount               Decimal?                 @map("fees_amount") @db.Decimal(15, 2)
+  proofFilePath            String?                  @map("proof_file_path") @db.VarChar(500)
+  rejectionReason          String?                  @map("rejection_reason") @db.VarChar(500)
+  reversedTransactionId    String?                  @map("reversed_transaction_id")
+  isReversed               Boolean                  @default(false) @map("is_reversed")
+  reversalReason           String?                  @map("reversal_reason") @db.VarChar(500)
+  reversedByUserId         String?                  @map("reversed_by_user_id") @db.Text
+  reversedAt               DateTime?                @map("reversed_at")
+  supplierDebtId           String?                  @map("supplier_debt_id")
   subsidiary               Subsidiary               @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
   treasuryAccount          TreasuryAccount          @relation(fields: [treasuryAccountId], references: [id], onDelete: Cascade)
   sourceAccount            TreasuryAccount?         @relation("SourceAccount", fields: [sourceAccountId], references: [id])
@@ -1293,6 +1310,11 @@ model ExternalFinancialTransaction {
   status                      ExternalTransactionStatus   @map("status")
   paymentMethod               PaymentMethod               @map("payment_method")
   referenceNumber             String?                     @map("reference_number") @db.VarChar(100)
+  impactsTreasury             Boolean                     @default(false) @map("impacts_treasury")
+  treasuryAccountId           String?                     @map("treasury_account_id")
+  financialTransactionId      String?                     @map("financial_transaction_id")
+  validatedById               String?                     @map("validated_by_id")
+  validatedAt                 DateTime?                   @map("validated_at")
   createdBy                   String                      @map("created_by")
   subsidiaryId                String                      @map("subsidiary_id")
   createdAt                   DateTime                    @default(now()) @map("created_at")
@@ -1778,13 +1800,51 @@ model SupplierDebt {
   subsidiaryId    String        @map("subsidiary_id")
   purchaseOrderId String        @map("purchase_order_id")
   status          DebtStatus    @map("status")
-  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-  subsidiary      Subsidiary    @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  purchaseOrder   PurchaseOrder        @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  subsidiary      Subsidiary           @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+  creditNotes     SupplierCreditNote[]
 
   @@index([subsidiaryId, dueDate])
   @@index([status])
   @@index([purchaseOrderId])
   @@map("supplier_debts")
+}
+
+model SupplierCreditNote {
+  id               String                   @id @default(uuid()) @map("id")
+  creditNoteNumber String                   @unique @map("credit_note_number") @db.VarChar(80)
+  supplierName     String                   @map("supplier_name") @db.VarChar(255)
+  supplierDebtId   String?                  @map("supplier_debt_id")
+  purchaseOrderId  String?                  @map("purchase_order_id")
+  amount           Decimal                  @db.Decimal(15, 2)
+  appliedAmount    Decimal                  @default(0) @map("applied_amount") @db.Decimal(15, 2)
+  reason           String                   @db.VarChar(500)
+  proofFilePath    String?                  @map("proof_file_path") @db.VarChar(500)
+  status           SupplierCreditNoteStatus @default(ACTIVE) @map("status")
+  subsidiaryId     String                   @map("subsidiary_id")
+  createdById      String?                  @map("created_by_id")
+  createdAt        DateTime                 @default(now()) @map("created_at")
+  updatedAt        DateTime                 @updatedAt @map("updated_at")
+  supplierDebt     SupplierDebt?            @relation(fields: [supplierDebtId], references: [id], onDelete: SetNull)
+  subsidiary       Subsidiary               @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@index([subsidiaryId, status])
+  @@index([supplierDebtId])
+  @@map("supplier_credit_notes")
+}
+
+enum SupplierCreditNoteStatus {
+  ACTIVE
+  APPLIED
+  CANCELLED
+}
+
+enum ExpenseStatus {
+  PENDING_INVOICE
+  DRAFT
+  APPROVED
+  REJECTED
+  PAID
 }
 
 model ExpenseRecord {
@@ -1795,11 +1855,18 @@ model ExpenseRecord {
   subsidiaryId         String                @map("subsidiary_id")
   category             ExpenseCategory       @map("category")
   expenseRecordType    ExpenseType           @map("expense_record_type")
+  status               ExpenseStatus         @default(DRAFT) @map("status")
+  proofFilePath        String?               @map("proof_file_path") @db.VarChar(500)
+  rejectionReason      String?               @map("rejection_reason") @db.VarChar(500)
+  createdById          String?               @map("created_by_id")
+  approvedById         String?               @map("approved_by_id")
+  approvedAt           DateTime?             @map("approved_at")
   paymentTransactionId String?               @unique @map("payment_transaction_id")
   paymentTransaction   FinancialTransaction? @relation(fields: [paymentTransactionId], references: [id], onDelete: Restrict)
   subsidiary           Subsidiary            @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
 
   @@index([subsidiaryId, expenseDate])
+  @@index([status])
   @@index([category])
   @@index([expenseRecordType])
   @@map("expense_records")
@@ -1812,6 +1879,7 @@ model RecurringExpense {
   category          ExpenseCategory           @map("category")
   expenseRecordType ExpenseType               @map("expense_record_type")
   frequency         RecurringExpenseFrequency @map("frequency")
+  isVariableAmount  Boolean                   @default(false) @map("is_variable_amount")
   startDate         DateTime                  @map("start_date")
   nextExecutionDate DateTime                  @map("next_execution_date")
   endDate           DateTime?                 @map("end_date")
@@ -2589,6 +2657,7 @@ enum TransactionStatus {
   VALIDE
   EN_ATTENTE
   ANNULE
+  REVERSED
 }
 
 enum AccountType {
@@ -2725,8 +2794,12 @@ model PrefinancementTransaction {
   category        PrefinancementCategory        @map("category")
   status          PrefinancementStatus          @map("status")
   referenceNumber String?                       @map("reference_number") @db.VarChar(100)
-  relatedOrderId  String?                       @map("related_order_id") @db.VarChar(255)
-  notes           String?                       @map("notes") @db.Text
+  relatedOrderId         String?                       @map("related_order_id") @db.VarChar(255)
+  treasuryAccountId      String?                       @map("treasury_account_id")
+  financialTransactionId String?                       @map("financial_transaction_id")
+  validatedById          String?                       @map("validated_by_id")
+  validatedAt            DateTime?                     @map("validated_at")
+  notes                  String?                       @map("notes") @db.Text
   subsidiaryId    String                        @map("subsidiary_id")
   createdBy       String                        @map("created_by")
   createdAt       DateTime                      @default(now()) @map("created_at") @db.Timestamp

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Subsidiary, UserRole } from '../../types';
+import { AccountType, Subsidiary, TreasuryAccount, UserRole } from '../../types';
+import { getTreasuryAccounts } from '../../services/apiFinance/apiTreasury';
 import { useI18n } from '../../i18n';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
@@ -53,6 +54,18 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
     const [showAddForm, setShowAddForm] = useState(false);
     const [filter, setFilter] = useState<'ALL' | 'CREDIT' | 'DEBIT'>('ALL');
     const [searchTerm, setSearchTerm] = useState('');
+    const [creditValidateTarget, setCreditValidateTarget] = useState<PrefinancementTransaction | null>(null);
+    const [sourceTreasuryId, setSourceTreasuryId] = useState('');
+
+    const { data: treasuryAccounts = [] } = useQuery<TreasuryAccount[]>({
+        queryKey: ['treasuryAccounts', subsidiary.id],
+        queryFn: () => getTreasuryAccounts(subsidiary.id),
+        enabled: !!subsidiary.id,
+    });
+    const fundingAccounts = useMemo(
+        () => treasuryAccounts.filter((a) => a.accountType === AccountType.SAFE || a.accountType === AccountType.BANQUE),
+        [treasuryAccounts],
+    );
 
     // Form state pour l'ajout/modification
     const [formData, setFormData] = useState<PrefinancementTransactionCreationData>({
@@ -142,15 +155,19 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
     });
 
     const { mutate: validateTransaction } = useMutation({
-        mutationFn: validatePrefinancementTransaction,
+        mutationFn: ({ id, treasuryAccountId }: { id: string; treasuryAccountId?: string }) =>
+            validatePrefinancementTransaction(id, treasuryAccountId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKey('prefinancementAccount') });
             queryClient.invalidateQueries({ queryKey: queryKey('prefinancementTransactions') });
             queryClient.invalidateQueries({ queryKey: queryKey('prefinancementStatistics') });
+            queryClient.invalidateQueries({ queryKey: ['treasuryAccounts'] });
+            setCreditValidateTarget(null);
+            setSourceTreasuryId('');
             toast.success('Transaction validée', 'La transaction a été validée avec succès.');
         },
         onError: (error: any) => {
-            toast.error('Erreur de validation', error.message || 'Une erreur est survenue lors de la validation.');
+            toast.error('Erreur de validation', error?.response?.data?.message || error.message || 'Une erreur est survenue lors de la validation.');
         }
     });
 
@@ -307,7 +324,7 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
         showConfirmDialog(
             'Confirmation de validation',
             'Êtes-vous sûr de vouloir valider cette transaction?',
-            () => validateTransaction(transactionId)
+            () => validateTransaction({ id: transactionId })
         );
     };
 
@@ -636,7 +653,18 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
                                             {/* Bouton Valider - seulement si statut est EN_ATTENTE et utilisateur est admin */}
                                             {transaction.status === 'EN_ATTENTE' && canManagePrefinancement && (
                                                 <IconButton
-                                                    onClick={() => handleValidateTransaction(transaction.id)}
+                                                    onClick={() => {
+                                                        if (transaction.type === 'CREDIT') {
+                                                            setCreditValidateTarget(transaction);
+                                                            setSourceTreasuryId('');
+                                                        } else {
+                                                            showConfirmDialog(
+                                                                'Confirmation de validation',
+                                                                'Êtes-vous sûr de vouloir valider cette transaction ?',
+                                                                () => validateTransaction({ id: transaction.id }),
+                                                            );
+                                                        }
+                                                    }}
                                                     title="Valider"
                                                     className="hover:text-green-600 hover:bg-green-100"
                                                 >
@@ -664,8 +692,8 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
                                                 </WarningIconButton>
                                             )}
                                             
-                                            {/* Bouton Supprimer - seulement si utilisateur est admin */}
-                                            {canManagePrefinancement && (
+                                            {/* Bouton Supprimer - interdit sur transactions validées */}
+                                            {canManagePrefinancement && transaction.status !== 'VALIDE' && (
                                                 <DangerIconButton
                                                     onClick={() => handleDeleteTransaction(transaction.id)}
                                                     title="Supprimer"
@@ -693,6 +721,39 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
                 )}
             </div>
             
+            {creditValidateTarget && (
+                <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50" onClick={() => setCreditValidateTarget(null)}>
+                    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl space-y-4" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-lg font-semibold text-slate-900">Source de financement du préfinancement</h3>
+                        <p className="text-xs text-slate-600">
+                            Sélectionnez le coffre-fort ou compte bancaire à débiter pour créditer le compte préfinancement ({formatCurrency(creditValidateTarget.amount)}).
+                        </p>
+                        <select
+                            value={sourceTreasuryId}
+                            onChange={(e) => setSourceTreasuryId(e.target.value)}
+                            className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm"
+                        >
+                            <option value="">-- Sélectionnez un compte source --</option>
+                            {fundingAccounts.map((acc) => (
+                                <option key={acc.id} value={acc.id}>
+                                    {acc.accountName} - {formatCurrency(acc.balance)}
+                                </option>
+                            ))}
+                        </select>
+                        <div className="flex justify-end gap-2">
+                            <button onClick={() => setCreditValidateTarget(null)} className="px-4 py-2 text-sm bg-slate-100 rounded-md">Annuler</button>
+                            <button
+                                disabled={!sourceTreasuryId}
+                                onClick={() => validateTransaction({ id: creditValidateTarget.id, treasuryAccountId: sourceTreasuryId })}
+                                className="px-4 py-2 text-sm font-semibold bg-[#c6e911] text-slate-900 rounded-md disabled:opacity-50"
+                            >
+                                Valider l’approvisionnement
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Boîte de dialogue de confirmation personnalisée */}
             {confirmDialog.show && (
                 <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50">

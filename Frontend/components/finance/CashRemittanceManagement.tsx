@@ -10,6 +10,7 @@ import {
   getAvailableRemittanceReceipts,
   createCashRemittance,
   receiveCashRemittance,
+  rejectCashRemittance,
 } from '../../services/apiFinance/apiCashRemittance';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
@@ -39,6 +40,8 @@ const CashRemittanceManagement: React.FC = () => {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [receivingRemittance, setReceivingRemittance] = useState<CashRemittance | null>(null);
+  const [rejectingRemittance, setRejectingRemittance] = useState<CashRemittance | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
   const [sourceCashRegisterId, setSourceCashRegisterId] = useState('');
   const [selectedReceiptIds, setSelectedReceiptIds] = useState<string[]>([]);
   const [enteredAmount, setEnteredAmount] = useState<string | null>(null);
@@ -143,6 +146,17 @@ const CashRemittanceManagement: React.FC = () => {
     onError,
   });
 
+  const { mutate: submitReject, isPending: isRejecting } = useMutation({
+    mutationFn: () => rejectCashRemittance(rejectingRemittance!.id, rejectReason.trim()),
+    onSuccess: async () => {
+      toast('success', t('cashRemittance.rejectSuccess'));
+      await queryClient.invalidateQueries({ queryKey: ['cashRemittances'] });
+      setRejectingRemittance(null);
+      setRejectReason('');
+    },
+    onError,
+  });
+
   const openReceiveModal = (remittance: CashRemittance) => {
     setReceivingRemittance(remittance);
     setReceivedAmount(remittance.declaredAmount.toString());
@@ -221,14 +235,22 @@ const CashRemittanceManagement: React.FC = () => {
                       {t(`cashRemittance.status.${r.status}`)}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-center">
-                    {r.status === CashRemittanceStatus.SUBMITTED && activeRole === UserRole.FINANCIAL_DIRECTOR && (
-                      <button
-                        onClick={() => openReceiveModal(r)}
-                        className="text-xs font-semibold text-[#8a9c0a] hover:text-[#6d7a08] hover:underline"
-                      >
-                        {t('cashRemittance.receive')}
-                      </button>
+                  <td className="px-4 py-3 text-center space-x-2">
+                    {r.status === CashRemittanceStatus.SUBMITTED && (activeRole === UserRole.FINANCIAL_DIRECTOR || activeRole === UserRole.SUPER_ADMIN) && (
+                      <>
+                        <button
+                          onClick={() => openReceiveModal(r)}
+                          className="text-xs font-semibold text-[#8a9c0a] hover:text-[#6d7a08] hover:underline"
+                        >
+                          {t('cashRemittance.receive')}
+                        </button>
+                        <button
+                          onClick={() => { setRejectingRemittance(r); setRejectReason(''); }}
+                          className="text-xs font-semibold text-rose-600 hover:text-rose-800 hover:underline"
+                        >
+                          {t('cashRemittance.reject')}
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>
@@ -428,12 +450,50 @@ const CashRemittanceManagement: React.FC = () => {
                 disabled={
                   isReceiving ||
                   !receivedAmount ||
-                  Math.round(Number(receivedAmount) * 100) !==
-                    Math.round(receivingRemittance.declaredAmount * 100)
+                  Number(receivedAmount) <= 0 ||
+                  (Math.round(Number(receivedAmount) * 100) !==
+                    Math.round(receivingRemittance.declaredAmount * 100) &&
+                    notes.trim().length < 5)
                 }
                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
               >
                 {isReceiving ? t('common.saving') : t('cashRemittance.confirmReceive')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rejectingRemittance && (
+        <div className="fixed inset-0 modal-backdrop z-50 flex justify-center items-center p-4" onClick={() => setRejectingRemittance(null)}>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 space-y-4">
+              <h3 className="text-lg font-bold text-slate-900">
+                {t('cashRemittance.rejectTitle', { reference: rejectingRemittance.reference })}
+              </h3>
+              <div>
+                <label className="block text-sm font-medium text-slate-700">
+                  {t('cashRemittance.rejectReasonLabel')} <span className="text-red-600">*</span>
+                </label>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  rows={3}
+                  placeholder={t('cashRemittance.rejectReasonPlaceholder')}
+                  className="mt-1 block w-full border-slate-300 rounded-md shadow-sm py-2 px-3 border focus:outline-none focus:ring-1 focus:border-[#c6e911]"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 bg-slate-50 flex justify-end space-x-3 rounded-b-lg">
+              <button onClick={() => setRejectingRemittance(null)} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={() => submitReject()}
+                disabled={isRejecting || rejectReason.trim().length < 5}
+                className="px-4 py-2 bg-rose-600 text-white rounded-md hover:bg-rose-700 disabled:opacity-50"
+              >
+                {isRejecting ? t('common.saving') : t('cashRemittance.confirmReject')}
               </button>
             </div>
           </div>

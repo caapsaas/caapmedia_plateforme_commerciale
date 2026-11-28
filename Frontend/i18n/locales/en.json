@@ -353,7 +353,7 @@
     "warning": "Warning",
     "info": "Information",
     "showing": "Showing",
-    "to": "to",
+    "to": "To",
     "of": "of",
     "results": "results",
     "previous": "Previous",
@@ -377,7 +377,8 @@
     "send": "Send",
     "create": "Create",
     "update": "Update",
-    "total": "Total"
+    "total": "Total",
+    "from": "From"
   },
   "login": {
     "errorSelectSubsidiary": "Please select a subsidiary.",
@@ -1601,7 +1602,9 @@
       "paymentMethod": "Payment method",
       "referenceNumber": "Reference number",
       "document": "Document",
-      "documentUrl": "Document URL"
+      "documentUrl": "Document URL",
+      "impactsTreasury": "Impact a treasury account (Safe or Bank)",
+      "selectTreasuryAccount": "Select treasury account"
     },
     "notifications": {
       "created": {
@@ -1729,6 +1732,13 @@
       "movementsSection": "Transaction history",
       "type": "Type",
       "statusColumn": "Status"
+    },
+    "types": {
+      "CASH_REGISTER": "Cash Registers",
+      "SAFE": "Safes",
+      "BANQUE": "Banks",
+      "EXPENSE_BOX": "Expense Boxes",
+      "COMPTE_PREFINANCEMENT": "Prefinancing"
     }
   },
   "production": {
@@ -2715,7 +2725,8 @@
       "category": "Category",
       "type": "Type",
       "amount": "Amount",
-      "date": "Date"
+      "date": "Date",
+      "workflowStatus": "Status"
     },
     "categories": {
       "RENT": "Rent",
@@ -2746,6 +2757,27 @@
       "allCategories": "All categories",
       "type": "Type",
       "allTypes": "All types"
+    },
+    "form": {
+      "pendingInvoiceToggle": "Invoice pending actual amount"
+    },
+    "status": {
+      "PENDING_INVOICE": "Pending invoice",
+      "DRAFT": "Draft",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected",
+      "PAID": "Paid"
+    },
+    "workflow": {
+      "confirmInvoiceBtn": "Enter amount",
+      "confirmInvoiceTitle": "Confirm actual invoice amount",
+      "confirmInvoiceSuccess": "Amount confirmed.",
+      "approveBtn": "Approve",
+      "approveSuccess": "Expense approved and posted to accounting.",
+      "rejectBtn": "Reject",
+      "rejectTitle": "Reject expense",
+      "rejectPlaceholder": "Rejection reason...",
+      "rejectSuccess": "Expense rejected."
     }
   },
   "aiMarketing": {
@@ -2826,26 +2858,7 @@
     "logout": "Logout"
   },
   "payment": {
-    "chooseMethod": "Choose your payment method",
-    "creditCard": "Credit Card",
-    "orangeMoney": "Orange Money",
-    "wave": "Wave",
-    "mtnMoney": "MTN Money",
-    "paycaap": "Paycaap.com",
-    "payOnDelivery": "Pay on Delivery",
-    "customerCredit": "Pay in 30 days (Customer Credit)",
-    "pay": "Pay",
-    "processing": "Processing...",
-    "success": "Payment successful!",
-    "CASH": "Cash",
-    "CARD": "Card",
-    "CHECK": "Check",
-    "MOBILE_MONEY": "Mobile Money",
-    "WAVE": "Wave",
-    "ORANGE_MONEY": "Orange Money",
-    "PAYCAAP": "PayCaap",
-    "PAY_ON_DELIVERY": "Pay on Delivery",
-    "CUSTOMER_CREDIT": "Customer Credit (30 days)"
+    "BANK_TRANSFER": "Bank transfer"
   },
   "quoteRequest": {
     "title": "Request a Quote",
@@ -3048,9 +3061,6 @@
     "total": "Total",
     "status": "Status",
     "backToShop": "Back to Shop"
-  },
-  "payment": {
-    "BANK_TRANSFER": "Bank transfer"
   },
   "paymentMethods": {
     "BANK_TRANSFER": "Bank Transfer",
@@ -3299,6 +3309,25 @@
       "netIncome": "Retained Earnings (Net Income)",
       "retainedEarnings": "Retained Earnings",
       "totalLiabilitiesAndEquity": "Total Liabilities & Equity"
+    },
+    "pilotage": {
+      "tabTitle": "Cash-Flow & Profitability",
+      "title": "Cash-Flow & Profitability Cockpit",
+      "subtitle": "Live treasury tracking, open receivables/payables, and operating margin.",
+      "cashPosition": "Available Cash",
+      "netCashflow": "Period Net Cash-Flow",
+      "operatingResult": "Operating Result",
+      "marginRate": "Margin Rate",
+      "collectionRate": "Collection Rate",
+      "cashBreakdown": "Accounts Breakdown & Open Items",
+      "pendingReceivables": "Open customer receivables",
+      "pendingDebts": "Unpaid supplier debts",
+      "profitabilitySummary": "Profitability Summary",
+      "invoicedRevenue": "Invoiced Revenue",
+      "purchaseCosts": "Direct Purchases",
+      "operatingExpenses": "Operating Expenses",
+      "payrollCosts": "Payroll Cost",
+      "grossMargin": "Gross Margin"
     }
   },
   "credit": {
@@ -3390,6 +3419,30 @@
       "noBankAccounts": "No bank accounts found.",
       "noAccountsForCategory": "No accounts found for this category.",
       "unlinkedBankAccounts": "Bank accounts with no linked bank"
+    },
+    "statusReversed": "Reversed",
+    "trace": {
+      "title": "Transaction Traceability & Audit",
+      "inspect": "Details",
+      "bankFees": "Deducted bank fees",
+      "sourceBalances": "Source account",
+      "destBalances": "Destination account",
+      "actors": "Actors & Accounting",
+      "createdBy": "Created by",
+      "approvedBy": "Approved / Processed by",
+      "journalEntry": "Journal Entry",
+      "rejectionReason": "Rejection reason",
+      "reversedNotice": "Reversed",
+      "proof": "Supporting document",
+      "uploadProof": "Attach document",
+      "viewProof": "Open document",
+      "noProof": "No supporting document attached.",
+      "proofSuccess": "Supporting document uploaded.",
+      "reverseButton": "Reverse transaction",
+      "reverseReasonLabel": "Mandatory reversal reason",
+      "reverseReasonPlaceholder": "Explain why this transaction is being reversed...",
+      "confirmReverse": "Confirm reversal",
+      "reverseSuccess": "Reversal created successfully."
     }
   },
   "disbursement": {
@@ -3544,7 +3597,13 @@
     "confirmReceive": "Confirm reception",
     "createSuccess": "Cash remittance created successfully",
     "receiveSuccess": "Cash remittance received successfully",
-    "noData": "No cash remittances found."
+    "noData": "No cash remittances found.",
+    "reject": "Reject",
+    "rejectTitle": "Reject remittance {{reference}}",
+    "rejectReasonLabel": "Rejection reason",
+    "rejectReasonPlaceholder": "Explain why this remittance is rejected...",
+    "confirmReject": "Confirm rejection",
+    "rejectSuccess": "Cash remittance rejected."
   },
   "supplierDebts": {
     "totalDebts": "Total Supplier Debts",
@@ -3574,7 +3633,9 @@
       "title": "Pay supplier debt",
       "account": "Treasury account",
       "date": "Payment date",
-      "submit": "Confirm payment"
+      "submit": "Confirm payment",
+      "bankMakerCheckerHint": "Bank payments require Maker-Checker double approval.",
+      "noCompatibleAccount": "No Safe or Bank account configured in this subsidiary."
     },
     "createModal": {
       "title": "New supplier debt",
@@ -3604,6 +3665,19 @@
       "editModal": {
         "title": "Edit long-term debt"
       }
+    },
+    "pendingApprovalTitle": "Pending double approval",
+    "pendingApprovalMessage": "The bank/safe payment has been queued for Maker-Checker approval.",
+    "creditNotes": {
+      "title": "Supplier Credit Notes",
+      "add": "New credit note",
+      "createTitle": "Create Supplier Credit Note",
+      "selectDebt": "Select supplier debt",
+      "number": "Credit Note #",
+      "reason": "Reason",
+      "apply": "Apply",
+      "createSuccess": "Supplier credit note created.",
+      "applySuccess": "Credit note applied to supplier debt."
     }
   },
   "recurringExpenses": {
@@ -3650,8 +3724,10 @@
       "type": "Type",
       "frequency": "Frequency",
       "startDate": "Start Date",
-      "endDate": "End Date (optional)"
-    }
+      "endDate": "End Date (optional)",
+      "variableAmount": "Variable amount (confirmed on each due date)"
+    },
+    "variableBadge": "Variable amount"
   },
   "taxTransparency": {
     "title": "Tax & Payroll Transparency",
@@ -4003,9 +4079,8 @@
     "confirmPayment": "Confirm payment",
     "selectPayable": "Select an approved request",
     "noPayable": "No requests awaiting payment in this subsidiary",
-    "paymentSuccess": "Request paid.",
-    "paying": "Processing payment…",
     "paymentSuccess": "Payment has been recorded from the expense cash box. The sales representative has been notified.",
+    "paying": "Processing payment…",
     "paidBy": "Paid by",
     "categories": {
       "RENT": "Rent",
@@ -4097,5 +4172,10 @@
       "SIMPLIFIE": "Simplified Regime (RSI)",
       "LIBERATOIRE": "Presumptive Tax (Libératoire)"
     }
+  },
+  "subsidiaryThresholds": {
+    "expenseBoxUnitLimit": "Expense Box unit limit (FCFA)",
+    "expenseBoxImprestCeiling": "Expense Box imprest ceiling (FCFA)",
+    "safeMakerCheckerThreshold": "Safe Maker-Checker threshold (FCFA, 0 = disabled)"
   }
 }

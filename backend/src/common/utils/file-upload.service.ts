@@ -6,7 +6,7 @@ import {
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 interface FileUploadOptions {
   subfolder?: string;
@@ -72,7 +72,7 @@ export class FileUploadService {
 
     // Generate unique filename
     const ext = path.extname(originalFilename);
-    const filename = `${uuidv4()}${ext}`;
+    const filename = `${randomUUID()}${ext}`;
     const filepath = path.join(uploadDir, filename);
 
     // Write file to disk

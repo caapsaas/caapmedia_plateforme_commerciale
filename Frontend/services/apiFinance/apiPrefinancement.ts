@@ -157,8 +157,14 @@ export const updatePrefinancementTransaction = async (id: string, transactionDat
  * Valide une transaction de préfinancement.
  * @param id - L'ID de la transaction à valider.
  */
-export const validatePrefinancementTransaction = async (id: string): Promise<PrefinancementTransaction> => {
-    const { data } = await api.patch<PrefinancementTransaction>(`/finance/prefinancement/transactions/${id}/validate`);
+export const validatePrefinancementTransaction = async (
+    id: string,
+    treasuryAccountId?: string,
+): Promise<PrefinancementTransaction> => {
+    const { data } = await api.patch<PrefinancementTransaction>(
+        `/finance/prefinancement/transactions/${id}/validate`,
+        treasuryAccountId ? { treasuryAccountId } : {},
+    );
     return data;
 };
 

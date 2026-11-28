@@ -68,8 +68,16 @@ export class SubsidiaryService {
       shareCapital: number;
       taxRate?: number;
       isHeadquarter?: boolean;
+      expenseBoxUnitLimit?: number | null;
+      expenseBoxImprestCeiling?: number | null;
+      safeMakerCheckerThreshold?: number | null;
     },
-    currentUser: { id: string; role?: UserRole; roles?: UserRole[]; subsidiaryId: string },
+    currentUser: {
+      id: string;
+      role?: UserRole;
+      roles?: UserRole[];
+      subsidiaryId: string;
+    },
   ) {
     // Vérifier les autorisations (seul ADMIN ou SUPER_ADMIN peut créer une filiale)
     if (!this.hasSuperAdminPrivileges(currentUser)) {
@@ -113,6 +121,9 @@ export class SubsidiaryService {
         shareCapital: Number(data.shareCapital),
         taxRate: data.taxRate !== undefined ? data.taxRate : 0.3,
         isHeadquarter: data.isHeadquarter ?? false,
+        expenseBoxUnitLimit: data.expenseBoxUnitLimit ?? null,
+        expenseBoxImprestCeiling: data.expenseBoxImprestCeiling ?? null,
+        safeMakerCheckerThreshold: data.safeMakerCheckerThreshold ?? null,
       },
     });
 
@@ -138,6 +149,18 @@ export class SubsidiaryService {
       shareCapital: Number(subsidiary.shareCapital),
       taxRate: subsidiary.taxRate.toNumber(),
       isHeadquarter: subsidiary.isHeadquarter,
+      expenseBoxUnitLimit:
+        subsidiary.expenseBoxUnitLimit != null
+          ? Number(subsidiary.expenseBoxUnitLimit)
+          : null,
+      expenseBoxImprestCeiling:
+        subsidiary.expenseBoxImprestCeiling != null
+          ? Number(subsidiary.expenseBoxImprestCeiling)
+          : null,
+      safeMakerCheckerThreshold:
+        subsidiary.safeMakerCheckerThreshold != null
+          ? Number(subsidiary.safeMakerCheckerThreshold)
+          : null,
     };
   }
 
@@ -159,8 +182,16 @@ export class SubsidiaryService {
       shareCapital?: number;
       taxRate?: number;
       isHeadquarter?: boolean;
+      expenseBoxUnitLimit?: number | null;
+      expenseBoxImprestCeiling?: number | null;
+      safeMakerCheckerThreshold?: number | null;
     },
-    currentUser: { id: string; role?: UserRole; roles?: UserRole[]; subsidiaryId: string },
+    currentUser: {
+      id: string;
+      role?: UserRole;
+      roles?: UserRole[];
+      subsidiaryId: string;
+    },
   ) {
     // Vérifier si la filiale existe
     const subsidiary = await this.prisma.subsidiary.findUnique({
@@ -204,7 +235,10 @@ export class SubsidiaryService {
       where: { id },
       data: {
         ...data,
-        shareCapital: data.shareCapital !== undefined ? Number(data.shareCapital) : undefined,
+        shareCapital:
+          data.shareCapital !== undefined
+            ? Number(data.shareCapital)
+            : undefined,
       },
     });
 
@@ -230,38 +264,63 @@ export class SubsidiaryService {
       shareCapital: Number(updatedSubsidiary.shareCapital),
       taxRate: updatedSubsidiary.taxRate.toNumber(),
       isHeadquarter: updatedSubsidiary.isHeadquarter,
+      expenseBoxUnitLimit:
+        updatedSubsidiary.expenseBoxUnitLimit != null
+          ? Number(updatedSubsidiary.expenseBoxUnitLimit)
+          : null,
+      expenseBoxImprestCeiling:
+        updatedSubsidiary.expenseBoxImprestCeiling != null
+          ? Number(updatedSubsidiary.expenseBoxImprestCeiling)
+          : null,
+      safeMakerCheckerThreshold:
+        updatedSubsidiary.safeMakerCheckerThreshold != null
+          ? Number(updatedSubsidiary.safeMakerCheckerThreshold)
+          : null,
     };
   }
 
   async uploadLogo(
     id: string,
     file: Express.Multer.File,
-    currentUser: { id: string; role?: UserRole; roles?: UserRole[]; subsidiaryId: string },
+    currentUser: {
+      id: string;
+      role?: UserRole;
+      roles?: UserRole[];
+      subsidiaryId: string;
+    },
   ) {
-    const subsidiary = await this.prisma.subsidiary.findUnique({ where: { id } });
+    const subsidiary = await this.prisma.subsidiary.findUnique({
+      where: { id },
+    });
     if (!subsidiary) {
       throw new NotFoundException('Subsidiary not found');
     }
 
     if (!this.hasSuperAdminPrivileges(currentUser)) {
-      throw new ForbiddenException('You are not authorized to update this subsidiary logo');
+      throw new ForbiddenException(
+        'You are not authorized to update this subsidiary logo',
+      );
     }
 
     if (!file || !file.buffer) {
       throw new BadRequestException('Aucun fichier fourni pour le logo');
     }
 
-    const { url } = await this.fileUploadService.uploadFile(file.buffer, file.originalname, {
-      subfolder: 'subsidiaries',
-      maxSizeMb: 5,
-      allowedMimes: [
-        'image/jpeg',
-        'image/png',
-        'image/jpg',
-        'image/svg+xml',
-        'image/webp',
-      ],
-    });
+    const { url } = await this.fileUploadService.uploadFile(
+      file.buffer,
+      file.originalname,
+      {
+        subfolder: 'subsidiaries',
+        maxSizeMb: 5,
+        allowedMimes: [
+          'image/jpeg',
+          'image/png',
+          'image/jpg',
+          'image/svg+xml',
+          'image/webp',
+        ],
+      },
+    );
 
     const updated = await this.prisma.subsidiary.update({
       where: { id },
@@ -278,7 +337,12 @@ export class SubsidiaryService {
 
   async deleteSubsidiary(
     id: string,
-    currentUser: { id: string; role?: UserRole; roles?: UserRole[]; subsidiaryId: string },
+    currentUser: {
+      id: string;
+      role?: UserRole;
+      roles?: UserRole[];
+      subsidiaryId: string;
+    },
   ) {
     // Vérifier si la filiale existe
     const subsidiary = await this.prisma.subsidiary.findUnique({
@@ -304,7 +368,9 @@ export class SubsidiaryService {
     }
 
     // Vérifier si des utilisateurs sont rattachés à cette filiale
-    const userCount = await this.prisma.user.count({ where: { subsidiaryId: id } });
+    const userCount = await this.prisma.user.count({
+      where: { subsidiaryId: id },
+    });
     if (userCount > 0) {
       throw new BadRequestException(
         `Impossible de supprimer la filiale car ${userCount} utilisateur(s) lui sont actuellement rattaché(s). Veuillez d'abord réassigner ou supprimer ces utilisateurs.`,
@@ -402,6 +468,18 @@ export class SubsidiaryService {
           swiftCode: subsidiary.swiftCode,
           shareCapital: Number(subsidiary.shareCapital),
           taxRate: subsidiary.taxRate.toNumber(),
+          expenseBoxUnitLimit:
+            subsidiary.expenseBoxUnitLimit != null
+              ? Number(subsidiary.expenseBoxUnitLimit)
+              : null,
+          expenseBoxImprestCeiling:
+            subsidiary.expenseBoxImprestCeiling != null
+              ? Number(subsidiary.expenseBoxImprestCeiling)
+              : null,
+          safeMakerCheckerThreshold:
+            subsidiary.safeMakerCheckerThreshold != null
+              ? Number(subsidiary.safeMakerCheckerThreshold)
+              : null,
         };
       }),
     };
@@ -409,7 +487,12 @@ export class SubsidiaryService {
 
   async searchSubsidiaries(
     query: { subsidiaryName?: string; email?: string } & PaginationQueryDto,
-    currentUser: { id: string; role?: UserRole; roles?: UserRole[]; subsidiaryId: string },
+    currentUser: {
+      id: string;
+      role?: UserRole;
+      roles?: UserRole[];
+      subsidiaryId: string;
+    },
   ) {
     const isGlobalScope = this.hasAdminPrivileges(currentUser);
     const where: any = isGlobalScope ? {} : { id: currentUser.subsidiaryId };
