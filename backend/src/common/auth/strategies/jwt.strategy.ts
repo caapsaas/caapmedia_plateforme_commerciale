@@ -46,7 +46,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      include: { subsidiary: true },
+      include: {
+        subsidiary: true,
+        subsidiaryAccesses: { select: { subsidiaryId: true } },
+      },
     });
     if (!user) {
       this.logger.error(`User with ID ${payload.sub} not found`, 'JwtStrategy');
@@ -76,6 +79,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             user.userRole,
             ...user.additionalRoles.filter((r) => r !== user.userRole),
           ];
+    const allowedSubsidiaryIds = Array.from(
+      new Set([
+        user.subsidiaryId,
+        ...(user.subsidiaryAccesses ?? []).map((access) => access.subsidiaryId),
+      ]),
+    );
+    const activeSubsidiaryId =
+      user.activeSubsidiaryId &&
+      (roles.includes('SUPER_ADMIN') ||
+        allowedSubsidiaryIds.includes(user.activeSubsidiaryId))
+        ? user.activeSubsidiaryId
+        : user.subsidiaryId;
+
     return {
       id: user.id,
       email: user.email,
@@ -88,7 +104,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       // et permet a switch-role de prendre effet immediatement sans avoir a
       // re-emettre l'access token.
       activeRole: user.activeRole ?? user.userRole,
-      subsidiaryId: user.subsidiaryId,
+      subsidiaryId: activeSubsidiaryId,
+      homeSubsidiaryId: user.subsidiaryId,
+      allowedSubsidiaryIds,
       employeeId,
     };
   }

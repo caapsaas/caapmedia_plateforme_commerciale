@@ -3,7 +3,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { User, Contact, Subsidiary, UserRole} from '../types';
 import { api } from '../services/api';
 import { clearSessionHint, hasSession } from '../services/sessionHint';
-import { logoutUser as apiLogoutUser, switchRole as apiSwitchRole } from '../services/apiCommon/apiUserAuth';
+import {
+  logoutUser as apiLogoutUser,
+  switchRole as apiSwitchRole,
+  switchSubsidiary as apiSwitchSubsidiary,
+} from '../services/apiCommon/apiUserAuth';
 
 const SIDEBAR_OPEN_KEY = 'caap-isSidebarOpen';
 const SIDEBAR_COLLAPSED_KEY = 'caap-isSidebarCollapsed';
@@ -32,6 +36,8 @@ interface AuthContextType {
   updateUserRole: (newRole: UserRole) => void;
   /** Change le role actif d'un utilisateur multi-role via POST /auth/switch-role (enforce cote backend, pas un simple affichage). */
   switchRole: (newRole: UserRole) => Promise<void>;
+  /** Change la filiale active de l'utilisateur via POST /auth/switch-subsidiary (multi-filiales / HQ). */
+  switchSubsidiary: (subsidiaryId: string) => Promise<void>;
   setTwoFactorEnabled: (enabled: boolean) => void;
   login: (data: { user: User; subsidiary: Subsidiary }) => void;
   logout: () => void;
@@ -149,6 +155,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(updatedUser);
   };
 
+  const switchSubsidiary = async (subsidiaryId: string) => {
+    const { subsidiary: nextSubsidiary, activeSubsidiaryId } = await apiSwitchSubsidiary(subsidiaryId);
+    queryClient.clear();
+    setSubsidiary(nextSubsidiary);
+    setUser((prev) =>
+      prev
+        ? {
+            ...prev,
+            subsidiaryId: activeSubsidiaryId,
+            activeSubsidiaryId,
+            subsidiary: nextSubsidiary
+              ? {
+                  id: nextSubsidiary.id,
+                  subsidiaryName: nextSubsidiary.subsidiaryName,
+                  name: nextSubsidiary.subsidiaryName,
+                  isHeadquarter: nextSubsidiary.isHeadquarter,
+                }
+              : prev.subsidiary,
+          }
+        : prev,
+    );
+  };
+
   const loginCustomer = (contact: { contact: Contact; access_token: string }) => {
     localStorage.setItem('contactToken', contact.access_token);
     setContactToken(contact.access_token);
@@ -207,7 +236,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, contact, isAuthResolved, isAuthenticated: !!user, authLive, contactToken, subsidiary, login, logout, loginCustomer, logoutCustomer, updateUserRole, switchRole, setTwoFactorEnabled }}>
+    <AuthContext.Provider value={{ user, contact, isAuthResolved, isAuthenticated: !!user, authLive, contactToken, subsidiary, login, logout, loginCustomer, logoutCustomer, updateUserRole, switchRole, switchSubsidiary, setTwoFactorEnabled }}>
       {children}
     </AuthContext.Provider>
   );

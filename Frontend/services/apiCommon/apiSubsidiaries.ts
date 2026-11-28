@@ -3,11 +3,13 @@ import { Subsidiary } from '../../types';
 import { PaginatedResponse } from '../../types/pagination.types';
 
 export type SubsidiaryCreationData = Pick<Subsidiary,
-  'subsidiaryName' | 'address' | 'phone' | 'email' | 'ifu' | 'rccm' | 'shareCapital'
+  'subsidiaryName' | 'address' | 'phone' | 'email' | 'niu' | 'rccm' | 'shareCapital'
 > & {
   bankName: string;
   accountNumber: string;
   swiftCode: string;
+  taxCenter?: string;
+  taxRegime?: string;
   taxRate?: number;
   isHeadquarter?: boolean;
   logoSvg?: string;

@@ -21,7 +21,7 @@ export async function runSubsidiarySeeder(prisma: PrismaClient) {
             address: 'CAAP Douala',
             phone: '+237 233 42 00 00',
             email: 'contact.douala@caap.cm',
-            ifu: 'M123456789012',
+            niu: 'M123456789012',
             rccm: 'RC/DLA/2023/A/1234',
             bankName: 'Afriland First Bank',
             accountNumber: '10001 00002 12345678901 25',

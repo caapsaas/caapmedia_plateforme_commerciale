@@ -2207,7 +2207,7 @@
     "exportPdf": "Exporter en PDF",
     "phone": "Tél",
     "email": "Email",
-    "ifu": "IFU",
+    "niu": "NIU",
     "rccm": "RCCM",
     "paymentDueDate": "Date d'échéance",
     "totalTTC": "Total TTC",
@@ -3400,7 +3400,7 @@
     "expenseSearch": "Rechercher une charge",
     "selectExpense": "Sélectionner une charge à régler",
     "noExpenses": "Aucune charge à régler",
-    "expenseCurrency": "Sélectionnez un coffre-fort en XOF pour régler cette charge.",
+    "expenseCurrency": "Sélectionnez un coffre-fort en FCFA (XAF) pour régler cette charge.",
     "title": "Décaissement — Coffre-fort",
     "subtitle": "Trésorerie centralisée : le coffre-fort du siège.",
     "sourceSafe": "Coffre-fort source",
@@ -4019,6 +4019,83 @@
       "PACKAGING": "Emballages",
       "TRANSACTION_FEES": "Frais de transaction",
       "OTHER": "Autres dépenses"
+    }
+  },
+  "navV3": {
+    "cockpit": "Cockpit",
+    "commerceClients": "Commerce & Clients",
+    "operationsProduction": "Production & Opérations",
+    "financeAccounting": "Argent & Comptabilité",
+    "hrProjectsAdmin": "RH, Projets & Secrétariat",
+    "governanceSettings": "Gouvernance & Paramètres",
+    "auditSystem": "Audit & Santé Système"
+  },
+  "headerV3": {
+    "searchTrigger": "Rechercher...",
+    "activeSubsidiary": "Filiale active",
+    "switchingSubsidiary": "Changement de filiale...",
+    "switchSubsidiaryError": "Impossible de basculer sur cette filiale."
+  },
+  "auditPage": {
+    "title": "Audit & Santé Système",
+    "subtitle": "Journal immuable des actions critiques, historique d'authentification et état des intégrations.",
+    "tabs": {
+      "businessAudit": "Piste d'Audit Métier",
+      "authSecurity": "Journal Sécurité Auth",
+      "integrations": "Santé des Intégrations"
+    },
+    "filters": {
+      "action": "Action",
+      "entityType": "Entité",
+      "actorEmail": "Acteur (email)",
+      "all": "Tous",
+      "reset": "Réinitialiser"
+    },
+    "columns": {
+      "date": "Date",
+      "actor": "Acteur",
+      "action": "Action",
+      "entity": "Entité",
+      "subsidiary": "Filiale",
+      "details": "Détails",
+      "event": "Événement",
+      "ip": "Adresse IP"
+    },
+    "empty": "Aucun événement enregistré pour ces critères."
+  },
+  "userGovernance": {
+    "transferAction": "Muter vers une filiale",
+    "transferTitle": "Mutation de filiale",
+    "transferTarget": "Nouvelle filiale de rattachement",
+    "transferReason": "Motif de la mutation",
+    "transferSubmit": "Confirmer la mutation",
+    "transferSuccess": "Utilisateur muté avec succès.",
+    "accessAction": "Accès multi-filiales",
+    "accessTitle": "Filiales autorisées (HQ / Multi-entités)",
+    "accessHint": "Sélectionnez les filiales supplémentaires sur lesquelles cet utilisateur peut basculer.",
+    "accessSubmit": "Enregistrer les accès",
+    "accessSuccess": "Accès multi-filiales mis à jour.",
+    "homeBadge": "Rattachement"
+  },
+  "supplierGovernance": {
+    "archiveAction": "Archiver",
+    "archiveConfirm": "Archiver ce fournisseur ? Il restera conservé pour l'historique comptable et pourra être restauré.",
+    "archiveSuccess": "Fournisseur archivé.",
+    "restoreAction": "Restaurer",
+    "restoreSuccess": "Fournisseur restauré.",
+    "showArchived": "Afficher les archivés",
+    "archivedBadge": "Archivé"
+  },
+  "subsidiaryCameroon": {
+    "niu": "NIU (Numéro d'Identifiant Unique)",
+    "niuPlaceholder": "Ex: M012345678901A",
+    "taxCenter": "Centre des Impôts (CDI / CIME)",
+    "taxCenterPlaceholder": "Ex: CIME Douala Bonanjo",
+    "taxRegime": "Régime fiscal",
+    "regimes": {
+      "REEL": "Régime du Réel",
+      "SIMPLIFIE": "Régime Simplifié (RSI)",
+      "LIBERATOIRE": "Impôt Libératoire"
     }
   }
 }

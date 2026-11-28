@@ -3,9 +3,9 @@ import { useI18n } from '../../i18n';
 import { Subsidiary } from '../../types';
 
 interface DocumentHeaderProps {
-    subsidiary: Pick<Subsidiary, 'name' | 'address' | 'phone' | 'email' | 'ifu' | 'rccm'>;
+    subsidiary: Pick<Subsidiary, 'name' | 'address' | 'phone' | 'email' | 'niu' | 'rccm'>;
     usePublicContact?: boolean;
-    // Affiche IFU/RCCM (identifiants fiscaux) — requis sur les factures,
+    // Affiche NIU/RCCM (identifiants fiscaux) — requis sur les factures,
     // pas nécessaire sur un bon de livraison/d'entrée.
     showFiscalInfo?: boolean;
 }
@@ -37,9 +37,9 @@ const DocumentHeader: React.FC<DocumentHeaderProps> = ({ subsidiary, showFiscalI
                     {phone && <p>{t('documentHeader.phone')} {phone}</p>}
                     {email && <p>{t('documentHeader.email')} {email}</p>}
                 </div>
-                {showFiscalInfo && (subsidiary.ifu || subsidiary.rccm) && (
+                {showFiscalInfo && (subsidiary.niu || subsidiary.rccm) && (
                     <div className="flex flex-wrap justify-end gap-x-4 mt-2 text-[11px] text-slate-500">
-                        {subsidiary.ifu && <p>IFU : {subsidiary.ifu}</p>}
+                        {subsidiary.niu && <p>NIU : {subsidiary.niu}</p>}
                         {subsidiary.rccm && <p>RCCM : {subsidiary.rccm}</p>}
                     </div>
                 )}

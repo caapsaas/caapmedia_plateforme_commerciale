@@ -39,6 +39,9 @@ export enum View {
   // Caissier
   CAISSE = 'CAISSE',
 
+  // Gouvernance
+  GOVERNANCE_AUDIT = 'GOVERNANCE_AUDIT',
+
   // Client
   MES_COMMANDES = 'MES_COMMANDES',
 }
@@ -142,7 +145,9 @@ export interface Subsidiary {
   address: string;
   phone: string;
   email: string;
-  ifu: string; // Identifiant Financier Unique
+  niu: string; // Numéro d'Identifiant Unique (DGI Cameroun)
+  taxCenter?: string; // CDI / CIME
+  taxRegime?: string; // Réel / Simplifié
   rccm: string; // Registre du Commerce et du Crédit Mobilier
   bankDetails?: { // Rendu optionnel pour correspondre au schéma
     bankName: string;
@@ -169,7 +174,12 @@ export interface User {
   /** Role actif pour un utilisateur multi-role (POST /auth/switch-role) - retombe sur userRole si absent. */
   activeRole?: UserRole;
   subsidiaryId: string;
-  subsidiary?: { id: string; subsidiaryName: string; name?: string } | null;
+  homeSubsidiaryId?: string;
+  activeSubsidiaryId?: string | null;
+  allowedSubsidiaryIds?: string[];
+  subsidiaryAccessIds?: string[];
+  allowedSubsidiaries?: Array<{ id: string; subsidiaryName: string; isHeadquarter?: boolean }>;
+  subsidiary?: { id: string; subsidiaryName: string; name?: string; isHeadquarter?: boolean } | null;
   password?: string;
   twoFactorEnabled?: boolean;
 }
@@ -568,6 +578,8 @@ export interface Supplier {
   phone: string;
   address: string;
   subsidiaryId: string;
+  isActive?: boolean;
+  archivedAt?: string | null;
 }
 
 // Purchasing Module Types

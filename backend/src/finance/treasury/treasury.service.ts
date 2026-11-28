@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Optional,
   NotFoundException,
   ForbiddenException,
   BadRequestException,
@@ -42,11 +43,13 @@ import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 import { paginate } from 'src/common/pagination/pagination';
 import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.dto';
 import { withOpeningBalance } from './treasury-opening-balance';
+import { SystemAuditService } from 'src/common/audit/system-audit.service';
 @Injectable()
 export class TreasuryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly accountingOutbox: AccountingOutboxService,
+    @Optional() private readonly systemAudit?: SystemAuditService,
   ) {}
 
   // ================================================================= //
@@ -383,7 +386,7 @@ export class TreasuryService {
         id: generateId(ID_PREFIXES.TREASURY),
         accountName: 'Compte de Préfinancement',
         balance: new Prisma.Decimal(0),
-        currency: 'XOF',
+        currency: 'XAF',
         accountType: AccountType.COMPTE_PREFINANCEMENT,
         subsidiaryId,
       },
@@ -609,8 +612,8 @@ export class TreasuryService {
         ) {
           checkActiveRole(
             user,
-            [UserRole.SUPER_ADMIN],
-            'Seul le super-administrateur peut valider un transfert depuis le coffre-fort ou une banque.',
+            [UserRole.SUPER_ADMIN, UserRole.FINANCIAL_DIRECTOR],
+            'Seul le super-administrateur ou le directeur financier de la filiale peut valider un transfert depuis le coffre-fort ou une banque.',
           );
         }
       }
@@ -618,8 +621,8 @@ export class TreasuryService {
       if (isBankOperation) {
         checkActiveRole(
           user,
-          [UserRole.SUPER_ADMIN],
-          'Seul le super-administrateur peut approuver une opération bancaire.',
+          [UserRole.SUPER_ADMIN, UserRole.FINANCIAL_DIRECTOR],
+          'Seul le super-administrateur ou le directeur financier de la filiale peut approuver une opération bancaire.',
         );
         if (
           transaction.createdByUserId === user.id &&
@@ -658,6 +661,24 @@ export class TreasuryService {
             'Cette opération a déjà été traitée. Actualisez puis réessayez.',
           );
         }
+        await this.systemAudit?.log(
+          {
+            actorId: user.id,
+            actorEmail: user.email,
+            actorRole: getActiveRole(user),
+            subsidiaryId: transaction.subsidiaryId,
+            action: 'TREASURY_TRANSACTION_CANCELLED',
+            entityType: 'FinancialTransaction',
+            entityId: id,
+            summary: `Transaction ${id} annulée par ${user.email}`,
+            metadata: {
+              amount: Number(transaction.amount),
+              sourceAccountId: source.id,
+              destinationAccountId: destination?.id ?? null,
+            },
+          },
+          tx,
+        );
         return tx.financialTransaction.findUniqueOrThrow({ where: { id } });
       }
 
@@ -715,6 +736,25 @@ export class TreasuryService {
           destinationAccountType: destination?.accountType,
         },
       });
+
+      await this.systemAudit?.log(
+        {
+          actorId: user.id,
+          actorEmail: user.email,
+          actorRole: getActiveRole(user),
+          subsidiaryId: transaction.subsidiaryId,
+          action: 'TREASURY_TRANSACTION_VALIDATED',
+          entityType: 'FinancialTransaction',
+          entityId: id,
+          summary: `Transaction ${id} validée par ${user.email}`,
+          metadata: {
+            amount: Number(transaction.amount),
+            sourceAccountId: source.id,
+            destinationAccountId: destination?.id ?? null,
+          },
+        },
+        tx,
+      );
 
       return updatedTransaction;
     });

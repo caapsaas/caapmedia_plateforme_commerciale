@@ -13,13 +13,16 @@ import { useClientPagination } from '../../hooks/useClientPagination';
 import TableSkeleton from '../ui/TableSkeleton';
 import ConfigurationSearch from './ConfigurationSearch';
 import { getImageUrl } from '../../utils/imageUtils';
+import { useI18n } from '../../i18n';
 
 type SubsidiaryForm = {
   subsidiaryName: string;
   address: string;
   phone: string;
   email: string;
-  ifu: string;
+  niu: string;
+  taxCenter: string;
+  taxRegime: string;
   rccm: string;
   bankName: string;
   accountNumber: string;
@@ -30,12 +33,13 @@ type SubsidiaryForm = {
 };
 
 const EMPTY_FORM: SubsidiaryForm = {
-  subsidiaryName: '', address: '', phone: '', email: '', ifu: '', rccm: '',
+  subsidiaryName: '', address: '', phone: '', email: '', niu: '', taxCenter: '', taxRegime: 'REEL', rccm: '',
   bankName: '', accountNumber: '', swiftCode: '', shareCapital: 0, taxRate: 0.3,
   isHeadquarter: false,
 };
 
 const SubsidiaryManagement: React.FC = () => {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const toast = useToast();
   const [search, setSearch] = useState('');
@@ -60,7 +64,7 @@ const SubsidiaryManagement: React.FC = () => {
   const filtered = useMemo(() => {
     const term = search.trim().toLocaleLowerCase();
     if (!term) return subsidiaries;
-    return subsidiaries.filter((item) => [item.subsidiaryName, item.email, item.address, item.phone, item.ifu, item.rccm]
+    return subsidiaries.filter((item) => [item.subsidiaryName, item.email, item.address, item.phone, item.niu, item.taxCenter, item.rccm]
       .some((value) => value?.toLocaleLowerCase().includes(term)));
   }, [subsidiaries, search]);
   const { pageItems: pageSubsidiaries, meta: subsidiariesMeta, setPage } = useClientPagination(filtered);
@@ -73,7 +77,8 @@ const SubsidiaryManagement: React.FC = () => {
     setEditing(item);
     setForm({
       subsidiaryName: item.subsidiaryName || item.name || '', address: item.address || '',
-      phone: item.phone || '', email: item.email || '', ifu: item.ifu || '', rccm: item.rccm || '',
+      phone: item.phone || '', email: item.email || '', niu: item.niu || '',
+      taxCenter: item.taxCenter || '', taxRegime: item.taxRegime || 'REEL', rccm: item.rccm || '',
       bankName: item.bankName || item.bankDetails?.bankName || '', accountNumber: item.accountNumber || item.bankDetails?.accountNumber || '',
       swiftCode: item.swiftCode || item.bankDetails?.swift || '', shareCapital: Number(item.shareCapital || 0),
       taxRate: Number(item.taxRate ?? 0.3), isHeadquarter: !!item.isHeadquarter,
@@ -159,9 +164,31 @@ const SubsidiaryManagement: React.FC = () => {
             <div className="border-b p-6"><h3 className="text-xl font-bold text-slate-800">{editing ? 'Modifier la filiale' : 'Créer une filiale'}</h3></div>
             <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
               {([
-                ['subsidiaryName', 'Nom de la filiale'], ['email', 'Email'], ['phone', 'Téléphone'], ['address', 'Adresse'],
-                ['ifu', 'IFU'], ['rccm', 'RCCM'], ['bankName', 'Banque'], ['accountNumber', 'Compte bancaire'], ['swiftCode', 'Code SWIFT'],
-              ] as const).map(([key, label]) => <label key={key} className="text-sm font-medium text-slate-700">{label}<input required type={key === 'email' ? 'email' : 'text'} value={form[key]} onChange={(event) => setField(key, event.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /> <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>)}
+                ['subsidiaryName', 'Nom de la filiale', ''], ['email', 'Email', ''], ['phone', 'Téléphone', ''], ['address', 'Adresse', ''],
+                ['niu', t('subsidiaryCameroon.niu'), t('subsidiaryCameroon.niuPlaceholder')], ['rccm', 'RCCM', ''], ['bankName', 'Banque', ''], ['accountNumber', 'Compte bancaire', ''], ['swiftCode', 'Code SWIFT', ''],
+              ] as const).map(([key, label, placeholder]) => <label key={key} className="text-sm font-medium text-slate-700">{label}<input required type={key === 'email' ? 'email' : 'text'} placeholder={placeholder || undefined} value={form[key]} onChange={(event) => setField(key, event.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /> <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>)}
+              <label className="text-sm font-medium text-slate-700">
+                {t('subsidiaryCameroon.taxCenter')}
+                <input
+                  type="text"
+                  placeholder={t('subsidiaryCameroon.taxCenterPlaceholder')}
+                  value={form.taxCenter}
+                  onChange={(event) => setField('taxCenter', event.target.value)}
+                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+                />
+              </label>
+              <label className="text-sm font-medium text-slate-700">
+                {t('subsidiaryCameroon.taxRegime')}
+                <select
+                  value={form.taxRegime}
+                  onChange={(event) => setField('taxRegime', event.target.value)}
+                  className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2"
+                >
+                  <option value="REEL">{t('subsidiaryCameroon.regimes.REEL')}</option>
+                  <option value="SIMPLIFIE">{t('subsidiaryCameroon.regimes.SIMPLIFIE')}</option>
+                  <option value="LIBERATOIRE">{t('subsidiaryCameroon.regimes.LIBERATOIRE')}</option>
+                </select>
+              </label>
               <label className="text-sm font-medium text-slate-700">Capital social (FCFA)<input required min="0" type="number" value={form.shareCapital} onChange={(event) => setField('shareCapital', Number(event.target.value))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /> <span className="text-red-600 ml-1" aria-hidden="true">*</span></label>
               <label className="text-sm font-medium text-slate-700">Taux IS (%)<input required min="0" max="100" step="0.01" type="number" value={form.taxRate * 100} onChange={(event) => setField('taxRate', Number(event.target.value) / 100)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" /></label>
               <label className="flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" checked={form.isHeadquarter} onChange={(event) => setField('isHeadquarter', event.target.checked)} />Cette filiale est le siège</label>

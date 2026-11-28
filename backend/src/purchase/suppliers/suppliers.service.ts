@@ -2,19 +2,14 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import {
   CreateSupplierDto,
   UpdateSupplierDto,
 } from './dto/create-supplier.dto';
-import {
-  AccountType,
-  Prisma,
-  TransactionStatus,
-  TransactionType,
-} from '@prisma/client';
-import { IN_MOVEMENT_TYPES } from '../stock-movements/stock-movements.service';
+import { Prisma } from '@prisma/client';
 import { generateId } from 'src/common/utils/generate-id.util';
 import { ID_PREFIXES } from 'src/common/constants/id-prefixes.const';
 import {
@@ -26,10 +21,19 @@ import { PaginationQueryDto } from 'src/common/pagination/dto/pagination-query.d
 import { paginate, PaginatedResult } from 'src/common/pagination/pagination';
 import type { Supplier } from '@prisma/client';
 import type { ScopableUser } from 'src/common/utils/subsidiary-scope';
+import { SystemAuditService } from 'src/common/audit/system-audit.service';
+
+type AuditActor = ScopableUser & {
+  id?: string;
+  email?: string;
+};
 
 @Injectable()
 export class SuppliersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly systemAudit?: SystemAuditService,
+  ) {}
 
   /**
    * Methode pour creer un fournisseur
@@ -73,10 +77,11 @@ export class SuppliersService {
     user: ScopableUser,
     paginationQuery: PaginationQueryDto,
     subsidiaryId?: string,
+    includeArchived = false,
   ): Promise<PaginatedResult<Supplier>> {
     const ctx = resolveScopeContext(user);
     const where: Prisma.SupplierWhereInput = withSubsidiaryScope(
-      {},
+      includeArchived ? {} : { isActive: true },
       ctx,
       subsidiaryId,
     );
@@ -139,145 +144,92 @@ export class SuppliersService {
   }
 
   /**
-   * Methode pour supprimer un fournisseur
-   * @param id ID du fournisseur
-   * @param user Utilisateur connecte
-   * @returns Un fournisseur supprime
+   * Methode d'archivage / suppression non destructive d'un fournisseur (Lot 1).
+   * - S'il possede des commandes d'achat ou articles lies, il est archive
+   *   (`isActive = false`) pour preserver la piste d'audit et les stocks.
+   * - S'il est vierge (aucun historique), il peut etre supprime physiquement.
    */
-  async remove(id: string, user: ScopableUser) {
-    return this.prisma.$transaction(
-      async (tx) => {
-        const supplier = await tx.supplier.findUnique({ where: { id } });
-        if (!supplier) {
-          throw new NotFoundException(
-            `Fournisseur avec l'ID "${id}" non trouvé.`,
-          );
-        }
-        assertSubsidiaryAccess(
-          supplier.subsidiaryId,
-          resolveScopeContext(user),
+  async remove(id: string, user: AuditActor) {
+    const result = await this.prisma.$transaction(async (tx) => {
+      const supplier = await tx.supplier.findUnique({ where: { id } });
+      if (!supplier) {
+        throw new NotFoundException(
+          `Fournisseur avec l'ID "${id}" non trouvé.`,
         );
+      }
+      assertSubsidiaryAccess(supplier.subsidiaryId, resolveScopeContext(user));
 
-        const orders = await tx.purchaseOrder.findMany({
-          where: { supplierId: id },
-          select: { id: true, supplierDebts: { select: { id: true } } },
-        });
-        const orderIds = orders.map((order) => order.id);
-        const documentIds = [
-          id,
-          ...orderIds,
-          ...orders.flatMap((order) =>
-            order.supplierDebts.map((debt) => debt.id),
-          ),
-        ];
-        // Payments can belong to the headquarters account's subsidiary.
-        // Match their explicit document link, never a supplier name.
-        const payments = await tx.financialTransaction.findMany({
-          where: { relatedDocumentId: { in: documentIds } },
-          include: {
-            treasuryAccount: { select: { accountType: true } },
+      const [orderCount, itemCount] = await Promise.all([
+        tx.purchaseOrder.count({ where: { supplierId: id } }),
+        tx.item.count({ where: { mainSupplierId: id } }),
+      ]);
+
+      if (orderCount > 0 || itemCount > 0) {
+        const archived = await tx.supplier.update({
+          where: { id },
+          data: {
+            isActive: false,
+            archivedAt: new Date(),
+            archivedBy: user.id ?? null,
           },
         });
-        if (
-          payments.some(
-            (payment) =>
-              payment.treasuryAccount.accountType === AccountType.BANQUE,
-          )
-        ) {
-          throw new ConflictException(
-            'Un fournisseur ayant des opérations bancaires ne peut pas être supprimé. Désactivez-le et conservez sa piste d’audit.',
-          );
-        }
-        for (const payment of payments) {
-          if (payment.status !== TransactionStatus.VALIDE) continue;
-          const delta =
-            payment.financialTransactionType === TransactionType.DEPENSE
-              ? payment.amount
-              : payment.amount.negated();
-          await tx.treasuryAccount.update({
-            where: { id: payment.sourceAccountId ?? payment.treasuryAccountId },
-            data: { balance: { increment: delta } },
-          });
-          if (payment.destinationAccountId) {
-            await tx.treasuryAccount.update({
-              where: { id: payment.destinationAccountId },
-              data: { balance: { decrement: payment.amount } },
-            });
-          }
-        }
-
-        const sourceIds = [
-          ...documentIds,
-          ...payments.map((payment) => payment.id),
-        ];
-        await tx.accountingOutboxEntry.deleteMany({
-          where: {
-            OR: sourceIds.map((sourceId) => ({
-              payload: { path: ['sourceId'], equals: sourceId },
-            })),
+        await this.systemAudit?.log(
+          {
+            actorId: user.id ?? null,
+            actorEmail: user.email ?? null,
+            actorRole: user.activeRole ?? user.role ?? null,
+            subsidiaryId: supplier.subsidiaryId,
+            action: 'SUPPLIER_ARCHIVED',
+            entityType: 'Supplier',
+            entityId: id,
+            summary: `Fournisseur ${supplier.supplierName} archivé (${orderCount} BC, ${itemCount} article(s) liés)`,
+            metadata: { orderCount, itemCount },
           },
-        });
-        // Include reversals before removing the source entries and their lines.
-        let entries = await tx.journalEntry.findMany({
-          where: { sourceId: { in: sourceIds } },
-          select: { id: true },
-        });
-        const entryIds = new Set(entries.map((entry) => entry.id));
-        while (entries.length) {
-          entries = await tx.journalEntry.findMany({
-            where: {
-              reversalOfEntryId: { in: entries.map((entry) => entry.id) },
-              id: { notIn: [...entryIds] },
-            },
-            select: { id: true },
-          });
-          entries.forEach((entry) => entryIds.add(entry.id));
-        }
-        if (entryIds.size) {
-          await tx.journalEntry.updateMany({
-            where: { id: { in: [...entryIds] } },
-            data: { reversalOfEntryId: null },
-          });
-          await tx.journalEntry.deleteMany({
-            where: { id: { in: [...entryIds] } },
-          });
-        }
-        await tx.financialTransaction.deleteMany({
-          where: { id: { in: payments.map((payment) => payment.id) } },
-        });
+          tx,
+        );
+        return { ...archived, archived: true };
+      }
 
-        const movements = await tx.stockMovement.findMany({
-          where: { purchaseOrderId: { in: orderIds } },
-        });
-        for (const movement of movements) {
-          const delta = IN_MOVEMENT_TYPES.has(movement.type)
-            ? movement.quantity.negated()
-            : movement.quantity;
-          await tx.itemStock.update({
-            where: {
-              itemId_subsidiaryId: {
-                itemId: movement.itemId,
-                subsidiaryId: movement.subsidiaryId,
-              },
-            },
-            data: { stock: { increment: delta } },
-          });
-        }
-        await tx.stockMovement.deleteMany({
-          where: { purchaseOrderId: { in: orderIds } },
-        });
-        // Shared catalogue items survive; only their supplier association is removed.
-        await tx.item.updateMany({
-          where: { mainSupplierId: id },
-          data: { mainSupplierId: null },
-        });
-        // Existing FK cascades remove orders, their lines/history and supplier debts.
-        return tx.supplier.delete({ where: { id } });
+      const deleted = await tx.supplier.delete({ where: { id } });
+      await this.systemAudit?.log(
+        {
+          actorId: user.id ?? null,
+          actorEmail: user.email ?? null,
+          actorRole: user.activeRole ?? user.role ?? null,
+          subsidiaryId: supplier.subsidiaryId,
+          action: 'SUPPLIER_DELETED',
+          entityType: 'Supplier',
+          entityId: id,
+          summary: `Fournisseur vierge ${supplier.supplierName} supprimé`,
+        },
+        tx,
+      );
+      return { ...deleted, archived: false };
+    });
+
+    return result;
+  }
+
+  async restore(id: string, user: AuditActor) {
+    const supplier = await this.findOne(id, user);
+    const restored = await this.prisma.supplier.update({
+      where: { id },
+      data: {
+        isActive: true,
+        archivedAt: null,
+        archivedBy: null,
       },
-      {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        timeout: 30000,
-      },
-    );
+    });
+    await this.systemAudit?.log({
+      actorId: user.id ?? null,
+      actorEmail: user.email ?? null,
+      actorRole: user.activeRole ?? user.role ?? null,
+      subsidiaryId: supplier.subsidiaryId,
+      action: 'SUPPLIER_RESTORED',
+      entityType: 'Supplier',
+      entityId: id,
+      summary: `Fournisseur ${supplier.supplierName} réactivé`,
+    });
+    return restored;
   }
 }

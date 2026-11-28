@@ -451,7 +451,7 @@ const PrefinancementManagement: React.FC<{ subsidiary: Subsidiary }> = ({ subsid
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Montant (XOF)</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Montant (FCFA)</label>
                                 <input 
                                     type="number" 
                                     value={formData.amount}

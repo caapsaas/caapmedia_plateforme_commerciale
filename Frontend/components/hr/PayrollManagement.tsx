@@ -799,7 +799,7 @@ const PayrollManagement: React.FC<PayrollManagementProps> = ({
       name: subsidiary?.name,
       address: subsidiary?.address,
       city: '',
-      niu: subsidiary?.ifu,
+      niu: subsidiary?.niu,
       cnpsNumber: '',
       phone: subsidiary?.phone,
       email: subsidiary?.email,

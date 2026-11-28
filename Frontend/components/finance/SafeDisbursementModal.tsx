@@ -225,10 +225,12 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
     },
   });
 
+  const isCfaCurrency = (currency?: string) => currency === 'XAF' || currency === 'XOF';
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isExpensePayment) {
-      if (selectedSource?.currency === 'XOF' && selectedExpense && Number(selectedExpense.amount) <= selectedSource.balance) submit();
+      if (isCfaCurrency(selectedSource?.currency) && selectedExpense && Number(selectedExpense.amount) <= selectedSource!.balance) submit();
       return;
     }
     if (!sourceAccountId || !amount || parseFloat(amount) <= 0 || !description) return;
@@ -323,7 +325,7 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
                   <option key={expense.id} value={expense.id}>{expense.description} · {expense.subsidiary.subsidiaryName} · {expense.expenseDate.slice(0, 10)} · {formatCurrency(Number(expense.amount))}</option>
                 ))}
               </select>
-              {selectedSource && selectedSource.currency !== 'XOF' && <p role="alert" className="text-sm text-rose-700">{t('safeDisbursement.expenseCurrency')}</p>}
+              {selectedSource && !isCfaCurrency(selectedSource.currency) && <p role="alert" className="text-sm text-rose-700">{t('safeDisbursement.expenseCurrency')}</p>}
               {selectedSource && selectedExpense && Number(selectedExpense.amount) > selectedSource.balance && <p role="alert" className="text-sm text-rose-700">{t('safeDisbursement.insufficientBalance', { balance: formatCurrency(selectedSource.balance) })}</p>}
             </div>
           )}
@@ -437,7 +439,7 @@ const SafeDisbursementModal: React.FC<SafeDisbursementModalProps> = ({ isOpen, o
             <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors">
               {t('common.cancel')}
             </button>
-            <button type="submit" disabled={isPending || (isLoadingPayroll && (isTaxPeriodType || treasuryType === TreasuryTransactionType.SALARY_PAYMENT)) || (isSupplierPayment && !selectedDebt) || (isExpensePayment && (!selectedExpense || selectedSource?.currency !== 'XOF' || Number(selectedExpense.amount) > selectedSource.balance))} className="px-4 py-2 bg-[#231F20] text-white rounded-md hover:bg-slate-700 transition-colors disabled:opacity-50">
+            <button type="submit" disabled={isPending || (isLoadingPayroll && (isTaxPeriodType || treasuryType === TreasuryTransactionType.SALARY_PAYMENT)) || (isSupplierPayment && !selectedDebt) || (isExpensePayment && (!selectedExpense || !isCfaCurrency(selectedSource?.currency) || Number(selectedExpense.amount) > selectedSource!.balance))} className="px-4 py-2 bg-[#231F20] text-white rounded-md hover:bg-slate-700 transition-colors disabled:opacity-50">
               {isPending ? t('safeDisbursement.submitting') : t('safeDisbursement.submit')}
             </button>
           </div>

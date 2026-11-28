@@ -1,38 +1,70 @@
 import React from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
+import { X } from 'lucide-react';
+import { cn } from '../../utils/cn';
 
 interface SlideOverDrawerProps {
-    isOpen: boolean;
-    onClose: () => void;
-    title: string;
-    children: React.ReactNode;
-    footer?: React.ReactNode;
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  subtitle?: string;
+  size?: 'md' | 'lg';
+  children: React.ReactNode;
+  footer?: React.ReactNode;
 }
 
-// Panneau latéral générique (Chantier 5 Builder) — reprend le pattern déjà
-// utilisé par le panier du site vitrine (ShoppingCart.tsx), pas de dépendance
-// Radix/shadcn pour rester cohérent avec le reste de l'application (Tailwind pur).
-const SlideOverDrawer: React.FC<SlideOverDrawerProps> = ({ isOpen, onClose, title, children, footer }) => {
-    if (!isOpen) return null;
+const sizeClasses: Record<'md' | 'lg', string> = {
+  md: 'max-w-[480px]',
+  lg: 'max-w-[640px]',
+};
 
-    return (
-        <div className="fixed inset-0 modal-backdrop z-[999]" onClick={onClose}>
-            <div
-                className="fixed right-0 top-0 h-full w-full max-w-lg bg-white shadow-xl flex flex-col"
-                onClick={e => e.stopPropagation()}
-            >
-                <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
-                    <h2 className="text-lg font-bold text-slate-800">{title}</h2>
-                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-                <div className="flex-grow overflow-y-auto p-4">{children}</div>
-                {footer && <div className="p-4 bg-slate-50 border-t flex-shrink-0">{footer}</div>}
+const SlideOverDrawer: React.FC<SlideOverDrawerProps> = ({
+  isOpen,
+  onClose,
+  title,
+  subtitle,
+  size = 'md',
+  children,
+  footer,
+}) => {
+  return (
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 modal-backdrop z-[998]" />
+        <Dialog.Content
+          className={cn(
+            'fixed right-0 top-0 h-full w-full bg-white border-l border-[var(--border)] shadow-xl z-[999] flex flex-col focus:outline-none animate-drawer-in',
+            sizeClasses[size],
+          )}
+        >
+          <div className="flex items-start justify-between gap-4 px-5 py-4 border-b border-[var(--border)] shrink-0">
+            <div className="min-w-0">
+              <Dialog.Title className="text-base font-semibold text-[var(--foreground)] truncate">
+                {title}
+              </Dialog.Title>
+              {subtitle && (
+                <Dialog.Description className="text-xs text-[var(--muted-foreground)] mt-0.5 truncate">
+                  {subtitle}
+                </Dialog.Description>
+              )}
             </div>
-        </div>
-    );
+            <Dialog.Close
+              aria-label="Fermer"
+              className="p-1.5 rounded-[var(--radius-sm)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors duration-150 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </Dialog.Close>
+          </div>
+          <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
+          {footer && (
+            <div className="px-5 py-3.5 bg-[var(--muted)]/60 border-t border-[var(--border)] shrink-0 flex items-center justify-end gap-2">
+              {footer}
+            </div>
+          )}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
 };
 
 export default SlideOverDrawer;

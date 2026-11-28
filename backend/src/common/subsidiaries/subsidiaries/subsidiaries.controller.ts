@@ -49,7 +49,15 @@ class CreateSubsidiaryDto {
   email: string;
 
   @IsString()
-  ifu: string;
+  niu: string;
+
+  @IsOptional()
+  @IsString()
+  taxCenter?: string;
+
+  @IsOptional()
+  @IsString()
+  taxRegime?: string;
 
   @IsString()
   rccm: string;
@@ -103,7 +111,15 @@ class UpdateSubsidiaryDto {
 
   @IsOptional()
   @IsString()
-  ifu?: string;
+  niu?: string;
+
+  @IsOptional()
+  @IsString()
+  taxCenter?: string;
+
+  @IsOptional()
+  @IsString()
+  taxRegime?: string;
 
   @IsOptional()
   @IsString()

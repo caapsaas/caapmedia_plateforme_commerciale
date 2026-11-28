@@ -90,6 +90,28 @@ class SwitchRoleDto {
   role: UserRole;
 }
 
+class SwitchSubsidiaryDto {
+  @IsString()
+  @IsNotEmpty()
+  subsidiaryId: string;
+}
+
+class TransferUserDto {
+  @IsString()
+  @IsNotEmpty()
+  toSubsidiaryId: string;
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}
+
+class UpdateSubsidiaryAccessDto {
+  @IsArray()
+  @IsString({ each: true })
+  subsidiaryIds: string[];
+}
+
 class UpdateUserDto {
   @IsOptional()
   @IsString()
@@ -294,6 +316,43 @@ export class AuthController {
   @Post('switch-role')
   async switchRole(@Body() dto: SwitchRoleDto, @Request() req) {
     return this.authService.switchRole(req.user.id, dto.role);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('switch-subsidiary')
+  async switchSubsidiary(@Body() dto: SwitchSubsidiaryDto, @Request() req) {
+    return this.authService.switchSubsidiary(req.user.id, dto.subsidiaryId);
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN)
+  @Post('users/:id/transfer')
+  async transferUser(
+    @Param('id') id: string,
+    @Body() dto: TransferUserDto,
+    @Request() req,
+  ) {
+    return this.authService.transferUser(
+      id,
+      dto.toSubsidiaryId,
+      dto.reason,
+      req.user,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN)
+  @Patch('users/:id/subsidiary-access')
+  async updateSubsidiaryAccess(
+    @Param('id') id: string,
+    @Body() dto: UpdateSubsidiaryAccessDto,
+    @Request() req,
+  ) {
+    return this.authService.updateSubsidiaryAccess(
+      id,
+      dto.subsidiaryIds,
+      req.user,
+    );
   }
 
   @UseGuards(JwtAuthGuard)

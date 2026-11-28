@@ -1102,7 +1102,7 @@ const frTranslations = {
     "exportPdf": "Exporter en PDF",
     "phone": "Tél",
     "email": "Email",
-    "ifu": "IFU",
+    "niu": "NIU",
     "rccm": "RCCM",
     "paymentDueDate": "Date d'échéance",
     "subtotal": "Total HT",
@@ -4628,7 +4628,7 @@ const enTranslations: Translations = {
     "exportPdf": "Export to PDF",
     "phone": "Phone",
     "email": "Email",
-    "ifu": "Tax ID",
+    "niu": "Tax ID (NIU)",
     "rccm": "Trade Reg.",
     "paymentDueDate": "Payment Due Date",
     "subtotal": "Subtotal",
@@ -5921,7 +5921,7 @@ const enTranslations: Translations = {
       "nextMaintenanceDate": "Next Maintenance Date",
       "technician": "Technician",
       "description": "Intervention Description",
-      "cost": "Cost (XOF)",
+      "cost": "Cost (FCFA)",
       "acquisitionDate": "Acquisition Date",
       "acquisitionValue": "Acquisition Value"
     }
@@ -6657,7 +6657,7 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({ children }) => {
   const formatCurrency = useCallback((amount: number, maximumFractionDigits = 0) => {
     return new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US', {
       style: 'currency',
-      currency: 'XOF',
+      currency: 'XAF',
       maximumFractionDigits,
     }).format(Number.isFinite(amount) ? amount : 0);
   }, [language]);

@@ -28,12 +28,11 @@ import SidebarDropdown from '../components/common/SidebarDropdown';
 import IconDocumentChartBar from '../components/icons/IconDocumentChartBar';
 import IconDocumentText from '../components/icons/IconDocumentText';
 import IconWallet from '../components/icons/IconWallet';
-import IconTruckCoins from '../components/icons/IconTruckCoins';
 import IconTrendingUp from '../components/icons/IconTrendingUp';
 import IconCurrency from '../components/icons/IconCurrency';
 import IconClipboardCheck from '../components/icons/IconClipboardCheck';
 import IconCash from '../components/icons/IconCash';
-import { Bell } from 'lucide-react';
+import { Bell, ShieldCheck } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -91,16 +90,16 @@ const NavLink: React.FC<{
         onClick={onClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={() => setTooltipPos(null)}
-        className={`w-full flex items-center gap-3 py-2.5 rounded-xl transition-all duration-200 ease-in-out ${
-          isCollapsed ? 'justify-center px-0' : 'px-4'
+        className={`w-full flex items-center gap-3 py-2 rounded-[var(--radius-md)] transition-[background-color,color] duration-150 ${
+          isCollapsed ? 'justify-center px-0' : 'px-3.5'
         } ${
           isActive
-            ? 'bg-gradient-to-r from-[#c6e911] to-[#a8c70e] text-slate-900 font-semibold shadow-lg shadow-lime-500/20'
-            : 'text-slate-300 hover:bg-white/10 hover:text-white'
+            ? 'bg-[var(--brand)] text-[var(--brand-foreground)] font-semibold'
+            : 'text-[var(--sidebar-fg)] hover:bg-[var(--sidebar-hover)] hover:text-white'
         }`}
       >
-        <span className={`shrink-0 transition-colors duration-200 ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>{icon}</span>
-        {!isCollapsed && <span className="text-xs font-medium tracking-wide whitespace-nowrap">{label}</span>}
+        <span className={`shrink-0 transition-colors duration-150 ${isActive ? 'text-[var(--brand-foreground)]' : 'text-[var(--sidebar-muted)]'}`}>{icon}</span>
+        {!isCollapsed && <span className="text-[13px] font-medium tracking-wide whitespace-nowrap">{label}</span>}
       </Link>
 
       {isCollapsed && tooltipPos && createPortal(
@@ -174,7 +173,7 @@ const Sidebar: React.FC = () => {
       case UserRole.ADMIN:
         return [
           {
-            groupLabel: 'Tableau de bord',
+            groupLabel: t('navV3.cockpit'),
             groupIcon: <IconAnalytics className="h-5 w-5" />,
             items: [
               { to: '/dashboard/', label: t('sidebar.analytics'), icon: <IconAnalytics className="h-5 w-5" /> },
@@ -183,20 +182,21 @@ const Sidebar: React.FC = () => {
             ],
           },
           {
-            groupLabel: 'Commerce',
+            groupLabel: t('navV3.commerceClients'),
             groupIcon: <IconCrm className="h-5 w-5" />,
             items: [
               { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-5 w-5" /> },
               ...(activeRole === UserRole.SUPER_ADMIN ? [{ to: '/dashboard/need-requests', label: t('needs.title'), icon: <IconClipboardList className="h-5 w-5" /> }] : []),
               { to: '/dashboard/proforma', label: t('sidebar.proforma'), icon: <IconDocumentText className="h-5 w-5" /> },
               { to: '/dashboard/sales', label: t('sidebar.orders'), icon: <IconSales className="h-5 w-5" /> },
-              { to: '/dashboard/production', label: t('sidebar.production'), icon: <IconFactory className="h-5 w-5" /> },
+              ...(activeRole === UserRole.SUPER_ADMIN ? [{ to: '/dashboard/cashier-receipts', label: t('cashierReceipts.adminTitle'), icon: <IconCurrency className="h-5 w-5" /> }] : []),
             ],
           },
           {
-            groupLabel: 'Opérations',
+            groupLabel: t('navV3.operationsProduction'),
             groupIcon: <IconTruck className="h-5 w-5" />,
             items: [
+              { to: '/dashboard/production', label: t('sidebar.production'), icon: <IconFactory className="h-5 w-5" /> },
               { to: '/dashboard/purchasing', label: t('sidebar.purchasing'), icon: <IconTruck className="h-5 w-5" /> },
               { to: '/dashboard/stock', label: t('sidebar.stockManagement'), icon: <IconStock className="h-5 w-5" /> },
               { to: '/dashboard/maintenance', label: t('sidebar.maintenance'), icon: <IconMaintenance className="h-5 w-5" /> },
@@ -204,91 +204,67 @@ const Sidebar: React.FC = () => {
             ],
           },
           {
-            groupLabel: 'Finance & Comptabilité',
+            groupLabel: t('navV3.financeAccounting'),
             groupIcon: <IconFinance className="h-5 w-5" />,
             items: [
-              { to: '/dashboard/finance', label: t('sidebar.finance'), icon: <IconFinance className="h-5 w-5" /> },
-              ...(activeRole === UserRole.SUPER_ADMIN ? [{ to: '/dashboard/cashier-receipts', label: t('cashierReceipts.adminTitle'), icon: <IconCurrency className="h-5 w-5" /> }] : []),
-              // Décaissement (Coffre-fort + Banques) réservé au SUPER_ADMIN —
-              // trésorerie centralisée au siège, comme gmo (« le super admin
-              // gère le coffre et les banques »). Un ADMIN de filiale ne l'a
-              // plus : la Caisse dépense (gérée par le Directeur Financier)
-              // est désormais dans Finance, pas ici.
               ...(activeRole === UserRole.SUPER_ADMIN ? [{
                 to: '/dashboard/disbursement',
                 label: t('sidebar.disbursement'),
                 icon: <IconWallet className="h-5 w-5" />,
               }] : []),
-              { to: '/dashboard/credit-history', label: t('sidebar.creditHistory'), icon: <IconTruckCoins className="h-5 w-5" /> },
+              { to: '/dashboard/finance', label: t('sidebar.finance'), icon: <IconFinance className="h-5 w-5" /> },
               { to: '/dashboard/financial-history', label: t('sidebar.financialHistory'), icon: <IconTrendingUp className="h-5 w-5" /> },
               { to: '/dashboard/accountings', label: 'Comptabilité', icon: <IconAccounting className="h-5 w-5" /> },
+              ...(isHeadquarterAdminUser ? [{
+                to: '/dashboard/accounting-access-requests',
+                label: (
+                  <span className="flex items-center gap-2">
+                    Demandes comptabilité
+                    {pendingAccessCount > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none tabular-nums">
+                        {pendingAccessCount}
+                      </span>
+                    )}
+                  </span>
+                ),
+                icon: <IconClipboardCheck className="h-5 w-5" />,
+              }] : []),
             ],
           },
           {
-            groupLabel: 'RH & Administration',
+            groupLabel: t('navV3.hrProjectsAdmin'),
             groupIcon: <IconBriefcase className="h-5 w-5" />,
             items: [
               { to: '/dashboard/hr', label: t('sidebar.hrManagement'), icon: <IconBriefcase className="h-5 w-5" /> },
               { to: '/dashboard/secretariat', label: t('sidebar.secretariat'), icon: <IconClipboardList className="h-5 w-5" /> },
-              { to: '/dashboard/configuration', label: t('sidebar.configuration'), icon: <IconSettings className="h-5 w-5" />, exact: true },
-             
             ],
           },
           {
-            groupLabel: 'Outils',
-            groupIcon: <Bell className="h-5 w-5" />,
+            groupLabel: t('navV3.governanceSettings'),
+            groupIcon: <IconSettings className="h-5 w-5" />,
             items: [
+              { to: '/dashboard/configuration', label: t('sidebar.configuration'), icon: <IconSettings className="h-5 w-5" />, exact: true },
+              ...(activeRole === UserRole.SUPER_ADMIN ? [{
+                to: '/dashboard/governance/audit',
+                label: t('navV3.auditSystem'),
+                icon: <ShieldCheck className="h-5 w-5" />,
+              }] : []),
               { to: '/dashboard/notifications', label: t('sidebar.notifications'), icon: <Bell className="h-5 w-5" /> },
             ],
           },
-          ...(activeRole === UserRole.SUPER_ADMIN ? [{
-            groupLabel: t('integrationAudit.settings'),
-            groupIcon: <IconSettings className="h-5 w-5" />,
-            items: [{
-              to: '/dashboard/configuration/integrations',
-              label: t('integrationAudit.settings'),
-              icon: <IconSettings className="h-5 w-5" />,
-            }],
-          }] : []),
-          // Lien autonome hors dropdown, meme emplacement/logique que
-          // Frontend_GMO/components/Sidebar.tsx (rendu en NavLink direct, pas
-          // imbrique dans un groupe) - reserve au siege, badge de compteur.
-          ...(isHeadquarterAdminUser ? [{
-            groupLabel: 'Demandes comptabilité',
-            groupIcon: <IconClipboardCheck className="h-5 w-5" />,
-            items: [{
-              to: '/dashboard/accounting-access-requests',
-              label: (
-                <span className="flex items-center gap-2">
-                  Demandes comptabilité
-                  {pendingAccessCount > 0 && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">
-                      {pendingAccessCount}
-                    </span>
-                  )}
-                </span>
-              ),
-              icon: <IconClipboardCheck className="h-5 w-5" />,
-            }],
-          }] : []),
         ];
 
       case UserRole.COMMERCIAL:
         return [
-          // COMMERCIAL n'a pas acces au tableau de bord complet (onglets
-          // tresorerie banque/coffre/caisse) - seulement a l'analyse des
-          // ventes, meme restriction que Frontend_GMO/components/Sidebar.tsx
-          // (getNavItems::COMMERCIAL) et GET /analytics/dashboard cote
-          // backend (voir analytics.controller.ts).
           {
-            groupLabel: 'Tableau de bord',
+            groupLabel: t('navV3.cockpit'),
             groupIcon: <IconCurrency className="h-5 w-5" />,
             items: [
               { to: '/dashboard/sales-analytics', label: t('sidebar.salesAnalytics'), icon: <IconCurrency className="h-5 w-5" /> },
             ],
           },
           {
-            groupLabel: 'Commerce',
+            groupLabel: t('navV3.commerceClients'),
             groupIcon: <IconCrm className="h-5 w-5" />,
             items: [
               { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-5 w-5" /> },
@@ -298,7 +274,7 @@ const Sidebar: React.FC = () => {
             ],
           },
           {
-            groupLabel: 'Outils',
+            groupLabel: t('navV3.governanceSettings'),
             groupIcon: <Bell className="h-5 w-5" />,
             items: [
               { to: '/dashboard/notifications', label: t('sidebar.notifications'), icon: <Bell className="h-5 w-5" /> },
@@ -309,21 +285,17 @@ const Sidebar: React.FC = () => {
       case UserRole.CAISSIER:
         return [
           {
-            groupLabel: 'Caisse',
+            groupLabel: t('navV3.commerceClients'),
             groupIcon: <IconCashRegister className="h-5 w-5" />,
             items: [
               { to: '/dashboard/caisse', label: t('sidebar.cashRegister'), icon: <IconCashRegister className="h-5 w-5" /> },
               { to: '/dashboard/cashier-receipts', label: t('cashierReceipts.title'), icon: <IconCurrency className="h-5 w-5" /> },
               { to: '/dashboard/sales', label: t('sidebar.transactions'), icon: <IconSales className="h-5 w-5" /> },
-              // La caisse ne fait l'objet d'aucun décaissement direct : un
-              // caissier ne fait que des remises de caisse (voir
-              // Finance.tsx::FinanceView.CASH_REMITTANCES, seul onglet visible
-              // pour ce rôle).
               { to: '/dashboard/finance', label: t('cashRemittance.title'), icon: <IconCash className="h-5 w-5" /> },
             ],
           },
           {
-            groupLabel: 'Outils',
+            groupLabel: t('navV3.governanceSettings'),
             groupIcon: <Bell className="h-5 w-5" />,
             items: [
               { to: '/dashboard/notifications', label: t('sidebar.notifications'), icon: <Bell className="h-5 w-5" /> },
@@ -334,7 +306,7 @@ const Sidebar: React.FC = () => {
       case UserRole.PURCHASING_MANAGER:
         return [
           {
-            groupLabel: 'Opérations',
+            groupLabel: t('navV3.operationsProduction'),
             groupIcon: <IconTruck className="h-5 w-5" />,
             items: [
               { to: '/dashboard/purchasing', label: t('sidebar.purchasing'), icon: <IconTruck className="h-5 w-5" /> },
@@ -342,7 +314,7 @@ const Sidebar: React.FC = () => {
             ],
           },
           {
-            groupLabel: 'Outils',
+            groupLabel: t('navV3.governanceSettings'),
             groupIcon: <Bell className="h-5 w-5" />,
             items: [
               { to: '/dashboard/notifications', label: t('sidebar.notifications'), icon: <Bell className="h-5 w-5" /> },
@@ -353,7 +325,7 @@ const Sidebar: React.FC = () => {
       case UserRole.FINANCIAL_DIRECTOR:
         return [
           {
-            groupLabel: 'Tableau de bord',
+            groupLabel: t('navV3.cockpit'),
             groupIcon: <IconAnalytics className="h-5 w-5" />,
             items: [
               { to: '/dashboard/', label: t('sidebar.analytics'), icon: <IconAnalytics className="h-5 w-5" /> },
@@ -362,7 +334,7 @@ const Sidebar: React.FC = () => {
             ],
           },
           {
-            groupLabel: 'Commerce',
+            groupLabel: t('navV3.commerceClients'),
             groupIcon: <IconCrm className="h-5 w-5" />,
             items: [
               { to: '/dashboard/crm', label: t('sidebar.crm'), icon: <IconCrm className="h-5 w-5" /> },
@@ -372,11 +344,7 @@ const Sidebar: React.FC = () => {
             ],
           },
           {
-            // Aligné sur gmo (Logistique & Stock) : achats + stock séparés
-            // de "Commerce", un directeur financier a besoin de voir le
-            // stock (valorisation, immobilisation en marchandise), pas
-            // seulement les achats.
-            groupLabel: 'Opérations',
+            groupLabel: t('navV3.operationsProduction'),
             groupIcon: <IconTruck className="h-5 w-5" />,
             items: [
               { to: '/dashboard/purchasing', label: t('sidebar.purchasing'), icon: <IconTruck className="h-5 w-5" /> },
@@ -384,20 +352,16 @@ const Sidebar: React.FC = () => {
             ],
           },
           {
-            // Décaissement (Coffre-fort/Banques) retiré : réservé au
-            // SUPER_ADMIN (trésorerie centralisée au siège). La Caisse
-            // dépense de sa filiale reste gérée ici via Finance & Gestion.
-            groupLabel: 'Finance & Comptabilité',
+            groupLabel: t('navV3.financeAccounting'),
             groupIcon: <IconFinance className="h-5 w-5" />,
             items: [
               { to: '/dashboard/finance', label: t('sidebar.finance'), icon: <IconFinance className="h-5 w-5" /> },
-              { to: '/dashboard/credit-history', label: t('sidebar.creditHistory'), icon: <IconTruckCoins className="h-5 w-5" /> },
               { to: '/dashboard/financial-history', label: t('sidebar.financialHistory'), icon: <IconTrendingUp className="h-5 w-5" /> },
               { to: '/dashboard/accountings', label: 'Comptabilité', icon: <IconAccounting className="h-5 w-5" /> },
             ],
           },
           {
-            groupLabel: 'Outils',
+            groupLabel: t('navV3.governanceSettings'),
             groupIcon: <Bell className="h-5 w-5" />,
             items: [
               { to: '/dashboard/notifications', label: t('sidebar.notifications'), icon: <Bell className="h-5 w-5" /> },
@@ -408,7 +372,7 @@ const Sidebar: React.FC = () => {
       case UserRole.SECRETARY:
         return [
           {
-            groupLabel: 'Secrétariat',
+            groupLabel: t('navV3.hrProjectsAdmin'),
             groupIcon: <IconClipboardList className="h-5 w-5" />,
             items: [
               { to: '/dashboard/secretariat', label: t('sidebar.secretariat'), icon: <IconClipboardList className="h-5 w-5" /> },
@@ -416,7 +380,7 @@ const Sidebar: React.FC = () => {
             ],
           },
           {
-            groupLabel: 'Outils',
+            groupLabel: t('navV3.governanceSettings'),
             groupIcon: <Bell className="h-5 w-5" />,
             items: [
               { to: '/dashboard/notifications', label: t('sidebar.notifications'), icon: <Bell className="h-5 w-5" /> },
@@ -427,15 +391,14 @@ const Sidebar: React.FC = () => {
       case UserRole.HR_MANAGER:
         return [
           {
-            groupLabel: 'Ressources humaines',
+            groupLabel: t('navV3.hrProjectsAdmin'),
             groupIcon: <IconBriefcase className="h-5 w-5" />,
             items: [
               { to: '/dashboard/hr', label: t('sidebar.hrManagement'), icon: <IconBriefcase className="h-5 w-5" /> },
-              
             ],
           },
           {
-            groupLabel: 'Outils',
+            groupLabel: t('navV3.governanceSettings'),
             groupIcon: <Bell className="h-5 w-5" />,
             items: [
               { to: '/dashboard/notifications', label: t('sidebar.notifications'), icon: <Bell className="h-5 w-5" /> },
@@ -446,7 +409,7 @@ const Sidebar: React.FC = () => {
       case UserRole.PRE_HIRE_MANAGER:
         return [
           {
-            groupLabel: t('sidebar.hrManagement'),
+            groupLabel: t('navV3.hrProjectsAdmin'),
             groupIcon: <IconBriefcase className="h-5 w-5" />,
             items: [
               { to: '/dashboard/hr/pre-hire-training', label: t('hr.tabs.preHireTraining'), icon: <IconBriefcase className="h-5 w-5" /> },
@@ -457,23 +420,17 @@ const Sidebar: React.FC = () => {
       case UserRole.PRODUCTION_DIRECTOR:
         return [
           {
-            groupLabel: 'Production',
+            groupLabel: t('navV3.operationsProduction'),
             groupIcon: <IconFactory className="h-5 w-5" />,
             items: [
               { to: '/dashboard/production', label: t('sidebar.production'), icon: <IconFactory className="h-5 w-5" /> },
               { to: '/dashboard/sales', label: t('sidebar.orders'), icon: <IconSales className="h-5 w-5" /> },
-            ],
-          },
-          {
-            groupLabel: 'Maintenance',
-            groupIcon: <IconMaintenance className="h-5 w-5" />,
-            items: [
               { to: '/dashboard/maintenance', label: t('sidebar.maintenance'), icon: <IconMaintenance className="h-5 w-5" /> },
               { to: '/dashboard/equipements', label: t('sidebar.equipements'), icon: <IconBuildingStorefront className="h-5 w-5" /> },
             ],
           },
           {
-            groupLabel: 'Outils',
+            groupLabel: t('navV3.governanceSettings'),
             groupIcon: <Bell className="h-5 w-5" />,
             items: [
               { to: '/dashboard/notifications', label: t('sidebar.notifications'), icon: <Bell className="h-5 w-5" /> },
@@ -493,11 +450,10 @@ const Sidebar: React.FC = () => {
     no-print
     fixed md:relative inset-y-0 left-0 z-40
     flex flex-col
-    bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f]
-    text-white
-    transition-all duration-300 ease-in-out
-    shadow-2xl
-    border-r border-white/5
+    bg-[var(--sidebar-bg)]
+    text-[var(--sidebar-fg)]
+    transition-[width,transform] duration-200 ease-[var(--ease-out-ui)]
+    border-r border-[var(--sidebar-border)]
     ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
     ${isSidebarCollapsed ? 'w-20' : 'w-72'}
   `;
@@ -629,8 +585,8 @@ const Sidebar: React.FC = () => {
           />
 
           {!isSidebarCollapsed && (
-            <p className="text-center text-[10px] text-slate-600 pt-2">
-              CaapMedia &copy; 2024 · v2.0.0
+            <p className="text-center text-[10px] text-slate-500 pt-2">
+              CaapMedia · v3.0
             </p>
           )}
         </div>

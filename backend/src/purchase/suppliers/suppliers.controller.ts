@@ -52,11 +52,13 @@ export class SuppliersController {
     @Req() req: { user: ScopableUser },
     @Query() paginationQuery: PaginationQueryDto,
     @Query('subsidiaryId') subsidiaryId?: string,
+    @Query('includeArchived') includeArchived?: string,
   ) {
     return this.suppliersService.findAll(
       req.user,
       paginationQuery,
       subsidiaryId,
+      includeArchived === 'true',
     );
   }
 
@@ -98,5 +100,14 @@ export class SuppliersController {
     @Req() req: { user: ScopableUser },
   ) {
     return this.suppliersService.remove(id, req.user);
+  }
+
+  @Patch(':id/restore')
+  @Roles(UserRole.ADMIN)
+  restore(
+    @Param('id', SupplierIdPipe) id: string,
+    @Req() req: { user: ScopableUser },
+  ) {
+    return this.suppliersService.restore(id, req.user);
   }
 }

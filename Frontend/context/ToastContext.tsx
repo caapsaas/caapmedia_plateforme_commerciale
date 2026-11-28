@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import Toast, { ToastType, ToastProps } from '../components/ui/Toast';
+import React, { createContext, useContext, useCallback, ReactNode } from 'react';
+import { Toaster, toast as sonnerToast } from 'sonner';
+import type { ToastType } from '../components/ui/Toast';
 
 interface ToastContextType {
   toast: (type: ToastType, title: string, message?: string, duration?: number) => string;
@@ -10,8 +11,6 @@ interface ToastContextType {
   dismiss: (id: string) => void;
   dismissAll: () => void;
 }
-
-interface ToastItem extends Omit<ToastProps, 'onClose'> {}
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
@@ -28,110 +27,67 @@ interface ToastProviderProps {
 }
 
 export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const emit = useCallback(
+    (type: ToastType, title: string, message?: string, duration?: number): string => {
+      const opts = { description: message, duration: duration ?? 4500 };
+      const id =
+        type === 'success'
+          ? sonnerToast.success(title, opts)
+          : type === 'error'
+            ? sonnerToast.error(title, opts)
+            : type === 'warning'
+              ? sonnerToast.warning(title, opts)
+              : sonnerToast.info(title, opts);
+      return String(id);
+    },
+    [],
+  );
 
-  const generateId = () => {
-    return `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  };
-
-  const addToast = useCallback((
-    type: ToastType,
-    title: string,
-    message?: string,
-    duration?: number
-  ): string => {
-    const id = generateId();
-    const newToast: ToastItem = {
-      id,
-      type,
-      title,
-      message,
-      duration,
-    };
-
-    setToasts(prev => [...prev, newToast]);
-    return id;
-  }, []);
-
-  const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  }, []);
-
-  const toast = useCallback((
-    type: ToastType,
-    title: string,
-    message?: string,
-    duration?: number
-  ) => {
-    return addToast(type, title, message, duration);
-  }, [addToast]);
-
-  const success = useCallback((
-    title: string,
-    message?: string,
-    duration?: number
-  ) => {
-    return addToast('success', title, message, duration);
-  }, [addToast]);
-
-  const error = useCallback((
-    title: string,
-    message?: string,
-    duration?: number
-  ) => {
-    return addToast('error', title, message, duration);
-  }, [addToast]);
-
-  const info = useCallback((
-    title: string,
-    message?: string,
-    duration?: number
-  ) => {
-    return addToast('info', title, message, duration);
-  }, [addToast]);
-
-  const warning = useCallback((
-    title: string,
-    message?: string,
-    duration?: number
-  ) => {
-    return addToast('warning', title, message, duration);
-  }, [addToast]);
-
+  const toast = useCallback(
+    (type: ToastType, title: string, message?: string, duration?: number) =>
+      emit(type, title, message, duration),
+    [emit],
+  );
+  const success = useCallback(
+    (title: string, message?: string, duration?: number) =>
+      emit('success', title, message, duration),
+    [emit],
+  );
+  const error = useCallback(
+    (title: string, message?: string, duration?: number) =>
+      emit('error', title, message, duration),
+    [emit],
+  );
+  const info = useCallback(
+    (title: string, message?: string, duration?: number) =>
+      emit('info', title, message, duration),
+    [emit],
+  );
+  const warning = useCallback(
+    (title: string, message?: string, duration?: number) =>
+      emit('warning', title, message, duration),
+    [emit],
+  );
   const dismiss = useCallback((id: string) => {
-    removeToast(id);
-  }, [removeToast]);
-
-  const dismissAll = useCallback(() => {
-    setToasts([]);
+    sonnerToast.dismiss(id);
   }, []);
-
-  const value: ToastContextType = {
-    toast,
-    success,
-    error,
-    info,
-    warning,
-    dismiss,
-    dismissAll,
-  };
+  const dismissAll = useCallback(() => {
+    sonnerToast.dismiss();
+  }, []);
 
   return (
-    <ToastContext.Provider value={value}>
+    <ToastContext.Provider
+      value={{ toast, success, error, info, warning, dismiss, dismissAll }}
+    >
       {children}
-      
-      {/* Toast Container */}
-      <div className="fixed top-4 right-4 z-50 pointer-events-none">
-        <div className="pointer-events-auto">
-          {toasts.map((toast) => (
-            <Toast
-              key={toast.id}
-              {...toast}
-              onClose={removeToast}
-            />
-          ))}
-        </div>
-      </div>
+      <Toaster
+        position="bottom-right"
+        richColors
+        closeButton
+        toastOptions={{
+          className: 'font-sans border border-[var(--border)] shadow-md',
+        }}
+      />
     </ToastContext.Provider>
   );
 };

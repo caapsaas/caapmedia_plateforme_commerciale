@@ -74,8 +74,22 @@ describe('Shared role and subsidiary policy', () => {
     expect(withSubsidiaryScope({}, scope)).toEqual({});
     expect(withSubsidiaryScope({}, scope, 'B')).toEqual({ subsidiaryId: 'B' });
   });
+  it('supports explicitly authorized multi-subsidiary access for non-super-admin users', () => {
+    const multi = { ...local, allowedSubsidiaryIds: ['A', 'B'] };
+    const scope = resolveScopeContext(multi);
+    expect(withSubsidiaryScope({}, scope, 'B')).toEqual({ subsidiaryId: 'B' });
+    expect(withSubsidiaryScope({}, scope, 'C')).toEqual({ subsidiaryId: 'A' });
+    expect(() => assertSubsidiaryAccess('B', scope)).not.toThrow();
+    expect(() => assertSubsidiaryAccess('C', scope)).toThrow(
+      ForbiddenException,
+    );
+  });
   it('rejects manually constructed contexts without a subsidiary in every helper', () => {
-    const scope = { subsidiaryId: '', hasGlobalScope: false };
+    const scope = {
+      subsidiaryId: '',
+      hasGlobalScope: false,
+      allowedSubsidiaryIds: [],
+    };
     expect(() => withSubsidiaryScope({}, scope)).toThrow(ForbiddenException);
     expect(() => resolveEffectiveSubsidiaryId(scope)).toThrow(
       ForbiddenException,

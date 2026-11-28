@@ -53,7 +53,7 @@ export class ExternalTransactionService {
   private formatAmount(amount: number): string {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: 'XOF',
+      currency: 'XAF',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);

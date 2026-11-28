@@ -35,6 +35,7 @@ import Accounting from './Pages/Accounting';
 import AccountingAccessAdmin from './Pages/AccountingAccessAdmin';
 import Configuration from './Pages/Configuration';
 import IntegrationSettings from './Pages/IntegrationSettings';
+import AuditSystem from './Pages/AuditSystem';
 import HrManagement from './Pages/HrManagement';
 import Secretariat from './Pages/Secretariat';
 import Production from './Pages/Production';
@@ -245,6 +246,9 @@ const equipementsRoute = createRoute({ getParentRoute: () => dashboardRoute, pat
 const mesCommandesRoute = createRoute({
   getParentRoute: () => dashboardRoute,
   path: '/mes-commandes',
+  beforeLoad: () => {
+    throw redirect({ to: '/dashboard/sales' });
+  },
   component: MesCommandes,
 });
 
@@ -256,6 +260,16 @@ const integrationSettingsRoute = createRoute({
   beforeLoad: ({ context }) => {
     if (context.auth.authLive.current.activeRole !== UserRole.SUPER_ADMIN) {
       throw redirect({ to: '/dashboard/configuration' });
+    }
+  },
+});
+const governanceAuditRoute = createRoute({
+  getParentRoute: () => dashboardRoute,
+  path: '/governance/audit',
+  component: AuditSystem,
+  beforeLoad: ({ context }) => {
+    if (context.auth.authLive.current.activeRole !== UserRole.SUPER_ADMIN) {
+      throw redirect({ to: getDefaultViewForRole(context.auth.authLive.current.activeRole) });
     }
   },
 });
@@ -327,7 +341,14 @@ const salesAnalyticsRoute = createRoute({ getParentRoute: () => dashboardRoute, 
 const purchaseAnalyticsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/purchase-analytics', component: PurchaseAnalysisPage });
 const disbursementRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/disbursement', component: Disbursement });
 const proformaRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/proforma', component: ProformaPage });
-const creditHistoryRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/credit-history', component: CreditHistoryPage });
+const creditHistoryRoute = createRoute({
+  getParentRoute: () => dashboardRoute,
+  path: '/credit-history',
+  beforeLoad: () => {
+    throw redirect({ to: '/dashboard/finance' });
+  },
+  component: CreditHistoryPage,
+});
 const financialHistoryRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/financial-history', component: FinancialHistoryPage });
 const notificationsRoute = createRoute({ getParentRoute: () => dashboardRoute, path: '/notifications', component: NotificationsPage });
 
@@ -365,6 +386,7 @@ const routeTree = rootRoute.addChildren([
     notificationsRoute,
     configurationRoute,
     integrationSettingsRoute,
+    governanceAuditRoute,
     hrRoute.addChildren([
       hrPreHireTrainingRoute,
       hrCardsRoute,

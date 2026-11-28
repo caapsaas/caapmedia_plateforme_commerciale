@@ -14,8 +14,10 @@ model Subsidiary {
   address        String  @map("address")
   phone          String  @map("phone") @db.VarChar(255)
   email          String  @unique @map("email") @db.VarChar(255)
-  ifu            String  @map("ifu") @db.VarChar(255)
+  niu            String  @map("niu") @db.VarChar(255)
   rccm           String  @map("rccm") @db.VarChar(255)
+  taxCenter      String? @map("tax_center") @db.VarChar(150)
+  taxRegime      String? @map("tax_regime") @db.VarChar(100)
   bankName       String  @map("bank_name") @db.VarChar(255)
   accountNumber  String  @map("account_number") @db.VarChar(255)
   swiftCode      String  @map("swift_code") @db.VarChar(255)
@@ -74,9 +76,10 @@ model Subsidiary {
 
   payrollBonusTypes     PayrollBonusType[]
   payrollBonuses        PayrollBonus[]
-  payrollChargePayments PayrollChargePayment[]
-  payrollCumulatives    PayrollCumulative[]    @relation("PayrollCumulatives")
-  cashRemittances       CashRemittance[]
+  payrollChargePayments  PayrollChargePayment[]
+  payrollCumulatives     PayrollCumulative[]    @relation("PayrollCumulatives")
+  cashRemittances        CashRemittance[]
+  userSubsidiaryAccesses UserSubsidiaryAccess[]
 
   @@index([subsidiaryName]) // Ajout de cet index
   @@index([latitude, longitude])
@@ -100,6 +103,7 @@ model User {
   email                         String                         @unique @map("email") @db.VarChar(255)
   passwordHash                  String                         @map("password_hash")
   subsidiaryId                  String                         @map("subsidiary_id")
+  activeSubsidiaryId            String?                        @map("active_subsidiary_id")
   userRole                      UserRole                       @map("user_role")
   additionalRoles               UserRole[]                     @default([]) @map("additional_roles")
   /// Source de verite cible pour le RBAC (remplace userRole+additionalRoles, voir Doc/architecture-multi-filiale-auth-rbac.md phase 4)
@@ -143,8 +147,43 @@ model User {
   secretariatTasks              SecretariatTask[]
   createdCashRemittances        CashRemittance[]               @relation("CashRemittanceCreatedBy")
   receivedCashRemittances       CashRemittance[]               @relation("CashRemittanceReceivedBy")
+  subsidiaryAccesses            UserSubsidiaryAccess[]
+  transferHistories             SubsidiaryTransferHistory[]
 
   @@map("users")
+}
+
+/// Autorisation explicite accordee par SUPER_ADMIN permettant a un utilisateur
+/// d'operer sur plusieurs filiales (Lot 1 — Gouvernance Multi-Filiales).
+model UserSubsidiaryAccess {
+  id           String     @id @default(uuid())
+  userId       String     @map("user_id")
+  subsidiaryId String     @map("subsidiary_id")
+  grantedBy    String?    @map("granted_by")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subsidiaryId])
+  @@index([subsidiaryId])
+  @@map("user_subsidiary_accesses")
+}
+
+/// Historique trace des mutations de filiale (utilisateurs / employes).
+model SubsidiaryTransferHistory {
+  id               String   @id @default(uuid())
+  userId           String?  @map("user_id")
+  employeeId       String?  @map("employee_id")
+  fromSubsidiaryId String   @map("from_subsidiary_id")
+  toSubsidiaryId   String   @map("to_subsidiary_id")
+  reason           String?  @db.Text
+  transferredBy    String?  @map("transferred_by")
+  transferredAt    DateTime @default(now()) @map("transferred_at")
+  user             User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, transferredAt])
+  @@index([employeeId, transferredAt])
+  @@map("subsidiary_transfer_histories")
 }
 
 /// Refresh tokens httpOnly - permet la rotation et la revocation reelle,
@@ -210,6 +249,28 @@ model AuthAuditLog {
   @@index([event])
   @@index([createdAt])
   @@map("auth_audit_logs")
+}
+
+/// Piste d'audit metier globale (qui a fait quoi, sur quelle entite et quand).
+model SystemAuditLog {
+  id           String   @id @default(uuid())
+  actorId      String?  @map("actor_id")
+  actorEmail   String?  @map("actor_email")
+  actorRole    String?  @map("actor_role")
+  subsidiaryId String?  @map("subsidiary_id")
+  action       String   @db.VarChar(100)
+  entityType   String   @map("entity_type") @db.VarChar(100)
+  entityId     String?  @map("entity_id") @db.VarChar(100)
+  summary      String   @db.Text
+  metadata     Json?
+  ipAddress    String?  @map("ip_address")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([subsidiaryId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@map("system_audit_logs")
 }
 
 model IntegrationCheck {
@@ -727,6 +788,9 @@ model Contact {
   passwordHash  String?        @map("password_hash")
   isOccasional  Boolean        @default(false) @map("is_occasional")
   isVerified    Boolean        @default(false) @map("is_verified")
+  isActive      Boolean        @default(true) @map("is_active")
+  archivedAt    DateTime?      @map("archived_at")
+  archivedBy    String?        @map("archived_by")
   accountId     String?        @map("account_id")
   salesRepId    String?        @map("sales_rep_id")
   subsidiaryId  String?        @map("subsidiary_id")
@@ -950,6 +1014,9 @@ model Supplier {
   phone          String          @map("phone") @db.VarChar(255)
   address        String          @map("address")
   subsidiaryId   String          @map("subsidiary_id")
+  isActive       Boolean         @default(true) @map("is_active")
+  archivedAt     DateTime?       @map("archived_at")
+  archivedBy     String?         @map("archived_by")
   purchaseOrders PurchaseOrder[]
   subsidiary     Subsidiary      @relation(fields: [subsidiaryId], references: [id])
   suppliedItems  Item[]
@@ -2639,7 +2706,7 @@ model PrefinancementAccount {
   id           String     @id @map("prefinancement_accounts")
   accountName  String     @map("account_name") @db.VarChar(255)
   balance      Decimal    @map("balance") @db.Decimal(15, 2)
-  currency     String     @default("XOF") @map("currency") @db.VarChar(10)
+  currency     String     @default("XAF") @map("currency") @db.VarChar(10)
   lastUpdated  DateTime   @default(now()) @map("last_updated") @db.Timestamp
   subsidiaryId String     @map("subsidiary_id")
   subsidiary   Subsidiary @relation(fields: [subsidiaryId], references: [id])

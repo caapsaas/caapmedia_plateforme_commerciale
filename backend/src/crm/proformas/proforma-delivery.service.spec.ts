@@ -64,7 +64,7 @@ describe('Proforma delivery', () => {
         phone: '237600000000',
         bankName: 'Bank',
         accountNumber: '123',
-        ifu: 'IFU',
+        niu: 'NIU',
         rccm: 'RCCM',
       },
     } as unknown as DeliveryProforma;

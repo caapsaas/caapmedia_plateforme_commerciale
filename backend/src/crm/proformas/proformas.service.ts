@@ -199,7 +199,7 @@ export class ProformasService {
               address: true,
               phone: true,
               email: true,
-              ifu: true,
+              niu: true,
               rccm: true,
               bankName: true,
               accountNumber: true,

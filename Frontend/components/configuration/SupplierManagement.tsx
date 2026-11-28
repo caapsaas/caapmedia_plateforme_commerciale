@@ -8,7 +8,9 @@ import { useToast } from '../../context/ToastContext';
 import SupplierFormModal from './SupplierFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getSuppliersPaginated, createSupplier, updateSupplier, deleteSupplier } from '../../services/apiPurchasing/apiSupplier';
+import { RotateCcw } from 'lucide-react';
+import { getSuppliersPaginated, createSupplier, updateSupplier, deleteSupplier, restoreSupplier } from '../../services/apiPurchasing/apiSupplier';
+import { Badge } from '../ui';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
 import Pagination from '../common/Pagination';
@@ -24,14 +26,15 @@ const SupplierManagement: React.FC = () => {
     const [deletingSupplier, setDeletingSupplier] = useState<Supplier | null>(null);
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
+    const [showArchived, setShowArchived] = useState(false);
 
     useEffect(() => {
         setPage(1);
-    }, [search]);
+    }, [search, showArchived]);
 
     const { data: paginatedSuppliers, isLoading } = useQuery({
-        queryKey: ['suppliers', 'paginated', page, search],
-        queryFn: () => getSuppliersPaginated({ page, limit: SUPPLIERS_PAGE_SIZE, search: search || undefined }),
+        queryKey: ['suppliers', 'paginated', page, search, showArchived],
+        queryFn: () => getSuppliersPaginated({ page, limit: SUPPLIERS_PAGE_SIZE, search: search || undefined, includeArchived: showArchived || undefined }),
     });
 
     const suppliers = paginatedSuppliers?.data || [];
@@ -55,13 +58,25 @@ const SupplierManagement: React.FC = () => {
     const { mutate: deleteSupplierMutate, isPending: isDeletingSupplier } = useMutation({
         mutationFn: deleteSupplier,
         onSuccess: () => {
-            // Supplier deletion also changes purchases, debts, stock and finance.
-            queryClient.invalidateQueries();
-            toast.success('Fournisseur supprimé!', 'Le fournisseur a été supprimé avec succès.');
+            queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+            queryClient.invalidateQueries({ queryKey: ['suppliers-list'] });
+            toast.success(t('supplierGovernance.archiveSuccess'), '');
             handleCloseModals();
         },
         onError: () => {
-            toast.error('Erreur de suppression', 'Une erreur est survenue lors de la suppression du fournisseur.');
+            toast.error('Erreur', 'Impossible d’archiver ce fournisseur.');
+        }
+    });
+
+    const { mutate: restoreSupplierMutate, isPending: isRestoringSupplier } = useMutation({
+        mutationFn: restoreSupplier,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+            queryClient.invalidateQueries({ queryKey: ['suppliers-list'] });
+            toast.success(t('supplierGovernance.restoreSuccess'), '');
+        },
+        onError: () => {
+            toast.error('Erreur', 'Impossible de restaurer ce fournisseur.');
         }
     });
 
@@ -99,14 +114,23 @@ const SupplierManagement: React.FC = () => {
                     <span>{t('configuration.addSupplier')}</span>
                 </button>
             </div>
-            <div className="mb-4">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <input
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder={t('common.search')}
-                    className="w-full sm:w-72 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#c6e911]"
+                    className="w-full sm:w-72 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ring)]"
                 />
+                <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
+                    <input
+                        type="checkbox"
+                        checked={showArchived}
+                        onChange={(e) => setShowArchived(e.target.checked)}
+                        className="rounded border-slate-300"
+                    />
+                    <span>{t('supplierGovernance.showArchived')}</span>
+                </label>
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-slate-500">
@@ -129,10 +153,17 @@ const SupplierManagement: React.FC = () => {
                                     <EmptyState icon="truck" title={t('configuration.supplierManagement')} description={t('common.notAvailable')} />
                                 </td>
                             </tr>
-                        ) : suppliers.map((supplier) => (
-                            <tr key={supplier.id} className="bg-white border-b hover:bg-slate-50">
-                                <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{supplier.id}</th>
-                                <td className="px-6 py-4 font-semibold">{supplier.supplierName}</td>
+                        ) : suppliers.map((supplier) => {
+                            const isArchived = supplier.isActive === false;
+                            return (
+                            <tr key={supplier.id} className={`border-b hover:bg-slate-50 ${isArchived ? 'bg-slate-50/70 opacity-75' : 'bg-white'}`}>
+                                <th scope="row" className="px-6 py-4 font-mono text-xs font-medium text-slate-900 whitespace-nowrap">{supplier.id}</th>
+                                <td className="px-6 py-4 font-semibold">
+                                    <div className="flex items-center gap-2">
+                                        <span>{supplier.supplierName}</span>
+                                        {isArchived && <Badge variant="neutral">{t('supplierGovernance.archivedBadge')}</Badge>}
+                                    </div>
+                                </td>
                                 <td className="px-6 py-4">{supplier.company}</td>
                                 <td className="px-6 py-4">{supplier.email}</td>
                                 <td className="px-6 py-4">{supplier.phone}</td>
@@ -140,12 +171,30 @@ const SupplierManagement: React.FC = () => {
                                     <button onClick={() => handleOpenEditModal(supplier)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
                                         <IconEdit className="h-5 w-5" />
                                     </button>
-                                    <button onClick={() => handleOpenDeleteModal(supplier)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" aria-label={t('common.delete')}>
-                                        <IconDelete className="h-5 w-5" />
-                                    </button>
+                                    {isArchived ? (
+                                        <button
+                                            onClick={() => restoreSupplierMutate(supplier.id)}
+                                            disabled={isRestoringSupplier}
+                                            className="p-2 text-emerald-700 hover:bg-emerald-50 rounded-full transition-colors"
+                                            title={t('supplierGovernance.restoreAction')}
+                                            aria-label={t('supplierGovernance.restoreAction')}
+                                        >
+                                            <RotateCcw className="h-4 w-4" />
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => handleOpenDeleteModal(supplier)}
+                                            className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors"
+                                            title={t('supplierGovernance.archiveAction')}
+                                            aria-label={t('supplierGovernance.archiveAction')}
+                                        >
+                                            <IconDelete className="h-5 w-5" />
+                                        </button>
+                                    )}
                                 </td>
                             </tr>
-                        ))}
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
@@ -164,8 +213,8 @@ const SupplierManagement: React.FC = () => {
                     isOpen={!!deletingSupplier}
                     onClose={() => { if (!isDeletingSupplier) handleCloseModals(); }}
                     onConfirm={handleDeleteSupplier}
-                    title={t('configuration.modal.deleteSupplierTitle')}
-                    message={t('configuration.modal.deleteSupplierCascadeMessage', {itemName: deletingSupplier.supplierName})}
+                    title={t('supplierGovernance.archiveAction')}
+                    message={t('supplierGovernance.archiveConfirm')}
                     isDangerous
                     isLoading={isDeletingSupplier}
                 />

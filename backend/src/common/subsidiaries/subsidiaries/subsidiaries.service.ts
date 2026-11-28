@@ -58,8 +58,10 @@ export class SubsidiaryService {
       address: string;
       phone: string;
       email: string;
-      ifu: string;
+      niu: string;
       rccm: string;
+      taxCenter?: string;
+      taxRegime?: string;
       bankName: string;
       accountNumber: string;
       swiftCode: string;
@@ -101,8 +103,10 @@ export class SubsidiaryService {
         address: data.address,
         phone: data.phone,
         email: data.email,
-        ifu: data.ifu,
+        niu: data.niu,
         rccm: data.rccm,
+        taxCenter: data.taxCenter ?? null,
+        taxRegime: data.taxRegime ?? null,
         bankName: data.bankName,
         accountNumber: data.accountNumber,
         swiftCode: data.swiftCode,
@@ -124,8 +128,10 @@ export class SubsidiaryService {
       email: subsidiary.email,
       address: subsidiary.address,
       phone: subsidiary.phone,
-      ifu: subsidiary.ifu,
+      niu: subsidiary.niu,
       rccm: subsidiary.rccm,
+      taxCenter: subsidiary.taxCenter,
+      taxRegime: subsidiary.taxRegime,
       bankName: subsidiary.bankName,
       accountNumber: subsidiary.accountNumber,
       swiftCode: subsidiary.swiftCode,
@@ -143,8 +149,10 @@ export class SubsidiaryService {
       address?: string;
       phone?: string;
       email?: string;
-      ifu?: string;
+      niu?: string;
       rccm?: string;
+      taxCenter?: string;
+      taxRegime?: string;
       bankName?: string;
       accountNumber?: string;
       swiftCode?: string;
@@ -212,8 +220,10 @@ export class SubsidiaryService {
       email: updatedSubsidiary.email,
       address: updatedSubsidiary.address,
       phone: updatedSubsidiary.phone,
-      ifu: updatedSubsidiary.ifu,
+      niu: updatedSubsidiary.niu,
       rccm: updatedSubsidiary.rccm,
+      taxCenter: updatedSubsidiary.taxCenter,
+      taxRegime: updatedSubsidiary.taxRegime,
       bankName: updatedSubsidiary.bankName,
       accountNumber: updatedSubsidiary.accountNumber,
       swiftCode: updatedSubsidiary.swiftCode,
@@ -383,8 +393,10 @@ export class SubsidiaryService {
           email: subsidiary.email,
           address: subsidiary.address,
           phone: subsidiary.phone,
-          ifu: subsidiary.ifu,
+          niu: subsidiary.niu,
           rccm: subsidiary.rccm,
+          taxCenter: subsidiary.taxCenter,
+          taxRegime: subsidiary.taxRegime,
           bankName: subsidiary.bankName,
           accountNumber: subsidiary.accountNumber,
           swiftCode: subsidiary.swiftCode,
@@ -438,8 +450,10 @@ export class SubsidiaryService {
         email: subsidiary.email,
         address: subsidiary.address,
         phone: subsidiary.phone,
-        ifu: subsidiary.ifu,
+        niu: subsidiary.niu,
         rccm: subsidiary.rccm,
+        taxCenter: subsidiary.taxCenter,
+        taxRegime: subsidiary.taxRegime,
         bankName: subsidiary.bankName,
         accountNumber: subsidiary.accountNumber,
         swiftCode: subsidiary.swiftCode,

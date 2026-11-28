@@ -17,7 +17,16 @@ export const createSupplier = async (data: Omit<Supplier, 'id' | 'subsidiaryId'>
  * pour préserver le comportement "tout charger" des appelants existants.
  */
 export const getSuppliers = async (): Promise<Supplier[]> => {
-    const response = await api.get<PaginatedResponse<Supplier>>('/purchasing/suppliers', { params: { limit: 500 } });
+    const response = await api.get<PaginatedResponse<Supplier>>('/purchasing/suppliers', {
+        params: { limit: 500 },
+    });
+    return response.data.data;
+};
+
+export const getSuppliersWithArchived = async (includeArchived = false): Promise<Supplier[]> => {
+    const response = await api.get<PaginatedResponse<Supplier>>('/purchasing/suppliers', {
+        params: { limit: 500, ...(includeArchived ? { includeArchived: true } : {}) },
+    });
     return response.data.data;
 };
 
@@ -25,7 +34,7 @@ export const getSuppliers = async (): Promise<Supplier[]> => {
  * Version paginée/recherchable pour les vues liste et les selects.
  */
 export const getSuppliersPaginated = async (
-    params: PaginationParams & { subsidiaryId?: string },
+    params: PaginationParams & { subsidiaryId?: string; includeArchived?: boolean },
 ): Promise<PaginatedResponse<Supplier>> => {
     const response = await api.get<PaginatedResponse<Supplier>>('/purchasing/suppliers', { params });
     return response.data;
@@ -56,4 +65,12 @@ export const updateSupplier = async (id: string, data: Partial<Omit<Supplier, 'i
  */
 export const deleteSupplier = async (id: string) => {
     await api.delete(`/purchasing/suppliers/${id}`);
+};
+
+/**
+ * Restaure un fournisseur archivé.
+ */
+export const restoreSupplier = async (id: string): Promise<Supplier> => {
+    const response = await api.patch<Supplier>(`/purchasing/suppliers/${id}/restore`);
+    return response.data;
 };

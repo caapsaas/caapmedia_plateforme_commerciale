@@ -260,4 +260,69 @@ describe('Treasury account funding', () => {
       },
     });
   });
+
+  it('allows branch financial director Maker-Checker approval on bank transactions created by another user, but blocks self-approval', async () => {
+    const daf: JwtUser = {
+      id: 'daf-user',
+      email: 'daf@example.com',
+      role: UserRole.FINANCIAL_DIRECTOR,
+      activeRole: UserRole.FINANCIAL_DIRECTOR,
+      roles: [UserRole.FINANCIAL_DIRECTOR],
+      subsidiaryId: 'branch',
+    };
+    const bankAccount = {
+      id: 'bank-1',
+      accountName: 'Banque Afriland',
+      accountType: AccountType.BANQUE,
+      currency: 'XAF',
+      subsidiaryId: 'branch',
+    };
+
+    prisma.financialTransaction.findFirst.mockResolvedValueOnce({
+      id: 'bank-tx-self',
+      subsidiaryId: 'branch',
+      financialTransactionType: TransactionType.DEPENSE,
+      transactionDate: new Date('2026-11-28'),
+      status: TransactionStatus.EN_ATTENTE,
+      createdByUserId: daf.id,
+      treasuryAccount: bankAccount,
+      destinationAccount: null,
+      amount,
+    });
+    await expect(
+      service.updateTransactionStatus(
+        'bank-tx-self',
+        { status: TransactionStatus.VALIDE },
+        daf,
+      ),
+    ).rejects.toThrow(ForbiddenException);
+
+    prisma.financialTransaction.findFirst.mockResolvedValueOnce({
+      id: 'bank-tx-other',
+      subsidiaryId: 'branch',
+      financialTransactionType: TransactionType.DEPENSE,
+      transactionDate: new Date('2026-11-28'),
+      status: TransactionStatus.EN_ATTENTE,
+      createdByUserId: 'admin-maker',
+      treasuryAccount: bankAccount,
+      destinationAccount: null,
+      amount,
+    });
+    prisma.financialTransaction.updateMany.mockResolvedValueOnce({ count: 1 });
+    prisma.treasuryAccount.updateMany.mockResolvedValueOnce({ count: 1 });
+    prisma.treasuryAccount.findUniqueOrThrow.mockResolvedValueOnce({
+      balance: new Prisma.Decimal(900),
+    });
+    prisma.financialTransaction.update.mockResolvedValueOnce({
+      id: 'bank-tx-other',
+      status: TransactionStatus.VALIDE,
+    });
+
+    const approved = await service.updateTransactionStatus(
+      'bank-tx-other',
+      { status: TransactionStatus.VALIDE },
+      daf,
+    );
+    expect(approved).toMatchObject({ status: TransactionStatus.VALIDE });
+  });
 });

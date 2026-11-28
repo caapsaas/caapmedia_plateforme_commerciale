@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Sidebar from './Pages/Sidebar';
 import Header from './Pages/Header';
+import CommandPalette from './components/common/CommandPalette';
 import useIdleTimer from './hooks/useIdleTimer';
 import IdleTimeoutModal from './components/common/IdleTimeoutModal';
 import './styles/print.css';
@@ -14,6 +15,7 @@ const App: React.FC = () => {
   const { state, dispatch } = useAppContext();
   const { showIdleModal } = state;
   const { logout, isAuthenticated } = useAuth();
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const routerState = useRouterState();
   const navigate = useNavigate();
   const pathname = routerState.location.pathname;
@@ -103,16 +105,20 @@ const App: React.FC = () => {
     return (
       <ToastProvider>
         <PopupProvider>
-          <div className="flex h-screen bg-gray-100 text-slate-800">
+          <div className="flex h-screen bg-[var(--background)] text-[var(--foreground)]">
             <Sidebar />
             <div className="flex-1 flex flex-col overflow-hidden">
-              <Header />
-              <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4 md:p-6 lg:p-8">
+              <Header onOpenCommandPalette={() => setIsCommandPaletteOpen(true)} />
+              <main className="flex-1 overflow-x-hidden overflow-y-auto bg-[var(--background)] p-4 md:p-6 lg:p-8">
                 <div className="printable-area">
                   <Outlet />
                 </div>
               </main>
             </div>
+            <CommandPalette
+              open={isCommandPaletteOpen}
+              onOpenChange={setIsCommandPaletteOpen}
+            />
             <IdleTimeoutModal
               isOpen={showIdleModal}
               onLogout={handleLogout}

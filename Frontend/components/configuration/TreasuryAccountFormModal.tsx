@@ -33,7 +33,7 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
   const [formData, setFormData] = useState({
     accountName: '',
     balance: '',
-    currency: 'XOF',
+    currency: 'XAF',
     accountType: AccountType.BANQUE,
     cashierId: '',
     accountCode: '',
@@ -62,7 +62,7 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
       setFormData({
         accountName: '',
         balance: '0',
-        currency: 'XOF',
+        currency: 'XAF',
         accountType: AccountType.BANQUE,
         cashierId: '',
         accountCode: '',
@@ -221,7 +221,7 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-2 text-gray-500 text-sm">
-                  {formData.currency === 'XOF' ? 'FCFA' : 'EUR'}
+                  {formData.currency === 'XAF' || formData.currency === 'XOF' ? 'FCFA' : formData.currency}
                 </span>
                 <input
                   type="number"
@@ -377,7 +377,7 @@ const TreasuryAccountFormModal: React.FC<TreasuryAccountFormModalProps> = ({
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c6e911] focus:border-[#c6e911] transition-colors"
                 required
               >
-                <option value="XOF">XOF (FCFA)</option>
+                <option value="XAF">XAF (FCFA CEMAC)</option>
                 <option value="EUR">EUR (Euro)</option>
                 <option value="USD">USD (Dollar américain)</option>
               </select>

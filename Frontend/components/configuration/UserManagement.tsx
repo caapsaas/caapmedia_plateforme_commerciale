@@ -8,9 +8,21 @@ import { useToast } from '../../context/ToastContext';
 import UserFormModal from './UserFormModal';
 import ConfirmationModal from '../common/ConfirmationModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ArrowRightLeft, Building2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { getUsersPaginated, registerUser, updateUser, deleteUser, UserRegisterData, UserUpdateData } from '../../services/apiCommon/apiUserAuth';
+import {
+    getUsersPaginated,
+    registerUser,
+    updateUser,
+    deleteUser,
+    transferUser,
+    updateSubsidiaryAccess,
+    UserRegisterData,
+    UserUpdateData,
+} from '../../services/apiCommon/apiUserAuth';
 import { getSubsidiaries } from '../../services/apiCommon/apiSubsidiaries';
+import SlideOverDrawer from '../common/SlideOverDrawer';
+import { Badge, Button } from '../ui';
 import TableSkeleton from '../ui/TableSkeleton';
 import EmptyState from '../ui/EmptyState';
 import CrmListSkeleton from '../ui/CrmListSkeleton';
@@ -27,6 +39,11 @@ const UserManagement: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [deletingUser, setDeletingUser] = useState<User | null>(null);
+    const [transferTargetUser, setTransferTargetUser] = useState<User | null>(null);
+    const [transferToSubsidiaryId, setTransferToSubsidiaryId] = useState('');
+    const [transferReason, setTransferReason] = useState('');
+    const [accessTargetUser, setAccessTargetUser] = useState<User | null>(null);
+    const [selectedAccessIds, setSelectedAccessIds] = useState<string[]>([]);
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
 
@@ -77,6 +94,52 @@ const UserManagement: React.FC = () => {
             toast.error('Erreur de suppression', 'Une erreur est survenue lors de la suppression de l\'utilisateur.');
         }
     });
+
+    const transferMutation = useMutation({
+        mutationFn: ({ userId, toSubsidiaryId, reason }: { userId: string; toSubsidiaryId: string; reason?: string }) =>
+            transferUser(userId, { toSubsidiaryId, reason }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+            toast.success(t('userGovernance.transferSuccess'), '');
+            setTransferTargetUser(null);
+            setTransferToSubsidiaryId('');
+            setTransferReason('');
+        },
+        onError: () => {
+            toast.error('Erreur', 'Impossible de muter cet utilisateur.');
+        },
+    });
+
+    const accessMutation = useMutation({
+        mutationFn: ({ userId, subsidiaryIds }: { userId: string; subsidiaryIds: string[] }) =>
+            updateSubsidiaryAccess(userId, subsidiaryIds),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+            toast.success(t('userGovernance.accessSuccess'), '');
+            setAccessTargetUser(null);
+        },
+        onError: () => {
+            toast.error('Erreur', 'Impossible de mettre à jour les accès multi-filiales.');
+        },
+    });
+
+    const handleOpenTransferDrawer = (u: User) => {
+        setTransferTargetUser(u);
+        const firstOther = allSubsidiaries.find((s) => s.id !== u.subsidiaryId);
+        setTransferToSubsidiaryId(firstOther?.id || '');
+        setTransferReason('');
+    };
+
+    const handleOpenAccessDrawer = (u: User) => {
+        setAccessTargetUser(u);
+        setSelectedAccessIds(u.subsidiaryAccessIds ?? []);
+    };
+
+    const toggleAccessSubsidiary = (subId: string) => {
+        setSelectedAccessIds((prev) =>
+            prev.includes(subId) ? prev.filter((id) => id !== subId) : [...prev, subId],
+        );
+    };
 
     const handleOpenAddModal = () => {
         setEditingUser(null);
@@ -181,8 +244,37 @@ const UserManagement: React.FC = () => {
                                         ))}
                                     </div>
                                 </td>
-                                {isSuperAdmin && <td className="px-6 py-4">{user.subsidiary?.subsidiaryName || user.subsidiary?.name || '—'}</td>}
-                                <td className="px-6 py-4 text-center space-x-2">
+                                {isSuperAdmin && (
+                                    <td className="px-6 py-4">
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            <span>{user.subsidiary?.subsidiaryName || user.subsidiary?.name || '—'}</span>
+                                            {(user.subsidiaryAccessIds?.length ?? 0) > 0 && (
+                                                <Badge variant="info">+{user.subsidiaryAccessIds!.length}</Badge>
+                                            )}
+                                        </div>
+                                    </td>
+                                )}
+                                <td className="px-6 py-4 text-center space-x-1 whitespace-nowrap">
+                                    {isSuperAdmin && (
+                                        <>
+                                            <button
+                                                onClick={() => handleOpenTransferDrawer(user)}
+                                                className="p-2 text-slate-500 hover:text-amber-700 hover:bg-amber-50 rounded-full transition-colors"
+                                                title={t('userGovernance.transferAction')}
+                                                aria-label={t('userGovernance.transferAction')}
+                                            >
+                                                <ArrowRightLeft className="h-4 w-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleOpenAccessDrawer(user)}
+                                                className="p-2 text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-full transition-colors"
+                                                title={t('userGovernance.accessAction')}
+                                                aria-label={t('userGovernance.accessAction')}
+                                            >
+                                                <Building2 className="h-4 w-4" />
+                                            </button>
+                                        </>
+                                    )}
                                     <button onClick={() => handleOpenEditModal(user)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" aria-label={t('common.edit')}>
                                         <IconEdit className="h-5 w-5" />
                                     </button>
@@ -216,6 +308,131 @@ const UserManagement: React.FC = () => {
                     message={t('configuration.modal.deleteConfirmMessage', {itemName: deletingUser.userName})}
                 />
             )}
+
+            <SlideOverDrawer
+                isOpen={!!transferTargetUser}
+                onClose={() => setTransferTargetUser(null)}
+                title={t('userGovernance.transferTitle')}
+                subtitle={transferTargetUser ? `${transferTargetUser.userName} (${transferTargetUser.subsidiary?.subsidiaryName || ''})` : undefined}
+                footer={
+                    <div className="flex justify-end gap-2">
+                        <Button variant="secondary" size="sm" onClick={() => setTransferTargetUser(null)}>
+                            {t('common.cancel')}
+                        </Button>
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            isLoading={transferMutation.isPending}
+                            disabled={!transferToSubsidiaryId}
+                            onClick={() =>
+                                transferTargetUser &&
+                                transferMutation.mutate({
+                                    userId: transferTargetUser.id,
+                                    toSubsidiaryId: transferToSubsidiaryId,
+                                    reason: transferReason.trim() || undefined,
+                                })
+                            }
+                        >
+                            {t('userGovernance.transferSubmit')}
+                        </Button>
+                    </div>
+                }
+            >
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-medium text-[var(--muted-foreground)] mb-1">
+                            {t('userGovernance.transferTarget')}
+                        </label>
+                        <select
+                            value={transferToSubsidiaryId}
+                            onChange={(e) => setTransferToSubsidiaryId(e.target.value)}
+                            className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-[var(--radius-sm)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+                        >
+                            {allSubsidiaries
+                                .filter((s) => s.id !== transferTargetUser?.subsidiaryId)
+                                .map((s) => (
+                                    <option key={s.id} value={s.id}>
+                                        {s.subsidiaryName}
+                                    </option>
+                                ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-[var(--muted-foreground)] mb-1">
+                            {t('userGovernance.transferReason')}
+                        </label>
+                        <textarea
+                            rows={3}
+                            value={transferReason}
+                            onChange={(e) => setTransferReason(e.target.value)}
+                            placeholder="Ex: Renfort opérationnel Q4 Douala"
+                            className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-[var(--radius-sm)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+                        />
+                    </div>
+                </div>
+            </SlideOverDrawer>
+
+            <SlideOverDrawer
+                isOpen={!!accessTargetUser}
+                onClose={() => setAccessTargetUser(null)}
+                title={t('userGovernance.accessTitle')}
+                subtitle={accessTargetUser?.userName}
+                footer={
+                    <div className="flex justify-end gap-2">
+                        <Button variant="secondary" size="sm" onClick={() => setAccessTargetUser(null)}>
+                            {t('common.cancel')}
+                        </Button>
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            isLoading={accessMutation.isPending}
+                            onClick={() =>
+                                accessTargetUser &&
+                                accessMutation.mutate({
+                                    userId: accessTargetUser.id,
+                                    subsidiaryIds: selectedAccessIds,
+                                })
+                            }
+                        >
+                            {t('userGovernance.accessSubmit')}
+                        </Button>
+                    </div>
+                }
+            >
+                <div className="space-y-3">
+                    <p className="text-xs text-[var(--muted-foreground)]">
+                        {t('userGovernance.accessHint')}
+                    </p>
+                    <div className="divide-y divide-[var(--border)] border border-[var(--border)] rounded-[var(--radius-md)]">
+                        {allSubsidiaries.map((s) => {
+                            const isHome = s.id === accessTargetUser?.subsidiaryId;
+                            const isChecked = isHome || selectedAccessIds.includes(s.id);
+                            return (
+                                <label
+                                    key={s.id}
+                                    className="flex items-center justify-between px-3.5 py-2.5 text-sm cursor-pointer hover:bg-[var(--muted)]/50"
+                                >
+                                    <span className="flex items-center gap-2.5">
+                                        <input
+                                            type="checkbox"
+                                            checked={isChecked}
+                                            disabled={isHome}
+                                            onChange={() => toggleAccessSubsidiary(s.id)}
+                                            className="rounded border-slate-300"
+                                        />
+                                        <span className="font-medium text-[var(--foreground)]">
+                                            {s.subsidiaryName}
+                                        </span>
+                                    </span>
+                                    {isHome && (
+                                        <Badge variant="brand">{t('userGovernance.homeBadge')}</Badge>
+                                    )}
+                                </label>
+                            );
+                        })}
+                    </div>
+                </div>
+            </SlideOverDrawer>
         </div>
     );
 };

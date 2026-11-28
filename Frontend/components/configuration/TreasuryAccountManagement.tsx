@@ -111,7 +111,7 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
         const forceConfirm = await confirmAction(
           t('treasuryAccounts.confirm.forceDelete', { 
             accountName: account?.accountName || 'Ce compte',
-            balance: formatCurrency(account?.balance || 0, account?.currency || 'XOF')
+            balance: formatCurrency(account?.balance || 0, account?.currency || 'XAF')
           }),
           { isDangerous: true },
         );
@@ -221,9 +221,10 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
   };
 
   const formatCurrency = (amount: number, currency: string) => {
+    const resolved = currency === 'XAF' || currency === 'XOF' ? 'XAF' : currency || 'XAF';
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: currency === 'XOF' ? 'XOF' : 'EUR',
+      currency: resolved,
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -296,7 +297,7 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
           <p className="text-2xl font-bold text-green-600">
             {formatCurrency(
               accounts.reduce((sum, acc) => sum + acc.balance, 0),
-              accounts[0]?.currency || 'XOF'
+              accounts[0]?.currency || 'XAF'
             )}
           </p>
         </div>
@@ -305,7 +306,7 @@ const TreasuryAccountManagement: React.FC<TreasuryAccountManagementProps> = ({ s
           <p className="text-2xl font-bold text-blue-600">
             {formatCurrency(
               accounts.length > 0 ? accounts.reduce((sum, acc) => sum + acc.balance, 0) / accounts.length : 0,
-              accounts[0]?.currency || 'XOF'
+              accounts[0]?.currency || 'XAF'
             )}
           </p>
         </div>

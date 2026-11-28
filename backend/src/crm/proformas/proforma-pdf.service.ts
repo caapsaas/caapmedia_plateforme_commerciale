@@ -321,7 +321,7 @@ export class ProformaPdfService {
             .stroke();
           doc.font('Helvetica').fontSize(7).fillColor('#64748b');
           doc.text(
-            `RCCM : ${clean(quote.subsidiary.rccm)} | IFU : ${clean(quote.subsidiary.ifu)}`,
+            `RCCM : ${clean(quote.subsidiary.rccm)} | NIU : ${clean(quote.subsidiary.niu)}`,
             48,
             bottom - 54,
             { width, height: 12, align: 'center', ellipsis: true },

@@ -6,11 +6,11 @@ interface DocumentFooterProps {
     showSignature?: boolean;
     customText?: string;
     // Quand fournie, affiche la barre d'informations légales de la filiale
-    // (RCCM/IFU, coordonnées bancaires) en bas de page — calqué sur
+    // (RCCM/NIU, coordonnées bancaires) en bas de page — calqué sur
     // Frontend_GMO/components/bons/FooterGMO.tsx (bande colorée en pied de
     // document), en version atténuée/claire plutôt que le bloc vert saturé
     // de gmo, pour rester dans l'identité "light" de caapmedia.
-    subsidiary?: Pick<Subsidiary, 'bankDetails' | 'rccm' | 'ifu'>;
+    subsidiary?: Pick<Subsidiary, 'bankDetails' | 'rccm' | 'niu'>;
 }
 
 const DocumentFooter: React.FC<DocumentFooterProps> = ({
@@ -20,7 +20,7 @@ const DocumentFooter: React.FC<DocumentFooterProps> = ({
     subsidiary,
 }) => {
     const hasBankDetails = !!subsidiary?.bankDetails?.bankName;
-    const hasFiscalInfo = !!(subsidiary?.rccm || subsidiary?.ifu);
+    const hasFiscalInfo = !!(subsidiary?.rccm || subsidiary?.niu);
 
     return (
         <div className="mt-8">
@@ -47,8 +47,8 @@ const DocumentFooter: React.FC<DocumentFooterProps> = ({
                     {hasFiscalInfo && (
                         <p>
                             {subsidiary.rccm && <>RCCM : {subsidiary.rccm}</>}
-                            {subsidiary.rccm && subsidiary.ifu && ' — '}
-                            {subsidiary.ifu && <>IFU : {subsidiary.ifu}</>}
+                            {subsidiary.rccm && subsidiary.niu && ' — '}
+                            {subsidiary.niu && <>NIU : {subsidiary.niu}</>}
                         </p>
                     )}
                     {hasBankDetails && (

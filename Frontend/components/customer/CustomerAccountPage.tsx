@@ -13,7 +13,7 @@ import { updateContact } from '../../services/apiCrm/apicontacts';
 import { getOrdersByCustomer } from '../../services/apiE-commerce/apiOrders';
 import { useAuth } from '../../context/AuthContext';
 
-type AccountView = 'profile' | 'orders' | 'security' | 'payment' | 'reviews';
+type AccountView = 'profile' | 'orders' | 'security';
 
 const CustomerAccountPage: React.FC = () => {
   const { t } = useI18n();
@@ -66,7 +66,7 @@ const CustomerAccountPage: React.FC = () => {
       case 'security':
         return <SecurityView />;
       default:
-        return <p>{t('analytics.comingSoon')}</p>;
+        return <ProfileView customer={contact} onUpdateClient={handleUpdateClient} />;
     }
   };
 
@@ -98,8 +98,6 @@ const CustomerAccountPage: React.FC = () => {
                 <NavItem view="profile" labelKey="customerAccount.profile" />
                 <NavItem view="orders" labelKey="customerAccount.myOrders" />
                 <NavItem view="security" labelKey="customerAccount.security" />
-                <NavItem view="payment" labelKey="customerAccount.paymentMethods" />
-                <NavItem view="reviews" labelKey="customerAccount.myReviews" />
               </nav>
             </div>
           </div>

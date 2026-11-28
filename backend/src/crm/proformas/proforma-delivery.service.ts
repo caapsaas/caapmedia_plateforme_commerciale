@@ -81,7 +81,7 @@ function version(quote: DeliveryProforma): string {
           phone: quote.subsidiary.phone,
           email: quote.subsidiary.email,
           rccm: quote.subsidiary.rccm,
-          ifu: quote.subsidiary.ifu,
+          niu: quote.subsidiary.niu,
           bankName: quote.subsidiary.bankName,
           accountNumber: quote.subsidiary.accountNumber,
         },

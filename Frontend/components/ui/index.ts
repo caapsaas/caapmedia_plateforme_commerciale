@@ -1,7 +1,12 @@
 export { default as FormInput } from './FormInput';
 export { default as FormSelect } from './FormSelect';
-export { default as Badge } from './Badge';
-export { default as Button } from './Button';
+export { default as Badge, RaciBadge } from './Badge';
+export type { BadgeVariant, RaciRoleLetter } from './Badge';
+export { default as Button, buttonVariants } from './Button';
 export { default as Card, CardHeader, CardBody, CardFooter } from './Card';
 export { default as StatCard } from './StatCard';
+export { default as TabBar } from './TabBar';
+export { default as DataTable } from './DataTable';
+export type { DataTableColumn } from './DataTable';
+export { default as ProgressiveFormSection } from './ProgressiveFormSection';
 export { Plus, BarChart, FileText, Eye, Edit, Trash, Users, CheckCircle, Umbrella, Sparkles } from './Icons';

@@ -170,9 +170,9 @@ export class ExpensesService {
       });
       if (!safe)
         throw new BadRequestException('Sélectionnez un coffre-fort valide.');
-      if (safe.currency !== 'XOF')
+      if (safe.currency !== 'XAF' && safe.currency !== 'XOF')
         throw new BadRequestException(
-          'Sélectionnez un coffre-fort en XOF pour régler cette charge.',
+          'Sélectionnez un coffre-fort en FCFA (XAF) pour régler cette charge.',
         );
 
       const debit = await tx.treasuryAccount.updateMany({

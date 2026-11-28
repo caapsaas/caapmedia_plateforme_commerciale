@@ -1,13 +1,145 @@
 @import "tailwindcss";
 
+:root {
+  /* Surfaces & Fonds (Precision Workspace - Stripe/Linear) */
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+
+  /* Bordures Hairlines */
+  --border: #E2E8F0;
+  --border-strong: #CBD5E1;
+  --input: #CBD5E1;
+
+  /* Marque CaapMedia */
+  --brand: #C6E911;
+  --brand-hover: #B4D60E;
+  --brand-foreground: #141A06;
+  --brand-text: #4D6100;
+  --brand-soft: #F4FCE3;
+
+  /* Primaire Structurel */
+  --primary: #1A1A1A;
+  --primary-hover: #2E2E2E;
+  --primary-foreground: #FFFFFF;
+
+  /* Secondaire & Focus */
+  --secondary: #F1F5F9;
+  --secondary-foreground: #1E293B;
+  --accent: #F1F5F9;
+  --accent-foreground: #0F172A;
+  --ring: #1A1A1A;
+  --ring-brand: #84CC16;
+
+  /* Sidebar Signature Anthracite */
+  --sidebar-bg: #141619;
+  --sidebar-surface: #1E2126;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-foreground: #CBD5E1;
+  --sidebar-muted: #94A3B8;
+
+  /* Statuts Semantiques Stricts */
+  --success: #059669;
+  --success-soft: #ECFDF5;
+  --success-border: #A7F3D0;
+
+  --warning: #D97706;
+  --warning-soft: #FFFBEB;
+  --warning-border: #FDE68A;
+
+  --destructive: #DC2626;
+  --destructive-foreground: #FFFFFF;
+  --destructive-soft: #FEF2F2;
+  --destructive-border: #FECACA;
+
+  --info: #2563EB;
+  --info-soft: #EFF6FF;
+  --info-border: #BFDBFE;
+
+  /* Rayons & Courbes */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --ease-out-ui: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-ui: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.font-display {
+  font-family: 'Montserrat', 'Inter', system-ui, sans-serif;
+}
+
+.font-mono-code {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
 @keyframes whatsapp-pulse {
   50% {
     opacity: 0.85;
   }
 }
 
+@keyframes drawer-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0.92;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes modal-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-drawer-in {
+  animation: drawer-in-right 250ms var(--ease-drawer) both;
+}
+
+.animate-modal-in {
+  animation: modal-in 180ms var(--ease-out-ui) both;
+}
+
 /* Shared translucent veil for modal overlays and native dialogs. */
 .modal-backdrop,
 .modal-dialog::backdrop {
-  background-color: rgb(15 23 42 / 25%);
+  background-color: rgb(15 23 42 / 35%);
+  backdrop-filter: blur(2px);
+}
+
+/* Gating tactile & accessibilite */
+@media (hover: hover) and (pointer: fine) {
+  .hover-lift {
+    transition: transform 160ms var(--ease-out-ui), box-shadow 160ms var(--ease-out-ui);
+  }
+  .hover-lift:hover {
+    transform: translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-drawer-in,
+  .animate-modal-in,
+  .animate-slideDown,
+  .animate-blink {
+    animation: fadeIn 150ms ease both !important;
+  }
 }

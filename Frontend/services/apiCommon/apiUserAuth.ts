@@ -48,6 +48,18 @@ export interface UserUpdateData {
   subsidiaryId?: string;
 }
 
+export interface TransferUserPayload {
+  toSubsidiaryId: string;
+  reason?: string;
+}
+
+export interface TransferUserResponse {
+  message: string;
+  userId: string;
+  fromSubsidiaryId: string;
+  toSubsidiaryId: string;
+}
+
 export interface UserSearchQuery {
   email?: string;
   userName?: string;
@@ -194,5 +206,46 @@ export const getProfile = async (): Promise<User> => {
  */
 export const switchRole = async (role: UserRole): Promise<{ user: User }> => {
   const { data } = await api.post<{ user: User }>('/auth/switch-role', { role });
+  return data;
+};
+
+/**
+ * Bascule la filiale active de l'utilisateur connecté (multi-filiales / HQ).
+ */
+export const switchSubsidiary = async (
+  subsidiaryId: string,
+): Promise<{ subsidiary: Subsidiary; activeSubsidiaryId: string }> => {
+  const { data } = await api.post<{ subsidiary: Subsidiary; activeSubsidiaryId: string }>(
+    '/auth/switch-subsidiary',
+    { subsidiaryId },
+  );
+  return data;
+};
+
+/**
+ * Mute un utilisateur vers une autre filiale avec historisation.
+ */
+export const transferUser = async (
+  userId: string,
+  payload: TransferUserPayload,
+): Promise<TransferUserResponse> => {
+  const { data } = await api.post<TransferUserResponse>(
+    `/auth/users/${userId}/transfer`,
+    payload,
+  );
+  return data;
+};
+
+/**
+ * Met à jour les filiales autorisées en accès multi-filiales pour un utilisateur.
+ */
+export const updateSubsidiaryAccess = async (
+  userId: string,
+  subsidiaryIds: string[],
+): Promise<{ userId: string; subsidiaryAccessIds: string[] }> => {
+  const { data } = await api.patch<{ userId: string; subsidiaryAccessIds: string[] }>(
+    `/auth/users/${userId}/subsidiary-access`,
+    { subsidiaryIds },
+  );
   return data;
 };

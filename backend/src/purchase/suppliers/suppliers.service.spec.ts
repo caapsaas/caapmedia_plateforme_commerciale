@@ -1,30 +1,37 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { Prisma, User, UserRole } from '@prisma/client';
+import { User, UserRole } from '@prisma/client';
 import { PrismaService } from 'src/common/utils/prisma/prisma.service';
 import { SuppliersService } from './suppliers.service';
 
-describe('SuppliersService', () => {
-  const user = { subsidiaryId: 'SUB-A', userRole: UserRole.ADMIN } as User;
-  const supplier = { id: 'SUP-ABC123', subsidiaryId: 'SUB-A' };
-  const delegate = () => ({
-    findMany: jest.fn().mockResolvedValue([]),
-    findUnique: jest.fn().mockResolvedValue(supplier),
-    update: jest.fn().mockResolvedValue(supplier),
-    updateMany: jest.fn().mockResolvedValue({ count: 1 }),
-    delete: jest.fn().mockResolvedValue(supplier),
-    deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
-  });
+describe('SuppliersService (Lot 1 non-destructive archiving)', () => {
+  const user = {
+    id: 'USR-1',
+    email: 'admin@caap.cm',
+    subsidiaryId: 'SUB-A',
+    userRole: UserRole.ADMIN,
+  } as unknown as User;
+  const supplier = {
+    id: 'SUP-ABC123',
+    supplierName: 'Papeterie Cameroun',
+    subsidiaryId: 'SUB-A',
+    isActive: true,
+  };
+
   const setup = () => {
     const tx = {
-      supplier: delegate(),
-      purchaseOrder: delegate(),
-      financialTransaction: delegate(),
-      treasuryAccount: delegate(),
-      accountingOutboxEntry: delegate(),
-      journalEntry: delegate(),
-      stockMovement: delegate(),
-      itemStock: delegate(),
-      item: delegate(),
+      supplier: {
+        findUnique: jest.fn().mockResolvedValue(supplier),
+        update: jest
+          .fn()
+          .mockResolvedValue({ ...supplier, isActive: false }),
+        delete: jest.fn().mockResolvedValue(supplier),
+      },
+      purchaseOrder: {
+        count: jest.fn().mockResolvedValue(0),
+      },
+      item: {
+        count: jest.fn().mockResolvedValue(0),
+      },
     };
     const prisma = {
       ...tx,
@@ -33,10 +40,15 @@ describe('SuppliersService', () => {
           callback(tx),
       ),
     };
+    const audit = { log: jest.fn().mockResolvedValue(undefined) };
     return {
       tx,
       prisma,
-      service: new SuppliersService(prisma as unknown as PrismaService),
+      audit,
+      service: new SuppliersService(
+        prisma as unknown as PrismaService,
+        audit as never,
+      ),
     };
   };
 
@@ -49,7 +61,7 @@ describe('SuppliersService', () => {
     });
   });
 
-  it('refuses another subsidiary before any deletion', async () => {
+  it('refuses another subsidiary before any archiving or deletion', async () => {
     const { tx, service } = setup();
     tx.supplier.findUnique.mockResolvedValue({
       ...supplier,
@@ -58,8 +70,9 @@ describe('SuppliersService', () => {
     await expect(service.remove(supplier.id, user)).rejects.toBeInstanceOf(
       ForbiddenException,
     );
-    expect(tx.purchaseOrder.findMany).not.toHaveBeenCalled();
+    expect(tx.purchaseOrder.count).not.toHaveBeenCalled();
     expect(tx.supplier.delete).not.toHaveBeenCalled();
+    expect(tx.supplier.update).not.toHaveBeenCalled();
   });
 
   it('returns 404 for a missing supplier', async () => {
@@ -70,95 +83,47 @@ describe('SuppliersService', () => {
     );
   });
 
-  it('removes linked operations and reverses actual stock and treasury effects atomically', async () => {
-    const { tx, prisma, service } = setup();
-    tx.purchaseOrder.findMany.mockResolvedValue([
-      { id: 'PO-A', supplierDebts: [{ id: 'SDT-A' }] },
-    ]);
-    tx.financialTransaction.findMany.mockResolvedValue([
-      {
-        id: 'PAY-A',
-        relatedDocumentId: 'SDT-A',
-        status: 'VALIDE',
-        financialTransactionType: 'DEPENSE',
-        amount: new Prisma.Decimal('125.50'),
-        treasuryAccountId: 'HQ-SAFE',
-        sourceAccountId: 'HQ-SAFE',
-      },
-      {
-        id: 'PAY-B',
-        relatedDocumentId: 'PO-A',
-        status: 'EN_ATTENTE',
-        amount: new Prisma.Decimal(50),
-      },
-    ]);
-    tx.stockMovement.findMany.mockResolvedValue([
-      {
-        itemId: 'ITEM-A',
-        subsidiaryId: 'SUB-A',
-        type: 'PURCHASE_RECEIPT',
-        quantity: new Prisma.Decimal(10),
-      },
-      {
-        itemId: 'ITEM-A',
-        subsidiaryId: 'SUB-A',
-        type: 'SUPPLIER_RETURN',
-        quantity: new Prisma.Decimal(2),
-      },
-    ]);
-    tx.journalEntry.findMany
-      .mockResolvedValueOnce([{ id: 'J-A' }])
-      .mockResolvedValueOnce([{ id: 'J-REV' }])
-      .mockResolvedValueOnce([]);
-    await expect(service.remove(supplier.id, user)).resolves.toEqual(supplier);
-    expect(prisma.$transaction).toHaveBeenCalledWith(
-      expect.any(Function),
-      expect.objectContaining({ isolationLevel: 'Serializable' }),
+  it('archives instead of deleting when purchase orders or catalog items exist', async () => {
+    const { tx, audit, service } = setup();
+    tx.purchaseOrder.count.mockResolvedValue(2);
+    tx.item.count.mockResolvedValue(1);
+
+    const res = await service.remove(supplier.id, user);
+    expect(res).toMatchObject({ isActive: false, archived: true });
+    expect(tx.supplier.delete).not.toHaveBeenCalled();
+    expect(tx.supplier.update).toHaveBeenCalledWith({
+      where: { id: supplier.id },
+      data: expect.objectContaining({
+        isActive: false,
+        archivedBy: 'USR-1',
+      }),
+    });
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'SUPPLIER_ARCHIVED' }),
+      tx,
     );
-    expect(tx.financialTransaction.findMany).toHaveBeenCalledWith({
-      where: { relatedDocumentId: { in: [supplier.id, 'PO-A', 'SDT-A'] } },
-    });
-    expect(tx.treasuryAccount.update).toHaveBeenCalledTimes(1);
-    expect(tx.treasuryAccount.update).toHaveBeenCalledWith({
-      where: { id: 'HQ-SAFE' },
-      data: { balance: { increment: new Prisma.Decimal('125.50') } },
-    });
-    expect(tx.itemStock.update).toHaveBeenNthCalledWith(1, {
-      where: {
-        itemId_subsidiaryId: { itemId: 'ITEM-A', subsidiaryId: 'SUB-A' },
-      },
-      data: { stock: { increment: new Prisma.Decimal(-10) } },
-    });
-    expect(tx.itemStock.update).toHaveBeenNthCalledWith(2, {
-      where: {
-        itemId_subsidiaryId: { itemId: 'ITEM-A', subsidiaryId: 'SUB-A' },
-      },
-      data: { stock: { increment: new Prisma.Decimal(2) } },
-    });
-    expect(tx.stockMovement.deleteMany).toHaveBeenCalledWith({
-      where: { purchaseOrderId: { in: ['PO-A'] } },
-    });
-    expect(tx.item.updateMany).toHaveBeenCalledWith({
-      where: { mainSupplierId: supplier.id },
-      data: { mainSupplierId: null },
-    });
-    expect(tx.journalEntry.deleteMany).toHaveBeenCalledWith({
-      where: { id: { in: ['J-A', 'J-REV'] } },
-    });
-    expect(tx.accountingOutboxEntry.deleteMany).toHaveBeenCalled();
+  });
+
+  it('deletes physically only when supplier has zero linked orders or items', async () => {
+    const { tx, audit, service } = setup();
+    const res = await service.remove(supplier.id, user);
+    expect(res).toMatchObject({ archived: false });
     expect(tx.supplier.delete).toHaveBeenCalledWith({
       where: { id: supplier.id },
     });
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'SUPPLIER_DELETED' }),
+      tx,
+    );
   });
 
-  it('propagates a cleanup error without deleting the supplier', async () => {
-    const { tx, service } = setup();
-    tx.stockMovement.deleteMany.mockRejectedValue(
-      new Error('Database failure'),
+  it('restores an archived supplier', async () => {
+    const { tx, audit, service } = setup();
+    tx.supplier.update.mockResolvedValue({ ...supplier, isActive: true });
+    const res = await service.restore(supplier.id, user);
+    expect(res).toMatchObject({ isActive: true });
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'SUPPLIER_RESTORED' }),
     );
-    await expect(service.remove(supplier.id, user)).rejects.toThrow(
-      'Database failure',
-    );
-    expect(tx.supplier.delete).not.toHaveBeenCalled();
   });
 });

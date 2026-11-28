@@ -1,27 +1,38 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 
 interface CardProps {
   children: React.ReactNode;
   className?: string;
   hover?: boolean;
-  shadow?: 'sm' | 'md' | 'lg';
+  shadow?: 'none' | 'sm' | 'md' | 'lg';
+  onClick?: () => void;
 }
 
 const shadowStyles = {
-  sm: 'shadow-sm',
-  md: 'shadow-md',
-  lg: 'shadow-lg',
+  none: 'shadow-none',
+  sm: 'shadow-2xs',
+  md: 'shadow-xs',
+  lg: 'shadow-sm',
 };
 
-const Card: React.FC<CardProps> = ({ children, className = '', hover = false, shadow = 'md' }) => {
+const Card: React.FC<CardProps> = ({
+  children,
+  className,
+  hover = false,
+  shadow = 'sm',
+  onClick,
+}) => {
   return (
     <div
-      className={`
-        bg-white rounded-lg border border-slate-200
-        ${shadowStyles[shadow]}
-        ${hover ? 'hover:shadow-lg hover:border-slate-300 transition-all duration-200 cursor-pointer' : ''}
-        ${className}
-      `}
+      onClick={onClick}
+      className={cn(
+        'bg-[var(--card)] text-[var(--card-foreground)] rounded-[var(--radius-md)] border border-[var(--border)]',
+        shadowStyles[shadow],
+        hover &&
+          'transition-[border-color,box-shadow] duration-150 ease-[var(--ease-out-ui)] hover:border-[var(--border-strong)] hover:shadow-xs cursor-pointer',
+        className,
+      )}
     >
       {children}
     </div>
@@ -34,14 +45,18 @@ interface CardHeaderProps {
   gradient?: boolean;
 }
 
-export const CardHeader: React.FC<CardHeaderProps> = ({ children, className = '', gradient = false }) => {
+export const CardHeader: React.FC<CardHeaderProps> = ({
+  children,
+  className,
+  gradient = false,
+}) => {
   return (
     <div
-      className={`
-        px-6 py-4 border-b border-slate-200
-        ${gradient ? 'bg-gradient-to-r from-[#c6e911]/10 to-[#c6e911]/5' : 'bg-slate-50'}
-        ${className}
-      `}
+      className={cn(
+        'px-5 py-3.5 border-b border-[var(--border)] rounded-t-[var(--radius-md)]',
+        gradient ? 'bg-[var(--brand-soft)]' : 'bg-white',
+        className,
+      )}
     >
       {children}
     </div>
@@ -53,8 +68,8 @@ interface CardBodyProps {
   className?: string;
 }
 
-export const CardBody: React.FC<CardBodyProps> = ({ children, className = '' }) => {
-  return <div className={`px-6 py-4 ${className}`}>{children}</div>;
+export const CardBody: React.FC<CardBodyProps> = ({ children, className }) => {
+  return <div className={cn('px-5 py-4', className)}>{children}</div>;
 };
 
 interface CardFooterProps {
@@ -62,9 +77,17 @@ interface CardFooterProps {
   className?: string;
 }
 
-export const CardFooter: React.FC<CardFooterProps> = ({ children, className = '' }) => {
+export const CardFooter: React.FC<CardFooterProps> = ({
+  children,
+  className,
+}) => {
   return (
-    <div className={`px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-lg flex justify-end gap-2 ${className}`}>
+    <div
+      className={cn(
+        'px-5 py-3.5 border-t border-[var(--border)] bg-[var(--muted)]/60 rounded-b-[var(--radius-md)] flex justify-end gap-2',
+        className,
+      )}
+    >
       {children}
     </div>
   );

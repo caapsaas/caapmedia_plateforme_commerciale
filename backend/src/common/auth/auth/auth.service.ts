@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Optional,
   UnauthorizedException,
   NotFoundException,
   ConflictException,
@@ -22,9 +23,19 @@ import { generateId } from '../../utils/generate-id.util';
 import { ID_PREFIXES } from '../../constants/id-prefixes.const';
 import { PaginationQueryDto } from '../../pagination/dto/pagination-query.dto';
 import { paginate } from '../../pagination/pagination';
+import { SystemAuditService } from '../../audit/system-audit.service';
 
 type UserWithSubsidiary = Prisma.UserGetPayload<{
-  include: { subsidiary: true };
+  include: {
+    subsidiary: true;
+    subsidiaryAccesses: {
+      include: {
+        subsidiary: {
+          select: { id: true; subsidiaryName: true; isHeadquarter: true };
+        };
+      };
+    };
+  };
 }>;
 
 @Injectable()
@@ -34,6 +45,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly logger: LoggerService,
     private readonly refreshTokenService: RefreshTokenService,
+    @Optional() private readonly systemAudit?: SystemAuditService,
   ) {}
 
   //****1- Fonction de creation d'un utilisateur****
@@ -699,7 +711,20 @@ export class AuthService {
       this.prisma.user as unknown as Parameters<
         typeof paginate<UserWithSubsidiary>
       >[0],
-      { where, include: { subsidiary: true }, orderBy: { userName: 'asc' } },
+      {
+        where,
+        include: {
+          subsidiary: true,
+          subsidiaryAccesses: {
+            include: {
+              subsidiary: {
+                select: { id: true, subsidiaryName: true, isHeadquarter: true },
+              },
+            },
+          },
+        },
+        orderBy: { userName: 'asc' },
+      },
       paginationQuery,
     );
 
@@ -713,6 +738,8 @@ export class AuthService {
         userRole: user.userRole,
         additionalRoles: user.additionalRoles,
         subsidiaryId: user.subsidiaryId,
+        activeSubsidiaryId: user.activeSubsidiaryId,
+        subsidiaryAccessIds: user.subsidiaryAccesses.map((a) => a.subsidiaryId),
         subsidiary: user.subsidiary
           ? {
               id: user.subsidiary.id,
@@ -773,7 +800,20 @@ export class AuthService {
       this.prisma.user as unknown as Parameters<
         typeof paginate<UserWithSubsidiary>
       >[0],
-      { where, include: { subsidiary: true }, orderBy: { userName: 'asc' } },
+      {
+        where,
+        include: {
+          subsidiary: true,
+          subsidiaryAccesses: {
+            include: {
+              subsidiary: {
+                select: { id: true, subsidiaryName: true, isHeadquarter: true },
+              },
+            },
+          },
+        },
+        orderBy: { userName: 'asc' },
+      },
       query,
     );
 
@@ -790,6 +830,8 @@ export class AuthService {
         userRole: user.userRole,
         additionalRoles: user.additionalRoles,
         subsidiaryId: user.subsidiaryId,
+        activeSubsidiaryId: user.activeSubsidiaryId,
+        subsidiaryAccessIds: user.subsidiaryAccesses.map((a) => a.subsidiaryId),
         subsidiary: user.subsidiary
           ? {
               id: user.subsidiary.id,
@@ -824,11 +866,7 @@ export class AuthService {
     role: UserRole;
     subsidiaryId: string;
   }) {
-    const subsidiary = await this.prisma.subsidiary.findUnique({
-      where: { id: user.subsidiaryId },
-    });
-
-    // Récupérer l'utilisateur complet depuis la base de données pour inclure userName
+    // Récupérer l'utilisateur complet depuis la base de données pour inclure userName et accès multi-filiales
     const fullUser = await this.prisma.user.findUnique({
       where: { id: user.id },
       select: {
@@ -840,7 +878,14 @@ export class AuthService {
         roles: true,
         activeRole: true,
         subsidiaryId: true,
+        activeSubsidiaryId: true,
         twoFactorEnabled: true,
+        subsidiary: true,
+        subsidiaryAccesses: {
+          include: {
+            subsidiary: true,
+          },
+        },
       },
     });
 
@@ -848,12 +893,6 @@ export class AuthService {
       throw new Error('User not found');
     }
 
-    // roles[] est la source de verite RBAC (backfillee/maintenue en synchro
-    // avec userRole+additionalRoles) - meme fallback que JwtStrategy et
-    // issueTokens: sans lui, un utilisateur dont la colonne roles[] est
-    // encore vide (ex: SUPER_ADMIN cree avant le backfill) se retrouve avec
-    // roles=[] cote frontend juste apres un refresh de page, malgre un
-    // userRole correct.
     const roles =
       fullUser.roles.length > 0
         ? fullUser.roles
@@ -862,18 +901,316 @@ export class AuthService {
             ...fullUser.additionalRoles.filter((r) => r !== fullUser.userRole),
           ];
 
-    // Mapper userRole -> role pour correspondre au frontend
+    const isSuperAdminUser = roles.includes(UserRole.SUPER_ADMIN);
+    let allowedSubsidiaries = Array.from(
+      new Map(
+        [
+          fullUser.subsidiary,
+          ...fullUser.subsidiaryAccesses.map((a) => a.subsidiary),
+        ]
+          .filter(Boolean)
+          .map((sub) => [sub.id, sub]),
+      ).values(),
+    );
+
+    if (isSuperAdminUser) {
+      allowedSubsidiaries = await this.prisma.subsidiary.findMany({
+        orderBy: { subsidiaryName: 'asc' },
+      });
+    }
+
+    const effectiveSub =
+      (fullUser.activeSubsidiaryId &&
+        allowedSubsidiaries.find((s) => s.id === fullUser.activeSubsidiaryId)) ||
+      fullUser.subsidiary;
+
     const mappedUser = {
-      ...fullUser,
-      role: fullUser.userRole,
-      activeRole: fullUser.activeRole ?? fullUser.userRole,
+      id: fullUser.id,
+      userName: fullUser.userName,
+      email: fullUser.email,
+      userRole: fullUser.userRole,
+      additionalRoles: fullUser.additionalRoles,
       roles,
+      activeRole: fullUser.activeRole ?? fullUser.userRole,
+      subsidiaryId: effectiveSub?.id ?? fullUser.subsidiaryId,
+      homeSubsidiaryId: fullUser.subsidiaryId,
+      activeSubsidiaryId: effectiveSub?.id ?? fullUser.subsidiaryId,
+      allowedSubsidiaryIds: allowedSubsidiaries.map((s) => s.id),
+      allowedSubsidiaries: allowedSubsidiaries.map((s) => ({
+        id: s.id,
+        subsidiaryName: s.subsidiaryName,
+        name: s.subsidiaryName,
+        isHeadquarter: s.isHeadquarter,
+      })),
+      twoFactorEnabled: fullUser.twoFactorEnabled,
+      role: fullUser.userRole,
     };
 
     this.logger.log(`Profile retrieved for user ${user.email}`, 'AuthService');
     return {
       user: mappedUser,
-      subsidiary: subsidiary,
+      subsidiary: effectiveSub,
+    };
+  }
+
+  /**
+   * Change la filiale active pour un utilisateur disposant d'accès multi-filiales
+   * (ou pour SUPER_ADMIN).
+   */
+  async switchSubsidiary(userId: string, requestedSubsidiaryId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        subsidiaryAccesses: { select: { subsidiaryId: true } },
+      },
+    });
+    if (!user) {
+      throw new NotFoundException('Utilisateur introuvable');
+    }
+
+    const roles =
+      user.roles.length > 0
+        ? user.roles
+        : [
+            user.userRole,
+            ...user.additionalRoles.filter((r) => r !== user.userRole),
+          ];
+    const isSuper = roles.includes(UserRole.SUPER_ADMIN);
+    const allowedIds = new Set([
+      user.subsidiaryId,
+      ...user.subsidiaryAccesses.map((a) => a.subsidiaryId),
+    ]);
+
+    if (!isSuper && !allowedIds.has(requestedSubsidiaryId)) {
+      throw new ForbiddenException(
+        "Vous n'êtes pas autorisé à accéder à cette filiale.",
+      );
+    }
+
+    const targetSub = await this.prisma.subsidiary.findUnique({
+      where: { id: requestedSubsidiaryId },
+    });
+    if (!targetSub) {
+      throw new NotFoundException('Filiale cible introuvable.');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { activeSubsidiaryId: requestedSubsidiaryId },
+    });
+
+    await this.systemAudit?.log({
+      actorId: user.id,
+      actorEmail: user.email,
+      actorRole: user.activeRole ?? user.userRole,
+      subsidiaryId: requestedSubsidiaryId,
+      action: 'SUBSIDIARY_SWITCHED',
+      entityType: 'User',
+      entityId: user.id,
+      summary: `${user.email} a basculé sa filiale active vers ${targetSub.subsidiaryName}`,
+      metadata: {
+        fromSubsidiaryId: user.activeSubsidiaryId ?? user.subsidiaryId,
+        toSubsidiaryId: requestedSubsidiaryId,
+      },
+    });
+
+    return {
+      subsidiary: targetSub,
+      activeSubsidiaryId: targetSub.id,
+    };
+  }
+
+  /**
+   * Mutation tracée d'un utilisateur (et de sa fiche employé associée si existante)
+   * vers une nouvelle filiale, réservée à SUPER_ADMIN.
+   */
+  async transferUser(
+    targetUserId: string,
+    toSubsidiaryId: string,
+    reason: string | undefined,
+    currentUser: {
+      id: string;
+      email?: string;
+      role?: UserRole;
+      roles?: UserRole[];
+      activeRole?: UserRole;
+    },
+  ) {
+    if (!this.hasGlobalAdminPrivileges(currentUser)) {
+      throw new ForbiddenException(
+        'Seul le Super Administrateur peut muter un utilisateur vers une autre filiale.',
+      );
+    }
+
+    const [targetUser, targetSub] = await Promise.all([
+      this.prisma.user.findUnique({ where: { id: targetUserId } }),
+      this.prisma.subsidiary.findUnique({ where: { id: toSubsidiaryId } }),
+    ]);
+
+    if (!targetUser) {
+      throw new NotFoundException('Utilisateur introuvable.');
+    }
+    if (!targetSub) {
+      throw new NotFoundException('Filiale de destination introuvable.');
+    }
+    if (targetUser.subsidiaryId === toSubsidiaryId) {
+      throw new BadRequestException(
+        "L'utilisateur est déjà rattaché à cette filiale.",
+      );
+    }
+
+    const fromSubsidiaryId = targetUser.subsidiaryId;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: targetUserId },
+        data: {
+          subsidiaryId: toSubsidiaryId,
+          activeSubsidiaryId: toSubsidiaryId,
+        },
+      });
+
+      const linkedEmployee = await tx.employee.findUnique({
+        where: { email: targetUser.email },
+        select: { id: true },
+      });
+
+      if (linkedEmployee) {
+        await tx.employee.update({
+          where: { id: linkedEmployee.id },
+          data: { subsidiaryId: toSubsidiaryId },
+        });
+      }
+
+      await tx.subsidiaryTransferHistory.create({
+        data: {
+          userId: targetUserId,
+          employeeId: linkedEmployee?.id ?? null,
+          fromSubsidiaryId,
+          toSubsidiaryId,
+          reason: reason?.trim() || null,
+          transferredBy: currentUser.id,
+        },
+      });
+
+      await this.systemAudit?.log(
+        {
+          actorId: currentUser.id,
+          actorEmail: currentUser.email,
+          actorRole: currentUser.activeRole ?? currentUser.role,
+          subsidiaryId: toSubsidiaryId,
+          action: 'USER_TRANSFERRED',
+          entityType: 'User',
+          entityId: targetUserId,
+          summary: `Mutation de ${targetUser.email} vers ${targetSub.subsidiaryName}`,
+          metadata: {
+            fromSubsidiaryId,
+            toSubsidiaryId,
+            reason: reason?.trim() || null,
+          },
+        },
+        tx,
+      );
+    });
+
+    return {
+      message: 'Utilisateur muté avec succès.',
+      userId: targetUserId,
+      fromSubsidiaryId,
+      toSubsidiaryId,
+    };
+  }
+
+  /**
+   * Gère les accès multi-filiales explicites d'un utilisateur (réservé SUPER_ADMIN).
+   */
+  async updateSubsidiaryAccess(
+    targetUserId: string,
+    subsidiaryIds: string[],
+    currentUser: {
+      id: string;
+      email?: string;
+      role?: UserRole;
+      roles?: UserRole[];
+      activeRole?: UserRole;
+    },
+  ) {
+    if (!this.hasGlobalAdminPrivileges(currentUser)) {
+      throw new ForbiddenException(
+        'Seul le Super Administrateur peut accorder des accès multi-filiales.',
+      );
+    }
+
+    const targetUser = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+    });
+    if (!targetUser) {
+      throw new NotFoundException('Utilisateur introuvable.');
+    }
+
+    const uniqueIds = Array.from(
+      new Set(
+        subsidiaryIds.filter(
+          (id) => Boolean(id) && id !== targetUser.subsidiaryId,
+        ),
+      ),
+    );
+
+    if (uniqueIds.length > 0) {
+      const count = await this.prisma.subsidiary.count({
+        where: { id: { in: uniqueIds } },
+      });
+      if (count !== uniqueIds.length) {
+        throw new BadRequestException(
+          'Une ou plusieurs filiales spécifiées sont introuvables.',
+        );
+      }
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.userSubsidiaryAccess.deleteMany({
+        where: { userId: targetUserId },
+      });
+      if (uniqueIds.length > 0) {
+        await tx.userSubsidiaryAccess.createMany({
+          data: uniqueIds.map((subsidiaryId) => ({
+            userId: targetUserId,
+            subsidiaryId,
+            grantedBy: currentUser.id,
+          })),
+        });
+      }
+
+      if (
+        targetUser.activeSubsidiaryId &&
+        targetUser.activeSubsidiaryId !== targetUser.subsidiaryId &&
+        !uniqueIds.includes(targetUser.activeSubsidiaryId)
+      ) {
+        await tx.user.update({
+          where: { id: targetUserId },
+          data: { activeSubsidiaryId: targetUser.subsidiaryId },
+        });
+      }
+
+      await this.systemAudit?.log(
+        {
+          actorId: currentUser.id,
+          actorEmail: currentUser.email,
+          actorRole: currentUser.activeRole ?? currentUser.role,
+          subsidiaryId: targetUser.subsidiaryId,
+          action: 'SUBSIDIARY_ACCESS_UPDATED',
+          entityType: 'User',
+          entityId: targetUserId,
+          summary: `Accès multi-filiales mis à jour pour ${targetUser.email}`,
+          metadata: { allowedExtraSubsidiaryIds: uniqueIds },
+        },
+        tx,
+      );
+    });
+
+    return {
+      userId: targetUserId,
+      subsidiaryAccessIds: uniqueIds,
     };
   }
 

@@ -32,7 +32,7 @@ export interface Proforma {
     address: string;
     phone: string;
     email: string;
-    ifu: string;
+    niu: string;
     rccm: string;
     bankName: string;
     accountNumber: string;

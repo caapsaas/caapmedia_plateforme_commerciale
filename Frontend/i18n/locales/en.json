@@ -2207,7 +2207,7 @@
     "exportPdf": "Export to PDF",
     "phone": "Phone",
     "email": "Email",
-    "ifu": "Tax ID",
+    "niu": "Tax ID (NIU)",
     "rccm": "Trade Reg.",
     "paymentDueDate": "Payment Due Date",
     "totalTTC": "Total (incl. tax)",
@@ -2799,7 +2799,7 @@
       "nextMaintenanceDate": "Next Maintenance Date",
       "technician": "Technician",
       "description": "Intervention Description",
-      "cost": "Cost (XOF)",
+      "cost": "Cost (FCFA)",
       "acquisitionDate": "Acquisition Date",
       "acquisitionValue": "Acquisition Value"
     }
@@ -3400,7 +3400,7 @@
     "expenseSearch": "Search expenses",
     "selectExpense": "Select an expense to pay",
     "noExpenses": "No expenses awaiting payment",
-    "expenseCurrency": "Select a safe in XOF to pay this expense.",
+    "expenseCurrency": "Select a safe in FCFA (XAF) to pay this expense.",
     "title": "Disbursement — Safe",
     "subtitle": "Centralized treasury: the headquarter safe.",
     "sourceSafe": "Source safe",
@@ -4019,6 +4019,83 @@
       "PACKAGING": "Packaging",
       "TRANSACTION_FEES": "Transaction fees",
       "OTHER": "Other expenses"
+    }
+  },
+  "navV3": {
+    "cockpit": "Cockpit",
+    "commerceClients": "Commerce & Clients",
+    "operationsProduction": "Production & Operations",
+    "financeAccounting": "Money & Accounting",
+    "hrProjectsAdmin": "HR, Projects & Secretariat",
+    "governanceSettings": "Governance & Settings",
+    "auditSystem": "Audit & System Health"
+  },
+  "headerV3": {
+    "searchTrigger": "Search...",
+    "activeSubsidiary": "Active subsidiary",
+    "switchingSubsidiary": "Switching subsidiary...",
+    "switchSubsidiaryError": "Unable to switch to this subsidiary."
+  },
+  "auditPage": {
+    "title": "Audit & System Health",
+    "subtitle": "Immutable log of critical business actions, authentication security history, and integration health.",
+    "tabs": {
+      "businessAudit": "Business Audit Trail",
+      "authSecurity": "Auth Security Log",
+      "integrations": "Integrations Health"
+    },
+    "filters": {
+      "action": "Action",
+      "entityType": "Entity",
+      "actorEmail": "Actor (email)",
+      "all": "All",
+      "reset": "Reset"
+    },
+    "columns": {
+      "date": "Date",
+      "actor": "Actor",
+      "action": "Action",
+      "entity": "Entity",
+      "subsidiary": "Subsidiary",
+      "details": "Details",
+      "event": "Event",
+      "ip": "IP Address"
+    },
+    "empty": "No events recorded for these filters."
+  },
+  "userGovernance": {
+    "transferAction": "Transfer to subsidiary",
+    "transferTitle": "Subsidiary Transfer",
+    "transferTarget": "Target home subsidiary",
+    "transferReason": "Transfer reason",
+    "transferSubmit": "Confirm transfer",
+    "transferSuccess": "User transferred successfully.",
+    "accessAction": "Multi-subsidiary access",
+    "accessTitle": "Authorized subsidiaries (HQ / Multi-entity)",
+    "accessHint": "Select additional subsidiaries this user can switch into.",
+    "accessSubmit": "Save access",
+    "accessSuccess": "Multi-subsidiary access updated.",
+    "homeBadge": "Home"
+  },
+  "supplierGovernance": {
+    "archiveAction": "Archive",
+    "archiveConfirm": "Archive this supplier? It remains preserved for accounting history and can be restored.",
+    "archiveSuccess": "Supplier archived.",
+    "restoreAction": "Restore",
+    "restoreSuccess": "Supplier restored.",
+    "showArchived": "Show archived",
+    "archivedBadge": "Archived"
+  },
+  "subsidiaryCameroon": {
+    "niu": "NIU (Taxpayer ID)",
+    "niuPlaceholder": "e.g. M012345678901A",
+    "taxCenter": "Tax Center (CDI / CIME)",
+    "taxCenterPlaceholder": "e.g. CIME Douala Bonanjo",
+    "taxRegime": "Tax regime",
+    "regimes": {
+      "REEL": "Actual Regime (Réel)",
+      "SIMPLIFIE": "Simplified Regime (RSI)",
+      "LIBERATOIRE": "Presumptive Tax (Libératoire)"
     }
   }
 }

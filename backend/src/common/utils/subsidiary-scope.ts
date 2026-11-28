@@ -13,11 +13,19 @@ import {
  */
 export interface ScopableUser extends RoleIdentity {
   subsidiaryId: string;
+  allowedSubsidiaryIds?: string[];
 }
 
 export interface SubsidiaryScopeContext {
   subsidiaryId: string;
   hasGlobalScope: boolean;
+  allowedSubsidiaryIds?: string[];
+}
+
+function getAllowedIds(ctx: SubsidiaryScopeContext): string[] {
+  return ctx.allowedSubsidiaryIds?.length
+    ? ctx.allowedSubsidiaryIds
+    : [ctx.subsidiaryId];
 }
 
 function requireSubsidiaryId(subsidiaryId: string): void {
@@ -46,7 +54,19 @@ export function resolveScopeContext(
   const hasGlobalScope =
     isSuperAdmin(user) ||
     (activeRole !== undefined && extraGlobalRoles.includes(activeRole));
-  return { subsidiaryId: user.subsidiaryId, hasGlobalScope };
+  const hasExtraSubsidiaries = (user.allowedSubsidiaryIds?.length ?? 0) > 0;
+  return hasExtraSubsidiaries
+    ? {
+        subsidiaryId: user.subsidiaryId,
+        hasGlobalScope,
+        allowedSubsidiaryIds: Array.from(
+          new Set([user.subsidiaryId, ...(user.allowedSubsidiaryIds ?? [])]),
+        ),
+      }
+    : {
+        subsidiaryId: user.subsidiaryId,
+        hasGlobalScope,
+      };
 }
 
 /**
@@ -69,6 +89,12 @@ export function withSubsidiaryScope<T extends Record<string, unknown>>(
     return requestedSubsidiaryId
       ? { ...where, subsidiaryId: requestedSubsidiaryId }
       : where;
+  }
+  if (
+    requestedSubsidiaryId &&
+    getAllowedIds(ctx).includes(requestedSubsidiaryId)
+  ) {
+    return { ...where, subsidiaryId: requestedSubsidiaryId };
   }
   return { ...where, subsidiaryId: ctx.subsidiaryId };
 }
@@ -101,7 +127,7 @@ export function assertSubsidiaryAccess(
   ctx: SubsidiaryScopeContext,
 ): void {
   requireSubsidiaryId(ctx?.subsidiaryId);
-  if (!ctx.hasGlobalScope && entitySubsidiaryId !== ctx.subsidiaryId) {
+  if (!ctx.hasGlobalScope && !getAllowedIds(ctx).includes(entitySubsidiaryId)) {
     throw new ForbiddenException("Vous n'avez pas acces a cette ressource.");
   }
 }
